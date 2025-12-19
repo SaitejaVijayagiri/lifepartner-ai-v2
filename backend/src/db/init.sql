@@ -14,6 +14,11 @@ CREATE TABLE users (
     location_coords GEOGRAPHY(Point), -- PostGIS for radius search
     relocation_willingness VARCHAR(50) DEFAULT 'anywhere', -- 'anywhere', 'country', 'none'
     intent VARCHAR(50) DEFAULT 'serious', -- 'marriage', 'serious'
+    avatar_url TEXT,
+    voice_bio_url TEXT,
+    is_premium BOOLEAN DEFAULT FALSE,
+    coins INT DEFAULT 0,
+    referral_code VARCHAR(20),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -32,6 +37,11 @@ CREATE TABLE profiles (
     traits JSONB, -- { "openness": 0.8, "conscientiousness": 0.9 }
     values JSONB, -- ["family", "career", "growth"]
     dealbreakers JSONB, -- ["smoker", "pet_allergy"]
+    
+    -- Extended Profile Data
+    metadata JSONB DEFAULT '{}',
+    reels JSONB DEFAULT '[]',
+    stories JSONB DEFAULT '[]',
     
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -56,5 +66,36 @@ CREATE TABLE messages (
     sender_id UUID REFERENCES users(id),
     content TEXT,
     is_mediator_message BOOLEAN DEFAULT FALSE, -- AI Mediator
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 5. Notifications
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50), -- 'like', 'request', 'match'
+    message TEXT,
+    data JSONB,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 6. Reports
+CREATE TABLE reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporter_id UUID REFERENCES users(id),
+    reported_id UUID REFERENCES users(id),
+    reason TEXT,
+    details TEXT,
+    resolved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 7. Contact Generally
+CREATE TABLE contact_inquiries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100),
+    email VARCHAR(255),
+    message TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );

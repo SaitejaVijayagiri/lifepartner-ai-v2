@@ -44,6 +44,28 @@ export default function Dashboard() {
                 router.push('/login');
                 return;
             }
+
+            // Check if profile is complete (has photos or key data)
+            try {
+                const profile = await api.profile.getMe();
+                // If profile is incomplete, redirect to onboarding
+                if (!profile || !profile.photos || profile.photos.length === 0 || !profile.name) {
+                    console.log("Profile incomplete, redirecting to onboarding...");
+                    router.push('/onboarding');
+                    return;
+                }
+            } catch (err: any) {
+                // If profile fetch fails (404 or error), redirect to onboarding
+                console.error('Profile check failed', err);
+                if (err?.message?.includes('401') || err?.message?.includes('session')) {
+                    localStorage.removeItem('token');
+                    router.push('/login');
+                } else {
+                    router.push('/onboarding');
+                }
+                return;
+            }
+
             fetchMatches();
             // Mock Requests Count
             setRequestsCount(3);

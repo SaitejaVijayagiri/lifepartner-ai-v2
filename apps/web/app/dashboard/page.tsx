@@ -206,6 +206,14 @@ export default function Dashboard() {
                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     </div>
 
+                    {/* Premium Badge */}
+                    {currentUser?.is_premium && (
+                        <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300">
+                            <span>👑</span>
+                            <span>PREMIUM</span>
+                        </div>
+                    )}
+
                     <button className="relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors">
                         <Filter size={20} className="text-foreground" />
                     </button>

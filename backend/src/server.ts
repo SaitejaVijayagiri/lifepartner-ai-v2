@@ -287,17 +287,19 @@ const initServer = async () => {
     } catch (e) {
         console.warn("⚠️ Schema check failed (might be permissions or connectivity):", e);
     }
-
-    // 3. Start Server with Socket.io
-    const { createServer } = require('http');
-    const { initSocket } = require('./socket');
-
-    const httpServer = createServer(app);
-    initSocket(httpServer);
-
-    httpServer.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server running on port ${PORT} at 0.0.0.0`);
-    });
 };
 
-initServer();
+// Start Server FIRST (for Render health check), then init DB
+const { createServer } = require('http');
+const { initSocket } = require('./socket');
+
+const httpServer = createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT} at 0.0.0.0`);
+
+    // Run heavy initialization AFTER server is listening
+    initServer();
+});
+

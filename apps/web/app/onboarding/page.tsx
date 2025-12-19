@@ -80,6 +80,9 @@ export default function OnboardingPage() {
 
             await api.profile.updateProfile(payload); // Updated to use correct endpoint
 
+            // Clear saved onboarding data from localStorage after successful save
+            localStorage.removeItem('lifepartner_onboarding_data');
+
             // Simulate analysis delay
             await new Promise(r => setTimeout(r, 1000));
             router.push('/dashboard');

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/Toast';
 import VoiceRecorder from './VoiceRecorder';
 import { api } from '@/lib/api';
+
+const STORAGE_KEY = 'lifepartner_onboarding_data';
 
 const STEPS = [
     { id: 'welcome', title: 'Welcome' },
@@ -68,6 +70,29 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         photos: [],
         voiceBioUrl: ''
     });
+
+    // Load saved data from localStorage on mount
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                setData((prev: any) => ({ ...prev, ...parsed }));
+                console.log('Restored onboarding progress from localStorage');
+            }
+        } catch (e) {
+            console.error('Failed to load saved onboarding data', e);
+        }
+    }, []);
+
+    // Auto-save data to localStorage whenever it changes
+    useEffect(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.error('Failed to save onboarding data', e);
+        }
+    }, [data]);
 
     const update = (field: string, val: any) => setData((prev: any) => ({ ...prev, [field]: val }));
 
@@ -194,7 +219,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Other</option>
                                     </select>
                                 </div>
-                                <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer" value={data.caste} onChange={e => update('caste', e.target.value)} />
+                                <Input label="Caste / Community" placeholder="e.g. BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
                                 <Input label="Gothra (Optional)" placeholder="e.g. Bharadwaj" value={data.gothra} onChange={e => update('gothra', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Manglik</label>

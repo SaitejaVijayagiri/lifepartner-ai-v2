@@ -219,7 +219,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     <div className="flex flex-wrap gap-2 text-gray-100 text-xs font-medium mb-3 opacity-95">
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "N/A"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.role || "Professional"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion || "Hindu"}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "Hindu"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📍 {match.location?.city || "India"}</span>
                     </div>
 

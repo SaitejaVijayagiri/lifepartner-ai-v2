@@ -58,4 +58,58 @@ router.post('/test', authenticateToken, async (req: any, res) => {
     }
 });
 
+// 3. Get All Notifications
+router.get('/', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const result = await pool.query(`
+            SELECT * FROM notifications 
+            WHERE user_id = $1 
+            ORDER BY created_at DESC 
+            LIMIT 50
+        `, [userId]);
+
+        res.json(result.rows);
+    } catch (e) {
+        console.error("Get Notifications Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
+// 4. Mark Read
+router.put('/:id/read', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+
+        await pool.query(`
+            UPDATE notifications 
+            SET read = TRUE 
+            WHERE id = $1 AND user_id = $2
+        `, [id, userId]);
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
+// 5. Mark All Read
+router.put('/read-all', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        await pool.query(`
+            UPDATE notifications 
+            SET read = TRUE 
+            WHERE user_id = $1
+        `, [userId]);
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 export default router;

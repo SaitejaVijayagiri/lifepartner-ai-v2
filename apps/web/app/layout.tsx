@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   title: "LifePartner AI",
   description: "Find your perfect match with AI.",
   manifest: "/manifest.json",
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

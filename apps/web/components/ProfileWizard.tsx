@@ -219,7 +219,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Other</option>
                                     </select>
                                 </div>
-                                <Input label="Caste / Community" placeholder="e.g. BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
+                                <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer, BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
                                 <Input label="Gothra (Optional)" placeholder="e.g. Bharadwaj" value={data.gothra} onChange={e => update('gothra', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Manglik</label>

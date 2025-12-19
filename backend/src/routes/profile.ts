@@ -276,20 +276,26 @@ router.post('/voice-bio', authenticateToken, upload.single('audio'), async (req:
 
         console.log(`Starting Voice Bio upload: ${filename}`);
 
-        // 2. Transcription & Safety Check (FREE AI)
-        console.log("🛡️ Running Voice Safety Analysis...");
-        const transcript = await aiService.transcribeAudio(filePath);
-        const cleanTranscript = sanitizeContent(transcript);
+        // 2. Transcription & Safety Check (Optional - may fail on some environments)
+        let transcript = "";
+        let safetyBlocked = false;
+        try {
+            console.log("🛡️ Running Voice Safety Analysis...");
+            transcript = await aiService.transcribeAudio(filePath);
+            const cleanTranscript = sanitizeContent(transcript);
 
-        // If 'Clean' differs from 'Original' (meaning it had phones/emails), REJECT.
-        // OR search for specific trigger words if needed. 
-        // Note: sanitizeContent replaces with [Hidden...], so if the string contains that, we know it was bad.
-        if (cleanTranscript.includes("[Hidden Contact")) {
-            console.warn(`🚨 BLOCKED Voice Bio: User tried to share contact info. Transcript: "${transcript}"`);
+            // If 'Clean' differs from 'Original' (meaning it had phones/emails), REJECT.
+            if (cleanTranscript.includes("[Hidden Contact")) {
+                console.warn(`🚨 BLOCKED Voice Bio: User tried to share contact info. Transcript: "${transcript}"`);
+                safetyBlocked = true;
+            }
+        } catch (transcribeErr) {
+            console.warn("⚠️ Transcription failed (non-blocking, proceeding with upload):", transcribeErr);
+            // Continue with upload even if transcription fails
+        }
 
-            // Cleanup
+        if (safetyBlocked) {
             fs.unlink(filePath, () => { });
-
             return res.status(400).json({
                 error: "Safety Alert: Personal contact information detected in audio. Please record again without phone numbers or emails."
             });

@@ -29,7 +29,6 @@ const QUOTES = {
     family: "Family is where life begins and love never ends.",
     lifestyle: " Habits shape our lives. Let's find someone who matches your rhythm.",
     partner: "Describe your soulmate. We'll use AI to find them.",
-    voice: "Don't just be a photo. Let them fall in love with your voice.",
     photos: "A picture is worth a thousand words. Add your best moments."
 };
 
@@ -42,7 +41,6 @@ const GRADIENTS = {
     family: "from-orange-500 to-red-600",
     lifestyle: "from-lime-600 to-green-700",
     partner: "from-pink-600 to-rose-600",
-    voice: "from-indigo-600 to-violet-800",
     photos: "from-indigo-500 to-blue-600",
 };
 
@@ -352,57 +350,6 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Pref Height" placeholder="5'2 - 5'8" value={data.partnerHeightRange} onChange={e => update('partnerHeightRange', e.target.value)} />
                                 <Input label="Min Income" placeholder="e.g. 10 LPA" value={data.partnerIncome} onChange={e => update('partnerIncome', e.target.value)} />
                             </div>
-                        </div>
-                    )}
-
-                    {/* STEP: VOICE BIO */}
-                    {stepId === 'voice' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center">
-                            <h3 className="text-xl font-bold text-gray-900">Record an Audio Intro 🎙️</h3>
-                            <p className="text-gray-500">Profiles with voice bios get 3x more responses.</p>
-
-                            <VoiceRecorder
-                                onRecordingComplete={async (blob) => {
-                                    // Auto-upload on recording completion
-                                    const formData = new FormData();
-                                    formData.append('audio', blob, 'voice-bio.webm');
-                                    try {
-                                        // Ideally show "Analyzing" loading state here if upload is seemingly fast but analysis takes time.
-                                        // Our VoiceRecorder likely handles loading state for upload, but we can add a local one for "AI Processing".
-
-                                        const res = await api.profile.uploadVoiceBio(formData);
-                                        if (res.audioUrl) {
-                                            update('voiceBioUrl', res.audioUrl);
-                                        }
-                                        if (res.vibe) {
-                                            // Store vibe in data or local state to show it.
-                                            // Let's use a local state for the wizard to show the "Wow" factor.
-                                            setVibeResult(res.vibe);
-                                            toast.success("Voice Bio & AI Analysis Complete! ✨");
-                                        }
-                                    } catch (e) {
-                                        console.error("Voice Upload Failed", e);
-                                        toast.error("Failed to upload voice bio");
-                                    }
-                                }}
-                                existingAudioUrl={data.voiceBioUrl}
-                            />
-
-                            {/* AI Vibe Result Display */}
-                            {vibeResult && (
-                                <div className="mt-6 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 shadow-sm animate-in zoom-in-50 duration-500">
-                                    <h4 className="text-sm font-bold text-indigo-600 uppercase tracking-wide mb-2">✨ AI Vibe Check</h4>
-                                    <div className="text-2xl font-bold text-gray-900 mb-1">{vibeResult.vibe}</div>
-                                    <p className="text-sm text-gray-600 mb-3">{vibeResult.summary}</p>
-                                    <div className="flex flex-wrap justify-center gap-2">
-                                        {vibeResult.tags.map((tag: string, i: number) => (
-                                            <span key={i} className="px-3 py-1 bg-white text-indigo-600 text-xs font-bold rounded-full border border-indigo-200 shadow-sm">
-                                                #{tag}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
 

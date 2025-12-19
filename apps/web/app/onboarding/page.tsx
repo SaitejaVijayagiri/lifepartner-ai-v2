@@ -82,6 +82,7 @@ export default function OnboardingPage() {
 
             // Clear saved onboarding data from localStorage after successful save
             localStorage.removeItem('lifepartner_onboarding_data');
+            localStorage.removeItem('lifepartner_onboarding_step');
 
             // Simulate analysis delay
             await new Promise(r => setTimeout(r, 1000));

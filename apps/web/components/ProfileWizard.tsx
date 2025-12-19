@@ -8,6 +8,7 @@ import VoiceRecorder from './VoiceRecorder';
 import { api } from '@/lib/api';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
+const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
 
 const STEPS = [
     { id: 'welcome', title: 'Welcome' },
@@ -17,7 +18,6 @@ const STEPS = [
     { id: 'family', title: 'Family Background' },
     { id: 'lifestyle', title: 'Lifestyle & Habits' },
     { id: 'partner', title: 'Partner Preferences' },
-    { id: 'voice', title: 'Voice Bio (New)' },
     { id: 'photos', title: 'Upload Photos' },
 ];
 
@@ -71,7 +71,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         voiceBioUrl: ''
     });
 
-    // Load saved data from localStorage on mount
+    // Load saved data and step from localStorage on mount
     useEffect(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -79,6 +79,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 const parsed = JSON.parse(saved);
                 setData((prev: any) => ({ ...prev, ...parsed }));
                 console.log('Restored onboarding progress from localStorage');
+            }
+            // Restore step position
+            const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
+            if (savedStep) {
+                const stepIndex = parseInt(savedStep, 10);
+                if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < STEPS.length) {
+                    setCurrentStep(stepIndex);
+                    console.log(`Restored to step ${stepIndex}: ${STEPS[stepIndex].title}`);
+                }
             }
         } catch (e) {
             console.error('Failed to load saved onboarding data', e);
@@ -93,6 +102,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             console.error('Failed to save onboarding data', e);
         }
     }, [data]);
+
+    // Auto-save current step to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem(STEP_STORAGE_KEY, currentStep.toString());
+        } catch (e) {
+            console.error('Failed to save step', e);
+        }
+    }, [currentStep]);
 
     const update = (field: string, val: any) => setData((prev: any) => ({ ...prev, [field]: val }));
 

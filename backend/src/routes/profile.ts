@@ -262,122 +262,83 @@ router.post('/reel', authenticateToken, upload.single('video'), async (req: any,
     }
 });
 
-// 4.5 POST /voice-bio (Upload Voice Bio)
+// 4.5 POST /voice-bio (Upload Voice Bio) - Simplified & Reliable
 router.post('/voice-bio', authenticateToken, upload.single('audio'), async (req: any, res) => {
+    let localFilePath = '';
     try {
         const userId = req.user.userId;
 
-        if (!req.file) return res.status(400).json({ error: "No audio file" });
+        if (!req.file) {
+            return res.status(400).json({ error: "No audio file provided" });
+        }
 
-
-        const filePath = req.file.path;
-        // Use a consistent filename so user can overwrite their bio
+        localFilePath = req.file.path;
         const filename = `voice-bios/${userId}/bio-${Date.now()}.webm`;
 
-        console.log(`Starting Voice Bio upload: ${filename}`);
+        console.log(`📤 Uploading Voice Bio: ${filename}`);
 
-        // 2. Transcription & Safety Check (Optional - may fail on some environments)
-        let transcript = "";
-        let safetyBlocked = false;
-        try {
-            console.log("🛡️ Running Voice Safety Analysis...");
-            transcript = await aiService.transcribeAudio(filePath);
-            const cleanTranscript = sanitizeContent(transcript);
-
-            // If 'Clean' differs from 'Original' (meaning it had phones/emails), REJECT.
-            if (cleanTranscript.includes("[Hidden Contact")) {
-                console.warn(`🚨 BLOCKED Voice Bio: User tried to share contact info. Transcript: "${transcript}"`);
-                safetyBlocked = true;
-            }
-        } catch (transcribeErr) {
-            console.warn("⚠️ Transcription failed (non-blocking, proceeding with upload):", transcribeErr);
-            // Continue with upload even if transcription fails
+        // Check if Supabase is configured
+        if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+            console.error("❌ Supabase not configured");
+            return res.status(500).json({ error: "Storage service not configured. Please contact support." });
         }
 
-        if (safetyBlocked) {
-            fs.unlink(filePath, () => { });
-            return res.status(400).json({
-                error: "Safety Alert: Personal contact information detected in audio. Please record again without phone numbers or emails."
-            });
-        }
+        // Read file as buffer (more reliable than streams)
+        const fileBuffer = fs.readFileSync(localFilePath);
 
-        // 3. Stream to Supabase (if safe)
-        const fileStream = fs.createReadStream(filePath);
-        const { data, error } = await supabase
+        // Upload to Supabase
+        const { data, error: uploadError } = await supabase
             .storage
             .from('uploads')
-            .upload(filename, fileStream, {
-                contentType: req.file.mimetype,
+            .upload(filename, fileBuffer, {
+                contentType: req.file.mimetype || 'audio/webm',
                 upsert: true
             });
 
-        // Cleanup local temp file
-        // Don't clean up yet if we want to run vibe analysis on local file?
-        // Actually vibe analysis runs on file path.
-        // We can run it in parallel or after.
-        // Let's run it BEFORE cleanup.
+        // Cleanup local file immediately
+        fs.unlink(localFilePath, () => { });
+        localFilePath = ''; // Mark as cleaned
 
-        let vibeResult = null;
-        try {
-            // 4. AI Vibe Analysis (Phase 2 Feature)
-            console.log("🧠 Analyzing Voice Vibe...");
-            const { analyzeVibe } = await import('../services/vibeAnalysis');
-            vibeResult = await analyzeVibe(filePath, 'AUDIO');
-            console.log("✨ Vibe Analysis Result:", vibeResult);
-        } catch (vibeErr) {
-            console.error("Vibe Analysis Failed (Non-blocking):", vibeErr);
+        if (uploadError) {
+            console.error("❌ Supabase Upload Error:", uploadError);
+            return res.status(500).json({
+                error: "Failed to upload audio. Please try again.",
+                details: uploadError.message
+            });
         }
 
-        fs.unlink(filePath, () => { });
-
-        if (error) {
-            console.error("Supabase Upload Error", error);
-            throw error;
-        }
-
+        // Get public URL
         const { data: { publicUrl } } = supabase.storage.from('uploads').getPublicUrl(filename);
 
-        // 5. Update Profile & Store Vibe Metadata
+        // Save to database
         const client = await pool.connect();
         try {
-            await client.query('BEGIN');
-
-            // Update URL
-            await client.query(`UPDATE public.users SET voice_bio_url = $1 WHERE id = $2`, [publicUrl, userId]);
-
-            // Update Metadata if vibe exists
-            if (vibeResult) {
-                // Merge into metadata JSON
-                await client.query(`
-                    UPDATE public.profiles 
-                    SET metadata = jsonb_set(
-                        COALESCE(metadata, '{}'::jsonb), 
-                        '{voice_vibe}', 
-                        $1::jsonb
-                    )
-                    WHERE user_id = $2
-                `, [JSON.stringify(vibeResult), userId]);
-            }
-
-            await client.query('COMMIT');
-        } catch (dbErr) {
-            await client.query('ROLLBACK');
-            throw dbErr;
+            await client.query(
+                `UPDATE public.users SET voice_bio_url = $1 WHERE id = $2`,
+                [publicUrl, userId]
+            );
         } finally {
             client.release();
         }
 
+        console.log(`✅ Voice Bio uploaded successfully: ${publicUrl}`);
+
         res.json({
             success: true,
             audioUrl: publicUrl,
-            vibe: vibeResult, // Return to frontend!
-            transcript
-        }); // Return transcript for UI if we want to show it later
+            message: "Voice bio saved successfully!"
+        });
 
     } catch (e: any) {
-        console.error("Voice Upload Error", e);
-        if (req.file && req.file.path) fs.unlink(req.file.path, () => { });
-        res.status(500).json({ error: "Upload failed" });
+        console.error("❌ Voice Upload Error:", e);
+        // Cleanup on error
+        if (localFilePath && fs.existsSync(localFilePath)) {
+            fs.unlink(localFilePath, () => { });
+        }
+        res.status(500).json({
+            error: "Upload failed. Please try again.",
+            details: e.message
+        });
     }
 });
 

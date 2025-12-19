@@ -20,6 +20,9 @@ dotenv.config(); // Load ENV
 import rateLimit from 'express-rate-limit';
 
 const app = express();
+// Trust Proxy for Render (Load Balancer)
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 4000;
 
 // Rate Limiters

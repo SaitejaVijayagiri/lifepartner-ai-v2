@@ -11,6 +11,7 @@ import { BottomNav } from '@/components/BottomNav';
 import StoryModal from '@/components/StoryModal';
 import { NotificationBell } from '@/components/NotificationBell';
 import ProfileEditor from '@/components/ProfileEditor';
+import ProfileView from '@/components/ProfileView'; // Added
 import ReelFeed from '@/components/ReelFeed';
 import ChatWindow from '@/components/ChatWindow';
 
@@ -38,6 +39,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('matches'); // matches, reels, requests, connections, profile
     const [requestsCount, setRequestsCount] = useState(0);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
@@ -385,15 +387,24 @@ export default function Dashboard() {
                     {activeTab === 'reels' && <ReelFeed />}
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
+
                     {activeTab === 'profile' && currentUser && (
-                        <ProfileEditor
-                            initialData={currentUser}
-                            onSave={(newData) => {
-                                setCurrentUser(newData);
-                                alert("Profile Saved!");
-                            }}
-                            onCancel={() => setActiveTab('matches')}
-                        />
+                        isEditingProfile ? (
+                            <ProfileEditor
+                                initialData={currentUser}
+                                onSave={(newData) => {
+                                    setCurrentUser(newData);
+                                    setIsEditingProfile(false);
+                                    alert("Profile Saved!");
+                                }}
+                                onCancel={() => setIsEditingProfile(false)}
+                            />
+                        ) : (
+                            <ProfileView
+                                profile={currentUser}
+                                onEdit={() => setIsEditingProfile(true)}
+                            />
+                        )
                     )}
                 </div>
 

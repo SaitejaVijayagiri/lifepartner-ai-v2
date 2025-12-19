@@ -86,6 +86,22 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         setCurrentStep(s => s - 1);
     };
 
+    // Silent check for button disabled state (no toasts)
+    const isStepValid = () => {
+        const stepId = STEPS[currentStep].id;
+        if (stepId === 'basics') {
+            return !!(data.name && data.age && data.height && data.city);
+        }
+        if (stepId === 'career') {
+            return !!(data.profession && data.education);
+        }
+        if (stepId === 'photos') {
+            return !!(data.photos && data.photos.length > 0);
+        }
+        return true;
+    };
+
+    // Validation with toasts (only called on button click)
     const validateStep = () => {
         const stepId = STEPS[currentStep].id;
         if (stepId === 'basics') {
@@ -106,7 +122,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 return false;
             }
         }
-        return true; // Others optional or handled
+        return true;
     };
 
     const stepId = STEPS[currentStep].id;
@@ -405,7 +421,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <Button
                             onClick={handleNext}
                             className="w-32 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-                            disabled={!validateStep()}
+                            disabled={!isStepValid()}
                         >
                             {currentStep === STEPS.length - 1 ? "Finish" : "Next"}
                         </Button>

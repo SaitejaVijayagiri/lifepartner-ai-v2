@@ -279,13 +279,34 @@ export class AIService {
             if (lower.includes('rich') || lower.includes('wealthy')) result.minIncome = 20;
 
             // 6. Location
-            const cities = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune'];
+            const cities = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune', 'usa', 'dubai', 'london'];
             const loc = cities.find(c => lower.includes(c));
             if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
 
             // 7. Diet
             if (lower.includes('vegetarian') || (lower.includes('veg') && !lower.includes('non-veg'))) result.diet = "Veg";
             else if (lower.includes('non-veg') || lower.includes('chicken') || lower.includes('meat')) result.diet = "Non-Veg";
+
+            // 8. Marital Status
+            if (lower.includes('divorced')) result.maritalStatus = "Divorced";
+            if (lower.includes('widow')) result.maritalStatus = "Widowed";
+            if (lower.includes('single') || lower.includes('never married')) result.maritalStatus = "Never Married";
+
+            // 9. Explicit Height (e.g. 5'10, 5.10, 6ft)
+            const heightMatch = lower.match(/(\d+)'(\d+)|(\d+)ft\s*(\d+)?|(\d+)\.(\d+)/);
+            if (heightMatch) {
+                // Parse 5'10 or 5.10
+                const ft = parseInt(heightMatch[1] || heightMatch[3] || heightMatch[5]);
+                const inches = parseInt(heightMatch[2] || heightMatch[4] || heightMatch[6] || "0");
+                result.minHeightInches = (ft * 12) + inches;
+            }
+
+            // 10. Habits
+            if (lower.includes('smokes') || lower.includes('smoking')) result.smoking = "Yes";
+            if (lower.includes('no smoking') || lower.includes('non smoker')) result.smoking = "No";
+
+            if (lower.includes('drink') || lower.includes('alcohol')) result.drinking = "Yes";
+            if (lower.includes('teetotaller') || lower.includes('no drink')) result.drinking = "No";
 
             return result;
         }

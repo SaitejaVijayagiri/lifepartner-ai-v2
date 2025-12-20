@@ -415,7 +415,7 @@ export default function Dashboard() {
 
                     <button
                         onClick={handleLogout}
-                        className="hidden sm:flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
+                        className="flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
                         title="Log Out"
                     >
                         <LogOut size={20} />

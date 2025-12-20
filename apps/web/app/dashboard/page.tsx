@@ -19,6 +19,7 @@ import ReelFeed from '@/components/ReelFeed';
 import ProfileView from '@/components/ProfileView';
 import ChatWindow from '@/components/ChatWindow';
 import CoinStoreModal from '@/components/CoinStoreModal';
+import FilterModal, { FilterState } from '@/components/FilterModal';
 
 /* Mock Data for Stories */
 const STORIES = [
@@ -45,6 +46,8 @@ export default function Dashboard() {
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [showCallHistory, setShowCallHistory] = useState(false);
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
+    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<FilterState | null>(null);
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
@@ -325,8 +328,14 @@ export default function Dashboard() {
                         <span>Boost</span>
                     </button>
 
-                    <button className="relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors">
-                        <Filter size={20} className="text-foreground" />
+                    <button
+                        onClick={() => setShowFilterModal(true)}
+                        className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50' : ''}`}
+                    >
+                        <Filter size={20} className={activeFilters ? 'text-indigo-600' : 'text-foreground'} />
+                        {activeFilters && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 rounded-full border-2 border-white"></span>
+                        )}
                     </button>
 
                     {activeTab === 'connections' && (
@@ -872,6 +881,19 @@ export default function Dashboard() {
                     onClose={() => setShowCallHistory(false)}
                 />
             )}
+
+            {/* Filter Modal */}
+            <FilterModal
+                isOpen={showFilterModal}
+                onClose={() => setShowFilterModal(false)}
+                onApply={(filters) => {
+                    setActiveFilters(filters);
+                    // Apply filters to matches
+                    // Note: For now, filters are stored and can be used client-side
+                    // Ideally send to backend for optimized filtering
+                }}
+                initialFilters={activeFilters || undefined}
+            />
         </div>
     );
 }

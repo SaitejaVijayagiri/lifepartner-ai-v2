@@ -64,18 +64,31 @@ router.get('/', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
 
         const result = await pool.query(`
-            SELECT * FROM notifications 
+            SELECT id, user_id, type, message, data, 
+                   COALESCE(read, false) as is_read, 
+                   created_at
+            FROM notifications 
             WHERE user_id = $1 
             ORDER BY created_at DESC 
             LIMIT 50
         `, [userId]);
 
-        res.json(result.rows);
+        // Count unread
+        const unreadResult = await pool.query(`
+            SELECT COUNT(*) as count FROM notifications 
+            WHERE user_id = $1 AND (read IS NULL OR read = FALSE)
+        `, [userId]);
+
+        res.json({
+            notifications: result.rows,
+            unreadCount: parseInt(unreadResult.rows[0]?.count || '0')
+        });
     } catch (e) {
         console.error("Get Notifications Error", e);
         res.status(500).json({ error: "Failed" });
     }
 });
+
 
 // 4. Mark Read
 router.put('/:id/read', authenticateToken, async (req: any, res) => {

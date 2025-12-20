@@ -10,7 +10,7 @@ import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video,
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
-import { BottomNav } from '@/components/BottomNav';
+
 import StoryModal from '@/components/StoryModal';
 import { NotificationBell } from '@/components/NotificationBell';
 import ProfileEditor from '@/components/ProfileEditor';
@@ -872,11 +872,7 @@ export default function Dashboard() {
 
             </main>
 
-            <BottomNav
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                requestsCount={requestsCount}
-            />
+
 
             {/* Modals */}
             <CoinStoreModal

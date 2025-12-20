@@ -26,9 +26,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-            {/* Gradient fade background */}
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none h-32 bottom-0"></div>
-
             <div className="relative flex justify-center pb-4 px-4">
                 <div className="bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-black/10 border border-gray-100/50 flex justify-between items-center px-3 py-2 w-full max-w-md">
                     {navItems.map((item) => {

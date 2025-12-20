@@ -34,6 +34,12 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     };
 
     const handleSave = async () => {
+        // Enforce Location Fields
+        if (!formData.location?.city || !formData.location?.district || !formData.location?.state) {
+            toast.error("Please ensure City, District, and State are filled.");
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await api.profile.updateProfile(formData);
@@ -240,11 +246,31 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     📍 Use GPS
                                 </button>
                             </label>
+
+                            {/* Validation Error Message */}
+                            {(!formData.location?.district || !formData.location?.state) && (
+                                <p className="text-[10px] text-amber-600 mb-1 ml-1 font-medium flex items-center gap-1">
+                                    ⚠️ GPS recommended to fetch District & State.
+                                </p>
+                            )}
+
                             <div className="grid grid-cols-2 gap-2">
                                 <Input
                                     placeholder="City (e.g. Mumbai)"
                                     value={formData.location?.city || (typeof formData.location === 'string' ? formData.location : '')}
                                     onChange={e => handleChange('location', 'city', e.target.value)}
+                                />
+                                <Input
+                                    placeholder="District (e.g. Ranga Reddy)"
+                                    value={formData.location?.district || ''}
+                                    onChange={e => handleChange('location', 'district', e.target.value)}
+                                    className={`${!formData.location?.district ? 'border-amber-300 bg-amber-50' : ''}`}
+                                />
+                                <Input
+                                    placeholder="State (e.g. Telangana)"
+                                    value={formData.location?.state || ''}
+                                    onChange={e => handleChange('location', 'state', e.target.value)}
+                                    className={`${!formData.location?.state ? 'border-amber-300 bg-amber-50' : ''}`}
                                 />
                                 <Input
                                     placeholder="Country (e.g. India)"
@@ -427,6 +453,6 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     </Button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -176,26 +176,54 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
 
                     {/* Height Range */}
                     <Section id="height" title="Height Range">
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm text-gray-600">
-                                <span>{formatHeight(filters.heightRange[0])}</span>
-                                <span>{formatHeight(filters.heightRange[1])}</span>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <label className="text-xs text-gray-500 mb-1 block">Min Height</label>
+                                    <select
+                                        value={filters.heightRange[0]}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setFilters({ ...filters, heightRange: [val, Math.max(val + 1, filters.heightRange[1])] });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                    >
+                                        {Array.from({ length: 37 }, (_, i) => 48 + i).map(inches => (
+                                            <option key={inches} value={inches}>{formatHeight(inches)}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <span className="text-gray-400 font-medium">—</span>
+                                <div className="flex-1">
+                                    <label className="text-xs text-gray-500 mb-1 block">Max Height</label>
+                                    <select
+                                        value={filters.heightRange[1]}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setFilters({ ...filters, heightRange: [Math.min(filters.heightRange[0], val - 1), val] });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                    >
+                                        {Array.from({ length: 37 }, (_, i) => 48 + i).map(inches => (
+                                            <option key={inches} value={inches}>{formatHeight(inches)}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <div className="flex gap-4">
-                                <input
-                                    type="range"
-                                    min={48} max={84}
-                                    value={filters.heightRange[0]}
-                                    onChange={e => setFilters({ ...filters, heightRange: [parseInt(e.target.value), filters.heightRange[1]] })}
-                                    className="flex-1 accent-indigo-600"
+                            {/* Visual Range Bar */}
+                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                                    style={{
+                                        left: `${((filters.heightRange[0] - 48) / 36) * 100}%`,
+                                        width: `${((filters.heightRange[1] - filters.heightRange[0]) / 36) * 100}%`
+                                    }}
                                 />
-                                <input
-                                    type="range"
-                                    min={48} max={84}
-                                    value={filters.heightRange[1]}
-                                    onChange={e => setFilters({ ...filters, heightRange: [filters.heightRange[0], parseInt(e.target.value)] })}
-                                    className="flex-1 accent-indigo-600"
-                                />
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-400">
+                                <span>4'0"</span>
+                                <span className="font-medium text-indigo-600">{formatHeight(filters.heightRange[0])} - {formatHeight(filters.heightRange[1])}</span>
+                                <span>7'0"</span>
                             </div>
                         </div>
                     </Section>

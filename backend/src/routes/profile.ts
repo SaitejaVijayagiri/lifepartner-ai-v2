@@ -14,6 +14,33 @@ const aiService = new AIService();
 
 import { upload } from '../middleware/upload';
 import { authenticateToken } from '../middleware/auth';
+import { ImageOptimizer } from '../services/imageOptimizer';
+
+async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {
+    if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Return as is if url
+
+    try {
+        const buffer = await ImageOptimizer.optimize(base64);
+        const filename = `profiles/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
+
+        const { data, error } = await supabase.storage
+            .from('reels') // Reuse 'reels' bucket or specific 'images' bucket. Using 'reels' for simplicity as it exists (or 'media' if available).
+            // Note: Ideally create a 'public' bucket. Let's try 'public' or stick to 'reels' for now.
+            // Guide mentions 'reels' bucket is used. I'll use 'reels' for now to ensure it works without creating new buckets manually.
+            .upload(filename, buffer, {
+                contentType: 'image/webp',
+                upsert: true
+            });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage.from('reels').getPublicUrl(filename);
+        return publicUrl;
+    } catch (e) {
+        console.error("Optimize upload failed", e);
+        return base64; // Fallback to storing base64 (not ideal but safe)
+    }
+}
 
 // Debug Logger
 const logDebug = (msg: string, data?: any) => {
@@ -104,6 +131,22 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             email, phone // Added email and phone
         } = req.body;
 
+        // OPTIMIZATION: Handle Base64 Images
+        let finalPhotoUrl = photoUrl;
+        if (ImageOptimizer.isBase64(photoUrl)) {
+            finalPhotoUrl = await uploadOptimizedImage(photoUrl, userId);
+        }
+
+        let finalPhotos = photos || [];
+        if (Array.isArray(finalPhotos)) {
+            finalPhotos = await Promise.all(finalPhotos.map(async (p: string) => {
+                if (ImageOptimizer.isBase64(p)) {
+                    return await uploadOptimizedImage(p, userId);
+                }
+                return p;
+            }));
+        }
+
         // REVENUE PROTECTION: Sanitize Inputs
         const cleanPrompt = sanitizeContent(prompt || aboutMe || '');
         if (career) career.profession = sanitizeContent(career.profession || '');
@@ -124,7 +167,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     avatar_url = COALESCE($5, avatar_url),
                     email = COALESCE($6, email)
                 WHERE id = $7
-            `, [name, age, gender, location?.city, photoUrl, email, userId]);
+            `, [name, age, gender, location?.city, finalPhotoUrl, email, userId]);
 
             // 2. Update Profile Metadata
             // We store extended fields (dob, full location) in metadata
@@ -136,7 +179,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 lifestyle,
                 partnerPreferences,
                 motherTongue,
-                photos,
+                photos: finalPhotos,
                 dob,
                 location, // already sanitized
                 height, // Added Height

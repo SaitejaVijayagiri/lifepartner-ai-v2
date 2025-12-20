@@ -377,4 +377,82 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Block User
+router.post('/block', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { blockedId } = req.body;
+
+        if (!blockedId) return res.status(400).json({ error: "Missing blockedId" });
+
+        const client = await pool.connect();
+
+        // 1. Insert Block
+        await client.query(`
+            INSERT INTO public.blocks (blocker_id, blocked_id)
+            VALUES ($1, $2)
+            ON CONFLICT (blocker_id, blocked_id) DO NOTHING
+        `, [userId, blockedId]);
+
+        // 2. Remove any existing Connection/Match
+        await client.query(`
+            DELETE FROM public.matches 
+            WHERE (user_a_id = $1 AND user_b_id = $2) OR (user_a_id = $2 AND user_b_id = $1)
+        `, [userId, blockedId]);
+
+        // 3. Remove Interactions? (Optional, but safer)
+        await client.query(`
+            DELETE FROM public.interactions
+            WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
+        `, [userId, blockedId]);
+
+        client.release();
+        res.json({ success: true, message: "User blocked" });
+    } catch (e) {
+        console.error("Block Error", e);
+        res.status(500).json({ error: "Failed to block user" });
+    }
+});
+
+// Unblock User
+router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { blockedId } = req.params;
+
+        const client = await pool.connect();
+        await client.query(`
+            DELETE FROM public.blocks 
+            WHERE blocker_id = $1 AND blocked_id = $2
+        `, [userId, blockedId]);
+
+        client.release();
+        res.json({ success: true, message: "User unblocked" });
+    } catch (e) {
+        console.error("Unblock Error", e);
+        res.status(500).json({ error: "Failed to unblock user" });
+    }
+});
+
+// Get Blocked Users
+router.get('/blocked', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const client = await pool.connect();
+
+        const result = await client.query(`
+            SELECT b.blocked_id, u.full_name, u.avatar_url, b.created_at
+            FROM public.blocks b
+            JOIN public.users u ON b.blocked_id = u.id
+            WHERE b.blocker_id = $1
+        `, [userId]);
+
+        client.release();
+        res.json(result.rows);
+    } catch (e) {
+        console.error("Get Blocked Error", e);
+        res.status(500).json({ error: "Failed to fetch blocked users" });
+    }
+});
+
 export default router;

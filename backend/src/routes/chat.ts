@@ -52,6 +52,19 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
 
     try {
         const client = await pool.connect();
+
+        // 1. Check for Block
+        const blockRes = await client.query(`
+            SELECT 1 FROM public.blocks 
+            WHERE (blocker_id = $1 AND blocked_id = $2) 
+               OR (blocker_id = $2 AND blocked_id = $1)
+        `, [senderId, connectionId]);
+
+        if (blockRes.rows.length > 0) {
+            client.release();
+            return res.status(403).json({ error: "You cannot message this user." });
+        }
+
         const result = await client.query(`
             INSERT INTO public.messages (sender_id, receiver_id, content) 
             VALUES ($1, $2, $3) 

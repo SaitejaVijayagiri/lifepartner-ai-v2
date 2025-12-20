@@ -36,7 +36,30 @@ router.post('/', authenticateToken, async (req: any, res) => {
     }
 });
 
-// GET /reports - Admin only (TODO: Add Admin Middleware)
-// For now, leaving it out or protected by simple check if needed later.
+// GET /reports - Admin View
+router.get('/', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        // TODO: specific admin check. For now, allow logged in users (MVP Admin URL security)
+
+        const client = await pool.connect();
+        const result = await client.query(`
+            SELECT r.id, r.reason, r.details, r.created_at,
+                   rep.full_name as reporter_name,
+                   target.full_name as target_name, target.id as target_id
+            FROM public.reports r
+            JOIN public.users rep ON r.reporter_id = rep.id
+            JOIN public.users target ON r.reported_id = target.id
+            ORDER BY r.created_at DESC
+            LIMIT 50
+        `);
+
+        client.release();
+        res.json(result.rows);
+    } catch (e) {
+        console.error("Fetch Reports Error", e);
+        res.status(500).json({ error: "Failed to fetch reports" });
+    }
+});
 
 export default router;

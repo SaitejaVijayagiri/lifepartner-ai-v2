@@ -5,9 +5,11 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Mail } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
+    const toast = useToast();
     const [isLoading, setIsLoading] = useState(false);
     const [isSent, setIsSent] = useState(false);
     const router = useRouter();
@@ -21,7 +23,7 @@ export default function ForgotPasswordPage() {
             await axios.post(`${apiUrl}/auth/forgot-password`, { email });
             setIsSent(true);
         } catch (err) {
-            alert("Something went wrong. Please try again.");
+            toast.error("Something went wrong. Please try again.");
         } finally {
             setIsLoading(false);
         }

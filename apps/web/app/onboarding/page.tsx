@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProfileWizard from '@/components/ProfileWizard';
+import { useToast } from '@/components/ui/Toast';
 
 export default function OnboardingPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const toast = useToast();
     const [authChecking, setAuthChecking] = useState(true);
 
     // Check if user is authenticated
@@ -31,7 +33,14 @@ export default function OnboardingPage() {
                 age: parseInt(data.age),
                 gender: data.gender,
                 height: data.height,
-                location: { city: data.city, country: data.country },
+                location: {
+                    city: data.city,
+                    district: data.district,
+                    state: data.state,
+                    country: data.country,
+                    lat: data.lat,
+                    lng: data.lng
+                },
 
                 religion: {
                     religion: data.religion,
@@ -89,7 +98,7 @@ export default function OnboardingPage() {
             router.push('/dashboard');
         } catch (error) {
             console.error(error);
-            alert('Failed to save profile. Please try again.');
+            toast.error('Failed to save profile. Please try again.');
         } finally {
             setLoading(false);
         }

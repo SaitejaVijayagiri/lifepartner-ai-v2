@@ -5,10 +5,12 @@ import axios from 'axios';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Lock, KeyRound, CheckCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 function ResetPasswordContent() {
     const searchParams = useSearchParams();
     const email = searchParams.get('email') || '';
+    const toast = useToast();
 
     const [otp, setOtp] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -21,7 +23,7 @@ function ResetPasswordContent() {
         e.preventDefault();
 
         if (newPassword !== confirmPassword) {
-            alert("Passwords do not match");
+            toast.error("Passwords do not match");
             return;
         }
 
@@ -36,7 +38,7 @@ function ResetPasswordContent() {
             });
             setIsSuccess(true);
         } catch (err: any) {
-            alert(err.response?.data?.error || "Reset failed. Check OTP.");
+            toast.error(err.response?.data?.error || "Reset failed. Check OTP.");
         } finally {
             setIsLoading(false);
         }

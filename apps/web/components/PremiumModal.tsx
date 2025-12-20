@@ -12,7 +12,10 @@ interface PremiumModalProps {
     onSuccess: () => void;
 }
 
+import { useToast } from '@/components/ui/Toast';
+
 export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalProps) => {
+    const toast = useToast();
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
@@ -71,7 +74,7 @@ export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalP
 
         } catch (err: any) {
             console.error("Payment Init failed", err);
-            alert(`Failed to initialize payment: ${err.message || "Unknown Error"}`);
+            toast.error(`Failed to initialize payment: ${err.message || "Unknown Error"}`);
             setLoading(false);
         }
     };

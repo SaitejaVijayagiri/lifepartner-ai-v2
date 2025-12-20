@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Share2, Copy, Gift } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ReferPage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
 
     useEffect(() => {
         api.profile.getMe().then(res => {
@@ -31,7 +33,7 @@ export default function ReferPage() {
             }
         } else {
             navigator.clipboard.writeText(text);
-            alert("Link copied to clipboard!");
+            toast.success("Link copied to clipboard!");
         }
     };
 
@@ -71,7 +73,7 @@ export default function ReferPage() {
                         <div className="flex items-center justify-center gap-2">
                             <span className="text-3xl font-black text-gray-800 tracking-wider font-mono">{user?.referral_code || "LOADING"}</span>
                             <button
-                                onClick={() => { navigator.clipboard.writeText(user?.referral_code); alert("Code copied!"); }}
+                                onClick={() => { navigator.clipboard.writeText(user?.referral_code); toast.success("Code copied!"); }}
                                 className="p-2 hover:bg-gray-200 rounded-full transition-colors"
                             >
                                 <Copy size={16} className="text-gray-500" />

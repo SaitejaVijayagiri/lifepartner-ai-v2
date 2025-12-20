@@ -17,7 +17,10 @@ const REPORT_REASONS = [
     "Other"
 ];
 
+import { useToast } from '@/components/ui/Toast';
+
 const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, targetUserId, targetUserName }) => {
+    const toast = useToast();
     const [reason, setReason] = useState(REPORT_REASONS[0]);
     const [details, setDetails] = useState("");
     const [loading, setLoading] = useState(false);
@@ -45,7 +48,7 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, targetUserId
             }, 2000);
         } catch (err) {
             console.error("Failed to report user", err);
-            alert("Failed to report user. Please try again.");
+            toast.error("Failed to report user. Please try again.");
         } finally {
             setLoading(false);
         }

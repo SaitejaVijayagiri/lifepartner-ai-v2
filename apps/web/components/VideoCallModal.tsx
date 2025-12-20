@@ -21,8 +21,11 @@ interface VideoCallModalProps {
     mode?: 'audio' | 'video';
 }
 
+import { useToast } from '@/components/ui/Toast';
+
 export default function VideoCallModal({ connectionId, partner, onEndCall, incomingCall, mode = 'video' }: VideoCallModalProps) {
     const { socket } = useSocket() as any;
+    const toast = useToast();
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [callAccepted, setCallAccepted] = useState(false);
     const [callEnded, setCallEnded] = useState(false);
@@ -79,7 +82,7 @@ export default function VideoCallModal({ connectionId, partner, onEndCall, incom
                 connectionRef.current?.signal(signal);
             });
             socket.on("callEnded", () => leaveCall());
-            socket.on("callError", (data: any) => { alert(data.message); leaveCall(); });
+            socket.on("callError", (data: any) => { toast.error(data.message); leaveCall(); });
         }
 
         return () => {
@@ -264,8 +267,8 @@ export default function VideoCallModal({ connectionId, partner, onEndCall, incom
                     <button
                         onClick={toggleMute}
                         className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-all transform hover:scale-105 ${isMuted
-                                ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                                : 'bg-white/10 border border-white/20 hover:bg-white/20'
+                            ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
+                            : 'bg-white/10 border border-white/20 hover:bg-white/20'
                             }`}
                     >
                         {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
@@ -276,8 +279,8 @@ export default function VideoCallModal({ connectionId, partner, onEndCall, incom
                         <button
                             onClick={toggleVideo}
                             className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-lg transition-all transform hover:scale-105 ${isVideoOff
-                                    ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
-                                    : 'bg-white/10 border border-white/20 hover:bg-white/20'
+                                ? 'bg-red-500/20 border-2 border-red-500 text-red-400'
+                                : 'bg-white/10 border border-white/20 hover:bg-white/20'
                                 }`}
                         >
                             {isVideoOff ? <VideoOff size={22} /> : <Video size={22} />}

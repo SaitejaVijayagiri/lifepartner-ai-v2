@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { MapPin } from 'lucide-react';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
@@ -110,6 +111,47 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     }, [currentStep]);
 
     const update = (field: string, val: any) => setData((prev: any) => ({ ...prev, [field]: val }));
+
+    const [gpsLoading, setGpsLoading] = useState(false);
+
+    const handleGPS = () => {
+        if (!navigator.geolocation) {
+            toast.error("Geolocation is not supported by your browser.");
+            return;
+        }
+
+        setGpsLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                    // Use BigDataCloud API for better Indian City/District data
+                    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+                    const apiData = await res.json();
+
+                    setData((prev: any) => ({
+                        ...prev,
+                        city: apiData.city || apiData.locality || "",
+                        district: apiData.localityInfo?.administrative?.find((x: any) => x.order === 6)?.name || apiData.principalSubdivision || "", // District fallback
+                        state: apiData.principalSubdivision || "",
+                        country: apiData.countryName || "",
+                        lat: latitude.toString(),
+                        lng: longitude.toString()
+                    }));
+                    toast.success("Location updated successfully!");
+                } catch (error) {
+                    console.error("GPS Error:", error);
+                    toast.error("Failed to fetch location details.");
+                } finally {
+                    setGpsLoading(false);
+                }
+            },
+            () => {
+                toast.error("Unable to retrieve your location.");
+                setGpsLoading(false);
+            }
+        );
+    };
 
     const handleNext = () => {
         if (!validateStep()) return;
@@ -218,7 +260,30 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </select>
                                 </div>
                                 <Input label="Height (e.g. 5'9) *" value={data.height} onChange={e => update('height', e.target.value)} />
-                                <Input label="Current City *" value={data.city} onChange={e => update('city', e.target.value)} />
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-sm font-medium">Location *</label>
+                                    <div className="flex gap-2">
+                                        <Input placeholder="City" value={data.city} onChange={e => update('city', e.target.value)} />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleGPS}
+                                            disabled={gpsLoading}
+                                            className="whitespace-nowrap"
+                                        >
+                                            {gpsLoading ? (
+                                                <div className="animate-spin h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                                            ) : (
+                                                <MapPin className="h-4 w-4 mr-1" />
+                                            )}
+                                            {gpsLoading ? 'Locating...' : 'Use GPS'}
+                                        </Button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <Input placeholder="District" value={data.district} onChange={e => update('district', e.target.value)} />
+                                        <Input placeholder="State" value={data.state} onChange={e => update('state', e.target.value)} />
+                                    </div>
+                                </div>
                                 <Input label="Country" value={data.country} onChange={e => update('country', e.target.value)} />
                             </div>
                         </div>

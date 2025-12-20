@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
@@ -19,6 +20,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
     // Independent States
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
+    const toast = useToast();
     const [isPlaying, setIsPlaying] = useState(false); // Audio State
     const [showKundli, setShowKundli] = useState(false); // Modal State
     const [showReport, setShowReport] = useState(false); // Report Modal State
@@ -65,7 +67,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
             if (onConnect) onConnect();
         } catch (err) {
             setMatchStatus(prevStatus);
-            alert("Connection failed. Please try again.");
+            toast.error("Connection failed. Please try again.");
         } finally {
             setLoading(false);
         }

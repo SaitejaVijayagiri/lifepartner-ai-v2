@@ -19,6 +19,7 @@ import ReelFeed from '@/components/ReelFeed';
 import ProfileView from '@/components/ProfileView';
 import ChatWindow from '@/components/ChatWindow';
 import CoinStoreModal from '@/components/CoinStoreModal';
+import { useToast } from '@/components/ui/Toast';
 import FilterModal, { FilterState } from '@/components/FilterModal';
 
 /* Mock Data for Stories */
@@ -35,6 +36,7 @@ const STORIES = [
 
 export default function Dashboard() {
     const router = useRouter();
+    const toast = useToast();
     const [matches, setMatches] = useState<any[]>([]);
     const [requests, setRequests] = useState<any[]>([]);
     const [connections, setConnections] = useState<any[]>([]);
@@ -103,7 +105,7 @@ export default function Dashboard() {
             api.payments.verifyPayment({ orderId })
                 .then((res: any) => {
                     if (res.success) {
-                        alert("Payment Successful! Balance Updated.");
+                        toast.success("Payment Successful! Balance Updated.");
                         // Clear URL
                         window.history.replaceState({}, '', '/dashboard');
                         // Refresh User
@@ -284,7 +286,7 @@ export default function Dashboard() {
             fetchRequests();
             refreshCounts();
         } catch (e) {
-            alert("Failed to accept");
+            toast.error("Failed to accept");
         }
     };
 
@@ -294,7 +296,7 @@ export default function Dashboard() {
             fetchRequests();
             refreshCounts();
         } catch (e) {
-            alert("Failed to decline");
+            toast.error("Failed to decline");
         }
     };
 
@@ -368,17 +370,17 @@ export default function Dashboard() {
                         onClick={async () => {
                             if (!currentUser || currentUser.coins < 100) {
                                 setShowCoinStore(true);
-                                alert("Insufficient coins to boost! (Cost: 100)");
+                                toast.error("Insufficient coins to boost! (Cost: 100)");
                                 return;
                             }
                             if (confirm("Boost your profile for 100 coins? You will be seen by 10x more people! 🚀")) {
                                 try {
                                     await api.wallet.boostProfile();
-                                    alert("Profile Boosted! ⚡ You are now top visibility.");
+                                    toast.success("Profile Boosted! ⚡ You are now top visibility.");
                                     // Refresh user to update coins
                                     api.profile.getMe().then(setCurrentUser);
                                 } catch (e) {
-                                    alert("Boost failed.");
+                                    toast.error("Boost failed.");
                                 }
                             }
                         }}
@@ -436,7 +438,7 @@ export default function Dashboard() {
 
         // Validation
         if (file.size > 50 * 1024 * 1024) {
-            alert("File too large (Max 50MB)");
+            toast.error("File too large (Max 50MB)");
             return;
         }
 
@@ -444,17 +446,17 @@ export default function Dashboard() {
             const formData = new FormData();
             formData.append('media', file);
             await api.profile.uploadStory(formData);
-            alert("Story uploaded successfully!");
+            toast.success("Story uploaded successfully!");
             // Refresh Me
             const me = await api.profile.getMe();
             setCurrentUser(me);
         } catch (err: any) {
             console.error(err);
             if (err.message && err.message.includes("Premium")) {
-                alert("Stories are a Premium feature! Please upgrade.");
+                toast.error("Stories are a Premium feature! Please upgrade.");
                 setShowCoinStore(true);
             } else {
-                alert("Failed to upload story");
+                toast.error("Failed to upload story");
             }
         }
     };
@@ -856,7 +858,7 @@ export default function Dashboard() {
                                 onSave={(newData) => {
                                     setCurrentUser(newData);
                                     setIsEditingProfile(false);
-                                    alert("Profile Saved!");
+                                    toast.success("Profile Saved!");
                                 }}
                                 onCancel={() => setIsEditingProfile(false)}
                             />
@@ -926,7 +928,7 @@ export default function Dashboard() {
                         api.interactions.sendInterest(selectedProfile.id);
                         setSelectedProfile(null);
                         setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
-                        alert(`Interest sent to ${selectedProfile.name}!`);
+                        toast.success(`Interest sent to ${selectedProfile.name}!`);
                     }}
                     onUpgrade={() => {
                         setSelectedProfile(null);

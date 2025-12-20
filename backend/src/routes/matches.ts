@@ -26,7 +26,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         // 2. Get Candidates (Limit 50)
         // Gender Filtering Logic
         let genderFilter = "";
-        const myGender = (me.gender || "").toLowerCase();
+        const myGender = (me.gender || "").trim().toLowerCase();
         console.log(`DEBUG: myId = ${userId}, myGender = ${myGender} `);
 
         if (myGender === 'male') genderFilter = "AND LOWER(u.gender) = 'female'";
@@ -155,7 +155,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // Need is_premium to decide whether to show contacts
         const meRes = await client.query("SELECT gender, is_premium FROM public.users WHERE id = $1", [userId]);
         const me = meRes.rows[0];
-        const myGender = (me?.gender || "").toLowerCase();
+        const myGender = (me?.gender || "").trim().toLowerCase();
         const isPremium = me?.is_premium;
         // Ensure me metadata is available for astrology
         if (!me.metadata) me.metadata = {};
@@ -193,7 +193,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         }
 
         if (filters.diet) {
-            sql += ` AND p.metadata->'lifestyle'->>'diet' = $${pIdx} `;
+            sql += ` AND p.metadata->'lifestyle'->>'diet' ILIKE $${pIdx} `;
             params.push(filters.diet);
             pIdx++;
         }

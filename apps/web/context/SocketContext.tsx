@@ -3,10 +3,15 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SocketContext = createContext<Socket | null>(null);
+const SocketContext = createContext<{ socket: Socket | null; isConnected: boolean } | null>(null);
 
 export const useSocket = () => {
-    return useContext(SocketContext);
+    const context = useContext(SocketContext);
+    if (!context) {
+        // Safe default to prevent crashes if provider is missing
+        return { socket: null, isConnected: false };
+    }
+    return context;
 };
 
 export const SocketProvider = ({ children, userId }: { children: React.ReactNode, userId?: string }) => {
@@ -55,7 +60,7 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
     }, [userId]);
 
     return (
-        <SocketContext.Provider value={{ socket, isConnected } as any}>
+        <SocketContext.Provider value={{ socket, isConnected }}>
             {children}
         </SocketContext.Provider>
     );

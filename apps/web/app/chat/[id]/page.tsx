@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import ChatWindow from '@/components/ChatWindow';
 import { useToast } from '@/components/ui/Toast';
 
-export default function ChatPage({ params }: { params: { id: string } }) {
+import { Suspense } from 'react';
+
+function ChatContent({ params }: { params: { id: string } }) {
     const searchParams = useSearchParams();
     const router = useRouter();
     const toast = useToast();
@@ -19,7 +21,7 @@ export default function ChatPage({ params }: { params: { id: string } }) {
             <ChatWindow
                 connectionId={params.id}
                 partner={{
-                    id: 'unknown', // Ideally we resolve this from connectionId or params
+                    id: 'unknown',
                     name: partnerName,
                     photoUrl: partnerPhoto,
                     role: partnerRole
@@ -30,5 +32,13 @@ export default function ChatPage({ params }: { params: { id: string } }) {
                 onAudioCall={() => toast.info("Audio Call feature coming soon!")}
             />
         </div>
+    );
+}
+
+export default function ChatPage({ params }: { params: { id: string } }) {
+    return (
+        <Suspense fallback={<div className="h-screen flex items-center justify-center">Loading Chat...</div>}>
+            <ChatContent params={params} />
+        </Suspense>
     );
 }

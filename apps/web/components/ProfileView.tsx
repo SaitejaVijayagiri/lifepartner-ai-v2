@@ -99,7 +99,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 h-[500px] md:h-auto">
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 h-full md:h-auto">
 
                     {activeTab === 'about' && (
                         <div className="space-y-6 animate-in fade-in duration-300">

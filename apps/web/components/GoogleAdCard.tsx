@@ -27,11 +27,11 @@ export default function GoogleAdCard({ isActive, slotId = "8536302476" }: Google
 
         if (typeof window !== 'undefined' && !initialized.current) {
             try {
-                // Check if ad container is empty to avoid double insertion
-                if (adRef.current && adRef.current.innerHTML === "") {
+                // Wait a tick to ensure the DOM element is ready
+                setTimeout(() => {
                     (window.adsbygoogle = window.adsbygoogle || []).push({});
                     initialized.current = true;
-                }
+                }, 100);
             } catch (err) {
                 console.error("AdSense Error", err);
             }
@@ -53,7 +53,7 @@ export default function GoogleAdCard({ isActive, slotId = "8536302476" }: Google
                     <p className="text-sm text-gray-400">Discover something new</p>
                 </div>
 
-                <div ref={adRef} className="w-full max-w-[300px] min-h-[250px] bg-white/5 rounded-lg overflow-hidden flex items-center justify-center">
+                <div className="w-full max-w-[300px] min-h-[250px] bg-white/5 rounded-lg overflow-hidden flex items-center justify-center">
                     {/* Responsive Display Ad Unit */}
                     <ins className="adsbygoogle"
                         style={{ display: 'block', width: '100%', height: '100%' }}

@@ -330,6 +330,8 @@ Rules:
 4. **Location**: Extract City or State clearly.
 5. **Religions**: Normalize to "Hindu", "Muslim", "Christian", "Sikh", "Jain".
 6. **Age**: Extract minAge and maxAge (e.g. "25-30", "under 30", "above 25").
+7. **Diet**: Normalize strictly to: "Veg", "Non-Veg", "Vegan", "Eggitarian" (e.g. "Vegetarian" -> "Veg").
+8. **Marital Status**: Normalize strictly to: "Never Married", "Divorced", "Widowed".
 
 Request: "{query}"
 

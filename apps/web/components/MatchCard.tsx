@@ -134,14 +134,17 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
             </div>
 
             {/* Glowing Match Score (Floating Top Right) - High Contrast Fix */}
-            {/* Top Right Badges - Z-Index Lowered */}
-            <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
-                {/* Match Score */}
-                <div className="relative flex items-center justify-center w-14 h-14 rounded-full bg-black/60 backdrop-blur-md border border-white/10 shadow-xl">
-                    <div className="absolute inset-0 rounded-full border-t-2 border-emerald-500 opacity-100 rotate-45"></div>
-                    <div className="text-center">
-                        <span className="block text-sm font-black text-emerald-400 leading-none drop-shadow-md">{match.score}%</span>
-                        <span className="block text-[8px] font-bold text-emerald-200 tracking-wide uppercase">Match</span>
+            {/* Glowing Match Score (Floating Top Right) - Premium Redesign */}
+            <div className="absolute top-4 right-4 z-30">
+                <div className="relative flex items-center justify-center w-16 h-16">
+                    {/* Pulsing Outer Ring */}
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping duration-[3000ms]"></div>
+                    <div className="absolute inset-0 rounded-full border-2 border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.5)]"></div>
+
+                    {/* Glass Core */}
+                    <div className="relative w-full h-full rounded-full bg-black/60 backdrop-blur-xl flex flex-col items-center justify-center border border-white/10">
+                        <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 to-emerald-500 leading-none">{match.score}%</span>
+                        <span className="text-[9px] font-bold text-emerald-200 tracking-widest uppercase mt-0.5">Match</span>
                     </div>
                 </div>
             </div>
@@ -157,10 +160,13 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     </div>
                 )}
 
-                {/* 2. Match Reasons (Show All) */}
+                {/* 2. Match Reasons (Show All) - Premium Glass Pill */}
                 {match.match_reasons?.map((reason: string, idx: number) => (
-                    <div key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-600/90 backdrop-blur-md border border-indigo-400/30 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg animate-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
-                        <span>✨ {reason}</span>
+                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/90 to-purple-600/90 backdrop-blur-md border border-white/10 text-white shadow-lg animate-in slide-in-from-left-4 duration-500 hover:scale-105 transition-transform cursor-default group/badge" style={{ animationDelay: `${idx * 150}ms` }}>
+                        <div className="p-1 rounded-full bg-white/20 group-hover/badge:bg-white/30 transition-colors">
+                            <span className="text-[10px]">✨</span>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wide group-hover/badge:tracking-wider transition-all">{reason}</span>
                     </div>
                 ))}
 

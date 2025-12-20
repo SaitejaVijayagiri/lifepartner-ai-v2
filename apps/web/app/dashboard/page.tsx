@@ -446,50 +446,116 @@ export default function Dashboard() {
     const renderDiscoveryFeed = () => {
         if (loading) {
             return (
-                <div className="max-w-2xl mx-auto space-y-8 pt-10">
-                    {[1, 2].map(i => (
-                        <div key={i} className="h-[500px] w-full bg-secondary/10 rounded-3xl animate-pulse"></div>
-                    ))}
+                <div className="w-full space-y-8 pb-32">
+                    {/* Skeleton for AI Search */}
+                    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-indigo-100/50 space-y-4">
+                        <div className="h-6 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-pulse"></div>
+                        <div className="flex gap-3">
+                            <div className="flex-1 h-12 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-xl animate-pulse"></div>
+                            <div className="w-24 h-12 bg-gradient-to-r from-indigo-200 via-indigo-100 to-indigo-200 rounded-xl animate-pulse"></div>
+                        </div>
+                    </div>
+
+                    {/* Skeleton Header */}
+                    <div className="flex items-center justify-between px-2">
+                        <div className="h-8 w-56 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-pulse"></div>
+                        <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
+                    </div>
+
+                    {/* Skeleton Cards Grid - 3 columns on desktop */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 animate-pulse">
+                                {/* Image Skeleton with gradient shimmer */}
+                                <div className="h-72 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skeleton-shimmer"></div>
+                                </div>
+                                {/* Content Skeleton */}
+                                <div className="p-5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="h-6 w-32 bg-gray-200 rounded-lg"></div>
+                                        <div className="h-8 w-16 bg-indigo-100 rounded-full"></div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="h-4 w-full bg-gray-100 rounded"></div>
+                                        <div className="h-4 w-3/4 bg-gray-100 rounded"></div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="h-6 w-16 bg-gray-100 rounded-full"></div>
+                                        <div className="h-6 w-20 bg-gray-100 rounded-full"></div>
+                                        <div className="h-6 w-14 bg-gray-100 rounded-full"></div>
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <div className="flex-1 h-12 bg-gray-100 rounded-xl"></div>
+                                        <div className="w-12 h-12 bg-rose-100 rounded-xl"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         }
 
         return (
             <div className="w-full space-y-8 pb-32">
-                {/* AI Search Bar */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 space-y-3">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <Sparkles className="text-indigo-600" size={20} /> AI Matchmaker
-                    </h2>
-                    <div className="flex gap-2">
+                {/* AI Search Bar - Premium Glass Design */}
+                <div className="relative bg-white/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 space-y-4 overflow-hidden">
+                    {/* Decorative gradient orbs */}
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
+
+                    <div className="relative z-10">
+                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3 mb-1">
+                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
+                                <Sparkles className="text-white" size={20} />
+                            </div>
+                            <span className="text-gradient">AI Matchmaker</span>
+                        </h2>
+                        <p className="text-sm text-gray-500 ml-12">Describe your ideal partner and let AI find the perfect match</p>
+                    </div>
+
+                    <div className="flex gap-3 relative z-10">
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="Describe your ideal partner (e.g., 'Architect in Mumbai who likes hiking')..."
-                            className="flex-1 bg-gray-50 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                            placeholder="e.g., 'Architect in Mumbai who loves hiking and reading'..."
+                            className="flex-1 bg-gray-50/80 border border-gray-200/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 transition-all placeholder:text-gray-400"
                         />
                         <button
                             onClick={handleSearch}
-                            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+                            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
                         >
-                            Search
+                            <Search size={18} />
+                            <span className="hidden sm:inline">Search</span>
                         </button>
                     </div>
                 </div>
 
-                {/* Header for Feed */}
+                {/* Header for Feed - Enhanced */}
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-2xl font-heading font-bold text-foreground">
-                        {searchQuery ? 'Search Results' : 'Daily Recommendations'}
-                    </h2>
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{matches.length} matches</span>
+                    <div>
+                        <h2 className="text-2xl font-heading font-bold text-foreground">
+                            {searchQuery ? 'Search Results' : 'Daily Recommendations'}
+                        </h2>
+                        <p className="text-sm text-muted-foreground mt-1">Handpicked matches just for you ✨</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full border border-indigo-100">
+                            {matches.length} matches
+                        </span>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {matches.map((match) => (
-                        <div key={match.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full">
+                    {matches.map((match, idx) => (
+                        <div
+                            key={match.id}
+                            className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium"
+                            style={{ animationDelay: `${idx * 100}ms` }}
+                        >
                             <MatchCard
                                 match={match}
                                 onConnect={() => {
@@ -498,25 +564,17 @@ export default function Dashboard() {
                                 }}
                                 onViewProfile={() => setSelectedProfile(match)}
                             />
-                            {/* Inline Actions for Quick Access on Mobile */}
-                            <div className="flex items-center justify-between px-4 mt-3 md:hidden">
-                                <div className="flex gap-4 text-xs font-medium text-gray-500">
-                                    <span className="flex items-center gap-1"><Briefcase size={14} /> {match.role}</span>
-                                    <span className="flex items-center gap-1"><MapPin size={14} /> {match.location?.city}</span>
-                                    <span className="flex items-center gap-1"><Ruler size={14} /> {match.height}</span>
-                                </div>
-                            </div>
                         </div>
                     ))}
                 </div>
 
                 {matches.length === 0 && (
-                    <div className="text-center py-20">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Search className="text-gray-400" size={32} />
+                    <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100">
+                        <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                            <Search className="text-gray-300" size={40} />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">No Matches Found</h3>
-                        <p className="text-gray-500">Try adjusting your AI search criteria.</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">No Matches Found</h3>
+                        <p className="text-gray-500 max-w-sm mx-auto">Try adjusting your search criteria or check back later for new recommendations.</p>
                     </div>
                 )}
             </div>

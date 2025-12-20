@@ -19,11 +19,16 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user?.userId;
 
+        // 1. Get Current User's Location (District & State)
+        const userRes = await pool.query(`SELECT metadata->'location' as loc FROM profiles WHERE user_id = $1`, [userId]);
+        const userLoc = userRes.rows[0]?.loc || {};
+        const myDistrict = userLoc.district || "";
+        const myState = userLoc.state || "";
+
         // Algorithm:
         // 1. Recency (Newer is better)
         // 2. Engagement (Likes * 2 + Views * 0.1)
-        // 3. Exclude own reels? Maybe show them occasionally or in profile. For feed, let's keep them mixed or exclude.
-        // Let's exclude own reels for the main discovery feed to encourage matching.
+        // 3. Location Boost (District +50, State +20)
 
         const query = `
             SELECT 
@@ -32,21 +37,28 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
                 u.avatar_url as author_photo,
                 u.location_name as author_city,
                 u.age as author_age,
+                p.metadata->'location' as author_loc,
                 (
                     (EXTRACT(EPOCH FROM r.created_at) * 0.0001) + 
                     (r.likes * 2) + 
-                    (r.views * 0.1)
+                    (r.views * 0.1) +
+                    (CASE 
+                        WHEN (p.metadata->'location'->>'district') IS NOT NULL AND LOWER(p.metadata->'location'->>'district') = LOWER($2) THEN 50
+                        WHEN (p.metadata->'location'->>'state') IS NOT NULL AND LOWER(p.metadata->'location'->>'state') = LOWER($3) THEN 20
+                        ELSE 0
+                    END)
                 ) as score,
                 EXISTS(SELECT 1 FROM interactions i WHERE i.from_user_id = $1 AND i.to_user_id = r.user_id AND i.type = 'LIKE') as is_liked_author,
                 EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.user_id = $1 AND rl.reel_id = r.id) as is_liked
             FROM reels r
             JOIN users u ON r.user_id = u.id
+            LEFT JOIN profiles p ON r.user_id = p.user_id
             WHERE r.user_id != $1
             ORDER BY score DESC
             LIMIT 20;
         `;
 
-        const result = await pool.query(query, [userId]);
+        const result = await pool.query(query, [userId, myDistrict, myState]);
 
         // Map to Frontend Format
         const reels = result.rows.map(row => ({
@@ -57,7 +69,11 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
                 id: row.user_id,
                 name: row.author_name || "User",
                 photoUrl: row.author_photo || "",
-                location: { city: row.author_city || "India" },
+                location: {
+                    city: row.author_city || "India",
+                    district: row.author_loc?.district,
+                    state: row.author_loc?.state
+                },
                 age: row.author_age
             },
             isMe: false, // Filtered out above

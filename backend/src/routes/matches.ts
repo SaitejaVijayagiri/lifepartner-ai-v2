@@ -153,7 +153,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         // 2. Get Me (for gender filtering & premium status)
         // Need is_premium to decide whether to show contacts
-        const meRes = await client.query("SELECT gender, is_premium FROM public.users WHERE id = $1", [userId]);
+        const meRes = await client.query("SELECT gender, is_premium, district, state, metadata FROM public.users u LEFT JOIN public.profiles p ON u.id = p.user_id WHERE u.id = $1", [userId]);
         const me = meRes.rows[0];
         const myGender = (me?.gender || "").trim().toLowerCase();
         const isPremium = me?.is_premium;
@@ -163,7 +163,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // 3. Build Dynamic Query
         let sql = `
             SELECT 
-                u.id, u.email, u.phone, u.full_name, u.gender, u.age, u.location_name, u.avatar_url, u.voice_bio_url, u.is_premium,
+                u.id, u.email, u.phone, u.full_name, u.gender, u.age, u.location_name, 
+                u.city, u.district, u.state, -- New Location Columns
+                u.avatar_url, u.voice_bio_url, u.is_premium,
                 p.metadata, p.raw_prompt
             FROM public.users u 
             LEFT JOIN public.profiles p ON u.id = p.user_id 
@@ -209,24 +211,37 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         // Strict Filters (User Request)
         if (filters.location) {
-            sql += ` AND (u.location_name ILIKE $${pIdx} OR p.metadata->'location'->>'city' ILIKE $${pIdx} OR p.metadata->'location'->>'state' ILIKE $${pIdx}) `;
+            // Check BOTH explicit columns AND legacy metadata for robustness
+            sql += ` AND (
+                u.location_name ILIKE $${pIdx} OR 
+                u.city ILIKE $${pIdx} OR 
+                u.state ILIKE $${pIdx} OR
+                p.metadata->'location'->>'city' ILIKE $${pIdx} OR 
+                p.metadata->'location'->>'state' ILIKE $${pIdx}
+            ) `;
             params.push(`%${filters.location}%`);
             pIdx++;
         }
 
-        // 'Near Me' Filter (Added)
+        // 'Near Me' Filter (Enhanced with Columns)
         if (filters.useMyLocation) {
-            const myDist = me.metadata?.location?.district;
-            const myState = me.metadata?.location?.state;
+            const myDist = me.metadata?.location?.district || me.district;
+            const myState = me.metadata?.location?.state || me.state;
 
             if (myDist) {
-                // Priority to District
-                sql += ` AND (p.metadata->'location'->>'district' ILIKE $${pIdx}) `;
+                // Priority to District (Column OR Metadata)
+                sql += ` AND (
+                    u.district ILIKE $${pIdx} OR
+                    p.metadata->'location'->>'district' ILIKE $${pIdx}
+                ) `;
                 params.push(myDist);
                 pIdx++;
             } else if (myState) {
-                // Fallback to State if no district
-                sql += ` AND (p.metadata->'location'->>'state' ILIKE $${pIdx}) `;
+                // Fallback to State (Column OR Metadata)
+                sql += ` AND (
+                    u.state ILIKE $${pIdx} OR
+                    p.metadata->'location'->>'state' ILIKE $${pIdx}
+                ) `;
                 params.push(myState);
                 pIdx++;
             }

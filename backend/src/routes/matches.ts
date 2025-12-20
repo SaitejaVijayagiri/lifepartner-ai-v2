@@ -447,6 +447,54 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             };
         }).filter((m: any) => m !== null);
 
+        // --- NEW: Semantic Re-Ranking (Advanced Offline AI) ---
+        if (query && scoredMatches.length > 0) {
+            try {
+                // 1. Generate Query Embedding
+                const aiService = new (require('../services/ai').AIService)();
+                if (aiService.llm === null || process.env.MOCK_AI === 'true') {
+                    // Only run this if we are in "Advanced Offline Mode" (or if we want to augment online search too)
+                    // Actually, let's run it always as a boost!
+
+                    console.log("🧠 Running Local Semantic Re-ranking...");
+                    const queryVector = await aiService.generateEmbedding(query);
+
+                    // 2. Compute Cosine Similarity for each match
+                    await Promise.all(scoredMatches.map(async (m: any) => {
+                        const bio = m.summary || "";
+                        if (bio.length > 10) {
+                            const bioVector = await aiService.generateEmbedding(bio);
+                            const similarity = cosineSimilarity(queryVector, bioVector);
+
+                            // Boost Score based on Semantic Match
+                            // similarity is -1 to 1. Usually 0.3+ is decent match.
+                            if (similarity > 0.3) {
+                                m.score += (similarity * 30); // Max +30 points
+                                m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
+                            }
+                        }
+                    }));
+                }
+            } catch (e) {
+                console.error("Semantic Ranking Failed", e);
+            }
+        }
+
+        // Helper: Cosine Similarity
+        function cosineSimilarity(vecA: number[], vecB: number[]): number {
+            let dotProduct = 0;
+            let normA = 0;
+            let normB = 0;
+            for (let i = 0; i < vecA.length; i++) {
+                dotProduct += vecA[i] * vecB[i];
+                normA += vecA[i] * vecA[i];
+                normB += vecB[i] * vecB[i];
+            }
+            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+        }
+
+        // Sort by Score DESC and Return Top 10
+
         // Sort by Score DESC and Return Top 10
         scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
 

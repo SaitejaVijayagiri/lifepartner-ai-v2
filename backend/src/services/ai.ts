@@ -378,9 +378,25 @@ Request: "{query}"
 
     // ... embedding logic remains same ...
 
-    // ... embedding logic remains same ...
+    // Local Embedding for Semantic Search (Free, Offline)
     async generateEmbedding(text: string): Promise<number[]> {
-        return Array(1536).fill(0).map(() => Math.random());
+        try {
+            // Lazy load pipeline
+            const { pipeline } = await import('@xenova/transformers');
+
+            // Singleton pattern could be better, but pipeline has local caching
+            const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+
+            const output = await extractor(text, { pooling: 'mean', normalize: true });
+
+            // Convert Tensor to standard array
+            return Array.from(output.data);
+
+        } catch (e) {
+            console.error("Embedding Error", e);
+            // Fallback: Random vector (avoids crash, but useless for search)
+            return Array(384).fill(0);
+        }
     }
 
     // Voice Safety: Local Transcription (Free)

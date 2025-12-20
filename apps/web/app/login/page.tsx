@@ -7,12 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { Eye, EyeOff, ArrowLeft, Sparkles } from 'lucide-react';
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
-    title: "Login | LifePartner AI",
-    description: "Access your account to view matches, messages, and your AI compatibility reports.",
-};
 
 export default function LoginPage() {
     const router = useRouter();

@@ -1,4 +1,4 @@
-'use client';
+
 
 import StaticPageLayout from '@/components/StaticPageLayout';
 import { BLOG_POSTS } from '@/lib/blog-data';

@@ -349,7 +349,7 @@ export default function Dashboard() {
                     {currentUser && (
                         <button
                             onClick={() => setShowCoinStore(true)}
-                            className="hidden sm:flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200"
+                            className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200"
                         >
                             <Coins size={14} className="fill-yellow-500 text-yellow-600" />
                             <span>{currentUser.coins || 0}</span>
@@ -358,9 +358,9 @@ export default function Dashboard() {
 
                     {/* Premium Badge */}
                     {currentUser?.is_premium && (
-                        <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300">
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300">
                             <span>👑</span>
-                            <span>PREMIUM</span>
+                            <span className="hidden sm:inline">PREMIUM</span>
                         </div>
                     )}
 
@@ -384,10 +384,10 @@ export default function Dashboard() {
                                 }
                             }
                         }}
-                        className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                        className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
                     >
                         <Zap size={14} className="fill-yellow-300 text-yellow-300" />
-                        <span>Boost</span>
+                        <span className="hidden sm:inline">Boost</span>
                     </button>
 
                     <button

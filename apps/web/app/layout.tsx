@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Poppins, Playfair_Display, Roboto_Mono } from "next/font/google";
+import { DM_Sans, Playfair_Display, Roboto_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import ClientProviders from '@/components/ClientProviders';
 import NetworkStatus from '@/components/NetworkStatus';
 
-const fontSans = Poppins({
+const fontSans = DM_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],

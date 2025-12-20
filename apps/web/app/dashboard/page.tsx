@@ -319,7 +319,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <nav className="hidden md:flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-full border border-gray-200/50 shadow-sm">
+                    <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-full border border-gray-200/50 shadow-sm">
                         {navItems.map(item => (
                             <button
                                 key={item.id}
@@ -970,7 +970,7 @@ export default function Dashboard() {
             />
 
             {/* Mobile Bottom Navigation */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-lg pb-safe z-50">
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-lg pb-safe z-50">
                 <div className="flex justify-around items-center h-16">
                     {navItems.map((item) => (
                         <button

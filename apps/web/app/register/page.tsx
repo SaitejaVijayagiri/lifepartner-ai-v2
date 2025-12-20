@@ -156,7 +156,7 @@ export default function RegisterPage() {
                 <img
                     src="/images/register-hero-wiki.jpg"
                     alt="Wedding Promise"
-                    className="absolute inset-0 w-full h-full object-cover grayscale-[0%] group-hover:scale-105 transition-all duration-[20s]"
+                    className="absolute inset-0 w-full h-full object-cover grayscale-[0%] group-hover:scale-105 transition-all duration-[20000ms]"
                 />
 
                 {/* Gradient Overlay for Text Readability */}

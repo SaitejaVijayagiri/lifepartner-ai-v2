@@ -138,7 +138,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
             <div className="absolute top-4 right-4 z-30">
                 <div className="relative flex items-center justify-center w-16 h-16">
                     {/* Pulsing Outer Ring */}
-                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping duration-[3000ms]"></div>
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
                     <div className="absolute inset-0 rounded-full border-2 border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.5)]"></div>
 
                     {/* Glass Core */}

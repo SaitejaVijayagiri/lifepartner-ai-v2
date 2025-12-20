@@ -55,7 +55,7 @@ export default function LoginPage() {
                 <img
                     src="/images/login-hero-final.jpg"
                     alt="Royal Indian Wedding"
-                    className="absolute inset-0 w-full h-full object-cover grayscale-[0%] group-hover:scale-105 transition-all duration-[20s]"
+                    className="absolute inset-0 w-full h-full object-cover grayscale-[0%] group-hover:scale-105 transition-all duration-[20000ms]"
                 />
 
                 {/* Text Overlay */}

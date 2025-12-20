@@ -48,6 +48,7 @@ export default function Dashboard() {
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [activeFilters, setActiveFilters] = useState<FilterState | null>(null);
+    const [quickSearch, setQuickSearch] = useState('');
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
@@ -235,8 +236,23 @@ export default function Dashboard() {
         });
     };
 
-    // Get filtered matches
-    const displayMatches = activeFilters ? filterMatches(matches) : matches;
+    // Get filtered matches (apply filters + quick search)
+    const displayMatches = (() => {
+        let result = activeFilters ? filterMatches(matches) : matches;
+
+        // Apply quick search filter
+        if (quickSearch.trim()) {
+            const search = quickSearch.toLowerCase().trim();
+            result = result.filter((m: any) =>
+                m.name?.toLowerCase().includes(search) ||
+                m.role?.toLowerCase().includes(search) ||
+                m.profession?.toLowerCase().includes(search) ||
+                m.location?.city?.toLowerCase().includes(search)
+            );
+        }
+
+        return result;
+    })();
 
     // Incoming Call Listener
     useEffect(() => {
@@ -344,10 +360,20 @@ export default function Dashboard() {
                     <div className="hidden lg:flex relative group">
                         <input
                             type="text"
-                            placeholder="Quick search..."
+                            placeholder="Quick search by name..."
+                            value={quickSearch}
+                            onChange={(e) => setQuickSearch(e.target.value)}
                             className="bg-gray-50/80 border border-gray-200/50 rounded-2xl pl-4 pr-10 py-2.5 text-sm w-44 focus:w-64 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all placeholder:text-gray-400"
                         />
                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+                        {quickSearch && (
+                            <button
+                                onClick={() => setQuickSearch('')}
+                                className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                            >
+                                ✕
+                            </button>
+                        )}
                     </div>
 
                     {/* Coin Balance */}

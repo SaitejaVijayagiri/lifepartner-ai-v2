@@ -237,7 +237,8 @@ export class AIService {
                 education: z.string().optional().describe("Degree or College (e.g. B.Tech, IIT, MBA)"),
                 familyValues: z.string().optional().describe("Family values (e.g. Traditional, Moderate, Orthodox)"),
                 appearance: z.array(z.string()).describe("Physical appearance keywords (e.g. 'fair', 'tall', 'athletic')"),
-                keywords: z.array(z.string()).describe("Interests/Hobbies keywords (e.g. 'hiking', 'reading', 'music')")
+                keywords: z.array(z.string()).describe("Interests/Hobbies keywords (e.g. 'hiking', 'reading', 'music')"),
+                useMyLocation: z.boolean().optional().describe("True if user explicitly asks for 'near me', 'nearby', or 'local' matches")
             })
         );
 
@@ -282,6 +283,11 @@ export class AIService {
             const cities = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune', 'usa', 'dubai', 'london'];
             const loc = cities.find(c => lower.includes(c));
             if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
+
+            // Proximity Detection
+            if (lower.includes('near me') || lower.includes('nearby') || lower.includes('close to me') || lower.includes('local') || lower.includes('my location')) {
+                result.useMyLocation = true;
+            }
 
             // 7. Diet
             if (lower.includes('vegetarian') || (lower.includes('veg') && !lower.includes('non-veg'))) result.diet = "Veg";

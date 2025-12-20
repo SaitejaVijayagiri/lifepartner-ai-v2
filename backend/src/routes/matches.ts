@@ -214,6 +214,25 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             pIdx++;
         }
 
+        // 'Near Me' Filter (Added)
+        if (filters.useMyLocation) {
+            const myDist = me.metadata?.location?.district;
+            const myState = me.metadata?.location?.state;
+
+            if (myDist) {
+                // Priority to District
+                sql += ` AND (p.metadata->'location'->>'district' ILIKE $${pIdx}) `;
+                params.push(myDist);
+                pIdx++;
+            } else if (myState) {
+                // Fallback to State if no district
+                sql += ` AND (p.metadata->'location'->>'state' ILIKE $${pIdx}) `;
+                params.push(myState);
+                pIdx++;
+            }
+            // If neither is known, ignoring 'near me' silently or could fallback to City.
+        }
+
         if (filters.caste) {
             sql += ` AND p.metadata->'religion'->>'caste' ILIKE $${pIdx} `;
             params.push(`%${filters.caste}%`);

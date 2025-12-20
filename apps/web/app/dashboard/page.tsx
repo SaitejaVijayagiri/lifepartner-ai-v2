@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X } from 'lucide-react';
+import VideoCallModal from '@/components/VideoCallModal';
+import CallHistoryModal from '@/components/CallHistoryModal';
+import { useSocket } from '@/context/SocketContext';
+import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket } from 'lucide-react';
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
@@ -11,9 +14,11 @@ import { BottomNav } from '@/components/BottomNav';
 import StoryModal from '@/components/StoryModal';
 import { NotificationBell } from '@/components/NotificationBell';
 import ProfileEditor from '@/components/ProfileEditor';
-import ProfileView from '@/components/ProfileView'; // Added
+import ProfileModal from '@/components/ProfileModal';
 import ReelFeed from '@/components/ReelFeed';
+import ProfileView from '@/components/ProfileView';
 import ChatWindow from '@/components/ChatWindow';
+import CoinStoreModal from '@/components/CoinStoreModal';
 
 /* Mock Data for Stories */
 const STORIES = [
@@ -25,10 +30,7 @@ const STORIES = [
 ];
 
 /* Mock Data for Events */
-const EVENTS = [
-    { id: 1, title: 'Speed Dating: Bangalore', date: 'Sat, 14 Dec', time: '6:00 PM', image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=800&q=80' },
-    { id: 2, title: 'Astrology Workshop', date: 'Sun, 15 Dec', time: '11:00 AM', image: 'https://images.unsplash.com/photo-1533285962792-0c3c5e9cb0d7?w=800&q=80' },
-];
+
 
 export default function Dashboard() {
     const router = useRouter();
@@ -37,15 +39,19 @@ export default function Dashboard() {
     const [connections, setConnections] = useState<any[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('matches'); // matches, reels, requests, connections, profile
+    const [activeTab, setActiveTab] = useState('matches');
     const [requestsCount, setRequestsCount] = useState(0);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [showCoinStore, setShowCoinStore] = useState(false);
+    const [showCallHistory, setShowCallHistory] = useState(false); // Added
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
 
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
+    const [activeCall, setActiveCall] = useState<any>(null);
+    const socket = useSocket();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -83,6 +89,29 @@ export default function Dashboard() {
         };
         checkAuth();
     }, [router]);
+
+    // Check for Payment Return
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const orderId = params.get('order_id');
+        if (orderId) {
+            // Verify Payment
+            api.payments.verifyPayment({ orderId })
+                .then((res: any) => {
+                    if (res.success) {
+                        alert("Payment Successful! Balance Updated.");
+                        // Clear URL
+                        window.history.replaceState({}, '', '/dashboard');
+                        // Refresh User
+                        api.profile.getMe().then(setCurrentUser);
+                    }
+                })
+                .catch((err: any) => {
+                    console.error(err);
+                    // Don't alert error on every load, maybe it was already verified
+                });
+        }
+    }, []);
 
     // Fetch data based on active tab
     useEffect(() => {
@@ -133,6 +162,37 @@ export default function Dashboard() {
         }
     };
 
+    // Incoming Call Listener
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("callUser", (data) => {
+            console.log("Incoming call:", data);
+            api.interactions.getConnections().then(conns => {
+                const caller = conns.find((c: any) => c.partner.id === data.from);
+                if (caller) {
+                    setActiveCall({
+                        partner: caller.partner,
+                        connectionId: caller.interactionId,
+                        incomingCall: { signal: data.signalData, from: data.from, type: data.type },
+                        mode: data.type
+                    });
+                }
+            });
+        });
+
+        return () => {
+            socket.off("callUser");
+        };
+    }, [socket]);
+
+    const handleLogout = () => {
+        if (confirm("Are you sure you want to log out?")) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            router.push('/login');
+        }
+    };
+
     const handleAcceptRequest = async (requestId: string) => {
         try {
             await api.interactions.acceptRequest(requestId);
@@ -154,12 +214,11 @@ export default function Dashboard() {
         }
     };
 
-    // --- RENDERERS ---
-
     const renderHeader = () => (
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-6">
+                    {/* ... (Logo and Nav same as before) ... */}
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-lg shadow-indigo-500/20">
                             <Sparkles size={16} fill="white" />
@@ -167,8 +226,7 @@ export default function Dashboard() {
                         <span className="text-xl font-heading font-bold text-foreground tracking-tight hidden sm:block">LifePartner AI</span>
                     </div>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-1">
+                    <nav className="hidden">
                         {[
                             { id: 'matches', label: 'Matches', icon: Heart },
                             { id: 'reels', label: 'Vibe', icon: Video },
@@ -206,6 +264,17 @@ export default function Dashboard() {
                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     </div>
 
+                    {/* Coin Balance */}
+                    {currentUser && (
+                        <button
+                            onClick={() => setShowCoinStore(true)}
+                            className="hidden sm:flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200"
+                        >
+                            <Coins size={14} className="fill-yellow-500 text-yellow-600" />
+                            <span>{currentUser.coins || 0}</span>
+                        </button>
+                    )}
+
                     {/* Premium Badge */}
                     {currentUser?.is_premium && (
                         <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300">
@@ -214,70 +283,165 @@ export default function Dashboard() {
                         </div>
                     )}
 
+
+                    {/* Boost Button */}
+                    <button
+                        onClick={async () => {
+                            if (!currentUser || currentUser.coins < 100) {
+                                setShowCoinStore(true);
+                                alert("Insufficient coins to boost! (Cost: 100)");
+                                return;
+                            }
+                            if (confirm("Boost your profile for 100 coins? You will be seen by 10x more people! 🚀")) {
+                                try {
+                                    await api.wallet.boostProfile();
+                                    alert("Profile Boosted! ⚡ You are now top visibility.");
+                                    // Refresh user to update coins
+                                    api.profile.getMe().then(setCurrentUser);
+                                } catch (e) {
+                                    alert("Boost failed.");
+                                }
+                            }
+                        }}
+                        className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                    >
+                        <Zap size={14} className="fill-yellow-300 text-yellow-300" />
+                        <span>Boost</span>
+                    </button>
+
                     <button className="relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors">
                         <Filter size={20} className="text-foreground" />
                     </button>
+
+                    {activeTab === 'connections' && (
+                        <button
+                            onClick={() => setShowCallHistory(true)}
+                            className="w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
+                            title="Call History"
+                        >
+                            <Clock size={20} />
+                        </button>
+                    )}
                     <NotificationBell />
-                    {/* User Avatar */}
+
+                    <button
+                        onClick={handleLogout}
+                        className="w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors text-muted-foreground"
+                        title="Log Out"
+                    >
+                        <LogOut size={20} />
+                    </button>
+
                     {currentUser && (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer" onClick={() => setActiveTab('profile')}>
                             <img src={currentUser.photos?.[0] || currentUser.photoUrl || "https://i.pravatar.cc/150"} className="rounded-full w-full h-full border-2 border-background object-cover" alt="Profile" />
                         </div>
                     )}
                 </div>
-            </div>
-        </header>
+
+            </div >
+        </header >
     );
+
+    const [activeStorySet, setActiveStorySet] = useState<any>(null);
+
+    const handleStoryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validation
+        if (file.size > 50 * 1024 * 1024) {
+            alert("File too large (Max 50MB)");
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append('media', file);
+            await api.profile.uploadStory(formData);
+            alert("Story uploaded successfully!");
+            // Refresh Me
+            const me = await api.profile.getMe();
+            setCurrentUser(me);
+        } catch (err: any) {
+            console.error(err);
+            if (err.message && err.message.includes("Premium")) {
+                alert("Stories are a Premium feature! Please upgrade.");
+                setShowCoinStore(true);
+            } else {
+                alert("Failed to upload story");
+            }
+        }
+    };
+
+    const handleViewStory = (user: any) => {
+        if (!user.stories || user.stories.length === 0) return;
+        setActiveStorySet({
+            stories: user.stories,
+            user: user
+        });
+    };
+
 
     const renderStories = () => (
         <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar px-4 pt-2">
-            {/* My Story */}
+            {/* My Story Upload */}
             <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group">
-                <div className="w-16 h-16 rounded-full p-[2px] border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors relative">
-                    <div className="w-full h-full rounded-full bg-secondary/10 flex items-center justify-center text-primary">
-                        +
+                <label className="relative cursor-pointer">
+                    <div className="w-16 h-16 rounded-full p-[2px] border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors relative">
+                        <div className="w-full h-full rounded-full bg-secondary/10 flex items-center justify-center text-primary">
+                            +
+                        </div>
                     </div>
-                </div>
+                    <input type="file" className="hidden" accept="image/*,video/*" onChange={handleStoryUpload} />
+                </label>
                 <span className="text-xs font-medium text-gray-500">Your Story</span>
             </div>
 
-            {/* Other Stories */}
-            {STORIES.map((story, i) => (
-                <div key={story.id} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => setCurrentStoryIndex(i)}>
-                    <div className={`w-16 h-16 rounded-full p-[2px] ${story.hasStory ? 'bg-gradient-to-tr from-yellow-400 to-fuchsia-600' : 'bg-gray-200'} transition-transform hover:scale-105`}>
+            {/* My Active Story (if any) */}
+            {currentUser?.stories?.map((story: any, i: number) => (
+                <div key={'me' + i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => setCurrentStoryIndex(i)}>
+                    <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-indigo-500 to-purple-500">
                         <div className="w-full h-full rounded-full p-[2px] bg-background">
-                            <img src={story.img} className="w-full h-full rounded-full object-cover" alt={story.user} />
+                            <img src={currentUser.photos?.[0] || currentUser.photoUrl} className="w-full h-full rounded-full object-cover" alt="You" />
                         </div>
                     </div>
-                    <span className="text-xs font-medium text-foreground">{story.user}</span>
+                    <span className="text-xs font-medium text-foreground">You</span>
+                </div>
+            ))}
+
+            {/* Matches Stories */}
+            {matches.filter(m => m.stories?.length > 0).map((match, i) => (
+                <div key={match.id} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => handleViewStory(match)}>
+                    <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 transition-transform hover:scale-105`}>
+                        <div className="w-full h-full rounded-full p-[2px] bg-background">
+                            <img src={match.photoUrl} className="w-full h-full rounded-full object-cover" alt={match.name} />
+                        </div>
+                    </div>
+                    <span className="text-xs font-medium text-foreground">{match.name}</span>
                 </div>
             ))}
         </div>
     );
 
-    const renderEventsSidebar = () => (
-        <div className="hidden lg:block w-80 flex-shrink-0 space-y-6">
-            <div className="bg-card rounded-2xl p-5 border border-border/50 shadow-sm sticky top-24">
-                <h3 className="font-heading font-bold text-lg mb-4 text-foreground flex items-center gap-2">
-                    Coming Up <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-sans">Events</span>
-                </h3>
-                <div className="space-y-4">
-                    {EVENTS.map(event => (
-                        <div key={event.id} className="group cursor-pointer">
-                            <div className="relative h-32 rounded-xl overflow-hidden mb-3">
-                                <img src={event.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt={event.title} />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
-                                    <span className="text-white text-xs font-bold bg-black/50 backdrop-blur-md px-2 py-1 rounded-md">{event.date} • {event.time}</span>
-                                </div>
-                            </div>
-                            <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{event.title}</h4>
-                            <button className="mt-2 w-full py-1.5 rounded-lg border border-primary/20 text-primary text-xs font-bold hover:bg-primary hover:text-white transition-all">RSVP Now</button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
+
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) return;
+        setLoading(true);
+        try {
+            const results = await api.matches.search(searchQuery);
+            setMatches(results);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const renderDiscoveryFeed = () => {
         if (loading) {
@@ -291,41 +455,68 @@ export default function Dashboard() {
         }
 
         return (
-            <div className="max-w-xl mx-auto space-y-8 pb-32">
+            <div className="w-full space-y-8 pb-32">
+                {/* AI Search Bar */}
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 space-y-3">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Sparkles className="text-indigo-600" size={20} /> AI Matchmaker
+                    </h2>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            placeholder="Describe your ideal partner (e.g., 'Architect in Mumbai who likes hiking')..."
+                            className="flex-1 bg-gray-50 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                        />
+                        <button
+                            onClick={handleSearch}
+                            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+                        >
+                            Search
+                        </button>
+                    </div>
+                </div>
+
                 {/* Header for Feed */}
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-2xl font-heading font-bold text-foreground">Daily Recommendations</h2>
+                    <h2 className="text-2xl font-heading font-bold text-foreground">
+                        {searchQuery ? 'Search Results' : 'Daily Recommendations'}
+                    </h2>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{matches.length} matches</span>
                 </div>
 
-                {matches.map((match) => (
-                    <div key={match.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        <MatchCard
-                            match={match}
-                            onConnect={() => {
-                                // Optimistically remove
-                                setMatches(prev => prev.filter(m => m.id !== match.id));
-                            }}
-                            onViewProfile={() => router.push(`/profile/${match.id}`)}
-                        />
-                        {/* Inline Actions for Quick Access on Mobile */}
-                        <div className="flex items-center justify-between px-4 mt-3 md:hidden">
-                            <div className="flex gap-4 text-xs font-medium text-gray-500">
-                                <span className="flex items-center gap-1"><Briefcase size={14} /> {match.role}</span>
-                                <span className="flex items-center gap-1"><MapPin size={14} /> {match.location?.city}</span>
-                                <span className="flex items-center gap-1"><Ruler size={14} /> {match.height}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {matches.map((match) => (
+                        <div key={match.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full">
+                            <MatchCard
+                                match={match}
+                                onConnect={() => {
+                                    // Optimistically remove
+                                    setMatches(prev => prev.filter(m => m.id !== match.id));
+                                }}
+                                onViewProfile={() => setSelectedProfile(match)}
+                            />
+                            {/* Inline Actions for Quick Access on Mobile */}
+                            <div className="flex items-center justify-between px-4 mt-3 md:hidden">
+                                <div className="flex gap-4 text-xs font-medium text-gray-500">
+                                    <span className="flex items-center gap-1"><Briefcase size={14} /> {match.role}</span>
+                                    <span className="flex items-center gap-1"><MapPin size={14} /> {match.location?.city}</span>
+                                    <span className="flex items-center gap-1"><Ruler size={14} /> {match.height}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
 
                 {matches.length === 0 && (
                     <div className="text-center py-20">
                         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Search className="text-gray-400" size={32} />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">No New Matches</h3>
-                        <p className="text-gray-500">Check back later or adjust your preferences.</p>
+                        <h3 className="text-lg font-bold text-gray-900">No Matches Found</h3>
+                        <p className="text-gray-500">Try adjusting your AI search criteria.</p>
                     </div>
                 )}
             </div>
@@ -386,7 +577,6 @@ export default function Dashboard() {
             <main className="max-w-7xl mx-auto pt-6 px-4 lg:px-8 flex gap-8">
                 {/* Main Feed Column */}
                 <div className="flex-1 min-w-0">
-                    {/* Stories Bar - Only show on Matches or Vibe */}
                     {(activeTab === 'matches' || activeTab === 'reels') && (
                         <div className="mb-8">{renderStories()}</div>
                     )}
@@ -416,7 +606,7 @@ export default function Dashboard() {
                     )}
                 </div>
 
-                {renderEventsSidebar()}
+
             </main>
 
             <BottomNav
@@ -426,23 +616,34 @@ export default function Dashboard() {
             />
 
             {/* Modals */}
-            {currentStoryIndex !== null && (
+            <CoinStoreModal
+                isOpen={showCoinStore}
+                onClose={() => setShowCoinStore(false)}
+                onSuccess={() => {
+                    setShowCoinStore(false);
+                    // refresh user to update coins
+                    api.profile.getMe().then(setCurrentUser);
+                }}
+            />
+
+            {activeStorySet && (
                 <StoryModal
                     initialIndex={0}
-                    stories={[{
-                        id: STORIES[currentStoryIndex].id,
-                        url: 'https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4',
-                        type: 'video',
-                        createdAt: new Date().toISOString()
-                    }]}
+                    stories={activeStorySet.stories}
                     user={{
-                        id: STORIES[currentStoryIndex].id,
-                        name: STORIES[currentStoryIndex].user,
-                        photoUrl: STORIES[currentStoryIndex].img
+                        id: activeStorySet.user?.id || activeStorySet.user?.userId || 'me',
+                        name: activeStorySet.user?.name || activeStorySet.user?.full_name || 'User',
+                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || "https://i.pravatar.cc/150"
                     }}
-                    currentUser={{ id: 'me' }}
-                    onClose={() => setCurrentStoryIndex(null)}
-                    onDelete={() => { }}
+                    currentUser={currentUser}
+                    onClose={() => setActiveStorySet(null)}
+                    onDelete={async (deletedId) => {
+                        await api.interactions.deleteStory(deletedId);
+                        // Optimistically remove from view or refresh
+                        setActiveStorySet(null);
+                        // Refresh full feed
+                        api.profile.getMe().then(setCurrentUser);
+                    }}
                 />
             )}
 
@@ -451,6 +652,44 @@ export default function Dashboard() {
                     connectionId={selectedConnection.interactionId}
                     partner={selectedConnection.partner}
                     onClose={() => setSelectedConnection(null)}
+                    onVideoCall={() => setActiveCall({ partner: selectedConnection.partner, connectionId: selectedConnection.interactionId, mode: 'video' })}
+                    onAudioCall={() => setActiveCall({ partner: selectedConnection.partner, connectionId: selectedConnection.interactionId, mode: 'audio' })}
+                />
+            )}
+
+            {/* Profile Detail Modal for Matches */}
+            {selectedProfile && (
+                <ProfileModal
+                    profile={selectedProfile}
+                    currentUser={currentUser}
+                    onClose={() => setSelectedProfile(null)}
+                    onConnect={() => {
+                        api.interactions.sendInterest(selectedProfile.id);
+                        setSelectedProfile(null);
+                        setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
+                        alert(`Interest sent to ${selectedProfile.name}!`);
+                    }}
+                    onUpgrade={() => {
+                        setSelectedProfile(null);
+                        setShowCoinStore(true);
+                    }}
+                />
+            )}
+
+            {/* Video Call Modal */}
+            {activeCall && (
+                <VideoCallModal
+                    connectionId={activeCall.connectionId}
+                    partner={activeCall.partner}
+                    incomingCall={activeCall.incomingCall}
+                    mode={activeCall.mode}
+                    onEndCall={() => setActiveCall(null)}
+                />
+            )}
+            {/* Call History Modal */}
+            {showCallHistory && (
+                <CallHistoryModal
+                    onClose={() => setShowCallHistory(false)}
                 />
             )}
         </div>

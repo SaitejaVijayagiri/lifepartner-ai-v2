@@ -1,15 +1,18 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
+import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
+import KundliModal from './KundliModal';
+import CoinStoreModal from './CoinStoreModal';
 
 interface ProfileModalProps {
     profile: any;
-    currentUser: any;
+    currentUser?: any;
     onClose: () => void;
-    onConnect: () => void;
-    onUpgrade: () => void;
+    onConnect?: () => void;
+    onUpgrade?: () => void;
 }
 
 export default function ProfileModal({ profile, currentUser, onClose, onConnect, onUpgrade }: ProfileModalProps) {
@@ -17,6 +20,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [lastInteracted, setLastInteracted] = useState(0);
     const [playingReel, setPlayingReel] = useState<string | null>(null);
+    const [showCoinStore, setShowCoinStore] = useState(false);
+    const [showKundli, setShowKundli] = useState(false);
+
+    if (!profile) return null;
 
     // Ensure we have an array
     const photos: string[] = profile.photos?.length > 0
@@ -371,6 +378,24 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
                 )}
             </div>
+
+            {showKundli && (
+                <KundliModal
+                    isOpen={showKundli}
+                    onClose={() => setShowKundli(false)}
+                    data={profile.kundli || { score: 18, total: 36, details: [] }}
+                    names={{ me: currentUser?.full_name || 'You', partner: profile.name }}
+                />
+            )}
+
+            <CoinStoreModal
+                isOpen={showCoinStore}
+                onClose={() => setShowCoinStore(false)}
+                onSuccess={() => {
+                    setShowCoinStore(false);
+                    // Trigger refresh in parent if needed
+                }}
+            />
         </div>
     );
 }

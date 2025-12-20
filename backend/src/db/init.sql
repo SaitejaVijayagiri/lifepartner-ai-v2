@@ -18,7 +18,7 @@ CREATE TABLE users (
     voice_bio_url TEXT,
     is_premium BOOLEAN DEFAULT FALSE,
     coins INT DEFAULT 0,
-    referral_code VARCHAR(20),
+    google_id VARCHAR(255) UNIQUE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

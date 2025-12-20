@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/Toast';
-import VoiceRecorder from './VoiceRecorder';
 import { api } from '@/lib/api';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
@@ -402,6 +401,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             )}
                         </div>
                     )}
+
+
                 </div>
 
                 {/* Footer Buttons */}

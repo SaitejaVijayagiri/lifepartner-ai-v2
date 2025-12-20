@@ -24,8 +24,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     ];
 
     return (
-        <div className="md:hidden fixed bottom-6 left-4 right-4 z-50">
-            <div className="bg-glass rounded-2xl shadow-2xl border border-white/40 flex justify-between items-center px-2 py-3 backdrop-blur-xl">
+        <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none">
+            <div className="bg-glass rounded-2xl shadow-2xl border border-white/40 flex justify-between items-center px-2 py-3 backdrop-blur-xl w-full max-w-md mx-4 pointer-events-auto">
                 {navItems.map((item) => (
                     <button
                         key={item.id}

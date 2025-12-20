@@ -9,7 +9,7 @@
 
 ## Phase 2: Enhanced Immersion (Q2 2026)
 - **Voice-First Experience**:
-    - [x] **Voice Bio**: Users can record/upload voice bios during registration.
+    - [ ] **Voice Bio**: Removed per user request (was implemented, then reverted).
     - [ ] Dynamic Daily Voice Notes (Planned).
 ## Phase 2: Enhanced Immersion
     - [x] **Reel Uploads**: Users can upload video reels to profile.

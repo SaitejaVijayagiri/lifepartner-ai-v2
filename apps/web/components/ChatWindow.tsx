@@ -4,7 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
-import { Sparkles, Video, Phone } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift } from 'lucide-react';
+import GiftModal from './GiftModal';
 
 interface ChatWindowProps {
     connectionId: string;
@@ -29,6 +30,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const [showGame, setShowGame] = useState(false);
+    const [showGiftModal, setShowGiftModal] = useState(false);
 
     // AI Wingman State
     const [loadingAi, setLoadingAi] = useState(false);
@@ -148,6 +150,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
+                        <button
+                            onClick={() => setShowGiftModal(true)}
+                            className="p-2 text-indigo-100 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                            title="Send Gift"
+                        >
+                            <Gift size={20} />
+                        </button>
                         <button
                             onClick={() => {
                                 setShowGame(true);
@@ -280,6 +289,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     partnerName={partner.name}
                 />
             )}
+            <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partner.name} />
         </div>
     );
 }

@@ -29,7 +29,7 @@ export default function GameModal({ onClose, partnerName }: { onClose: () => voi
                 await new Promise(r => setTimeout(r, 1500));
                 if (!mounted) return;
 
-                const res = await (api as any).games.start(partnerName); // partnerName used as ID for mock
+                const res = await api.games.start(partnerName); // partnerName used as ID for mock
                 if (res.success) {
                     setGameId(res.gameId);
                     setQuestions(res.questions);
@@ -49,7 +49,7 @@ export default function GameModal({ onClose, partnerName }: { onClose: () => voi
 
         try {
             const currentQ = questions[currentQIndex];
-            const res = await (api as any).games.submitAnswer(gameId, currentQ.id, optionIndex, "ME"); // "ME" mock ID
+            const res = await api.games.submitAnswer(gameId, currentQ.id, optionIndex, "ME"); // "ME" ignored by backend
 
             // Check match (mock logic done on server, returned here)
             const isMatch = res.partnerChoice === optionIndex;

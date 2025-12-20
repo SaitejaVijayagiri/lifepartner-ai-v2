@@ -18,17 +18,19 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     const [loading, setLoading] = useState(false);
 
     const handleChange = (section: string, field: string, value: any) => {
-        if (section === 'root') {
-            setFormData({ ...formData, [field]: value });
-        } else {
-            setFormData({
-                ...formData,
-                [section]: {
-                    ...formData[section],
-                    [field]: value
-                }
-            });
-        }
+        setFormData((prev: any) => {
+            if (section === 'root') {
+                return { ...prev, [field]: value };
+            } else {
+                return {
+                    ...prev,
+                    [section]: {
+                        ...(prev[section] || {}),
+                        [field]: value
+                    }
+                };
+            }
+        });
     };
 
     const handleSave = async () => {
@@ -201,18 +203,15 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                             navigator.geolocation.getCurrentPosition(async (position) => {
                                                 try {
                                                     const { latitude, longitude } = position.coords;
-                                                    // Free Reverse Geocoding
-                                                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                                                    // BigDataCloud (More reliable for India State/District)
+                                                    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
                                                     const data = await res.json();
 
                                                     // Better Address Parsing
-                                                    const addr = data.address;
-                                                    const detectedCity = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.state_district || "Unknown City";
-                                                    const detectedCountry = addr.country || "India";
-
-                                                    // Improved District/State
-                                                    const detectedDistrict = addr.state_district || addr.county || detectedCity;
-                                                    const detectedState = addr.state;
+                                                    const detectedCity = data.locality || data.city || data.principalSubdivision || "Unknown City";
+                                                    const detectedDistrict = data.localityInfo?.administrative?.find((x: any) => x.order === 6 || x.order === 7)?.name || data.city || detectedCity;
+                                                    const detectedState = data.principalSubdivision || data.localityInfo?.administrative?.find((x: any) => x.order === 4)?.name || "Unknown State";
+                                                    const detectedCountry = data.countryName || "India";
 
                                                     // Update All Location Fields
                                                     handleChange('location', 'city', detectedCity);

@@ -228,7 +228,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "N/A"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.role || "Professional"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "Hindu"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📍 {match.location?.city || "India"}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📍 {[match.location?.city, match.location?.district, match.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "India"}</span>
                     </div>
 
                     <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed opacity-90">{match.summary}</p>

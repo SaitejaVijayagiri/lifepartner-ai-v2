@@ -188,22 +188,23 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                 </div>
             )}
 
-            {/* Bottom Info Section - Simple Original Specs */}
-            <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end h-full pointer-events-none">
-                {/* Kundli Badge (Floating above name) */}
+            {/* Bottom Info Section */}
+            <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
+                {/* Kundli Badge - Fixed position, doesn't move on hover */}
                 {match.kundli && (
-                    <div className="pointer-events-auto self-start mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                    <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 relative z-30">
                         <button
                             onClick={(e) => { e.stopPropagation(); setShowKundli(true); }}
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full backdrop-blur-md border shadow-lg transition-transform hover:scale-105 active:scale-95 ${match.kundli.score >= 18 ? 'bg-orange-500/80 border-orange-300/50 text-white' : 'bg-red-500/80 border-red-300/50 text-white'}`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all hover:scale-105 active:scale-95 ${match.kundli.score >= 18 ? 'bg-orange-500/90 border-orange-300/50 text-white' : 'bg-red-500/90 border-red-300/50 text-white'}`}
                         >
-                            <span className="text-xs">🕉️</span>
+                            <span className="text-sm">🕉️</span>
                             <span className="text-xs font-bold">{match.kundli.score}/36 Guna</span>
                         </button>
                     </div>
                 )}
 
-                <div className="transform transition-transform duration-300 group-hover:-translate-y-16">
+                {/* Info that moves up on hover */}
+                <div className="transform transition-transform duration-300 group-hover:-translate-y-20">
                     <div className="flex items-end gap-2 mb-1">
                         <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter">{match.name}, {match.age}</h3>
                         {match.isVerified && <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>}

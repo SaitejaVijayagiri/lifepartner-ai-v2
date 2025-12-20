@@ -23,7 +23,7 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false }: ChatWindowProps) {
-    const socket = useSocket();
+    const { socket } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);

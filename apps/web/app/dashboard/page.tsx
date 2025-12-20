@@ -51,7 +51,7 @@ export default function Dashboard() {
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
     const [activeCall, setActiveCall] = useState<any>(null);
-    const socket = useSocket();
+    const { socket } = useSocket() as any;
 
     useEffect(() => {
         const checkAuth = async () => {

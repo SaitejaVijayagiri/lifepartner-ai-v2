@@ -22,7 +22,7 @@ interface VideoCallModalProps {
 }
 
 export default function VideoCallModal({ connectionId, partner, onEndCall, incomingCall, mode = 'video' }: VideoCallModalProps) {
-    const socket = useSocket();
+    const { socket } = useSocket() as any;
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [callAccepted, setCallAccepted] = useState(false);
     const [callEnded, setCallEnded] = useState(false);

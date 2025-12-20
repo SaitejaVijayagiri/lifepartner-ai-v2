@@ -104,6 +104,12 @@ router.delete('/connections/:id', authenticateToken, async (req: any, res) => {
     }
 });
 
+import { EmailService } from '../services/email';
+
+// ... (existing imports)
+
+// ...
+
 // Send Interest (Connect Request)
 router.post('/interest', authenticateToken, async (req: any, res) => {
     try {
@@ -111,6 +117,13 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const { toUserId } = req.body;
 
         const client = await pool.connect();
+
+        // Fetch Names for Email
+        const userRes = await client.query('SELECT full_name, email FROM users WHERE id = $1', [userId]);
+        const targetRes = await client.query('SELECT full_name, email FROM users WHERE id = $1', [toUserId]);
+        const myName = userRes.rows[0].full_name;
+        const targetEmail = targetRes.rows[0].email;
+        const targetName = targetRes.rows[0].full_name;
 
         // Upsert: Only update STATUS. Do NOT touch is_liked.
         await client.query(`
@@ -137,8 +150,12 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 message: msg,
                 timestamp: new Date()
             });
+
+            // EMAIL ALERT
+            await EmailService.sendInterestReceivedEmail(targetEmail, targetName, myName);
+
         } catch (err) {
-            console.warn("Notification failed:", err);
+            console.warn("Notification/Email failed:", err);
         }
 
         client.release();
@@ -149,95 +166,39 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
     }
 });
 
-// Revoke Interest (Cancel Request)
-router.delete('/interest/:toUserId', authenticateToken, async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
-        const { toUserId } = req.params;
-
-        const client = await pool.connect();
-        await client.query(`
-            UPDATE matches 
-            SET status = NULL 
-            WHERE user_a_id = $1 AND user_b_id = $2 AND status = 'pending'
-        `, [userId, toUserId]);
-
-        client.release();
-        res.json({ success: true });
-    } catch (e) {
-        console.error("Revoke Interest Error", e);
-        res.status(500).json({ error: "Failed" });
-    }
-});
-
-// Like Profile (Instagram Style)
-router.post('/like', authenticateToken, async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
-        const { toUserId } = req.body;
-
-        const client = await pool.connect();
-
-        // Upsert: Only update IS_LIKED = TRUE. Do NOT touch status.
-        await client.query(`
-            INSERT INTO public.matches (user_a_id, user_b_id, status, is_liked, score_total)
-            VALUES ($1, $2, DEFAULT, TRUE, 0.8)
-            ON CONFLICT (user_a_id, user_b_id) 
-            DO UPDATE SET is_liked = TRUE
-        `, [userId, toUserId]);
-
-        // Notify
-        try {
-            const msg = "Someone liked your profile! ⭐";
-            await client.query(`
-                INSERT INTO public.notifications (user_id, type, message, data)
-                VALUES ($1, 'like', $2, $3)
-            `, [toUserId, 'like', JSON.stringify({ fromUserId: userId })]);
-
-            getIO().to(toUserId).emit('notification:new', {
-                type: 'like',
-                message: msg,
-                timestamp: new Date()
-            });
-        } catch (e) { console.warn("Notify error", e); }
-
-        client.release();
-        res.json({ success: true });
-    } catch (e) {
-        console.error("Like Profile Error", e);
-        res.status(500).json({ error: "Failed" });
-    }
-});
-
-// Unlike Profile (Instagram Style)
-router.delete('/like/:toUserId', authenticateToken, async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
-        const { toUserId } = req.params;
-
-        const client = await pool.connect();
-
-        // Update is_liked = FALSE. Do NOT touch status.
-        await client.query(`
-            UPDATE matches 
-            SET is_liked = FALSE
-            WHERE user_a_id = $1 AND user_b_id = $2
-        `, [userId, toUserId]);
-
-        client.release();
-        res.json({ success: true });
-    } catch (e) {
-        console.error("Unlike Profile Error", e);
-        res.status(500).json({ error: "Failed" });
-    }
-});
+// ...
 
 // Accept
 router.post('/:id/accept', authenticateToken, async (req: any, res) => {
     try {
         const { id } = req.params;
         const client = await pool.connect();
-        await client.query("UPDATE matches SET status = 'accepted' WHERE id = $1", [id]);
+
+        // Update Status
+        const resDb = await client.query(`
+            UPDATE matches 
+            SET status = 'accepted' 
+            WHERE id = $1 
+            RETURNING user_a_id, user_b_id
+        `, [id]);
+
+        if (resDb.rows.length > 0) {
+            const { user_a_id, user_b_id } = resDb.rows[0];
+
+            // Notify Sender (User A) that User B accepted
+            try {
+                // Fetch details
+                const uA = await client.query('SELECT full_name, email FROM users WHERE id = $1', [user_a_id]);
+                const uB = await client.query('SELECT full_name FROM users WHERE id = $1', [user_b_id]);
+
+                if (uA.rows.length && uB.rows.length) {
+                    await EmailService.sendMatchAcceptedEmail(uA.rows[0].email, uA.rows[0].full_name, uB.rows[0].full_name);
+                }
+            } catch (err) {
+                console.warn("Email failed", err);
+            }
+        }
+
         client.release();
         res.json({ success: true });
     } catch (e) {

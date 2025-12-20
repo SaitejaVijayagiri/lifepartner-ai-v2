@@ -154,6 +154,7 @@ router.post('/register', async (req, res) => {
                 // Try sending
                 if (process.env.RESEND_API_KEY.includes('mock')) {
                     console.log("⚠️ EMAIL NOT SENT (Mock Key in use). Check server logs for OTP.");
+                    // Still try sending Welcome if configured? No, wait for verification.
                 } else {
                     const { error } = await resend.emails.send({
                         from: 'LifePartner AI <onboarding@resend.dev>', // Only works for your own email until domain verified
@@ -168,6 +169,15 @@ router.post('/register', async (req, res) => {
                         console.log(`📧 Email sent to ${targetEmail}`);
                     }
                 }
+
+                // Trigger Welcome Email (Ideally after verification, but let's send it now to verify it works)
+                // Actually, let's wait until they VERIFY. 
+                // Moved from here to /verify-otp logic?
+                // No, let's just stick to the plan: Call sendWelcomeEmail on efficient signup.
+                // But this block is strictly for OTP.
+                // Logic: 
+                // 1. User Registers -> Gets OTP
+                // 2. User Verifies -> Gets Welcome Email? YES.
 
             } catch (e) {
                 console.error("Resend Network Error", e);
@@ -190,6 +200,12 @@ router.post('/register', async (req, res) => {
         client.release();
     }
 });
+
+import { EmailService } from '../services/email';
+
+// ... (existing imports)
+
+// ...
 
 // 2. Verify OTP
 router.post('/verify-otp', async (req, res) => {
@@ -217,6 +233,9 @@ router.post('/verify-otp', async (req, res) => {
 
         // Update User
         await pool.query("UPDATE public.users SET is_verified = TRUE, otp_code = NULL WHERE id = $1", [user.id]);
+
+        // Send Welcome Email
+        EmailService.sendWelcomeEmail(email, user.full_name).catch(console.error);
 
         // Return Token
         const token = generateToken(user.id);

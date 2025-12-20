@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
-import { Sparkles, Video, Phone, Gift } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X } from 'lucide-react';
 import GiftModal from './GiftModal';
 
 interface ChatWindowProps {
@@ -18,8 +18,8 @@ interface ChatWindowProps {
     onClose?: () => void;
     onVideoCall?: () => void;
     onAudioCall?: () => void;
-    className?: string; // For custom positioning
-    isCallMode?: boolean; // To alter UI for video calls
+    className?: string;
+    isCallMode?: boolean;
 }
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false }: ChatWindowProps) {
@@ -65,18 +65,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     useEffect(() => {
         if (!socket) return;
 
-        socket.on("receiveMessage", (newMsg) => {
-            // Only append if it's from this partner
-            if (newMsg.senderId === partner.id || newMsg.senderId === 'me') { // 'me' check for self-echo if needed
+        socket.on("receiveMessage", (newMsg: any) => {
+            if (newMsg.senderId === partner.id || newMsg.senderId === 'me') {
                 setMessages(prev => [...prev, newMsg]);
                 setIsTyping(false);
             }
         });
 
-        socket.on("typing", (data) => {
+        socket.on("typing", (data: any) => {
             if (data.from === partner.id) {
                 setIsTyping(true);
-                // Auto-clear typing after 3s
                 setTimeout(() => setIsTyping(false), 3000);
             }
         });
@@ -99,9 +97,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (!inputText.trim()) return;
 
         const text = inputText;
-        setInputText(""); // Optimistic clear
+        setInputText("");
 
-        // Optimistic UI update
         const tempMsg = {
             id: 'temp-' + Date.now(),
             text,
@@ -111,15 +108,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         setMessages(prev => [...prev, tempMsg]);
 
         try {
-            // 1. Send to Backend API (Persistence)
             await api.chat.sendMessage(connectionId, text, 'me');
-
-            // 2. Emit Socket Event (Real-time to Partner)
             if (socket) {
                 socket.emit("sendMessage", {
                     to: partner.id,
                     text,
-                    from: "me" // In real app, server validates token
+                    from: "me"
                 });
             }
         } catch (err) {
@@ -135,44 +129,53 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     return (
-        <div className={className || "fixed bottom-0 right-0 w-full h-[80vh] md:bottom-4 md:right-4 md:w-96 md:h-[500px] bg-white md:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col border border-gray-200 overflow-hidden z-40 animate-in slide-in-from-bottom duration-300"}>
-            {/* Header */}
+        <div className={className || "fixed bottom-0 right-0 w-full h-[85vh] md:bottom-4 md:right-4 md:w-[400px] md:h-[600px] bg-white md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col border border-gray-100 overflow-hidden z-40 animate-in slide-in-from-bottom duration-300"}>
+            {/* Premium Header */}
             {!isCallMode && (
-                <div className="p-4 bg-indigo-600 text-white flex justify-between items-center shadow-md">
-                    <div className="flex items-center gap-3">
+                <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">
+                    {/* Decorative elements */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+
+                    <div className="flex items-center gap-3 relative z-10">
                         <div className="relative">
-                            <img src={partner.photoUrl} alt={partner.name} className="w-10 h-10 rounded-full border-2 border-white/50 object-cover" />
-                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 rounded-full border border-indigo-600"></div>
+                            <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
+                                <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" />
+                            </div>
+                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white shadow-lg"></div>
                         </div>
                         <div>
-                            <h3 className="font-bold leading-tight">{partner.name}</h3>
-                            <p className="text-xs text-indigo-200">{partner.role || "Online"}</p>
+                            <h3 className="font-bold text-lg leading-tight">{partner.name}</h3>
+                            <p className="text-xs text-white/70 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                                {partner.role || "Online now"}
+                            </p>
                         </div>
                     </div>
-                    <div className="flex gap-2 flex-shrink-0">
+
+                    <div className="flex gap-1 relative z-10">
                         <button
                             onClick={() => setShowGiftModal(true)}
-                            className="p-2 text-indigo-100 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                             title="Send Gift"
                         >
                             <Gift size={20} />
                         </button>
                         <button
-                            onClick={() => {
-                                setShowGame(true);
-                            }}
-                            className="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 transition-colors font-bold border border-purple-200 whitespace-nowrap shadow-sm"
+                            onClick={() => setShowGame(true)}
+                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all text-lg"
+                            title="Play Game"
                         >
-                            🎲 Play Game
+                            🎲
                         </button>
-                        <button onClick={onVideoCall} className="p-2 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-full transition-colors" title="Video Call">
+                        <button onClick={onVideoCall} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Video Call">
                             <Video size={20} />
                         </button>
-                        <button onClick={onAudioCall} className="p-2 text-gray-500 hover:bg-green-50 hover:text-green-600 rounded-full transition-colors" title="Audio Call">
+                        <button onClick={onAudioCall} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Audio Call">
                             <Phone size={18} />
                         </button>
-                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors text-xl leading-none">
-                            ×
+                        <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-xl transition-all ml-1">
+                            <X size={20} />
                         </button>
                     </div>
                 </div>
@@ -185,38 +188,45 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </div>
             )}
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 space-y-4" ref={scrollRef}>
+            {/* Messages - Premium Design */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-50 to-gray-50 space-y-3" ref={scrollRef}>
                 {messages.length === 0 && (
-                    <div className="text-center text-gray-400 text-sm mt-10">
-                        <p>Say hello to {partner.name}! 👋</p>
+                    <div className="text-center py-16">
+                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-3xl">👋</span>
+                        </div>
+                        <p className="text-gray-500 font-medium">Say hello to {partner.name}!</p>
+                        <p className="text-gray-400 text-sm mt-1">Start a conversation</p>
                     </div>
                 )}
                 {messages.map((msg, idx) => {
-                    const isMe = msg.senderId === 'me' || msg.senderId === undefined; // Hacky 'me' check
+                    const isMe = msg.senderId === 'me' || msg.senderId === undefined;
                     return (
-                        <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                             {!isMe && (
-                                <img src={partner.photoUrl} className="w-6 h-6 rounded-full mr-2 self-end mb-1" />
+                                <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" />
                             )}
-                            <div className={`max-w-[75%] px-4 py-2 rounded-2xl text-sm shadow-sm ${isMe
-                                ? 'bg-indigo-600 text-white rounded-br-none'
-                                : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+                            <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${isMe
+                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md'
+                                : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md'
                                 }`}>
                                 {msg.text}
+                                <div className={`text-[10px] mt-1 ${isMe ? 'text-white/60' : 'text-gray-400'}`}>
+                                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                </div>
                             </div>
                         </div>
                     );
                 })}
                 {/* Typing Indicator */}
                 {isTyping && (
-                    <div className="flex justify-start">
-                        <img src={partner.photoUrl} className="w-6 h-6 rounded-full mr-2 self-end mb-1" />
-                        <div className="bg-white px-4 py-2 rounded-2xl border border-gray-200 rounded-bl-none">
-                            <div className="flex gap-1 h-4 items-center">
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="flex justify-start animate-in fade-in duration-300">
+                        <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" />
+                        <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 rounded-bl-md shadow-sm">
+                            <div className="flex gap-1.5 h-4 items-center">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                             </div>
                         </div>
                     </div>
@@ -225,11 +235,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* AI Icebreaker Suggestions */}
             {aiSuggestions.length > 0 && (
-                <div className="p-2 bg-indigo-50 border-t border-indigo-100 animate-in slide-in-from-bottom flex flex-col gap-2">
-                    <p className="text-xs font-bold text-indigo-600 flex items-center gap-1">
-                        <Sparkles size={12} /> AI Suggestions
-                        <button onClick={() => setAiSuggestions([])} className="ml-auto text-gray-400 hover:text-gray-600">×</button>
-                    </p>
+                <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-100 animate-in slide-in-from-bottom duration-300">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
+                            <Sparkles size={14} className="text-purple-500" />
+                            AI Suggestions
+                        </p>
+                        <button onClick={() => setAiSuggestions([])} className="text-gray-400 hover:text-gray-600 p-1">
+                            <X size={14} />
+                        </button>
+                    </div>
                     <div className="flex flex-col gap-2">
                         {aiSuggestions.map((suggestion, idx) => (
                             <button
@@ -238,7 +253,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     setInputText(suggestion);
                                     setAiSuggestions([]);
                                 }}
-                                className="text-left text-sm bg-white border border-indigo-100 p-2 rounded-lg hover:bg-indigo-100 transition-colors text-gray-700 shadow-sm"
+                                className="text-left text-sm bg-white border border-indigo-100 p-3 rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all text-gray-700 shadow-sm"
                             >
                                 {suggestion}
                             </button>
@@ -247,39 +262,38 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </div>
             )}
 
-            {/* Message Input */}
+            {/* Premium Message Input */}
             <form
                 onSubmit={e => {
                     e.preventDefault();
                     handleSend(e);
                 }}
-                className="p-3 border-t bg-gray-50 flex gap-2 items-center"
+                className="p-4 border-t border-gray-100 bg-white flex gap-3 items-center"
             >
-                <div className="relative group">
-                    <button
-                        type="button"
-                        onClick={handleIcebreaker}
-                        disabled={loadingAi}
-                        className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full transition-colors disabled:opacity-50"
-                        title="AI Wingman"
-                    >
-                        {loadingAi ? <Sparkles size={20} className="animate-spin" /> : <Sparkles size={20} />}
-                    </button>
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-0 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                        Ask AI for Help
-                    </div>
-                </div>
+                <button
+                    type="button"
+                    onClick={handleIcebreaker}
+                    disabled={loadingAi}
+                    className="p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50"
+                    title="AI Wingman"
+                >
+                    <Sparkles size={18} className={loadingAi ? 'animate-spin' : ''} />
+                </button>
 
                 <input
                     type="text"
                     value={inputText}
                     onChange={handleInput}
                     placeholder="Type a message..."
-                    className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all placeholder:text-gray-400"
                 />
-                <button type="submit" disabled={!inputText.trim()} className="bg-indigo-600 text-white rounded-full px-4 py-2 hover:bg-indigo-700 disabled:opacity-50 text-sm font-medium transition-colors">
-                    Send
+
+                <button
+                    type="submit"
+                    disabled={!inputText.trim()}
+                    className="p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none transition-all"
+                >
+                    <Send size={18} />
                 </button>
             </form>
 
@@ -293,3 +307,4 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         </div>
     );
 }
+

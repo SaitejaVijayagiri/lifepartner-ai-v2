@@ -390,15 +390,17 @@ export default function Dashboard() {
                         <span className="hidden sm:inline">Boost</span>
                     </button>
 
-                    <button
-                        onClick={() => setShowFilterModal(true)}
-                        className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50' : ''}`}
-                    >
-                        <Filter size={20} className={activeFilters ? 'text-indigo-600' : 'text-foreground'} />
-                        {activeFilters && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 rounded-full border-2 border-white"></span>
-                        )}
-                    </button>
+                    {(activeTab === 'matches' || activeTab === 'reels') && (
+                        <button
+                            onClick={() => setShowFilterModal(true)}
+                            className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50' : ''}`}
+                        >
+                            <Filter size={20} className={activeFilters ? 'text-indigo-600' : 'text-foreground'} />
+                            {activeFilters && (
+                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 rounded-full border-2 border-white"></span>
+                            )}
+                        </button>
+                    )}
 
                     {activeTab === 'connections' && (
                         <button
@@ -413,7 +415,7 @@ export default function Dashboard() {
 
                     <button
                         onClick={handleLogout}
-                        className="w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors text-muted-foreground"
+                        className="hidden sm:flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
                         title="Log Out"
                     >
                         <LogOut size={20} />

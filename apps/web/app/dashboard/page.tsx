@@ -117,6 +117,14 @@ export default function Dashboard() {
         }
     }, []);
 
+    const navItems = [
+        { id: 'matches', label: 'Matches', icon: Heart },
+        { id: 'reels', label: 'Vibe', icon: Video },
+        { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
+        { id: 'connections', label: 'Chat', icon: MessageCircle },
+        { id: 'profile', label: 'Profile', icon: User },
+    ];
+
     // Fetch data based on active tab
     useEffect(() => {
         if (activeTab === 'requests') fetchRequests();
@@ -312,13 +320,7 @@ export default function Dashboard() {
                     </div>
 
                     <nav className="hidden md:flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-full border border-gray-200/50 shadow-sm">
-                        {[
-                            { id: 'matches', label: 'Matches', icon: Heart },
-                            { id: 'reels', label: 'Vibe', icon: Video },
-                            { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
-                            { id: 'connections', label: 'Chat', icon: MessageCircle },
-                            { id: 'profile', label: 'Profile', icon: User },
-                        ].map(item => (
+                        {navItems.map(item => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id)}
@@ -966,6 +968,30 @@ export default function Dashboard() {
                 }}
                 initialFilters={activeFilters || undefined}
             />
+
+            {/* Mobile Bottom Navigation */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-lg pb-safe z-50">
+                <div className="flex justify-around items-center h-16">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${activeTab === item.id ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                        >
+                            <div className="relative">
+                                <item.icon size={24} strokeWidth={activeTab === item.id ? 2.5 : 2} />
+                                {item.badge && item.badge > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] min-w-[16px] h-4 flex items-center justify-center rounded-full border-2 border-white">
+                                        {item.badge}
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-[10px] font-medium">{item.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
     );
 }

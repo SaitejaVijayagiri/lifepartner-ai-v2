@@ -134,6 +134,17 @@ const initServer = async () => {
                     ALTER TABLE public.users ADD COLUMN referred_by UUID;
                 END IF;
 
+                -- Location Optimization
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND table_schema='public' AND column_name='city') THEN 
+                    ALTER TABLE public.users ADD COLUMN city VARCHAR(100); -- Alias for location_name eventually, or explicit city
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND table_schema='public' AND column_name='district') THEN 
+                    ALTER TABLE public.users ADD COLUMN district VARCHAR(100);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND table_schema='public' AND column_name='state') THEN 
+                    ALTER TABLE public.users ADD COLUMN state VARCHAR(100);
+                END IF;
+
                 ----------------------------------------------------------------
                 -- 2. Core Feature Tables
                 ----------------------------------------------------------------

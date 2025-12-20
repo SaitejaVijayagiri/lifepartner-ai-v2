@@ -165,9 +165,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     gender = COALESCE($3, gender),
                     location_name = COALESCE($4, location_name),
                     avatar_url = COALESCE($5, avatar_url),
-                    email = COALESCE($6, email)
+                    email = COALESCE($6, email),
+                    -- Normalize Location Columns
+                    city = COALESCE($4, city), 
+                    district = COALESCE($8, district),
+                    state = COALESCE($9, state)
                 WHERE id = $7
-            `, [name, age, gender, location?.city, finalPhotoUrl, email, userId]);
+            `, [name, age, gender, location?.city, finalPhotoUrl, email, userId, location?.district, location?.state]);
 
             // 2. Update Profile Metadata
             // We store extended fields (dob, full location) in metadata

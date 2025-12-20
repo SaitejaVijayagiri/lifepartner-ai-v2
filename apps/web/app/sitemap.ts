@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { BLOG_POSTS } from '@/lib/blog-data';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://lifepartner-ai.vercel.app';
+    const baseUrl = 'https://lifepartnerai.in';
 
     // Static Pages
     const routes = [

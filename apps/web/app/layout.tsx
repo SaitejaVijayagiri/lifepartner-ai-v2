@@ -22,9 +22,41 @@ const fontMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LifePartner AI",
-  description: "Find your perfect match with AI.",
+  metadataBase: new URL('https://lifepartnerai.in'),
+  title: {
+    default: "LifePartner AI | The Future of Matrimony & Dating",
+    template: "%s | LifePartner AI"
+  },
+  description: "Find your perfect match with LifePartner AI. The world's first offline-first, privacy-focused AI matchmaking platform with semantic search, vibe checks, and verified profiles.",
+  keywords: ["Matrimony", "AI Dating", "Matchmaking", "Jeevansathi", "Shaadi", "Dating App", "AI Matchmaker", "Free Matrimony", "Verified Profiles"],
+  authors: [{ name: "LifePartner AI Team" }],
+  creator: "LifePartner AI",
   manifest: "/manifest.json",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://lifepartnerai.in",
+    title: "LifePartner AI | Smart Matchmaking for Modern India",
+    description: "Stop swiping. Start connecting. Use AI to find compatible partners based on values, career, and personality.",
+    siteName: "LifePartner AI",
+    images: [
+      {
+        url: "/og-image.jpg", // We need to ensure this image exists or use a default
+        width: 1200,
+        height: 630,
+        alt: "LifePartner AI Preview",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LifePartner AI | Secure & Smart Matrimony",
+    description: "Join the revolution in matchmaking. Verified profiles, AI vibe checks, and zero fake accounts.",
+    images: ["/og-image.jpg"],
+  },
+  alternates: {
+    canonical: "/",
+  },
   other: {
     "mobile-web-app-capable": "yes",
   },

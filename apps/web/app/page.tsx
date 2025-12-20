@@ -13,6 +13,46 @@ export default function LandingPage() {
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}>
       </div>
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "LifePartner AI",
+            "url": "https://lifepartnerai.in",
+            "logo": "https://lifepartnerai.in/icons/icon-512x512.png",
+            "sameAs": [
+              "https://twitter.com/lifepartnerai",
+              "https://instagram.com/lifepartnerai"
+            ],
+            "description": "The world's first AI-powered offline-first matrimony platform offering semantic search and verified connections.",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Hyderabad",
+              "addressRegion": "Telangana",
+              "addressCountry": "IN"
+            }
+          })
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "LifePartner AI",
+            "url": "https://lifepartnerai.in",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://lifepartnerai.in/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          })
+        }}
+      />
+
       <style jsx>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }

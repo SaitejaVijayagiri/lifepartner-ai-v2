@@ -4,7 +4,7 @@
 
 /* Force DM Sans font on all elements */
 html, body {
-  font-family: var(--font-sans), 'DM Sans', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), 'DM Sans', system-ui, -apple-system, sans-serif !important;
 }
 
 @layer base {

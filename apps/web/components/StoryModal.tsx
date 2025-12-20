@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle } from 'lucide-react';
+import { api } from '@/lib/api';
+import { useSocket } from '@/context/SocketContext';
 
 interface Story {
     id: string;
@@ -26,9 +28,13 @@ interface StoryModalProps {
 }
 
 const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete }: StoryModalProps) => {
+    const { socket } = useSocket() as any;
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
+    const [replyText, setReplyText] = useState('');
+    const [isLiked, setIsLiked] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const story = stories[currentIndex];
 
     // Auto-advance Timer
@@ -196,21 +202,83 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                             <input
                                 type="text"
                                 placeholder={`Reply to ${displayName}...`}
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
                                 className="flex-1 bg-white/10 backdrop-blur-md text-white placeholder-white/50 px-4 py-3 rounded-full border border-white/20 focus:outline-none focus:border-white/40 text-sm"
                                 onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && replyText.trim()) {
+                                        handleSendReply();
+                                    }
+                                }}
                             />
-                            <button className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-colors">
-                                <Heart size={20} />
+                            <button
+                                className={`p-3 backdrop-blur-md rounded-full transition-all ${isLiked ? 'bg-pink-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                                onClick={handleLikeStory}
+                            >
+                                <Heart size={20} fill={isLiked ? 'currentColor' : 'none'} />
                             </button>
-                            <button className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-colors">
+                            <button
+                                className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-colors disabled:opacity-50"
+                                onClick={handleSendReply}
+                                disabled={!replyText.trim() || isSending}
+                            >
                                 <Send size={20} />
                             </button>
                         </div>
+                        {/* Feedback Toast */}
+                        {isSending && (
+                            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-white/20 backdrop-blur-md text-white text-sm px-4 py-2 rounded-full">
+                                Sending...
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
+
+            {/* Hidden helper functions */}
+            {null}
         </div>
     );
+
+    // Handler functions
+    async function handleSendReply() {
+        if (!replyText.trim() || isSending) return;
+
+        setIsSending(true);
+        try {
+            // Send as a direct message via socket
+            const storyContext = `📸 Replying to your story: "${replyText}"`;
+
+            if (socket) {
+                socket.emit('directMessage', {
+                    to: user.id,
+                    message: storyContext,
+                    from: currentUser?.id
+                });
+            }
+
+            setReplyText('');
+            // Show brief success feedback
+            setTimeout(() => setIsSending(false), 500);
+        } catch (error) {
+            console.error('Failed to send reply:', error);
+            setIsSending(false);
+        }
+    }
+
+    function handleLikeStory() {
+        setIsLiked(!isLiked);
+
+        // Send like notification via socket
+        if (socket && !isLiked) {
+            socket.emit('storyLike', {
+                to: user.id,
+                from: currentUser?.id,
+                storyId: story?.id
+            });
+        }
+    }
 };
 
 export default StoryModal;

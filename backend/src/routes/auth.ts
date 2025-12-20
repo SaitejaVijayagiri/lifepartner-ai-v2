@@ -489,4 +489,130 @@ router.post('/google', async (req, res) => {
     }
 });
 
+// ============================================
+// FORGOT PASSWORD - Send OTP
+// ============================================
+router.post('/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        // Check if user exists
+        const userRes = await pool.query(
+            "SELECT id, full_name FROM public.users WHERE LOWER(email) = LOWER($1)",
+            [email]
+        );
+
+        if (userRes.rows.length === 0) {
+            // Don't reveal if user exists or not for security
+            return res.json({ success: true, message: "If account exists, OTP has been sent" });
+        }
+
+        const user = userRes.rows[0];
+
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+        // Store OTP in database
+        await pool.query(
+            `UPDATE public.users SET otp = $1, otp_expires_at = $2 WHERE id = $3`,
+            [otp, otpExpiresAt, user.id]
+        );
+
+        // Send OTP Email
+        try {
+            await resend.emails.send({
+                from: 'LifePartner AI <noreply@lifepartner.ai>',
+                to: email,
+                subject: 'Password Reset Code - LifePartner AI',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+                        <h2 style="color: #4F46E5;">Password Reset</h2>
+                        <p>Hi ${user.full_name || 'there'},</p>
+                        <p>Your password reset code is:</p>
+                        <div style="background: #F3F4F6; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0;">
+                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #4F46E5;">${otp}</span>
+                        </div>
+                        <p style="color: #666;">This code expires in 15 minutes. If you didn't request this, please ignore this email.</p>
+                        <p style="color: #999; font-size: 12px;">— LifePartner AI Team</p>
+                    </div>
+                `
+            });
+            console.log(`📧 Password reset OTP sent to ${email}`);
+        } catch (emailErr) {
+            console.error("Email send error:", emailErr);
+            // Still return success to not reveal if email failed
+        }
+
+        res.json({ success: true, message: "If account exists, OTP has been sent" });
+
+    } catch (e: any) {
+        console.error("Forgot Password Error", e);
+        res.status(500).json({ error: "Failed to process request" });
+    }
+});
+
+// ============================================
+// RESET PASSWORD - Verify OTP and Update Password
+// ============================================
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ error: "Email, OTP, and new password are required" });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: "Password must be at least 6 characters" });
+        }
+
+        // Find user and verify OTP
+        const userRes = await pool.query(
+            `SELECT id, otp, otp_expires_at FROM public.users 
+             WHERE LOWER(email) = LOWER($1)`,
+            [email]
+        );
+
+        if (userRes.rows.length === 0) {
+            return res.status(400).json({ error: "Invalid email or OTP" });
+        }
+
+        const user = userRes.rows[0];
+
+        // Verify OTP
+        if (user.otp !== otp) {
+            return res.status(400).json({ error: "Invalid OTP" });
+        }
+
+        // Check expiry
+        if (new Date() > new Date(user.otp_expires_at)) {
+            return res.status(400).json({ error: "OTP has expired. Please request a new one." });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(newPassword, salt);
+
+        // Update password and clear OTP
+        await pool.query(
+            `UPDATE public.users 
+             SET password_hash = $1, otp = NULL, otp_expires_at = NULL 
+             WHERE id = $2`,
+            [passwordHash, user.id]
+        );
+
+        console.log(`🔐 Password reset successful for user ${user.id}`);
+        res.json({ success: true, message: "Password updated successfully" });
+
+    } catch (e: any) {
+        console.error("Reset Password Error", e);
+        res.status(500).json({ error: "Failed to reset password" });
+    }
+});
+
 export default router;

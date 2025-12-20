@@ -171,6 +171,73 @@ export default function Dashboard() {
         }
     };
 
+    // Client-side filter function
+    const filterMatches = (matchList: any[]) => {
+        if (!activeFilters) return matchList;
+
+        return matchList.filter((match) => {
+            const meta = match.metadata || {};
+            const age = match.age || meta.basics?.age || 0;
+            const heightStr = match.height || meta.basics?.height || '';
+
+            // Parse height from string like "5'8\"" to inches
+            const parseHeight = (h: string): number => {
+                if (!h) return 0;
+                const match = h.match(/(\d+)'(\d+)/);
+                if (match) return parseInt(match[1]) * 12 + parseInt(match[2]);
+                return 0;
+            };
+            const heightInches = parseHeight(heightStr);
+
+            // Age filter
+            if (age && (age < activeFilters.ageRange[0] || age > activeFilters.ageRange[1])) {
+                return false;
+            }
+
+            // Height filter
+            if (heightInches && (heightInches < activeFilters.heightRange[0] || heightInches > activeFilters.heightRange[1])) {
+                return false;
+            }
+
+            // Religion filter
+            if (activeFilters.religions.length > 0) {
+                const religion = meta.background?.religion || match.religion || '';
+                if (!activeFilters.religions.some(r => religion.toLowerCase().includes(r.toLowerCase()))) {
+                    return false;
+                }
+            }
+
+            // Diet filter
+            if (activeFilters.diet) {
+                const diet = meta.lifestyle?.diet || match.diet || '';
+                if (!diet.toLowerCase().includes(activeFilters.diet.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            // Smoking filter
+            if (activeFilters.smoking) {
+                const smoking = meta.lifestyle?.smoking || '';
+                if (activeFilters.smoking === 'No' && smoking.toLowerCase() !== 'no') {
+                    return false;
+                }
+            }
+
+            // Drinking filter
+            if (activeFilters.drinking) {
+                const drinking = meta.lifestyle?.drinking || '';
+                if (activeFilters.drinking === 'No' && drinking.toLowerCase() !== 'no') {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    };
+
+    // Get filtered matches
+    const displayMatches = activeFilters ? filterMatches(matches) : matches;
+
     // Incoming Call Listener
     useEffect(() => {
         if (!socket) return;
@@ -681,7 +748,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {matches.map((match, idx) => (
+                    {displayMatches.map((match, idx) => (
                         <div
                             key={match.id}
                             className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium"
@@ -699,13 +766,27 @@ export default function Dashboard() {
                     ))}
                 </div>
 
-                {matches.length === 0 && (
+                {displayMatches.length === 0 && (
                     <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100">
                         <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                             <Search className="text-gray-300" size={40} />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">No Matches Found</h3>
-                        <p className="text-gray-500 max-w-sm mx-auto">Try adjusting your search criteria or check back later for new recommendations.</p>
+                        <h3 className="text-xl font-bold text-gray-800 mb-2">
+                            {activeFilters ? 'No matches with these filters' : 'No Matches Found'}
+                        </h3>
+                        <p className="text-gray-500 max-w-sm mx-auto">
+                            {activeFilters
+                                ? 'Try adjusting your filter criteria to see more profiles.'
+                                : 'Try adjusting your search criteria or check back later for new recommendations.'}
+                        </p>
+                        {activeFilters && (
+                            <button
+                                onClick={() => setActiveFilters(null)}
+                                className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition-colors"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

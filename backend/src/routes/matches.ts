@@ -206,7 +206,38 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             sql += ` AND (p.metadata->'lifestyle'->>'drinking' = 'No' OR p.metadata->'lifestyle'->>'drinking' IS NULL) `;
         }
 
-        sql += ` LIMIT 50`;
+        // Strict Filters (User Request)
+        if (filters.location) {
+            sql += ` AND (u.location_name ILIKE $${pIdx} OR p.metadata->'location'->>'city' ILIKE $${pIdx} OR p.metadata->'location'->>'state' ILIKE $${pIdx}) `;
+            params.push(`%${filters.location}%`);
+            pIdx++;
+        }
+
+        if (filters.caste) {
+            sql += ` AND p.metadata->'religion'->>'caste' ILIKE $${pIdx} `;
+            params.push(`%${filters.caste}%`);
+            pIdx++;
+        }
+
+        if (filters.gothra) {
+            sql += ` AND p.metadata->'religion'->>'gothra' ILIKE $${pIdx} `;
+            params.push(`%${filters.gothra}%`);
+            pIdx++;
+        }
+
+        if (filters.maritalStatus) {
+            sql += ` AND p.metadata->'basics'->>'maritalStatus' ILIKE $${pIdx} `;
+            params.push(filters.maritalStatus);
+            pIdx++;
+        }
+
+        if (filters.education) {
+            sql += ` AND (p.metadata->'career'->>'educationLevel' ILIKE $${pIdx} OR p.metadata->'career'->>'college' ILIKE $${pIdx}) `;
+            params.push(`%${filters.education}%`);
+            pIdx++;
+        }
+
+        sql += ` LIMIT 100`;
 
         // DEBUG: Write to file (DISABLED for production safety)
         // const fs = require('fs');
@@ -223,7 +254,6 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             if (!hStr) return 0;
             const str = hStr.toLowerCase().replace(/[^0-9.]/g, ' ');
             const parts = str.trim().split(/\s+/).map(Number);
-
             // Format: 5'9 or 5 9
             if (hStr.includes("'") || parts.length >= 2) {
                 return (parts[0] * 12) + (parts[1] || 0);
@@ -234,8 +264,14 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             }
             // Fallback: Just feet?
             if (parts.length === 1 && parts[0] < 8) return parts[0] * 12;
-
             return 0;
+        };
+
+        // Helper: Income Parser
+        const parseIncome = (str: string): number => {
+            if (!str) return 0;
+            const nums = str.match(/(\d+)/);
+            return nums ? parseInt(nums[0]) : 0;
         };
 
         // Post-Filter: Advanced Weighted Matching
@@ -251,6 +287,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
             const profileHeight = meta.height || "";
             const heightInches = parseHeightToInches(profileHeight);
+
+            // STRICT FILTER: Income
+            if (filters.minIncome) {
+                const incVal = parseIncome(meta.career?.income || "");
+                if (incVal < filters.minIncome) return null;
+            }
 
             // Base AI Score
             let score = 70;
@@ -323,7 +365,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(me.metadata?.horoscope?.nakshatra, meta.horoscope?.nakshatra)
             };
-        });
+        }).filter((m: any) => m !== null);
 
         // Sort by Score DESC and Return Top 10
         scoredMatches.sort((a, b) => b.score - a.score);

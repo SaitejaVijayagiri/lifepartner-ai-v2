@@ -221,13 +221,15 @@ export class AIService {
         const searchParser = StructuredOutputParser.fromZodSchema(
             z.object({
                 profession: z.string().optional().describe("Job title or role to look for"),
-                minIncome: z.number().optional().describe("Minimum annual income"),
+                minIncome: z.number().optional().describe("Minimum annual income in LPA (Numbers only, e.g. 10)"),
+                location: z.string().optional().describe("City or State preference (e.g. Hyderabad, Mumbai)"),
+                maritalStatus: z.string().optional().describe("Marital Status (Never Married, Divorced, Widowed)"),
                 minHeightInches: z.number().optional().describe("Minimum height in inches (e.g. 5'0 = 60)"),
                 maxHeightInches: z.number().optional().describe("Maximum height in inches"),
                 smoking: z.enum(["Yes", "No"]).optional(),
                 drinking: z.enum(["Yes", "No"]).optional(),
                 diet: z.enum(["Veg", "Non-Veg", "Vegan"]).optional(),
-                religion: z.string().optional(),
+                religion: z.string().optional().describe("Religion (Hindu, Muslim, Christian, etc.)"),
                 caste: z.string().optional().describe("Specific caste or community (e.g. Brahmin, Iyer, Rajput)"),
                 gothra: z.string().optional().describe("Gothra if specified"),
                 education: z.string().optional().describe("Degree or College (e.g. B.Tech, IIT, MBA)"),

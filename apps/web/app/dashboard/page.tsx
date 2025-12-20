@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import VideoCallModal from '@/components/VideoCallModal';
 import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket } from 'lucide-react';
+import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye } from 'lucide-react';
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
@@ -43,7 +43,8 @@ export default function Dashboard() {
     const [requestsCount, setRequestsCount] = useState(0);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [showCoinStore, setShowCoinStore] = useState(false);
-    const [showCallHistory, setShowCallHistory] = useState(false); // Added
+    const [showCallHistory, setShowCallHistory] = useState(false);
+    const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
@@ -124,6 +125,11 @@ export default function Dashboard() {
             const reqs = await api.interactions.getRequests();
             setRequestsCount(reqs.length);
         } catch (e) { console.error(e); }
+        // Fetch who liked me
+        try {
+            const likesData = await api.interactions.whoLikedMe();
+            setWhoLikedMe(likesData);
+        } catch (e) { console.error('Who liked me error:', e); }
     };
 
     const fetchMatches = async () => {
@@ -568,6 +574,87 @@ export default function Dashboard() {
                         </button>
                     </div>
                 </div>
+
+                {/* Who Liked You Section */}
+                {whoLikedMe && whoLikedMe.totalLikes > 0 && (
+                    <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 p-5 rounded-3xl border border-pink-100 overflow-hidden">
+                        {/* Decorative */}
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
+
+                        <div className="flex items-center justify-between mb-4 relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
+                                    <Heart className="text-white" size={20} fill="white" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        Who Liked You
+                                        {!whoLikedMe.isPremium && (
+                                            <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                                <Crown size={10} /> PREMIUM
+                                            </span>
+                                        )}
+                                    </h3>
+                                    <p className="text-sm text-gray-500">
+                                        {whoLikedMe.isPremium
+                                            ? `${whoLikedMe.totalLikes} people liked your profile`
+                                            : whoLikedMe.message}
+                                    </p>
+                                </div>
+                            </div>
+                            {!whoLikedMe.isPremium && (
+                                <button
+                                    onClick={() => setShowCoinStore(true)}
+                                    className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+                                >
+                                    <Eye size={16} /> See All
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Likes Grid */}
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
+                            {whoLikedMe.likes?.map((like: any, idx: number) => (
+                                <div
+                                    key={like.id || idx}
+                                    className={`flex-shrink-0 w-20 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
+                                    onClick={() => !like.isBlurred && setSelectedProfile(like)}
+                                >
+                                    <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
+                                        <img
+                                            src={like.photoUrl}
+                                            alt={like.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {like.isBlurred && (
+                                            <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+                                                <Lock size={20} className="text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400' : 'text-gray-700 group-hover:text-pink-600'}`}>
+                                        {like.name}
+                                    </p>
+                                    {!like.isBlurred && (
+                                        <p className="text-[10px] text-gray-400">{like.age}, {like.location?.split(',')[0]}</p>
+                                    )}
+                                </div>
+                            ))}
+
+                            {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
+                                <div
+                                    className="flex-shrink-0 w-20 text-center cursor-pointer"
+                                    onClick={() => setShowCoinStore(true)}
+                                >
+                                    <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 border-2 border-dashed border-amber-300 flex items-center justify-center">
+                                        <span className="text-amber-600 font-bold text-sm">+{whoLikedMe.totalLikes - 3}</span>
+                                    </div>
+                                    <p className="text-xs font-semibold text-amber-600">See More</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Header for Feed - Enhanced */}
                 <div className="flex items-center justify-between px-2">

@@ -249,7 +249,7 @@ export default function Dashboard() {
     // Incoming Call Listener
     useEffect(() => {
         if (!socket) return;
-        socket.on("callUser", (data) => {
+        socket.on("callUser", (data: any) => {
             console.log("Incoming call:", data);
             api.interactions.getConnections().then(conns => {
                 const caller = conns.find((c: any) => c.partner.id === data.from);

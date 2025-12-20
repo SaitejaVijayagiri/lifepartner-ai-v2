@@ -38,7 +38,7 @@ export default function PrivacyPage() {
 
                 <section>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">5. Contact Us</h2>
-                    <p>If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:support@lifepartner.ai" className="text-indigo-600 hover:underline">support@lifepartner.ai</a></p>
+                    <p>If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:lifepartnerai.support@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.support@gmail.com</a></p>
                 </section>
             </div>
         </div>

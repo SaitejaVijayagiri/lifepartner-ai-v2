@@ -545,7 +545,7 @@ export default function Dashboard() {
         setLoading(true);
         try {
             const results = await api.matches.search(searchQuery);
-            setMatches(results);
+            setMatches(results.matches || []);
         } catch (error) {
             console.error(error);
         } finally {

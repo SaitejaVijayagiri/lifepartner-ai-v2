@@ -57,7 +57,7 @@ export default function RootLayout({
           crossOrigin="anonymous"></script>
       </head>
       <body
-        className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} antialiased`}
+        className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <ClientProviders>

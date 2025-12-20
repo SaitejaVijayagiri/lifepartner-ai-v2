@@ -275,6 +275,28 @@ const initServer = async () => {
                     ended_at TIMESTAMP
                 );
 
+                -- Blocks
+                CREATE TABLE IF NOT EXISTS public.blocks (
+                    blocker_id UUID REFERENCES public.users(id),
+                    blocked_id UUID REFERENCES public.users(id),
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    PRIMARY KEY (blocker_id, blocked_id)
+                );
+
+                -- Contact Inquiries
+                CREATE TABLE IF NOT EXISTS public.contact_inquiries (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    name VARCHAR(255),
+                    email VARCHAR(255),
+                    message TEXT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+
+                -- Add 'stories' to profiles if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND table_schema='public' AND column_name='stories') THEN 
+                    ALTER TABLE public.profiles ADD COLUMN stories JSONB DEFAULT '[]'::jsonb; 
+                END IF;
+
             END $$;
         `);
 

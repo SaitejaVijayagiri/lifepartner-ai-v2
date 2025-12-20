@@ -303,4 +303,78 @@ router.post('/contact', async (req, res) => {
     }
 });
 
+// GET /who-liked-me - Premium Feature: See who liked your profile
+router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const client = await pool.connect();
+
+        // Check premium status
+        const userRes = await client.query('SELECT is_premium FROM public.users WHERE id = $1', [userId]);
+        const isPremium = userRes.rows[0]?.is_premium;
+
+        // Get users who liked me (where user_b_id = me and is_liked = true)
+        const likesRes = await client.query(`
+            SELECT m.user_a_id, m.created_at, m.is_liked,
+                   u.full_name, u.avatar_url, u.age, u.location_name,
+                   p.metadata
+            FROM public.matches m
+            JOIN public.users u ON m.user_a_id = u.id
+            LEFT JOIN public.profiles p ON u.id = p.user_id
+            WHERE m.user_b_id = $1 AND m.is_liked = TRUE
+            ORDER BY m.created_at DESC
+            LIMIT 50
+        `, [userId]);
+
+        client.release();
+
+        const totalLikes = likesRes.rows.length;
+
+        // If not premium, return count but blur the details
+        if (!isPremium) {
+            const blurredLikes = likesRes.rows.slice(0, 3).map((r, i) => ({
+                id: r.user_a_id,
+                name: "???",
+                age: "??",
+                photoUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${i}`, // Generic shape
+                location: "Hidden",
+                isBlurred: true,
+                likedAt: r.created_at
+            }));
+
+            return res.json({
+                isPremium: false,
+                totalLikes,
+                message: `${totalLikes} people liked your profile! Upgrade to Premium to see who.`,
+                likes: blurredLikes
+            });
+        }
+
+        // Premium users get full details
+        const likes = likesRes.rows.map(r => {
+            const meta = r.metadata || {};
+            return {
+                id: r.user_a_id,
+                name: r.full_name || "User",
+                age: r.age || meta.age,
+                photoUrl: r.avatar_url || meta.photos?.[0] || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user_a_id}`,
+                location: r.location_name || meta.location?.city || "India",
+                profession: meta.career?.profession || "Professional",
+                isBlurred: false,
+                likedAt: r.created_at
+            };
+        });
+
+        res.json({
+            isPremium: true,
+            totalLikes,
+            likes
+        });
+
+    } catch (e) {
+        console.error("Who Liked Me Error", e);
+        res.status(500).json({ error: "Failed to fetch likes" });
+    }
+});
+
 export default router;

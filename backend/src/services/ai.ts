@@ -399,6 +399,27 @@ Request: "{query}"
         }
     }
 
+    // Local Sentiment Analysis (Free, Offline)
+    async analyzeSentiment(text: string): Promise<'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'> {
+        try {
+            const { pipeline } = await import('@xenova/transformers');
+            // Sentiment analysis pipeline
+            // cache_dir default is locally managed by transformers.js
+            const classifier = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
+
+            const output = await classifier(text);
+            // output structure: [{ label: 'POSITIVE', score: 0.99 }]
+            const result = (output as any)[0];
+
+            if (result.score < 0.6) return 'NEUTRAL'; // Low confidence
+            return result.label;
+
+        } catch (e) {
+            console.error("Sentiment Analysis Failed", e);
+            return 'NEUTRAL';
+        }
+    }
+
     // Voice Safety: Local Transcription (Free)
     async transcribeAudio(filePath: string): Promise<string> {
         try {

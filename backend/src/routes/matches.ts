@@ -463,14 +463,23 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     await Promise.all(scoredMatches.map(async (m: any) => {
                         const bio = m.summary || "";
                         if (bio.length > 10) {
+                            // A. Semantic Similarity
                             const bioVector = await aiService.generateEmbedding(bio);
                             const similarity = cosineSimilarity(queryVector, bioVector);
 
-                            // Boost Score based on Semantic Match
-                            // similarity is -1 to 1. Usually 0.3+ is decent match.
                             if (similarity > 0.3) {
-                                m.score += (similarity * 30); // Max +30 points
+                                m.score += (similarity * 30);
                                 m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
+                            }
+
+                            // B. Sentiment Vibe Check (New Advanced Offline AI)
+                            // We analyze the bio's sentiment to gauge "Vibe"
+                            const sentiment = await aiService.analyzeSentiment(bio);
+                            if (sentiment === 'POSITIVE') {
+                                m.score += 5; // Positive vibes get a boost
+                                // m.match_reasons.push("😊 Positive Vibe"); 
+                            } else if (sentiment === 'NEGATIVE') {
+                                m.score -= 5; // Negative vibes get a slight penalty
                             }
                         }
                     }));

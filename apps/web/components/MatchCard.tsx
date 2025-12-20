@@ -146,47 +146,46 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                 </div>
             </div>
 
-            {/* Stories Badge (If active) */}
-            {match.stories && match.stories.length > 0 && (
-                <div className="absolute top-4 left-4 max-w-[70%] z-20" onClick={(e) => { e.stopPropagation(); if (onStoryClick) onStoryClick(); }}>
-                    <div className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 animate-pulse">
-                        <span>📸 New Story</span>
+            {/* Status Stack: Stories, Reasons, Voice Bio */}
+            <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none">
+                {/* 1. Story Badge */}
+                {match.stories && match.stories.length > 0 && (
+                    <div className="pointer-events-auto" onClick={(e) => { e.stopPropagation(); if (onStoryClick) onStoryClick(); }}>
+                        <div className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 animate-pulse">
+                            <span>📸 New Story</span>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* AI Reason Badge (Floating Top Left - Shifted down if story exists) - Z-Index Lowered */}
-            {match.match_reasons?.[0] && (
-                <div className={`absolute left-4 max-w-[70%] z-20 transition-all duration-300 ${match.stories && match.stories.length > 0 ? 'top-14' : 'top-4'}`}>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-600/90 backdrop-blur-md border border-indigo-400/30 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg animate-in slide-in-from-left-4 duration-500 hover:scale-105 transition-transform">
-                        <span>✨ {match.match_reasons[0]}</span>
+                {/* 2. Match Reasons (Show All) */}
+                {match.match_reasons?.map((reason: string, idx: number) => (
+                    <div key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-600/90 backdrop-blur-md border border-indigo-400/30 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg animate-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                        <span>✨ {reason}</span>
                     </div>
-                </div>
-            )}
+                ))}
 
-            {/* Voice Bio Badge (Floating Left - Under Reason) */}
-            {match.voiceBioUrl && (
-                <div className={`absolute left-4 z-20 transition-all duration-300 ${match.match_reasons?.[0] ? (match.stories?.length > 0 ? 'top-24' : 'top-14') : (match.stories?.length > 0 ? 'top-14' : 'top-4')}`}>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            const audio = new Audio(match.voiceBioUrl);
-                            if (isPlaying) {
-                                // Stop Logic hard to target instance without ref, simplest is to just play new
-                                // For now simple toggle not fully robust for multiple cards playing, but ok for MVP
-                                setIsPlaying(false);
-                            } else {
-                                audio.play();
-                                setIsPlaying(true);
-                                audio.onended = () => setIsPlaying(false);
-                            }
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg hover:bg-white/30 transition-all"
-                    >
-                        <span>{isPlaying ? '🔊 Playing...' : '🎙️ Voice Bio'}</span>
-                    </button>
-                </div>
-            )}
+                {/* 3. Voice Bio */}
+                {match.voiceBioUrl && (
+                    <div className="pointer-events-auto">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const audio = new Audio(match.voiceBioUrl);
+                                if (isPlaying) {
+                                    setIsPlaying(false);
+                                } else {
+                                    audio.play();
+                                    setIsPlaying(true);
+                                    audio.onended = () => setIsPlaying(false);
+                                }
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg hover:bg-white/30 transition-all"
+                        >
+                            <span>{isPlaying ? '🔊 Playing...' : '🎙️ Voice Bio'}</span>
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {/* Bottom Info Section */}
             <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">

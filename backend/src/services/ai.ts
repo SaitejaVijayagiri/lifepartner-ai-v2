@@ -241,18 +241,52 @@ export class AIService {
             })
         );
 
-        // MOCK LOGIC (Fallback)
+        // MOCK LOGIC (Fallback / Offline Mode)
+        // Improved Regex Parser to handle basic queries even without AI
         if (process.env.MOCK_AI === 'true' || !this.llm) {
             const lower = queryText.toLowerCase();
             const result: any = { keywords: [], appearance: [] };
 
-            if (lower.includes('software') || lower.includes('engineer') || lower.includes('developer')) {
-                result.profession = "Software Engineer";
+            // 1. Profession
+            if (lower.includes('software') || lower.includes('engineer') || lower.includes('developer') || lower.includes('coder')) result.profession = "Software Engineer";
+            else if (lower.includes('doctor') || lower.includes('medic') || lower.includes('dr')) result.profession = "Doctor";
+            else if (lower.includes('business') || lower.includes('entrepreneur')) result.profession = "Business";
+
+            // 2. Age Range (e.g. "24-28", "25 years", "under 30")
+            const ageRange = lower.match(/(\d+)\s*[-to]+\s*(\d+)/);
+            if (ageRange) {
+                result.minAge = parseInt(ageRange[1]);
+                result.maxAge = parseInt(ageRange[2]);
+            } else {
+                const ageUnder = lower.match(/(?:under|below)\s*(\d+)/);
+                if (ageUnder) result.maxAge = parseInt(ageUnder[1]);
+
+                const ageOver = lower.match(/(?:over|above)\s*(\d+)/);
+                if (ageOver) result.minAge = parseInt(ageOver[1]);
             }
-            if (lower.includes('doctor') || lower.includes('medical')) {
-                result.profession = "Doctor";
-            }
-            // ... (keep existing mock logic if desired, simplified for brevity here, but typically you'd keep it all)
+
+            // 3. Simple Keywords/Interests extraction
+            const commonHobbies = ['hiking', 'reading', 'travel', 'cooking', 'music', 'dance', 'movies', 'fitness', 'gym'];
+            result.keywords = commonHobbies.filter(h => lower.includes(h));
+
+            // 4. Height
+            if (lower.includes('tall')) result.minHeightInches = 70;
+            if (lower.includes('short')) result.maxHeightInches = 64;
+
+            // 5. Income
+            const incomeMatch = lower.match(/(\d+)\s*lpa/);
+            if (incomeMatch) result.minIncome = parseInt(incomeMatch[1]);
+            if (lower.includes('rich') || lower.includes('wealthy')) result.minIncome = 20;
+
+            // 6. Location
+            const cities = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune'];
+            const loc = cities.find(c => lower.includes(c));
+            if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
+
+            // 7. Diet
+            if (lower.includes('vegetarian') || (lower.includes('veg') && !lower.includes('non-veg'))) result.diet = "Veg";
+            else if (lower.includes('non-veg') || lower.includes('chicken') || lower.includes('meat')) result.diet = "Non-Veg";
+
             return result;
         }
 

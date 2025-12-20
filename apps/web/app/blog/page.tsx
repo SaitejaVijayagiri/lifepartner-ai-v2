@@ -3,6 +3,12 @@
 import StaticPageLayout from '@/components/StaticPageLayout';
 import { BLOG_POSTS } from '@/lib/blog-data';
 import Link from 'next/link';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: "Relationship Blog | LifePartner AI",
+    description: "Expert dating advice, success stories, and tips for finding meaningful connections in the modern world.",
+};
 
 export default function BlogPage() {
     return (

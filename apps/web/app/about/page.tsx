@@ -1,6 +1,12 @@
 'use client';
 
 import StaticPageLayout from '@/components/StaticPageLayout';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: "About Us | LifePartner AI",
+    description: "Learn about our mission to revolutionize matchmaking using AI, focusing on deep compatibility and shared values.",
+};
 
 export default function AboutPage() {
     return (

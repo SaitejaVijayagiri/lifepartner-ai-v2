@@ -16,6 +16,13 @@ const TESTIMONIALS = [
     { quote: "Simple, elegant, and effective. Highly recommended.", author: "Sneha, Delhi" }
 ];
 
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: "Create Account | LifePartner AI",
+    description: "Join the future of matchmaking. Create your free account to find compatible partners using AI.",
+};
+
 export default function RegisterPage() {
     const router = useRouter();
     const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '' });

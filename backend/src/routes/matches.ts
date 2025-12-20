@@ -208,19 +208,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         sql += ` LIMIT 50`;
 
-        // DEBUG: Write to file
-        const fs = require('fs');
-        const debugLog = `
-Timestamp: ${new Date().toISOString()}
-My Gender: ${myGender}
-Query: ${query}
-Filters: ${JSON.stringify(filters)}
-SQL: ${sql}
-Params: ${params}
---------------------------------`;
-        fs.appendFileSync('debug_search.log', debugLog);
+        // DEBUG: Write to file (DISABLED for production safety)
+        // const fs = require('fs');
+        // const debugLog = `...`;
+        // fs.appendFileSync('debug_search.log', debugLog);
 
-        console.log("DEBUG WRITTEN TO debug_search.log");
+        console.log(`DEBUG: Filter Query for ${myGender}: ${sql}`);
 
         const result = await client.query(sql, params);
         client.release();

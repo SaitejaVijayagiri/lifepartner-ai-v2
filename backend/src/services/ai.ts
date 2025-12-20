@@ -238,7 +238,7 @@ export class AIService {
         );
 
         // MOCK LOGIC (Fallback)
-        if (process.env.MOCK_AI === 'true' || !process.env.OPENAI_API_KEY) {
+        if (process.env.MOCK_AI === 'true' || !this.llm) {
             const lower = queryText.toLowerCase();
             const result: any = { keywords: [], appearance: [] };
 

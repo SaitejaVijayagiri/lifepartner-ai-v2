@@ -135,3 +135,9 @@ export const getIO = () => {
     }
     return io;
 };
+
+export const isUserOnline = (userId: string): boolean => {
+    if (!io) return false;
+    const room = io.sockets.adapter.rooms.get(userId);
+    return !!room && room.size > 0;
+};

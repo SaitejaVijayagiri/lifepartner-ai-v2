@@ -208,12 +208,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                                     // Better Address Parsing
                                                     const addr = data.address;
                                                     const detectedCity = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.state_district || "Unknown City";
-                                                    const detectedCountry = addr.country || "Unknown Country";
+                                                    const detectedCountry = addr.country || "India";
 
-                                                    // console.log("GPS Address Found:", addr); // Debug hint
+                                                    // Improved District/State
+                                                    const detectedDistrict = addr.state_district || addr.county || detectedCity;
+                                                    const detectedState = addr.state;
 
+                                                    // Update All Location Fields
                                                     handleChange('location', 'city', detectedCity);
+                                                    handleChange('location', 'district', detectedDistrict);
+                                                    handleChange('location', 'state', detectedState);
                                                     handleChange('location', 'country', detectedCountry);
+
+                                                    // Save Coordinates for Proximity Search
+                                                    handleChange('location', 'lat', latitude);
+                                                    handleChange('location', 'lng', longitude);
 
                                                     btn.innerText = "✅ Detected";
                                                     setTimeout(() => btn.innerText = "📍 Use GPS", 2000);

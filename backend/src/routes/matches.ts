@@ -3,6 +3,7 @@ import express from 'express';
 import { pool } from '../db';
 import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
+import { isUserOnline } from '../socket'; // Correct Import Location
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
@@ -26,17 +27,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         // Gender Filtering Logic
         let genderFilter = "";
         const myGender = (me.gender || "").toLowerCase();
-        console.log(`DEBUG: myId=${userId}, myGender=${myGender}`);
+        console.log(`DEBUG: myId = ${userId}, myGender = ${myGender} `);
 
         if (myGender === 'male') genderFilter = "AND LOWER(u.gender) = 'female'";
         else if (myGender === 'female') genderFilter = "AND LOWER(u.gender) = 'male'";
 
-        console.log(`DEBUG: Gender Filter SQL: ${genderFilter}`);
+        console.log(`DEBUG: Gender Filter SQL: ${genderFilter} `);
 
         const candRes = await client.query(`
             SELECT u.*, p.*,
-            (SELECT COUNT(*) FROM matches m WHERE m.user_b_id = u.id AND m.is_liked = TRUE)::int as total_likes,
-            (SELECT m.status FROM matches m WHERE m.user_a_id = $1 AND m.user_b_id = u.id) as match_status,
+    (SELECT COUNT(*) FROM matches m WHERE m.user_b_id = u.id AND m.is_liked = TRUE):: int as total_likes,
+        (SELECT m.status FROM matches m WHERE m.user_a_id = $1 AND m.user_b_id = u.id) as match_status,
             (SELECT m.is_liked FROM matches m WHERE m.user_a_id = $1 AND m.user_b_id = u.id) as is_liked
             FROM public.users u 
             LEFT JOIN public.profiles p ON u.id = p.user_id 
@@ -310,6 +311,19 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             let score = 70;
             const reasons: string[] = [];
 
+            // 5. Location Proximity (Hyper-Local)
+            const myLoc = me.metadata?.location || {};
+            const theirLoc = meta.location || {};
+
+            if (myLoc.district && theirLoc.district && myLoc.district.toLowerCase() === theirLoc.district.toLowerCase()) {
+                score += 25; // Huge boost for same district
+                reasons.push(`📍 Nearby (${theirLoc.district})`);
+            } else if (myLoc.state && theirLoc.state && myLoc.state.toLowerCase() === theirLoc.state.toLowerCase()) {
+                score += 10; // Boost for same State
+                reasons.push(`📍 ${theirLoc.state}`);
+            }
+
+            // 6. AI Fallback Analysis (if no real AI traits)
             // 1. Height Analysis
             if (filters.minHeightInches && filters.maxHeightInches) {
                 if (heightInches >= filters.minHeightInches && heightInches <= filters.maxHeightInches) {
@@ -403,10 +417,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
 
         // 4. Optimization: Skip Real-Time AI Analysis for List View
-        // Just return the scored matches directly. Real AI analysis should be on-demand (Profile View).
         const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
             ...m,
-            // Ensure analysis structure exists even if fake
+            isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
             analysis: {
                 emotional: m?.score || 50,
                 vision: m?.score || 50

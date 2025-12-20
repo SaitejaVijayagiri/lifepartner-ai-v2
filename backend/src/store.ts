@@ -18,8 +18,11 @@ export interface MatrimonyProfile {
     motherTongue?: string;
     location: {
         city: string;
+        district?: string; // India Search Optimization
         state?: string;
         country: string;
+        lat?: number; // GPS
+        lng?: number; // GPS
     };
 
     // Religion & Community

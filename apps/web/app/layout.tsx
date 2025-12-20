@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display, Roboto_Mono } from "next/font/google";
+import { Poppins, Playfair_Display, Roboto_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import ClientProviders from '@/components/ClientProviders';
 import NetworkStatus from '@/components/NetworkStatus';
 
-const fontSans = Inter({
+const fontSans = Poppins({
   variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const fontHeading = Playfair_Display({

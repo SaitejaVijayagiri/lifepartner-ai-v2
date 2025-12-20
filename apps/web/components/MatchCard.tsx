@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import KundliModal from './KundliModal';
+import ReportModal from './ReportModal';
 
 interface MatchCardProps {
     match: any;
@@ -20,6 +21,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
     const [isPlaying, setIsPlaying] = useState(false); // Audio State
     const [showKundli, setShowKundli] = useState(false); // Modal State
+    const [showReport, setShowReport] = useState(false); // Report Modal State
 
     // Counts
     const [likeCount, setLikeCount] = useState(match.total_likes || 0);
@@ -263,6 +265,17 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     </span>
                     <span className="text-[10px] font-bold text-white mt-0.5">{likeCount}</span>
                 </button>
+
+                {/* 3. Report Button (Safety) */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
+                    className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-400 text-gray-400"
+                    title="Report User"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </button>
             </div>
 
             <KundliModal
@@ -270,6 +283,13 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                 onClose={() => setShowKundli(false)}
                 data={match.kundli}
                 names={{ me: "You", partner: match.name }}
+            />
+
+            <ReportModal
+                isOpen={showReport}
+                onClose={() => setShowReport(false)}
+                targetUserId={match.id}
+                targetUserName={match.name}
             />
         </div >
     );

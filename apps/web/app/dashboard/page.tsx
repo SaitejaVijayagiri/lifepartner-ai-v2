@@ -215,15 +215,24 @@ export default function Dashboard() {
     };
 
     const renderHeader = () => (
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border transition-all duration-300">
-            <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-sm transition-all duration-300">
+            <div className="max-w-7xl mx-auto px-4 h-18 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
-                    {/* ... (Logo and Nav same as before) ... */}
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground shadow-lg shadow-indigo-500/20">
-                            <Sparkles size={16} fill="white" />
+                    {/* Premium Logo */}
+                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setActiveTab('matches')}>
+                        <div className="relative">
+                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
+                                <Sparkles size={20} fill="white" />
+                            </div>
+                            {/* Glow effect */}
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-50 blur-xl transition-opacity"></div>
                         </div>
-                        <span className="text-xl font-heading font-bold text-foreground tracking-tight hidden sm:block">LifePartner AI</span>
+                        <div className="hidden sm:block">
+                            <span className="text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                LifePartner
+                            </span>
+                            <span className="text-xl font-heading font-bold text-gray-800"> AI</span>
+                        </div>
                     </div>
 
                     <nav className="hidden">
@@ -254,14 +263,15 @@ export default function Dashboard() {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="hidden md:flex relative">
+                <div className="flex items-center gap-3">
+                    {/* Search - Hidden on mobile for cleaner look */}
+                    <div className="hidden lg:flex relative group">
                         <input
                             type="text"
-                            placeholder="Search..."
-                            className="bg-secondary/10 border-0 rounded-full pl-4 pr-10 py-1.5 text-sm w-40 focus:w-60 focus:ring-2 focus:ring-primary/20 transition-all"
+                            placeholder="Quick search..."
+                            className="bg-gray-50/80 border border-gray-200/50 rounded-2xl pl-4 pr-10 py-2.5 text-sm w-44 focus:w-64 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all placeholder:text-gray-400"
                         />
-                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
                     </div>
 
                     {/* Coin Balance */}
@@ -384,43 +394,68 @@ export default function Dashboard() {
 
 
     const renderStories = () => (
-        <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar px-4 pt-2">
-            {/* My Story Upload */}
-            <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group">
-                <label className="relative cursor-pointer">
-                    <div className="w-16 h-16 rounded-full p-[2px] border-2 border-dashed border-gray-300 group-hover:border-primary transition-colors relative">
-                        <div className="w-full h-full rounded-full bg-secondary/10 flex items-center justify-center text-primary">
-                            +
+        <div className="relative">
+            {/* Stories Container with gradient fade edges */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
+
+            <div className="flex gap-5 overflow-x-auto pb-4 no-scrollbar px-6 pt-2">
+                {/* My Story Upload - Premium Design */}
+                <div className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group">
+                    <label className="relative cursor-pointer">
+                        <div className="w-20 h-20 rounded-full p-[3px] border-2 border-dashed border-gray-300 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
+                            <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
+                                    +
+                                </div>
+                            </div>
+                            {/* Hover glow effect */}
+                            <div className="absolute inset-0 rounded-full bg-indigo-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity"></div>
                         </div>
+                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleStoryUpload} />
+                    </label>
+                    <span className="text-xs font-semibold text-gray-600 group-hover:text-indigo-600 transition-colors">Your Story</span>
+                </div>
+
+                {/* My Active Story (if any) */}
+                {currentUser?.stories?.map((story: any, i: number) => (
+                    <div key={'me' + i} className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group" onClick={() => setCurrentStoryIndex(i)}>
+                        <div className="relative">
+                            <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
+                                <div className="w-full h-full rounded-full p-[2px] bg-background">
+                                    <img src={currentUser.photos?.[0] || currentUser.photoUrl} className="w-full h-full rounded-full object-cover" alt="You" />
+                                </div>
+                            </div>
+                            {/* Live indicator */}
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md">
+                                You
+                            </div>
+                        </div>
+                        <span className="text-xs font-semibold text-foreground mt-1">Your Story</span>
                     </div>
-                    <input type="file" className="hidden" accept="image/*,video/*" onChange={handleStoryUpload} />
-                </label>
-                <span className="text-xs font-medium text-gray-500">Your Story</span>
+                ))}
+
+                {/* Matches Stories */}
+                {matches.filter(m => m.stories?.length > 0).map((match, idx) => (
+                    <div
+                        key={match.id}
+                        className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
+                        style={{ animationDelay: `${idx * 50}ms` }}
+                        onClick={() => handleViewStory(match)}
+                    >
+                        <div className="relative">
+                            <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
+                                <div className="w-full h-full rounded-full p-[2px] bg-background">
+                                    <img src={match.photoUrl} className="w-full h-full rounded-full object-cover" alt={match.name} />
+                                </div>
+                            </div>
+                            {/* Unread indicator */}
+                            <div className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
+                        </div>
+                        <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{match.name}</span>
+                    </div>
+                ))}
             </div>
-
-            {/* My Active Story (if any) */}
-            {currentUser?.stories?.map((story: any, i: number) => (
-                <div key={'me' + i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => setCurrentStoryIndex(i)}>
-                    <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-indigo-500 to-purple-500">
-                        <div className="w-full h-full rounded-full p-[2px] bg-background">
-                            <img src={currentUser.photos?.[0] || currentUser.photoUrl} className="w-full h-full rounded-full object-cover" alt="You" />
-                        </div>
-                    </div>
-                    <span className="text-xs font-medium text-foreground">You</span>
-                </div>
-            ))}
-
-            {/* Matches Stories */}
-            {matches.filter(m => m.stories?.length > 0).map((match, i) => (
-                <div key={match.id} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer" onClick={() => handleViewStory(match)}>
-                    <div className={`w-16 h-16 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 to-fuchsia-600 transition-transform hover:scale-105`}>
-                        <div className="w-full h-full rounded-full p-[2px] bg-background">
-                            <img src={match.photoUrl} className="w-full h-full rounded-full object-cover" alt={match.name} />
-                        </div>
-                    </div>
-                    <span className="text-xs font-medium text-foreground">{match.name}</span>
-                </div>
-            ))}
         </div>
     );
 

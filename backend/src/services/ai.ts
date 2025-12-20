@@ -257,7 +257,19 @@ export class AIService {
         // Real AI Logic
         const formatInstructions = searchParser.getFormatInstructions();
         const prompt = new PromptTemplate({
-            template: "You are a matchmaker. Convert this natural language search request into structured filters:\nRequest: \"{query}\"\n{format_instructions}",
+            template: `You are an expert Indian Matchmaker AI. 
+Convert the user's natural language search request into structured search filters.
+
+Rules:
+1. **Job Titles**: Map informal terms to standard professions (e.g. "Coder" -> "Software Engineer", "Doc" -> "Doctor").
+2. **Height**: "Tall" = minHeightInches 70 (5'10"). "Short" = maxHeightInches 64 (5'4").
+3. **Income**: "High earning", "Rich", "Well settled" = minIncome 20 (LPA).
+4. **Location**: Extract City or State clearly.
+5. **Religions**: Normalize to "Hindu", "Muslim", "Christian", "Sikh", "Jain".
+
+Request: "{query}"
+
+{format_instructions}`,
             inputVariables: ["query"],
             partialVariables: { format_instructions: formatInstructions },
         });

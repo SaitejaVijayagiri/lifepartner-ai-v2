@@ -36,7 +36,7 @@ export default function TermsPage() {
 
                 <section>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">6. Contact Information</h2>
-                    <p>If you have any questions about these Terms, please contact us at: <a href="mailto:lifepartnerai.support@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.support@gmail.com</a></p>
+                    <p>If you have any questions about these Terms, please contact us at: <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.in@gmail.com</a></p>
                 </section>
             </div>
         </div>

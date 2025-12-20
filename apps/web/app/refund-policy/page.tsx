@@ -26,7 +26,7 @@ export default function RefundPolicyPage() {
                     <h2 className="text-xl font-bold text-gray-900 mb-2">3. Technical Errors</h2>
                     <p>
                         If a transaction fails but you are charged, the amount is usually refunded automatically by your bank within 5-7 business days.
-                        If the amount is deducted and Coins are not credited within 24 hours, please contact us at <a href="mailto:lifepartnerai.support@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.support@gmail.com</a> with your Transaction ID, and we will manually process the refund or credit.
+                        If the amount is deducted and Coins are not credited within 24 hours, please contact us at <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.in@gmail.com</a> with your Transaction ID, and we will manually process the refund or credit.
                     </p>
                 </section>
 
@@ -40,7 +40,7 @@ export default function RefundPolicyPage() {
                 <section>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">5. Contact Us</h2>
                     <p>
-                        For any billing related queries, please contact our support team at <a href="mailto:lifepartnerai.support@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.support@gmail.com</a>.
+                        For any billing related queries, please contact our support team at <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.in@gmail.com</a>.
                     </p>
                 </section>
             </div>

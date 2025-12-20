@@ -24,7 +24,7 @@ export default function ContactPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <ContactItem icon={<Mail />} title="Email" desc="lifepartnerai.support@gmail.com" />
+                            <ContactItem icon={<Mail />} title="Email" desc="lifepartnerai.in@gmail.com" />
                             <ContactItem icon={<MapPin />} title="Office" desc="Hitech City, Hyderabad, India" />
                             <ContactItem icon={<MessageCircle />} title="Live Chat" desc="Available 9am - 6pm IST" />
                         </div>

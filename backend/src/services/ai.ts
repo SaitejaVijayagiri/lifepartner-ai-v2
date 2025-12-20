@@ -314,6 +314,37 @@ export class AIService {
             if (lower.includes('drink') || lower.includes('alcohol')) result.drinking = "Yes";
             if (lower.includes('teetotaller') || lower.includes('no drink')) result.drinking = "No";
 
+            // 11. Religion (Explicit Match)
+            const religions = ["Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Parsi", "Jewish"];
+            const foundReligion = religions.find(r => lower.includes(r.toLowerCase()));
+            if (foundReligion) result.religion = foundReligion;
+
+            // 12. Caste (Common Indian Castes - Expandable)
+            const castes = ["Brahmin", "Kshatriya", "Vaisya", "Shudra", "Reddy", "Kamma", "Kapu", "Iyer", "Iyengar", "Maratha", "Rajput", "Agarwal", "Bania", "Jat", "Gupta", "Sharma", "Verma", "Yadav", "Patel"];
+            const foundCaste = castes.find(c => lower.includes(c.toLowerCase()));
+            if (foundCaste) result.caste = foundCaste;
+
+            // 13. Education / Degree
+            if (lower.includes("mba") || lower.includes("management")) result.education = "MBA";
+            else if (lower.includes("b.tech") || lower.includes("btech") || lower.includes("engineer")) result.education = "B.Tech";
+            else if (lower.includes("ca") || lower.includes("chartered accountant")) result.education = "CA";
+            else if (lower.includes("mbbs") || lower.includes("md") || lower.includes("doctor")) result.education = "MBBS/MD";
+            else if (lower.includes("phd") || lower.includes("doctorate")) result.education = "PhD";
+
+            // 14. Gothra (Simple regex extraction "gothra <name>")
+            const gothraMatch = lower.match(/gothra\s+(\w+)/);
+            if (gothraMatch) result.gothra = gothraMatch[1];
+
+            // 15. Mother Tongue / Language (Mapped to Keywords for fuzzy match)
+            const languages = ["Hindi", "Telugu", "Tamil", "Marathi", "Kannada", "Malayalam", "Bengali", "Gujarati", "Punjabi", "Urdu"];
+            const foundLanguage = languages.find(l => lower.includes(l.toLowerCase()));
+            if (foundLanguage) {
+                // If we had a specific filter for mother tongue, we'd use it. 
+                // For now, adding to keywords ensures text search picks it up.
+                result.keywords = result.keywords || [];
+                result.keywords.push(foundLanguage);
+            }
+
             return result;
         }
 

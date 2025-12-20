@@ -126,26 +126,50 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                 <div className="flex-1 overflow-y-auto">
                     {/* Age Range */}
                     <Section id="age" title="Age Range">
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-sm text-gray-600">
-                                <span>{filters.ageRange[0]} years</span>
-                                <span>{filters.ageRange[1]} years</span>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <label className="text-xs text-gray-500 mb-1 block">Min Age</label>
+                                    <input
+                                        type="number"
+                                        min={18} max={60}
+                                        value={filters.ageRange[0]}
+                                        onChange={e => {
+                                            const val = Math.min(parseInt(e.target.value) || 18, filters.ageRange[1] - 1);
+                                            setFilters({ ...filters, ageRange: [Math.max(18, val), filters.ageRange[1]] });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-center font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <span className="text-gray-400 font-medium">—</span>
+                                <div className="flex-1">
+                                    <label className="text-xs text-gray-500 mb-1 block">Max Age</label>
+                                    <input
+                                        type="number"
+                                        min={18} max={60}
+                                        value={filters.ageRange[1]}
+                                        onChange={e => {
+                                            const val = Math.max(parseInt(e.target.value) || 60, filters.ageRange[0] + 1);
+                                            setFilters({ ...filters, ageRange: [filters.ageRange[0], Math.min(60, val)] });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-center font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
                             </div>
-                            <div className="flex gap-4">
-                                <input
-                                    type="range"
-                                    min={18} max={60}
-                                    value={filters.ageRange[0]}
-                                    onChange={e => setFilters({ ...filters, ageRange: [parseInt(e.target.value), filters.ageRange[1]] })}
-                                    className="flex-1 accent-indigo-600"
+                            {/* Visual Range Bar */}
+                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                                    style={{
+                                        left: `${((filters.ageRange[0] - 18) / 42) * 100}%`,
+                                        width: `${((filters.ageRange[1] - filters.ageRange[0]) / 42) * 100}%`
+                                    }}
                                 />
-                                <input
-                                    type="range"
-                                    min={18} max={60}
-                                    value={filters.ageRange[1]}
-                                    onChange={e => setFilters({ ...filters, ageRange: [filters.ageRange[0], parseInt(e.target.value)] })}
-                                    className="flex-1 accent-indigo-600"
-                                />
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-400">
+                                <span>18</span>
+                                <span className="font-medium text-indigo-600">{filters.ageRange[0]} - {filters.ageRange[1]} years</span>
+                                <span>60</span>
                             </div>
                         </div>
                     </Section>
@@ -184,8 +208,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     key={religion}
                                     onClick={() => toggleArrayFilter('religions', religion)}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.religions.includes(religion)
-                                            ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     {religion}
@@ -202,8 +226,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     key={diet}
                                     onClick={() => setFilters({ ...filters, diet: filters.diet === diet ? null : diet })}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.diet === diet
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     {diet}
@@ -223,8 +247,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                             key={opt}
                                             onClick={() => setFilters({ ...filters, smoking: filters.smoking === opt ? null : opt })}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.smoking === opt
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                 }`}
                                         >
                                             {opt}
@@ -240,8 +264,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                             key={opt}
                                             onClick={() => setFilters({ ...filters, drinking: filters.drinking === opt ? null : opt })}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.drinking === opt
-                                                    ? 'bg-indigo-600 text-white'
-                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                 }`}
                                         >
                                             {opt}
@@ -260,8 +284,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     key={edu}
                                     onClick={() => toggleArrayFilter('education', edu)}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.education.includes(edu)
-                                            ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     {edu}
@@ -278,8 +302,8 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     key={status}
                                     onClick={() => toggleArrayFilter('maritalStatus', status)}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.maritalStatus.includes(status)
-                                            ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        ? 'bg-indigo-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
                                     {status}

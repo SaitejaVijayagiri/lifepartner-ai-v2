@@ -190,21 +190,21 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
 
             {/* Bottom Info Section */}
             <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
-                {/* Kundli Badge - Fixed position, doesn't move on hover */}
-                {match.kundli && (
-                    <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 relative z-30">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setShowKundli(true); }}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all hover:scale-105 active:scale-95 ${match.kundli.score >= 18 ? 'bg-orange-500/90 border-orange-300/50 text-white' : 'bg-red-500/90 border-red-300/50 text-white'}`}
-                        >
-                            <span className="text-sm">🕉️</span>
-                            <span className="text-xs font-bold">{match.kundli.score}/36 Guna</span>
-                        </button>
-                    </div>
-                )}
-
-                {/* Info that moves up on hover */}
+                {/* Info that moves up on hover - includes Kundli badge now */}
                 <div className="transform transition-transform duration-300 group-hover:-translate-y-20">
+                    {/* Kundli Badge - Now inside the animated container */}
+                    {match.kundli && (
+                        <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowKundli(true); }}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all hover:scale-105 active:scale-95 ${match.kundli.score >= 18 ? 'bg-orange-500/90 border-orange-300/50 text-white' : 'bg-red-500/90 border-red-300/50 text-white'}`}
+                            >
+                                <span className="text-sm">🕉️</span>
+                                <span className="text-xs font-bold">{match.kundli.score}/36 Guna</span>
+                            </button>
+                        </div>
+                    )}
+
                     <div className="flex items-end gap-2 mb-1">
                         <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter">{match.name}, {match.age}</h3>
                         {match.isVerified && <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>}

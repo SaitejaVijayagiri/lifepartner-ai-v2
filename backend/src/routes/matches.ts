@@ -237,6 +237,18 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             pIdx++;
         }
 
+        // Age Filters
+        if (filters.minAge) {
+            sql += ` AND u.age >= $${pIdx} `;
+            params.push(filters.minAge);
+            pIdx++;
+        }
+        if (filters.maxAge) {
+            sql += ` AND u.age <= $${pIdx} `;
+            params.push(filters.maxAge);
+            pIdx++;
+        }
+
         sql += ` LIMIT 100`;
 
         // DEBUG: Write to file (DISABLED for production safety)
@@ -333,6 +345,26 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 reasons.push("Drinker (Mismatch)");
             }
 
+            // 4. Keyword/Interest Matching
+            if (filters.keywords && filters.keywords.length > 0) {
+                const bio = ((c.raw_prompt || "") + " " + (meta.aboutMe || "")).toLowerCase();
+                // Check hobbies if available (metadata.hobbies usually array of strings)
+                const hobbies = Array.isArray(meta.hobbies) ? meta.hobbies.map((h: string) => h.toLowerCase()) : [];
+
+                let keyMatchCount = 0;
+                filters.keywords.forEach((k: string) => {
+                    const kw = k.toLowerCase();
+                    if (bio.includes(kw) || hobbies.some((h: string) => h.includes(kw))) {
+                        keyMatchCount++;
+                    }
+                });
+
+                if (keyMatchCount > 0) {
+                    score += (keyMatchCount * 10);
+                    reasons.push(`${keyMatchCount} Interest Match${keyMatchCount > 1 ? 'es' : ''}`);
+                }
+            }
+
             return {
                 id: c.user_id || c.id,
                 name: c.full_name,
@@ -368,16 +400,16 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         }).filter((m: any) => m !== null);
 
         // Sort by Score DESC and Return Top 10
-        scoredMatches.sort((a, b) => b.score - a.score);
+        scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
 
         // 4. Optimization: Skip Real-Time AI Analysis for List View
         // Just return the scored matches directly. Real AI analysis should be on-demand (Profile View).
-        const finalMatches = scoredMatches.slice(0, 20).map(m => ({
+        const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
             ...m,
             // Ensure analysis structure exists even if fake
             analysis: {
-                emotional: m.score,
-                vision: m.score
+                emotional: m?.score || 50,
+                vision: m?.score || 50
             }
         }));
 

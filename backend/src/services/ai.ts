@@ -223,6 +223,8 @@ export class AIService {
                 profession: z.string().optional().describe("Job title or role to look for"),
                 minIncome: z.number().optional().describe("Minimum annual income in LPA (Numbers only, e.g. 10)"),
                 location: z.string().optional().describe("City or State preference (e.g. Hyderabad, Mumbai)"),
+                minAge: z.number().optional().describe("Minimum age"),
+                maxAge: z.number().optional().describe("Maximum age"),
                 maritalStatus: z.string().optional().describe("Marital Status (Never Married, Divorced, Widowed)"),
                 minHeightInches: z.number().optional().describe("Minimum height in inches (e.g. 5'0 = 60)"),
                 maxHeightInches: z.number().optional().describe("Maximum height in inches"),
@@ -235,7 +237,7 @@ export class AIService {
                 education: z.string().optional().describe("Degree or College (e.g. B.Tech, IIT, MBA)"),
                 familyValues: z.string().optional().describe("Family values (e.g. Traditional, Moderate, Orthodox)"),
                 appearance: z.array(z.string()).describe("Physical appearance keywords (e.g. 'fair', 'tall', 'athletic')"),
-                keywords: z.array(z.string()).describe("Other keywords to match in bio, hobbies, or about me")
+                keywords: z.array(z.string()).describe("Interests/Hobbies keywords (e.g. 'hiking', 'reading', 'music')")
             })
         );
 
@@ -266,6 +268,7 @@ Rules:
 3. **Income**: "High earning", "Rich", "Well settled" = minIncome 20 (LPA).
 4. **Location**: Extract City or State clearly.
 5. **Religions**: Normalize to "Hindu", "Muslim", "Christian", "Sikh", "Jain".
+6. **Age**: Extract minAge and maxAge (e.g. "25-30", "under 30", "above 25").
 
 Request: "{query}"
 

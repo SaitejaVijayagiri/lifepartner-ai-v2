@@ -242,18 +242,44 @@ export class AIService {
             })
         );
 
-        // MOCK LOGIC (Fallback / Offline Mode)
-        // Improved Regex Parser to handle basic queries even without AI
+        // Real AI Logic (or improved offline regex)
+        // ... (keeping existing logic structure) ...
+
+        // MOCK LOGIC (Fallback / Offline Mode) + Synonym Expansion
         if (process.env.MOCK_AI === 'true' || !this.llm) {
             const lower = queryText.toLowerCase();
             const result: any = { keywords: [], appearance: [] };
 
-            // 1. Profession
-            if (lower.includes('software') || lower.includes('engineer') || lower.includes('developer') || lower.includes('coder')) result.profession = "Software Engineer";
-            else if (lower.includes('doctor') || lower.includes('medic') || lower.includes('dr')) result.profession = "Doctor";
-            else if (lower.includes('business') || lower.includes('entrepreneur')) result.profession = "Business";
+            // --- 0. Synonym Dictionary (Advanced Offline AI) ---
+            const SYNONYMS: Record<string, string[]> = {
+                "Software Engineer": ["coder", "programmer", "developer", "software", "backend", "frontend", "fullstack", "it professional", "techie"],
+                "Doctor": ["medic", "physician", "surgeon", "dr", "medical", "dentist", "cardiologist"],
+                "Business": ["entrepreneur", "founder", "startup", "businessman", "businesswoman", "trader"],
+                "Teacher": ["professor", "educator", "lecturer", "tutor", "academic"],
+                "Artist": ["painter", "designer", "creator", "musician", "writer", "actor"],
+                "Fitness": ["gym", "workout", "athletic", "sports", "running", "yoga", "fit"],
+                "Travel": ["wanderlust", "trip", "explorer", "adventure", "hiking", "trekking"],
+                "Foodie": ["cooking", "culinary", "baking", "food", "chef"]
+            };
 
-            // 2. Age Range (e.g. "24-28", "25 years", "under 30")
+            // 1. Profession (with Synonyms)
+            for (const [standard, variations] of Object.entries(SYNONYMS)) {
+                // Check if any variation exists in query
+                if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
+                    // Start with specific professions checks (like before) or just map here.
+                    // We prioritize specific ones (Software, Doctor, Business) if we want to map to `profession` field.
+                    if (["Software Engineer", "Doctor", "Business", "Teacher", "Artist"].includes(standard)) {
+                        result.profession = standard;
+                        break; // Assume one primary profession for now
+                    }
+                }
+            }
+            // Fallback for explicit legacy checks if not caught above
+            if (!result.profession) {
+                if (lower.includes('engineer')) result.profession = "Software Engineer"; // Default catch-all
+            }
+
+            // 2. Age Range
             const ageRange = lower.match(/(\d+)\s*[-to]+\s*(\d+)/);
             if (ageRange) {
                 result.minAge = parseInt(ageRange[1]);
@@ -266,9 +292,24 @@ export class AIService {
                 if (ageOver) result.minAge = parseInt(ageOver[1]);
             }
 
-            // 3. Simple Keywords/Interests extraction
-            const commonHobbies = ['hiking', 'reading', 'travel', 'cooking', 'music', 'dance', 'movies', 'fitness', 'gym'];
-            result.keywords = commonHobbies.filter(h => lower.includes(h));
+            // 3. Keywords/Interests (Synonym Expansion)
+            // We check the same SYNONYMS map for interest-based categories
+            for (const [standard, variations] of Object.entries(SYNONYMS)) {
+                if (["Fitness", "Travel", "Foodie", "Artist"].includes(standard)) {
+                    if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
+                        result.keywords.push(standard); // Add standard term (e.g. "Fitness")
+                        // Also add the specific matched term? Maybe not needed if we search by standard.
+                        // But for completeness let's keep it clean.
+                    }
+                }
+            }
+            // Add other common simple ones
+            const commonHobbies = ['reading', 'music', 'dance', 'movies', 'photography'];
+            commonHobbies.forEach(h => {
+                if (lower.includes(h)) result.keywords.push(h);
+            });
+            // Dedupe
+            result.keywords = Array.from(new Set(result.keywords));
 
             // 4. Height
             if (lower.includes('tall')) result.minHeightInches = 70;

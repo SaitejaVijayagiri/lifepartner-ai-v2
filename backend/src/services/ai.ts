@@ -257,148 +257,169 @@ export class AIService {
         // Real AI Logic (or improved offline regex)
         // ... (keeping existing logic structure) ...
 
-        // MOCK LOGIC (Fallback / Offline Mode) + Synonym Expansion
-        if (process.env.MOCK_AI === 'true' || !this.llm) {
-            const lower = queryText.toLowerCase();
-            const result: any = { keywords: [], appearance: [] };
+    // Helper: Rule-Based Extraction (The "Hard Logic" Layer)
+    private extractRuleBasedFilters(queryText: string): any {
+        const lower = queryText.toLowerCase();
+        const result: any = { keywords: [], appearance: [] };
+        const SYNONYMS = AIService.SYNONYMS;
 
-            // --- 0. Synonym Dictionary (Advanced Offline AI) ---
-            const SYNONYMS = AIService.SYNONYMS;
-
-            // 1. Profession (with Synonyms)
-            for (const [standard, variations] of Object.entries(SYNONYMS)) {
-                // Check if any variation exists in query
-                if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
-                    // Start with specific professions checks (like before) or just map here.
-                    // We prioritize specific ones (Software, Doctor, Business) if we want to map to `profession` field.
-                    if (["Software Engineer", "Doctor", "Business", "Teacher", "Artist"].includes(standard)) {
-                        result.profession = standard;
-                        break; // Assume one primary profession for now
-                    }
+        // 1. Profession (with Synonyms)
+        for (const [standard, variations] of Object.entries(SYNONYMS)) {
+            // Check if any variation exists in query
+            if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
+                if (["Software Engineer", "Doctor", "Business", "Teacher", "Artist"].includes(standard)) {
+                    result.profession = standard;
+                    break; // Assume one primary profession for now
                 }
             }
-            // Fallback for explicit legacy checks if not caught above
-            if (!result.profession) {
-                if (lower.includes('engineer')) result.profession = "Software Engineer"; // Default catch-all
-            }
-
-            // 2. Age Range
-            const ageRange = lower.match(/(\d+)\s*[-to]+\s*(\d+)/);
-            if (ageRange) {
-                result.minAge = parseInt(ageRange[1]);
-                result.maxAge = parseInt(ageRange[2]);
-            } else {
-                const ageUnder = lower.match(/(?:under|below)\s*(\d+)/);
-                if (ageUnder) result.maxAge = parseInt(ageUnder[1]);
-
-                const ageOver = lower.match(/(?:over|above)\s*(\d+)/);
-                if (ageOver) result.minAge = parseInt(ageOver[1]);
-            }
-
-            // 3. Keywords/Interests (Synonym Expansion)
-            // We check the same SYNONYMS map for interest-based categories
-            for (const [standard, variations] of Object.entries(SYNONYMS)) {
-                if (["Fitness", "Travel", "Foodie", "Artist"].includes(standard)) {
-                    if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
-                        result.keywords.push(standard); // Add standard term (e.g. "Fitness")
-                        // Also add the specific matched term? Maybe not needed if we search by standard.
-                        // But for completeness let's keep it clean.
-                    }
-                }
-            }
-            // Add other common simple ones
-            const commonHobbies = ['reading', 'music', 'dance', 'movies', 'photography'];
-            commonHobbies.forEach(h => {
-                if (lower.includes(h)) result.keywords.push(h);
-            });
-            // Dedupe
-            result.keywords = Array.from(new Set(result.keywords));
-
-            // 4. Height
-            if (lower.includes('tall')) result.minHeightInches = 70;
-            if (lower.includes('short')) result.maxHeightInches = 64;
-
-            // 5. Income
-            const incomeMatch = lower.match(/(\d+)\s*lpa/);
-            if (incomeMatch) result.minIncome = parseInt(incomeMatch[1]);
-            if (lower.includes('rich') || lower.includes('wealthy')) result.minIncome = 20;
-
-            // 6. Location
-            const cities = [
-                'mumbai', 'delhi', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad', 'jaipur',
-                'surat', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara',
-                'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'kalyan', 'vasai', 'varanasi',
-                'usa', 'dubai', 'london', 'canada', 'australia'
-            ];
-            const loc = cities.find(c => lower.includes(c));
-            if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
-
-            // Proximity Detection
-            if (lower.includes('near me') || lower.includes('nearby') || lower.includes('close to me') || lower.includes('local') || lower.includes('my location')) {
-                result.useMyLocation = true;
-            }
-
-            // 7. Diet
-            if (lower.includes('vegetarian') || (lower.includes('veg') && !lower.includes('non-veg'))) result.diet = "Veg";
-            else if (lower.includes('non-veg') || lower.includes('chicken') || lower.includes('meat')) result.diet = "Non-Veg";
-
-            // 8. Marital Status
-            if (lower.includes('divorced')) result.maritalStatus = "Divorced";
-            if (lower.includes('widow')) result.maritalStatus = "Widowed";
-            if (lower.includes('single') || lower.includes('never married')) result.maritalStatus = "Never Married";
-
-            // 9. Explicit Height (e.g. 5'10, 5.10, 6ft)
-            const heightMatch = lower.match(/(\d+)'(\d+)|(\d+)ft\s*(\d+)?|(\d+)\.(\d+)/);
-            if (heightMatch) {
-                // Parse 5'10 or 5.10
-                const ft = parseInt(heightMatch[1] || heightMatch[3] || heightMatch[5]);
-                const inches = parseInt(heightMatch[2] || heightMatch[4] || heightMatch[6] || "0");
-                result.minHeightInches = (ft * 12) + inches;
-            }
-
-            // 10. Habits
-            if (lower.includes('smokes') || lower.includes('smoking')) result.smoking = "Yes";
-            if (lower.includes('no smoking') || lower.includes('non smoker')) result.smoking = "No";
-
-            if (lower.includes('drink') || lower.includes('alcohol')) result.drinking = "Yes";
-            if (lower.includes('teetotaller') || lower.includes('no drink')) result.drinking = "No";
-
-            // 11. Religion (Explicit Match)
-            const religions = ["Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Parsi", "Jewish"];
-            const foundReligion = religions.find(r => new RegExp(`\\b${r}\\b`, 'i').test(lower));
-            if (foundReligion) result.religion = foundReligion;
-
-            // 12. Caste (Common Indian Castes - Expandable)
-            const castes = ["Brahmin", "Kshatriya", "Vaisya", "Shudra", "Reddy", "Kamma", "Kapu", "Iyer", "Iyengar", "Maratha", "Rajput", "Agarwal", "Bania", "Jat", "Gupta", "Sharma", "Verma", "Yadav", "Patel"];
-            const foundCaste = castes.find(c => new RegExp(`\\b${c}\\b`, 'i').test(lower));
-            if (foundCaste) result.caste = foundCaste;
-
-            // 13. Education / Degree
-            if (/\bmba\b/.test(lower) || /\bmanagement\b/.test(lower)) result.education = "MBA";
-            else if (/\bb\.?tech\b/.test(lower) || /\bengineer\b/.test(lower)) result.education = "B.Tech";
-            else if (/\bca\b/.test(lower) || /\bchartered accountant\b/.test(lower)) result.education = "CA";
-            else if (/\bmbbs\b/.test(lower) || /\bmd\b/.test(lower) || /\bdoctor\b/.test(lower)) result.education = "MBBS/MD";
-            else if (/\bphd\b/.test(lower) || /\bdoctorate\b/.test(lower)) result.education = "PhD";
-
-            // 14. Gothra (Simple regex extraction "gothra <name>")
-            const gothraMatch = lower.match(/\bgothra\s+(\w+)/);
-            if (gothraMatch) result.gothra = gothraMatch[1];
-
-            // 15. Mother Tongue / Language (Mapped to Keywords for fuzzy match)
-            const languages = ["Hindi", "Telugu", "Tamil", "Marathi", "Kannada", "Malayalam", "Bengali", "Gujarati", "Punjabi", "Urdu"];
-            const foundLanguage = languages.find(l => new RegExp(`\\b${l}\\b`, 'i').test(lower));
-            if (foundLanguage) {
-                result.keywords = result.keywords || [];
-                result.keywords.push(foundLanguage);
-            }
-
-            return result;
+        }
+        // Fallback for explicit legacy checks
+        if (!result.profession) {
+            if (lower.includes('engineer')) result.profession = "Software Engineer";
         }
 
-        // Real AI Logic
-        const formatInstructions = searchParser.getFormatInstructions();
-        const prompt = new PromptTemplate({
-            template: `You are an expert Indian Matchmaker AI. 
+        // 2. Age Range
+        const ageRange = lower.match(/(\d+)\s*[-to]+\s*(\d+)/);
+        if (ageRange) {
+            result.minAge = parseInt(ageRange[1]);
+            result.maxAge = parseInt(ageRange[2]);
+        } else {
+            const ageUnder = lower.match(/(?:under|below)\s*(\d+)/);
+            if (ageUnder) result.maxAge = parseInt(ageUnder[1]);
+
+            const ageOver = lower.match(/(?:over|above)\s*(\d+)/);
+            if (ageOver) result.minAge = parseInt(ageOver[1]);
+        }
+
+        // 3. Keywords/Interests
+        for (const [standard, variations] of Object.entries(SYNONYMS)) {
+            if (["Fitness", "Travel", "Foodie", "Artist"].includes(standard)) {
+                if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
+                    result.keywords.push(standard);
+                }
+            }
+        }
+        const commonHobbies = ['reading', 'music', 'dance', 'movies', 'photography'];
+        commonHobbies.forEach(h => {
+            if (lower.includes(h)) result.keywords.push(h);
+        });
+        result.keywords = Array.from(new Set(result.keywords));
+
+        // 4. Height
+        if (lower.includes('tall')) result.minHeightInches = 70;
+        if (lower.includes('short')) result.maxHeightInches = 64;
+
+        // 5. Income
+        const incomeMatch = lower.match(/(\d+)\s*lpa/);
+        if (incomeMatch) result.minIncome = parseInt(incomeMatch[1]);
+        if (lower.includes('rich') || lower.includes('wealthy')) result.minIncome = 20;
+
+        // 6. Location
+        const cities = [
+            'mumbai', 'delhi', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad', 'jaipur',
+            'surat', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara',
+            'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'kalyan', 'vasai', 'varanasi',
+            'usa', 'dubai', 'london', 'canada', 'australia'
+        ];
+        const loc = cities.find(c => lower.includes(c));
+        if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
+
+        // Proximity
+        if (lower.includes('near me') || lower.includes('nearby') || lower.includes('close to me') || lower.includes('local') || lower.includes('my location')) {
+            result.useMyLocation = true;
+        }
+
+        // 7. Diet
+        if (lower.includes('vegetarian') || (lower.includes('veg') && !lower.includes('non-veg'))) result.diet = "Veg";
+        else if (lower.includes('non-veg') || lower.includes('chicken') || lower.includes('meat')) result.diet = "Non-Veg";
+
+        // 8. Marital Status
+        if (lower.includes('divorced')) result.maritalStatus = "Divorced";
+        if (lower.includes('widow')) result.maritalStatus = "Widowed";
+        if (lower.includes('single') || lower.includes('never married')) result.maritalStatus = "Never Married";
+
+        // 9. Height Explicit
+        const heightMatch = lower.match(/(\d+)'(\d+)|(\d+)ft\s*(\d+)?|(\d+)\.(\d+)/);
+        if (heightMatch) {
+            const ft = parseInt(heightMatch[1] || heightMatch[3] || heightMatch[5]);
+            const inches = parseInt(heightMatch[2] || heightMatch[4] || heightMatch[6] || "0");
+            result.minHeightInches = (ft * 12) + inches;
+        }
+
+        // 10. Habits
+        if (lower.includes('smokes') || lower.includes('smoking')) result.smoking = "Yes";
+        if (lower.includes('no smoking') || lower.includes('non smoker')) result.smoking = "No";
+        if (lower.includes('drink') || lower.includes('alcohol')) result.drinking = "Yes";
+        if (lower.includes('teetotaller') || lower.includes('no drink')) result.drinking = "No";
+
+        // 11. Religion
+        const religions = ["Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Parsi", "Jewish"];
+        const foundReligion = religions.find(r => new RegExp(`\\b${r}\\b`, 'i').test(lower));
+        if (foundReligion) result.religion = foundReligion;
+
+        // 12. Caste
+        const castes = ["Brahmin", "Kshatriya", "Vaisya", "Shudra", "Reddy", "Kamma", "Kapu", "Iyer", "Iyengar", "Maratha", "Rajput", "Agarwal", "Bania", "Jat", "Gupta", "Sharma", "Verma", "Yadav", "Patel"];
+        const foundCaste = castes.find(c => new RegExp(`\\b${c}\\b`, 'i').test(lower));
+        if (foundCaste) result.caste = foundCaste;
+
+        // 13. Education
+        if (/\bmba\b/.test(lower) || /\bmanagement\b/.test(lower)) result.education = "MBA";
+        else if (/\bb\.?tech\b/.test(lower) || /\bengineer\b/.test(lower)) result.education = "B.Tech";
+        else if (/\bca\b/.test(lower) || /\bchartered accountant\b/.test(lower)) result.education = "CA";
+        else if (/\bmbbs\b/.test(lower) || /\bmd\b/.test(lower) || /\bdoctor\b/.test(lower)) result.education = "MBBS/MD";
+        else if (/\bphd\b/.test(lower) || /\bdoctorate\b/.test(lower)) result.education = "PhD";
+
+        // 14. Gothra
+        const gothraMatch = lower.match(/\bgothra\s+(\w+)/);
+        if (gothraMatch) result.gothra = gothraMatch[1];
+
+        // 15. Language
+        const languages = ["Hindi", "Telugu", "Tamil", "Marathi", "Kannada", "Malayalam", "Bengali", "Gujarati", "Punjabi", "Urdu"];
+        const foundLanguage = languages.find(l => new RegExp(`\\b${l}\\b`, 'i').test(lower));
+        if (foundLanguage) {
+            result.keywords = result.keywords || [];
+            result.keywords.push(foundLanguage);
+        }
+
+        return result;
+    }
+
+    // Parse Search Query for Matching
+    async parseSearchQuery(queryText: string) {
+        // Schema for search filters
+        const searchParser = StructuredOutputParser.fromZodSchema(
+            z.object({
+                profession: z.string().optional().describe("Job title or role to look for"),
+                minIncome: z.number().optional().describe("Minimum annual income in LPA (Numbers only, e.g. 10)"),
+                location: z.string().optional().describe("City or State preference (e.g. Hyderabad, Mumbai)"),
+                minAge: z.number().optional().describe("Minimum age"),
+                maxAge: z.number().optional().describe("Maximum age"),
+                maritalStatus: z.string().optional().describe("Marital Status (Never Married, Divorced, Widowed)"),
+                minHeightInches: z.number().optional().describe("Minimum height in inches (e.g. 5'0 = 60)"),
+                maxHeightInches: z.number().optional().describe("Maximum height in inches"),
+                smoking: z.enum(["Yes", "No"]).optional(),
+                drinking: z.enum(["Yes", "No"]).optional(),
+                diet: z.enum(["Veg", "Non-Veg", "Vegan"]).optional(),
+                religion: z.string().optional().describe("Religion (Hindu, Muslim, Christian, etc.)"),
+                caste: z.string().optional().describe("Specific caste or community (e.g. Brahmin, Iyer, Rajput)"),
+                gothra: z.string().optional().describe("Gothra if specified"),
+                education: z.string().optional().describe("Degree or College (e.g. B.Tech, IIT, MBA)"),
+                familyValues: z.string().optional().describe("Family values (e.g. Traditional, Moderate, Orthodox)"),
+                appearance: z.array(z.string()).describe("Physical appearance keywords (e.g. 'fair', 'tall', 'athletic')"),
+                keywords: z.array(z.string()).describe("Interests/Hobbies keywords (e.g. 'hiking', 'reading', 'music')"),
+                useMyLocation: z.boolean().optional().describe("True if user explicitly asks for 'near me', 'nearby', or 'local' matches")
+            })
+        );
+
+        // 1. Always Run Rule-Based Extraction (Fast, Deterministic)
+        const ruleBased = this.extractRuleBasedFilters(queryText);
+
+        // 2. Run LLM if Available (Intellectual, Contextual)
+        if (this.llm && process.env.MOCK_AI !== 'true') {
+            try {
+                const formatInstructions = searchParser.getFormatInstructions();
+                const prompt = new PromptTemplate({
+                    template: `You are an expert Indian Matchmaker AI. 
 Convert the user's natural language search request into structured search filters.
 
 Rules:
@@ -414,13 +435,42 @@ Rules:
 Request: "{query}"
 
 {format_instructions}`,
-            inputVariables: ["query"],
-            partialVariables: { format_instructions: formatInstructions },
-        });
+                    inputVariables: ["query"],
+                    partialVariables: { format_instructions: formatInstructions },
+                });
 
-        const input = await prompt.format({ query: queryText });
-        const response = await this.callLLM(input);
-        return await searchParser.parse(response);
+                const input = await prompt.format({ query: queryText });
+                const response = await this.callLLM(input);
+                const llmResult = await searchParser.parse(response);
+
+                // 3. Intelligent Merge using Priority
+                // We trust RuleBased for "Hard Facts" if LLM missed them, 
+                // but trust LLM for "Soft" things or complex parsing.
+
+                return {
+                    ...llmResult,
+                    // Prioritize Rule-Based Profession if LLM missed it (e.g. LLM categorized "Software Engineer" as interest)
+                    profession: llmResult.profession || ruleBased.profession,
+
+                    // Prioritize Rule-Based Location if LLM missed it
+                    location: llmResult.location || ruleBased.location,
+
+                    // Prioritize Rule-Based Demographics if explicit
+                    religion: llmResult.religion || ruleBased.religion,
+                    caste: llmResult.caste || ruleBased.caste,
+
+                    // Merge Keywords
+                    keywords: Array.from(new Set([...(llmResult.keywords || []), ...(ruleBased.keywords || [])]))
+                };
+
+            } catch (e) {
+                console.error("LLM Search Parse Failed, using Rule-Based fallback", e);
+                return ruleBased;
+            }
+        }
+
+        // Fallback: Just return Rule-Based
+        return ruleBased;
     }
 
     // ... embedding logic remains same ...

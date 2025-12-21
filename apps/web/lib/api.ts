@@ -58,9 +58,9 @@ export const api = {
         deleteReel: (videoUrl: string) => fetchAPI('/profile/reel', { method: 'DELETE', body: JSON.stringify({ videoUrl }) }),
         uploadStory: (formData: FormData) => fetchAPI('/profile/stories', {
             method: 'POST',
-            body: formData,
-            headers: {} // Let browser set Content-Type for FormData
+            body: formData instanceof FormData ? formData : JSON.stringify(formData)
         }),
+        getById: (id: string) => fetchAPI(`/profile/${id}`),
         deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
         uploadVoiceBio: (formData: FormData) => fetchAPI('/profile/voice-bio', {
             method: 'POST',

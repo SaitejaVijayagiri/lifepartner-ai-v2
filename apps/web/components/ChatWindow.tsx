@@ -6,6 +6,7 @@ import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { Sparkles, Video, Phone, Gift, Send, X } from 'lucide-react';
 import GiftModal from './GiftModal';
+import ProfileModal from './ProfileModal';
 
 interface ChatWindowProps {
     connectionId: string;
@@ -32,9 +33,24 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [showGame, setShowGame] = useState(false);
     const [showGiftModal, setShowGiftModal] = useState(false);
 
+    // Profile View State
+    const [showProfile, setShowProfile] = useState(false);
+    const [fullProfile, setFullProfile] = useState<any>(null);
+
     // AI Wingman State
     const [loadingAi, setLoadingAi] = useState(false);
     const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+
+    const handleViewProfile = async () => {
+        try {
+            // Optimistic open with basic data if fetched already or just set loading
+            const data = await api.profile.getById(partner.id);
+            setFullProfile(data);
+            setShowProfile(true);
+        } catch (e) {
+            console.error("Failed to fetch profile", e);
+        }
+    };
 
     const handleIcebreaker = async () => {
         setLoadingAi(true);
@@ -137,7 +153,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
-                    <div className="flex items-center gap-3 relative z-10">
+                    <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity" onClick={handleViewProfile}>
                         <div className="relative">
                             <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
                                 <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" />
@@ -304,6 +320,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 />
             )}
             <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partner.name} />
+
+            {showProfile && fullProfile && (
+                <ProfileModal
+                    profile={fullProfile}
+                    onClose={() => setShowProfile(false)}
+                    onConnect={() => { }}
+                />
+            )}
         </div>
     );
 }

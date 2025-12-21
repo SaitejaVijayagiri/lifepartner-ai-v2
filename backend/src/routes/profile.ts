@@ -114,6 +114,63 @@ router.get('/me', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Get Public Profile by ID
+router.get('/:id', authenticateToken, async (req: any, res) => {
+    try {
+        const { id } = req.params;
+
+        // Handle explicit "me" if somehow routed here, though /me should be caught earlier if defined earlier
+        if (id === 'me') {
+            return res.status(400).json({ error: "Use /me endpoint" });
+        }
+
+        const client = await pool.connect();
+
+        // Fetch User Basics
+        const userRes = await client.query(`
+            SELECT id, full_name, age, gender, is_premium, avatar_url, city, district, state
+            FROM users 
+            WHERE id = $1
+        `, [id]);
+
+        if (userRes.rows.length === 0) {
+            client.release();
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const user = userRes.rows[0];
+
+        // Fetch Profile Details
+        const profileRes = await client.query('SELECT * FROM profiles WHERE user_id = $1', [id]);
+        const profileData = profileRes.rows[0] || {};
+        const metadata = profileData.metadata || {};
+
+        client.release();
+
+        res.json({
+            id: user.id,
+            name: user.full_name,
+            age: user.age,
+            gender: user.gender,
+            isPremium: user.is_premium,
+            photoUrl: user.avatar_url,
+            location: {
+                city: user.city || "Unknown",
+                district: user.district,
+                state: user.state
+            },
+            aboutMe: metadata.bio || "",
+            photos: metadata.photos || [user.avatar_url],
+            reels: metadata.reels || [],
+            ...metadata
+        });
+
+    } catch (e) {
+        console.error("Get Profile Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 // 2.5 PUT /me (Update Profile)
 router.put('/me', authenticateToken, async (req: any, res) => {
     try {

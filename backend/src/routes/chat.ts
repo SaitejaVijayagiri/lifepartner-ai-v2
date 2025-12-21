@@ -15,11 +15,11 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
     try {
         const client = await pool.connect();
         const result = await client.query(`
-            SELECT id, sender_id, receiver_id, content as text, timestamp 
+            SELECT id, sender_id, receiver_id, content as text, inserted_at as timestamp 
             FROM public.messages 
             WHERE (sender_id = $1 AND receiver_id = $2) 
             OR (sender_id = $2 AND receiver_id = $1)
-            ORDER BY timestamp ASC
+            ORDER BY inserted_at ASC
         `, [userId, connectionId]);
 
         // Format for frontend

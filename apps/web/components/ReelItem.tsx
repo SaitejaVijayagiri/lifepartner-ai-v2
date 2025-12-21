@@ -23,13 +23,14 @@ interface ReelItemProps {
     heartAnim: boolean;
     shouldPreload: boolean; // Smart Preloading control
     handleView: (id: string) => void; // Analytics
+    onCheckProfile: () => void;
 }
 
 const ReelItem = memo(({
     reel, isActive, isMuted, toggleMute, handleDoubleTap,
     handleLike, toggleComments, setGiftModal, index,
     showComments, commentText, setCommentText, handleComment,
-    setShowComments, heartAnim, shouldPreload, handleView
+    setShowComments, heartAnim, shouldPreload, handleView, onCheckProfile
 }: ReelItemProps) => {
 
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -150,7 +151,10 @@ const ReelItem = memo(({
 
             {/* Info Overlay */}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-5 pb-8 pointer-events-none">
-                <div className="flex items-center gap-3 mb-3 pointer-events-auto">
+                <div
+                    className="flex items-center gap-3 mb-3 pointer-events-auto cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); onCheckProfile(); }}
+                >
                     <img src={reel.user.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reel.user.id}`} className="w-10 h-10 rounded-full border border-white/50" />
                     <div>
                         <h3 className="font-bold text-white text-sm flex items-center gap-2">

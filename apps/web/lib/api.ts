@@ -95,6 +95,7 @@ export const api = {
         deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
         contact: (data: any) => fetchAPI('/interactions/contact', { method: 'POST', body: JSON.stringify(data) }),
         whoLikedMe: () => fetchAPI('/interactions/who-liked-me'),
+        getVisitors: () => fetchAPI('/interactions/visitors'),
     },
     chat: {
         getHistory: (connId: string) => fetchAPI(`/messages/${connId}/history`),

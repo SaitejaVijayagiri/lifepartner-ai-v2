@@ -7,6 +7,7 @@ import AdCard, { AdItem } from './AdCard';
 import GoogleAdCard from './GoogleAdCard';
 import GiftModal from './GiftModal';
 import ReelItem from './ReelItem';
+import ProfileModal from './ProfileModal';
 
 // API Configuration
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -29,6 +30,7 @@ export default function ReelFeed() {
     // Animation state for double tap
     const [heartAnim, setHeartAnim] = useState<number | null>(null);
     const lastTap = useRef<number>(0);
+    const [selectedProfile, setSelectedProfile] = useState<any>(null); // For ProfileModal
 
     // Fetch Feed on Mount
     useEffect(() => {
@@ -313,6 +315,22 @@ export default function ReelFeed() {
                                 heartAnim={heartAnim === idx}
                                 shouldPreload={shouldPreload}
                                 handleView={handleView}
+                                onCheckProfile={() => {
+                                    // Need to fetch full profile or pass what we have
+                                    // We have basic info in 'reel.user'
+                                    // Construct a profile object required by Modal
+                                    const p = {
+                                        id: reel.user.id,
+                                        name: reel.user.name,
+                                        photoUrl: reel.user.photoUrl,
+                                        age: reel.user.age,
+                                        location: reel.user.location,
+                                        career: reel.user.career,
+                                        // Fetch more if needed inside modal? Modal usually expects full data.
+                                        // For now pass basic and let modal handle degradation or fetch
+                                    };
+                                    setSelectedProfile(p);
+                                }}
                             />
                         </div>
                     );
@@ -332,6 +350,23 @@ export default function ReelFeed() {
                     onClose={() => setGiftModal(null)}
                     toUserId={giftModal.userId}
                     toUserName={giftModal.userName}
+                />
+            )}
+
+            {/* Full Profile View */}
+            {selectedProfile && (
+                // We assume we need to import ProfileModal (dynamic import or normal)
+                // Assuming normal import exists or adding it.
+                <ProfileModal
+                    profile={selectedProfile}
+                    currentUser={{ id: 'current-user-placeholder' }} // Ideally fetch from context
+                    onClose={() => setSelectedProfile(null)}
+                    onConnect={() => {
+                        // Handle connect logic or pass existing handler
+                        // For now just close
+                        setSelectedProfile(null);
+                        toast.success("Interest Sent!");
+                    }}
                 />
             )}
 

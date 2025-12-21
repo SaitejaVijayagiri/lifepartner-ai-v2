@@ -44,6 +44,20 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         return () => clearInterval(interval);
     }, [photos.length, lastInteracted]);
 
+    // TRACK PROFILE VIEW
+    useEffect(() => {
+        if (currentUser && profile.id !== currentUser.id) {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/interactions/view`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ targetId: profile.id })
+            }).catch(err => console.error("Failed to track view", err));
+        }
+    }, [profile.id]);
+
     // FALLBACK REELS FOR DEMO (If user has none)
     const demoReels = [
         "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4",

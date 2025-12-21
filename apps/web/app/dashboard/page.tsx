@@ -48,6 +48,7 @@ export default function Dashboard() {
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [showCallHistory, setShowCallHistory] = useState(false);
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
+    const [visitorsData, setVisitorsData] = useState<any>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [activeFilters, setActiveFilters] = useState<FilterState | null>(null);
 
@@ -143,6 +144,12 @@ export default function Dashboard() {
             const likesData = await api.interactions.whoLikedMe();
             setWhoLikedMe(likesData);
         } catch (e) { console.error('Who liked me error:', e); }
+
+        // Fetch visitors
+        try {
+            const vData = await api.interactions.getVisitors();
+            setVisitorsData(vData);
+        } catch (e) { console.error('Visitors error:', e); }
     };
 
     const fetchMatches = async () => {
@@ -648,86 +655,158 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Who Liked You Section */}
-                {whoLikedMe && whoLikedMe.totalLikes > 0 && (
-                    <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 p-5 rounded-3xl border border-pink-100 overflow-hidden">
-                        {/* Decorative */}
-                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
 
-                        <div className="flex items-center justify-between mb-4 relative z-10">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
-                                    <Heart className="text-white" size={20} fill="white" />
+                {/* Recent Visitors Section */}
+                {
+                    visitorsData && visitorsData.visitors?.length > 0 && (
+                        <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 p-5 rounded-3xl border border-blue-100 overflow-hidden">
+                            {/* Decorative */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-200/40 to-indigo-300/40 rounded-full blur-2xl"></div>
+
+                            <div className="flex items-center justify-between mb-4 relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
+                                        <Eye className="text-white" size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                            Recent Visitors
+                                            {!visitorsData.isPremium && (
+                                                <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                                    <Crown size={10} /> PREMIUM
+                                                </span>
+                                            )}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            People who viewed in your profile recently
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                        Who Liked You
-                                        {!whoLikedMe.isPremium && (
-                                            <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                <Crown size={10} /> PREMIUM
-                                            </span>
-                                        )}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        {whoLikedMe.isPremium
-                                            ? `${whoLikedMe.totalLikes} people liked your profile`
-                                            : whoLikedMe.message}
-                                    </p>
-                                </div>
+                                {!visitorsData.isPremium && (
+                                    <button
+                                        onClick={() => setShowCoinStore(true)}
+                                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+                                    >
+                                        <Eye size={16} /> Unlock
+                                    </button>
+                                )}
                             </div>
-                            {!whoLikedMe.isPremium && (
-                                <button
-                                    onClick={() => setShowCoinStore(true)}
-                                    className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-                                >
-                                    <Eye size={16} /> See All
-                                </button>
-                            )}
-                        </div>
 
-                        {/* Likes Grid */}
-                        <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
-                            {whoLikedMe.likes?.map((like: any, idx: number) => (
-                                <div
-                                    key={like.id || idx}
-                                    className={`flex-shrink-0 w-20 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
-                                    onClick={() => !like.isBlurred && setSelectedProfile(like)}
-                                >
-                                    <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
-                                        <img
-                                            src={like.photoUrl}
-                                            alt={like.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        {like.isBlurred && (
-                                            <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                                <Lock size={20} className="text-white" />
-                                            </div>
+                            {/* Visitors List */}
+                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
+                                {visitorsData.visitors.map((visitor: any, idx: number) => (
+                                    <div
+                                        key={visitor.id || idx}
+                                        className={`flex-shrink-0 w-20 text-center group cursor-pointer ${visitor.isBlurred ? 'pointer-events-none' : ''}`}
+                                        onClick={() => !visitor.isBlurred && setSelectedProfile(visitor)}
+                                    >
+                                        <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-blue-200 ring-offset-2 ${visitor.isBlurred ? 'blur-md' : 'group-hover:ring-blue-400 transition-all'}`}>
+                                            <img
+                                                src={visitor.photoUrl}
+                                                alt={visitor.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            {visitor.isBlurred && (
+                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+                                                    <Lock size={20} className="text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className={`text-xs font-semibold truncate ${visitor.isBlurred ? 'text-gray-400' : 'text-gray-700 group-hover:text-blue-600'}`}>
+                                            {visitor.name}
+                                        </p>
+                                        {!visitor.isBlurred && (
+                                            <p className="text-[10px] text-gray-400">{visitor.age}, {visitor.location?.split(',')[0]}</p>
                                         )}
                                     </div>
-                                    <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400' : 'text-gray-700 group-hover:text-pink-600'}`}>
-                                        {like.name}
-                                    </p>
-                                    {!like.isBlurred && (
-                                        <p className="text-[10px] text-gray-400">{like.age}, {like.location?.split(',')[0]}</p>
-                                    )}
-                                </div>
-                            ))}
-
-                            {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
-                                <div
-                                    className="flex-shrink-0 w-20 text-center cursor-pointer"
-                                    onClick={() => setShowCoinStore(true)}
-                                >
-                                    <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 border-2 border-dashed border-amber-300 flex items-center justify-center">
-                                        <span className="text-amber-600 font-bold text-sm">+{whoLikedMe.totalLikes - 3}</span>
-                                    </div>
-                                    <p className="text-xs font-semibold text-amber-600">See More</p>
-                                </div>
-                            )}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
+
+                {/* Who Liked You Section */}
+                {
+                    whoLikedMe && whoLikedMe.totalLikes > 0 && (
+                        <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 p-5 rounded-3xl border border-pink-100 overflow-hidden">
+                            {/* Decorative */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
+
+                            <div className="flex items-center justify-between mb-4 relative z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
+                                        <Heart className="text-white" size={20} fill="white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                            Who Liked You
+                                            {!whoLikedMe.isPremium && (
+                                                <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                                    <Crown size={10} /> PREMIUM
+                                                </span>
+                                            )}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            {whoLikedMe.isPremium
+                                                ? `${whoLikedMe.totalLikes} people liked your profile`
+                                                : whoLikedMe.message}
+                                        </p>
+                                    </div>
+                                </div>
+                                {!whoLikedMe.isPremium && (
+                                    <button
+                                        onClick={() => setShowCoinStore(true)}
+                                        className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+                                    >
+                                        <Eye size={16} /> See All
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Likes Grid */}
+                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
+                                {whoLikedMe.likes?.map((like: any, idx: number) => (
+                                    <div
+                                        key={like.id || idx}
+                                        className={`flex-shrink-0 w-20 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
+                                        onClick={() => !like.isBlurred && setSelectedProfile(like)}
+                                    >
+                                        <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
+                                            <img
+                                                src={like.photoUrl}
+                                                alt={like.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            {like.isBlurred && (
+                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+                                                    <Lock size={20} className="text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400' : 'text-gray-700 group-hover:text-pink-600'}`}>
+                                            {like.name}
+                                        </p>
+                                        {!like.isBlurred && (
+                                            <p className="text-[10px] text-gray-400">{like.age}, {like.location?.split(',')[0]}</p>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
+                                    <div
+                                        className="flex-shrink-0 w-20 text-center cursor-pointer"
+                                        onClick={() => setShowCoinStore(true)}
+                                    >
+                                        <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 border-2 border-dashed border-amber-300 flex items-center justify-center">
+                                            <span className="text-amber-600 font-bold text-sm">+{whoLikedMe.totalLikes - 3}</span>
+                                        </div>
+                                        <p className="text-xs font-semibold text-amber-600">See More</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )
+                }
 
                 {/* Header for Feed - Enhanced */}
                 <div className="flex items-center justify-between px-2">
@@ -763,30 +842,32 @@ export default function Dashboard() {
                     ))}
                 </div>
 
-                {displayMatches.length === 0 && (
-                    <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100">
-                        <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                            <Search className="text-gray-300" size={40} />
+                {
+                    displayMatches.length === 0 && (
+                        <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100">
+                            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                <Search className="text-gray-300" size={40} />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                {activeFilters ? 'No matches with these filters' : 'No Matches Found'}
+                            </h3>
+                            <p className="text-gray-500 max-w-sm mx-auto">
+                                {activeFilters
+                                    ? 'Try adjusting your filter criteria to see more profiles.'
+                                    : 'Try adjusting your search criteria or check back later for new recommendations.'}
+                            </p>
+                            {activeFilters && (
+                                <button
+                                    onClick={() => setActiveFilters(null)}
+                                    className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition-colors"
+                                >
+                                    Clear Filters
+                                </button>
+                            )}
                         </div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">
-                            {activeFilters ? 'No matches with these filters' : 'No Matches Found'}
-                        </h3>
-                        <p className="text-gray-500 max-w-sm mx-auto">
-                            {activeFilters
-                                ? 'Try adjusting your filter criteria to see more profiles.'
-                                : 'Try adjusting your search criteria or check back later for new recommendations.'}
-                        </p>
-                        {activeFilters && (
-                            <button
-                                onClick={() => setActiveFilters(null)}
-                                className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition-colors"
-                            >
-                                Clear Filters
-                            </button>
-                        )}
-                    </div>
-                )}
-            </div>
+                    )
+                }
+            </div >
         );
     };
 

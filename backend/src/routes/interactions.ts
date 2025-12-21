@@ -416,4 +416,85 @@ router.get('/blocked', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Record Profile View
+router.post('/view', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { targetId } = req.body;
+
+        if (!targetId || userId === targetId) return res.sendStatus(200);
+
+        const client = await pool.connect();
+
+        // Upsert Interaction (type='VIEW')
+        // We update 'created_at' to keep track of the LATEST view
+        await client.query(`
+            INSERT INTO public.interactions (from_user_id, to_user_id, type, status)
+            VALUES ($1, $2, 'VIEW', 'seen')
+            ON CONFLICT (from_user_id, to_user_id, type) 
+            DO UPDATE SET created_at = NOW()
+        `, [userId, targetId]);
+
+        client.release();
+        res.json({ success: true });
+    } catch (e) {
+        console.error("View Profile Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
+// Get Profile Visitors (Who viewed me)
+router.get('/visitors', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const client = await pool.connect();
+
+        // Check premium
+        const userRes = await client.query('SELECT is_premium FROM public.users WHERE id = $1', [userId]);
+        const isPremium = userRes.rows[0]?.is_premium;
+
+        const result = await client.query(`
+            SELECT i.from_user_id, i.created_at,
+                   u.full_name, u.avatar_url, u.age, u.location_name,
+                   p.metadata
+            FROM public.interactions i
+            JOIN public.users u ON i.from_user_id = u.id
+            LEFT JOIN public.profiles p ON u.id = p.user_id
+            WHERE i.to_user_id = $1 AND i.type = 'VIEW'
+            ORDER BY i.created_at DESC
+            LIMIT 20
+        `, [userId]);
+
+        client.release();
+
+        const visitors = result.rows.map(r => {
+            // If NOT premium, blur details (except for the first one maybe? No, blur all for teasing)
+            const meta = r.metadata || {};
+            const isBlurred = !isPremium;
+
+            return {
+                id: r.from_user_id,
+                name: isBlurred ? "Verify to Unlock" : (r.full_name || "User"),
+                age: isBlurred ? "??" : (r.age || meta.age),
+                photoUrl: isBlurred
+                    ? `https://api.dicebear.com/7.x/shapes/svg?seed=${r.from_user_id}`
+                    : (r.avatar_url || meta.photos?.[0]),
+                location: isBlurred ? "Hidden" : (r.location_name || meta.location?.city || "India"),
+                profession: isBlurred ? "Hidden" : (meta.career?.profession || "Professional"),
+                viewedAt: r.created_at,
+                isBlurred
+            };
+        });
+
+        res.json({
+            isPremium,
+            visitors
+        });
+
+    } catch (e) {
+        console.error("Get Visitors Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 export default router;

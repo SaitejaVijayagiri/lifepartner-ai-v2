@@ -65,6 +65,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "LifePartner AI",
   },
+  verification: {
+    google: "h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE",
+  },
 };
 
 export const viewport = {

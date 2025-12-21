@@ -7,12 +7,13 @@ const inspect = async () => {
         console.log("Connecting to:", process.env.DATABASE_URL?.split('@')[1]); // Log Host
         const client = await pool.connect();
 
-        console.log("--- Users Table Columns ---");
+        const tableName = process.argv[2] || 'users';
+        console.log(`--- ${tableName} Table Columns ---`);
         const res = await client.query(`
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name = 'reels' AND table_schema = 'public'
-        `);
+            WHERE table_name = $1 AND table_schema = 'public'
+        `, [tableName]);
         console.log(JSON.stringify(res.rows, null, 2));
 
         client.release();

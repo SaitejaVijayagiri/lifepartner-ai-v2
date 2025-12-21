@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, MessageCircle, ShieldCheck, Lock, Award, Gift } from 'lucide-react';
 import Footer from '@/components/Footer';
 
@@ -165,7 +166,7 @@ export default function LandingPage() {
               <div className="flex -space-x-4">
                 {[1, 2, 3, 4].map(i => (
                   <div key={i} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 25}`} alt="User" />
+                    <NextImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 25}`} alt="User" width={48} height={48} />
                   </div>
                 ))}
                 <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">
@@ -186,10 +187,12 @@ export default function LandingPage() {
 
             <div className="w-80 h-80 bg-white/40 backdrop-blur-xl rounded-full flex items-center justify-center relative z-20 p-3 ring-1 ring-white/60 shadow-2xl">
               <div className="w-full h-full rounded-full overflow-hidden relative group border-4 border-white">
-                <img
+                <NextImage
                   src="/images/orbital.jpg"
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
                   alt="Matched Profile"
+                  priority
                 />
 
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-max">

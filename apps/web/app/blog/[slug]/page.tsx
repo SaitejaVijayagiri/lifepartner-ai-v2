@@ -2,6 +2,7 @@ import { BLOG_POSTS } from '@/lib/blog-data';
 import StaticPageLayout from '@/components/StaticPageLayout';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import NextImage from 'next/image';
 
 export async function generateStaticParams() {
     return BLOG_POSTS.map((post) => ({
@@ -49,10 +50,12 @@ export default function BlogPost({ params }: { params: { slug: string } }) {
                 </div>
 
                 <div className="rounded-2xl overflow-hidden mb-12 shadow-xl aspect-video relative">
-                    <img
+                    <NextImage
                         src={post.image}
                         alt={post.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        priority
                     />
                 </div>
 

@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     images: ["/og-image.jpg"],
   },
   alternates: {
-    canonical: "/",
+    canonical: "./",
   },
   other: {
     "mobile-web-app-capable": "yes",

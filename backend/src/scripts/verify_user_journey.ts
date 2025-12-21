@@ -123,7 +123,7 @@ const verifyUser = async () => {
                         SELECT * FROM messages 
                         WHERE (sender_id = $1 AND receiver_id = $2)
                         OR (sender_id = $2 AND receiver_id = $1)
-                        ORDER BY inserted_at DESC LIMIT 5
+                        ORDER BY created_at DESC LIMIT 5
                      `, [user.id, partnerId]);
 
                     console.log(`✅ Found ${msgs.rows.length} verified messages with partner ${partnerId}:`);

@@ -148,7 +148,9 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         }
 
         // REVENUE PROTECTION: Sanitize Inputs
-        const cleanPrompt = sanitizeContent(prompt || aboutMe || '');
+        // Prioritize aboutMe (Frontend Field) over prompt (Legacy/DB Field) if both exist
+        const contentToSave = aboutMe !== undefined ? aboutMe : prompt;
+        const cleanPrompt = sanitizeContent(contentToSave || '');
         if (career) career.profession = sanitizeContent(career.profession || '');
         if (location) location.city = sanitizeContent(location.city || '');
 

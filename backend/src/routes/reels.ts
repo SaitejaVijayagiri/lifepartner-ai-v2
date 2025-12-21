@@ -19,11 +19,25 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user?.userId;
 
-        // 1. Get Current User's Location (District & State)
-        const userRes = await pool.query(`SELECT metadata->'location' as loc FROM profiles WHERE user_id = $1`, [userId]);
+        // 1. Get Current User's Gender & Location
+        const userRes = await pool.query(`
+            SELECT u.gender, p.metadata->'location' as loc 
+            FROM users u 
+            LEFT JOIN profiles p ON u.id = p.user_id 
+            WHERE u.id = $1
+        `, [userId]);
+
         const userLoc = userRes.rows[0]?.loc || {};
+        const myGender = (userRes.rows[0]?.gender || "").trim().toLowerCase();
         const myDistrict = userLoc.district || "";
         const myState = userLoc.state || "";
+
+        console.log(`Feeding Reels for ${myGender} in ${myDistrict}, ${myState}`);
+
+        // Gender Filter Logic
+        let genderFilter = "";
+        if (myGender === 'male') genderFilter = "AND LOWER(u.gender) = 'female'";
+        else if (myGender === 'female') genderFilter = "AND LOWER(u.gender) = 'male'";
 
         // Algorithm:
         // 1. Recency (Newer is better)
@@ -53,7 +67,7 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
             FROM reels r
             JOIN users u ON r.user_id = u.id
             LEFT JOIN profiles p ON r.user_id = p.user_id
-            WHERE r.user_id != $1
+            WHERE r.user_id != $1 ${genderFilter}
             ORDER BY score DESC
             LIMIT 20;
         `;

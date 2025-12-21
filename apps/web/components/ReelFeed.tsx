@@ -85,8 +85,8 @@ export default function ReelFeed() {
 
             rawReels.forEach((reel, index) => {
                 mixedFeed.push(reel);
-                // Inject Ad every 5 reels
-                if (index > 0 && index % 5 === 0) {
+                // Inject Ad after every 5 reels (e.g. after index 4, 9, 14)
+                if ((index + 1) % 5 === 0) {
                     mixedFeed.push({
                         id: `ad-google-${index}`,
                         type: 'google_ad',

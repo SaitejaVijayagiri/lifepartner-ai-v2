@@ -228,11 +228,11 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
     }
 
     return (
-        <div className="relative h-[calc(100vh-120px)] max-h-[800px] bg-black rounded-2xl overflow-hidden w-full max-w-[450px] mx-auto shadow-2xl">
+        <div className="relative h-[calc(100dvh-80px)] sm:h-[calc(100vh-100px)] w-full max-w-[450px] mx-auto bg-black sm:rounded-2xl overflow-hidden shadow-2xl touch-pan-y">
             {/* Feed */}
             <div
                 ref={scrollRef}
-                className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+                className="h-full overflow-y-scroll snap-y snap-mandatory snap-always scrollbar-hide overscroll-contain"
                 onScroll={handleScroll}
             >
                 {reels.map((item, idx) => {
@@ -247,7 +247,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
 
                     const reel = item as Reel; // Type Assertion for clarity
                     return (
-                        <div key={reel.id} className="h-full w-full snap-start relative bg-gray-900">
+                        <div key={reel.id} className="h-full w-full snap-start snap-child relative bg-gray-900">
                             <video
                                 src={reel.url} // Supabase URLs are absolute
                                 className="w-full h-full object-cover"
@@ -388,6 +388,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
             <style jsx global>{`
                 .scrollbar-hide::-webkit-scrollbar { display: none; }
                 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                .snap-child { scroll-snap-stop: always; }
             `}</style>
         </div>
     );

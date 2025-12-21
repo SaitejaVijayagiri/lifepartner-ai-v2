@@ -24,7 +24,7 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false }: ChatWindowProps) {
-    const { socket } = useSocket() as any;
+    const { socket, onlineUsers } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -165,13 +165,22 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
                                 <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" />
                             </div>
-                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-white shadow-lg"></div>
+                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                         </div>
                         <div>
                             <h3 className="font-bold text-lg leading-tight">{partner.name}</h3>
                             <p className="text-xs text-white/70 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
-                                {partner.role || "Online now"}
+                                {onlineUsers?.includes(partner.id) ? (
+                                    <>
+                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                                        Online now
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                        Offline
+                                    </>
+                                )}
                             </p>
                         </div>
                     </div>

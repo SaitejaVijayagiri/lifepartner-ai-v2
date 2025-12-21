@@ -16,7 +16,7 @@ export interface AdItem {
 
 export default function AdCard({ ad, isActive }: { ad: AdItem, isActive: boolean }) {
     return (
-        <div className="h-full w-full snap-start snap-child relative bg-black">
+        <div className="h-full w-full relative bg-black">
             {/* Ad Content (Video) */}
             <video
                 src={ad.contentUrl}

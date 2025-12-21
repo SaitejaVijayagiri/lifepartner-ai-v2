@@ -39,7 +39,7 @@ export default function GoogleAdCard({ isActive, slotId = "8536302476" }: Google
     }, [isActive]);
 
     return (
-        <div className="h-full w-full snap-start snap-child relative bg-black flex flex-col items-center justify-center text-white overflow-hidden">
+        <div className="h-full w-full relative bg-black flex flex-col items-center justify-center text-white overflow-hidden">
             {/* Background Pattern */}
             <div className="absolute inset-0 bg-neutral-900 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black opacity-50 z-0"></div>
 

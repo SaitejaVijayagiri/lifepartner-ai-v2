@@ -90,6 +90,20 @@ export default function RootLayout({
         {/* Google AdSense - Real ID */}
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355"
           crossOrigin="anonymous"></script>
+
+        {/* Google Analytics (GA4) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-G4V8Z3XF93"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-G4V8Z3XF93');
+          `}
+        </Script>
       </head>
       <body
         className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} font-sans antialiased`}

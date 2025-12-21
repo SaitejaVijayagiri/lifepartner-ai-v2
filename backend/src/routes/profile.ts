@@ -156,10 +156,32 @@ router.put('/me', authenticateToken, async (req: any, res) => {
 
         const client = await pool.connect();
 
+        // 0. Validation: Email Uniqueness
+        if (email) {
+            const emailCheck = await client.query("SELECT id FROM public.users WHERE email = $1 AND id != $2", [email, userId]);
+            if (emailCheck.rows.length > 0) {
+                client.release();
+                return res.status(400).json({ error: "Email is already in use by another account" });
+            }
+        }
+
+        // 1. Data Integrity: Auto-calculate Age from DOB (Server Side Truth)
+        let finalAge = age;
+        if (dob) {
+            const birthDate = new Date(dob);
+            const today = new Date();
+            let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                calculatedAge--;
+            }
+            finalAge = calculatedAge;
+        }
+
         try {
             await client.query('BEGIN');
 
-            // 1. Update Core User Info
+            // 2. Update Core User Info
             await client.query(`
                 UPDATE public.users
                 SET full_name = COALESCE($1, full_name),
@@ -173,7 +195,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     district = COALESCE($8, district),
                     state = COALESCE($9, state)
                 WHERE id = $7
-            `, [name, age, gender, location?.city, finalPhotoUrl, email, userId, location?.district, location?.state]);
+            `, [name, finalAge, gender, location?.city, finalPhotoUrl, email, userId, location?.district, location?.state]);
 
             // 2. Update Profile Metadata
             // We store extended fields (dob, full location) in metadata

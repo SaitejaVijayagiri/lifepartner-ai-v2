@@ -301,7 +301,7 @@ export default function Dashboard() {
     };
 
     const renderHeader = () => (
-        <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-sm transition-all duration-300">
+        <header className={`sticky top-0 z-40 bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-sm transition-all duration-300 ${activeTab === 'reels' ? 'hidden sm:block' : ''}`}>
             <div className="max-w-7xl mx-auto px-4 h-18 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Premium Logo */}
@@ -840,8 +840,7 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-background font-sans text-foreground pb-safe">
             {renderHeader()}
-
-            <main className="max-w-7xl mx-auto pt-6 px-4 lg:px-8 flex gap-8">
+            <main className={`max-w-7xl mx-auto px-4 lg:px-8 flex gap-8 ${activeTab === 'reels' ? 'pt-0 sm:pt-6' : 'pt-6'}`}>
                 {/* Main Feed Column */}
                 <div className="flex-1 min-w-0 pb-24 sm:pb-0">
                     {activeTab === 'matches' && (

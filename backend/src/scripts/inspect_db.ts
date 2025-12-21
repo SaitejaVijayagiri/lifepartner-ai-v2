@@ -11,7 +11,7 @@ const inspect = async () => {
         const res = await client.query(`
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name = 'users' AND table_schema = 'public'
+            WHERE table_name = 'reels' AND table_schema = 'public'
         `);
         console.log(JSON.stringify(res.rows, null, 2));
 

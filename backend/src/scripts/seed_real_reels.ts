@@ -92,23 +92,30 @@ const REELS = [
     }
 ];
 
+// Duplicate Logic to get 24 reels
+const expandedReels = [
+    ...REELS,
+    ...REELS.map(r => ({ ...r, userName: r.userName + " (2)", likes: r.likes + 50 })),
+    ...REELS.map(r => ({ ...r, userName: r.userName + " (3)", likes: r.likes + 100 }))
+];
+
 async function seedRealReels() {
     try {
-        console.log('🌱 Seeding Real Reels...');
+        console.log(`🌱 Seeding ${expandedReels.length} Real Reels...`);
 
         // 1. Clear existing reels to remove broken ones
         await pool.query('DELETE FROM reels');
         console.log('🗑️ Cleared existing reels.');
 
         // 2. Insert new users and reels
-        for (const reel of REELS) {
+        for (const reel of expandedReels) {
             // Create or Get User
             const userRes = await pool.query(`
                 INSERT INTO users (full_name, email, password_hash, gender, avatar_url)
                 VALUES ($1, $2, 'dummy_hash', $3, $4)
                 ON CONFLICT (email) DO UPDATE SET full_name = $1, avatar_url = $4
                 RETURNING id
-            `, [reel.userName, `${reel.userName.replace(' ', '').toLowerCase()}@example.com`, reel.gender, reel.userAvatar]);
+            `, [reel.userName, `${reel.userName.split(' ')[0].toLowerCase()}${Math.floor(Math.random() * 1000)}@example.com`, reel.gender, reel.userAvatar]);
 
             const userId = userRes.rows[0].id;
 

@@ -228,22 +228,40 @@ export class AIService {
     }
 
 
+    // Helper: Levenshtein Distance (Typos)
+    private levenshtein(a: string, b: string): number {
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+        for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+                }
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
     private extractRuleBasedFilters(queryText: string): any {
         const lower = queryText.toLowerCase();
         const result: any = { keywords: [], appearance: [] };
         const SYNONYMS = AIService.SYNONYMS;
 
-        // 1. Profession (with Synonyms)
+        // 1. Profession (Fuzzy)
         for (const [standard, variations] of Object.entries(SYNONYMS)) {
-            // Check if any variation exists in query
+            // Check variations with fuzzy logic? 
+            // For performance, regex is faster for exact words. 
+            // Let's add simple fuzzy check for the STANDARD profession name if regex fails.
             if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
                 if (["Software Engineer", "Doctor", "Business", "Teacher", "Artist"].includes(standard)) {
                     result.profession = standard;
-                    break; // Assume one primary profession for now
+                    break;
                 }
             }
         }
-        // Fallback for explicit legacy checks
         if (!result.profession) {
             if (lower.includes('engineer')) result.profession = "Software Engineer";
         }
@@ -261,7 +279,7 @@ export class AIService {
             if (ageOver) result.minAge = parseInt(ageOver[1]);
         }
 
-        // 3. Keywords/Interests
+        // 3. Keywords
         for (const [standard, variations] of Object.entries(SYNONYMS)) {
             if (["Fitness", "Travel", "Foodie", "Artist"].includes(standard)) {
                 if (variations.some(v => new RegExp(`\\b${v}\\b`, 'i').test(lower))) {
@@ -270,9 +288,7 @@ export class AIService {
             }
         }
         const commonHobbies = ['reading', 'music', 'dance', 'movies', 'photography'];
-        commonHobbies.forEach(h => {
-            if (lower.includes(h)) result.keywords.push(h);
-        });
+        commonHobbies.forEach(h => { if (lower.includes(h)) result.keywords.push(h); });
         result.keywords = Array.from(new Set(result.keywords));
 
         // 4. Height
@@ -284,15 +300,42 @@ export class AIService {
         if (incomeMatch) result.minIncome = parseInt(incomeMatch[1]);
         if (lower.includes('rich') || lower.includes('wealthy')) result.minIncome = 20;
 
-        // 6. Location
+        // 6. Location (Fuzzy)
         const cities = [
             'mumbai', 'delhi', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad', 'jaipur',
             'surat', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara',
             'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'kalyan', 'vasai', 'varanasi',
             'usa', 'dubai', 'london', 'canada', 'australia'
         ];
-        const loc = cities.find(c => lower.includes(c));
-        if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
+
+        // Tokenize query for fuzzy checking
+        const tokens = lower.split(/\s+/);
+
+        // Exact + Fuzzy Check
+        for (const token of tokens) {
+            if (token.length < 4) continue;
+            for (const city of cities) {
+                // Exact
+                if (city === token) {
+                    result.location = city.charAt(0).toUpperCase() + city.slice(1);
+                    break;
+                }
+                // Fuzzy (Levenshtein)
+                const dist = this.levenshtein(token, city);
+                const threshold = city.length > 6 ? 2 : 1; // Allow 1 typo for short, 2 for long
+                if (dist <= threshold) {
+                    result.location = city.charAt(0).toUpperCase() + city.slice(1);
+                    break;
+                }
+            }
+            if (result.location) break;
+        }
+
+        // Fallback checks for multi-word
+        if (!result.location) {
+            const loc = cities.find(c => lower.includes(c));
+            if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
+        }
 
         // Proximity
         if (lower.includes('near me') || lower.includes('nearby') || lower.includes('close to me') || lower.includes('local') || lower.includes('my location')) {

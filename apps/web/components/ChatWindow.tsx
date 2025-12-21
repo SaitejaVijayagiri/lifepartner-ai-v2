@@ -72,8 +72,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             try {
                 // Backend expects User ID (partner.id), not Interaction ID
                 const history = await api.chat.getHistory(partner.id);
-                setMessages(history);
-            } catch (e) { console.error(e); }
+                if (Array.isArray(history)) {
+                    setMessages(history);
+                } else {
+                    console.error("Invalid history format:", history);
+                    setMessages([]);
+                }
+            } catch (e) { console.error(e); setMessages([]); }
         };
         loadHistory();
     }, [partner.id]);

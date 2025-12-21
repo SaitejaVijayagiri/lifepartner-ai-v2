@@ -68,14 +68,14 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         const result = await client.query(`
             INSERT INTO public.messages (sender_id, receiver_id, content) 
             VALUES ($1, $2, $3) 
-            RETURNING id, timestamp
+            RETURNING id, inserted_at
         `, [senderId, connectionId, cleanText]);
 
         const newMessage = {
             id: result.rows[0].id,
             text: cleanText,
             senderId,
-            timestamp: result.rows[0].timestamp
+            timestamp: result.rows[0].inserted_at
         };
 
         client.release();

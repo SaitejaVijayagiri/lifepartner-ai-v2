@@ -27,9 +27,8 @@ async function testSearch(prompt: string) {
 
 async function run() {
     await testSearch("I want a Software Engineer in Hyderabad");
-    await testSearch("Looking for a Doctor who likes hiking");
-    await testSearch("Someone tall and kind");
-    await testSearch("Unicorn Trainer in Mars"); // Should result in Broad Search
+    await testSearch("find me a partner who is a software engineer having height 5'7 and she is from banglore");
+    await testSearch("Unicorn Trainer in Mars");
 }
 
 run();

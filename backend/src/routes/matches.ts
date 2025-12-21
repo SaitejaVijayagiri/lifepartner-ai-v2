@@ -451,12 +451,14 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         if (query && scoredMatches.length > 0) {
             try {
                 // 1. Generate Query Embedding
+                // 1. Generate Query Embedding
                 const aiService = new (require('../services/ai').AIService)();
-                if (aiService.llm === null || process.env.MOCK_AI === 'true') {
-                    // Only run this if we are in "Advanced Offline Mode" (or if we want to augment online search too)
-                    // Actually, let's run it always as a boost!
 
-                    console.log("🧠 Running Local Semantic Re-ranking...");
+                // ALWAYS run Semantic Re-ranking (Hybrid Search)
+                // We use local embeddings (Xenova) which are free and fast
+                console.log("🧠 Running Semantic Re-ranking for", scoredMatches.length, "candidates...");
+
+                if (true) {
                     const queryVector = await aiService.generateEmbedding(query);
 
                     // 2. Compute Cosine Similarity for each match

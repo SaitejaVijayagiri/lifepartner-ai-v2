@@ -252,7 +252,7 @@ export class AIService {
 
             // --- 0. Synonym Dictionary (Advanced Offline AI) ---
             const SYNONYMS: Record<string, string[]> = {
-                "Software Engineer": ["coder", "programmer", "developer", "software", "backend", "frontend", "fullstack", "it professional", "techie"],
+                "Software Engineer": ["coder", "programmer", "developer", "software", "backend", "frontend", "fullstack", "it professional", "techie", "tech", "sde", "engineer"],
                 "Doctor": ["medic", "physician", "surgeon", "dr", "medical", "dentist", "cardiologist"],
                 "Business": ["entrepreneur", "founder", "startup", "businessman", "businesswoman", "trader"],
                 "Teacher": ["professor", "educator", "lecturer", "tutor", "academic"],
@@ -321,7 +321,12 @@ export class AIService {
             if (lower.includes('rich') || lower.includes('wealthy')) result.minIncome = 20;
 
             // 6. Location
-            const cities = ['mumbai', 'delhi', 'bangalore', 'hyderabad', 'chennai', 'pune', 'usa', 'dubai', 'london'];
+            const cities = [
+                'mumbai', 'delhi', 'bangalore', 'bengaluru', 'hyderabad', 'chennai', 'kolkata', 'pune', 'ahmedabad', 'jaipur',
+                'surat', 'lucknow', 'kanpur', 'nagpur', 'indore', 'thane', 'bhopal', 'visakhapatnam', 'patna', 'vadodara',
+                'ghaziabad', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'kalyan', 'vasai', 'varanasi',
+                'usa', 'dubai', 'london', 'canada', 'australia'
+            ];
             const loc = cities.find(c => lower.includes(c));
             if (loc) result.location = loc.charAt(0).toUpperCase() + loc.slice(1);
 

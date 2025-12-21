@@ -25,9 +25,22 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     if (!profile) return null;
 
-    // Ensure we have an array
-    const photos: string[] = profile.photos?.length > 0
-        ? profile.photos
+    // 🛡️ Data Sanitization: Ensure all nested objects exist to prevent crashes
+    const safeProfile = {
+        ...profile,
+        career: profile.career || {},
+        family: profile.family || {},
+        religion: profile.religion || {},
+        horoscope: profile.horoscope || {},
+        photos: Array.isArray(profile.photos) ? profile.photos : [],
+        reels: Array.isArray(profile.reels) ? profile.reels : [],
+        location: profile.location || {},
+        match_reasons: Array.isArray(profile.match_reasons) ? profile.match_reasons : [],
+    };
+
+    // Ensure photos array is valid
+    const photos: string[] = safeProfile.photos.length > 0
+        ? safeProfile.photos
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
     // Auto-Slide Effect
@@ -46,7 +59,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     // TRACK PROFILE VIEW
     useEffect(() => {
-        if (currentUser && profile.id !== currentUser.id) {
+        if (currentUser && profile.id && profile.id !== currentUser.id) {
             fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/interactions/view`, {
                 method: 'POST',
                 headers: {
@@ -64,8 +77,18 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         "https://assets.mixkit.co/videos/preview/mixkit-taking-photos-from-different-angles-of-a-model-34421-large.mp4",
         "https://assets.mixkit.co/videos/preview/mixkit-young-mother-playing-with-her-daughter-1208-large.mp4"
     ];
-    const displayReels = (profile.reels && profile.reels.length > 0) ? profile.reels : demoReels;
+    const displayReels = (safeProfile.reels.length > 0) ? safeProfile.reels : demoReels;
     const hasReels = true;
+
+    // Helper for safe Date parsing
+    const getAge = (dob: string | undefined, defaultAge: any) => {
+        if (!dob) return defaultAge;
+        try {
+            const date = new Date(dob);
+            if (isNaN(date.getTime())) return defaultAge;
+            return new Date().getFullYear() - date.getFullYear();
+        } catch (e) { return defaultAge; }
+    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-y-auto">

@@ -911,10 +911,17 @@ export default function Dashboard() {
                         className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
                         onClick={() => setSelectedConnection(conn)}
                     >
-                        <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-green-400 shrink-0" />
+                        <div className="relative">
+                            <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
+                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        </div>
                         <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-lg truncate">{conn.partner.name}</h4>
-                            <p className="text-sm text-gray-500 line-clamp-1">Click to chat</p>
+                            <h4 className="font-bold text-lg truncate flex items-center gap-2">
+                                {conn.partner.name}
+                            </h4>
+                            <p className="text-sm text-gray-500 line-clamp-1">
+                                {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
+                            </p>
                         </div>
                     </div>
 

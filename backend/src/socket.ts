@@ -4,6 +4,7 @@ import { pool } from './db';
 import jwt from 'jsonwebtoken';
 
 let io: Server;
+const onlineUsers = new Set<string>();
 
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
@@ -32,13 +33,35 @@ export const initSocket = (httpServer: HttpServer) => {
         const userId = socket.data.user?.userId;
         console.log(`Socket User Connected: ${socket.id} (User: ${userId})`);
 
+        if (userId) {
+            socket.join(userId);
+
+            // Add to Online Set
+            onlineUsers.add(userId);
+
+            // Send CURRENT online list to THIS user
+            socket.emit('onlineUsers', Array.from(onlineUsers));
+
+            // Notify OTHERS that this user is online
+            socket.broadcast.emit('userOnline', userId);
+        }
+
         // User Greeting
         socket.emit('me', socket.id);
 
         // Disconnect
         socket.on('disconnect', () => {
-            // console.log('Socket User Disconnected:', socket.id);
             socket.broadcast.emit('callEnded');
+
+            if (userId) {
+                // Check if truly offline (no other sockets for this user)
+                // We check rooms. If room for userId is empty or undefined, they are gone.
+                const room = io.sockets.adapter.rooms.get(userId);
+                if (!room || room.size === 0) {
+                    onlineUsers.delete(userId);
+                    io.emit('userOffline', userId);
+                }
+            }
         });
 
         // JOIN "Personal Room" (using userId as room name)

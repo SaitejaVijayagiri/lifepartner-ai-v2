@@ -129,7 +129,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     return (
-        <div className={className || "fixed bottom-0 right-0 w-full h-[85vh] md:bottom-4 md:right-4 md:w-[400px] md:h-[600px] bg-white md:rounded-3xl rounded-t-3xl shadow-2xl flex flex-col border border-gray-100 overflow-hidden z-40 animate-in slide-in-from-bottom duration-300"}>
+        <div className={className || "fixed bottom-0 right-0 w-full h-[100dvh] md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-bottom duration-300"}>
             {/* Premium Header */}
             {!isCallMode && (
                 <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">

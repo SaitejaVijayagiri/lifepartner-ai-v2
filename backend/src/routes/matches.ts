@@ -126,8 +126,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra)
             };
         })
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 10);
+            .sort((a, b) => b.score - a.score);
 
         res.json({ matches });
 

@@ -70,12 +70,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     useEffect(() => {
         const loadHistory = async () => {
             try {
-                const history = await api.chat.getHistory(connectionId);
+                // Backend expects User ID (partner.id), not Interaction ID
+                const history = await api.chat.getHistory(partner.id);
                 setMessages(history);
             } catch (e) { console.error(e); }
         };
         loadHistory();
-    }, [connectionId]);
+    }, [partner.id]);
 
     // Socket Listeners
     useEffect(() => {
@@ -124,7 +125,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         setMessages(prev => [...prev, tempMsg]);
 
         try {
-            await api.chat.sendMessage(connectionId, text, 'me');
+            // Backend expects User ID (partner.id), not Interaction ID
+            await api.chat.sendMessage(partner.id, text, 'me');
             if (socket) {
                 socket.emit("sendMessage", {
                     to: partner.id,

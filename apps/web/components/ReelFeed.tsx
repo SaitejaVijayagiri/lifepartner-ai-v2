@@ -254,6 +254,18 @@ export default function ReelFeed() {
                 {reels.map((item, idx) => {
                     const isItemActive = idx === activeIndex;
 
+                    // VIRTUALIZATION: Only render active reel + 2 neighbors to save memory/CPU
+                    // This prevents "stuck" UI when list is long
+                    const shouldRender = Math.abs(activeIndex - idx) <= 2;
+
+                    if (!shouldRender) {
+                        return (
+                            <div key={item.id} data-index={idx} className="h-full w-full snap-start snap-child relative bg-black border-b border-gray-900">
+                                {/* Lightweight Placeholder */}
+                            </div>
+                        );
+                    }
+
                     if ('type' in item && (item as any).type === 'google_ad') {
                         return (
                             <div key={item.id} data-index={idx} className="h-full w-full snap-start snap-child relative bg-black">

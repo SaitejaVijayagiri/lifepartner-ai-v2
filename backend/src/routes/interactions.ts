@@ -5,18 +5,20 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-// Get Requests (Pending matches where I am 'user_b')
+// Get Requests (Pending interactions of type 'REQUEST')
 router.get('/requests', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
         const client = await pool.connect();
         const result = await client.query(`
-            SELECT m.id as interaction_id, m.created_at,
-                   u.id as from_id, u.full_name as from_name
-            FROM matches m
-            JOIN users u ON m.user_a_id = u.id
-            WHERE m.user_b_id = $1 AND m.status = 'pending'
+            SELECT i.id as interaction_id, i.created_at,
+                   u.id as from_id, u.full_name as from_name, u.avatar_url
+            FROM interactions i
+            JOIN users u ON i.from_user_id = u.id
+            WHERE i.to_user_id = $1 
+              AND i.type = 'REQUEST' 
+              AND i.status = 'pending'
         `, [userId]);
 
         client.release();
@@ -26,8 +28,8 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
             fromUser: {
                 id: r.from_id,
                 name: r.from_name,
-                photoUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.from_id}`,
-                career: { profession: "Member" } // Join profiles for more data
+                photoUrl: r.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.from_id}`,
+                career: { profession: "Member" }
             },
             timestamp: r.created_at
         }));
@@ -39,36 +41,39 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
     }
 });
 
-// Get Connections (Accepted)
+// Get Connections (Accepted Interactions)
 router.get('/connections', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
         const client = await pool.connect();
-        // Find matches where status='accepted' AND (user_a=me OR user_b=me)
+        // Find interactions where status='connected' AND (from=me OR to=me)
+        // type might be 'REQUEST' (origin) or we just look for status='connected'
         const result = await client.query(`
-            SELECT m.id as interaction_id, m.created_at,
-                   u1.id as u1_id, u1.full_name as u1_name,
-                   u2.id as u2_id, u2.full_name as u2_name
-            FROM matches m
-            JOIN users u1 ON m.user_a_id = u1.id
-            JOIN users u2 ON m.user_b_id = u2.id
-            WHERE (m.user_a_id = $1 OR m.user_b_id = $1) AND m.status = 'accepted'
+            SELECT i.id as interaction_id, i.created_at,
+                   u1.id as u1_id, u1.full_name as u1_name, u1.avatar_url as u1_avatar,
+                   u2.id as u2_id, u2.full_name as u2_name, u2.avatar_url as u2_avatar
+            FROM interactions i
+            JOIN users u1 ON i.from_user_id = u1.id
+            JOIN users u2 ON i.to_user_id = u2.id
+            WHERE (i.from_user_id = $1 OR i.to_user_id = $1) 
+              AND i.status = 'connected'
         `, [userId]);
 
         client.release();
 
         const connections = result.rows.map(r => {
-            const isA = r.u1_id === userId;
-            const partnerId = isA ? r.u2_id : r.u1_id;
-            const partnerName = isA ? r.u2_name : r.u1_name;
+            const isFromMe = r.u1_id === userId;
+            const partnerId = isFromMe ? r.u2_id : r.u1_id;
+            const partnerName = isFromMe ? r.u2_name : r.u1_name;
+            const partnerAvatar = isFromMe ? r.u2_avatar : r.u1_avatar;
 
             return {
                 interactionId: r.interaction_id,
                 partner: {
                     id: partnerId,
                     name: partnerName,
-                    photoUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${partnerId}`,
+                    photoUrl: partnerAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partnerId}`,
                     role: "Member",
                     location: "India"
                 },
@@ -168,42 +173,61 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
 
 // ...
 
-// Accept
-router.post('/:id/accept', authenticateToken, async (req: any, res) => {
+// Accept Request
+router.post('/requests/:interactionId/accept', authenticateToken, async (req: any, res) => {
     try {
-        const { id } = req.params;
+        const { interactionId } = req.params;
         const client = await pool.connect();
 
-        // Update Status
+        // Update Status in interactions table
         const resDb = await client.query(`
-            UPDATE matches 
-            SET status = 'accepted' 
+            UPDATE interactions 
+            SET status = 'connected' 
             WHERE id = $1 
-            RETURNING user_a_id, user_b_id
-        `, [id]);
+            RETURNING from_user_id, to_user_id
+        `, [interactionId]);
 
         if (resDb.rows.length > 0) {
-            const { user_a_id, user_b_id } = resDb.rows[0];
+            const { from_user_id, to_user_id } = resDb.rows[0];
 
-            // Notify Sender (User A) that User B accepted
+            // Notify Sender (from_user_id) that Receiver (to_user_id) accepted
             try {
                 // Fetch details
-                const uA = await client.query('SELECT full_name, email FROM users WHERE id = $1', [user_a_id]);
-                const uB = await client.query('SELECT full_name FROM users WHERE id = $1', [user_b_id]);
+                const uA = await client.query('SELECT full_name, email FROM users WHERE id = $1', [from_user_id]);
+                const uB = await client.query('SELECT full_name FROM users WHERE id = $1', [to_user_id]);
 
                 if (uA.rows.length && uB.rows.length) {
                     await EmailService.sendMatchAcceptedEmail(uA.rows[0].email, uA.rows[0].full_name, uB.rows[0].full_name);
+
+                    // Realtime Notification
+                    const msg = `Good news! ${uB.rows[0].full_name} accepted your request. You can now chat! 🎉`;
+                    getIO().to(from_user_id).emit('notification:new', {
+                        type: 'match',
+                        message: msg,
+                        timestamp: new Date()
+                    });
                 }
-            } catch (err) {
-                console.warn("Email failed", err);
-            }
+            } catch (notifyErr) { console.error("Notify error", notifyErr); }
         }
 
         client.release();
         res.json({ success: true });
     } catch (e) {
+        console.error("Accept Error", e);
         res.status(500).json({ error: "Failed" });
     }
+});
+                }
+            } catch (err) {
+    console.warn("Email failed", err);
+}
+        }
+
+client.release();
+res.json({ success: true });
+    } catch (e) {
+    res.status(500).json({ error: "Failed" });
+}
 });
 
 // Decline

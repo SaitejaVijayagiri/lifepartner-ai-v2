@@ -19,18 +19,24 @@ interface ReelItemProps {
     commentText: string;
     setCommentText: (text: string) => void;
     handleComment: (idx: number, id: string) => void;
-    setShowComments: (idx: number | null) => void; // Add this
+    setShowComments: (idx: number | null) => void;
     heartAnim: boolean;
+    shouldPreload: boolean; // Smart Preloading control
+    handleView: (id: string) => void; // Analytics
 }
 
 const ReelItem = memo(({
     reel, isActive, isMuted, toggleMute, handleDoubleTap,
     handleLike, toggleComments, setGiftModal, index,
-    showComments, commentText, setCommentText, handleComment, setShowComments, heartAnim
+    showComments, commentText, setCommentText, handleComment,
+    setShowComments, heartAnim, shouldPreload, handleView
 }: ReelItemProps) => {
 
     const videoRef = useRef<HTMLVideoElement>(null);
+    const [hasError, setHasError] = useState(false);
+    const viewedRef = useRef(false);
 
+    // Smart Playback & View Tracking
     useEffect(() => {
         if (videoRef.current) {
             if (isActive) {
@@ -40,27 +46,46 @@ const ReelItem = memo(({
                         console.log('Autoplay prevented/paused', e);
                     });
                 }
+
+                // Track View after 2 seconds of playback
+                if (!viewedRef.current) {
+                    const timer = setTimeout(() => {
+                        handleView(reel.id);
+                        viewedRef.current = true;
+                    }, 2000);
+                    return () => clearTimeout(timer);
+                }
             } else {
                 videoRef.current.pause();
-                videoRef.current.currentTime = 0; // Reset for performance? Optional.
+                if (!shouldPreload) {
+                    videoRef.current.currentTime = 0; // Free up decoder resources if not preloading
+                }
             }
         }
-    }, [isActive]);
+    }, [isActive, shouldPreload, reel.id, handleView]);
 
     return (
         <div
             className="h-full w-full relative bg-gray-900 select-none"
             onClick={() => handleDoubleTap(index, reel.id)}
         >
-            <video
-                ref={videoRef}
-                src={reel.url}
-                className="w-full h-full object-cover pointer-events-none"
-                loop
-                muted={isMuted}
-                playsInline
-                preload={isActive ? "auto" : "none"} // Huge Bandwidth Saver
-            />
+            {hasError ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-gray-500 z-10">
+                    <VolumeX size={48} className="mb-2 opacity-50" />
+                    <p className="text-xs font-bold">Video Unavailable</p>
+                </div>
+            ) : (
+                <video
+                    ref={videoRef}
+                    src={reel.url}
+                    className="w-full h-full object-cover pointer-events-none"
+                    loop
+                    muted={isMuted}
+                    playsInline
+                    preload={shouldPreload ? "auto" : "none"}
+                    onError={() => setHasError(true)}
+                />
+            )}
 
             {/* Centered Heart Animation */}
             {heartAnim && (

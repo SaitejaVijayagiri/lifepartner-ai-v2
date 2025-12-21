@@ -224,6 +224,13 @@ export default function ReelFeed() {
         }
     };
 
+    const handleView = async (reelId: string) => {
+        try {
+            // Fire and forget view tracking
+            axios.post(`${API_URL}/reels/${reelId}/view`);
+        } catch (e) { console.error("View track error", e); }
+    };
+
     if (reels.length === 0) {
         return (
             <div className="h-[600px] flex flex-col items-center justify-center bg-gray-900 rounded-xl text-white relative overflow-hidden">
@@ -257,6 +264,9 @@ export default function ReelFeed() {
                     // VIRTUALIZATION: Only render active reel + 2 neighbors to save memory/CPU
                     // This prevents "stuck" UI when list is long
                     const shouldRender = Math.abs(activeIndex - idx) <= 2;
+
+                    // SMART PRELOAD: Preload Active AND Next video for instant swipe
+                    const shouldPreload = idx === activeIndex || idx === activeIndex + 1;
 
                     if (!shouldRender) {
                         return (
@@ -301,6 +311,8 @@ export default function ReelFeed() {
                                 setCommentText={setCommentText}
                                 handleComment={handleComment}
                                 heartAnim={heartAnim === idx}
+                                shouldPreload={shouldPreload}
+                                handleView={handleView}
                             />
                         </div>
                     );

@@ -844,7 +844,7 @@ export default function Dashboard() {
             <main className="max-w-7xl mx-auto pt-6 px-4 lg:px-8 flex gap-8">
                 {/* Main Feed Column */}
                 <div className="flex-1 min-w-0 pb-24 sm:pb-0">
-                    {(activeTab === 'matches' || activeTab === 'reels') && (
+                    {activeTab === 'matches' && (
                         <div className="mb-8">{renderStories()}</div>
                     )}
 

@@ -130,13 +130,12 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const targetEmail = targetRes.rows[0].email;
         const targetName = targetRes.rows[0].full_name;
 
-        // Upsert: Only update STATUS. Do NOT touch is_liked.
+        // Upsert Interaction: type='REQUEST'
         await client.query(`
-            INSERT INTO public.matches (user_a_id, user_b_id, status, is_liked, score_total)
-            VALUES ($1, $2, 'pending', FALSE, 0.8)
-            ON CONFLICT (user_a_id, user_b_id) 
-            DO UPDATE SET status = 'pending'
-            WHERE matches.status IS DISTINCT FROM 'pending'
+            INSERT INTO public.interactions (from_user_id, to_user_id, type, status)
+            VALUES ($1, $2, 'REQUEST', 'pending')
+            ON CONFLICT (from_user_id, to_user_id, type) 
+            DO UPDATE SET status = 'pending', created_at = NOW()
         `, [userId, toUserId]);
 
         // Emit Real-time Notification & Persist

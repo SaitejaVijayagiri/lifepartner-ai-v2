@@ -346,213 +346,92 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // Post-Filter: Advanced Weighted Matching
         let scoredMatches = result.rows.map(c => {
             const meta = c.metadata || {};
-            // Safe Location Access
-            let locString = "India";
-            if (meta.location && typeof meta.location === 'object') {
-                locString = meta.location.city || locString;
-            } else if (c.location_name) {
-                locString = c.location_name;
-            }
 
-            const profileHeight = meta.height || "";
-            const heightInches = parseHeightToInches(profileHeight);
 
-            // STRICT FILTER: Income
-            if (filters.minIncome) {
-                const incVal = parseIncome(meta.career?.income || "");
-                if (incVal < filters.minIncome) return null;
-            }
+            // --- NEW: Semantic Re-Ranking (Advanced Offline AI) ---
+            if (query && scoredMatches.length > 0) {
+                try {
+                    // 1. Generate Query Embedding
+                    // 1. Generate Query Embedding
+                    const aiService = new (require('../services/ai').AIService)();
 
-            // Base AI Score
-            let score = 70;
-            const reasons: string[] = [];
+                    // ALWAYS run Semantic Re-ranking (Hybrid Search)
+                    // We use local embeddings (Xenova) which are free and fast
+                    console.log("🧠 Running Semantic Re-ranking for", scoredMatches.length, "candidates...");
 
-            // 5. Location Proximity (Hyper-Local)
-            const myLoc = me.metadata?.location || {};
-            const theirLoc = meta.location || {};
+                    if (true) {
+                        const queryVector = await aiService.generateEmbedding(query);
 
-            if (myLoc.district && theirLoc.district && myLoc.district.toLowerCase() === theirLoc.district.toLowerCase()) {
-                score += 25; // Huge boost for same district
-                reasons.push(`📍 Nearby (${theirLoc.district})`);
-            } else if (myLoc.state && theirLoc.state && myLoc.state.toLowerCase() === theirLoc.state.toLowerCase()) {
-                score += 10; // Boost for same State
-                reasons.push(`📍 ${theirLoc.state}`);
-            }
+                        // 2. Compute Cosine Similarity for each match
+                        await Promise.all(scoredMatches.map(async (m: any) => {
+                            const bio = m.summary || "";
+                            if (bio.length > 10) {
+                                // A. Semantic Similarity
+                                const bioVector = await aiService.generateEmbedding(bio);
+                                const similarity = cosineSimilarity(queryVector, bioVector);
 
-            // 6. AI Fallback Analysis (if no real AI traits)
-            // 1. Height Analysis
-            if (filters.minHeightInches && filters.maxHeightInches) {
-                if (heightInches >= filters.minHeightInches && heightInches <= filters.maxHeightInches) {
-                    score += 20;
-                    reasons.push(`Perfect Height (${profileHeight})`);
-                } else if (heightInches > 0) {
-                    // Decay score based on distance
-                    const diff = Math.min(Math.abs(heightInches - filters.minHeightInches), Math.abs(heightInches - filters.maxHeightInches));
-                    score -= (diff * 2);
-                    if (score < 40) reasons.push(`Height Mismatch (${profileHeight})`);
-                }
-            }
+                                if (similarity > 0.3) {
+                                    m.score += (similarity * 30);
+                                    m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
+                                }
 
-            // 2. Appearance & Keyword Analysis (Semantic Proxy)
-            if (filters.appearance && filters.appearance.length > 0) {
-                const combinedBio = ((c.raw_prompt || "") + " " + (meta.aboutMe || "")).toLowerCase();
-                // Count matches
-                const matchCount = filters.appearance.filter((trait: string) => combinedBio.includes(trait.toLowerCase())).length;
-
-                if (matchCount > 0) {
-                    score += (matchCount * 10);
-                    reasons.push(`${matchCount} Appearance traits matched`);
-                }
-            }
-
-            // 3. Habits & Lifestyle
-            if (filters.smoking === 'No' && meta.lifestyle?.smoking === 'Yes') {
-                score -= 30; // Strong penalty
-                reasons.push("Smoker (Mismatch)");
-            }
-            if (filters.drinking === 'No' && meta.lifestyle?.drinking === 'Yes') {
-                score -= 20;
-                reasons.push("Drinker (Mismatch)");
-            }
-
-            // 4. Keyword/Interest Matching
-            if (filters.keywords && filters.keywords.length > 0) {
-                const bio = ((c.raw_prompt || "") + " " + (meta.aboutMe || "")).toLowerCase();
-                // Check hobbies if available (metadata.hobbies usually array of strings)
-                const hobbies = Array.isArray(meta.hobbies) ? meta.hobbies.map((h: string) => h.toLowerCase()) : [];
-
-                let keyMatchCount = 0;
-                filters.keywords.forEach((k: string) => {
-                    const kw = k.toLowerCase();
-                    if (bio.includes(kw) || hobbies.some((h: string) => h.includes(kw))) {
-                        keyMatchCount++;
+                                // B. Sentiment Vibe Check (New Advanced Offline AI)
+                                // We analyze the bio's sentiment to gauge "Vibe"
+                                const sentiment = await aiService.analyzeSentiment(bio);
+                                if (sentiment === 'POSITIVE') {
+                                    m.score += 5; // Positive vibes get a boost
+                                    // m.match_reasons.push("😊 Positive Vibe"); 
+                                } else if (sentiment === 'NEGATIVE') {
+                                    m.score -= 5; // Negative vibes get a slight penalty
+                                }
+                            }
+                        }));
                     }
-                });
-
-                if (keyMatchCount > 0) {
-                    score += (keyMatchCount * 10);
-                    reasons.push(`${keyMatchCount} Interest Match${keyMatchCount > 1 ? 'es' : ''}`);
+                } catch (e) {
+                    console.error("Semantic Ranking Failed", e);
                 }
             }
 
-            return {
-                id: c.user_id || c.id,
-                name: c.full_name,
-                age: c.age,
-                height: meta.height || "Not Specified",
-                location: locString,
-                role: meta.career?.profession || "Member",
-                photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
-                score: Math.max(0, Math.min(score, 99)),
-                match_reasons: reasons.length > 0 ? reasons : ["AI Suggestion"],
+            // Helper: Cosine Similarity
+            function cosineSimilarity(vecA: number[], vecB: number[]): number {
+                let dotProduct = 0;
+                let normA = 0;
+                let normB = 0;
+                for (let i = 0; i < vecA.length; i++) {
+                    dotProduct += vecA[i] * vecB[i];
+                    normA += vecA[i] * vecA[i];
+                    normB += vecB[i] * vecB[i];
+                }
+                return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+            }
+
+            // Sort by Score DESC and Return Top 10
+
+            // Sort by Score DESC and Return Top 10
+            scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
+
+            // 4. Optimization: Skip Real-Time AI Analysis for List View
+            const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
+                ...m,
+                isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
                 analysis: {
-                    emotional: 80 + (c.id % 15),
-                    vision: 85 + (c.id % 10)
-                },
-                isOnline: Math.random() > 0.3,
-                summary: (c.raw_prompt || meta.aboutMe || "No bio yet.").substring(0, 150),
-                reels: meta.reels || c.reels || [],
-                photos: meta.photos || [],
-
-                // Pass Full Details for Modal
-                career: meta.career || {},
-                family: meta.family || {},
-                religion: meta.religion || {},
-                horoscope: meta.horoscope || {},
-                lifestyle: meta.lifestyle || {},
-
-                stories: c.stories || [],
-                phone: isPremium ? (c.phone || meta.phone) : null,
-                email: isPremium ? (c.email || meta.email) : null,
-                voiceBioUrl: c.voice_bio_url || null,
-                kundli: astrologyService.calculateCompatibility(me.metadata?.horoscope?.nakshatra, meta.horoscope?.nakshatra)
-            };
-        }).filter((m: any) => m !== null);
-
-        // --- NEW: Semantic Re-Ranking (Advanced Offline AI) ---
-        if (query && scoredMatches.length > 0) {
-            try {
-                // 1. Generate Query Embedding
-                // 1. Generate Query Embedding
-                const aiService = new (require('../services/ai').AIService)();
-
-                // ALWAYS run Semantic Re-ranking (Hybrid Search)
-                // We use local embeddings (Xenova) which are free and fast
-                console.log("🧠 Running Semantic Re-ranking for", scoredMatches.length, "candidates...");
-
-                if (true) {
-                    const queryVector = await aiService.generateEmbedding(query);
-
-                    // 2. Compute Cosine Similarity for each match
-                    await Promise.all(scoredMatches.map(async (m: any) => {
-                        const bio = m.summary || "";
-                        if (bio.length > 10) {
-                            // A. Semantic Similarity
-                            const bioVector = await aiService.generateEmbedding(bio);
-                            const similarity = cosineSimilarity(queryVector, bioVector);
-
-                            if (similarity > 0.3) {
-                                m.score += (similarity * 30);
-                                m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
-                            }
-
-                            // B. Sentiment Vibe Check (New Advanced Offline AI)
-                            // We analyze the bio's sentiment to gauge "Vibe"
-                            const sentiment = await aiService.analyzeSentiment(bio);
-                            if (sentiment === 'POSITIVE') {
-                                m.score += 5; // Positive vibes get a boost
-                                // m.match_reasons.push("😊 Positive Vibe"); 
-                            } else if (sentiment === 'NEGATIVE') {
-                                m.score -= 5; // Negative vibes get a slight penalty
-                            }
-                        }
-                    }));
+                    emotional: m?.score || 50,
+                    vision: m?.score || 50
                 }
-            } catch (e) {
-                console.error("Semantic Ranking Failed", e);
+            }));
+
+            // DEBUG: 
+            if (finalMatches.length > 0) {
+                console.log(`[DEBUG] Returning ${finalMatches.length} matches. User Premium: ${isPremium}`);
             }
+
+            res.json({ matches: finalMatches });
+
+        } catch (e) {
+            console.error("Search Error", e);
+            res.status(500).json({ error: "Search failed" });
         }
-
-        // Helper: Cosine Similarity
-        function cosineSimilarity(vecA: number[], vecB: number[]): number {
-            let dotProduct = 0;
-            let normA = 0;
-            let normB = 0;
-            for (let i = 0; i < vecA.length; i++) {
-                dotProduct += vecA[i] * vecB[i];
-                normA += vecA[i] * vecA[i];
-                normB += vecB[i] * vecB[i];
-            }
-            return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-        }
-
-        // Sort by Score DESC and Return Top 10
-
-        // Sort by Score DESC and Return Top 10
-        scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
-
-        // 4. Optimization: Skip Real-Time AI Analysis for List View
-        const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
-            ...m,
-            isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
-            analysis: {
-                emotional: m?.score || 50,
-                vision: m?.score || 50
-            }
-        }));
-
-        // DEBUG: 
-        if (finalMatches.length > 0) {
-            console.log(`[DEBUG] Returning ${finalMatches.length} matches. User Premium: ${isPremium}`);
-        }
-
-        res.json({ matches: finalMatches });
-
-    } catch (e) {
-        console.error("Search Error", e);
-        res.status(500).json({ error: "Search failed" });
-    }
-});
+    });
 
 // 4. GET PDF Report (Premium / Free)
 router.get('/:id/report', authenticateToken, async (req: any, res) => {

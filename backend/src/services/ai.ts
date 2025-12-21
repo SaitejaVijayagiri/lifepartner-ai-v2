@@ -50,6 +50,18 @@ export class AIService {
         }
     }
 
+    // --- 0. Synonym Dictionary (Advanced Offline AI) ---
+    public static SYNONYMS: Record<string, string[]> = {
+        "Software Engineer": ["coder", "programmer", "developer", "software", "backend", "frontend", "fullstack", "it professional", "techie", "tech", "sde", "engineer"],
+        "Doctor": ["medic", "physician", "surgeon", "dr", "medical", "dentist", "cardiologist"],
+        "Business": ["entrepreneur", "founder", "startup", "businessman", "businesswoman", "trader"],
+        "Teacher": ["professor", "educator", "lecturer", "tutor", "academic"],
+        "Artist": ["painter", "designer", "creator", "musician", "writer", "actor"],
+        "Fitness": ["gym", "workout", "athletic", "sports", "running", "yoga", "fit"],
+        "Travel": ["wanderlust", "trip", "explorer", "adventure", "hiking", "trekking"],
+        "Foodie": ["cooking", "culinary", "baking", "food", "chef"]
+    };
+
     async parseUserPrompt(promptText: string) {
         const formatInstructions = parser.getFormatInstructions();
 
@@ -251,16 +263,7 @@ export class AIService {
             const result: any = { keywords: [], appearance: [] };
 
             // --- 0. Synonym Dictionary (Advanced Offline AI) ---
-            const SYNONYMS: Record<string, string[]> = {
-                "Software Engineer": ["coder", "programmer", "developer", "software", "backend", "frontend", "fullstack", "it professional", "techie", "tech", "sde", "engineer"],
-                "Doctor": ["medic", "physician", "surgeon", "dr", "medical", "dentist", "cardiologist"],
-                "Business": ["entrepreneur", "founder", "startup", "businessman", "businesswoman", "trader"],
-                "Teacher": ["professor", "educator", "lecturer", "tutor", "academic"],
-                "Artist": ["painter", "designer", "creator", "musician", "writer", "actor"],
-                "Fitness": ["gym", "workout", "athletic", "sports", "running", "yoga", "fit"],
-                "Travel": ["wanderlust", "trip", "explorer", "adventure", "hiking", "trekking"],
-                "Foodie": ["cooking", "culinary", "baking", "food", "chef"]
-            };
+            const SYNONYMS = AIService.SYNONYMS;
 
             // 1. Profession (with Synonyms)
             for (const [standard, variations] of Object.entries(SYNONYMS)) {

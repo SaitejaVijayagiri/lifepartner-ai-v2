@@ -182,10 +182,32 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         }
 
         // Apply AI Filters
+        // Apply AI Filters
         if (filters.profession) {
-            sql += ` AND p.metadata->'career'->>'profession' ILIKE $${pIdx} `;
-            params.push(`%${filters.profession}%`);
-            pIdx++;
+            // Check for Synonyms to broaden search (e.g. "Software Engineer" -> "Coder", "Developer")
+            const AIService = require('../services/ai').AIService;
+            const synonyms = AIService.SYNONYMS[filters.profession] || [];
+
+            if (synonyms.length > 0) {
+                // OR Logic for Synonyms
+                // profession ILIKE %Target% OR profession ILIKE %Synonym1% ...
+                const conditions = [`p.metadata->'career'->>'profession' ILIKE $${pIdx}`];
+                params.push(`%${filters.profession}%`);
+                pIdx++;
+
+                synonyms.forEach((syn: string) => {
+                    conditions.push(`p.metadata->'career'->>'profession' ILIKE $${pIdx}`);
+                    params.push(`%${syn}%`);
+                    pIdx++;
+                });
+
+                sql += ` AND (${conditions.join(' OR ')}) `;
+            } else {
+                // Standard Single Match
+                sql += ` AND p.metadata->'career'->>'profession' ILIKE $${pIdx} `;
+                params.push(`%${filters.profession}%`);
+                pIdx++;
+            }
         }
 
         if (filters.religion) {

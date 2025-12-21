@@ -228,7 +228,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
     }
 
     return (
-        <div className="relative h-[calc(100dvh-80px)] sm:h-[calc(100vh-100px)] w-full max-w-[450px] mx-auto bg-black sm:rounded-2xl overflow-hidden shadow-2xl touch-pan-y">
+        <div className="relative h-full w-full max-w-[450px] mx-auto bg-black sm:rounded-2xl overflow-hidden shadow-2xl touch-pan-y">
             {/* Feed */}
             <div
                 ref={scrollRef}

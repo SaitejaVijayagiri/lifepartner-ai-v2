@@ -38,6 +38,7 @@ const STORIES = [
 export default function Dashboard() {
     const router = useRouter();
     const toast = useToast();
+    const { socket, onlineUsers } = useSocket() as any;
     const [matches, setMatches] = useState<any[]>([]);
     const [requests, setRequests] = useState<any[]>([]);
     const [connections, setConnections] = useState<any[]>([]);
@@ -59,7 +60,6 @@ export default function Dashboard() {
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
     const [activeCall, setActiveCall] = useState<any>(null);
-    const { socket } = useSocket() as any;
 
     useEffect(() => {
         const checkAuth = async () => {

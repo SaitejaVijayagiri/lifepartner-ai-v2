@@ -77,7 +77,7 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
         // Map to Frontend Format
         const reels = result.rows.map(row => ({
             id: row.id,
-            url: row.url, // Supabase URL
+            url: row.video_url, // Supabase URL
             caption: row.caption || "",
             user: {
                 id: row.user_id,

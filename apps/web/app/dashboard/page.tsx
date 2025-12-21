@@ -878,7 +878,7 @@ export default function Dashboard() {
                 <div className="text-center py-20 text-gray-500">No pending requests</div>
             )}
             {requests.map((req: any) => (
-                <div key={req.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div key={req.interactionId} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <img src={req.fromUser.photoUrl || "https://i.pravatar.cc/150"} className="w-12 h-12 rounded-full object-cover" />
                         <div>
@@ -887,8 +887,8 @@ export default function Dashboard() {
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => handleDeclineRequest(req.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><X size={20} /></button>
-                        <button onClick={() => handleAcceptRequest(req.id)} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700">Accept</button>
+                        <button onClick={() => handleDeclineRequest(req.interactionId)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><X size={20} /></button>
+                        <button onClick={() => handleAcceptRequest(req.interactionId)} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700">Accept</button>
                     </div>
                 </div>
             ))}
@@ -945,10 +945,33 @@ export default function Dashboard() {
                                 onCancel={() => setIsEditingProfile(false)}
                             />
                         ) : (
-                            <ProfileView
-                                profile={currentUser}
-                                onEdit={() => setIsEditingProfile(true)}
-                            />
+                            <div className="space-y-6">
+                                {/* Profile Stats Row */}
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+                                    <div className="flex gap-8">
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-gray-900">{connections.length}</div>
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Connections</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-gray-900">{requests.length}</div>
+                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Requests</div>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                                        onClick={() => setActiveTab('connections')}
+                                    >
+                                        Manage Connections
+                                    </Button>
+                                </div>
+
+                                <ProfileView
+                                    profile={currentUser}
+                                    onEdit={() => setIsEditingProfile(true)}
+                                />
+                            </div>
                         )
                     )}
                 </div>

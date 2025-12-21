@@ -151,287 +151,319 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         const client = await pool.connect();
 
-        // 2. Get Me (for gender filtering & premium status)
-        // Need is_premium to decide whether to show contacts
+        // 2. Get Me
         const meRes = await client.query("SELECT gender, is_premium, district, state, metadata FROM public.users u LEFT JOIN public.profiles p ON u.id = p.user_id WHERE u.id = $1", [userId]);
         const me = meRes.rows[0];
         const myGender = (me?.gender || "").trim().toLowerCase();
         const isPremium = me?.is_premium;
-        // Ensure me metadata is available for astrology
         if (!me.metadata) me.metadata = {};
 
-        // 3. Build Dynamic Query
-        let sql = `
-            SELECT 
-                u.id, u.email, u.phone, u.full_name, u.gender, u.age, u.location_name, 
-                u.city, u.district, u.state, -- New Location Columns
-                u.avatar_url, u.voice_bio_url, u.is_premium,
-                p.metadata, p.raw_prompt
-            FROM public.users u 
-            LEFT JOIN public.profiles p ON u.id = p.user_id 
-            WHERE u.id != $1 
-        `;
-        const params: any[] = [userId];
-        let pIdx = 2;
+        // --- HELPER: Build & Run Query ---
+        const buildAndRunQuery = async (strictness: 'strict' | 'relaxed') => {
+            let sql = `
+                SELECT 
+                    u.id, u.email, u.phone, u.full_name, u.gender, u.age, u.location_name, 
+                    u.city, u.district, u.state, -- New Location Columns
+                    u.avatar_url, u.voice_bio_url, u.is_premium,
+                    p.metadata, p.raw_prompt
+                FROM public.users u 
+                LEFT JOIN public.profiles p ON u.id = p.user_id 
+                WHERE u.id != $1 
+            `;
+            const params: any[] = [userId];
+            let pIdx = 2;
 
-        // Gender Filter (Strict)
-        if (myGender === 'male') {
-            sql += ` AND LOWER(u.gender) = 'female' `;
-        } else if (myGender === 'female') {
-            sql += ` AND LOWER(u.gender) = 'male' `;
-        }
+            // Base Filters (Always Apply)
+            if (myGender === 'male') {
+                sql += ` AND LOWER(u.gender) = 'female' `;
+            } else if (myGender === 'female') {
+                sql += ` AND LOWER(u.gender) = 'male' `;
+            }
 
-        // Apply AI Filters
-        // Apply AI Filters
-        if (filters.profession) {
-            // Check for Synonyms to broaden search (e.g. "Software Engineer" -> "Coder", "Developer")
-            const AIService = require('../services/ai').AIService;
-            const synonyms = AIService.SYNONYMS[filters.profession] || [];
-
-            if (synonyms.length > 0) {
-                // OR Logic for Synonyms
-                // profession ILIKE %Target% OR profession ILIKE %Synonym1% ...
-                const conditions = [`p.metadata->'career'->>'profession' ILIKE $${pIdx}`];
-                params.push(`%${filters.profession}%`);
+            // Age (Always Apply, maybe broaden in relaxed?)
+            if (filters.minAge) {
+                const age = strictness === 'strict' ? filters.minAge : Math.max(18, filters.minAge - 5);
+                sql += ` AND u.age >= $${pIdx} `;
+                params.push(age);
                 pIdx++;
+            }
+            if (filters.maxAge) {
+                const age = strictness === 'strict' ? filters.maxAge : filters.maxAge + 5;
+                sql += ` AND u.age <= $${pIdx} `;
+                params.push(age);
+                pIdx++;
+            }
 
-                synonyms.forEach((syn: string) => {
-                    conditions.push(`p.metadata->'career'->>'profession' ILIKE $${pIdx}`);
-                    params.push(`%${syn}%`);
+            // --- STRICT MODE FILTERS ---
+            if (strictness === 'strict') {
+                // Profession
+                if (filters.profession) {
+                    const AIService = require('../services/ai').AIService;
+                    const synonyms = AIService.SYNONYMS[filters.profession] || [];
+                    if (synonyms.length > 0) {
+                        const conditions = [`p.metadata->'career'->>'profession' ILIKE $${pIdx}`];
+                        params.push(`%${filters.profession}%`);
+                        pIdx++;
+                        synonyms.forEach((syn: string) => {
+                            conditions.push(`p.metadata->'career'->>'profession' ILIKE $${pIdx}`);
+                            params.push(`%${syn}%`);
+                            pIdx++;
+                        });
+                        sql += ` AND (${conditions.join(' OR ')}) `;
+                    } else {
+                        sql += ` AND p.metadata->'career'->>'profession' ILIKE $${pIdx} `;
+                        params.push(`%${filters.profession}%`);
+                        pIdx++;
+                    }
+                }
+
+                // Location
+                if (filters.location) {
+                    sql += ` AND (
+                        u.location_name ILIKE $${pIdx} OR 
+                        u.city ILIKE $${pIdx} OR 
+                        u.state ILIKE $${pIdx} OR
+                        p.metadata->'location'->>'city' ILIKE $${pIdx} OR 
+                        p.metadata->'location'->>'state' ILIKE $${pIdx}
+                    ) `;
+                    params.push(`%${filters.location}%`);
                     pIdx++;
-                });
+                }
 
-                sql += ` AND (${conditions.join(' OR ')}) `;
+                // Religion, Caste
+                if (filters.religion) {
+                    sql += ` AND p.metadata->'religion'->>'faith' ILIKE $${pIdx} `;
+                    params.push(`%${filters.religion}%`);
+                    pIdx++;
+                }
+                if (filters.caste) {
+                    sql += ` AND p.metadata->'religion'->>'caste' ILIKE $${pIdx} `;
+                    params.push(`%${filters.caste}%`);
+                    pIdx++;
+                }
+                if (filters.gothra) {
+                    sql += ` AND p.metadata->'religion'->>'gothra' ILIKE $${pIdx} `;
+                    params.push(`%${filters.gothra}%`);
+                    pIdx++;
+                }
+                // Habits
+                if (filters.smoking === 'No') {
+                    sql += ` AND (p.metadata->'lifestyle'->>'smoking' = 'No' OR p.metadata->'lifestyle'->>'smoking' IS NULL) `;
+                }
+                if (filters.drinking === 'No') {
+                    sql += ` AND (p.metadata->'lifestyle'->>'drinking' = 'No' OR p.metadata->'lifestyle'->>'drinking' IS NULL) `;
+                }
+
+                // Education Strict
+                if (filters.education) {
+                    sql += ` AND (p.metadata->'career'->>'educationLevel' ILIKE $${pIdx} OR p.metadata->'career'->>'college' ILIKE $${pIdx}) `;
+                    params.push(`%${filters.education}%`);
+                    pIdx++;
+                }
+
             } else {
-                // Standard Single Match
-                sql += ` AND p.metadata->'career'->>'profession' ILIKE $${pIdx} `;
-                params.push(`%${filters.profession}%`);
-                pIdx++;
+                // --- RELAXED MODE ---
+                // We keep broad filters (Gender, Age) but removing specific constraints.
+                // We rely on Semantic Re-ranking to bubble up relevant ones.
             }
+
+            sql += ` LIMIT 50`;
+            return client.query(sql, params);
+        };
+
+        // 3. Execution Strategy: Strict -> Fallback
+        let result = await buildAndRunQuery('strict');
+        let rows = result.rows;
+        let isBroad = false;
+
+        if (rows.length < 5) {
+            console.log("⚠️ Low Strict Results. Running Broad Search...");
+            const broadResult = await buildAndRunQuery('relaxed');
+
+            // Deduplicate
+            const existingIds = new Set(rows.map((r: any) => r.id));
+            const newRows = broadResult.rows.filter((r: any) => !existingIds.has(r.id));
+            rows = [...rows, ...newRows];
+            isBroad = true;
         }
 
-        if (filters.religion) {
-            sql += ` AND p.metadata->'religion'->>'faith' ILIKE $${pIdx} `; // 'faith' matches editor field
-            params.push(`%${filters.religion}%`);
-            pIdx++;
-        }
-
-        if (filters.diet) {
-            sql += ` AND p.metadata->'lifestyle'->>'diet' ILIKE $${pIdx} `;
-            params.push(filters.diet);
-            pIdx++;
-        }
-
-        // Habits (if present in metadata)
-        if (filters.smoking === 'No') {
-            // Check if smoking is explicitly 'No' or null (assuming default good)
-            sql += ` AND (p.metadata->'lifestyle'->>'smoking' = 'No' OR p.metadata->'lifestyle'->>'smoking' IS NULL) `;
-        }
-        if (filters.drinking === 'No') {
-            sql += ` AND (p.metadata->'lifestyle'->>'drinking' = 'No' OR p.metadata->'lifestyle'->>'drinking' IS NULL) `;
-        }
-
-        // Strict Filters (User Request)
-        if (filters.location) {
-            // Check BOTH explicit columns AND legacy metadata for robustness
-            sql += ` AND (
-                u.location_name ILIKE $${pIdx} OR 
-                u.city ILIKE $${pIdx} OR 
-                u.state ILIKE $${pIdx} OR
-                p.metadata->'location'->>'city' ILIKE $${pIdx} OR 
-                p.metadata->'location'->>'state' ILIKE $${pIdx}
-            ) `;
-            params.push(`%${filters.location}%`);
-            pIdx++;
-        }
-
-        // 'Near Me' Filter (Enhanced with Columns)
-        if (filters.useMyLocation) {
-            const myDist = me.metadata?.location?.district || me.district;
-            const myState = me.metadata?.location?.state || me.state;
-
-            if (myDist) {
-                // Priority to District (Column OR Metadata)
-                sql += ` AND (
-                    u.district ILIKE $${pIdx} OR
-                    p.metadata->'location'->>'district' ILIKE $${pIdx}
-                ) `;
-                params.push(myDist);
-                pIdx++;
-            } else if (myState) {
-                // Fallback to State (Column OR Metadata)
-                sql += ` AND (
-                    u.state ILIKE $${pIdx} OR
-                    p.metadata->'location'->>'state' ILIKE $${pIdx}
-                ) `;
-                params.push(myState);
-                pIdx++;
-            }
-            // If neither is known, ignoring 'near me' silently or could fallback to City.
-        }
-
-        if (filters.caste) {
-            sql += ` AND p.metadata->'religion'->>'caste' ILIKE $${pIdx} `;
-            params.push(`%${filters.caste}%`);
-            pIdx++;
-        }
-
-        if (filters.gothra) {
-            sql += ` AND p.metadata->'religion'->>'gothra' ILIKE $${pIdx} `;
-            params.push(`%${filters.gothra}%`);
-            pIdx++;
-        }
-
-        if (filters.maritalStatus) {
-            sql += ` AND p.metadata->'basics'->>'maritalStatus' ILIKE $${pIdx} `;
-            params.push(filters.maritalStatus);
-            pIdx++;
-        }
-
-        if (filters.education) {
-            sql += ` AND (p.metadata->'career'->>'educationLevel' ILIKE $${pIdx} OR p.metadata->'career'->>'college' ILIKE $${pIdx}) `;
-            params.push(`%${filters.education}%`);
-            pIdx++;
-        }
-
-        // Age Filters
-        if (filters.minAge) {
-            sql += ` AND u.age >= $${pIdx} `;
-            params.push(filters.minAge);
-            pIdx++;
-        }
-        if (filters.maxAge) {
-            sql += ` AND u.age <= $${pIdx} `;
-            params.push(filters.maxAge);
-            pIdx++;
-        }
-
-        sql += ` LIMIT 100`;
-
-        // DEBUG: Write to file (DISABLED for production safety)
-        // const fs = require('fs');
-        // const debugLog = `...`;
-        // fs.appendFileSync('debug_search.log', debugLog);
-
-        console.log(`DEBUG: Filter Query for ${myGender}: ${sql}`);
-
-        const result = await client.query(sql, params);
         client.release();
 
-        // Helper: Height Parser
+        // 4. Scoring & Mapping
         const parseHeightToInches = (hStr: string): number => {
             if (!hStr) return 0;
             const str = hStr.toLowerCase().replace(/[^0-9.]/g, ' ');
             const parts = str.trim().split(/\s+/).map(Number);
-            // Format: 5'9 or 5 9
-            if (hStr.includes("'") || parts.length >= 2) {
-                return (parts[0] * 12) + (parts[1] || 0);
-            }
-            // Format: 175 cm
-            if (hStr.toLowerCase().includes('cm')) {
-                return Math.round(parts[0] / 2.54);
-            }
-            // Fallback: Just feet?
+            if (hStr.includes("'") || parts.length >= 2) return (parts[0] * 12) + (parts[1] || 0);
+            if (hStr.toLowerCase().includes('cm')) return Math.round(parts[0] / 2.54);
             if (parts.length === 1 && parts[0] < 8) return parts[0] * 12;
             return 0;
         };
-
-        // Helper: Income Parser
         const parseIncome = (str: string): number => {
             if (!str) return 0;
             const nums = str.match(/(\d+)/);
             return nums ? parseInt(nums[0]) : 0;
         };
 
-        // Post-Filter: Advanced Weighted Matching
-        let scoredMatches = result.rows.map(c => {
+        let scoredMatches = rows.map((c: any) => {
             const meta = c.metadata || {};
+            let locString = "India";
+            if (meta.location && typeof meta.location === 'object') locString = meta.location.city || locString;
+            else if (c.location_name) locString = c.location_name;
 
+            const profileHeight = meta.height || "";
+            const heightInches = parseHeightToInches(profileHeight);
 
-            // --- NEW: Semantic Re-Ranking (Advanced Offline AI) ---
-            if (query && scoredMatches.length > 0) {
-                try {
-                    // 1. Generate Query Embedding
-                    // 1. Generate Query Embedding
-                    const aiService = new (require('../services/ai').AIService)();
+            // Strict Income Filter (Even in relaxed mode? Maybe relax it too? Let's keep strictly applied locally for now)
+            if (filters.minIncome && !isBroad) { // Only strict income in strict mode? No, let's keep it generally unless very desperate.
+                const incVal = parseIncome(meta.career?.income || "");
+                if (incVal < filters.minIncome) return null; // Filter out low income
+            }
 
-                    // ALWAYS run Semantic Re-ranking (Hybrid Search)
-                    // We use local embeddings (Xenova) which are free and fast
-                    console.log("🧠 Running Semantic Re-ranking for", scoredMatches.length, "candidates...");
+            let score = 70;
+            const reasons: string[] = [];
 
-                    if (true) {
-                        const queryVector = await aiService.generateEmbedding(query);
+            // Scoring Logic (Soft Filters)
 
-                        // 2. Compute Cosine Similarity for each match
-                        await Promise.all(scoredMatches.map(async (m: any) => {
-                            const bio = m.summary || "";
-                            if (bio.length > 10) {
-                                // A. Semantic Similarity
-                                const bioVector = await aiService.generateEmbedding(bio);
-                                const similarity = cosineSimilarity(queryVector, bioVector);
+            // Profession
+            if (filters.profession) {
+                const AIService = require('../services/ai').AIService;
+                const synonyms = AIService.SYNONYMS[filters.profession] || [];
+                const prof = (meta.career?.profession || "").toLowerCase();
 
-                                if (similarity > 0.3) {
-                                    m.score += (similarity * 30);
-                                    m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
-                                }
+                if (prof.includes(filters.profession.toLowerCase()) || synonyms.some((s: string) => prof.includes(s.toLowerCase()))) {
+                    score += 20;
+                    reasons.push("Career Match");
+                }
+            }
 
-                                // B. Sentiment Vibe Check (New Advanced Offline AI)
-                                // We analyze the bio's sentiment to gauge "Vibe"
-                                const sentiment = await aiService.analyzeSentiment(bio);
-                                if (sentiment === 'POSITIVE') {
-                                    m.score += 5; // Positive vibes get a boost
-                                    // m.match_reasons.push("😊 Positive Vibe"); 
-                                } else if (sentiment === 'NEGATIVE') {
-                                    m.score -= 5; // Negative vibes get a slight penalty
-                                }
+            // Location
+            if (filters.location) {
+                const loc = [c.location_name, c.city, c.state, meta.location?.city, meta.location?.state].join(" ").toLowerCase();
+                if (loc.includes(filters.location.toLowerCase())) {
+                    score += 20;
+                    // reasons.push("Location Match");
+                } else {
+                    score -= 10;
+                }
+            }
+
+            // Height
+            if (filters.minHeightInches && filters.maxHeightInches) {
+                if (heightInches >= filters.minHeightInches && heightInches <= filters.maxHeightInches) {
+                    score += 20;
+                    reasons.push(`Perfect Height (${profileHeight})`);
+                } else if (heightInches > 0) {
+                    const diff = Math.min(Math.abs(heightInches - filters.minHeightInches), Math.abs(heightInches - filters.maxHeightInches));
+                    score -= (diff * 2);
+                    if (score < 40) reasons.push(`Height Mismatch (${profileHeight})`);
+                }
+            }
+
+            // Habits
+            if (filters.smoking === 'No' && meta.lifestyle?.smoking === 'Yes') {
+                score -= 30;
+                reasons.push("Smoker (Mismatch)");
+            }
+
+            // Keyword/Appearance
+            if (filters.keywords && filters.keywords.length > 0) {
+                const bio = ((c.raw_prompt || "") + " " + (meta.aboutMe || "")).toLowerCase();
+                const hobbies = Array.isArray(meta.hobbies) ? meta.hobbies.map((h: string) => h.toLowerCase()) : [];
+                let keyMatchCount = 0;
+                filters.keywords.forEach((k: string) => {
+                    const kw = k.toLowerCase();
+                    if (bio.includes(kw) || hobbies.some((h: string) => h.includes(kw))) keyMatchCount++;
+                });
+                if (keyMatchCount > 0) {
+                    score += (keyMatchCount * 10);
+                    reasons.push(`${keyMatchCount} Interest Match${keyMatchCount > 1 ? 'es' : ''}`);
+                }
+            }
+
+            return {
+                id: c.user_id || c.id,
+                name: c.full_name,
+                age: c.age,
+                height: meta.height || "Not Specified",
+                location: locString,
+                role: meta.career?.profession || "Member",
+                photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
+                score: Math.max(0, Math.min(score, 99)),
+                match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
+                analysis: { emotional: 80 + (c.id % 15), vision: 85 + (c.id % 10) },
+                isOnline: Math.random() > 0.3,
+                summary: (c.raw_prompt || meta.aboutMe || "No bio yet.").substring(0, 150),
+                reels: meta.reels || c.reels || [],
+                photos: meta.photos || [],
+                career: meta.career || {},
+                family: meta.family || {},
+                religion: meta.religion || {},
+                horoscope: meta.horoscope || {},
+                lifestyle: meta.lifestyle || {},
+                stories: c.stories || [],
+                phone: isPremium ? (c.phone || meta.phone) : null,
+                email: isPremium ? (c.email || meta.email) : null,
+                voiceBioUrl: c.voice_bio_url || null,
+                kundli: astrologyService.calculateCompatibility(me.metadata?.horoscope?.nakshatra, meta.horoscope?.nakshatra)
+            };
+        }).filter((m: any) => m !== null);
+
+        // 5. Semantic Re-ranking
+        if (query && scoredMatches.length > 0) {
+            try {
+                const aiService = new (require('../services/ai').AIService)();
+                console.log("🧠 Semantic Ranking", scoredMatches.length, "candidates...");
+
+                if (true) {
+                    const queryVector = await aiService.generateEmbedding(query);
+                    // Helper Cosine
+                    const cosineSimilarity = (vecA: number[], vecB: number[]) => {
+                        let dot = 0; let nA = 0; let nB = 0;
+                        for (let i = 0; i < vecA.length; i++) {
+                            dot += vecA[i] * vecB[i];
+                            nA += vecA[i] * vecA[i];
+                            nB += vecB[i] * vecB[i];
+                        }
+                        return dot / (Math.sqrt(nA) * Math.sqrt(nB));
+                    };
+
+                    await Promise.all(scoredMatches.map(async (m: any) => {
+                        const bio = m.summary || "";
+                        if (bio.length > 10) {
+                            const bioVector = await aiService.generateEmbedding(bio);
+                            const similarity = cosineSimilarity(queryVector, bioVector);
+                            if (similarity > 0.3) {
+                                m.score += (similarity * 30);
+                                m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
                             }
-                        }));
-                    }
-                } catch (e) {
-                    console.error("Semantic Ranking Failed", e);
+                            const sentiment = await aiService.analyzeSentiment(bio);
+                            if (sentiment === 'POSITIVE') m.score += 5;
+                            else if (sentiment === 'NEGATIVE') m.score -= 5;
+                        }
+                    }));
                 }
+            } catch (e) {
+                console.error("Semantic Ranking Failed", e);
             }
-
-            // Helper: Cosine Similarity
-            function cosineSimilarity(vecA: number[], vecB: number[]): number {
-                let dotProduct = 0;
-                let normA = 0;
-                let normB = 0;
-                for (let i = 0; i < vecA.length; i++) {
-                    dotProduct += vecA[i] * vecB[i];
-                    normA += vecA[i] * vecA[i];
-                    normB += vecB[i] * vecB[i];
-                }
-                return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-            }
-
-            // Sort by Score DESC and Return Top 10
-
-            // Sort by Score DESC and Return Top 10
-            scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
-
-            // 4. Optimization: Skip Real-Time AI Analysis for List View
-            const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
-                ...m,
-                isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
-                analysis: {
-                    emotional: m?.score || 50,
-                    vision: m?.score || 50
-                }
-            }));
-
-            // DEBUG: 
-            if (finalMatches.length > 0) {
-                console.log(`[DEBUG] Returning ${finalMatches.length} matches. User Premium: ${isPremium}`);
-            }
-
-            res.json({ matches: finalMatches });
-
-        } catch (e) {
-            console.error("Search Error", e);
-            res.status(500).json({ error: "Search failed" });
         }
-    });
+
+        // Sort & Finalize
+        scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
+
+        const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
+            ...m,
+            isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
+            analysis: { emotional: m?.score || 50, vision: m?.score || 50 }
+        }));
+
+        res.json({ matches: finalMatches });
+
+    } catch (e) {
+        console.error("Search Error", e);
+        res.status(500).json({ error: "Search failed" });
+    }
+});
 
 // 4. GET PDF Report (Premium / Free)
 router.get('/:id/report', authenticateToken, async (req: any, res) => {

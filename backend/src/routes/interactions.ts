@@ -217,28 +217,19 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
         res.status(500).json({ error: "Failed" });
     }
 });
-                }
-            } catch (err) {
-    console.warn("Email failed", err);
-}
-        }
-
-client.release();
-res.json({ success: true });
-    } catch (e) {
-    res.status(500).json({ error: "Failed" });
-}
-});
-
-// Decline
-router.post('/:id/decline', authenticateToken, async (req: any, res) => {
+// Decline Request
+router.post('/requests/:interactionId/decline', authenticateToken, async (req: any, res) => {
     try {
-        const { id } = req.params;
+        const { interactionId } = req.params;
         const client = await pool.connect();
-        await client.query("UPDATE matches SET status = 'declined' WHERE id = $1", [id]);
+
+        // Update interactions table
+        await client.query("UPDATE interactions SET status = 'declined' WHERE id = $1", [interactionId]);
+
         client.release();
         res.json({ success: true });
     } catch (e) {
+        console.error("Decline Error", e);
         res.status(500).json({ error: "Failed" });
     }
 });

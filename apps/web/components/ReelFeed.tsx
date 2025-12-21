@@ -1,8 +1,6 @@
 'use client';
 import { useToast } from '@/components/ui/Toast';
-
 import { useState, useEffect, useRef } from 'react';
-import { api } from '@/lib/api';
 import { Heart, MessageCircle, Send, Share2, Volume2, VolumeX, Gift } from 'lucide-react';
 import axios from 'axios';
 import AdCard, { AdItem } from './AdCard';
@@ -33,7 +31,7 @@ interface Reel {
 
 type FeedItem = Reel | AdItem;
 
-export default function ReelFeed() { // Removed 'users' prop as we fetch feed directly
+export default function ReelFeed() {
     const toast = useToast();
     const [reels, setReels] = useState<FeedItem[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -44,10 +42,36 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
     const [isMuted, setIsMuted] = useState(false);
     const [giftModal, setGiftModal] = useState<{ isOpen: boolean; userId: string; userName: string } | null>(null);
 
+    // Animation state for double tap
+    const [heartAnim, setHeartAnim] = useState<number | null>(null);
+    const lastTap = useRef<number>(0);
+
     // Fetch Feed on Mount
     useEffect(() => {
         loadFeed();
     }, []);
+
+    // Intersection Observer for Active Index
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const index = Number(entry.target.getAttribute('data-index'));
+                        setActiveIndex(index);
+                    }
+                });
+            },
+            { threshold: 0.6 } // Trigger when 60% visible
+        );
+
+        // We need to wait for elements to be rendered. 
+        // A simple timeout or dependency change handles this for now.
+        const elements = document.querySelectorAll('.snap-child');
+        elements.forEach(el => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, [reels.length]);
 
     const loadFeed = async () => {
         try {
@@ -65,7 +89,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
                 if (index > 0 && index % 5 === 0) {
                     mixedFeed.push({
                         id: `ad-google-${index}`,
-                        type: 'google_ad', // New type
+                        type: 'google_ad',
                         title: "Sponsored",
                         description: "",
                         advertiserName: "Google",
@@ -73,20 +97,13 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
                         contentUrl: "",
                         ctaLink: "",
                         ctaText: ""
-                    } as any); // Cast as any or extend Type if strict
+                    } as any);
                 }
             });
 
             setReels(mixedFeed);
         } catch (e) {
             console.error("Failed to load reels", e);
-        }
-    };
-
-    const handleScroll = () => {
-        if (scrollRef.current) {
-            const index = Math.round(scrollRef.current.scrollTop / scrollRef.current.clientHeight);
-            setActiveIndex(index);
         }
     };
 
@@ -148,6 +165,21 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
         } catch (e) {
             console.error("Like failed", e);
         }
+    };
+
+    const showHeartAnimation = (idx: number) => {
+        setHeartAnim(idx);
+        setTimeout(() => setHeartAnim(null), 800);
+    };
+
+    const handleDoubleTap = (idx: number, reelId: string) => {
+        const now = Date.now();
+        const DOUBLE_TAP_DELAY = 300;
+        if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+            handleLike(idx, reelId);
+            showHeartAnimation(idx); // Visual feedback
+        }
+        lastTap.current = now;
     };
 
     const toggleComments = async (idx: number, reelId: string) => {
@@ -233,7 +265,6 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
             <div
                 ref={scrollRef}
                 className="h-full overflow-y-scroll snap-y snap-mandatory snap-always scrollbar-hide overscroll-contain"
-                onScroll={handleScroll}
             >
                 {reels.map((item, idx) => {
                     const renderItem = () => {
@@ -245,23 +276,40 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
                             return <AdCard ad={item} isActive={idx === activeIndex} />;
                         }
 
-                        const reel = item as Reel; // Type Assertion for clarity
+                        const reel = item as Reel;
                         return (
-                            <div className="h-full w-full relative bg-gray-900">
+                            <div
+                                className="h-full w-full relative bg-gray-900 select-none"
+                                onClick={() => handleDoubleTap(idx, reel.id)}
+                            >
                                 <video
-                                    src={reel.url} // Supabase URLs are absolute
-                                    className="w-full h-full object-cover"
+                                    src={reel.url}
+                                    className="w-full h-full object-cover pointer-events-none"
                                     loop
                                     muted={isMuted}
-                                    autoPlay={idx === activeIndex}
+                                    ref={(el) => {
+                                        if (el) {
+                                            if (idx === activeIndex) {
+                                                el.play().catch(e => console.log('Autoplay prevented', e));
+                                            } else {
+                                                el.pause();
+                                            }
+                                        }
+                                    }}
                                     playsInline
-                                    onClick={() => setIsMuted(!isMuted)} // Tap to mute/unmute
                                 />
+
+                                {/* Centered Heart Animation */}
+                                {heartAnim === idx && (
+                                    <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none animate-in zoom-in-50 fade-out duration-700">
+                                        <Heart size={100} className="fill-white text-white drop-shadow-2xl" />
+                                    </div>
+                                )}
 
                                 {/* Upload Button */}
                                 <div className="absolute top-4 left-4 z-20">
-                                    <label className="cursor-pointer">
-                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-2xl border border-white/30">
+                                    <label className="cursor-pointer pointer-events-auto">
+                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white text-2xl border border-white/30 hover:bg-white/30 transition-colors">
                                             +
                                         </div>
                                         <input type="file" className="hidden" onChange={handleUpload} />
@@ -270,36 +318,57 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
 
                                 {/* Mute Button */}
                                 <button
-                                    onClick={() => setIsMuted(!isMuted)}
-                                    className="absolute top-4 right-4 z-20 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsMuted(!isMuted);
+                                    }}
+                                    className="absolute top-4 right-4 z-20 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white pointer-events-auto hover:bg-black/60 transition-colors"
                                 >
                                     {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                                 </button>
 
                                 {/* Actions (Right) */}
-                                <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10 items-center">
-                                    <button onClick={() => handleLike(idx, reel.id)} className="flex flex-col items-center gap-1">
-                                        <div className={`p-3 rounded-full backdrop-blur-md transition-all ${reel.isLiked ? 'bg-red-500/80' : 'bg-black/40'}`}>
+                                <div className="absolute right-3 bottom-24 flex flex-col gap-6 z-10 items-center pointer-events-auto">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLike(idx, reel.id);
+                                        }}
+                                        className="flex flex-col items-center gap-1 group"
+                                    >
+                                        <div className={`p-3 rounded-full backdrop-blur-md transition-all duration-300 ${reel.isLiked ? 'bg-red-500/80 scale-110' : 'bg-black/40 hover:bg-black/60'}`}>
                                             <Heart size={24} className={reel.isLiked ? 'fill-white text-white' : 'text-white'} />
                                         </div>
                                         <span className="text-white text-xs font-bold drop-shadow-md">{reel.likes}</span>
                                     </button>
 
-                                    <button onClick={() => toggleComments(idx, reel.id)} className="flex flex-col items-center gap-1">
-                                        <div className="p-3 rounded-full bg-black/40 backdrop-blur-md">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleComments(idx, reel.id);
+                                        }}
+                                        className="flex flex-col items-center gap-1"
+                                    >
+                                        <div className="p-3 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 transition-colors">
                                             <MessageCircle size={24} className="text-white" />
                                         </div>
                                         <span className="text-white text-xs font-bold drop-shadow-md">{reel.commentCount}</span>
                                     </button>
 
-                                    <button onClick={() => setGiftModal({ isOpen: true, userId: reel.user.id, userName: reel.user.name })} className="flex flex-col items-center gap-1">
-                                        <div className="p-3 rounded-full bg-black/40 backdrop-blur-md">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setGiftModal({ isOpen: true, userId: reel.user.id, userName: reel.user.name });
+                                        }}
+                                        className="flex flex-col items-center gap-1"
+                                    >
+                                        <div className="p-3 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 transition-colors">
                                             <Gift size={24} className="text-pink-500" />
                                         </div>
                                         <span className="text-white text-xs font-bold drop-shadow-md">Gift</span>
                                     </button>
 
-                                    <button className="p-3 rounded-full bg-black/40 backdrop-blur-md">
+                                    <button className="p-3 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 transition-colors">
                                         <Share2 size={24} className="text-white" />
                                     </button>
                                 </div>
@@ -316,7 +385,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
                                             <p className="text-xs text-gray-300">{reel.user.location?.city || "India"}</p>
                                         </div>
                                         {!reel.isMe && (
-                                            <button className="ml-auto bg-indigo-600 text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-indigo-700 pointer-events-auto">
+                                            <button className="ml-auto bg-indigo-600 text-white text-xs font-bold px-4 py-1.5 rounded-full hover:bg-indigo-700 pointer-events-auto transition-colors">
                                                 Follow
                                             </button>
                                         )}
@@ -326,7 +395,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
 
                                 {/* Comments Modal (Integrated) */}
                                 {showComments === idx && (
-                                    <div className="absolute inset-x-0 bottom-0 h-[60%] bg-black/95 z-30 rounded-t-2xl flex flex-col animate-in slide-in-from-bottom duration-300">
+                                    <div className="absolute inset-x-0 bottom-0 h-[60%] bg-black/95 z-30 rounded-t-2xl flex flex-col animate-in slide-in-from-bottom duration-300 pointer-events-auto" onClick={e => e.stopPropagation()}>
                                         <div className="p-4 border-b border-white/10 flex justify-between items-center">
                                             <h3 className="text-white font-bold">Comments ({reel.commentCount})</h3>
                                             <button onClick={() => setShowComments(null)} className="text-gray-400 hover:text-white text-2xl">&times;</button>
@@ -358,7 +427,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
                                                 onChange={(e) => setCommentText(e.target.value)}
                                                 onKeyPress={(e) => e.key === 'Enter' && handleComment(idx, reel.id)}
                                             />
-                                            <button onClick={() => handleComment(idx, reel.id)} className="p-2 bg-indigo-600 rounded-full text-white">
+                                            <button onClick={() => handleComment(idx, reel.id)} className="p-2 bg-indigo-600 rounded-full text-white hover:bg-indigo-700 transition-colors">
                                                 <Send size={16} />
                                             </button>
                                         </div>
@@ -369,7 +438,7 @@ export default function ReelFeed() { // Removed 'users' prop as we fetch feed di
                     };
 
                     return (
-                        <div key={item.id} className="h-full w-full snap-start snap-child relative bg-black">
+                        <div key={item.id} data-index={idx} className="h-full w-full snap-start snap-child relative bg-black">
                             {renderItem()}
                         </div>
                     );

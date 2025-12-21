@@ -57,12 +57,12 @@ export default function GoogleAdCard({ isActive, slotId = "8536302476" }: Google
                 </div>
 
                 {/* Ad Unit Wrapper */}
-                <div className="w-full max-w-[340px] bg-white/5 rounded-xl border border-white/10 overflow-hidden shadow-2xl backdrop-blur-sm min-h-[280px] flex items-center justify-center">
+                <div className="w-full bg-white/5 rounded-xl overflow-hidden shadow-2xl backdrop-blur-sm flex items-center justify-center min-h-[400px] max-w-[350px]">
                     <ins className="adsbygoogle"
                         style={{ display: 'block', width: '100%', height: '100%' }}
                         data-ad-client="ca-pub-1408290775036355"
                         data-ad-slot={slotId}
-                        data-ad-format="auto"
+                        data-ad-format="vertical"
                         data-full-width-responsive="true"></ins>
                 </div>
 

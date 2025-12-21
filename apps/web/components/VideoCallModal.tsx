@@ -166,7 +166,7 @@ export default function VideoCallModal({ connectionId, partner, onEndCall, incom
     const [showGiftModal, setShowGiftModal] = useState(false);
 
     return (
-        <div className="fixed inset-0 z-50 bg-gray-950 flex overflow-hidden animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[150] bg-gray-950 flex overflow-hidden animate-in fade-in duration-300">
             {/* Left: Main Area */}
             <div className="flex-1 relative bg-gradient-to-br from-gray-900 via-gray-950 to-black flex flex-col">
                 {/* Header */}

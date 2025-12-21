@@ -897,15 +897,15 @@ export default function Dashboard() {
     );
 
     const renderConnections = () => (
-        <div className="max-w-2xl mx-auto py-6 space-y-4">
-            <h2 className="text-2xl font-bold mb-6">Your Connections</h2>
+        <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1">Your Connections</h2>
             {connections.length === 0 && (
                 <div className="text-center py-20 text-gray-500">No connections yet</div>
             )}
             {connections.map((conn: any) => (
                 <div
                     key={conn.interactionId}
-                    className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-all hover:shadow-md"
+                    className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md"
                 >
                     <div
                         className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"

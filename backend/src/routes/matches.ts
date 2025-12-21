@@ -42,6 +42,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             FROM public.users u 
             LEFT JOIN public.profiles p ON u.id = p.user_id 
             WHERE u.id != $1 ${genderFilter}
+            ORDER BY RANDOM()
             LIMIT 50
         `, [userId]);
         const candidates = candRes.rows;

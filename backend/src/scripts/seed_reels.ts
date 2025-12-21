@@ -1,53 +1,60 @@
 
 import { pool } from '../db';
 
-const REEL_VIDEOS = [
-    "https://videos.pexels.com/video-files/5634005/5634005-hd_1080_1920_25fps.mp4", // Woman smiling
-    "https://videos.pexels.com/video-files/3205779/3205779-hd_1080_1920_25fps.mp4", // Man thinking
-    "https://videos.pexels.com/video-files/6981419/6981419-hd_1080_1920_25fps.mp4", // Couple laughing
-    "https://videos.pexels.com/video-files/4936676/4936676-hd_1080_1920_30fps.mp4", // Travel vibe
-    "https://videos.pexels.com/video-files/4057319/4057319-hd_1080_1920_25fps.mp4", // Coffee shop
-    "https://videos.pexels.com/video-files/5634006/5634006-hd_1080_1920_25fps.mp4", // Happy girl
-    "https://videos.pexels.com/video-files/3191393/3191393-hd_1080_1920_25fps.mp4", // Guy gym
-    "https://videos.pexels.com/video-files/7565445/7565445-hd_1080_1920_30fps.mp4", // Dancing
-    "https://videos.pexels.com/video-files/6893699/6893699-hd_1080_1920_25fps.mp4", // Fashion
-    "https://videos.pexels.com/video-files/4761426/4761426-hd_1080_1920_30fps.mp4"  // Nature walk
+
+// Video URLs from Coverr (Free Stock)
+const SAMPLE_VIDEOS = [
+    { url: "https://cdn.coverr.co/videos/coverr-woman-doing-yoga-outdoors-4412/1080p.mp4", caption: "Morning Yoga 🧘‍♀️ #peace #wellness" },
+    { url: "https://cdn.coverr.co/videos/coverr-doctor-checking-ipad-5838/1080p.mp4", caption: "Busy day at the clinic 🩺 #doctor #medicine" },
+    { url: "https://cdn.coverr.co/videos/coverr-hiker-walking-in-mountains-5431/1080p.mp4", caption: "Nature heals the soul ⛰️ #hiking #adventure" },
+    { url: "https://cdn.coverr.co/videos/coverr-typing-code-on-laptop-5527/1080p.mp4", caption: "Coding late night 💻 #developer #startup" },
+    { url: "https://cdn.coverr.co/videos/coverr-woman-reading-book-on-sofa-5309/1080p.mp4", caption: "Weekend reads 📚 #booklover #chill" },
+    { url: "https://cdn.coverr.co/videos/coverr-people-drinking-coffee-5211/1080p.mp4", caption: "Coffee catchups ☕ #friends #coffee" },
+    { url: "https://cdn.coverr.co/videos/coverr-person-playing-piano-5389/1080p.mp4", caption: "Music is life 🎹 #piano #music" }
 ];
 
 async function seedReels() {
-    console.log("🚀 SEEDING 10 REELS...");
+    console.log("🚀 SEEDING REELS TABLE...");
     const client = await pool.connect();
 
     try {
-        // Get first 10 users
-        const users = await client.query("SELECT id FROM users LIMIT 10");
-        if (users.rows.length === 0) {
-            console.log("❌ No users found. Run mass_seed.ts first.");
-            return;
+        // 1. Get 30 Random Users
+        const res = await client.query("SELECT id FROM users ORDER BY RANDOM() LIMIT 30");
+        const users = res.rows;
+
+        if (users.length === 0) {
+            console.log("No users found. Run mass_seed or mega_seed first.");
+            process.exit(1);
         }
 
-        let added = 0;
-        for (let i = 0; i < 10; i++) {
-            const video = REEL_VIDEOS[i];
-            const userId = users.rows[i % users.rows.length].id; // Cycle through users if fewer than 10
+        console.log(`Found ${users.length} users to assign reels to.`);
 
-            await client.query(`
-                INSERT INTO public.reels (user_id, video_url, caption, likes, views, created_at)
-                VALUES ($1, $2, $3, $4, $5, NOW())
-            `, [
-                userId,
-                video,
-                `Vibe check #${i + 1} ✨ #lifepartner #dating`,
-                Math.floor(Math.random() * 500),
-                Math.floor(Math.random() * 5000)
-            ]);
-            added++;
+        for (const user of users) {
+            // Assign 1-2 reels per user
+            const reelCount = Math.floor(Math.random() * 2) + 1;
+
+            for (let i = 0; i < reelCount; i++) {
+                const vid = SAMPLE_VIDEOS[Math.floor(Math.random() * SAMPLE_VIDEOS.length)];
+
+                // Insert into reels table
+                await client.query(`
+                    INSERT INTO reels (user_id, video_url, caption, likes, views, comments_count)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [
+                    user.id,
+                    vid.url,
+                    vid.caption,
+                    Math.floor(Math.random() * 100), // Random Likes
+                    Math.floor(Math.random() * 500), // Random Views
+                    Math.floor(Math.random() * 20)   // Random Comments
+                ]);
+            }
         }
 
-        console.log(`✅ Successfully added ${added} Reels.`);
+        console.log("✅ Reels Seeded Successfully!");
 
     } catch (e) {
-        console.error("Seed Reels Failed", e);
+        console.error("Seeding Failed:", e);
     } finally {
         client.release();
         process.exit();

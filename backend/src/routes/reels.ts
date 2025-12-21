@@ -162,7 +162,7 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: an
         const finalCaption = cleanCaption + vibeSummary;
 
         const result = await pool.query(`
-            INSERT INTO reels (user_id, url, caption)
+            INSERT INTO reels (user_id, video_url, caption)
             VALUES ($1, $2, $3)
             RETURNING id
         `, [userId, publicUrl, finalCaption]);

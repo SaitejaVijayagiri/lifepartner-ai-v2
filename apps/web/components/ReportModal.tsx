@@ -55,7 +55,14 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, targetUserId
     };
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 cursor-default"
+            onClick={(e) => {
+                e.stopPropagation();
+                // Optional: Close on backdrop click if clicked directly
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
             <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-200 dark:border-gray-700 animate-in fade-in zoom-in-95 duration-200">
 
                 {success ? (

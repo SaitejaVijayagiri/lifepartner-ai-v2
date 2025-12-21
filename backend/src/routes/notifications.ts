@@ -65,7 +65,7 @@ router.get('/', authenticateToken, async (req: any, res) => {
 
         const result = await pool.query(`
             SELECT id, user_id, type, message, data, 
-                   COALESCE(read, false) as is_read, 
+                   COALESCE(is_read, false) as is_read, 
                    created_at
             FROM notifications 
             WHERE user_id = $1 
@@ -76,7 +76,7 @@ router.get('/', authenticateToken, async (req: any, res) => {
         // Count unread
         const unreadResult = await pool.query(`
             SELECT COUNT(*) as count FROM notifications 
-            WHERE user_id = $1 AND (read IS NULL OR read = FALSE)
+            WHERE user_id = $1 AND (is_read IS NULL OR is_read = FALSE)
         `, [userId]);
 
         res.json({
@@ -98,7 +98,7 @@ router.put('/:id/read', authenticateToken, async (req: any, res) => {
 
         await pool.query(`
             UPDATE notifications 
-            SET read = TRUE 
+            SET is_read = TRUE 
             WHERE id = $1 AND user_id = $2
         `, [id, userId]);
 
@@ -115,7 +115,7 @@ router.put('/read-all', authenticateToken, async (req: any, res) => {
 
         await pool.query(`
             UPDATE notifications 
-            SET read = TRUE 
+            SET is_read = TRUE 
             WHERE user_id = $1
         `, [userId]);
 

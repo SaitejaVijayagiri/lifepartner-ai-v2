@@ -48,8 +48,8 @@ router.post('/log', authenticateToken, async (req: any, res) => {
         const callerId = req.user.userId;
 
         await pool.query(`
-            INSERT INTO call_logs (caller_id, receiver_id, type, status, duration_seconds, ended_at)
-            VALUES ($1, $2, $3, $4, $5, NOW())
+            INSERT INTO call_logs (caller_id, receiver_id, type, status, duration_seconds, ended_at, started_at)
+            VALUES ($1, $2, $3, $4, $5, NOW(), NOW() - ($5 || 0) * INTERVAL '1 second')
         `, [callerId, receiverId, type || 'VIDEO', status || 'COMPLETED', duration || 0]);
 
         res.json({ success: true });

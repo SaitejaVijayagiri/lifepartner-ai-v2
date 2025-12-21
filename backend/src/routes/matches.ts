@@ -262,9 +262,42 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 }
 
             } else {
-                // --- RELAXED MODE ---
-                // We keep broad filters (Gender, Age) but removing specific constraints.
-                // We rely on Semantic Re-ranking to bubble up relevant ones.
+                // --- RELAXED MODE (PARTIAL MATCH) ---
+                // If strict failed, we loosen constraints to be "OR" instead of "AND".
+                // We heavily penalize scores later, but we WANT to show relevant people.
+                let conditions: string[] = [];
+
+                // Profession OR
+                if (filters.profession) {
+                    conditions.push(`p.metadata->'career'->>'profession' ILIKE $${pIdx}`);
+                    params.push(`%${filters.profession}%`);
+                    pIdx++;
+                }
+
+                // Location OR
+                if (filters.location) {
+                    conditions.push(`(
+                        u.location_name ILIKE $${pIdx} OR 
+                        u.city ILIKE $${pIdx} OR 
+                        u.state ILIKE $${pIdx} OR
+                        p.metadata->'location'->>'city' ILIKE $${pIdx} OR 
+                        p.metadata->'location'->>'state' ILIKE $${pIdx}
+                    )`);
+                    params.push(`%${filters.location}%`);
+                    pIdx++;
+                }
+
+                // Religion OR
+                if (filters.religion) {
+                    conditions.push(`p.metadata->'religion'->>'faith' ILIKE $${pIdx}`);
+                    params.push(`%${filters.religion}%`);
+                    pIdx++;
+                }
+
+                // If we have any conditions, combine them with OR
+                if (conditions.length > 0) {
+                    sql += ` AND (${conditions.join(' OR ')}) `;
+                }
             }
 
             sql += ` LIMIT 50`;

@@ -17,6 +17,7 @@ const verifyUser = async () => {
 
         const userRes = await client.query("SELECT * FROM public.users WHERE email = $1", [EMAIL]);
         const user = userRes.rows[0];
+        const userId = user.id; // Assuming user is found and has an ID
 
         if (!user) {
             console.error("❌ User NOT FOUND in database!");
@@ -88,6 +89,48 @@ const verifyUser = async () => {
             const matchRes = await client.query(`SELECT count(*) FROM users WHERE id != $1`, [user.id]);
             console.log(`✅ ${matchRes.rows[0].count} potential matches in DB.`);
         } catch (e: any) { console.log(e); }
+
+        // 5. Check Interactions (Requests/Matches)
+        try {
+            console.log("\n--- Checking Interactions (DB) ---");
+            const matchesRes = await client.query(`
+                SELECT * FROM interactions 
+                WHERE (from_user_id = $1 OR to_user_id = $1)
+                AND status IN ('pending', 'connected')
+            `, [user.id]);
+            console.log(`✅ Found ${matchesRes.rows.length} relevant interaction(s).`);
+            matchesRes.rows.forEach(m => {
+                console.log(`   - [${m.type}] Status: ${m.status}, With User: ${m.from_user_id === user.id ? m.to_user_id : m.from_user_id} (ID: ${m.id})`);
+            });
+
+            // 6. Check Chat Messages
+            console.log("\n--- Checking Chat Messages ---");
+
+            // Debug Schema First
+            const schemaTest = await client.query("SELECT * FROM messages LIMIT 1");
+            if (schemaTest.rows.length > 0) {
+                console.log("   Messages Table Keys:", Object.keys(schemaTest.rows[0]));
+            } else {
+                console.log("   Messages table is empty (but we thought we inserted earlier?).");
+            }
+
+            // Attempt Query with known or assumed columns (inserted_at confirmed)
+            const connectedInteraction = matchesRes.rows.find((r: any) => r.status === 'connected');
+            if (connectedInteraction) {
+                const partnerId = connectedInteraction.from_user_id === user.id ? connectedInteraction.to_user_id : connectedInteraction.from_user_id;
+                try {
+                    const msgs = await client.query(`
+                        SELECT * FROM messages 
+                        WHERE (sender_id = $1 AND receiver_id = $2)
+                        OR (sender_id = $2 AND receiver_id = $1)
+                        ORDER BY inserted_at DESC LIMIT 5
+                     `, [user.id, partnerId]);
+
+                    console.log(`✅ Found ${msgs.rows.length} verified messages with partner ${partnerId}:`);
+                    msgs.rows.forEach(m => console.log(`   [${m.sender_id === user.id ? 'Me' : 'Partner'}]: ${m.content}`));
+                } catch (e: any) { console.log("   Query failed: " + e.message); }
+            }
+        } catch (e) { console.error(e); }
 
 
         client.release();

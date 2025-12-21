@@ -210,23 +210,35 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const stepId = STEPS[currentStep].id;
 
     return (
-        <div className="flex w-full h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-            {/* LEFT PANEL: Visual & Quote */}
-            <div className={`w-1/3 text-white p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
-                <div className="z-10">
-                    <h1 className="text-3xl font-bold mb-2">LifePartner AI</h1>
-                    <div className="h-1 w-12 bg-white/50 rounded-full"></div>
+        <div className="flex flex-col md:flex-row w-full min-h-screen md:min-h-0 md:h-[85vh] bg-white rounded-none md:rounded-2xl shadow-none md:shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+            {/* LEFT PANEL: Branding & Progress */}
+            <div className={`w-full md:w-1/3 text-white p-6 md:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"} shrink-0`}>
+                <div className="z-10 flex justify-between md:block items-center">
+                    <div>
+                        <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">LifePartner AI</h1>
+                        <div className="h-1 w-8 md:w-12 bg-white/50 rounded-full"></div>
+                    </div>
+                    {/* Mobile Step Counter */}
+                    <div className="md:hidden text-sm font-medium bg-white/20 px-3 py-1 rounded-full backdrop-blur-md">
+                        Step {currentStep + 1}/{STEPS.length}
+                    </div>
                 </div>
 
-                <div className="z-10">
-                    <h2 className="text-4xl font-bold mb-4 capitalize animate-in slide-in-from-left duration-700 key={stepId}">{STEPS[currentStep].title}</h2>
-                    <p className="text-lg text-white/90 leading-relaxed font-light italic">"{QUOTES[stepId as keyof typeof QUOTES]}"</p>
+                <div className="z-10 mt-6 md:mt-0">
+                    <h2 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4 capitalize animate-in slide-in-from-left duration-700 key={stepId}">{STEPS[currentStep].title}</h2>
+                    <p className="text-sm md:text-lg text-white/90 leading-relaxed font-light italic hidden md:block">"{QUOTES[stepId as keyof typeof QUOTES]}"</p>
                 </div>
 
-                <div className="z-10 flex gap-2">
+                {/* Progress Indicators (Desktop) */}
+                <div className="z-10 hidden md:flex gap-2">
                     {STEPS.map((_, idx) => (
                         <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentStep ? 'w-8 bg-white' : 'w-2 bg-white/30'}`} />
                     ))}
+                </div>
+
+                {/* Mobile Progress Bar (Thin line at bottom of header) */}
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-white/20 md:hidden">
+                    <div className="h-full bg-white transition-all duration-300" style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}></div>
                 </div>
 
                 {/* Decorative Circles */}
@@ -235,7 +247,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             </div>
 
             {/* RIGHT PANEL: Form */}
-            <div className="w-2/3 p-12 flex flex-col relative overflow-y-auto">
+            <div className="w-full md:w-2/3 p-6 md:p-12 flex flex-col relative overflow-y-auto h-full bg-gray-50 md:bg-white">
                 <div className="flex-1 max-w-2xl mx-auto w-full">
                     {/* STEP 0: WELCOME */}
                     {stepId === 'welcome' && (

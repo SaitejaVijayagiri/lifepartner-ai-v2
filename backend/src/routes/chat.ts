@@ -15,11 +15,11 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
     try {
         const client = await pool.connect();
         const result = await client.query(`
-            SELECT id, sender_id, receiver_id, content as text, inserted_at as timestamp 
+            SELECT id, sender_id, receiver_id, content as text, created_at as timestamp 
             FROM public.messages 
             WHERE (sender_id = $1 AND receiver_id = $2) 
             OR (sender_id = $2 AND receiver_id = $1)
-            ORDER BY inserted_at ASC
+            ORDER BY created_at ASC
         `, [userId, connectionId]);
 
         // Format for frontend
@@ -68,14 +68,14 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         const result = await client.query(`
             INSERT INTO public.messages (sender_id, receiver_id, content) 
             VALUES ($1, $2, $3) 
-            RETURNING id, inserted_at
+            RETURNING id, created_at
         `, [senderId, connectionId, cleanText]);
 
         const newMessage = {
             id: result.rows[0].id,
             text: cleanText,
             senderId,
-            timestamp: result.rows[0].inserted_at
+            timestamp: result.rows[0].created_at
         };
 
         client.release();

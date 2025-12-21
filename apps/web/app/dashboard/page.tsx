@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import VideoCallModal from '@/components/VideoCallModal';
 import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye } from 'lucide-react';
+import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2 } from 'lucide-react';
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
@@ -905,15 +905,47 @@ export default function Dashboard() {
             {connections.map((conn: any) => (
                 <div
                     key={conn.interactionId}
-                    onClick={() => setSelectedConnection(conn)}
-                    className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-all hover:shadow-md"
                 >
-                    <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-green-400" />
-                    <div className="flex-1">
-                        <h4 className="font-bold text-lg">{conn.partner.name}</h4>
-                        <p className="text-sm text-gray-500 line-clamp-1">Click to chat</p>
+                    <div
+                        className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
+                        onClick={() => setSelectedConnection(conn)}
+                    >
+                        <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-green-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-lg truncate">{conn.partner.name}</h4>
+                            <p className="text-sm text-gray-500 line-clamp-1">Click to chat</p>
+                        </div>
                     </div>
-                    <MessageCircle className="text-indigo-600" />
+
+                    <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm("Are you sure you want to remove this connection?")) return;
+                                try {
+                                    await api.interactions.deleteConnection(conn.interactionId);
+                                    setConnections(prev => prev.filter((c: any) => c.interactionId !== conn.interactionId));
+                                    toast.success("Connection removed");
+                                } catch (err) {
+                                    toast.error("Failed to remove");
+                                }
+                            }}
+                        >
+                            <Trash2 size={20} />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full"
+                            onClick={() => setSelectedConnection(conn)}
+                        >
+                            <MessageCircle size={20} />
+                        </Button>
+                    </div>
                 </div>
             ))}
         </div>

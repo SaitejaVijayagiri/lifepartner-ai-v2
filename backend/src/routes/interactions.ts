@@ -97,8 +97,8 @@ router.delete('/connections/:id', authenticateToken, async (req: any, res) => {
         // Verify user is part of the connection
         const client = await pool.connect();
         await client.query(`
-            DELETE FROM matches 
-            WHERE id = $1 AND (user_a_id = $2 OR user_b_id = $2)
+            DELETE FROM interactions 
+            WHERE id = $1 AND (from_user_id = $2 OR to_user_id = $2)
         `, [id, userId]);
 
         client.release();

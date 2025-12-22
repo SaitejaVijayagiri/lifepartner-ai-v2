@@ -113,6 +113,16 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: an
         const filename = `reels/${userId}/${Date.now()}-${path.basename(filePath)}`;
         const caption = req.body.caption || "";
 
+        // REVENUE PROTECTION: Check Premium Status
+        const userCheck = await pool.query("SELECT is_premium FROM users WHERE id = $1", [userId]);
+        if (!userCheck.rows[0]?.is_premium) {
+            fs.unlink(filePath, () => { }); // Cleanup uploaded temp file
+            return res.status(403).json({
+                error: "Premium Required",
+                message: "Reel uploads are exclusive to Premium Members. Upgrade to share your vibe!"
+            });
+        }
+
         console.log(`Starting Reel upload: ${filename}`);
 
         // REVENUE PROTECTION: Caption

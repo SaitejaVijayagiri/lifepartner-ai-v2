@@ -37,6 +37,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const candRes = await client.query(`
             SELECT u.*, p.*,
     (SELECT COUNT(*) FROM matches m WHERE m.user_b_id = u.id AND m.is_liked = TRUE):: int as total_likes,
+    (SELECT COUNT(*) FROM transactions t WHERE t.metadata->>'toUserId' = u.id::text AND t.description LIKE 'Sent Gift%')::int as total_gifts,
         (SELECT m.status FROM matches m WHERE m.user_a_id = $1 AND m.user_b_id = u.id) as match_status,
             (SELECT m.is_liked FROM matches m WHERE m.user_a_id = $1 AND m.user_b_id = u.id) as is_liked
             FROM public.users u 
@@ -116,7 +117,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
                 stories: c.stories || [], // Stories
                 total_likes: c.total_likes || 0,
+                total_gifts: c.total_gifts || 0, // ADDED: Gift Count
                 is_liked: c.is_liked || false,
+                isPremium: c.is_premium || false, // ADDED: Premium Status for UI Badge
                 // Premium Data
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,

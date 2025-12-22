@@ -130,7 +130,31 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const targetEmail = targetRes.rows[0].email;
         const targetName = targetRes.rows[0].full_name;
 
-        // Upsert Interaction: type='REQUEST'
+        // UPSERT Interaction: type='REQUEST'
+
+        // REVENUE PROTECTION: Rate Limit for Free Users (5 per day)
+        const userCheck = await client.query('SELECT is_premium FROM users WHERE id = $1', [userId]);
+        const isPremium = userCheck.rows[0]?.is_premium;
+
+        if (!isPremium) {
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+
+            const countRes = await client.query(`
+                SELECT COUNT(*) FROM interactions 
+                WHERE from_user_id = $1 AND type = 'REQUEST' AND created_at >= $2
+            `, [userId, todayStart]);
+
+            const todayCount = parseInt(countRes.rows[0].count);
+            if (todayCount >= 5) {
+                client.release();
+                return res.status(403).json({
+                    error: "Daily Limit Reached",
+                    message: "You have reached your daily limit of 5 interests. Upgrade to Premium for unlimited connections!"
+                });
+            }
+        }
+
         await client.query(`
             INSERT INTO public.interactions (from_user_id, to_user_id, type, status)
             VALUES ($1, $2, 'REQUEST', 'pending')

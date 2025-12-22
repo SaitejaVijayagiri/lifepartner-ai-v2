@@ -217,7 +217,10 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     )}
 
                     <div className="flex items-end gap-2 mb-1">
-                        <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter">{match.name}, {match.age}</h3>
+                        <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter flex items-center gap-1">
+                            {match.name}, {match.age}
+                            {match.isPremium && <span className="text-amber-400 text-xl drop-shadow-md animate-pulse" title="Premium Member">👑</span>}
+                        </h3>
                         {match.isVerified && <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>}
                         {/* Online Indicator */}
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${match.isOnline ? 'bg-green-500/20 border-green-400/30' : 'bg-gray-500/20 border-gray-400/30'} mb-1.5`}>
@@ -269,6 +272,12 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     </span>
                     <span className="text-[10px] font-bold text-white mt-0.5">{likeCount}</span>
                 </button>
+
+                {/* 2.5 Gift Count (Passive Badge) */}
+                <div className="h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 pointer-events-none" title="Gifts Received">
+                    <span className="text-xl">🎁</span>
+                    <span className="text-[10px] font-bold text-white mt-0.5">{match.total_gifts || 0}</span>
+                </div>
 
                 {/* 3. Report Button (Safety) */}
                 <button

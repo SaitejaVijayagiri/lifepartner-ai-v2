@@ -86,7 +86,10 @@ export const initSocket = (httpServer: HttpServer) => {
                     const userCheck = await client.query("SELECT is_premium FROM public.users WHERE id = $1", [from]);
                     if (userCheck.rows.length === 0 || !userCheck.rows[0].is_premium) {
                         console.log(`Blocked Call from Free User: ${from}`);
-                        io.to(socket.id).emit("callError", { message: "Premium Plan required to make video calls." });
+                        io.to(socket.id).emit("callError", {
+                            message: "Voice & Video Calls are Premium Features. Upgrade to Plan to Unlock.",
+                            code: "PREMIUM_REQUIRED"
+                        });
                         client.release();
                         return;
                     }

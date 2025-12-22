@@ -119,7 +119,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     {/* Gradient Overlay for Text Readability (Subtler) */}
                     <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end p-6 z-20 pointer-events-none">
                         <div className="flex items-center gap-2 mb-1">
-                            <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">{profile.name}, {profile.age}</h2>
+                            <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-center gap-2">
+                                {profile.name}, {profile.age}
+                                {profile.isPremium && <span className="text-amber-400 text-xl drop-shadow-lg animate-pulse" title="Premium Member">👑</span>}
+                            </h2>
                             {profile.isVerified !== false && <span className="text-blue-400 bg-blue-900/30 p-1 rounded-full text-xs" title="Verified">✓</span>}
                         </div>
                         <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
@@ -196,13 +199,30 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         <p className="text-gray-500 italic text-sm border-l-4 border-indigo-500 pl-4 py-1">
                             "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
                         </p>
+                        <div className="flex gap-2 mt-2 pl-4">
+                            <div className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 flex items-center gap-1 w-max">
+                                <span>🎁</span> {profile.total_gifts || 0} Gifts
+                            </div>
+                            <div className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100 flex items-center gap-1 w-max">
+                                <span>❤️</span> {profile.total_likes || 0} Likes
+                            </div>
+                        </div>
                     </div>
+
 
                     {/* Mobile Insight (Visible only on mobile) */}
                     <div className="md:hidden px-6 pt-8 pb-4">
                         <p className="text-gray-500 italic text-sm border-l-4 border-indigo-500 pl-4 py-1">
                             "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
                         </p>
+                        <div className="flex gap-2 mt-2">
+                            <div className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 flex items-center gap-1 w-max">
+                                <span>🎁</span> {profile.total_gifts || 0} Gifts
+                            </div>
+                            <div className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100 flex items-center gap-1 w-max">
+                                <span>❤️</span> {profile.total_likes || 0} Likes
+                            </div>
+                        </div>
                     </div>
 
 
@@ -281,13 +301,28 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                 <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto" />
                                             </div>
                                             <div className="relative z-10 flex flex-col items-center">
-                                                <div className="w-14 h-14 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30 text-white text-2xl">
+                                                <div className="w-14 h-14 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30 text-white text-2xl animate-bounce">
                                                     👑
                                                 </div>
-                                                <h4 className="font-bold text-gray-900 text-lg mb-1">Unlock Contact Details</h4>
-                                                <p className="text-sm text-gray-500 mb-5">See phone numbers & email instantly.</p>
-                                                <Button onClick={onUpgrade} className="bg-gray-900 text-white hover:bg-black rounded-full px-8 shadow-xl">
-                                                    Upgrade to Unlock
+                                                <h4 className="font-bold text-gray-900 text-lg mb-4">Upgrade to Premium</h4>
+
+                                                <div className="space-y-2 text-left mb-6 bg-white/60 p-4 rounded-xl border border-white/40 shadow-sm w-full max-w-[280px]">
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                        <span className="text-green-600">✓</span> Instant Contact Numbers
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                        <span className="text-green-600">✓</span> Video & Audio Calls
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                        <span className="text-green-600">✓</span> See Who Liked You
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                                                        <span className="text-green-600">✓</span> Unlimited Interest Requests
+                                                    </div>
+                                                </div>
+
+                                                <Button onClick={onUpgrade} className="bg-gradient-to-r from-gray-900 to-black text-white hover:scale-105 transition-transform rounded-full px-8 py-6 shadow-xl font-bold text-lg">
+                                                    Unlock All Features
                                                 </Button>
                                             </div>
                                         </div>
@@ -416,14 +451,16 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 )}
             </div>
 
-            {showKundli && (
-                <KundliModal
-                    isOpen={showKundli}
-                    onClose={() => setShowKundli(false)}
-                    data={profile.kundli || { score: 18, total: 36, details: [] }}
-                    names={{ me: currentUser?.full_name || 'You', partner: profile.name }}
-                />
-            )}
+            {
+                showKundli && (
+                    <KundliModal
+                        isOpen={showKundli}
+                        onClose={() => setShowKundli(false)}
+                        data={profile.kundli || { score: 18, total: 36, details: [] }}
+                        names={{ me: currentUser?.full_name || 'You', partner: profile.name }}
+                    />
+                )
+            }
 
             <CoinStoreModal
                 isOpen={showCoinStore}
@@ -433,7 +470,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     // Trigger refresh in parent if needed
                 }}
             />
-        </div>
+        </div >
     );
 }
 

@@ -128,7 +128,9 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
 
         // Fetch User Basics
         const userRes = await client.query(`
-            SELECT id, full_name, age, gender, is_premium, avatar_url, city, district, state
+            SELECT id, full_name, age, gender, is_premium, avatar_url, city, district, state,
+            (SELECT COUNT(*) FROM transactions t WHERE t.metadata->>'toUserId' = users.id::text AND t.description LIKE 'Sent Gift%')::int as total_gifts,
+            (SELECT COUNT(*) FROM matches m WHERE m.user_b_id = users.id AND m.is_liked = TRUE)::int as total_likes
             FROM users 
             WHERE id = $1
         `, [id]);
@@ -145,7 +147,22 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
         const profileData = profileRes.rows[0] || {};
         const metadata = profileData.metadata || {};
 
+        // Check Requester's Premium Status
+        const requesterId = req.user.userId;
+        const reqUserRes = await client.query('SELECT is_premium FROM users WHERE id = $1', [requesterId]);
+        const isRequesterPremium = reqUserRes.rows[0]?.is_premium;
+
         client.release();
+
+        // Contact Info Logic: Only show if requester is Premium
+        // Mask details for free users
+        const contactInfo = isRequesterPremium ? {
+            email: user.email,
+            phone: metadata.phone || user.phone
+        } : {
+            email: null,
+            phone: null
+        };
 
         res.json({
             id: user.id,
@@ -162,7 +179,11 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
             aboutMe: metadata.bio || "",
             photos: metadata.photos || [user.avatar_url],
             reels: metadata.reels || [],
-            ...metadata
+            total_gifts: user.total_gifts || 0, // Added Gift Count
+            total_likes: user.total_likes || 0, // Added Like Count
+            ...metadata,
+            ...contactInfo, // Spread contact info (either real or null)
+            isContactUnlocked: isRequesterPremium // Flag for Frontend to show "Upgrade to View"
         });
 
     } catch (e) {

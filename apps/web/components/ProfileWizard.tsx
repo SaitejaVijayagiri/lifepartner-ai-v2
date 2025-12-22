@@ -212,18 +212,22 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     return (
         <div className="flex flex-col lg:flex-row w-full h-auto lg:h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
             {/* LEFT PANEL: Visual & Quote */}
-            <div className={`w-full lg:w-1/3 h-48 lg:h-auto text-white p-6 lg:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
-                <div className="z-10 flex justify-between lg:block items-center">
-                    <h1 className="text-3xl font-bold mb-2">LifePartner AI</h1>
-                    <div className="h-1 w-12 bg-white/50 rounded-full"></div>
+            <div className={`w-full lg:w-1/3 h-auto lg:h-auto text-white p-5 lg:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
+                <div className="z-10 flex justify-between lg:block items-center mb-4 lg:mb-0">
+                    <h1 className="text-xl lg:text-3xl font-bold lg:mb-2">LifePartner AI</h1>
+                    <div className="hidden lg:block h-1 w-12 bg-white/50 rounded-full"></div>
+                    {/* Mobile Progress Indicator (Simple) */}
+                    <div className="lg:hidden text-xs font-medium opacity-80 bg-white/20 px-2 py-1 rounded-full">
+                        Step {currentStep + 1}/{STEPS.length}
+                    </div>
                 </div>
 
-                <div className="z-10">
-                    <h2 className="text-4xl font-bold mb-4 capitalize animate-in slide-in-from-left duration-700 key={stepId}">{STEPS[currentStep].title}</h2>
-                    <p className="text-lg text-white/90 leading-relaxed font-light italic">"{QUOTES[stepId as keyof typeof QUOTES]}"</p>
+                <div className="z-10 mb-4 lg:mb-0">
+                    <h2 className="text-2xl lg:text-4xl font-bold mb-2 lg:mb-4 capitalize animate-in slide-in-from-left duration-700 key={stepId}">{STEPS[currentStep].title}</h2>
+                    <p className="text-sm lg:text-lg text-white/90 leading-relaxed font-light italic">"{QUOTES[stepId as keyof typeof QUOTES]}"</p>
                 </div>
 
-                <div className="z-10 flex gap-2">
+                <div className="z-10 hidden lg:flex gap-2">
                     {STEPS.map((_, idx) => (
                         <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentStep ? 'w-8 bg-white' : 'w-2 bg-white/30'}`} />
                     ))}

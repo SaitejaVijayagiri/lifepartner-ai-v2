@@ -166,7 +166,7 @@ export default function LandingPage() {
               <div className="flex -space-x-4">
                 {[1, 2, 3, 4].map(i => (
                   <div key={i} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
-                    <NextImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 25}`} alt="User" width={48} height={48} />
+                    <NextImage src={`https://api.dicebear.com/7.x/avataaars/png?seed=${i + 25}`} alt="User" width={48} height={48} />
                   </div>
                 ))}
                 <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">

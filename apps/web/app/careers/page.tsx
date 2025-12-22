@@ -37,7 +37,7 @@ export default function CareersPage() {
                 <div className="mt-16 text-center bg-gray-50 rounded-2xl p-8">
                     <h3 className="text-xl font-bold mb-2">Don't see your role?</h3>
                     <p className="text-gray-600 mb-4">We're always looking for exceptional talent.</p>
-                    <a href="mailto:careers@lifepartner.ai" className="text-indigo-600 font-semibold hover:underline">
+                    <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 font-semibold hover:underline">
                         Email us your resume &rarr;
                     </a>
                 </div>

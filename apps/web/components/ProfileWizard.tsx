@@ -210,10 +210,10 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const stepId = STEPS[currentStep].id;
 
     return (
-        <div className="flex w-full h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col lg:flex-row w-full h-auto lg:h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
             {/* LEFT PANEL: Visual & Quote */}
-            <div className={`w-1/3 text-white p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
-                <div className="z-10">
+            <div className={`w-full lg:w-1/3 h-48 lg:h-auto text-white p-6 lg:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
+                <div className="z-10 flex justify-between lg:block items-center">
                     <h1 className="text-3xl font-bold mb-2">LifePartner AI</h1>
                     <div className="h-1 w-12 bg-white/50 rounded-full"></div>
                 </div>
@@ -235,7 +235,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             </div>
 
             {/* RIGHT PANEL: Form */}
-            <div className="w-2/3 p-12 flex flex-col relative overflow-y-auto">
+            <div className="w-full lg:w-2/3 p-6 lg:p-12 flex flex-col relative overflow-y-auto h-[60vh] lg:h-auto">
                 <div className="flex-1 max-w-2xl mx-auto w-full">
                     {/* STEP 0: WELCOME */}
                     {stepId === 'welcome' && (

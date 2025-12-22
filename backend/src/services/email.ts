@@ -20,7 +20,7 @@ export class EmailService {
                     <p>We are thrilled to have you on board.</p>
                     <p>Complete your profile to start finding your perfect match today.</p>
                     <br/>
-                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="padding: 10px 20px; background: #E11D48; color: white; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+                    <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="padding: 10px 20px; background: #E11D48; color: white; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
                 `
             });
             console.log(`Welcome email sent to ${email}`);
@@ -42,7 +42,7 @@ export class EmailService {
                     <p><strong>${senderName}</strong> just sent you an interest request.</p>
                     <p>Log in now to view their profile and respond.</p>
                     <br/>
-                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="padding: 10px 20px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">View Profile</a>
+                    <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="padding: 10px 20px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">View Profile</a>
                 `
             });
         } catch (error) {
@@ -63,7 +63,7 @@ export class EmailService {
                     <p>You and <strong>${partnerName}</strong> are now connected.</p>
                     <p>You can now chat, video call, and get to know each other.</p>
                     <br/>
-                    <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard" style="padding: 10px 20px; background: #059669; color: white; text-decoration: none; border-radius: 5px;">Start Chatting</a>
+                    <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="padding: 10px 20px; background: #059669; color: white; text-decoration: none; border-radius: 5px;">Start Chatting</a>
                 `
             });
         } catch (error) {

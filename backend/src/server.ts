@@ -162,6 +162,14 @@ const initServer = async () => {
                     created_at TIMESTAMP DEFAULT NOW()
                 );
 
+                -- Check columns for Transactions (Migrations)
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transactions' AND table_schema='public' AND column_name='currency') THEN 
+                    ALTER TABLE public.transactions ADD COLUMN currency VARCHAR(10) DEFAULT 'INR'; 
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='transactions' AND table_schema='public' AND column_name='status') THEN 
+                    ALTER TABLE public.transactions ADD COLUMN status VARCHAR(50) DEFAULT 'SUCCESS'; 
+                END IF;
+
                 -- Matches (For Compatibility & History)
                 CREATE TABLE IF NOT EXISTS public.matches (
                     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

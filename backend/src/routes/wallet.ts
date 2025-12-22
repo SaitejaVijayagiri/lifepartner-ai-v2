@@ -51,8 +51,8 @@ router.post('/gift', authenticateToken, async (req: any, res) => {
 
         // 3. Record Transaction
         await client.query(`
-            INSERT INTO transactions (user_id, type, amount, description, metadata)
-            VALUES ($1, 'SPEND', $2, $3, $4)
+            INSERT INTO transactions (user_id, type, amount, currency, description, metadata)
+            VALUES ($1, 'SPEND', $2, 'COINS', $3, $4)
         `, [req.user.userId, cost, `Sent Gift: ${giftId}`, { toUserId, giftId }]);
 
         // 4. (Optional) Notifying Receiver or crediting creator currently omitted for simplicity
@@ -101,8 +101,8 @@ router.post('/boost', authenticateToken, async (req: any, res) => {
 
         // 4. Record Transaction
         await client.query(`
-            INSERT INTO transactions (user_id, type, amount, description)
-            VALUES ($1, 'SPEND', $2, $3)
+            INSERT INTO transactions (user_id, type, amount, currency, description)
+            VALUES ($1, 'SPEND', $2, 'COINS', $3)
         `, [req.user.userId, BOOST_COST, `Profile Boost (${DURATION_MINUTES} mins)`]);
 
         await client.query('COMMIT');

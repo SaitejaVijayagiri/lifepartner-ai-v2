@@ -104,6 +104,25 @@ export default function RootLayout({
             gtag('config', 'G-G4V8Z3XF93');
           `}
         </Script>
+        {/* Organization Schema (SEO) */}
+        <Script id="organization-schema" type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "LifePartner AI",
+            "url": "https://lifepartnerai.in",
+            "logo": "https://lifepartnerai.in/icon-512x512.png",
+            "sameAs": [
+              "https://lifepartnerai.in",
+              "https://twitter.com/lifepartnerai"
+            ],
+            "description": "The world's first AI-powered offline-first matrimony platform.",
+            "founder": {
+              "@type": "Person",
+              "name": "Saiteja Vijayagiri"
+            }
+          })}
+        </Script>
       </head>
       <body
         className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} font-sans antialiased`}

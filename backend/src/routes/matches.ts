@@ -10,6 +10,62 @@ const astrologyService = new AstrologyService();
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
+// Public Preview Route (SEO)
+router.get('/public-preview', async (req: any, res) => {
+    try {
+        const { category, value } = req.query;
+        if (!category || !value) return res.json({ matches: [] });
+
+        const client = await pool.connect();
+        let query = `
+            SELECT u.id, u.full_name, u.age, u.location_name, u.avatar_url, p.metadata
+            FROM public.users u
+            LEFT JOIN public.profiles p ON u.id = p.user_id
+            WHERE u.avatar_url IS NOT NULL 
+        `;
+        const params: any[] = [];
+        let pIdx = 1;
+
+        // Dynamic Filtering
+        const val = `%${value}%`;
+        if (category === 'location') {
+            query += ` AND (u.location_name ILIKE $${pIdx} OR u.city ILIKE $${pIdx} OR p.metadata->'location'->>'city' ILIKE $${pIdx})`;
+            params.push(val);
+        } else if (category === 'community') {
+            query += ` AND (p.metadata->'religion'->>'caste' ILIKE $${pIdx} OR p.metadata->'religion'->>'faith' ILIKE $${pIdx})`;
+            params.push(val);
+        } else if (category === 'profession') {
+            query += ` AND (p.metadata->'career'->>'profession' ILIKE $${pIdx})`;
+            params.push(val);
+        } else {
+            // Generic fallback
+            query += ` AND (u.full_name ILIKE $${pIdx} OR u.location_name ILIKE $${pIdx})`;
+            params.push(val);
+        }
+
+        // Limit results
+        query += ` ORDER BY RANDOM() LIMIT 8`;
+
+        const result = await client.query(query, params);
+        client.release();
+
+        const matches = result.rows.map(row => ({
+            id: row.id,
+            name: row.full_name.split(' ')[0] + '...', // Privacy
+            age: row.age,
+            location: row.location_name || row.city || "India",
+            role: row.metadata?.career?.profession || "Member",
+            photoUrl: row.avatar_url,
+            blur: true // Frontend can use this to blur visuals if needed
+        }));
+
+        res.json({ matches });
+    } catch (e) {
+        console.error("Public Preview Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;

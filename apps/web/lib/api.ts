@@ -75,6 +75,7 @@ export const api = {
             body: JSON.stringify({ query })
         }),
         runSimulation: (matchId: string) => fetchAPI(`/matches/${matchId}/simulation`, { method: 'POST' }),
+        getPublicPreviews: (category: string, value: string) => fetchAPI(`/matches/public-preview?category=${category}&value=${value}`),
     },
     interactions: {
         getRequests: () => fetchAPI('/interactions/requests'),

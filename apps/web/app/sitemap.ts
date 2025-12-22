@@ -29,5 +29,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.9, // High priority for content
     }));
 
-    return [...routes, ...blogRoutes];
+
+    // --- Programmatic SEO Routes ---
+    const CITIES = ['Bangalore', 'Mumbai', 'Chennai', 'Delhi', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Surat', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad'];
+    const COMMUNITIES = ['Brahmin', 'Iyer', 'Iyengar', 'Reddy', 'Kamma', 'Kapu', 'Ezhava', 'Nair', 'Muslim-Sunni', 'Muslim-Shia', 'Christian-Roman-Catholic', 'Sikh-Jat', 'Aggarwal', 'Baniya', 'Yadav', 'Kayastha', 'Maratha', 'Rajput', 'Jain-Digambar', 'Jain-Shwetambar'];
+    const PROFESSIONS = ['Software-Engineer', 'Doctor', 'Civil-Engineer', 'Chartered-Accountant', 'IAS-IPS', 'Teacher', 'Professor', 'Lawyer', 'Architect', 'Business-Owner'];
+
+    const cityRoutes = CITIES.map(city => ({
+        url: `${baseUrl}/matrimony/location/${city.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+    }));
+
+    const communityRoutes = COMMUNITIES.map(comm => ({
+        url: `${baseUrl}/matrimony/community/${comm.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+    }));
+
+    const professionRoutes = PROFESSIONS.map(prof => ({
+        url: `${baseUrl}/matrimony/profession/${prof.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+    }));
+
+    return [...routes, ...blogRoutes, ...cityRoutes, ...communityRoutes, ...professionRoutes];
 }

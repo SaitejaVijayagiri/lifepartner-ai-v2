@@ -34,6 +34,7 @@ export default function Footer() {
                     <ul className="space-y-2 text-gray-400 text-sm">
                         <li><Link href="/privacy" className="hover:text-indigo-400 transition-colors">Privacy Policy</Link></li>
                         <li><Link href="/terms" className="hover:text-indigo-400 transition-colors">Terms of Service</Link></li>
+                        <li><Link href="/refund-policy" className="hover:text-indigo-400 transition-colors">Refund & Cancellation Policy</Link></li>
                         <li><Link href="/safety" className="hover:text-indigo-400 transition-colors">Safety Tips</Link></li>
                         <li><Link href="/guidelines" className="hover:text-indigo-400 transition-colors">Community Guidelines</Link></li>
                     </ul>

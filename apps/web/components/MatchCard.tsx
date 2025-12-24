@@ -106,7 +106,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
 
     return (
         <div
-            className="group relative h-[420px] w-full rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+            className="group relative h-[500px] w-full rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={onViewProfile}

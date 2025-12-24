@@ -74,8 +74,8 @@ export default function Dashboard() {
             try {
                 const profile = await api.profile.getMe();
                 // If profile is incomplete, redirect to onboarding
-                if (!profile || !profile.photos || profile.photos.length === 0 || !profile.name) {
-                    console.log("Profile incomplete, redirecting to onboarding...");
+                if (!profile || (!profile.photos?.length && !profile.photoUrl) || !profile.name) {
+                    console.log("Profile incomplete, redirecting to onboarding...", profile);
                     router.push('/onboarding');
                     return;
                 }

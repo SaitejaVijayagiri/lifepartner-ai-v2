@@ -1132,6 +1132,16 @@ export default function Dashboard() {
                 initialFilters={activeFilters || undefined}
             />
 
+            {/* Global Kundli Modal */}
+            {selectedKundli && (
+                <KundliModal
+                    isOpen={true}
+                    onClose={() => setSelectedKundli(null)}
+                    data={selectedKundli.data}
+                    names={selectedKundli.names}
+                />
+            )}
+
             {/* Mobile Bottom Navigation */}
             <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-lg pb-safe z-50">
                 <div className="flex justify-around items-center h-16">

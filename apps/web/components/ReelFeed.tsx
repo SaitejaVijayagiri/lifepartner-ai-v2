@@ -16,7 +16,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 type FeedItem = Reel | AdItem;
 
-export default function ReelFeed() {
+export default function ReelFeed({ currentUser }: { currentUser?: any }) {
     const toast = useToast();
     const [reels, setReels] = useState<FeedItem[]>([]);
     const [activeIndex, setActiveIndex] = useState(0);
@@ -359,7 +359,7 @@ export default function ReelFeed() {
                 // Assuming normal import exists or adding it.
                 <ProfileModal
                     profile={selectedProfile}
-                    currentUser={{ id: 'current-user-placeholder' }} // Ideally fetch from context
+                    currentUser={currentUser || { id: 'guest' }}
                     onClose={() => setSelectedProfile(null)}
                     onConnect={() => {
                         // Handle connect logic or pass existing handler

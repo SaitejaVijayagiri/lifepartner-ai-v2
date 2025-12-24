@@ -989,7 +989,7 @@ export default function Dashboard() {
                     )}
 
                     {activeTab === 'matches' && renderDiscoveryFeed()}
-                    {activeTab === 'reels' && <ReelFeed />}
+                    {activeTab === 'reels' && <ReelFeed currentUser={currentUser} />}
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
 

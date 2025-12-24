@@ -144,7 +144,25 @@ const ReelItem = memo(({
                     <span className="text-white text-xs font-bold drop-shadow-md">Gift</span>
                 </button>
 
-                <button className="p-3 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 transition-colors">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Share Logic
+                        if (navigator.share) {
+                            navigator.share({
+                                title: `Watch ${reel.user.name}'s Vibe on LifePartner.AI`,
+                                text: reel.caption || "Check out this amazing profile!",
+                                url: window.location.href // Ideally deep link: /reels/id
+                            }).catch(console.error);
+                        } else {
+                            // Fallback to clipboard
+                            navigator.clipboard.writeText(window.location.href);
+                            // toast.success("Link copied to clipboard!"); // Need toast prop or dispatch
+                            alert("Link copied to clipboard!");
+                        }
+                    }}
+                    className="p-3 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 transition-colors"
+                >
                     <Share2 size={24} className="text-white" />
                 </button>
             </div>

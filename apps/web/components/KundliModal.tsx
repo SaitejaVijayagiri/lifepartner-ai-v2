@@ -53,9 +53,11 @@ export default function KundliModal({ isOpen, onClose, data, names }: KundliModa
                             🕉️
                         </div>
                         <h2 className="text-2xl font-bold text-white drop-shadow-md">Vedic Compatibility</h2>
-                        <p className="text-white/80 text-sm mt-1 flex items-center justify-center gap-2">
-                            <Heart size={14} fill="currentColor" />
-                            {names.me} & {names.partner}
+                        <p className="text-white/80 text-sm mt-1 flex flex-wrap items-center justify-center gap-2 px-2 leading-relaxed">
+                            <Heart size={14} fill="currentColor" className="shrink-0" />
+                            <span className="truncate max-w-[150px]">{names.me}</span>
+                            <span>&</span>
+                            <span className="truncate max-w-[150px]">{names.partner}</span>
                         </p>
                     </div>
                 </div>

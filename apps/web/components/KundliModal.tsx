@@ -99,7 +99,7 @@ export default function KundliModal({ isOpen, onClose, data, names }: KundliModa
                         Ashta Kuta Details
                     </h3>
                     <div className="space-y-3">
-                        {data.details.map((item: any, idx: number) => (
+                        {Array.isArray(data.details) && data.details.map((item: any, idx: number) => (
                             <div key={idx} className="flex flex-col gap-1 bg-gray-50 rounded-xl p-3 border border-gray-100">
                                 <div className="flex justify-between items-center text-sm">
                                     <div className="flex flex-col">

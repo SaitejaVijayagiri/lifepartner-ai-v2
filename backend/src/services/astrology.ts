@@ -56,7 +56,7 @@ export class AstrologyService {
             return {
                 score: 18, // Default Average Score (Neutral)
                 total: 36,
-                details: { error: "Nakshatra data missing" }
+                details: [{ name: "Data Missing", s: 0, t: 0, desc: "Nakshatra data missing for one or both users." }]
             };
         }
 

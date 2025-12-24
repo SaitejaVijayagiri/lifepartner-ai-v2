@@ -265,12 +265,12 @@ router.post('/login', async (req, res) => {
             [email]
         );
 
-        if (userRes.rows.length === 0) return res.status(401).json({ error: "Invalid credentials" });
+        if (userRes.rows.length === 0) return res.status(404).json({ error: "User not found" });
 
         const user = userRes.rows[0];
 
         const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) return res.status(401).json({ error: "Invalid credentials" });
+        if (!validPassword) return res.status(401).json({ error: "Incorrect password" });
 
         // Warn if not verified? For now, we might allow basic access or force verify.
         // Let's force verify if we are strict.

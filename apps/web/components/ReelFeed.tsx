@@ -1,6 +1,6 @@
 'use client';
 import { useToast } from '@/components/ui/Toast';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Heart, MessageCircle, Send, Share2, Volume2, VolumeX, Gift } from 'lucide-react';
 import axios from 'axios';
 import AdCard, { AdItem } from './AdCard';
@@ -97,7 +97,6 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validation
         if (!['video/mp4', 'video/quicktime', 'video/webm'].includes(file.type)) {
             toast.error('Invalid file format. MP4, MOV, WEBM only.');
             return;
@@ -118,7 +117,7 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
             });
 
             toast.success('Reel uploaded! 🚀');
-            loadFeed(); // Refresh feed
+            loadFeed();
         } catch (err: any) {
             toast.error(`Upload failed: ${err.response?.data?.error || err.message}`);
         } finally {
@@ -127,11 +126,10 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
         }
     };
 
-    const handleLike = async (idx: number, reelId: string) => {
-        // Optimistic UI Update
+    const handleLike = useCallback(async (idx: number, reelId: string) => {
         setReels(prev => prev.map((r, i) => {
             if (i === idx) {
-                if ('type' in r && r.type === 'ad') return r; // Skip Ad
+                if ('type' in r && r.type === 'ad') return r;
                 const reel = r as Reel;
                 return {
                     ...reel,
@@ -142,7 +140,6 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
             return r;
         }));
 
-        // API Call
         try {
             const token = localStorage.getItem('token');
             await axios.post(`${API_URL}/reels/${reelId}/like`, {}, {
@@ -151,31 +148,30 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
         } catch (e) {
             console.error("Like failed", e);
         }
-    };
+    }, []);
 
-    const showHeartAnimation = (idx: number) => {
+    const showHeartAnimation = useCallback((idx: number) => {
         setHeartAnim(idx);
         setTimeout(() => setHeartAnim(null), 800);
-    };
+    }, []);
 
-    const handleDoubleTap = (idx: number, reelId: string) => {
+    const handleDoubleTap = useCallback((idx: number, reelId: string) => {
         const now = Date.now();
         const DOUBLE_TAP_DELAY = 300;
         if (now - lastTap.current < DOUBLE_TAP_DELAY) {
             handleLike(idx, reelId);
-            showHeartAnimation(idx); // Visual feedback
+            showHeartAnimation(idx);
         }
         lastTap.current = now;
-    };
+    }, [handleLike, showHeartAnimation]);
 
-    const toggleComments = async (idx: number, reelId: string) => {
+    const toggleComments = useCallback(async (idx: number, reelId: string) => {
         if ('type' in reels[idx] && (reels[idx] as any).type === 'ad') return;
 
         if (showComments === idx) {
             setShowComments(null);
         } else {
             setShowComments(idx);
-            // Lazy load comments if not present
             const currentReel = reels[idx] as Reel;
             if (!currentReel.comments) {
                 try {
@@ -187,9 +183,9 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
                 } catch (e) { console.error(e); }
             }
         }
-    };
+    }, [reels, showComments]);
 
-    const handleComment = async (idx: number, reelId: string) => {
+    const handleComment = useCallback(async (idx: number, reelId: string) => {
         if (!commentText.trim()) return;
 
         const text = commentText;
@@ -224,14 +220,13 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
         } catch (e) {
             toast.error("Failed to post comment");
         }
-    };
+    }, [commentText]);
 
-    const handleView = async (reelId: string) => {
+    const handleView = useCallback(async (reelId: string) => {
         try {
-            // Fire and forget view tracking
             axios.post(`${API_URL}/reels/${reelId}/view`);
         } catch (e) { console.error("View track error", e); }
-    };
+    }, []);
 
     if (reels.length === 0) {
         return (

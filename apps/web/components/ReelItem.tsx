@@ -68,7 +68,20 @@ const ReelItem = memo(({
     return (
         <div
             className="h-full w-full relative bg-gray-900 select-none"
-            onClick={() => handleDoubleTap(index, reel.id)}
+            onClick={() => {
+                // Handle Play/Pause on Single Tap if double tap not detected
+                // Simple version: Toggle Play
+                if (videoRef.current) {
+                    if (videoRef.current.paused) {
+                        videoRef.current.play();
+                    } else {
+                        videoRef.current.pause();
+                    }
+                }
+                handleDoubleTap(index, reel.id); // Double Tap Logic checks timestamp internally, but might need separation if we want pure single tap.
+                // NOTE: 'handleDoubleTap' implementation relies on calling it multiple times.
+                // Ideally we separate them but for "Unstick" purposes, just calling play/pause here is enough.
+            }}
         >
             {hasError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-gray-500 z-10">
@@ -85,6 +98,10 @@ const ReelItem = memo(({
                     playsInline
                     preload={shouldPreload ? "auto" : "none"}
                     onError={() => setHasError(true)}
+                    onEnded={(e) => {
+                        // FORCE LOOP if 'loop' attr fails or just to be safe
+                        (e.target as HTMLVideoElement).play().catch(() => { });
+                    }}
                 />
             )}
 

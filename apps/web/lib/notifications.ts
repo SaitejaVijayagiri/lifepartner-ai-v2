@@ -29,7 +29,7 @@ export const Notifications = {
 
         // On Registration Success
         PushNotifications.addListener('registration', (token) => {
-            console.log('Push Registration Success:', token.value);
+            // console.log('Push Registration Success:', token.value);
             // Send to Backend
             api.notifications.register(token.value, Capacitor.getPlatform());
         });

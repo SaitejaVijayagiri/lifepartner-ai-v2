@@ -76,7 +76,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             if (saved) {
                 const parsed = JSON.parse(saved);
                 setData((prev: any) => ({ ...prev, ...parsed }));
-                console.log('Restored onboarding progress from localStorage');
+                // console.log('Restored onboarding progress from localStorage');
             }
             // Restore step position
             const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
@@ -84,7 +84,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 const stepIndex = parseInt(savedStep, 10);
                 if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < STEPS.length) {
                     setCurrentStep(stepIndex);
-                    console.log(`Restored to step ${stepIndex}: ${STEPS[stepIndex].title}`);
+                    // console.log(`Restored to step ${stepIndex}: ${STEPS[stepIndex].title}`);
                 }
             }
         } catch (e) {

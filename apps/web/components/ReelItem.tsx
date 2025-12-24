@@ -44,7 +44,7 @@ const ReelItem = memo(({
                 const playPromise = videoRef.current.play();
                 if (playPromise !== undefined) {
                     playPromise.catch(e => {
-                        console.log('Autoplay prevented/paused', e);
+                        // console.log('Autoplay prevented/paused', e);
                     });
                 }
 

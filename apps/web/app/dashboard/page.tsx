@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import VideoCallModal from '@/components/VideoCallModal';
 import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2 } from 'lucide-react';
+import { Bell, Search, Sparkles, UserPlus, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2 } from 'lucide-react';
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
@@ -420,6 +420,15 @@ export default function Dashboard() {
                         </button>
                     )}
                     <NotificationBell />
+
+
+                    <button
+                        onClick={() => router.push('/refer')}
+                        className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                    >
+                        <UserPlus size={14} className="text-white" />
+                        <span className="hidden sm:inline">Free Coins</span>
+                    </button>
 
                     <button
                         onClick={handleLogout}

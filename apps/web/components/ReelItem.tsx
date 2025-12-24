@@ -97,8 +97,16 @@ const ReelItem = memo(({
                     playsInline
                     preload={shouldPreload ? "auto" : "none"}
                     onError={() => setHasError(true)}
+                    // Seamless Loop Trick: Loop slightly before end to prevent browser 'stop' state
+                    onTimeUpdate={(e) => {
+                        const vid = e.target as HTMLVideoElement;
+                        if (vid.duration && vid.currentTime > vid.duration - 0.2) {
+                            vid.currentTime = 0;
+                            vid.play().catch(() => { });
+                        }
+                    }}
                     onEnded={(e) => {
-                        // Manual Loop for robustness
+                        // Backup Loop
                         const vid = e.target as HTMLVideoElement;
                         vid.currentTime = 0;
                         vid.play().catch(() => { });

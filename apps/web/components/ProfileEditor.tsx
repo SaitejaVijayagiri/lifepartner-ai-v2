@@ -122,6 +122,10 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     <img src={photo} alt="Upload" className="w-full h-full object-cover" />
                                     <button
                                         onClick={() => {
+                                            if (formData.photos.length <= 1) {
+                                                toast.error("You must have at least one photo!");
+                                                return;
+                                            }
                                             const newPhotos = formData.photos.filter((_: any, i: number) => i !== idx);
                                             setFormData((prev: any) => ({
                                                 ...prev,

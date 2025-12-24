@@ -19,14 +19,16 @@ export default function ReferPage() {
     }, []);
 
     const handleShare = async () => {
-        const text = `Join me on LifePartner AI! Use my code ${user?.referral_code} or click here: https://lifepartner.ai/register?code=${user?.referral_code}`;
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifepartner.ai';
+        const link = `${origin}/register?code=${user?.referral_code}`;
+        const text = `Join me on LifePartner AI! Use my code ${user?.referral_code} or click here: ${link}`;
 
         if (navigator.share) {
             try {
                 await navigator.share({
                     title: 'Find your Life Partner',
                     text: text,
-                    url: `https://lifepartner.ai/register?code=${user?.referral_code}`
+                    url: link
                 });
             } catch (err) {
                 // console.log('Share canceled');

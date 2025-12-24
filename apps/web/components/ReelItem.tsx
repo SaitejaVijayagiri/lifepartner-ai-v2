@@ -93,14 +93,15 @@ const ReelItem = memo(({
                     ref={videoRef}
                     src={reel.url}
                     className="w-full h-full object-cover pointer-events-none"
-                    loop
                     muted={isMuted}
                     playsInline
                     preload={shouldPreload ? "auto" : "none"}
                     onError={() => setHasError(true)}
                     onEnded={(e) => {
-                        // FORCE LOOP if 'loop' attr fails or just to be safe
-                        (e.target as HTMLVideoElement).play().catch(() => { });
+                        // Manual Loop for robustness
+                        const vid = e.target as HTMLVideoElement;
+                        vid.currentTime = 0;
+                        vid.play().catch(() => { });
                     }}
                 />
             )}

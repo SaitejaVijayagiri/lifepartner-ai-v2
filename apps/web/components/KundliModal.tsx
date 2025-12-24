@@ -42,7 +42,7 @@ export default function KundliModal({ isOpen, onClose, data, names }: KundliModa
                 onClick={e => e.stopPropagation()}
             >
                 {/* Premium Header with Gradient */}
-                <div className="relative bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 p-6 text-center overflow-hidden">
+                <div className="relative bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 pt-6 px-6 pb-14 text-center overflow-hidden">
                     {/* Decorative elements */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>

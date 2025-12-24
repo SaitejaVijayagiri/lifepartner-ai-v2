@@ -79,12 +79,20 @@ router.post('/register', async (req, res) => {
         if (referredByUserId) {
             // 1. Credit Referrer (+50 Coins)
             await client.query(
+                `UPDATE public.users SET coins = coins + 50 WHERE id = $1`,
+                [referredByUserId]
+            );
+            await client.query(
                 `INSERT INTO public.transactions (user_id, amount, type, status, description, metadata) 
                  VALUES ($1, 50, 'REFERRAL_REWARD', 'SUCCESS', 'Referral Bonus', $2)`,
                 [referredByUserId, JSON.stringify({ referredUser: newUser.id })]
             );
 
             // 2. Credit New User (+20 Coins)
+            await client.query(
+                `UPDATE public.users SET coins = coins + 20 WHERE id = $1`,
+                [newUser.id]
+            );
             await client.query(
                 `INSERT INTO public.transactions (user_id, amount, type, status, description, metadata) 
                  VALUES ($1, 20, 'REFERRAL_BONUS', 'SUCCESS', 'Signup Bonus', $2)`,

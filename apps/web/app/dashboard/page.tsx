@@ -228,6 +228,7 @@ export default function Dashboard() {
             // Diet filter
             if (activeFilters.diet) {
                 const diet = meta.lifestyle?.diet || match.diet || '';
+                // Strict match or partial match for things like "Veg" matching "Pure Veg"
                 if (!diet.toLowerCase().includes(activeFilters.diet.toLowerCase())) {
                     return false;
                 }
@@ -236,7 +237,8 @@ export default function Dashboard() {
             // Smoking filter
             if (activeFilters.smoking) {
                 const smoking = meta.lifestyle?.smoking || '';
-                if (activeFilters.smoking === 'No' && smoking.toLowerCase() !== 'no') {
+                // Strict match: If I say "No", I want "No". If I say "Yes", I want "Yes".
+                if (smoking.toLowerCase() !== activeFilters.smoking.toLowerCase()) {
                     return false;
                 }
             }
@@ -244,7 +246,7 @@ export default function Dashboard() {
             // Drinking filter
             if (activeFilters.drinking) {
                 const drinking = meta.lifestyle?.drinking || '';
-                if (activeFilters.drinking === 'No' && drinking.toLowerCase() !== 'no') {
+                if (drinking.toLowerCase() !== activeFilters.drinking.toLowerCase()) {
                     return false;
                 }
             }

@@ -142,7 +142,7 @@ export default function KundliModal({ isOpen, onClose, data, names }: KundliModa
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-white/80 hover:text-white w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition-colors backdrop-blur-sm"
+                    className="absolute top-4 right-4 z-50 text-white/80 hover:text-white w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white/20 transition-colors backdrop-blur-sm"
                 >
                     <X size={20} />
                 </button>

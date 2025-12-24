@@ -11,6 +11,7 @@ import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video,
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
+import KundliModal from '@/components/KundliModal';
 
 import StoryModal from '@/components/StoryModal';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -56,6 +57,7 @@ export default function Dashboard() {
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
+    const [selectedKundli, setSelectedKundli] = useState<{ data: any, names: { me: string, partner: string } } | null>(null);
 
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
@@ -849,6 +851,10 @@ export default function Dashboard() {
                                     setMatches(prev => prev.filter(m => m.id !== match.id));
                                 }}
                                 onViewProfile={() => setSelectedProfile(match)}
+                                onShowKundli={(data: any) => setSelectedKundli({
+                                    data,
+                                    names: { me: "You", partner: match.name }
+                                })}
                             />
                         </div>
                     ))}

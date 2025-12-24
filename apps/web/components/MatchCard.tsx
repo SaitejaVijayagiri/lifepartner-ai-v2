@@ -12,11 +12,11 @@ interface MatchCardProps {
     onConnect?: () => void;
     onViewProfile?: () => void;
     onStoryClick?: () => void;
+    onShowKundli?: (data: any) => void;
     currentUserName?: string; // For Kundli
 }
 
-
-export default function MatchCard({ match, onConnect, onViewProfile, onStoryClick }: MatchCardProps) {
+export default function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli }: MatchCardProps) {
     // Independent States
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
@@ -207,7 +207,14 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     {match.kundli && (
                         <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                             <button
-                                onClick={(e) => { e.stopPropagation(); setShowKundli(true); }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onShowKundli) {
+                                        onShowKundli(match.kundli);
+                                    } else {
+                                        setShowKundli(true);
+                                    }
+                                }}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all hover:scale-105 active:scale-95 ${match.kundli.score >= 18 ? 'bg-orange-500/90 border-orange-300/50 text-white' : 'bg-red-500/90 border-red-300/50 text-white'}`}
                             >
                                 <span className="text-sm">🕉️</span>
@@ -291,12 +298,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                 </button>
             </div>
 
-            <KundliModal
-                isOpen={showKundli}
-                onClose={() => setShowKundli(false)}
-                data={match.kundli}
-                names={{ me: "You", partner: match.name }}
-            />
+            {/* Kundli Modal removed from here, handled by parent via onShowKundli */}
 
             <ReportModal
                 isOpen={showReport}

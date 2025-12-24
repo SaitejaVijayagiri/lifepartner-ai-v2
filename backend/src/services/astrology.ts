@@ -67,31 +67,58 @@ export class AstrologyService {
         const nadi1 = this.getNadi(i1);
         const nadi2 = this.getNadi(i2);
         let nadiScore = 0;
-        if (nadi1 !== nadi2) nadiScore = 8;
+        let nadiDesc = "";
+        if (nadi1 !== nadi2) {
+            nadiScore = 8;
+            nadiDesc = "Different Nadis imply good genetic compatibility.";
+        } else {
+            nadiScore = 0;
+            nadiDesc = "Same Nadi (Nadi Dosha) may indicate health concerns.";
+        }
         // Exception: Dosha exists if same nadi. Score 0.
         totalScore += nadiScore;
-        debug.push({ name: 'Nadi', s: nadiScore, t: 8, v1: nadi1, v2: nadi2 });
+        debug.push({ name: 'Nadi', s: nadiScore, t: 8, v1: nadi1, v2: nadi2, desc: nadiDesc });
 
         // 2. Gana (6 Points) - Temperament
         const gana1 = this.getGana(i1);
         const gana2 = this.getGana(i2);
         let ganaScore = 0;
-        if (gana1 === gana2) ganaScore = 6;
-        else if ((gana1 === 'Deva' && gana2 === 'Manushya') || (gana2 === 'Deva' && gana1 === 'Manushya')) ganaScore = 5;
-        else if ((gana1 === 'Manushya' && gana2 === 'Rakshasa') || (gana2 === 'Manushya' && gana1 === 'Rakshasa')) ganaScore = 1; // Friction
-        else if ((gana1 === 'Deva' && gana2 === 'Rakshasa') || (gana2 === 'Deva' && gana1 === 'Rakshasa')) ganaScore = 0; // Opposites
+        let ganaDesc = "";
+        if (gana1 === gana2) {
+            ganaScore = 6;
+            ganaDesc = "Same temperament (Gana) leads to high harmony.";
+        }
+        else if ((gana1 === 'Deva' && gana2 === 'Manushya') || (gana2 === 'Deva' && gana1 === 'Manushya')) {
+            ganaScore = 5;
+            ganaDesc = "Deva and Manushya get along reasonably well.";
+        }
+        else if ((gana1 === 'Manushya' && gana2 === 'Rakshasa') || (gana2 === 'Manushya' && gana1 === 'Rakshasa')) {
+            ganaScore = 1; // Friction
+            ganaDesc = "Significant temperamental differences (Bhakoot Dosha).";
+        }
+        else if ((gana1 === 'Deva' && gana2 === 'Rakshasa') || (gana2 === 'Deva' && gana1 === 'Rakshasa')) {
+            ganaScore = 0; // Opposites
+            ganaDesc = "Opposite natures creates conflict.";
+        }
 
         totalScore += ganaScore;
-        debug.push({ name: 'Gana', s: ganaScore, t: 6, v1: gana1, v2: gana2 });
+        debug.push({ name: 'Gana', s: ganaScore, t: 6, v1: gana1, v2: gana2, desc: ganaDesc });
 
         // 3. Bhakoot (7 pts) - Love/Emotional connection
         // Simplified: Deterministic hash based on distance
         const dist = Math.abs(i1 - i2);
         let bhakootScore = 7;
-        if ([2, 5, 6, 8, 9, 12].includes(dist % 12)) bhakootScore = 0; // Standard bad Bhakoots (6-8, 9-5, 2-12)
-        else if (dist === 0) bhakootScore = 7; // Same star is usually okay for love
+        let bhakootDesc = "Strong emotional connection.";
+        if ([2, 5, 6, 8, 9, 12].includes(dist % 12)) {
+            bhakootScore = 0; // Standard bad Bhakoots (6-8, 9-5, 2-12)
+            bhakootDesc = "Challenging emotional alignment (Bhakoot Dosha).";
+        }
+        else if (dist === 0) {
+            bhakootScore = 7; // Same star is usually okay for love
+            bhakootDesc = "Same moon sign indicates deep understanding.";
+        }
         totalScore += bhakootScore;
-        debug.push({ name: 'Bhakoot', s: bhakootScore, t: 7 });
+        debug.push({ name: 'Bhakoot', s: bhakootScore, t: 7, desc: bhakootDesc });
 
 
         // 4. Remaining 15 points (Varna 1, Vashya 2, Tara 3, Yoni 4, Graha 5)
@@ -99,7 +126,7 @@ export class AstrologyService {
         // This ensures consistent results without coding 1000 rules
         const seed = (i1 * 13 + i2 * 7) % 15; // 0-14
         totalScore += seed;
-        debug.push({ name: 'Other (Varna, Tara, etc)', s: seed, t: 15 });
+        debug.push({ name: 'Other', s: seed, t: 15, desc: "Combined score for Varna, Vashya, Tara, Yoni, and Graha Maitri." });
 
         // Cap at 36 (Just in case logic flows)
         totalScore = Math.min(36, totalScore);

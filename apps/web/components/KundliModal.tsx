@@ -100,22 +100,29 @@ export default function KundliModal({ isOpen, onClose, data, names }: KundliModa
                     </h3>
                     <div className="space-y-3">
                         {data.details.map((item: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-sm bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                <div className="flex flex-col">
-                                    <span className="font-semibold text-gray-800">{item.name}</span>
-                                    {item.v1 && <span className="text-xs text-gray-400">{item.v1} ↔ {item.v2}</span>}
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-20 h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full transition-all duration-500 ${item.s === item.t ? 'bg-emerald-500' : item.s === 0 ? 'bg-red-400' : 'bg-amber-400'}`}
-                                            style={{ width: `${(item.s / item.t) * 100}%` }}
-                                        />
+                            <div key={idx} className="flex flex-col gap-1 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <div className="flex justify-between items-center text-sm">
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-gray-800">{item.name}</span>
+                                        {item.v1 && <span className="text-xs text-gray-400">{item.v1} ↔ {item.v2}</span>}
                                     </div>
-                                    <span className={`font-bold w-10 text-right ${item.s === item.t ? 'text-emerald-600' : item.s === 0 ? 'text-red-500' : 'text-amber-600'}`}>
-                                        {item.s}/{item.t}
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-20 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-500 ${item.s === item.t ? 'bg-emerald-500' : item.s === 0 ? 'bg-red-400' : 'bg-amber-400'}`}
+                                                style={{ width: `${(item.s / item.t) * 100}%` }}
+                                            />
+                                        </div>
+                                        <span className={`font-bold w-10 text-right ${item.s === item.t ? 'text-emerald-600' : item.s === 0 ? 'text-red-500' : 'text-amber-600'}`}>
+                                            {item.s}/{item.t}
+                                        </span>
+                                    </div>
                                 </div>
+                                {item.desc && (
+                                    <p className="text-xs text-gray-500 mt-1 pl-1 italic">
+                                        "{item.desc}"
+                                    </p>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -138,7 +145,7 @@ export default function KundliModal({ isOpen, onClose, data, names }: KundliModa
                     <X size={20} />
                 </button>
             </div>
-        </div>
+        </div >
     );
 }
 

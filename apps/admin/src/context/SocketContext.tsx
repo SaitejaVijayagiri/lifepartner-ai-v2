@@ -49,10 +49,9 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+        if (!user || !token) return;
 
-        // Prevent connection if no token (prevents auth error loop)
-        if (!token) return;
-
+        console.log('Initializing socket connection...');
         // Connect to Backend URL
         const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Flag, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, Flag, LogOut, ShieldAlert, BadgeCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
@@ -75,9 +75,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
                     <h1 className="text-2xl font-bold text-gray-800">Access Restricted</h1>
                     <p className="text-gray-600 mt-2 mb-6">You do not have permission to view this area.</p>
-                    <Link href="/dashboard" className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
-                        Return to Dashboard
-                    </Link>
+                    <button onClick={logout} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                        Logout & Switch Account
+                    </button>
                 </div>
             );
         }
@@ -89,6 +89,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const navItems = [
         { name: 'Overview', href: '/admin', icon: LayoutDashboard },
         { name: 'Users', href: '/admin/users', icon: Users },
+        { name: 'Verifications', href: '/admin/verifications', icon: BadgeCheck },
         { name: 'Reports', href: '/admin/reports', icon: Flag },
     ];
 

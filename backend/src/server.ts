@@ -84,6 +84,7 @@ app.use('/reports', reportRoutes);
 app.use('/admin', adminRoutes);
 app.use('/wallet', walletRoutes); // Mounted wallet routes
 app.use('/calls', require('./routes/calls').default);
+app.use('/verification', require('./routes/verification').default);
 
 const initServer = async () => {
     // 1. Check DB
@@ -227,6 +228,21 @@ const initServer = async () => {
                     reason TEXT,
                     created_at TIMESTAMP DEFAULT NOW()
                 );
+
+                -- Verification Requests
+                CREATE TABLE IF NOT EXISTS public.verification_requests (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+                    document_url TEXT,
+                    status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED
+                    admin_notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+
+                -- Add 'is_verified' to users if missing
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND table_schema='public' AND column_name='is_verified') THEN 
+                    ALTER TABLE public.users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;
+                END IF;
 
                 ----------------------------------------------------------------
                 -- 3. Viral Feature Tables (Reels)

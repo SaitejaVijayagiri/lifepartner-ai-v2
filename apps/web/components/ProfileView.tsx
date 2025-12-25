@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Edit, Shield } from 'lucide-react';
+import { Play, Edit, Shield, Video } from 'lucide-react';
+import RequestVerificationButton from '@/components/RequestVerificationButton';
+import VideoTestModal from '@/components/VideoTestModal';
+import Link from 'next/link';
 
 interface ProfileViewProps {
     profile: any;
@@ -14,6 +16,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
     const [activeTab, setActiveTab] = useState('about');
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [playingReel, setPlayingReel] = useState<string | null>(null);
+    const [showTestModal, setShowTestModal] = useState(false);
 
     // Ensure we have an array
     const photos: string[] = profile.photos?.length > 0
@@ -73,14 +76,34 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                 {/* Header with Edit Button */}
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-20">
-                    <h3 className="font-bold text-gray-800">My Profile</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-800">My Profile</h3>
+                        {profile.is_verified && (
+                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
+                                <Shield size={10} className="fill-blue-600" /> Verified
+                            </span>
+                        )}
+                    </div>
                     <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-500 gap-2"
+                            onClick={() => setShowTestModal(true)}
+                        >
+                            <Video size={16} /> Test Cam
+                        </Button>
+
+                        {!profile.is_verified && (
+                            <RequestVerificationButton />
+                        )}
+
                         {profile.is_admin && (
-                            <Link href="/admin">
+                            <a href={(process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001")} target="_blank" rel="noopener noreferrer">
                                 <Button variant="ghost" size="sm" className="gap-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50">
                                     <Shield size={16} /> Admin
                                 </Button>
-                            </Link>
+                            </a>
                         )}
                         <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
                             <Edit size={16} /> Edit Profile
@@ -210,6 +233,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     />
                 </div>
             )}
+
+            {showTestModal && <VideoTestModal onClose={() => setShowTestModal(false)} />}
         </div>
     );
 }

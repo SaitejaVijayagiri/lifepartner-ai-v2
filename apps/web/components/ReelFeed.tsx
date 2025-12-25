@@ -228,6 +228,23 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
         } catch (e) { console.error("View track error", e); }
     }, []);
 
+    const toggleMute = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMuted(prev => !prev);
+    }, []);
+
+    const handleCheckProfile = useCallback((reel: Reel) => {
+        const p = {
+            id: reel.user.id,
+            name: reel.user.name,
+            photoUrl: reel.user.photoUrl,
+            age: reel.user.age,
+            location: reel.user.location,
+            career: reel.user.career,
+        };
+        setSelectedProfile(p);
+    }, []);
+
     if (reels.length === 0) {
         return (
             <div className="h-[600px] flex flex-col items-center justify-center bg-gray-900 rounded-xl text-white relative overflow-hidden">
@@ -289,14 +306,17 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
                         );
                     }
 
+                    // Hooks removed from loop
                     const reel = item as Reel;
+
+                    // ... inside render map ...
                     return (
                         <div key={item.id} data-index={idx} className="h-full w-full snap-start snap-child relative bg-black">
                             <ReelItem
                                 reel={reel}
                                 isActive={isItemActive}
                                 isMuted={isMuted}
-                                toggleMute={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                                toggleMute={toggleMute}
                                 handleDoubleTap={handleDoubleTap}
                                 handleLike={handleLike}
                                 toggleComments={toggleComments}
@@ -310,22 +330,7 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
                                 heartAnim={heartAnim === idx}
                                 shouldPreload={shouldPreload}
                                 handleView={handleView}
-                                onCheckProfile={() => {
-                                    // Need to fetch full profile or pass what we have
-                                    // We have basic info in 'reel.user'
-                                    // Construct a profile object required by Modal
-                                    const p = {
-                                        id: reel.user.id,
-                                        name: reel.user.name,
-                                        photoUrl: reel.user.photoUrl,
-                                        age: reel.user.age,
-                                        location: reel.user.location,
-                                        career: reel.user.career,
-                                        // Fetch more if needed inside modal? Modal usually expects full data.
-                                        // For now pass basic and let modal handle degradation or fetch
-                                    };
-                                    setSelectedProfile(p);
-                                }}
+                                onCheckProfile={() => handleCheckProfile(reel)}
                             />
                         </div>
                     );

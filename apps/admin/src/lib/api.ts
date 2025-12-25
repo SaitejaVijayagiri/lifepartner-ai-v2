@@ -158,10 +158,18 @@ export const api = {
         })
     },
     verification: {
+        // Shared Methods
         request: (documentUrl?: string) => fetchAPI('/verification/request', {
             method: 'POST',
             body: JSON.stringify({ documentUrl })
         }),
-        getStatus: () => fetchAPI('/verification/status')
+        getStatus: () => fetchAPI('/verification/status'),
+
+        // Admin Methods
+        getPending: () => fetchAPI('/verification/admin/pending'),
+        resolve: (id: string, status: 'APPROVED' | 'REJECTED', notes: string) => fetchAPI(`/verification/admin/${id}/resolve`, {
+            method: 'POST',
+            body: JSON.stringify({ status, notes })
+        })
     }
 };

@@ -8,26 +8,27 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user, logout } = useAuth();
+    const { user, isLoading: authLoading, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Simple client-side check, real protection is on backend API
-        if (user && !user.is_admin) {
-            // If user is loaded but not admin, redirect
-            router.push('/dashboard');
-        } else if (user) {
-            setIsLoading(false);
+        if (!authLoading) {
+            if (!user) {
+                router.push('/login');
+            } else if (!user.is_admin) {
+                router.push('/dashboard');
+            }
         }
-    }, [user, router]);
+    }, [user, authLoading, router]);
 
-    if (isLoading && !user) {
+    if (authLoading) {
         return <div className="flex items-center justify-center min-h-screen">Loading Admin...</div>;
     }
 
-    if (user && !user.is_admin) return null; // Should redirect
+    if (!user || !user.is_admin) return null;
+
+
 
     const navItems = [
         { name: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -52,8 +53,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                                     }`}
                             >
                                 <item.icon size={20} />

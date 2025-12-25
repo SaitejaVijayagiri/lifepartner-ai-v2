@@ -15,7 +15,10 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const fullUrl = `${API_URL}${endpoint}`;
+    console.log(`[API] Requesting: ${fullUrl}`, { tokenPresent: !!token });
+
+    const res = await fetch(fullUrl, {
         ...options,
         headers,
     });

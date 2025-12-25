@@ -15,16 +15,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         const checkAccess = async () => {
+            console.log("[AdminLayout] CheckAccess", { authLoading, user: !!user, hasToken: !!localStorage.getItem('token') });
             if (authLoading) return;
 
             if (!user) {
+                console.log("[AdminLayout] No user found. Redirecting to login.");
                 // Not authenticated
                 router.push('/login');
                 return;
             }
 
-            // Optional: User exists but we want to ensure fresh admin status?
-            // AuthContext already does a fresh fetch on mount, so user.is_admin should be accurate.
+            console.log("[AdminLayout] User Authenticated:", user.email, "IsAdmin:", user.is_admin);
         };
 
         checkAccess();

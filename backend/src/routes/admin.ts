@@ -14,17 +14,21 @@ router.get('/stats', async (req, res) => {
     try {
         const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
         const premiumUsers = await pool.query('SELECT COUNT(*) FROM users WHERE is_premium = TRUE');
-        const totalRevenue = await pool.query('SELECT SUM(amount) FROM transactions WHERE status = \'success\'');
-        const pendingReports = await pool.query('SELECT COUNT(*) FROM reports WHERE status = \'pending\'');
+
+        // Use ILIKE or UPPER for case-insensitive check. Default is 'SUCCESS' in DB.
+        const totalRevenue = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success'");
+
+        // Reports might be 'pending' or 'PENDING'
+        const pendingReports = await pool.query("SELECT COUNT(*) FROM reports WHERE status ILIKE 'pending'");
 
         res.json({
             totalUsers: parseInt(totalUsers.rows[0].count),
             premiumUsers: parseInt(premiumUsers.rows[0].count),
-            totalRevenue: parseInt(totalRevenue.rows[0].sum) || 0,
+            totalRevenue: parseFloat(totalRevenue.rows[0].sum), // Use parseFloat for currency
             pendingReports: parseInt(pendingReports.rows[0].count)
         });
     } catch (err) {
-        console.error(err);
+        console.error("Stats Error:", err);
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
 });

@@ -1,7 +1,7 @@
-
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useAuth } from './AuthContext'; // Import useAuth to get userId
 
 const SocketContext = createContext<{
     socket: Socket | null;
@@ -31,7 +31,11 @@ export const useSocket = () => {
     return context;
 };
 
-export const SocketProvider = ({ children, userId }: { children: React.ReactNode, userId?: string }) => {
+// Remove userId prop, get it from context
+export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
+    const { user } = useAuth();
+    const userId = user?.id;
+
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
@@ -44,6 +48,11 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
     } | null>(null);
 
     useEffect(() => {
+        const token = localStorage.getItem('token');
+
+        // Prevent connection if no token (prevents auth error loop)
+        if (!token) return;
+
         // Connect to Backend URL
         const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -51,17 +60,19 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             path: '/socket.io',
             transports: ['websocket', 'polling'],
             auth: {
-                token: localStorage.getItem('token')
+                token: token
             }
         });
 
         // Connection Events
         newSocket.on('connect', () => {
             setIsConnected(true);
+            console.log("Socket Connected:", newSocket.id);
         });
 
         newSocket.on('disconnect', () => {
             setIsConnected(false);
+            console.log("Socket Disconnected");
         });
 
         newSocket.on('connect_error', (err) => {
@@ -101,13 +112,14 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
 
         // Join Personal Room if UserID exists
         if (userId) {
+            console.log(`Joining socket room for user: ${userId}`);
             newSocket.emit('join-room', userId);
         }
 
         return () => {
             newSocket.disconnect();
         };
-    }, [userId]);
+    }, [userId]); // Re-run when userId changes (login/logout)
 
     return (
         <SocketContext.Provider value={{

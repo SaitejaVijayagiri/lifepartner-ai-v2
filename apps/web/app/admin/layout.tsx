@@ -35,8 +35,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             setIsVerifying(true);
             try {
                 const profile = await api.profile.getMe();
-                if (profile && profile.is_admin) {
-                    console.log("Rescue Success! Admin confirmed.");
+                if (profile) {
+                    console.log("Rescue Success! Profile recovered.", profile.is_admin ? "User is Admin." : "User is NOT Admin.");
                     // Manually update context
                     updateUser({
                         id: profile.userId || profile.id,
@@ -45,8 +45,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         is_admin: profile.is_admin,
                         is_premium: profile.is_premium
                     });
+                    // Do NOT redirect to login if not admin.
+                    // The main render logic will handle permissions (displaying "Access Restricted").
                 } else {
-                    console.log("Rescue Failed: Not an admin/Invalid.");
+                    console.log("Rescue Failed: Invalid profile.");
                     router.push('/login');
                 }
             } catch (e) {

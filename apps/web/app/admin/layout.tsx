@@ -14,11 +14,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         if (!authLoading) {
+            console.log("Admin Layout Check:", { user, is_admin: user?.is_admin });
+
             if (!user) {
+                console.log("Redirecting to login (No User)");
                 router.push('/login');
-            } else if (!user.is_admin) {
-                router.push('/dashboard');
             }
+            // Logic for redirecting non-admins is handled by rendering "Access Denied" below.
+            // This prevents "Redirect Loops" if state glitches.
         }
     }, [user, authLoading, router]);
 
@@ -26,7 +29,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return <div className="flex items-center justify-center min-h-screen">Loading Admin...</div>;
     }
 
-    if (!user || !user.is_admin) return null;
+    if (!user || (!user.is_admin)) {
+        // If we are still checking, return null (or loading, but loading is handled above)
+        // If user is present but NOT admin:
+        if (user && !user.is_admin) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-4">
+                    <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
+                    <h1 className="text-2xl font-bold text-gray-800">Access Restricted</h1>
+                    <p className="text-gray-600 mt-2 mb-6">You do not have permission to view this area.</p>
+                    <Link href="/dashboard" className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition">
+                        Return to Dashboard
+                    </Link>
+                </div>
+            );
+        }
+        return null;
+    }
 
 
 

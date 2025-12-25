@@ -98,13 +98,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             <RequestVerificationButton />
                         )}
 
-                        {profile.is_admin && (
-                            <a href={(process.env.NEXT_PUBLIC_ADMIN_URL || "http://localhost:3001")} target="_blank" rel="noopener noreferrer">
-                                <Button variant="ghost" size="sm" className="gap-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50">
-                                    <Shield size={16} /> Admin
-                                </Button>
-                            </a>
-                        )}
+
                         <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
                             <Edit size={16} /> Edit Profile
                         </Button>

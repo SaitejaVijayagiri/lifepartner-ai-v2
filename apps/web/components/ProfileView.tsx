@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Edit, Shield, Video } from 'lucide-react';
+import { Play, Edit, Shield } from 'lucide-react';
 import RequestVerificationButton from '@/components/RequestVerificationButton';
-import VideoTestModal from '@/components/VideoTestModal';
 import Link from 'next/link';
 
 interface ProfileViewProps {
@@ -16,7 +15,6 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
     const [activeTab, setActiveTab] = useState('about');
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [playingReel, setPlayingReel] = useState<string | null>(null);
-    const [showTestModal, setShowTestModal] = useState(false);
 
     // Ensure we have an array
     const photos: string[] = profile.photos?.length > 0
@@ -85,15 +83,6 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         )}
                     </div>
                     <div className="flex gap-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-500 gap-2"
-                            onClick={() => setShowTestModal(true)}
-                        >
-                            <Video size={16} /> Test Cam
-                        </Button>
-
                         {!profile.is_verified && (
                             <RequestVerificationButton />
                         )}
@@ -227,8 +216,6 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     />
                 </div>
             )}
-
-            {showTestModal && <VideoTestModal onClose={() => setShowTestModal(false)} />}
         </div>
     );
 }

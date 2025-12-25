@@ -2,24 +2,46 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { Search, Ban, CheckCircle, Shield } from 'lucide-react';
+import { Search, Ban, CheckCircle, Shield, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Modal } from '@/components/ui/modal';
+import { Button } from '@/components/ui/button';
+
+interface User {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    is_admin: boolean;
+    is_premium: boolean;
+    is_banned: boolean;
+    created_at: string;
+}
 
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
+
+    // Search Debounce
+    const debouncedSearch = useDebounce(search, 500);
+
+    // Modal State
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
     const toast = useToast();
 
     useEffect(() => {
         loadUsers();
-    }, [page, search]); // Simple debounce might be needed for search in prod
+    }, [page, debouncedSearch]);
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const data = await api.admin.getUsers(page, search);
+            const data = await api.admin.getUsers(page, debouncedSearch);
             setUsers(data);
         } catch (e) {
             console.error(e);
@@ -28,13 +50,19 @@ export default function AdminUsersPage() {
         }
     };
 
-    const handleBan = async (userId: string, currentBanStatus: boolean) => {
-        if (!confirm(`Are you sure you want to ${currentBanStatus ? 'unban' : 'ban'} this user?`)) return;
+    const initiationBanToggle = (user: User) => {
+        setSelectedUser(user);
+        setConfirmModalOpen(true);
+    };
+
+    const handleConfirmBan = async () => {
+        if (!selectedUser) return;
 
         try {
-            await api.admin.banUser(userId, !currentBanStatus);
-            toast.success(currentBanStatus ? "User Unbanned" : "User Banned");
+            await api.admin.banUser(selectedUser.id, !selectedUser.is_banned);
+            toast.success(selectedUser.is_banned ? "User Unbanned" : "User Banned");
             loadUsers(); // Refresh
+            setConfirmModalOpen(false);
         } catch (e) {
             toast.error("Action Failed");
         }
@@ -103,10 +131,10 @@ export default function AdminUsersPage() {
                                     <td className="p-4 text-right">
                                         {!user.is_admin && (
                                             <button
-                                                onClick={() => handleBan(user.id, user.is_banned)}
+                                                onClick={() => initiationBanToggle(user)}
                                                 className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-colors ${user.is_banned
-                                                        ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                                                        : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                                    ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
                                                     }`}
                                             >
                                                 {user.is_banned ? 'Unban User' : 'Ban Access'}
@@ -137,6 +165,34 @@ export default function AdminUsersPage() {
                     Next &rarr;
                 </button>
             </div>
+
+            {/* Confirmation Modal */}
+            <Modal
+                isOpen={confirmModalOpen}
+                onClose={() => setConfirmModalOpen(false)}
+                title={selectedUser?.is_banned ? "Unban User" : "Ban User"}
+                description={`Are you sure you want to ${selectedUser?.is_banned ? 'restore access for' : 'restrict access for'} ${selectedUser?.name}?`}
+                footer={
+                    <>
+                        <Button variant="outline" onClick={() => setConfirmModalOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleConfirmBan}
+                            className={selectedUser?.is_banned ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                        >
+                            {selectedUser?.is_banned ? 'Unban' : 'Ban'}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="flex items-center gap-4 p-4 bg-yellow-50 text-yellow-800 rounded-lg">
+                    <AlertTriangle className="flex-shrink-0" />
+                    <p className="text-sm">
+                        {selectedUser?.is_banned
+                            ? "This will restore the user's ability to log in and use the platform."
+                            : "This will immediately revoke the user's access to the platform."}
+                    </p>
+                </div>
+            </Modal>
         </div>
     );
 }

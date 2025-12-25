@@ -5,8 +5,19 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { CheckCircle, XCircle } from 'lucide-react';
 
+interface Report {
+    id: string;
+    target_id: string;
+    reporter_id: string;
+    reason: string;
+    status: 'pending' | 'resolved' | 'dismissed';
+    created_at: string;
+    reporter_name?: string;
+    reported_name?: string;
+}
+
 export default function AdminReportsPage() {
-    const [reports, setReports] = useState<any[]>([]);
+    const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const toast = useToast();
 
@@ -21,6 +32,7 @@ export default function AdminReportsPage() {
             setReports(data);
         } catch (e) {
             console.error(e);
+            toast.error("Failed to load reports");
         } finally {
             setLoading(false);
         }
@@ -29,8 +41,8 @@ export default function AdminReportsPage() {
     const handleResolve = async (id: string, status: string) => {
         try {
             await api.admin.resolveReport(id, status);
-            toast.success("Report Updated");
-            loadReports();
+            toast.success(`Report marked as ${status}`);
+            setReports(prev => prev.map(r => r.id === id ? { ...r, status: status as any } : r));
         } catch (e) {
             toast.error("Action Failed");
         }
@@ -68,8 +80,8 @@ export default function AdminReportsPage() {
                                         <td className="p-4 text-gray-500">{report.reporter_name || 'Anonymous'}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${report.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                                                    report.status === 'dismissed' ? 'bg-gray-100 text-gray-700' :
-                                                        'bg-yellow-100 text-yellow-700'
+                                                report.status === 'dismissed' ? 'bg-gray-100 text-gray-700' :
+                                                    'bg-yellow-100 text-yellow-700'
                                                 }`}>
                                                 {report.status || 'Pending'}
                                             </span>

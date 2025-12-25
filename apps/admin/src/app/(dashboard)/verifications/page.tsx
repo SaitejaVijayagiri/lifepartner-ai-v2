@@ -4,17 +4,28 @@ import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Check, X, BadgeCheck, FileText } from 'lucide-react';
-import { useToast } from "@/components/ui/Toast"; // Ensure Toast is available in Admin too or remove if using window.alert
+import { Modal } from '@/components/ui/modal';
+
+interface VerificationRequest {
+    id: string;
+    user_id: string;
+    name: string;
+    email: string;
+    photo_url?: string;
+    document_url?: string;
+    created_at: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
 
 export default function VerificationPage() {
-    const [requests, setRequests] = useState<any[]>([]);
+    const [requests, setRequests] = useState<VerificationRequest[]>([]);
     const [loading, setLoading] = useState(true);
-    // Remove useToast if not set up in admin, using fetch/alert for simplicity or relying on a copied Toast component
-    // If admin has Toast.tsx copied, we can use it.
-    // Based on history, we copied Toast.tsx to apps/admin/components/ui/Toast.tsx. 
-    // Wait, import path might be different or casing might be different (Toast vs toast).
-    // Let's assume standard alert for now to be safe, or try to import if confident.
-    // I'll use window.alert/confirm for Admin MVP.
+
+    // Modal State
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedReq, setSelectedReq] = useState<VerificationRequest | null>(null);
+    const [actionType, setActionType] = useState<'APPROVED' | 'REJECTED'>('APPROVED');
+    const [notes, setNotes] = useState('');
 
     useEffect(() => {
         fetchRequests();
@@ -31,17 +42,23 @@ export default function VerificationPage() {
         }
     };
 
-    const handleResolve = async (id: string, status: 'APPROVED' | 'REJECTED') => {
-        const notes = prompt(status === 'APPROVED' ? "Add approval notes (optional):" : "Reason for rejection:");
-        if (notes === null) return; // Cancelled
+    const openActionModal = (req: VerificationRequest, type: 'APPROVED' | 'REJECTED') => {
+        setSelectedReq(req);
+        setActionType(type);
+        setNotes('');
+        setModalOpen(true);
+    };
+
+    const handleConfirmAction = async () => {
+        if (!selectedReq) return;
 
         try {
-            await api.verification.resolve(id, status, notes || '');
-            setRequests(prev => prev.filter(r => r.id !== id));
-            alert(`Request ${status} successfully.`);
+            await api.verification.resolve(selectedReq.id, actionType, notes);
+            setRequests(prev => prev.filter(r => r.id !== selectedReq.id));
+            setModalOpen(false);
         } catch (e) {
             console.error("Failed to resolve", e);
-            alert("Failed to update status.");
+            alert("Failed to update status."); // Fallback
         }
     };
 
@@ -71,6 +88,7 @@ export default function VerificationPage() {
                         <div key={req.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row gap-6 items-start">
                             {/* User Info */}
                             <div className="flex items-center gap-4 min-w-[250px]">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={req.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${req.user_id}`}
                                     alt="User"
@@ -85,7 +103,7 @@ export default function VerificationPage() {
                                 </div>
                             </div>
 
-                            {/* Document Proof (Mocked for MVP if URL not real) */}
+                            {/* Document Proof */}
                             <div className="flex-1 bg-gray-50 p-4 rounded-lg flex items-center gap-3">
                                 <FileText className="text-gray-400" />
                                 <div>
@@ -99,13 +117,13 @@ export default function VerificationPage() {
                             {/* Actions */}
                             <div className="flex gap-2 self-start md:self-center">
                                 <Button
-                                    onClick={() => handleResolve(req.id, 'APPROVED')}
+                                    onClick={() => openActionModal(req, 'APPROVED')}
                                     className="bg-green-600 hover:bg-green-700 text-white gap-2"
                                 >
                                     <Check size={16} /> Approve
                                 </Button>
                                 <Button
-                                    onClick={() => handleResolve(req.id, 'REJECTED')}
+                                    onClick={() => openActionModal(req, 'REJECTED')}
                                     variant="outline"
                                     className="border-red-200 text-red-600 hover:bg-red-50 gap-2"
                                 >
@@ -116,6 +134,38 @@ export default function VerificationPage() {
                     ))}
                 </div>
             )}
+
+            {/* Action Modal */}
+            <Modal
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                title={actionType === 'APPROVED' ? 'Approve Verification' : 'Reject Verification'}
+                description={`Are you sure you want to ${actionType.toLowerCase()} ${selectedReq?.name}'s request?`}
+                footer={
+                    <>
+                        <Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={handleConfirmAction}
+                            className={actionType === 'APPROVED' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                        >
+                            Confirm {actionType === 'APPROVED' ? 'Approval' : 'Rejection'}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                        {actionType === 'APPROVED' ? 'Admin Notes (Optional)' : 'Rejection Reason (Required)'}
+                    </label>
+                    <textarea
+                        className="w-full p-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        placeholder={actionType === 'APPROVED' ? "Verified ID matches profile..." : "Document is blurry / invalid..."}
+                        rows={3}
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
+                </div>
+            </Modal>
         </div>
     );
 }

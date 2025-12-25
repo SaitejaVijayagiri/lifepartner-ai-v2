@@ -143,5 +143,18 @@ export const api = {
     calls: {
         getHistory: () => fetchAPI('/calls/history'),
         log: (data: any) => fetchAPI('/calls/log', { method: 'POST', body: JSON.stringify(data) })
+    },
+    admin: {
+        getStats: () => fetchAPI('/admin/stats'),
+        getUsers: (page = 1, search = '') => fetchAPI(`/admin/users?page=${page}&search=${search}`),
+        getReports: () => fetchAPI('/admin/reports'),
+        banUser: (userId: string, ban: boolean) => fetchAPI('/admin/ban', {
+            method: 'POST',
+            body: JSON.stringify({ userId, ban })
+        }),
+        resolveReport: (reportId: string, status: string) => fetchAPI('/admin/resolve-report', {
+            method: 'POST',
+            body: JSON.stringify({ reportId, status })
+        })
     }
 };

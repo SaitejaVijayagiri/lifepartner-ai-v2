@@ -1,0 +1,26 @@
+import { Request, Response, NextFunction } from 'express';
+import { pool } from '../db';
+
+export const adminAuth = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        // User should already be authenticated via 'authenticateToken' middleware
+        // which attaches user to req.user (id, email, etc.)
+        const user = (req as any).user;
+
+        if (!user || !user.id) {
+            return res.status(401).json({ message: "Unauthorized: No user found" });
+        }
+
+        // Check is_admin status from DB (fresh check is safer than JWT claim for admin rights)
+        const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [user.id]);
+
+        if (result.rows.length === 0 || !result.rows[0].is_admin) {
+            return res.status(403).json({ message: "Forbidden: Admin access only" });
+        }
+
+        next();
+    } catch (err) {
+        console.error("Admin Auth Error", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};

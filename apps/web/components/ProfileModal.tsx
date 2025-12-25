@@ -6,6 +6,7 @@ import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap
 import { Button } from '@/components/ui/button';
 import KundliModal from './KundliModal';
 import CoinStoreModal from './CoinStoreModal';
+import VideoCallButton from '@/components/VideoCallButton';
 
 interface ProfileModalProps {
     profile: any;
@@ -293,6 +294,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-5 space-y-4">
                                             <ContactRow icon="📞" label="Phone" value={profile.phone || "Not Available"} />
                                             <ContactRow icon="✉️" label="Email" value={profile.email || "hidden@email.com"} />
+                                            <div className="pt-2">
+                                                <VideoCallButton
+                                                    targetUserId={profile.id}
+                                                    targetUserName={profile.name}
+                                                    targetUserPhoto={profile.photoUrl}
+                                                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl py-3 font-bold shadow-md hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                                                />
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="relative overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 p-8 text-center">

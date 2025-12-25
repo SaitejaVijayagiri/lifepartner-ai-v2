@@ -5,26 +5,28 @@ import { useEffect, useState } from 'react';
 import { SocketProvider } from '@/context/SocketContext';
 import { Toaster } from '@/components/ui/Toast';
 
-export default function ClientProviders({ children }: { children: React.ReactNode }) {
-    const [userId, setUserId] = useState<string | undefined>(undefined);
+import CallManager from '@/components/CallManager';
 
-    useEffect(() => {
-        // Hydrate User ID from LocalStorage
-        try {
-            const stored = localStorage.getItem('user');
-            if (stored) {
-                const user = JSON.parse(stored);
-                if (user.id) setUserId(user.id);
-            }
-        } catch (e) {
-            console.error("Auth Hydration Error", e);
-        }
-    }, []);
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+
+function ProvidersContent({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
 
     return (
-        <SocketProvider userId={userId}>
+        <SocketProvider userId={user?.id}>
             {children}
+            <CallManager />
             <Toaster />
         </SocketProvider>
+    );
+}
+
+export default function ClientProviders({ children }: { children: React.ReactNode }) {
+    return (
+        <AuthProvider>
+            <ProvidersContent>
+                {children}
+            </ProvidersContent>
+        </AuthProvider>
     );
 }

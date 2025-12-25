@@ -1,93 +1,98 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { useToast } from '@/components/ui/Toast';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export default function AdminReportsPage() {
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
+    const toast = useToast();
 
     useEffect(() => {
-        const fetchReports = async () => {
-            try {
-                // We'll use a direct fetch here or add api.reports.getAll()
-                // Assuming api.reports.getAll doesn't exist, we'll fetch manually or through a new helper.
-                // Let's use direct authorized fetch for this isolated admin page.
-                const token = localStorage.getItem('token');
-                if (!token) return router.push('/login');
+        loadReports();
+    }, []);
 
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/reports`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (Array.isArray(data)) {
-                    setReports(data);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const loadReports = async () => {
+        setLoading(true);
+        try {
+            const data = await api.admin.getReports();
+            setReports(data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchReports();
-    }, [router]);
+    const handleResolve = async (id: string, status: string) => {
+        try {
+            await api.admin.resolveReport(id, status);
+            toast.success("Report Updated");
+            loadReports();
+        } catch (e) {
+            toast.error("Action Failed");
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-900 mb-8">🛡️ Trust & Safety Dashboard</h1>
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-800">Reports</h2>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-3">Reported User</th>
-                                    <th className="px-6 py-3">Reporter</th>
-                                    <th className="px-6 py-3">Reason</th>
-                                    <th className="px-6 py-3">Date</th>
-                                    <th className="px-6 py-3">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {loading ? (
-                                    <tr><td colSpan={5} className="text-center py-8">Loading...</td></tr>
-                                ) : reports.length === 0 ? (
-                                    <tr><td colSpan={5} className="text-center py-8">No reports found</td></tr>
-                                ) : (
-                                    reports.map((report) => (
-                                        <tr key={report.id} className="bg-white border-b hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-medium text-gray-900">
-                                                {report.target_name}
-                                                <div className="text-xs text-gray-400">{report.target_id}</div>
-                                            </td>
-                                            <td className="px-6 py-4">{report.reporter_name}</td>
-                                            <td className="px-6 py-4">
-                                                <span className="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                                                    {report.reason}
-                                                </span>
-                                                <p className="mt-1 text-xs text-gray-500">{report.details}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {new Date(report.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <button
-                                                    onClick={() => alert(`Review User: ${report.target_id}`)}
-                                                    className="font-medium text-indigo-600 hover:underline"
-                                                >
-                                                    Review
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 border-b border-gray-100/50">
+                            <tr>
+                                <th className="p-4 font-semibold text-gray-600">Reported User</th>
+                                <th className="p-4 font-semibold text-gray-600">Reason</th>
+                                <th className="p-4 font-semibold text-gray-600">Reporter</th>
+                                <th className="p-4 font-semibold text-gray-600">Status</th>
+                                <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {loading && reports.length === 0 ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-gray-500">Loading...</td></tr>
+                            ) : reports.length === 0 ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-gray-500">No reports found.</td></tr>
+                            ) : (
+                                reports.map((report) => (
+                                    <tr key={report.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="p-4 font-medium text-gray-900">
+                                            {report.reported_name || 'Unknown'}
+                                            <div className="text-xs text-gray-400 font-normal">{report.target_id.substring(0, 8)}...</div>
+                                        </td>
+                                        <td className="p-4 text-gray-600 max-w-xs">{report.reason}</td>
+                                        <td className="p-4 text-gray-500">{report.reporter_name || 'Anonymous'}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${report.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                                                    report.status === 'dismissed' ? 'bg-gray-100 text-gray-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                {report.status || 'Pending'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-right space-x-2">
+                                            <button
+                                                onClick={() => handleResolve(report.id, 'resolved')}
+                                                className="text-green-600 hover:text-green-700" title="Resolve (Take Action)"
+                                            >
+                                                <CheckCircle size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleResolve(report.id, 'dismissed')}
+                                                className="text-gray-400 hover:text-gray-600" title="Dismiss"
+                                            >
+                                                <XCircle size={18} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

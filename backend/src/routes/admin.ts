@@ -1,0 +1,106 @@
+import express from 'express';
+import { pool } from '../db';
+import { authenticateToken } from '../middleware/auth';
+import { adminAuth } from '../middleware/adminAuth';
+
+const router = express.Router();
+
+// Protect all admin routes
+router.use(authenticateToken);
+router.use(adminAuth);
+
+// GET /stats - Dashboard Overview
+router.get('/stats', async (req, res) => {
+    try {
+        const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
+        const premiumUsers = await pool.query('SELECT COUNT(*) FROM users WHERE is_premium = TRUE');
+        const totalRevenue = await pool.query('SELECT SUM(amount) FROM transactions WHERE status = \'success\'');
+        const pendingReports = await pool.query('SELECT COUNT(*) FROM reports WHERE status = \'pending\'');
+
+        res.json({
+            totalUsers: parseInt(totalUsers.rows[0].count),
+            premiumUsers: parseInt(premiumUsers.rows[0].count),
+            totalRevenue: parseInt(totalRevenue.rows[0].sum) || 0,
+            pendingReports: parseInt(pendingReports.rows[0].count)
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+});
+
+// GET /users - List Users with Pagination & Search
+router.get('/users', async (req, res) => {
+    try {
+        const { search, page = 1, limit = 20 } = req.query;
+        const offset = (Number(page) - 1) * Number(limit);
+
+        let query = `
+            SELECT id, full_name as name, email, phone, gender, created_at, is_premium, is_banned, is_admin 
+            FROM users 
+        `;
+        const params: any[] = [];
+
+        if (search) {
+            query += ` WHERE full_name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1`;
+            params.push(`%${search}%`);
+        }
+
+        query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
+// POST /ban - Ban or Unban User
+router.post('/ban', async (req, res) => {
+    try {
+        const { userId, ban } = req.body; // ban: boolean
+
+        await pool.query('UPDATE users SET is_banned = $1 WHERE id = $2', [ban, userId]);
+
+        res.json({ success: true, message: `User ${ban ? 'banned' : 'unbanned'} successfully` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update ban status' });
+    }
+});
+
+// GET /reports - List Reports
+router.get('/reports', async (req, res) => {
+    try {
+        // ideally join with users to get names
+        const query = `
+            SELECT r.*, u.name as reported_name, u2.name as reporter_name
+            FROM reports r
+            LEFT JOIN users u ON r.reported_id = u.id
+            LEFT JOIN users u2 ON r.reporter_id = u2.id
+            ORDER BY r.created_at DESC
+            LIMIT 50
+        `;
+        const result = await pool.query(query);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch reports' });
+    }
+});
+
+// POST /resolve-report
+router.post('/resolve-report', async (req, res) => {
+    try {
+        const { reportId, status } = req.body; // 'resolved', 'dismissed'
+        await pool.query('UPDATE reports SET status = $1 WHERE id = $2', [status, reportId]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update report' });
+    }
+});
+
+export default router;

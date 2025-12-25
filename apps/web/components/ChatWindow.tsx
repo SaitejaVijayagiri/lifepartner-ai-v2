@@ -7,6 +7,7 @@ import { useSocket } from '@/context/SocketContext';
 import { Sparkles, Video, Phone, Gift, Send, X } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
+import VideoCallButton from './VideoCallButton';
 
 interface ChatWindowProps {
     connectionId: string;
@@ -200,12 +201,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         >
                             🎲
                         </button>
-                        <button onClick={onVideoCall} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Video Call">
-                            <Video size={20} />
-                        </button>
-                        <button onClick={onAudioCall} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all" title="Audio Call">
-                            <Phone size={18} />
-                        </button>
+                        <VideoCallButton
+                            targetUserId={partner.id}
+                            targetUserName={partner.name}
+                            targetUserPhoto={partner.photoUrl}
+                            showLabel={false}
+                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                        />
+                        <VideoCallButton
+                            targetUserId={partner.id}
+                            targetUserName={partner.name}
+                            targetUserPhoto={partner.photoUrl}
+                            showLabel={false}
+                            mode="audio"
+                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                        />
                         <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-xl transition-all ml-1">
                             <X size={20} />
                         </button>

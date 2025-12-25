@@ -13,6 +13,7 @@ import walletRoutes from './routes/wallet';
 import aiRoutes from './routes/ai';
 import notificationRoutes from './routes/notifications';
 import reportRoutes from './routes/reports';
+import adminRoutes from './routes/admin';
 import path from 'path';
 // import { seedDatabase } from './seed'; 
 
@@ -80,6 +81,7 @@ app.use('/payments', paymentRoutes);
 app.use('/reels', require('./routes/reels').default);
 app.use('/notifications', notificationRoutes);
 app.use('/reports', reportRoutes);
+app.use('/admin', adminRoutes);
 app.use('/wallet', walletRoutes); // Mounted wallet routes
 app.use('/calls', require('./routes/calls').default);
 

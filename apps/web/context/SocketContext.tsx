@@ -7,12 +7,26 @@ const SocketContext = createContext<{
     socket: Socket | null;
     isConnected: boolean;
     onlineUsers: string[];
+    incomingCall: {
+        isReceivingCall: boolean;
+        from: string;
+        name: string;
+        signal: any;
+        type: 'video' | 'audio';
+    } | null;
+    clearIncomingCall: () => void;
 } | null>(null);
 
 export const useSocket = () => {
     const context = useContext(SocketContext);
     if (!context) {
-        return { socket: null, isConnected: false, onlineUsers: [] };
+        return {
+            socket: null,
+            isConnected: false,
+            onlineUsers: [],
+            incomingCall: null,
+            clearIncomingCall: () => { }
+        };
     }
     return context;
 };
@@ -21,6 +35,13 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+    const [incomingCall, setIncomingCall] = useState<{
+        isReceivingCall: boolean;
+        from: string;
+        name: string;
+        signal: any;
+        type: 'video' | 'audio';
+    } | null>(null);
 
     useEffect(() => {
         // Connect to Backend URL
@@ -64,6 +85,18 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             setOnlineUsers(prev => prev.filter(id => id !== userId));
         });
 
+        // CALL EVENTS
+        newSocket.on("callUser", ({ from, name: callerName, signal, type }) => {
+            console.log("Incoming Call from", callerName);
+            setIncomingCall({
+                isReceivingCall: true,
+                from,
+                name: callerName,
+                signal,
+                type
+            });
+        });
+
         setSocket(newSocket);
 
         // Join Personal Room if UserID exists
@@ -77,7 +110,13 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
     }, [userId]);
 
     return (
-        <SocketContext.Provider value={{ socket, isConnected, onlineUsers }}>
+        <SocketContext.Provider value={{
+            socket,
+            isConnected,
+            onlineUsers,
+            incomingCall,
+            clearIncomingCall: () => setIncomingCall(null)
+        }}>
             {children}
         </SocketContext.Provider>
     );

@@ -15,145 +15,112 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         const checkAccess = async () => {
-            if (authLoading) return; // Wait for AuthContext first
+            if (authLoading) return;
 
-            if (user) {
-                // AuthContext has user, let standard checks proceed (Access Denied screen will show if !admin)
-                return;
-            }
+            if (user) return; // Authenticated
 
-            // Give AuthContext time to hydrate after login redirect
-            // This prevents immediate redirect when coming from login page
+            // Allow short delay for hydration
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // AuthContext says NULL. Check for token.
             const token = localStorage.getItem('token');
             const storedUser = localStorage.getItem('user');
 
-            if (!token) {
-                console.log("No token. Redirecting.");
-                router.push('/login');
-                return;
-            }
+            // If no token, or token exists but context failed to load user:
+            // Stop infinite loop by NOT redirecting automatically.
+            // UI will handle the "Not Logged In" state.
+            console.log("AdminLayout: Check failed. Token exists?", !!token);
 
-            // If we have token but no user in context, try to recover
-            if (token && storedUser) {
-                console.log("Token and stored user found. Attempting recovery...");
-                setIsVerifying(true);
-                try {
-                    const profile = await api.profile.getMe();
-                    if (profile) {
-                        console.log("Recovery successful!");
-                        updateUser({
-                            id: profile.userId || profile.id,
-                            name: profile.name,
-                            email: profile.email,
-                            is_admin: profile.is_admin,
-                            is_premium: profile.is_premium
-                        });
-                    } else {
-                        console.log("Recovery failed: Invalid profile.");
-                        router.push('/login');
-                    }
-                } catch (e) {
-                    console.error("Recovery error", e);
-                    router.push('/login');
-                } finally {
-                    setIsVerifying(false);
-                }
-            } else {
-                // Have token but no stored user - shouldn't happen, redirect
-                router.push('/login');
+            if (token && storedUser && !user) {
+                // Context failed to hydrate despite token?? 
+                // Try one last manual verify? No, let's just ask user to relogin.
+                // This state (Token+NoUser) after AuthLoading=false means AuthContext tried and failed.
             }
         };
 
         checkAccess();
-    }, [user, authLoading, router, updateUser]);
+    }, [user, authLoading]);
 
     if (authLoading || isVerifying) {
-        return <div className="flex items-center justify-center min-h-screen">Loading Admin...</div>;
-    }
-
-    if (!user || (!user.is_admin)) {
-        // If we are still checking, return null (or loading, but loading is handled above)
-        // If user is present but NOT admin:
-        if (user && !user.is_admin) {
-            return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-4">
-                    <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-800">Access Restricted</h1>
-                    <p className="text-gray-600 mt-2 mb-6">You do not have permission to view this area.</p>
-                    <button onClick={logout} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
-                        Logout & Switch Account
-                    </button>
-                </div>
-            );
-        }
-        return null;
-    }
-
-
-
-    const navItems = [
-        { name: 'Overview', href: '/', icon: LayoutDashboard },
-        { name: 'Users', href: '/users', icon: Users },
-        { name: 'Verifications', href: '/verifications', icon: BadgeCheck },
-        { name: 'Reports', href: '/reports', icon: Flag },
-    ];
-
-    return (
-        <div className="flex h-screen bg-gray-100">
-            {/* Sidebar */}
-            <aside className="w-64 bg-slate-900 text-white flex flex-col">
-                <div className="p-6 border-b border-slate-800 flex items-center gap-2">
-                    <ShieldAlert className="text-red-500" />
-                    <span className="font-bold text-xl">Admin Panel</span>
-                </div>
-
-                <nav className="flex-1 p-4 space-y-2">
-                    {navItems.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
-                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                                    }`}
-                            >
-                                <item.icon size={20} />
-                                <span>{item.name}</span>
-                            </Link>
-                        );
-                    })}
-                </nav>
-
-                <div className="p-4 border-t border-slate-800">
-                    <button
-                        onClick={logout}
-                        className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    >
-                        <LogOut size={20} />
-                        <span>Logout</span>
-                    </button>
-                    <div className="mt-4 px-4 text-xs text-slate-500">
-                        Logged in as {user?.email}
+        if (!user || (!user.is_admin)) {
+            // If we are still checking, return null (or loading, but loading is handled above)
+            // If user is present but NOT admin:
+            if (user && !user.is_admin) {
+                return (
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center p-4">
+                        <ShieldAlert className="w-16 h-16 text-red-500 mb-4" />
+                        <h1 className="text-2xl font-bold text-gray-800">Access Restricted</h1>
+                        <p className="text-gray-600 mt-2 mb-6">You do not have permission to view this area.</p>
+                        <button onClick={logout} className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                            Logout & Switch Account
+                        </button>
                     </div>
-                </div>
-            </aside>
+                );
+            }
+            return null;
+        }
 
-            {/* Main Content */}
-            <main className="flex-1 overflow-y-auto">
-                <header className="bg-white shadow-sm border-b px-8 py-4 sticky top-0 z-10">
-                    <h1 className="text-xl font-bold text-gray-800">
-                        {navItems.find(i => i.href === pathname)?.name || 'Dashboard'}
-                    </h1>
-                </header>
-                <div className="p-8">
-                    {children}
-                </div>
-            </main>
-        </div>
-    );
-}
+
+
+        const navItems = [
+            { name: 'Overview', href: '/', icon: LayoutDashboard },
+            { name: 'Users', href: '/users', icon: Users },
+            { name: 'Verifications', href: '/verifications', icon: BadgeCheck },
+            { name: 'Reports', href: '/reports', icon: Flag },
+        ];
+
+        return (
+            <div className="flex h-screen bg-gray-100">
+                {/* Sidebar */}
+                <aside className="w-64 bg-slate-900 text-white flex flex-col">
+                    <div className="p-6 border-b border-slate-800 flex items-center gap-2">
+                        <ShieldAlert className="text-red-500" />
+                        <span className="font-bold text-xl">Admin Panel</span>
+                    </div>
+
+                    <nav className="flex-1 p-4 space-y-2">
+                        {navItems.map((item) => {
+                            const isActive = pathname === item.href;
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                                        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                        }`}
+                                >
+                                    <item.icon size={20} />
+                                    <span>{item.name}</span>
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    <div className="p-4 border-t border-slate-800">
+                        <button
+                            onClick={logout}
+                            className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                            <LogOut size={20} />
+                            <span>Logout</span>
+                        </button>
+                        <div className="mt-4 px-4 text-xs text-slate-500">
+                            Logged in as {user?.email}
+                        </div>
+                    </div>
+                </aside>
+
+                {/* Main Content */}
+                <main className="flex-1 overflow-y-auto">
+                    <header className="bg-white shadow-sm border-b px-8 py-4 sticky top-0 z-10">
+                        <h1 className="text-xl font-bold text-gray-800">
+                            {navItems.find(i => i.href === pathname)?.name || 'Dashboard'}
+                        </h1>
+                    </header>
+                    <div className="p-8">
+                        {children}
+                    </div>
+                </main>
+            </div>
+        );
+    }

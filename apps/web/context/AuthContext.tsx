@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 interface User {
     id: string;
@@ -28,16 +29,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
 
     useEffect(() => {
-        try {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-                setUser(JSON.parse(storedUser));
+        const init = async () => {
+            try {
+                const storedUser = localStorage.getItem('user');
+                const token = localStorage.getItem('token');
+
+                if (storedUser) {
+                    // 1. Optimistic Load
+                    setUser(JSON.parse(storedUser));
+                }
+
+                if (token) {
+                    // 2. Fresh Data Fetch
+                    try {
+                        const freshProfile = await api.profile.getMe();
+                        // Transform profile to User object (adapter)
+                        const updatedUser = {
+                            id: freshProfile.userId || freshProfile.id,
+                            name: freshProfile.name,
+                            email: freshProfile.email,
+                            photoUrl: freshProfile.photoUrl,
+                            is_premium: freshProfile.is_premium,
+                            is_admin: freshProfile.is_admin
+                        };
+                        setUser(updatedUser);
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                    } catch (apiErr) {
+                        console.error("Token verification failed", apiErr);
+                        // Optional: logout() if strictly 401? api.ts handles 401 redirect, so we just log here.
+                    }
+                }
+            } catch (e) {
+                console.error("Auth Hydrate Failed", e);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (e) {
-            console.error("Auth Hydrate Failed", e);
-        } finally {
-            setIsLoading(false);
-        }
+        };
+
+        init();
     }, []);
 
     const login = (userData: User, token: string) => {

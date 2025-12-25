@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { api } from '@/lib/api';
 import { ArrowLeft, Mail, KeyRound, Lock, CheckCircle } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
@@ -24,17 +25,10 @@ export default function ForgotPasswordPage() {
             }
 
             setLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-
+            await api.auth.forgotPassword(email);
             setStep(2);
         } catch (err: unknown) {
+            console.error(err);
             setError(err instanceof Error ? err.message : 'Failed to send OTP');
         } finally {
             setLoading(false);
@@ -54,17 +48,10 @@ export default function ForgotPasswordPage() {
             }
 
             setLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp, newPassword })
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to reset password');
-
+            await api.auth.resetPassword({ email, otp, newPassword });
             setSuccess(true);
         } catch (err: unknown) {
+            console.error(err);
             setError(err instanceof Error ? err.message : 'Failed to reset password');
         } finally {
             setLoading(false);

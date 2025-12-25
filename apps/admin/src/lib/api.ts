@@ -49,6 +49,8 @@ export const api = {
         login: (data: any) => fetchAPI('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
         sendOtp: (mobile: string) => fetchAPI('/auth/send-otp', { method: 'POST', body: JSON.stringify({ mobile }) }),
         verifyOtp: (payload: { email: string, otp: string }) => fetchAPI('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
+        forgotPassword: (email: string) => fetchAPI('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+        resetPassword: (payload: { email: string, otp: string, newPassword: string }) => fetchAPI('/auth/reset-password', { method: 'POST', body: JSON.stringify(payload) }),
     },
     profile: {
         updatePrompt: (payload: any) => fetchAPI('/profile/prompt', { method: 'POST', body: JSON.stringify(payload) }),

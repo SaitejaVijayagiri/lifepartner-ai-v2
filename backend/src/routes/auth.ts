@@ -260,17 +260,37 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // Enhanced validation
+        if (!email || !password) {
+            console.error('Login failed: Missing credentials', {
+                hasEmail: !!email,
+                hasPassword: !!password,
+                emailLength: email?.length || 0
+            });
+            return res.status(400).json({ error: "Email and password are required" });
+        }
+
+        // Log login attempt (without password)
+        console.log(`🔐 Login attempt for: ${email}`);
+
         const userRes = await pool.query(
             "SELECT id, password_hash, full_name, is_verified, is_admin FROM public.users WHERE email = $1 OR phone = $1",
             [email]
         );
 
-        if (userRes.rows.length === 0) return res.status(404).json({ error: "User not found" });
+        if (userRes.rows.length === 0) {
+            console.log(`❌ Login failed: User not found - ${email}`);
+            return res.status(404).json({ error: "User not found" });
+        }
 
         const user = userRes.rows[0];
+        console.log(`👤 User found: ${user.full_name} (Admin: ${user.is_admin})`);
 
         const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) return res.status(400).json({ error: "Incorrect password" });
+        if (!validPassword) {
+            console.log(`❌ Login failed: Invalid password for ${email}`);
+            return res.status(400).json({ error: "Invalid email or password" });
+        }
 
         // Warn if not verified? For now, we might allow basic access or force verify.
         // Let's force verify if we are strict.
@@ -280,11 +300,12 @@ router.post('/login', async (req, res) => {
         }
         */
 
+        console.log(`✅ Login successful: ${email} (Admin: ${user.is_admin})`);
         const token = generateToken(user.id);
         res.json({ token, userId: user.id, user: { id: user.id, name: user.full_name, is_admin: user.is_admin } });
 
     } catch (error: any) {
-        console.error("Login Error Details:", error);
+        console.error("❌ Login Error Details:", error);
         res.status(500).json({ error: "Login failed", details: error.message, stack: error.stack });
     }
 });

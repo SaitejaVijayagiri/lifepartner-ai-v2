@@ -20,9 +20,22 @@ export default function LoginPage() {
     const handleLogin = async () => {
         try {
             setError('');
+
+            // Client-side validation
+            if (!form.email || !form.password) {
+                setError('Please enter both email and password');
+                return;
+            }
+
+            if (!form.email.includes('@')) {
+                setError('Please enter a valid email address');
+                return;
+            }
+
             setLoading(true);
 
             // Step 1: Login and get token
+            console.log('Attempting login for:', form.email);
             const res = await api.auth.login(form);
             localStorage.setItem('token', res.token);
             localStorage.setItem('userId', res.userId);
@@ -54,7 +67,8 @@ export default function LoginPage() {
             // Step 5: Redirect to dashboard
             router.push('/');
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Login failed';
+            console.error('Login error:', err);
+            const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
             setError(message);
             localStorage.removeItem('token');
             localStorage.removeItem('userId');

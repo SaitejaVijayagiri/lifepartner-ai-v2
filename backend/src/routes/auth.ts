@@ -261,7 +261,7 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
 
         const userRes = await pool.query(
-            "SELECT id, password_hash, full_name, is_verified FROM public.users WHERE email = $1 OR phone = $1",
+            "SELECT id, password_hash, full_name, is_verified, is_admin FROM public.users WHERE email = $1 OR phone = $1",
             [email]
         );
 
@@ -281,7 +281,7 @@ router.post('/login', async (req, res) => {
         */
 
         const token = generateToken(user.id);
-        res.json({ token, userId: user.id, user: { id: user.id, name: user.full_name } });
+        res.json({ token, userId: user.id, user: { id: user.id, name: user.full_name, is_admin: user.is_admin } });
 
     } catch (error: any) {
         console.error("Login Error Details:", error);

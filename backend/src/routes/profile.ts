@@ -100,7 +100,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             photos: meta.photos || [],
             photoUrl: user.avatar_url,
             joinedAt: user.created_at,
-            is_premium: user.is_premium || false, // Exposed to Frontend
+            is_premium: user.is_premium || false,
+            is_admin: user.is_admin || false, // Exposed to Frontend
             coins: user.coins || 0, // Added Coin Balance
             phone: meta.phone || "", // Added Phone
             referral_code: user.referral_code || "", // Added Referral Code

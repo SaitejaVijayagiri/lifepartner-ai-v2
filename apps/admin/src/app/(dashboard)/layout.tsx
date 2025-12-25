@@ -22,40 +22,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 return;
             }
 
+            // Give AuthContext time to hydrate after login redirect
+            // This prevents immediate redirect when coming from login page
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             // AuthContext says NULL. Check for token.
             const token = localStorage.getItem('token');
+            const storedUser = localStorage.getItem('user');
+
             if (!token) {
                 console.log("No token. Redirecting.");
                 router.push('/login');
                 return;
             }
 
-            // Token exists, but User missing. Attempt Rescue.
-            console.log("Context missing user, but token found. Rescuing...");
-            setIsVerifying(true);
-            try {
-                const profile = await api.profile.getMe();
-                if (profile) {
-                    console.log("Rescue Success! Profile recovered.", profile.is_admin ? "User is Admin." : "User is NOT Admin.");
-                    // Manually update context
-                    updateUser({
-                        id: profile.userId || profile.id,
-                        name: profile.name,
-                        email: profile.email,
-                        is_admin: profile.is_admin,
-                        is_premium: profile.is_premium
-                    });
-                    // Do NOT redirect to login if not admin.
-                    // The main render logic will handle permissions (displaying "Access Restricted").
-                } else {
-                    console.log("Rescue Failed: Invalid profile.");
+            // If we have token but no user in context, try to recover
+            if (token && storedUser) {
+                console.log("Token and stored user found. Attempting recovery...");
+                setIsVerifying(true);
+                try {
+                    const profile = await api.profile.getMe();
+                    if (profile) {
+                        console.log("Recovery successful!");
+                        updateUser({
+                            id: profile.userId || profile.id,
+                            name: profile.name,
+                            email: profile.email,
+                            is_admin: profile.is_admin,
+                            is_premium: profile.is_premium
+                        });
+                    } else {
+                        console.log("Recovery failed: Invalid profile.");
+                        router.push('/login');
+                    }
+                } catch (e) {
+                    console.error("Recovery error", e);
                     router.push('/login');
+                } finally {
+                    setIsVerifying(false);
                 }
-            } catch (e) {
-                console.error("Rescue Error", e);
+            } else {
+                // Have token but no stored user - shouldn't happen, redirect
                 router.push('/login');
-            } finally {
-                setIsVerifying(false);
             }
         };
 
@@ -87,10 +95,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 
     const navItems = [
-        { name: 'Overview', href: '/admin', icon: LayoutDashboard },
-        { name: 'Users', href: '/admin/users', icon: Users },
-        { name: 'Verifications', href: '/admin/verifications', icon: BadgeCheck },
-        { name: 'Reports', href: '/admin/reports', icon: Flag },
+        { name: 'Overview', href: '/', icon: LayoutDashboard },
+        { name: 'Users', href: '/users', icon: Users },
+        { name: 'Verifications', href: '/verifications', icon: BadgeCheck },
+        { name: 'Reports', href: '/reports', icon: Flag },
     ];
 
     return (

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Play, Edit } from 'lucide-react';
+import { Play, Edit, Shield } from 'lucide-react';
 
 interface ProfileViewProps {
     profile: any;
@@ -73,9 +74,18 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                 {/* Header with Edit Button */}
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-20">
                     <h3 className="font-bold text-gray-800">My Profile</h3>
-                    <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
-                        <Edit size={16} /> Edit Profile
-                    </Button>
+                    <div className="flex gap-2">
+                        {profile.is_admin && (
+                            <Link href="/admin">
+                                <Button variant="ghost" size="sm" className="gap-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+                                    <Shield size={16} /> Admin
+                                </Button>
+                            </Link>
+                        )}
+                        <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
+                            <Edit size={16} /> Edit Profile
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Tabs */}

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { Users, Crown, DollarSign, Flag } from 'lucide-react';
+import { useSocket } from '@/context/SocketContext';
+import { Users, Crown, DollarSign, Flag, Zap } from 'lucide-react';
 
 interface Stats {
     totalUsers: number;
@@ -32,7 +33,10 @@ export default function AdminDashboard() {
 
     if (loading) return <div className="p-8">Loading stats...</div>;
 
+    const { onlineUsers } = useSocket();
+
     const cards = [
+        { label: 'Online Now', value: onlineUsers?.length || 0, icon: Zap, color: 'text-purple-500', bg: 'bg-purple-50' },
         { label: 'Total Users', value: stats?.totalUsers, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
         { label: 'Premium Users', value: stats?.premiumUsers, icon: Crown, color: 'text-amber-500', bg: 'bg-amber-50' },
         { label: 'Total Revenue', value: `₹${stats?.totalRevenue?.toLocaleString()}`, icon: DollarSign, color: 'text-green-500', bg: 'bg-green-50' },

@@ -8,24 +8,59 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user, isLoading: authLoading, logout } = useAuth();
+    const { user, isLoading: authLoading, logout, updateUser } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const [isVerifying, setIsVerifying] = useState(false);
 
     useEffect(() => {
-        if (!authLoading) {
-            console.log("Admin Layout Check:", { user, is_admin: user?.is_admin });
+        const checkAccess = async () => {
+            if (authLoading) return; // Wait for AuthContext first
 
-            if (!user) {
-                console.log("Redirecting to login (No User)");
-                router.push('/login');
+            if (user) {
+                // AuthContext has user, let standard checks proceed (Access Denied screen will show if !admin)
+                return;
             }
-            // Logic for redirecting non-admins is handled by rendering "Access Denied" below.
-            // This prevents "Redirect Loops" if state glitches.
-        }
-    }, [user, authLoading, router]);
 
-    if (authLoading) {
+            // AuthContext says NULL. Check for token.
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.log("No token. Redirecting.");
+                router.push('/login');
+                return;
+            }
+
+            // Token exists, but User missing. Attempt Rescue.
+            console.log("Context missing user, but token found. Rescuing...");
+            setIsVerifying(true);
+            try {
+                const profile = await api.profile.getMe();
+                if (profile && profile.is_admin) {
+                    console.log("Rescue Success! Admin confirmed.");
+                    // Manually update context
+                    updateUser({
+                        id: profile.userId || profile.id,
+                        name: profile.name,
+                        email: profile.email,
+                        is_admin: profile.is_admin,
+                        is_premium: profile.is_premium
+                    });
+                } else {
+                    console.log("Rescue Failed: Not an admin/Invalid.");
+                    router.push('/login');
+                }
+            } catch (e) {
+                console.error("Rescue Error", e);
+                router.push('/login');
+            } finally {
+                setIsVerifying(false);
+            }
+        };
+
+        checkAccess();
+    }, [user, authLoading, router, updateUser]);
+
+    if (authLoading || isVerifying) {
         return <div className="flex items-center justify-center min-h-screen">Loading Admin...</div>;
     }
 

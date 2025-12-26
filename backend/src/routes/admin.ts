@@ -103,6 +103,7 @@ router.post('/ban', async (req, res) => {
 router.get('/reports', async (req, res) => {
     try {
         // ideally join with users to get names
+        const query = `
             SELECT r.id, r.reason, r.details, r.created_at, r.status,
             COALESCE(u.full_name, 'Unknown User') as reported_name,
             COALESCE(u2.full_name, 'Unknown User') as reporter_name,
@@ -112,7 +113,7 @@ router.get('/reports', async (req, res) => {
             LEFT JOIN users u2 ON r.reporter_id = u2.id
             ORDER BY r.created_at DESC
             LIMIT 50
-            `;
+        `;
         const result = await pool.query(query);
         res.json(result.rows);
     } catch (err) {

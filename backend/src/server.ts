@@ -239,6 +239,14 @@ const initServer = async () => {
                     created_at TIMESTAMP DEFAULT NOW()
                 );
 
+                -- Check columns for Reports (Migrations)
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reports' AND table_schema='public' AND column_name='details') THEN 
+                    ALTER TABLE public.reports ADD COLUMN details TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='reports' AND table_schema='public' AND column_name='status') THEN 
+                    ALTER TABLE public.reports ADD COLUMN status VARCHAR(20) DEFAULT 'pending';
+                END IF;
+
                 -- Add 'is_verified' to users if missing
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND table_schema='public' AND column_name='is_verified') THEN 
                     ALTER TABLE public.users ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;

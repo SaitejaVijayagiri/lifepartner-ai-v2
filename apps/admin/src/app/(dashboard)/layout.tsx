@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Users, Flag, LogOut, ShieldAlert, BadgeCheck, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Users, Flag, LogOut, ShieldAlert, BadgeCheck, Loader2, IndianRupee } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 

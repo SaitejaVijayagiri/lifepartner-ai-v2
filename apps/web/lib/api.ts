@@ -97,6 +97,10 @@ export const api = {
         contact: (data: any) => fetchAPI('/interactions/contact', { method: 'POST', body: JSON.stringify(data) }),
         whoLikedMe: () => fetchAPI('/interactions/who-liked-me'),
         getVisitors: () => fetchAPI('/interactions/visitors'),
+        reportUser: (reportedId: string, reason: string, details: string) => fetchAPI('/reports', {
+            method: 'POST',
+            body: JSON.stringify({ reportedId, reason, details })
+        }),
     },
     chat: {
         getHistory: (connId: string) => fetchAPI(`/messages/${connId}/history`),

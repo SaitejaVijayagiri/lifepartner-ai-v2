@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { Modal } from '@/components/ui/modal'; // Assuming this exists and wraps Dialog/Portal
+import { Modal } from '@/components/ui/modal'; // Standard Modal
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea'; // Assuming exists, else standard textarea
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Assuming shadcn select
 
 interface ReportModalProps {
     isOpen: boolean;

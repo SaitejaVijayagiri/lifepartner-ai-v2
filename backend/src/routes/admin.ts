@@ -134,4 +134,33 @@ router.post('/resolve-report', async (req, res) => {
     }
 });
 
+// GET /transactions - Revenue Report
+router.get('/transactions', async (req, res) => {
+    try {
+        const { page = 1, limit = 50, type } = req.query;
+        const offset = (Number(page) - 1) * Number(limit);
+        const params: any[] = [];
+
+        let query = `
+                SELECT t.*, u.full_name, u.email 
+                FROM transactions t
+                LEFT JOIN users u ON t.user_id = u.id
+            `;
+
+        if (type) {
+            query += ` WHERE t.type = $1`;
+            params.push(type);
+        }
+
+        query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+});
+
 export default router;

@@ -64,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { name: 'Users', href: '/users', icon: Users },
         { name: 'Verifications', href: '/verifications', icon: BadgeCheck },
         { name: 'Reports', href: '/reports', icon: Flag },
+        { name: 'Revenue', href: '/revenue', icon: IndianRupee },
     ];
 
     return (

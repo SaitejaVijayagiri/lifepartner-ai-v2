@@ -18,7 +18,7 @@ router.post('/', authenticateToken, async (req: any, res) => {
         // Ignoring for speed, db error will handle it.
 
         const query = `
-            INSERT INTO public.reports (reporter_id, target_id, reason, details)
+            INSERT INTO public.reports (reporter_id, reported_id, reason, details)
             VALUES ($1, $2, $3, $4)
             RETURNING id, created_at
         `;

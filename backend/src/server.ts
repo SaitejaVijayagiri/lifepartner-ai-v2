@@ -224,7 +224,7 @@ const initServer = async () => {
                 CREATE TABLE IF NOT EXISTS public.reports (
                     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
                     reporter_id UUID REFERENCES public.users(id),
-                    target_id UUID REFERENCES public.users(id),
+                    reported_id UUID REFERENCES public.users(id),
                     reason TEXT,
                     created_at TIMESTAMP DEFAULT NOW()
                 );

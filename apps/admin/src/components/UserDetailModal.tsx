@@ -36,7 +36,7 @@ export default function UserDetailModal({ isOpen, onClose, user, onBanToggle }: 
                     <Button variant="outline" onClick={onClose}>Close</Button>
                     {onBanToggle && (
                         <Button
-                            variant={user.is_banned ? "default" : "destructive"}
+                            variant={user.is_banned ? "primary" : "destructive"}
                             onClick={handleBan}
                             disabled={loading}
                         >

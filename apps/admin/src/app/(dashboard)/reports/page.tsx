@@ -16,10 +16,17 @@ interface Report {
     reported_name?: string;
 }
 
+import UserDetailModal from '@/components/UserDetailModal';
+import { Eye } from 'lucide-react';
+
 export default function AdminReportsPage() {
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const toast = useToast();
+
+    // Modal State
+    const [detailModalOpen, setDetailModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<any>(null);
 
     useEffect(() => {
         loadReports();
@@ -45,6 +52,27 @@ export default function AdminReportsPage() {
             setReports(prev => prev.map(r => r.id === id ? { ...r, status: status as any } : r));
         } catch (e) {
             toast.error("Action Failed");
+        }
+    };
+
+    const handleViewProfile = async (userId: string) => {
+        try {
+            const user = await api.admin.getUserDetails(userId);
+            setSelectedUser(user);
+            setDetailModalOpen(true);
+        } catch (e) {
+            toast.error("Failed to load user details");
+        }
+    };
+
+    const handleBanToggle = async (userId: string, isBanned: boolean) => {
+        try {
+            await api.admin.banUser(userId, !isBanned);
+            toast.success(isBanned ? "User Unbanned" : "User Banned");
+            // Update selected user local state if open
+            setSelectedUser((prev: any) => prev ? ({ ...prev, is_banned: !isBanned }) : null);
+        } catch (e) {
+            toast.error("Ban Action Failed");
         }
     };
 
@@ -86,7 +114,13 @@ export default function AdminReportsPage() {
                                                 {report.status || 'Pending'}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-right space-x-2">
+                                        <td className="p-4 text-right space-x-2 flex justify-end">
+                                            <button
+                                                onClick={() => handleViewProfile(report.target_id)}
+                                                className="text-blue-600 hover:text-blue-700 mr-2" title="View Profile"
+                                            >
+                                                <Eye size={18} />
+                                            </button>
                                             <button
                                                 onClick={() => handleResolve(report.id, 'resolved')}
                                                 className="text-green-600 hover:text-green-700" title="Resolve (Take Action)"
@@ -107,6 +141,13 @@ export default function AdminReportsPage() {
                     </table>
                 </div>
             </div>
+
+            <UserDetailModal
+                isOpen={detailModalOpen}
+                onClose={() => setDetailModalOpen(false)}
+                user={selectedUser}
+                onBanToggle={handleBanToggle}
+            />
         </div>
     );
 }

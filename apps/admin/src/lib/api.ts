@@ -149,6 +149,7 @@ export const api = {
     admin: {
         getStats: () => fetchAPI('/admin/stats'),
         getUsers: (page = 1, search = '') => fetchAPI(`/admin/users?page=${page}&search=${search}`),
+        getUserDetails: (id: string) => fetchAPI(`/admin/users/${id}`),
         getReports: () => fetchAPI('/admin/reports'),
         banUser: (userId: string, ban: boolean) => fetchAPI('/admin/ban', {
             method: 'POST',

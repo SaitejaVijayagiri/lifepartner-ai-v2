@@ -59,27 +59,50 @@ router.get('/users', async (req, res) => {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch users' });
     }
-});
+    // GET /users/:id - Get User Details
+    router.get('/users/:id', async (req, res) => {
+        try {
+            const { id } = req.params;
+            const query = `
+            SELECT u.*, 
+            (SELECT json_agg(r.*) FROM reports r WHERE r.reported_id = u.id) as reports,
+            (SELECT COUNT(*) FROM interactions WHERE to_user_id = u.id AND type = 'LIKE') as likes_received
+            FROM users u WHERE u.id = $1
+        `;
+            const result = await pool.query(query, [id]);
 
-// POST /ban - Ban or Unban User
-router.post('/ban', async (req, res) => {
-    try {
-        const { userId, ban } = req.body; // ban: boolean
+            if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        await pool.query('UPDATE users SET is_banned = $1 WHERE id = $2', [ban, userId]);
+            // Fetch Profile Data (Photos, Bio)
+            const profileRes = await pool.query('SELECT * FROM profiles WHERE user_id = $1', [id]);
+            const profile = profileRes.rows[0] || {};
 
-        res.json({ success: true, message: `User ${ban ? 'banned' : 'unbanned'} successfully` });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update ban status' });
-    }
-});
+            res.json({ ...result.rows[0], profile });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to fetch user details' });
+        }
+    });
 
-// GET /reports - List Reports
-router.get('/reports', async (req, res) => {
-    try {
-        // ideally join with users to get names
-        const query = `
+    // POST /ban - Ban or Unban User
+    router.post('/ban', async (req, res) => {
+        try {
+            const { userId, ban } = req.body; // ban: boolean
+
+            await pool.query('UPDATE users SET is_banned = $1 WHERE id = $2', [ban, userId]);
+
+            res.json({ success: true, message: `User ${ban ? 'banned' : 'unbanned'} successfully` });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to update ban status' });
+        }
+    });
+
+    // GET /reports - List Reports
+    router.get('/reports', async (req, res) => {
+        try {
+            // ideally join with users to get names
+            const query = `
             SELECT r.*, u.name as reported_name, u2.name as reporter_name
             FROM reports r
             LEFT JOIN users u ON r.reported_id = u.id
@@ -87,24 +110,24 @@ router.get('/reports', async (req, res) => {
             ORDER BY r.created_at DESC
             LIMIT 50
         `;
-        const result = await pool.query(query);
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch reports' });
-    }
-});
+            const result = await pool.query(query);
+            res.json(result.rows);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to fetch reports' });
+        }
+    });
 
-// POST /resolve-report
-router.post('/resolve-report', async (req, res) => {
-    try {
-        const { reportId, status } = req.body; // 'resolved', 'dismissed'
-        await pool.query('UPDATE reports SET status = $1 WHERE id = $2', [status, reportId]);
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update report' });
-    }
-});
+    // POST /resolve-report
+    router.post('/resolve-report', async (req, res) => {
+        try {
+            const { reportId, status } = req.body; // 'resolved', 'dismissed'
+            await pool.query('UPDATE reports SET status = $1 WHERE id = $2', [status, reportId]);
+            res.json({ success: true });
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Failed to update report' });
+        }
+    });
 
-export default router;
+    export default router;

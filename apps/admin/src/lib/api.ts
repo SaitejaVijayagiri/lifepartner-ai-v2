@@ -33,12 +33,9 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
 
     if (res.status === 401) {
-        if (typeof window !== 'undefined') {
-            console.warn("Session expired. Redirecting to login.");
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            window.location.href = '/login';
-        }
+        // Warning: Do not auto-redirect here. Let the UI handle it.
+        // Redirecting here causes loops if a non-critical API fails.
+        console.warn("API 401: Unauthorized");
         throw new Error('Session Expired. Please login again.');
     }
 

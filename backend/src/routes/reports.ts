@@ -45,11 +45,11 @@ router.get('/', authenticateToken, async (req: any, res) => {
         const client = await pool.connect();
         const result = await client.query(`
             SELECT r.id, r.reason, r.details, r.created_at,
-                   rep.full_name as reporter_name,
-                   target.full_name as target_name, target.id as target_id
+                   COALESCE(rep.full_name, 'Unknown User') as reporter_name,
+                   COALESCE(target.full_name, 'Deleted User') as target_name, r.reported_id as target_id
             FROM public.reports r
-            JOIN public.users rep ON r.reporter_id = rep.id
-            JOIN public.users target ON r.reported_id = target.id
+            LEFT JOIN public.users rep ON r.reporter_id = rep.id
+            LEFT JOIN public.users target ON r.reported_id = target.id
             ORDER BY r.created_at DESC
             LIMIT 50
         `);

@@ -35,9 +35,10 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     if (res.status === 401) {
         if (typeof window !== 'undefined') {
             console.warn("Session expired. Redirecting to login.");
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            window.location.href = '/login';
+            // DEBUG: Disable auto-logout to trace error
+            // localStorage.removeItem('token');
+            // localStorage.removeItem('userId');
+            // window.location.href = '/login';
         }
         throw new Error('Session Expired. Please login again.');
     }

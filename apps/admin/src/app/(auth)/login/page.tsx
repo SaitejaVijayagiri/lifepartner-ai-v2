@@ -69,9 +69,11 @@ export default function LoginPage() {
         } catch (err: unknown) {
             console.error('Login error:', err);
             const message = err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
+            alert(`LOGIN DEBUG ERROR: ${message}`); // DEBUG ALERT
             setError(message);
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
+            // DEBUG: Keep token to see if it was stored
+            // localStorage.removeItem('token');
+            // localStorage.removeItem('userId');
         } finally {
             setLoading(false);
         }

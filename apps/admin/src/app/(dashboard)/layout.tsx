@@ -19,9 +19,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (authLoading) return;
 
             if (!user) {
-                console.log("[AdminLayout] No user found. Debug Mode Active.");
-                // DEBUG MODE: Do NOT redirect. Show state instead.
-                // router.push('/login'); 
+                console.log("[AdminLayout] No user found. Redirecting to login.");
+                router.push('/login');
                 return;
             }
 
@@ -34,42 +33,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // 1. Loading State
     if (authLoading || isVerifying) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 gap-4">
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-                <p className="text-gray-500 font-mono text-sm">Auth Loading...</p>
             </div>
         );
     }
 
-    // 2. Unauthenticated / Debug State
+    // 2. Unauthenticated State
     if (!user) {
-        return (
-            <div className="p-10 max-w-2xl mx-auto mt-10 border-2 border-red-500 bg-red-50 rounded-xl">
-                <h1 className="text-2xl font-bold text-red-700 mb-4">⚠️ Debug Mode: Auth Failure</h1>
-                <p className="mb-4 text-gray-700">The application thinks you are not logged in. Auto-redirect is disabled so you can read this.</p>
-
-                <div className="bg-slate-900 text-green-400 p-4 rounded-lg font-mono text-sm mb-6 overflow-auto">
-                    <p><strong>AuthContext User:</strong> {JSON.stringify(user)}</p>
-                    <p><strong>LocalStorage Token:</strong> {typeof window !== 'undefined' ? (localStorage.getItem('token') ? 'PRESENT (Length: ' + localStorage.getItem('token')?.length + ')' : 'MISSING') : 'N/A'}</p>
-                    <p><strong>LocalStorage User:</strong> {typeof window !== 'undefined' ? localStorage.getItem('user') : 'N/A'}</p>
-                </div>
-
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                        Reload Page
-                    </button>
-                    <button
-                        onClick={() => router.push('/login')}
-                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                    >
-                        Go to Login
-                    </button>
-                </div>
-            </div>
-        );
+        return null;
     }
 
     // 3. Unauthorized State

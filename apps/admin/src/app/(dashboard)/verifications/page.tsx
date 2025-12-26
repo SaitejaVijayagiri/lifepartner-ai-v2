@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Check, X, BadgeCheck, FileText } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
+import { useToast } from '@/components/ui/Toast';
 
 interface VerificationRequest {
     id: string;
@@ -20,6 +21,7 @@ interface VerificationRequest {
 export default function VerificationPage() {
     const [requests, setRequests] = useState<VerificationRequest[]>([]);
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
 
     // Modal State
     const [modalOpen, setModalOpen] = useState(false);
@@ -37,6 +39,7 @@ export default function VerificationPage() {
             setRequests(data);
         } catch (e) {
             console.error("Failed to fetch requests", e);
+            toast.error("Failed to fetch requests");
         } finally {
             setLoading(false);
         }
@@ -55,10 +58,11 @@ export default function VerificationPage() {
         try {
             await api.verification.resolve(selectedReq.id, actionType, notes);
             setRequests(prev => prev.filter(r => r.id !== selectedReq.id));
+            toast.success(`Verification ${actionType.toLowerCase()}`);
             setModalOpen(false);
         } catch (e) {
             console.error("Failed to resolve", e);
-            alert("Failed to update status."); // Fallback
+            toast.error("Failed to update status.");
         }
     };
 

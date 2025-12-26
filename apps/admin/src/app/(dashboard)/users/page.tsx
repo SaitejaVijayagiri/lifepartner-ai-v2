@@ -50,7 +50,7 @@ export default function AdminUsersPage() {
         }
     };
 
-    const initiationBanToggle = (user: User) => {
+    const initiateBanToggle = (user: User) => {
         setSelectedUser(user);
         setConfirmModalOpen(true);
     };
@@ -131,7 +131,7 @@ export default function AdminUsersPage() {
                                     <td className="p-4 text-right">
                                         {!user.is_admin && (
                                             <button
-                                                onClick={() => initiationBanToggle(user)}
+                                                onClick={() => initiateBanToggle(user)}
                                                 className={`px-3 py-1.5 rounded-lg font-medium text-xs transition-colors ${user.is_banned
                                                     ? 'bg-green-50 text-green-600 hover:bg-green-100'
                                                     : 'bg-red-50 text-red-600 hover:bg-red-100'

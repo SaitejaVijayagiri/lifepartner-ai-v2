@@ -33,16 +33,17 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
 
     if (res.status === 401) {
-        console.warn("Session expired. Redirecting to login.");
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+            console.warn("Session expired. Redirecting to login.");
+            localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            window.location.href = '/login';
+        }
+        throw new Error('Session Expired. Please login again.');
     }
-    throw new Error('Session Expired. Please login again.');
-}
 
-if (!res.ok) throw new Error(data.error || `API Request Failed: ${res.status}`);
-return data;
+    if (!res.ok) throw new Error(data.error || `API Request Failed: ${res.status}`);
+    return data;
 }
 
 export const api = {

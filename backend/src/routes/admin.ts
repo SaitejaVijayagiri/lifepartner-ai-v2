@@ -15,8 +15,11 @@ router.get('/stats', async (req, res) => {
         const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
         const premiumUsers = await pool.query('SELECT COUNT(*) FROM users WHERE is_premium = TRUE');
 
+        // Revenue Breakdown
         // Use ILIKE or UPPER for case-insensitive check. Default is 'SUCCESS' in DB.
-        const totalRevenue = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success'");
+        const totalRevenueQuery = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success'");
+        const premiumRevenueQuery = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success' AND type = 'PREMIUM'");
+        const coinRevenueQuery = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success' AND (type = 'COINS' OR type = 'topup')");
 
         // Reports might be 'pending' or 'PENDING'
         const pendingReports = await pool.query("SELECT COUNT(*) FROM reports WHERE status ILIKE 'pending'");
@@ -24,7 +27,9 @@ router.get('/stats', async (req, res) => {
         res.json({
             totalUsers: parseInt(totalUsers.rows[0].count),
             premiumUsers: parseInt(premiumUsers.rows[0].count),
-            totalRevenue: parseFloat(totalRevenue.rows[0].sum), // Use parseFloat for currency
+            totalRevenue: parseFloat(totalRevenueQuery.rows[0].sum),
+            premiumRevenue: parseFloat(premiumRevenueQuery.rows[0].sum),
+            coinRevenue: parseFloat(coinRevenueQuery.rows[0].sum),
             pendingReports: parseInt(pendingReports.rows[0].count)
         });
     } catch (err) {
@@ -46,8 +51,12 @@ router.get('/users', async (req, res) => {
         const params: any[] = [];
 
         if (search) {
-            query += ` WHERE full_name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1`;
+            query += ` WHERE (full_name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1)`;
             params.push(`%${search}%`);
+        }
+
+        if (req.query.isPremium === 'true') {
+            query += search ? ` AND is_premium = TRUE` : ` WHERE is_premium = TRUE`;
         }
 
         query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;

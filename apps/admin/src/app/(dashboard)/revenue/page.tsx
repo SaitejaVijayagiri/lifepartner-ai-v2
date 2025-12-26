@@ -23,9 +23,21 @@ export default function RevenuePage() {
     const [filter, setFilter] = useState(''); // 'COINS' | 'PREMIUM' | ''
     const toast = useToast();
 
+    const [stats, setStats] = useState<{ totalRevenue: number, premiumRevenue: number, coinRevenue: number } | null>(null);
+
     useEffect(() => {
         loadData();
+        loadStats();
     }, [filter]);
+
+    const loadStats = async () => {
+        try {
+            const data = await api.admin.getStats();
+            setStats(data);
+        } catch (e) {
+            console.error("Failed to load stats", e);
+        }
+    };
 
     const loadData = async () => {
         setLoading(true);
@@ -40,10 +52,10 @@ export default function RevenuePage() {
         }
     };
 
-    // Calculate Totals
-    const totalRevenue = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
-    const premiumRevenue = transactions.filter(t => t.type === 'PREMIUM').reduce((sum, t) => sum + Number(t.amount), 0);
-    const coinRevenue = transactions.filter(t => t.type === 'COINS' || t.type === 'topup').reduce((sum, t) => sum + Number(t.amount), 0);
+    // Use Global Stats if available, otherwise 0
+    const totalRevenue = stats?.totalRevenue || 0;
+    const premiumRevenue = stats?.premiumRevenue || 0;
+    const coinRevenue = stats?.coinRevenue || 0;
 
     return (
         <div className="space-y-6">

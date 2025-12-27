@@ -9,7 +9,8 @@
         "prebuild": "npm run clean",
         "build": "npx prisma generate && tsc",
         "start": "npx prisma migrate deploy && node dist/server.js",
-        "start:cluster": "pm2 start ecosystem.config.js --env production"
+        "start:cluster": "pm2 start ecosystem.config.js --env production",
+        "studio": "npx prisma studio"
     },
     "engines": {
         "node": ">=18.0.0"

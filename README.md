@@ -21,18 +21,17 @@ This project is architected to run **100% Free** using:
 ## 🛠 Tech Stack
 
 -   **Frontend**: Next.js 14, Tailwind CSS, Lucide React
--   **Backend**: Node.js, Express, PostgreSQL
+-   **Backend**: Node.js, Express, PostgreSQL, **Prisma ORM**, **Jest**
 -   **AI**: LangChain, Google Gemini, Xenova Transformers
 -   **Realtime**: Socket.io
 -   **Storage**: Supabase (Free Tier)/Docker) + pgvector.
--   **Storage**: Supabase Storage / Local Uploads.
 -   **Payments**: Razorpay / Cashfree Integration.
 
 ## 🏃‍♂️ Getting Started
 
 ### Prerequisites
 -   Node.js v18+
--   Docker (optional, for real Database)
+-   PostgreSQL (Local via Docker or Cloud via Supabase/Neon)
 
 ### Installation
 
@@ -47,6 +46,10 @@ This project is architected to run **100% Free** using:
     ```bash
     # Terminal 1
     cd backend
+    # Copy .env.example to .env and set DATABASE_URL
+    npm install
+    # Run Migrations & Build
+    npx prisma migrate dev
     npm run dev
     # Runs on http://localhost:4000
     ```
@@ -55,9 +58,17 @@ This project is architected to run **100% Free** using:
     ```bash
     # Terminal 2
     cd apps/web
+    npm install
     npm run dev
     # Runs on http://localhost:3000
     ```
+
+## 🧪 Testing
+Run the full test suite (Integration + Unit):
+```bash
+cd backend
+npm test
+```
 
 ## 📂 Project Structure
 
@@ -66,13 +77,7 @@ LifePartner-AI/
 ├── apps/
 │   ├── web/            # Next.js Frontend
 │   └── mobile/         # React Native (Expo) app (Scaffolded)
-├── backend/            # Express API & Vector Search Logic
+├── backend/            # Express API (Prisma + Jest)
 ├── docker-compose.yml  # DB Infrastructure
 └── package.json        # Monorepo root
 ```
-
-## ⚠️ Note on Mock Mode
-If Docker is not running, the Backend automatically switches to **Mock Mode**.
--   It will not save data to Postgres.
--   It will return pre-generated "Perfect Matches" to demonstrate the UI.
--   AI Prompt analysis is simulated.

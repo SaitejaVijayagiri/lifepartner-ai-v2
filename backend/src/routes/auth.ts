@@ -131,21 +131,28 @@ router.post('/register', async (req, res) => {
         // 6. Send OTP
         if (targetEmail) {
             try {
-                // await resend.emails.send(...) 
-                // Using console log for now as per original code structure usually having real logic commented or stubbed if key missing
-                console.log(`📧 Sending OTP ${otp} to ${targetEmail}`);
+                const apiKey = process.env.RESEND_API_KEY;
+                console.log(`📧 Preparing to send OTP ${otp} to ${targetEmail}`);
 
-                if (process.env.RESEND_API_KEY) {
-                    await resend.emails.send({
-                        from: 'onboarding@resend.dev',
+                if (apiKey && !apiKey.toLowerCase().includes('mock')) {
+                    const { data, error } = await resend.emails.send({
+                        from: 'LifePartner AI <onboarding@resend.dev>', // Update this to your verified domain if available
                         to: targetEmail,
                         subject: 'Your Verification Code',
-                        html: `<p>Your OTP is <strong>${otp}</strong></p>`
+                        html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`
                     });
+
+                    if (error) {
+                        console.error("Resend API Error:", error);
+                    } else {
+                        console.log(`✅ OTP sent successfully. ID: ${data?.id}`);
+                    }
+                } else {
+                    console.warn(`⚠️ Email skipped: RESEND_API_KEY is missing or mock. OTP: ${otp}`);
                 }
             } catch (emailError) {
-                console.error("Email sending failed:", emailError);
-                // Continue, don't fail registration
+                console.error("Email sending exception:", emailError);
+                // We don't block registration on email failure, but we log it
             }
         }
 
@@ -245,6 +252,16 @@ router.post('/login', async (req, res) => {
         if (!validPassword) {
             console.log(`❌ Login failed: Invalid password for ${email}`);
             return res.status(400).json({ error: "Invalid email or password" });
+        }
+
+        // Enforce Email Verification
+        if (!user.is_verified) {
+            console.log(`❌ Login prevented: Unverified email for ${email}`);
+            return res.status(403).json({
+                error: "Please verify your email address first.",
+                requiresVerification: true,
+                email: email
+            });
         }
 
         console.log(`✅ Login successful: ${email} (Admin: ${user.is_admin})`);

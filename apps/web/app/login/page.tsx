@@ -156,8 +156,8 @@ export default function LoginPage() {
                     <div>
                         <button
                             onClick={() => {
-                                const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!;
-                                const redirectUri = `${process.env.NEXT_PUBLIC_FRONTEND_URL || "https://lifepartner-ai.onrender.com"}/auth/callback/google`;
+                                const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
+                                const redirectUri = `${window.location.origin}/auth/callback/google`;
                                 const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
                                 window.location.href = startUrl;
                             }}

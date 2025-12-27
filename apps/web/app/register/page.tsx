@@ -53,7 +53,16 @@ export default function RegisterPage() {
                 router.push('/onboarding');
             }
         } catch (err: any) {
-            toast.error(err.message || 'Registration failed.');
+            console.error("Registration Error", err);
+            // Show more detailed error text
+            const errorMsg = err.message || "Registration failed. Please check your network or try again.";
+
+            // Check for specific backend errors (e.g. duplicate user)
+            if (errorMsg.includes("User already exists")) {
+                toast.error("An account with this email or phone number already exists.");
+            } else {
+                toast.error(errorMsg);
+            }
         } finally {
             setLoading(false);
         }
@@ -272,8 +281,8 @@ export default function RegisterPage() {
                     <div>
                         <button
                             onClick={() => {
-                                const clientId = "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
-                                const redirectUri = `${process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin}/auth/callback/google`;
+                                const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
+                                const redirectUri = `${window.location.origin}/auth/callback/google`;
                                 const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
                                 window.location.href = startUrl;
                             }}

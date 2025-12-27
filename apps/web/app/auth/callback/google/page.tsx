@@ -22,7 +22,13 @@ function GoogleCallbackContent() {
             try {
                 // Send code to backend
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-                const res = await axios.post(`${apiUrl}/auth/google`, { code });
+                // Dynamic redirect URI to match what initiated the flow
+                const redirect_uri = window.location.origin + '/auth/callback/google';
+
+                const res = await axios.post(`${apiUrl}/auth/google`, {
+                    code,
+                    redirect_uri
+                });
 
                 if (res.data.token) {
                     localStorage.setItem('token', res.data.token);

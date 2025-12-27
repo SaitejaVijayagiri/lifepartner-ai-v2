@@ -4,6 +4,7 @@ import Link from 'next/link';
 import NextImage from 'next/image';
 import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, MessageCircle, ShieldCheck, Lock, Award, Gift } from 'lucide-react';
 import Footer from '@/components/Footer';
+import Navbar from '@/components/Navbar';
 
 export default function LandingPage() {
   return (
@@ -91,39 +92,10 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {/* --- NAVBAR --- */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-200">
-              <Sparkles size={18} fill="white" />
-            </div>
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700 tracking-tight">
-              LifePartner AI
-            </span>
-          </div>
-          <div className="hidden md:flex space-x-8 items-center">
-            {['Success Stories', 'How it Works'].map((item) => (
-              <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`} className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide">
-                {item}
-              </a>
-            ))}
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-bold text-gray-700 hover:text-indigo-600 transition-colors hidden md:block">
-              Log In
-            </Link>
-            <Link href="/register">
-              <button className="group relative px-6 py-2.5 font-bold text-white rounded-full bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95">
-                <span className="relative flex items-center gap-2 text-sm uppercase tracking-wide">Get Started <ArrowRight size={14} /></span>
-              </button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-44 pb-32 overflow-hidden min-h-screen flex items-center">
+      <section className="relative pt-32 lg:pt-44 pb-20 lg:pb-32 overflow-hidden min-h-screen flex items-center">
         {/* Pastel Aurora Background */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 bg-slate-50">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-200/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob"></div>
@@ -131,14 +103,14 @@ export default function LandingPage() {
           <div className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] bg-pink-200/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000"></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
           <div className="text-left relative">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-100 text-indigo-700 text-xs font-bold mb-8 shadow-sm backdrop-blur-md uppercase tracking-widest hover:shadow-md transition-all cursor-default">
               <Sparkles size={12} className="text-indigo-500" />
               <span>Next-Gen Matchmaking</span>
             </div>
 
-            <h1 className="text-6xl md:text-8xl font-heading font-black tracking-tighter text-gray-900 mb-8 leading-[0.95]">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-heading font-black tracking-tighter text-gray-900 mb-6 lg:mb-8 leading-[0.95]">
               Find Your <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-pulse-slow">
                 Forever.

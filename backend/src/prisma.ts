@@ -1,5 +1,5 @@
 
-import { PrismaClient } from './generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 // Shared instance to avoid connection limit issues and allow easier mocking
 // @ts-ignore

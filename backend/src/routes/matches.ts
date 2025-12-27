@@ -2,7 +2,7 @@
 import express from 'express';
 // import { pool } from '../db'; // Removing pool
 import { prisma } from '../prisma';
-import { Prisma } from '../generated/prisma/client';
+import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline } from '../socket';

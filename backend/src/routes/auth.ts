@@ -356,19 +356,34 @@ router.post('/forgot-password', async (req, res) => {
         // 4. Send Email
         console.log(`🔐 RESET OTP for ${email}: ${otp}`); // Dev log
 
-        if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('mock')) {
-            await resend.emails.send({
-                from: 'LifePartner AI Safety <security@resend.dev>',
-                to: email,
-                subject: 'Reset your LifePartner AI Password',
-                html: `
-                    <h1>Password Reset Request</h1>
-                    <p>Hello ${user.full_name},</p>
-                    <p>Use this code to reset your password:</p>
-                    <h2>${otp}</h2>
-                    <p>Expires in 10 minutes.</p>
-                `
-            });
+        try {
+            const apiKey = process.env.RESEND_API_KEY;
+
+            if (apiKey && !apiKey.toLowerCase().includes('mock')) {
+                const { data, error } = await resend.emails.send({
+                    from: 'LifePartner AI Safety <security@resend.dev>',
+                    to: email,
+                    subject: 'Reset your LifePartner AI Password',
+                    html: `
+                        <h1>Password Reset Request</h1>
+                        <p>Hello ${user.full_name},</p>
+                        <p>Use this code to reset your password:</p>
+                        <h2>${otp}</h2>
+                        <p>Expires in 10 minutes.</p>
+                        <p>If you didn't request this, you can ignore this email.</p>
+                    `
+                });
+
+                if (error) {
+                    console.error("Forgot PW Email Error:", error);
+                } else {
+                    console.log(`✅ Reset OTP sent: ${data?.id}`);
+                }
+            } else {
+                console.warn(`⚠️ Reset Email skipped: missing/mock key.`);
+            }
+        } catch (emailErr) {
+            console.error("Email Exception:", emailErr);
         }
 
         res.json({ success: true, message: "OTP sent" });

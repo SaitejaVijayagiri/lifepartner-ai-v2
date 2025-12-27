@@ -22,8 +22,10 @@ export default function ForgotPasswordPage() {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
             await axios.post(`${apiUrl}/auth/forgot-password`, { email });
             setIsSent(true);
-        } catch (err) {
-            toast.error("Something went wrong. Please try again.");
+        } catch (err: any) {
+            console.error("Forgot Password Error:", err);
+            const msg = err.response?.data?.error || err.message || "Something went wrong. Please try again.";
+            toast.error(msg);
         } finally {
             setIsLoading(false);
         }

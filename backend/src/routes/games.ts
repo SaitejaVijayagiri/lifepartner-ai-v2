@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
+// Defined directly here or imported from types
 const QUESTIONS = [
     { id: 1, text: "Ideal Vacation?", options: ["Relaxing Beach 🏖️", "Adventure Hike 🏔️"] },
     { id: 2, text: "Friday Night?", options: ["Netflix & Chill 🍿", "Party Out 💃"] },
@@ -20,19 +21,16 @@ router.post('/start', authenticateToken, async (req: any, res) => {
 
         if (!partnerId) return res.status(400).json({ error: "Partner ID required" });
 
-        const client = await pool.connect();
-
         // Check if active game exists? For simplicity, we create a new one.
-        const result = await client.query(`
-            INSERT INTO games (player_a_id, player_b_id, status)
-            VALUES ($1, $2, 'ACTIVE')
-            RETURNING id
-        `, [userId, partnerId]);
+        const game = await prisma.games.create({
+            data: {
+                player_a_id: userId,
+                player_b_id: partnerId,
+                status: 'ACTIVE'
+            }
+        });
 
-        const gameId = result.rows[0].id;
-        client.release();
-
-        res.json({ success: true, gameId, questions: QUESTIONS });
+        res.json({ success: true, gameId: game.id, questions: QUESTIONS });
     } catch (e: any) {
         console.error("Start Game Error", e);
         res.status(500).json({ error: "Failed to start game" });
@@ -48,11 +46,17 @@ router.post('/scenario/start', authenticateToken, async (req: any, res) => {
         console.log(`Generating AI Scenario for ${userId} & ${partnerId}`);
 
         // 1. Fetch Profiles
-        const p1 = await pool.query('SELECT metadata, bio FROM profiles WHERE user_id = $1', [userId]);
-        const p2 = await pool.query('SELECT metadata, bio FROM profiles WHERE user_id = $1', [partnerId]);
+        const p1 = await prisma.profiles.findUnique({
+            where: { user_id: userId },
+            select: { metadata: true }
+        });
+        const p2 = await prisma.profiles.findUnique({
+            where: { user_id: partnerId },
+            select: { metadata: true }
+        });
 
-        const profileA = p1.rows[0] || { bio: "Unknown" };
-        const profileB = p2.rows[0] || { bio: "Unknown" };
+        const profileA = { bio: (p1?.metadata as any)?.bio || "Unknown" };
+        const profileB = { bio: (p2?.metadata as any)?.bio || "Unknown" };
 
         // 2. Generate Scenario
         const { AIService } = await import('../services/ai');
@@ -75,42 +79,56 @@ router.post('/:id/answer', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { questionId, optionIndex } = req.body;
 
-        const client = await pool.connect();
-
         // 1. Verify Game Participation
-        const gameRes = await client.query("SELECT * FROM games WHERE id = $1", [id]);
-        if (gameRes.rows.length === 0) {
-            client.release();
+        const game = await prisma.games.findUnique({
+            where: { id }
+        });
+
+        if (!game) {
             return res.status(404).json({ error: "Game not found" });
         }
-        const game = gameRes.rows[0];
 
         if (game.player_a_id !== userId && game.player_b_id !== userId) {
-            client.release();
             return res.status(403).json({ error: "Not a player in this game" });
         }
 
-        // 2. Save Answer (Upsert to allow changing answer? No, immutable for now)
-        await client.query(`
-            INSERT INTO game_moves (game_id, question_id, player_id, answer_index)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (game_id, question_id, player_id) DO NOTHING
-        `, [id, questionId, userId, optionIndex]);
+        // 2. Save Answer
+        await prisma.game_moves.upsert({
+            where: {
+                // Assuming "game_id_question_id_player_id" based on previous scripts.
+                game_id_question_id_player_id: {
+                    game_id: id,
+                    question_id: questionId,
+                    player_id: userId
+                }
+            },
+            create: {
+                game_id: id,
+                question_id: questionId,
+                player_id: userId,
+                answer_index: optionIndex
+            },
+            update: {} // DO NOTHING
+        });
 
         // 3. Check for Match immediately (Optional)
-        // OR Return partner's answer if they already answered
-        const partnerId = (game.player_a_id === userId) ? game.player_b_id : game.player_a_id;
+        // Ensure player_a_id and player_b_id are valid strings for this logic
+        const pA = game.player_a_id || "";
+        const pB = game.player_b_id || "";
+        const partnerId = (pA === userId) ? pB : pA;
 
-        const partnerMove = await client.query(`
-            SELECT answer_index FROM game_moves 
-            WHERE game_id = $1 AND question_id = $2 AND player_id = $3
-        `, [id, questionId, partnerId]);
-
-        client.release();
+        const partnerMove = await prisma.game_moves.findFirst({
+            where: {
+                game_id: id,
+                question_id: questionId,
+                player_id: partnerId
+            },
+            select: { answer_index: true }
+        });
 
         let partnerChoice = null;
-        if (partnerMove.rows.length > 0) {
-            partnerChoice = partnerMove.rows[0].answer_index;
+        if (partnerMove) {
+            partnerChoice = partnerMove.answer_index;
         }
 
         res.json({ success: true, partnerChoice });
@@ -127,28 +145,33 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
         const { id } = req.params;
         const userId = req.user.userId;
 
-        const client = await pool.connect();
-
         // Verify Auth
-        const gameRes = await client.query("SELECT * FROM games WHERE id = $1", [id]);
-        if (gameRes.rows.length === 0) return res.status(404).json({ error: "Game not found" });
-        const game = gameRes.rows[0];
+        const game = await prisma.games.findUnique({
+            where: { id }
+        });
+
+        if (!game) return res.status(404).json({ error: "Game not found" });
 
         // Fetch Moves
-        const movesRes = await client.query("SELECT question_id, player_id, answer_index FROM game_moves WHERE game_id = $1", [id]);
-
-        client.release();
+        const moves = await prisma.game_moves.findMany({
+            where: { game_id: id },
+            select: { question_id: true, player_id: true, answer_index: true }
+        });
 
         // Reconstruct State
+        const pA = game.player_a_id || "";
+        const pB = game.player_b_id || "";
+        const partnerId = (pA === userId) ? pB : pA;
+
         const questionsWithAnswers = QUESTIONS.map(q => {
-            const myMove = movesRes.rows.find((m: any) => m.question_id === q.id && m.player_id === userId);
-            const otherMove = movesRes.rows.find((m: any) => m.question_id === q.id && m.player_id !== userId);
+            const myMove = moves.find((m: any) => m.question_id === q.id && m.player_id === userId);
+            const otherMove = moves.find((m: any) => m.question_id === q.id && m.player_id !== userId);
 
             return {
                 ...q,
                 answers: {
                     [userId]: myMove ? myMove.answer_index : undefined,
-                    [game.player_a_id === userId ? game.player_b_id : game.player_a_id]: otherMove ? otherMove.answer_index : undefined
+                    [partnerId]: otherMove ? otherMove.answer_index : undefined
                 }
             };
         });

@@ -75,12 +75,22 @@ export class NotificationService {
         }
     }
 
-    public async sendToUser(pool: any, userId: string, title: string, body: string, data?: any) {
+    // Updated signature: No pool arg
+    public async sendToUser(userId: string, title: string, body: string, data?: any) {
         // 1. Get tokens
-        const res = await pool.query("SELECT token FROM device_tokens WHERE user_id = $1", [userId]);
-        if (res.rows.length === 0) return;
+        // Import prisma dynamically or assume global? Better to import. 
+        // Circular dep risk? No, service doesn't import routes/server. 
+        // But importing prisma client is fine.
+        const { prisma } = require('../prisma');
 
-        const tokens = res.rows.map((r: any) => r.token);
+        const tokensRec = await prisma.device_tokens.findMany({
+            where: { user_id: userId },
+            select: { token: true }
+        });
+
+        if (tokensRec.length === 0) return;
+
+        const tokens = tokensRec.map((r: any) => r.token);
 
         // 2. Send (Parallel)
         // If real firebase is off, we just mock log

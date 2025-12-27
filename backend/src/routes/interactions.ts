@@ -1,5 +1,6 @@
 import express from 'express';
-import { pool } from '../db';
+// import { pool } from '../db';
+import { prisma } from '../prisma';
 import { getIO } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
 
@@ -10,31 +11,32 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const client = await pool.connect();
-        const result = await client.query(`
-            SELECT i.id as interaction_id, i.created_at,
-                   u.id as from_id, u.full_name as from_name, u.avatar_url
-            FROM interactions i
-            JOIN users u ON i.from_user_id = u.id
-            WHERE i.to_user_id = $1 
-              AND i.type = 'REQUEST' 
-              AND i.status = 'pending'
-        `, [userId]);
-
-        client.release();
-
-        const requests = result.rows.map(r => ({
-            interactionId: r.interaction_id,
-            fromUser: {
-                id: r.from_id,
-                name: r.from_name,
-                photoUrl: r.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.from_id}`,
-                career: { profession: "Member" }
+        const requests = await prisma.interactions.findMany({
+            where: {
+                to_user_id: userId,
+                type: 'REQUEST',
+                status: 'pending'
             },
-            timestamp: r.created_at
-        }));
+            include: {
+                users_interactions_from_user_idTousers: true
+            }
+        });
 
-        res.json(requests);
+        const formattedRequests = requests.map(r => {
+            const fromUser = r.users_interactions_from_user_idTousers!;
+            return {
+                interactionId: r.id,
+                fromUser: {
+                    id: fromUser.id,
+                    name: fromUser.full_name,
+                    photoUrl: fromUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser.id}`,
+                    career: { profession: "Member" }
+                },
+                timestamp: r.created_at
+            };
+        });
+
+        res.json(formattedRequests);
     } catch (e) {
         console.error("Get Requests Error", e);
         res.status(500).json({ error: "Failed" });
@@ -46,34 +48,33 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const client = await pool.connect();
-        // Find interactions where status='connected' AND (from=me OR to=me)
-        // type might be 'REQUEST' (origin) or we just look for status='connected'
-        const result = await client.query(`
-            SELECT i.id as interaction_id, i.created_at,
-                   u1.id as u1_id, u1.full_name as u1_name, u1.avatar_url as u1_avatar,
-                   u2.id as u2_id, u2.full_name as u2_name, u2.avatar_url as u2_avatar
-            FROM interactions i
-            JOIN users u1 ON i.from_user_id = u1.id
-            JOIN users u2 ON i.to_user_id = u2.id
-            WHERE (i.from_user_id = $1 OR i.to_user_id = $1) 
-              AND i.status = 'connected'
-        `, [userId]);
+        const connections = await prisma.interactions.findMany({
+            where: {
+                OR: [
+                    { from_user_id: userId },
+                    { to_user_id: userId }
+                ],
+                status: 'connected'
+            },
+            include: {
+                users_interactions_from_user_idTousers: true,
+                users_interactions_to_user_idTousers: true
+            }
+        });
 
-        client.release();
+        const formattedConnections = connections.map(r => {
+            const u1 = r.users_interactions_from_user_idTousers!;
+            const u2 = r.users_interactions_to_user_idTousers!;
 
-        const connections = result.rows.map(r => {
-            const isFromMe = r.u1_id === userId;
-            const partnerId = isFromMe ? r.u2_id : r.u1_id;
-            const partnerName = isFromMe ? r.u2_name : r.u1_name;
-            const partnerAvatar = isFromMe ? r.u2_avatar : r.u1_avatar;
+            const isFromMe = r.from_user_id === userId;
+            const partner = isFromMe ? u2 : u1;
 
             return {
-                interactionId: r.interaction_id,
+                interactionId: r.id,
                 partner: {
-                    id: partnerId,
-                    name: partnerName,
-                    photoUrl: partnerAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partnerId}`,
+                    id: partner.id,
+                    name: partner.full_name,
+                    photoUrl: partner.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.id}`,
                     role: "Member",
                     location: "India"
                 },
@@ -81,7 +82,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             };
         });
 
-        res.json(connections);
+        res.json(formattedConnections);
     } catch (e) {
         console.error("Get Connections Error", e);
         res.status(500).json({ error: "Failed" });
@@ -95,13 +96,16 @@ router.delete('/connections/:id', authenticateToken, async (req: any, res) => {
 
         const { id } = req.params;
         // Verify user is part of the connection
-        const client = await pool.connect();
-        await client.query(`
-            DELETE FROM interactions 
-            WHERE id = $1 AND (from_user_id = $2 OR to_user_id = $2)
-        `, [id, userId]);
+        await prisma.interactions.deleteMany({
+            where: {
+                id: id,
+                OR: [
+                    { from_user_id: userId },
+                    { to_user_id: userId }
+                ]
+            }
+        });
 
-        client.release();
         res.json({ success: true });
     } catch (e) {
         console.error("Delete Connection Error", e);
@@ -121,33 +125,37 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { toUserId } = req.body;
 
-        const client = await pool.connect();
+        // Fetch Names & Premium
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { full_name: true, is_premium: true }
+        });
+        const target = await prisma.users.findUnique({
+            where: { id: toUserId },
+            select: { full_name: true, email: true }
+        });
 
-        // Fetch Names for Email
-        const userRes = await client.query('SELECT full_name, email FROM users WHERE id = $1', [userId]);
-        const targetRes = await client.query('SELECT full_name, email FROM users WHERE id = $1', [toUserId]);
-        const myName = userRes.rows[0].full_name;
-        const targetEmail = targetRes.rows[0].email;
-        const targetName = targetRes.rows[0].full_name;
+        if (!user || !target) return res.status(404).json({ error: "User not found" });
 
-        // UPSERT Interaction: type='REQUEST'
+        const myName = user.full_name || "Someone";
+        const targetName = target.full_name || "User";
+        const targetEmail = target.email;
+        const isPremium = user.is_premium;
 
-        // REVENUE PROTECTION: Rate Limit for Free Users (5 per day)
-        const userCheck = await client.query('SELECT is_premium FROM users WHERE id = $1', [userId]);
-        const isPremium = userCheck.rows[0]?.is_premium;
-
+        // Rate Limit (Free: 5/day)
         if (!isPremium) {
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            const countRes = await client.query(`
-                SELECT COUNT(*) FROM interactions 
-                WHERE from_user_id = $1 AND type = 'REQUEST' AND created_at >= $2
-            `, [userId, todayStart]);
+            const todayCount = await prisma.interactions.count({
+                where: {
+                    from_user_id: userId,
+                    type: 'REQUEST',
+                    created_at: { gte: todayStart }
+                }
+            });
 
-            const todayCount = parseInt(countRes.rows[0].count);
             if (todayCount >= 5) {
-                client.release();
                 return res.status(403).json({
                     error: "Daily Limit Reached",
                     message: "You have reached your daily limit of 5 interests. Upgrade to Premium for unlimited connections!"
@@ -155,22 +163,42 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
             }
         }
 
-        await client.query(`
-            INSERT INTO public.interactions (from_user_id, to_user_id, type, status)
-            VALUES ($1, $2, 'REQUEST', 'pending')
-            ON CONFLICT (from_user_id, to_user_id, type) 
-            DO UPDATE SET status = 'pending', created_at = NOW()
-        `, [userId, toUserId]);
+        // UPSERT Interaction
+        // UPSERT Interaction
+        await prisma.interactions.upsert({
+            where: {
+                // Prisma uses the field names concatenated by default unless named with @@unique(name:...)
+                from_user_id_to_user_id_type: {
+                    from_user_id: userId,
+                    to_user_id: toUserId,
+                    type: 'REQUEST'
+                }
+            },
+            update: {
+                status: 'pending',
+                created_at: new Date()
+            },
+            create: {
+                from_user_id: userId,
+                to_user_id: toUserId,
+                type: 'REQUEST',
+                status: 'pending'
+            }
+        });
 
-        // Emit Real-time Notification & Persist
+        // Notifications
         try {
             const msg = "Someone sent you an Interest Request! 💖";
 
             // Persist
-            await client.query(`
-                INSERT INTO public.notifications (user_id, type, message, data)
-                VALUES ($1, 'request', $2, $3)
-            `, [toUserId, msg, JSON.stringify({ fromUserId: userId })]);
+            await prisma.notifications.create({
+                data: {
+                    user_id: toUserId,
+                    type: 'request',
+                    message: msg,
+                    data: { fromUserId: userId }
+                }
+            });
 
             // Realtime
             getIO().to(toUserId).emit('notification:new', {
@@ -179,14 +207,12 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 timestamp: new Date()
             });
 
-            // EMAIL ALERT
+            // Email
             await EmailService.sendInterestReceivedEmail(targetEmail, targetName, myName);
-
         } catch (err) {
             console.warn("Notification/Email failed:", err);
         }
 
-        client.release();
         res.json({ success: true });
     } catch (e) {
         console.error("Send Interest Error", e);
@@ -200,40 +226,35 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
 router.post('/requests/:interactionId/accept', authenticateToken, async (req: any, res) => {
     try {
         const { interactionId } = req.params;
-        const client = await pool.connect();
 
-        // Update Status in interactions table
-        const resDb = await client.query(`
-            UPDATE interactions 
-            SET status = 'connected' 
-            WHERE id = $1 
-            RETURNING from_user_id, to_user_id
-        `, [interactionId]);
+        // Update
+        const interaction = await prisma.interactions.update({
+            where: { id: interactionId },
+            data: { status: 'connected' },
+            select: { from_user_id: true, to_user_id: true }
+        });
 
-        if (resDb.rows.length > 0) {
-            const { from_user_id, to_user_id } = resDb.rows[0];
+        if (interaction) {
+            const { from_user_id, to_user_id } = interaction;
+            if (from_user_id && to_user_id) {
+                try {
+                    const uA = await prisma.users.findUnique({ where: { id: from_user_id } });
+                    const uB = await prisma.users.findUnique({ where: { id: to_user_id } });
 
-            // Notify Sender (from_user_id) that Receiver (to_user_id) accepted
-            try {
-                // Fetch details
-                const uA = await client.query('SELECT full_name, email FROM users WHERE id = $1', [from_user_id]);
-                const uB = await client.query('SELECT full_name FROM users WHERE id = $1', [to_user_id]);
+                    if (uA && uB) {
+                        await EmailService.sendMatchAcceptedEmail(uA.email, uA.full_name || "User", uB.full_name || "User");
 
-                if (uA.rows.length && uB.rows.length) {
-                    await EmailService.sendMatchAcceptedEmail(uA.rows[0].email, uA.rows[0].full_name, uB.rows[0].full_name);
-
-                    // Realtime Notification
-                    const msg = `Good news! ${uB.rows[0].full_name} accepted your request. You can now chat! 🎉`;
-                    getIO().to(from_user_id).emit('notification:new', {
-                        type: 'match',
-                        message: msg,
-                        timestamp: new Date()
-                    });
-                }
-            } catch (notifyErr) { console.error("Notify error", notifyErr); }
+                        const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+                        getIO().to(from_user_id).emit('notification:new', {
+                            type: 'match',
+                            message: msg,
+                            timestamp: new Date()
+                        });
+                    }
+                } catch (notifyErr) { console.error("Notify error", notifyErr); }
+            }
         }
 
-        client.release();
         res.json({ success: true });
     } catch (e) {
         console.error("Accept Error", e);
@@ -244,12 +265,12 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
 router.post('/requests/:interactionId/decline', authenticateToken, async (req: any, res) => {
     try {
         const { interactionId } = req.params;
-        const client = await pool.connect();
 
-        // Update interactions table
-        await client.query("UPDATE interactions SET status = 'declined' WHERE id = $1", [interactionId]);
+        await prisma.interactions.update({
+            where: { id: interactionId },
+            data: { status: 'declined' }
+        });
 
-        client.release();
         res.json({ success: true });
     } catch (e) {
         console.error("Decline Error", e);
@@ -265,13 +286,15 @@ router.post('/report', authenticateToken, async (req: any, res) => {
         const { reportedId, reason, details } = req.body;
         if (!reportedId || !reason) return res.status(400).json({ error: "Missing fields" });
 
-        const client = await pool.connect();
-        await client.query(`
-            INSERT INTO public.reports (reporter_id, reported_id, reason, details)
-            VALUES ($1, $2, $3, $4)
-        `, [userId, reportedId, reason, details || '']);
+        await prisma.reports.create({
+            data: {
+                reporter_id: userId,
+                reported_id: reportedId,
+                reason,
+                details: details || ''
+            }
+        });
 
-        client.release();
         res.json({ success: true, message: "Report submitted" });
 
     } catch (e) {
@@ -288,13 +311,10 @@ router.post('/contact', async (req, res) => {
             return res.status(400).json({ error: "Missing fields" });
         }
 
-        const client = await pool.connect();
-        await client.query(`
-            INSERT INTO public.contact_inquiries (name, email, message)
-            VALUES ($1, $2, $3)
-        `, [name, email, message]);
+        await prisma.contact_inquiries.create({
+            data: { name, email, message }
+        });
 
-        client.release();
         res.json({ success: true, message: "Inquiry received" });
     } catch (e) {
         console.error("Contact Form Error", e);
@@ -302,62 +322,61 @@ router.post('/contact', async (req, res) => {
     }
 });
 
-// GET /who-liked-me - Premium Feature: See who liked your profile
+// GET /who-liked-me - Premium Feature
 router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-        const client = await pool.connect();
 
-        // Check premium status
-        const userRes = await client.query('SELECT is_premium FROM public.users WHERE id = $1', [userId]);
-        const isPremium = userRes.rows[0]?.is_premium;
+        // Check premium
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { is_premium: true }
+        });
+        const isPremium = user?.is_premium || false;
 
-        // Get users who liked me (where user_b_id = me and is_liked = true)
-        const likesRes = await client.query(`
-            SELECT m.user_a_id, m.created_at, m.is_liked,
-                   u.full_name, u.avatar_url, u.age, u.location_name,
-                   p.metadata
-            FROM public.matches m
-            JOIN public.users u ON m.user_a_id = u.id
-            LEFT JOIN public.profiles p ON u.id = p.user_id
-            WHERE m.user_b_id = $1 AND m.is_liked = TRUE
-            ORDER BY m.created_at DESC
-            LIMIT 50
-        `, [userId]);
+        // Get likes
+        const likes = await prisma.matches.findMany({
+            where: {
+                user_b_id: userId,
+                is_liked: true
+            },
+            orderBy: { created_at: 'desc' },
+            take: 50,
+            include: {
+                users_matches_user_a_idTousers: {
+                    include: { profiles: true }
+                }
+            }
+        });
 
-        client.release();
+        const totalLikes = likes.length;
 
-        const totalLikes = likesRes.rows.length;
+        // Map Results
+        const formattedLikes = likes.map(r => {
+            const u = r.users_matches_user_a_idTousers!;
+            const meta = (u.profiles?.metadata as any) || {};
 
-        // If not premium, return count but blur the details
-        if (!isPremium) {
-            const blurredLikes = likesRes.rows.slice(0, 3).map((r, i) => ({
-                id: r.user_a_id,
-                name: "???",
-                age: "??",
-                photoUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${i}`, // Generic shape
-                location: "Hidden",
-                isBlurred: true,
-                likedAt: r.created_at
-            }));
+            const isBlurred = !isPremium;
 
-            return res.json({
-                isPremium: false,
-                totalLikes,
-                message: `${totalLikes} people liked your profile! Upgrade to Premium to see who.`,
-                likes: blurredLikes
-            });
-        }
+            // If blurred, hide details
+            if (isBlurred) {
+                return {
+                    id: u.id,
+                    name: "???",
+                    age: "??",
+                    photoUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`,
+                    location: "Hidden",
+                    isBlurred: true,
+                    likedAt: r.created_at
+                };
+            }
 
-        // Premium users get full details
-        const likes = likesRes.rows.map(r => {
-            const meta = r.metadata || {};
             return {
-                id: r.user_a_id,
-                name: r.full_name || "User",
-                age: r.age || meta.age,
-                photoUrl: r.avatar_url || meta.photos?.[0] || `https://api.dicebear.com/7.x/avataaars/svg?seed=${r.user_a_id}`,
-                location: r.location_name || meta.location?.city || "India",
+                id: u.id,
+                name: u.full_name || "User",
+                age: u.age || meta.age,
+                photoUrl: u.avatar_url || meta.photos?.[0] || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
+                location: u.location_name || meta.location?.city || "India",
                 profession: meta.career?.profession || "Professional",
                 isBlurred: false,
                 likedAt: r.created_at
@@ -365,9 +384,10 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
         });
 
         res.json({
-            isPremium: true,
+            isPremium,
             totalLikes,
-            likes
+            likes: formattedLikes,
+            message: !isPremium ? `${totalLikes} people liked your profile! Upgrade to Premium to see who.` : undefined
         });
 
     } catch (e) {
@@ -384,28 +404,39 @@ router.post('/block', authenticateToken, async (req: any, res) => {
 
         if (!blockedId) return res.status(400).json({ error: "Missing blockedId" });
 
-        const client = await pool.connect();
+        // 1. Create Block (ignore if exists)
+        // Using upsert or catch unique constraint
+        await prisma.blocks.upsert({
+            where: {
+                blocker_id_blocked_id: {
+                    blocker_id: userId,
+                    blocked_id: blockedId
+                }
+            },
+            create: { blocker_id: userId, blocked_id: blockedId },
+            update: {}
+        });
 
-        // 1. Insert Block
-        await client.query(`
-            INSERT INTO public.blocks (blocker_id, blocked_id)
-            VALUES ($1, $2)
-            ON CONFLICT (blocker_id, blocked_id) DO NOTHING
-        `, [userId, blockedId]);
+        // 2. Remove Matches
+        await prisma.matches.deleteMany({
+            where: {
+                OR: [
+                    { user_a_id: userId, user_b_id: blockedId },
+                    { user_a_id: blockedId, user_b_id: userId }
+                ]
+            }
+        });
 
-        // 2. Remove any existing Connection/Match
-        await client.query(`
-            DELETE FROM public.matches 
-            WHERE (user_a_id = $1 AND user_b_id = $2) OR (user_a_id = $2 AND user_b_id = $1)
-        `, [userId, blockedId]);
+        // 3. Remove Interactions
+        await prisma.interactions.deleteMany({
+            where: {
+                OR: [
+                    { from_user_id: userId, to_user_id: blockedId },
+                    { from_user_id: blockedId, to_user_id: userId }
+                ]
+            }
+        });
 
-        // 3. Remove Interactions? (Optional, but safer)
-        await client.query(`
-            DELETE FROM public.interactions
-            WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
-        `, [userId, blockedId]);
-
-        client.release();
         res.json({ success: true, message: "User blocked" });
     } catch (e) {
         console.error("Block Error", e);
@@ -419,13 +450,13 @@ router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { blockedId } = req.params;
 
-        const client = await pool.connect();
-        await client.query(`
-            DELETE FROM public.blocks 
-            WHERE blocker_id = $1 AND blocked_id = $2
-        `, [userId, blockedId]);
+        await prisma.blocks.deleteMany({
+            where: {
+                blocker_id: userId,
+                blocked_id: blockedId
+            }
+        });
 
-        client.release();
         res.json({ success: true, message: "User unblocked" });
     } catch (e) {
         console.error("Unblock Error", e);
@@ -437,17 +468,24 @@ router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
 router.get('/blocked', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-        const client = await pool.connect();
 
-        const result = await client.query(`
-            SELECT b.blocked_id, u.full_name, u.avatar_url, b.created_at
-            FROM public.blocks b
-            JOIN public.users u ON b.blocked_id = u.id
-            WHERE b.blocker_id = $1
-        `, [userId]);
+        const blocks = await prisma.blocks.findMany({
+            where: { blocker_id: userId },
+            include: {
+                users_blocks_blocked_idTousers: {
+                    select: { full_name: true, avatar_url: true }
+                }
+            }
+        });
 
-        client.release();
-        res.json(result.rows);
+        const formatted = blocks.map(b => ({
+            blocked_id: b.blocked_id,
+            full_name: b.users_blocks_blocked_idTousers.full_name,
+            avatar_url: b.users_blocks_blocked_idTousers.avatar_url,
+            created_at: b.created_at
+        }));
+
+        res.json(formatted);
     } catch (e) {
         console.error("Get Blocked Error", e);
         res.status(500).json({ error: "Failed to fetch blocked users" });
@@ -462,18 +500,23 @@ router.post('/view', authenticateToken, async (req: any, res) => {
 
         if (!targetId || userId === targetId) return res.sendStatus(200);
 
-        const client = await pool.connect();
+        await prisma.interactions.upsert({
+            where: {
+                from_user_id_to_user_id_type: {
+                    from_user_id: userId,
+                    to_user_id: targetId,
+                    type: 'VIEW'
+                }
+            },
+            update: { created_at: new Date() },
+            create: {
+                from_user_id: userId,
+                to_user_id: targetId,
+                type: 'VIEW',
+                status: 'seen'
+            }
+        });
 
-        // Upsert Interaction (type='VIEW')
-        // We update 'created_at' to keep track of the LATEST view
-        await client.query(`
-            INSERT INTO public.interactions (from_user_id, to_user_id, type, status)
-            VALUES ($1, $2, 'VIEW', 'seen')
-            ON CONFLICT (from_user_id, to_user_id, type) 
-            DO UPDATE SET created_at = NOW()
-        `, [userId, targetId]);
-
-        client.release();
         res.json({ success: true });
     } catch (e) {
         console.error("View Profile Error", e);
@@ -485,39 +528,40 @@ router.post('/view', authenticateToken, async (req: any, res) => {
 router.get('/visitors', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-        const client = await pool.connect();
 
         // Check premium
-        const userRes = await client.query('SELECT is_premium FROM public.users WHERE id = $1', [userId]);
-        const isPremium = userRes.rows[0]?.is_premium;
+        const user = await prisma.users.findUnique({
+            where: { id: userId }, select: { is_premium: true }
+        });
+        const isPremium = user?.is_premium || false;
 
-        const result = await client.query(`
-            SELECT i.from_user_id, i.created_at,
-                   u.full_name, u.avatar_url, u.age, u.location_name,
-                   p.metadata
-            FROM public.interactions i
-            JOIN public.users u ON i.from_user_id = u.id
-            LEFT JOIN public.profiles p ON u.id = p.user_id
-            WHERE i.to_user_id = $1 AND i.type = 'VIEW'
-            ORDER BY i.created_at DESC
-            LIMIT 20
-        `, [userId]);
+        const visitors = await prisma.interactions.findMany({
+            where: {
+                to_user_id: userId,
+                type: 'VIEW'
+            },
+            orderBy: { created_at: 'desc' },
+            take: 20,
+            include: {
+                users_interactions_from_user_idTousers: {
+                    include: { profiles: true }
+                }
+            }
+        });
 
-        client.release();
-
-        const visitors = result.rows.map(r => {
-            // If NOT premium, blur details (except for the first one maybe? No, blur all for teasing)
-            const meta = r.metadata || {};
+        const formattedVisitors = visitors.map(r => {
+            const u = r.users_interactions_from_user_idTousers!;
+            const meta = (u.profiles?.metadata as any) || {};
             const isBlurred = !isPremium;
 
             return {
-                id: r.from_user_id,
-                name: isBlurred ? "Verify to Unlock" : (r.full_name || "User"),
-                age: isBlurred ? "??" : (r.age || meta.age),
+                id: u.id,
+                name: isBlurred ? "Verify to Unlock" : (u.full_name || "User"),
+                age: isBlurred ? "??" : (u.age || meta.age),
                 photoUrl: isBlurred
-                    ? `https://api.dicebear.com/7.x/shapes/svg?seed=${r.from_user_id}`
-                    : (r.avatar_url || meta.photos?.[0]),
-                location: isBlurred ? "Hidden" : (r.location_name || meta.location?.city || "India"),
+                    ? `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`
+                    : (u.avatar_url || meta.photos?.[0]),
+                location: isBlurred ? "Hidden" : (u.location_name || meta.location?.city || "India"),
                 profession: isBlurred ? "Hidden" : (meta.career?.profession || "Professional"),
                 viewedAt: r.created_at,
                 isBlurred
@@ -526,7 +570,7 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
 
         res.json({
             isPremium,
-            visitors
+            visitors: formattedVisitors
         });
 
     } catch (e) {

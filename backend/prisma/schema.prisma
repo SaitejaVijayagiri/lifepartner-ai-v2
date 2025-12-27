@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model blocks {
+  blocker_id                     String    @db.Uuid
+  blocked_id                     String    @db.Uuid
+  created_at                     DateTime? @default(now()) @db.Timestamp(6)
+  users_blocks_blocked_idTousers users     @relation("blocks_blocked_idTousers", fields: [blocked_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_blocks_blocker_idTousers users     @relation("blocks_blocker_idTousers", fields: [blocker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([blocker_id, blocked_id])
+}
+
+model call_logs {
+  id                                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caller_id                          String?   @db.Uuid
+  receiver_id                        String?   @db.Uuid
+  type                               String?   @default("VIDEO") @db.VarChar(10)
+  status                             String?   @default("COMPLETED") @db.VarChar(20)
+  duration_seconds                   Int?      @default(0)
+  started_at                         DateTime? @default(now()) @db.Timestamp(6)
+  ended_at                           DateTime? @db.Timestamp(6)
+  users_call_logs_caller_idTousers   users?    @relation("call_logs_caller_idTousers", fields: [caller_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_call_logs_receiver_idTousers users?    @relation("call_logs_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model contact_inquiries {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String    @db.VarChar(255)
+  email      String    @db.VarChar(255)
+  message    String
+  status     String?   @default("new") @db.VarChar(50)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model device_tokens {
+  user_id    String    @db.Uuid
+  token      String
+  platform   String?   @db.VarChar(20)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, token])
+}
+
+model game_moves {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  game_id      String?   @db.Uuid
+  question_id  Int
+  player_id    String?   @db.Uuid
+  answer_index Int
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  games        games?    @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users        users?    @relation(fields: [player_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([game_id, question_id, player_id])
+}
+
+model games {
+  id                             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_a_id                    String?      @db.Uuid
+  player_b_id                    String?      @db.Uuid
+  status                         String?      @default("ACTIVE") @db.VarChar(50)
+  winner_id                      String?      @db.Uuid
+  created_at                     DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime?    @default(now()) @db.Timestamp(6)
+  game_moves                     game_moves[]
+  users_games_player_a_idTousers users?       @relation("games_player_a_idTousers", fields: [player_a_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_games_player_b_idTousers users?       @relation("games_player_b_idTousers", fields: [player_b_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_games_winner_idTousers   users?       @relation("games_winner_idTousers", fields: [winner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model interactions {
+  id                                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  from_user_id                           String?   @db.Uuid
+  to_user_id                             String?   @db.Uuid
+  type                                   String    @db.VarChar(20)
+  status                                 String?   @default("PENDING") @db.VarChar(20)
+  created_at                             DateTime? @default(now()) @db.Timestamp(6)
+  users_interactions_from_user_idTousers users?    @relation("interactions_from_user_idTousers", fields: [from_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_interactions_to_user_idTousers   users?    @relation("interactions_to_user_idTousers", fields: [to_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([from_user_id, to_user_id, type], map: "unique_interaction_type")
+}
+
+model matches {
+  id                             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_a_id                      String?    @db.Uuid
+  user_b_id                      String?    @db.Uuid
+  score_total                    Float?
+  score_details                  Json?
+  ai_analysis                    String?
+  status                         String?    @default("pending") @db.VarChar(20)
+  created_at                     DateTime?  @default(now()) @db.Timestamp(6)
+  is_liked                       Boolean?   @default(false)
+  users_matches_user_a_idTousers users?     @relation("matches_user_a_idTousers", fields: [user_a_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_matches_user_b_idTousers users?     @relation("matches_user_b_idTousers", fields: [user_b_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  messages                       messages[]
+
+  @@unique([user_a_id, user_b_id])
+  @@index([status], map: "idx_matches_status")
+  @@index([user_a_id], map: "idx_matches_user_a")
+  @@index([user_b_id], map: "idx_matches_user_b")
+}
+
+model messages {
+  id                                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  match_id                          String?   @db.Uuid
+  sender_id                         String?   @db.Uuid
+  content                           String?
+  is_mediator_message               Boolean?  @default(false)
+  created_at                        DateTime? @default(now()) @db.Timestamp(6)
+  receiver_id                       String?   @db.Uuid
+  matches                           matches?  @relation(fields: [match_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_messages_receiver_idTousers users?    @relation("messages_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_messages_sender_idTousers   users?    @relation("messages_sender_idTousers", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([match_id], map: "idx_messages_match")
+  @@index([sender_id], map: "idx_messages_sender")
+  @@index([created_at], map: "idx_messages_timestamp")
+}
+
+model notifications {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  type       String    @db.VarChar(50)
+  message    String
+  data       Json?     @default("{}")
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_notifications_created_at")
+  @@index([user_id], map: "idx_notifications_user_id")
+}
+
+model profiles {
+  user_id         String                 @id @db.Uuid
+  raw_prompt      String?
+  voice_intro_url String?
+  embedding       Unsupported("vector")?
+  traits          Json?
+  values          Json?
+  dealbreakers    Json?
+  updated_at      DateTime?              @default(now()) @db.Timestamp(6)
+  reels           Json?                  @default("[]")
+  metadata        Json?                  @default("{}")
+  stories         Json?                  @default("[]")
+  photos          Json?                  @default("[]")
+  location_name   String?
+  users           users                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model reel_comments {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reel_id    String?   @db.Uuid
+  user_id    String?   @db.Uuid
+  text       String
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  reels      reels?    @relation(fields: [reel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model reel_likes {
+  reel_id    String    @db.Uuid
+  user_id    String    @db.Uuid
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  reels      reels     @relation(fields: [reel_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([reel_id, user_id])
+}
+
+model reels {
+  id             String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id        String?         @db.Uuid
+  video_url      String
+  caption        String?
+  created_at     DateTime?       @default(now()) @db.Timestamptz(6)
+  views          Int?            @default(0)
+  tags           String[]
+  likes          Int?            @default(0)
+  comments_count Int?            @default(0)
+  reel_comments  reel_comments[]
+  reel_likes     reel_likes[]
+  users          users?          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model reports {
+  id                               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reporter_id                      String?   @db.Uuid
+  reported_id                      String?   @db.Uuid
+  reason                           String
+  details                          String?
+  status                           String?   @default("open") @db.VarChar(50)
+  created_at                       DateTime? @default(now()) @db.Timestamptz(6)
+  users_reports_reported_idTousers users?    @relation("reports_reported_idTousers", fields: [reported_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_reports_reporter_idTousers users?    @relation("reports_reporter_idTousers", fields: [reporter_id], references: [id], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+model transactions {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id     String?   @db.Uuid
+  type        String    @db.VarChar(20)
+  amount      Int
+  description String?
+  metadata    Json?
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  currency    String?   @default("INR") @db.VarChar(10)
+  status      String?   @default("SUCCESS") @db.VarChar(50)
+  users       users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model users {
+  id                                            String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                                         String                    @unique @db.VarChar(255)
+  password_hash                                 String                    @db.VarChar(255)
+  full_name                                     String?                   @db.VarChar(100)
+  age                                           Int?
+  gender                                        String?                   @db.VarChar(20)
+  location_name                                 String?                   @db.VarChar(255)
+  location_coords                               Unsupported("geography")?
+  relocation_willingness                        String?                   @default("anywhere") @db.VarChar(50)
+  intent                                        String?                   @default("serious") @db.VarChar(50)
+  created_at                                    DateTime?                 @default(now()) @db.Timestamp(6)
+  phone                                         String?                   @unique @db.VarChar(20)
+  otp_code                                      String?                   @db.VarChar(6)
+  otp_expires_at                                DateTime?                 @db.Timestamp(6)
+  is_verified                                   Boolean?                  @default(false)
+  avatar_url                                    String?
+  is_premium                                    Boolean?                  @default(false)
+  razorpay_customer_id                          String?                   @db.VarChar(100)
+  premium_expiry                                DateTime?                 @db.Timestamp(6)
+  google_id                                     String?                   @unique @db.VarChar(255)
+  apple_id                                      String?                   @unique @db.VarChar(255)
+  coins                                         Int?                      @default(0)
+  is_boosted                                    Boolean?                  @default(false)
+  boost_expires_at                              DateTime?                 @db.Timestamp(6)
+  voice_bio_url                                 String?                   @db.VarChar(255)
+  referral_code                                 String?                   @unique @db.VarChar(10)
+  referred_by                                   String?                   @db.Uuid
+  city                                          String?                   @db.VarChar(100)
+  district                                      String?                   @db.VarChar(100)
+  state                                         String?                   @db.VarChar(100)
+  is_admin                                      Boolean?                  @default(false)
+  is_banned                                     Boolean?                  @default(false)
+  blocks_blocks_blocked_idTousers               blocks[]                  @relation("blocks_blocked_idTousers")
+  blocks_blocks_blocker_idTousers               blocks[]                  @relation("blocks_blocker_idTousers")
+  call_logs_call_logs_caller_idTousers          call_logs[]               @relation("call_logs_caller_idTousers")
+  call_logs_call_logs_receiver_idTousers        call_logs[]               @relation("call_logs_receiver_idTousers")
+  device_tokens                                 device_tokens[]
+  game_moves                                    game_moves[]
+  games_games_player_a_idTousers                games[]                   @relation("games_player_a_idTousers")
+  games_games_player_b_idTousers                games[]                   @relation("games_player_b_idTousers")
+  games_games_winner_idTousers                  games[]                   @relation("games_winner_idTousers")
+  interactions_interactions_from_user_idTousers interactions[]            @relation("interactions_from_user_idTousers")
+  interactions_interactions_to_user_idTousers   interactions[]            @relation("interactions_to_user_idTousers")
+  matches_matches_user_a_idTousers              matches[]                 @relation("matches_user_a_idTousers")
+  matches_matches_user_b_idTousers              matches[]                 @relation("matches_user_b_idTousers")
+  messages_messages_receiver_idTousers          messages[]                @relation("messages_receiver_idTousers")
+  messages_messages_sender_idTousers            messages[]                @relation("messages_sender_idTousers")
+  notifications                                 notifications[]
+  profiles                                      profiles?
+  reel_comments                                 reel_comments[]
+  reel_likes                                    reel_likes[]
+  reels                                         reels[]
+  reports_reports_reported_idTousers            reports[]                 @relation("reports_reported_idTousers")
+  reports_reports_reporter_idTousers            reports[]                 @relation("reports_reporter_idTousers")
+  transactions                                  transactions[]
+  verification_requests                         verification_requests[]
+
+  @@index([age], map: "idx_users_age")
+  @@index([gender], map: "idx_users_gender")
+  @@index([is_verified], map: "idx_users_verified")
+}
+
+model verification_requests {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String?   @db.Uuid
+  document_url String?
+  status       String?   @default("PENDING") @db.VarChar(20)
+  admin_notes  String?
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}

@@ -1,5 +1,5 @@
 import express from 'express';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -45,17 +45,25 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
         }
 
         // 1. Fetch Target User's Profile
-        const targetUserQuery = await pool.query(
-            `SELECT name, interests, bio FROM users WHERE id = $1`,
-            [targetUserId]
-        );
+        const target = await prisma.users.findUnique({
+            where: { id: targetUserId },
+            select: {
+                full_name: true,
+                profiles: {
+                    select: { metadata: true }
+                }
+            }
+        });
 
-        if (targetUserQuery.rows.length === 0) {
+        if (!target) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        const target = targetUserQuery.rows[0];
-        const interests = target.interests || []; // e.g. ["travel", "photography"]
+        // Fix name property map if needed
+        const targetName = target.full_name;
+        // Extract interests from metadata (hobbies or interests)
+        const meta = (target.profiles?.metadata as any) || {};
+        const interests = (meta.interests || meta.hobbies || []) as string[];
 
         // 2. MONETIZATION CHECK (Future: deduction logic here)
         // For now, it's a "Teaser" feature (Always free or limited)
@@ -88,7 +96,7 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
 
         res.json({
             suggestions: finalSuggestions,
-            context: `Based on ${target.name}'s interests: ${interests.join(', ')}`
+            context: `Based on ${targetName}'s interests: ${interests.join(', ')}`
         });
 
     } catch (error) {

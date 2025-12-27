@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { pool } from '../db';
+// import { pool } from '../db';
+import { prisma } from '../prisma';
 
 export const adminAuth = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -15,9 +16,12 @@ export const adminAuth = async (req: Request, res: Response, next: NextFunction)
             return res.status(401).json({ message: "Unauthorized: No user ID found in token" });
         }
 
-        const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [userId]);
+        const userRecord = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { is_admin: true }
+        });
 
-        if (result.rows.length === 0 || !result.rows[0].is_admin) {
+        if (!userRecord || !userRecord.is_admin) {
             return res.status(403).json({ message: "Forbidden: Admin access only" });
         }
 

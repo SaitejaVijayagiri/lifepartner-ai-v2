@@ -4,10 +4,11 @@
     "main": "src/server.ts",
     "scripts": {
         "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+        "test": "jest",
         "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "prebuild": "npm run clean",
-        "build": "tsc",
-        "start": "node dist/server.js",
+        "build": "npx prisma generate && tsc",
+        "start": "npx prisma migrate deploy && node dist/server.js",
         "start:cluster": "pm2 start ecosystem.config.js --env production"
     },
     "engines": {
@@ -16,6 +17,7 @@
     "dependencies": {
         "@google/generative-ai": "^0.24.1",
         "@langchain/google-genai": "^2.1.2",
+        "@prisma/client": "^7.2.0",
         "@supabase/supabase-js": "^2.87.1",
         "@types/bcrypt": "^5.0.2",
         "@types/cors": "^2.8.14",
@@ -25,7 +27,6 @@
         "@types/multer": "^2.0.0",
         "@types/node": "^20.6.0",
         "@types/pdfkit": "^0.17.4",
-        "@types/pg": "^8.10.2",
         "@types/sharp": "^0.32.0",
         "@xenova/transformers": "^2.17.2",
         "axios": "^1.13.2",
@@ -44,7 +45,6 @@
         "multer": "^2.0.2",
         "openai": "^4.10.0",
         "pdfkit": "^0.17.2",
-        "pg": "^8.11.3",
         "resend": "^6.6.0",
         "sharp": "^0.34.5",
         "socket.io": "^4.8.1",
@@ -55,6 +55,12 @@
     },
     "devDependencies": {
         "@types/express-rate-limit": "^6.0.2",
-        "@types/fluent-ffmpeg": "^2.1.28"
+        "@types/fluent-ffmpeg": "^2.1.28",
+        "@types/jest": "^30.0.0",
+        "@types/supertest": "^6.0.3",
+        "jest": "^30.2.0",
+        "prisma": "^7.2.0",
+        "supertest": "^7.1.4",
+        "ts-jest": "^29.4.6"
     }
 }

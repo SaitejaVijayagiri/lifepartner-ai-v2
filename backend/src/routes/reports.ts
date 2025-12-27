@@ -1,5 +1,6 @@
 import express from 'express';
-import { pool } from '../db';
+// import { pool } from '../db';
+import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -17,17 +18,18 @@ router.post('/', authenticateToken, async (req: any, res) => {
         // Optional: Validate that reportedId exists (FK constraint will catch it too, but this is cleaner)
         // Ignoring for speed, db error will handle it.
 
-        const query = `
-            INSERT INTO public.reports (reporter_id, reported_id, reason, details)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, created_at
-        `;
-
-        const result = await pool.query(query, [reporterId, reportedId, reason, details]);
+        const report = await prisma.reports.create({
+            data: {
+                reporter_id: reporterId,
+                reported_id: reportedId,
+                reason,
+                details
+            }
+        });
 
         res.status(201).json({
             message: "Report submitted successfully",
-            reportId: result.rows[0].id
+            reportId: report.id
         });
 
     } catch (error) {
@@ -42,20 +44,26 @@ router.get('/', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         // TODO: specific admin check. For now, allow logged in users (MVP Admin URL security)
 
-        const client = await pool.connect();
-        const result = await client.query(`
-            SELECT r.id, r.reason, r.details, r.created_at,
-                   COALESCE(rep.full_name, 'Unknown User') as reporter_name,
-                   COALESCE(target.full_name, 'Deleted User') as target_name, r.reported_id as target_id
-            FROM public.reports r
-            LEFT JOIN public.users rep ON r.reporter_id = rep.id
-            LEFT JOIN public.users target ON r.reported_id = target.id
-            ORDER BY r.created_at DESC
-            LIMIT 50
-        `);
+        const reports = await prisma.reports.findMany({
+            orderBy: { created_at: 'desc' },
+            take: 50,
+            include: {
+                users_reports_reporter_idTousers: { select: { full_name: true } },
+                users_reports_reported_idTousers: { select: { full_name: true } }
+            }
+        });
 
-        client.release();
-        res.json(result.rows);
+        const formattedReports = reports.map(r => ({
+            id: r.id,
+            reason: r.reason,
+            details: r.details,
+            created_at: r.created_at,
+            reporter_name: r.users_reports_reporter_idTousers?.full_name || 'Unknown User',
+            target_name: r.users_reports_reported_idTousers?.full_name || 'Deleted User',
+            target_id: r.reported_id
+        }));
+
+        res.json(formattedReports);
     } catch (e) {
         console.error("Fetch Reports Error", e);
         res.status(500).json({ error: "Failed to fetch reports" });

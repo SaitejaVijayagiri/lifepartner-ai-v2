@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
-import { pool } from './db';
+import { prisma } from './prisma'; // Use Prisma
 import jwt from 'jsonwebtoken';
 
 let io: Server;
@@ -80,21 +80,22 @@ export const initSocket = (httpServer: HttpServer) => {
 
             try {
                 // REVENUE PROTECTION: Check if Caller is Premium
-                const client = await pool.connect();
                 // Simple validation to prevent crashes if 'from' is 'me' or invalid
                 if (from) {
-                    const userCheck = await client.query("SELECT is_premium FROM public.users WHERE id = $1", [from]);
-                    if (userCheck.rows.length === 0 || !userCheck.rows[0].is_premium) {
+                    const user = await prisma.users.findUnique({
+                        where: { id: from },
+                        select: { is_premium: true }
+                    });
+
+                    if (!user || !user.is_premium) {
                         console.log(`Blocked Call from Free User: ${from}`);
                         io.to(socket.id).emit("callError", {
                             message: "Voice & Video Calls are Premium Features. Upgrade to Plan to Unlock.",
                             code: "PREMIUM_REQUIRED"
                         });
-                        client.release();
                         return;
                     }
                 }
-                client.release();
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
@@ -132,12 +133,13 @@ export const initSocket = (httpServer: HttpServer) => {
 
             try {
                 // 1. Save to DB
-                const client = await pool.connect();
-                await client.query(
-                    `INSERT INTO public.messages (sender_id, receiver_id, content) VALUES ($1, $2, $3)`,
-                    [from, to, text]
-                );
-                client.release();
+                await prisma.messages.create({
+                    data: {
+                        sender_id: from,
+                        receiver_id: to,
+                        content: text
+                    }
+                });
 
                 // 2. Emit to Receiver
                 io.to(to).emit("receiveMessage", {

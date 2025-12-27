@@ -1,5 +1,5 @@
 import express from 'express';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,19 +7,24 @@ const router = express.Router();
 // Get Wallet Balance
 router.get('/balance', authenticateToken, async (req: any, res) => {
     try {
-        const client = await pool.connect();
-        const result = await client.query(`SELECT coins FROM users WHERE id = $1`, [req.user.userId]);
-        const transactions = await client.query(`
-            SELECT * FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20
-        `, [req.user.userId]);
+        const userId = req.user.userId;
 
-        client.release();
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { coins: true }
+        });
 
-        if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const transactions = await prisma.transactions.findMany({
+            where: { user_id: userId },
+            orderBy: { created_at: 'desc' },
+            take: 20
+        });
 
         res.json({
-            balance: result.rows[0].coins,
-            history: transactions.rows
+            balance: user.coins || 0,
+            history: transactions
         });
     } catch (e) {
         console.error(e);
@@ -30,90 +35,113 @@ router.get('/balance', authenticateToken, async (req: any, res) => {
 // Send Gift
 router.post('/gift', authenticateToken, async (req: any, res) => {
     const { toUserId, giftId, cost } = req.body;
+    const userId = req.user.userId;
 
     if (!toUserId || !cost) return res.status(400).json({ error: "Missing details" });
 
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
+        await prisma.$transaction(async (tx) => {
+            // Atomic Deduction: Only updates if balance is sufficient
+            const updateResult = await tx.users.updateMany({
+                where: {
+                    id: userId,
+                    coins: { gte: cost }
+                },
+                data: {
+                    coins: { decrement: cost }
+                }
+            });
 
-        // 1. Check Balance
-        const userRes = await client.query(`SELECT coins FROM users WHERE id = $1 FOR UPDATE`, [req.user.userId]);
-        const currentBalance = userRes.rows[0].coins;
+            if (updateResult.count === 0) {
+                throw new Error("Insufficient coins");
+            }
 
-        if (currentBalance < cost) {
-            await client.query('ROLLBACK');
+            // Record Transaction
+            await tx.transactions.create({
+                data: {
+                    user_id: userId,
+                    type: 'SPEND',
+                    amount: cost,
+                    currency: 'COINS',
+                    description: `Sent Gift: ${giftId}`,
+                    metadata: { toUserId, giftId },
+                    status: 'SUCCESS'
+                }
+            });
+
+            // Optional: Notify Receiver (Skipped as per original)
+        });
+
+        // Fetch new balance to return
+        const updatedUser = await prisma.users.findUnique({ where: { id: userId }, select: { coins: true } });
+        res.json({ success: true, newBalance: updatedUser?.coins });
+
+    } catch (e: any) {
+        if (e.message === "Insufficient coins") {
             return res.status(402).json({ error: "Insufficient coins" });
         }
-
-        // 2. Deduct Coins
-        await client.query(`UPDATE users SET coins = coins - $1 WHERE id = $2`, [cost, req.user.userId]);
-
-        // 3. Record Transaction
-        await client.query(`
-            INSERT INTO transactions (user_id, type, amount, currency, description, metadata)
-            VALUES ($1, 'SPEND', $2, 'COINS', $3, $4)
-        `, [req.user.userId, cost, `Sent Gift: ${giftId}`, { toUserId, giftId }]);
-
-        // 4. (Optional) Notifying Receiver or crediting creator currently omitted for simplicity
-
-        await client.query('COMMIT');
-
-        res.json({ success: true, newBalance: currentBalance - cost });
-
-    } catch (e) {
-        await client.query('ROLLBACK');
         console.error("Gift Failed", e);
         res.status(500).json({ error: "Transaction failed" });
-    } finally {
-        client.release();
     }
 });
 
 // Purchase Profile Boost
 router.post('/boost', authenticateToken, async (req: any, res) => {
+    const userId = req.user.userId;
     const BOOST_COST = 50;
     const DURATION_MINUTES = 30;
 
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
+        await prisma.$transaction(async (tx) => {
+            // Atomic Deduction
+            const updateResult = await tx.users.updateMany({
+                where: {
+                    id: userId,
+                    coins: { gte: BOOST_COST }
+                },
+                data: {
+                    coins: { decrement: BOOST_COST }
+                }
+            });
 
-        // 1. Check Balance
-        const userRes = await client.query(`SELECT coins FROM users WHERE id = $1 FOR UPDATE`, [req.user.userId]);
-        const currentBalance = userRes.rows[0].coins;
+            if (updateResult.count === 0) {
+                throw new Error("Insufficient coins");
+            }
 
-        if (currentBalance < BOOST_COST) {
-            await client.query('ROLLBACK');
-            return res.status(402).json({ error: `Insufficient coins. Need ${BOOST_COST} coins.` });
-        }
+            // Activate Boost
+            // Calculate expiry (Prisma doesn't support generic SQL INTERVAL syntax in update directly easily without raw, 
+            // but we can calculate date in JS)
+            const expiresAt = new Date(Date.now() + DURATION_MINUTES * 60 * 1000);
 
-        // 2. Deduct Coins
-        await client.query(`UPDATE users SET coins = coins - $1 WHERE id = $2`, [BOOST_COST, req.user.userId]);
+            await tx.users.update({
+                where: { id: userId },
+                data: {
+                    is_boosted: true,
+                    boost_expires_at: expiresAt
+                }
+            });
 
-        // 3. Activate Boost
-        await client.query(`
-            UPDATE users 
-            SET is_boosted = TRUE, 
-                boost_expires_at = NOW() + INTERVAL '${DURATION_MINUTES} minutes' 
-            WHERE id = $1
-        `, [req.user.userId]);
+            // Record Transaction
+            await tx.transactions.create({
+                data: {
+                    user_id: userId,
+                    type: 'SPEND',
+                    amount: BOOST_COST,
+                    currency: 'COINS',
+                    description: `Profile Boost (${DURATION_MINUTES} mins)`,
+                    status: 'SUCCESS'
+                }
+            });
+        });
 
-        // 4. Record Transaction
-        await client.query(`
-            INSERT INTO transactions (user_id, type, amount, currency, description)
-            VALUES ($1, 'SPEND', $2, 'COINS', $3)
-        `, [req.user.userId, BOOST_COST, `Profile Boost (${DURATION_MINUTES} mins)`]);
-
-        await client.query('COMMIT');
         res.json({ success: true, message: "Profile Boosted!" });
 
-    } catch (e) {
-        await client.query('ROLLBACK');
+    } catch (e: any) {
+        if (e.message === "Insufficient coins") {
+            return res.status(402).json({ error: `Insufficient coins. Need ${BOOST_COST} coins.` });
+        }
         console.error("Boost Failed", e);
         res.status(500).json({ error: "Failed to activate boost" });
-    } finally {
-        client.release();
     }
 });
 

@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 import { upload } from '../middleware/upload';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
@@ -10,25 +10,24 @@ import { sanitizeContent } from '../utils/contentFilter';
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 const router = express.Router();
 
-// Helper to get User ID from Request (assuming auth middleware populates it)
-// But interactions.ts had a helper, here we use middleware.
-// We'll trust req.user.id from authenticateToken
-
 // 1. Get Reels Feed (Viral Algorithm)
 router.get('/feed', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user?.userId;
 
         // 1. Get Current User's Gender & Location
-        const userRes = await pool.query(`
-            SELECT u.gender, p.metadata->'location' as loc 
-            FROM users u 
-            LEFT JOIN profiles p ON u.id = p.user_id 
-            WHERE u.id = $1
-        `, [userId]);
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: {
+                gender: true,
+                profiles: {
+                    select: { metadata: true }
+                }
+            }
+        });
 
-        const userLoc = userRes.rows[0]?.loc || {};
-        const myGender = (userRes.rows[0]?.gender || "").trim().toLowerCase();
+        const userLoc: any = (user?.profiles?.metadata as any)?.location || {};
+        const myGender = (user?.gender || "").trim().toLowerCase();
         const myDistrict = userLoc.district || "";
         const myState = userLoc.state || "";
 
@@ -40,11 +39,9 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
         else if (myGender === 'female') genderFilter = "AND LOWER(u.gender) = 'male'";
 
         // Algorithm:
-        // 1. Recency (Newer is better)
-        // 2. Engagement (Likes * 2 + Views * 0.1)
-        // 3. Location Boost (District +50, State +20)
-
-        const query = `
+        // Use Prisma Raw Query for complex scoring
+        // Note: Prisma raw query returns dictionaries, need explicit casting if complex
+        const reels = await prisma.$queryRaw`
             SELECT 
                 r.*,
                 u.full_name as author_name,
@@ -57,25 +54,38 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
                     (r.likes * 2) + 
                     (r.views * 0.1) +
                     (CASE 
-                        WHEN (p.metadata->'location'->>'district') IS NOT NULL AND LOWER(p.metadata->'location'->>'district') = LOWER($2) THEN 50
-                        WHEN (p.metadata->'location'->>'state') IS NOT NULL AND LOWER(p.metadata->'location'->>'state') = LOWER($3) THEN 20
+                        WHEN (p.metadata->'location'->>'district') IS NOT NULL AND LOWER(p.metadata->'location'->>'district') = LOWER(${myDistrict}) THEN 50
+                        WHEN (p.metadata->'location'->>'state') IS NOT NULL AND LOWER(p.metadata->'location'->>'state') = LOWER(${myState}) THEN 20
                         ELSE 0
                     END)
                 ) as score,
-                EXISTS(SELECT 1 FROM interactions i WHERE i.from_user_id = $1 AND i.to_user_id = r.user_id AND i.type = 'LIKE') as is_liked_author,
-                EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.user_id = $1 AND rl.reel_id = r.id) as is_liked
+                EXISTS(SELECT 1 FROM interactions i WHERE i.from_user_id = ${userId} AND i.to_user_id = r.user_id AND i.type = 'LIKE') as "is_liked_author",
+                EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.user_id = ${userId} AND rl.reel_id = r.id) as "is_liked"
             FROM reels r
             JOIN users u ON r.user_id = u.id
             LEFT JOIN profiles p ON r.user_id = p.user_id
-            WHERE r.user_id != $1 ${genderFilter}
+            WHERE r.user_id != ${userId} 
+            -- Can't easily inject dynamic string in Prisma Raw without unsafe, relying on simple logic or fetch all and filter?
+            -- Safe way: Use multiple queries or fixed string if trusted. 
+            -- But genderFilter is derived from trusted enum.
+            -- Actually, simpler: just filter by gender code if possible.
+            -- Let's put the gender filter in the WHERE clause if needed manually or accept we fetch mixed for now?
+            -- Or better: Use user.target_gender preference if available?
+            -- Sticking to literal inject for this specific line since it is hardcoded logic above, BUT safer to remove dynamic SQL construction.
+            -- Instead:
+            AND (
+                CASE 
+                    WHEN ${myGender} = 'male' THEN LOWER(u.gender) = 'female'
+                    WHEN ${myGender} = 'female' THEN LOWER(u.gender) = 'male'
+                    ELSE TRUE -- Show all if unspecified
+                END
+            )
             ORDER BY score DESC
             LIMIT 20;
-        `;
-
-        const result = await pool.query(query, [userId, myDistrict, myState]);
+        ` as any[];
 
         // Map to Frontend Format
-        const reels = result.rows.map(row => ({
+        const mappedReels = reels.map(row => ({
             id: row.id,
             url: row.video_url, // Supabase URL
             caption: row.caption || "",
@@ -96,7 +106,7 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
             commentCount: row.comments_count || 0
         }));
 
-        res.json(reels);
+        res.json(mappedReels);
     } catch (e) {
         console.error("Fetch Reels Error", e);
         res.status(500).json({ error: "Failed to fetch reels" });
@@ -114,8 +124,9 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: an
         const caption = req.body.caption || "";
 
         // REVENUE PROTECTION: Check Premium Status
-        const userCheck = await pool.query("SELECT is_premium FROM users WHERE id = $1", [userId]);
-        if (!userCheck.rows[0]?.is_premium) {
+        const user = await prisma.users.findUnique({ where: { id: userId }, select: { is_premium: true } });
+
+        if (!user?.is_premium) {
             fs.unlink(filePath, () => { }); // Cleanup uploaded temp file
             return res.status(403).json({
                 error: "Premium Required",
@@ -128,16 +139,11 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: an
         // REVENUE PROTECTION: Caption
         const cleanCaption = sanitizeContent(caption);
 
-        // 0. AI Vibe Analysis (Phase 2) - Real Video Analysis
+        // 0. AI Vibe Analysis
         let vibeSummary = "";
         try {
             console.log("Analyzing Reel Vibe...");
             const { analyzeVibe } = await import('../services/vibeAnalysis');
-            // We pass the local path before upload logic deletes it?
-            // Actually upload logic deletes it at line 102.
-            // We can run analysis parallel or before.
-            // Let's run it here.
-
             const vibeResult = await analyzeVibe(filePath, 'VIDEO');
             if (vibeResult && vibeResult.summary) {
                 vibeSummary = `\n\n✨ AI Vibe: ${vibeResult.vibe} (${vibeResult.tags.slice(0, 3).join(', ')})`;
@@ -168,18 +174,19 @@ router.post('/upload', authenticateToken, upload.single('video'), async (req: an
         const { data: { publicUrl } } = supabase.storage.from('reels').getPublicUrl(filename);
 
         // 3. Save to DB
-        // Append vibe to caption for now to show it in UI without schema change
         const finalCaption = cleanCaption + vibeSummary;
 
-        const result = await pool.query(`
-            INSERT INTO reels (user_id, video_url, caption)
-            VALUES ($1, $2, $3)
-            RETURNING id
-        `, [userId, publicUrl, finalCaption]);
+        const result = await prisma.reels.create({
+            data: {
+                user_id: userId,
+                video_url: publicUrl,
+                caption: finalCaption
+            }
+        });
 
         res.json({
             success: true,
-            reelId: result.rows[0].id,
+            reelId: result.id,
             vibe: vibeSummary // Return to UI for immediate feedback
         });
 
@@ -197,16 +204,32 @@ router.post('/:id/like', authenticateToken, async (req: any, res) => {
         const { id } = req.params;
 
         // Toggle Like
-        const check = await pool.query('SELECT 1 FROM reel_likes WHERE user_id = $1 AND reel_id = $2', [userId, id]);
+        const existingLike = await prisma.reel_likes.findFirst({
+            where: { user_id: userId, reel_id: id }
+        });
 
-        if (check.rows.length > 0) {
+        if (existingLike) {
             // Unlike
-            await pool.query('DELETE FROM reel_likes WHERE user_id = $1 AND reel_id = $2', [userId, id]);
-            await pool.query('UPDATE reels SET likes = GREATEST(likes - 1, 0) WHERE id = $1', [id]);
+            await prisma.$transaction([
+                prisma.reel_likes.deleteMany({
+                    where: { user_id: userId, reel_id: id }
+                }),
+                prisma.reels.update({
+                    where: { id },
+                    data: { likes: { decrement: 1 } }
+                })
+            ]);
         } else {
             // Like
-            await pool.query('INSERT INTO reel_likes (user_id, reel_id) VALUES ($1, $2)', [userId, id]);
-            await pool.query('UPDATE reels SET likes = likes + 1 WHERE id = $1', [id]);
+            await prisma.$transaction([
+                prisma.reel_likes.create({
+                    data: { user_id: userId, reel_id: id }
+                }),
+                prisma.reels.update({
+                    where: { id },
+                    data: { likes: { increment: 1 } }
+                })
+            ]);
         }
 
         res.sendStatus(200);
@@ -225,23 +248,29 @@ router.post('/:id/comment', authenticateToken, async (req: any, res) => {
 
         if (!text) return res.status(400).json({ error: "Missing text" });
 
-        // REVENUE PROTECTION: Comment
         const cleanText = sanitizeContent(text);
 
-        // Insert
-        const r = await pool.query(`
-            INSERT INTO reel_comments (user_id, reel_id, text)
-            VALUES ($1, $2, $3)
-            RETURNING id, created_at
-        `, [userId, id, cleanText]);
+        const newComment = await prisma.$transaction(async (tx) => {
+            const comment = await tx.reel_comments.create({
+                data: {
+                    user_id: userId,
+                    reel_id: id,
+                    text: cleanText
+                }
+            });
 
-        // Update Count
-        await pool.query('UPDATE reels SET comments_count = comments_count + 1 WHERE id = $1', [id]);
+            await tx.reels.update({
+                where: { id },
+                data: { comments_count: { increment: 1 } }
+            });
+
+            return comment;
+        });
 
         res.json({
-            id: r.rows[0].id,
+            id: newComment.id,
             text: cleanText,
-            user: "You" // Frontend handles lazy loading of name if needed, or we fetch it.
+            user: "You" // Frontend handles lazy loading of name if needed
         });
 
     } catch (e) {
@@ -255,22 +284,20 @@ router.get('/:id/comments', authenticateToken, async (req: any, res) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query(`
-            SELECT c.id, c.text, u.full_name as user_name
-            FROM reel_comments c
-            JOIN users u ON c.user_id = u.id
-            WHERE c.reel_id = $1
-            ORDER BY c.created_at DESC
-            LIMIT 50
-        `, [id]);
+        const comments = await prisma.reel_comments.findMany({
+            where: { reel_id: id },
+            include: { users: { select: { full_name: true } } },
+            orderBy: { created_at: 'desc' },
+            take: 50
+        });
 
-        const comments = result.rows.map(r => ({
-            id: r.id,
-            text: r.text,
-            user: r.user_name
+        const formattedComments = comments.map(c => ({
+            id: c.id,
+            text: c.text,
+            user: c.users?.full_name || "User"
         }));
 
-        res.json(comments);
+        res.json(formattedComments);
 
     } catch (e) {
         console.error("Get Comments Error", e);
@@ -282,7 +309,10 @@ router.get('/:id/comments', authenticateToken, async (req: any, res) => {
 router.post('/:id/view', async (req, res) => {
     try {
         const { id } = req.params;
-        await pool.query('UPDATE reels SET views = views + 1 WHERE id = $1', [id]);
+        await prisma.reels.update({
+            where: { id },
+            data: { views: { increment: 1 } }
+        });
         res.sendStatus(200);
     } catch (e) {
         console.error("Track View Error", e);

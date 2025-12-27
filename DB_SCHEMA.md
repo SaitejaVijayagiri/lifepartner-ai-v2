@@ -69,3 +69,43 @@
 | `hobbies` | JSONB | e.g. ["Reading", "Hiking"] |
 | `comm_style` | VARCHAR | |
 | `introvert_scale` | INT | 1 (Introvert) to 10 (Extrovert) |
+
+## 8. System Tables (Physical Schema)
+
+### Interactions
+| Column | Type | Notes |
+| :--- | :--- | :--- |
+| `from_user_id` | UUID | FK |
+| `to_user_id` | UUID | FK |
+| `type` | VARCHAR | REQUEST, VIEW, LIKE |
+| `status` | VARCHAR | pending, connected, declined, seen |
+| `created_at` | TIMESTAMP | |
+
+### Matches
+| Column | Type | Notes |
+| :--- | :--- | :--- |
+| `user_a_id` | UUID | FK |
+| `user_b_id` | UUID | FK |
+| `score_total` | FLOAT | AI Compatibility Score |
+| `is_liked` | BOOLEAN | If B liked A back |
+| `status` | VARCHAR | pending, connected |
+
+### Reels
+| Column | Type | Notes |
+| :--- | :--- | :--- |
+| `user_id` | UUID | FK |
+| `video_url` | VARCHAR | |
+| `likes` | INT | Counter |
+| `views` | INT | Counter |
+
+### Transactions
+| Column | Type | Notes |
+| :--- | :--- | :--- |
+| `user_id` | UUID | FK |
+| `amount` | INT | |
+| `type` | VARCHAR | CREDIT (Purchase), DEBIT (Spent) |
+| `status` | VARCHAR | SUCCESS, FAILED |
+
+### Reports & Blocks
+- **Reports**: `reporter_id`, `reported_id`, `reason`, `status`.
+- **Blocks**: `blocker_id`, `blocked_id`.

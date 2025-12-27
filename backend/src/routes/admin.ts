@@ -1,5 +1,5 @@
 import express from 'express';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
 
@@ -12,25 +12,42 @@ router.use(adminAuth);
 // GET /stats - Dashboard Overview
 router.get('/stats', async (req, res) => {
     try {
-        const totalUsers = await pool.query('SELECT COUNT(*) FROM users');
-        const premiumUsers = await pool.query('SELECT COUNT(*) FROM users WHERE is_premium = TRUE');
+        const totalUsers = await prisma.users.count();
+        const premiumUsers = await prisma.users.count({ where: { is_premium: true } });
 
         // Revenue Breakdown
-        // Use ILIKE or UPPER for case-insensitive check. Default is 'SUCCESS' in DB.
-        const totalRevenueQuery = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success'");
-        const premiumRevenueQuery = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success' AND type = 'PREMIUM'");
-        const coinRevenueQuery = await pool.query("SELECT COALESCE(SUM(amount), 0) as sum FROM transactions WHERE status ILIKE 'success' AND (type = 'COINS' OR type = 'topup')");
+        // Prisma aggregate returns { _sum: { amount: number } }
+        // Status check: DB default for transactions is 'SUCCESS', but code used ILIKE 'success'.
+        // Assuming status is stored consistently as 'SUCCESS'.
+        const totalRevenue = await prisma.transactions.aggregate({
+            _sum: { amount: true },
+            where: { status: 'SUCCESS' }
+        });
 
-        // Reports might be 'pending' or 'PENDING'
-        const pendingReports = await pool.query("SELECT COUNT(*) FROM reports WHERE status ILIKE 'pending'");
+        const premiumRevenue = await prisma.transactions.aggregate({
+            _sum: { amount: true },
+            where: { status: 'SUCCESS', type: 'SUBSCRIPTION' } // Code used 'PREMIUM' but payment.ts writes 'SUBSCRIPTION'
+        });
+
+        const coinRevenue = await prisma.transactions.aggregate({
+            _sum: { amount: true },
+            where: {
+                status: 'SUCCESS',
+                OR: [{ type: 'COINS' }, { type: 'DEPOSIT' }] // payment.ts writes 'DEPOSIT' for coins
+            }
+        });
+
+        const pendingReports = await prisma.reports.count({
+            where: { status: { equals: 'pending', mode: 'insensitive' } }
+        });
 
         res.json({
-            totalUsers: parseInt(totalUsers.rows[0].count),
-            premiumUsers: parseInt(premiumUsers.rows[0].count),
-            totalRevenue: parseFloat(totalRevenueQuery.rows[0].sum),
-            premiumRevenue: parseFloat(premiumRevenueQuery.rows[0].sum),
-            coinRevenue: parseFloat(coinRevenueQuery.rows[0].sum),
-            pendingReports: parseInt(pendingReports.rows[0].count)
+            totalUsers,
+            premiumUsers,
+            totalRevenue: totalRevenue._sum.amount || 0,
+            premiumRevenue: premiumRevenue._sum.amount || 0,
+            coinRevenue: coinRevenue._sum.amount || 0,
+            pendingReports
         });
     } catch (err) {
         console.error("Stats Error:", err);
@@ -42,52 +59,78 @@ router.get('/stats', async (req, res) => {
 router.get('/users', async (req, res) => {
     try {
         const { search, page = 1, limit = 20 } = req.query;
-        const offset = (Number(page) - 1) * Number(limit);
+        const skip = (Number(page) - 1) * Number(limit);
 
-        let query = `
-            SELECT id, full_name as name, email, phone, gender, created_at, is_premium, is_banned, is_admin 
-            FROM users 
-        `;
-        const params: any[] = [];
+        const where: any = {};
 
         if (search) {
-            query += ` WHERE (full_name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1)`;
-            params.push(`%${search}%`);
+            const s = String(search);
+            where.OR = [
+                { full_name: { contains: s, mode: 'insensitive' } },
+                { email: { contains: s, mode: 'insensitive' } },
+                { phone: { contains: s, mode: 'insensitive' } }
+            ];
         }
 
         if (req.query.isPremium === 'true') {
-            query += search ? ` AND is_premium = TRUE` : ` WHERE is_premium = TRUE`;
+            where.is_premium = true;
         }
 
-        query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(limit, offset);
+        const users = await prisma.users.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+            take: Number(limit),
+            skip: skip,
+            select: {
+                id: true,
+                full_name: true,
+                email: true,
+                phone: true,
+                gender: true,
+                created_at: true,
+                is_premium: true,
+                is_banned: true,
+                is_admin: true
+            }
+        });
 
-        const result = await pool.query(query, params);
-        res.json(result.rows);
+        // Map full_name to name to match previous API if strict
+        const result = users.map(u => ({ ...u, name: u.full_name }));
+        res.json(result);
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch users' });
     }
 });
+
 // GET /users/:id - Get User Details
 router.get('/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const query = `
-            SELECT u.*, 
-            (SELECT json_agg(r.*) FROM reports r WHERE r.reported_id = u.id) as reports,
-            (SELECT COUNT(*) FROM interactions WHERE to_user_id = u.id AND type = 'LIKE') as likes_received
-            FROM users u WHERE u.id = $1
-        `;
-        const result = await pool.query(query, [id]);
 
-        if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        const user = await prisma.users.findUnique({
+            where: { id },
+            include: {
+                profiles: true,
+                reports_reports_reported_idTousers: true
+            }
+        });
 
-        // Fetch Profile Data (Photos, Bio)
-        const profileRes = await pool.query('SELECT * FROM profiles WHERE user_id = $1', [id]);
-        const profile = profileRes.rows[0] || {};
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-        res.json({ ...result.rows[0], profile });
+        // Likes received count
+        const likesReceived = await prisma.interactions.count({
+            where: { to_user_id: id, type: 'LIKE' }
+        });
+
+        res.json({
+            ...user,
+            reports: user.reports_reports_reported_idTousers, // Relation name from introspection
+            likes_received: likesReceived,
+            profile: user.profiles || {}
+        });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch user details' });
@@ -97,9 +140,12 @@ router.get('/users/:id', async (req, res) => {
 // POST /ban - Ban or Unban User
 router.post('/ban', async (req, res) => {
     try {
-        const { userId, ban } = req.body; // ban: boolean
+        const { userId, ban } = req.body;
 
-        await pool.query('UPDATE users SET is_banned = $1 WHERE id = $2', [ban, userId]);
+        await prisma.users.update({
+            where: { id: userId },
+            data: { is_banned: ban }
+        });
 
         res.json({ success: true, message: `User ${ban ? 'banned' : 'unbanned'} successfully` });
     } catch (err) {
@@ -111,20 +157,27 @@ router.post('/ban', async (req, res) => {
 // GET /reports - List Reports
 router.get('/reports', async (req, res) => {
     try {
-        // ideally join with users to get names
-        const query = `
-            SELECT r.id, r.reason, r.details, r.created_at, r.status,
-            COALESCE(u.full_name, 'Unknown User') as reported_name,
-            COALESCE(u2.full_name, 'Unknown User') as reporter_name,
-            r.reported_id as target_id
-            FROM reports r
-            LEFT JOIN users u ON r.reported_id = u.id
-            LEFT JOIN users u2 ON r.reporter_id = u2.id
-            ORDER BY r.created_at DESC
-            LIMIT 50
-        `;
-        const result = await pool.query(query);
-        res.json(result.rows);
+        const reports = await prisma.reports.findMany({
+            orderBy: { created_at: 'desc' },
+            take: 50,
+            include: {
+                users_reports_reported_idTousers: { select: { full_name: true } },
+                users_reports_reporter_idTousers: { select: { full_name: true } }
+            }
+        });
+
+        const result = reports.map(r => ({
+            id: r.id,
+            reason: r.reason,
+            details: r.details,
+            created_at: r.created_at,
+            status: r.status,
+            reported_name: r.users_reports_reported_idTousers?.full_name || 'Unknown User',
+            reporter_name: r.users_reports_reporter_idTousers?.full_name || 'Unknown User',
+            target_id: r.reported_id
+        }));
+
+        res.json(result);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch reports' });
@@ -134,8 +187,11 @@ router.get('/reports', async (req, res) => {
 // POST /resolve-report
 router.post('/resolve-report', async (req, res) => {
     try {
-        const { reportId, status } = req.body; // 'resolved', 'dismissed'
-        await pool.query('UPDATE reports SET status = $1 WHERE id = $2', [status, reportId]);
+        const { reportId, status } = req.body;
+        await prisma.reports.update({
+            where: { id: reportId },
+            data: { status }
+        });
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -147,25 +203,28 @@ router.post('/resolve-report', async (req, res) => {
 router.get('/transactions', async (req, res) => {
     try {
         const { page = 1, limit = 50, type } = req.query;
-        const offset = (Number(page) - 1) * Number(limit);
-        const params: any[] = [];
+        const skip = (Number(page) - 1) * Number(limit);
 
-        let query = `
-                SELECT t.*, u.full_name, u.email 
-                FROM transactions t
-                LEFT JOIN users u ON t.user_id = u.id
-            `;
+        const where: any = {};
+        if (type) where.type = type;
 
-        if (type) {
-            query += ` WHERE t.type = $1`;
-            params.push(type);
-        }
+        const transactions = await prisma.transactions.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+            take: Number(limit),
+            skip,
+            include: {
+                users: { select: { full_name: true, email: true } }
+            }
+        });
 
-        query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(limit, offset);
+        const result = transactions.map(t => ({
+            ...t,
+            full_name: t.users?.full_name,
+            email: t.users?.email
+        }));
 
-        const result = await pool.query(query, params);
-        res.json(result.rows);
+        res.json(result);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch transactions' });

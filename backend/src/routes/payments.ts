@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'crypto';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 
 const router = express.Router();
 
@@ -88,51 +88,42 @@ const verifyPaymentInternal = async (orderId: string, expectedUserId?: string) =
         }
 
         // 3. Database Updates (Idempotent)
-        const client = await pool.connect();
-        try {
-            await client.query('BEGIN');
+        return await prisma.$transaction(async (tx) => {
+            // Check if processed using queryRaw for JSON field or create a migration to add orderId column to transactions.
+            // Currently transaction metadata is JSON. Prisma filtering on JSON:
+            // where: { metadata: { path: ['orderId'], equals: orderId } }
 
-            // Check if processed
-            const existing = await client.query('SELECT id, user_id FROM transactions WHERE metadata->>\'orderId\' = $1', [orderId]);
+            const existing = await tx.transactions.findFirst({
+                where: {
+                    metadata: {
+                        path: ['orderId'],
+                        equals: orderId
+                    }
+                }
+            });
 
-            // If already processed, just return success
-            if (existing.rows.length > 0) {
-                await client.query('ROLLBACK');
+            if (existing) {
                 return { success: true, message: "Already processed", type: 'EXISTING' };
             }
 
-            // If userId was not passed (e.g. Webhook), we must find it.
-            // Assumption: we stored userId in Cashfree order_meta or customer_id? 
-            // In create-order we sent `customer_id`. Let's assume customer_id IS userId.
-            // But Cashfree returns it in the order details, not always in payment details.
-            // For now, if expectedUserId is missing, we might fail unless we fetch order details.
-            // Let's fetch Order Details to get customer_id if needed.
+            // Fetch Order Details if needed
             let userId = expectedUserId;
             if (!userId) {
                 const orderResp = await fetch(`${BASE_URL}/orders/${orderId}`, { headers: HEADERS });
                 const orderData = await orderResp.json();
                 userId = orderData.customer_details?.customer_id;
-                // If customer_id was "guest", we can't link.
+
                 if (!userId || userId === 'guest_user') throw new Error("Cannot link payment to user");
             }
 
             // Extract Value
             const paymentAmount = successfulPayment.payment_amount;
             const paymentCurrency = successfulPayment.payment_currency || 'INR';
-
-            // Determine Type based on Amount (Naive but works) or Metadata if we saved it?
-            // We didn't save metadata in Cashfree CreateOrder other than return_url.
-            // Strategy: 499 = Premium, others = Coins?
-            // BETTER: Use the `amount` to determine coins.
-            // 99 = 100 coins, 399 = 500 coins, 699 = 1000 coins.
-            // 499 = Premium.
-            // 50 = Boost.
+            const amt = parseFloat(paymentAmount);
 
             let type = 'COINS';
             let coins = 0;
             let description = '';
-
-            const amt = parseFloat(paymentAmount);
 
             if (Math.abs(amt - 499) < 1) {
                 type = 'SUBSCRIPTION';
@@ -142,59 +133,59 @@ const verifyPaymentInternal = async (orderId: string, expectedUserId?: string) =
                 description = 'Profile Boost';
             } else {
                 type = 'COINS';
-                // Reverse engineer coins? 
                 if (Math.abs(amt - 99) < 1) coins = 100;
                 else if (Math.abs(amt - 399) < 1) coins = 500;
                 else if (Math.abs(amt - 699) < 1) coins = 1000;
-                else coins = Math.floor(amt); // Fallback: 1 Rupee = 1 Coin
+                else coins = Math.floor(amt);
                 description = `Purchased ${coins} Coins`;
             }
 
             // EXECUTE UPDATES
             if (type === 'COINS') {
-                await client.query(`UPDATE users SET coins = coins + $1 WHERE id = $2`, [coins, userId]);
+                await tx.users.update({
+                    where: { id: userId },
+                    data: { coins: { increment: coins } }
+                });
             } else if (type === 'SUBSCRIPTION') {
-                await client.query(`
-                    UPDATE users 
-                    SET is_premium = TRUE, 
-                        premium_expiry = NOW() + INTERVAL '1 year',
-                        razorpay_customer_id = $1 
-                    WHERE id = $2`,
-                    [successfulPayment.cf_payment_id, userId]
-                );
+                const oneYearFromNow = new Date();
+                oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+                await tx.users.update({
+                    where: { id: userId },
+                    data: {
+                        is_premium: true,
+                        premium_expiry: oneYearFromNow,
+                        razorpay_customer_id: String(successfulPayment.cf_payment_id) // Using generic field for payment ref
+                    }
+                });
             } else if (type === 'BOOST') {
-                await client.query(`
-                    UPDATE users 
-                    SET is_boosted = TRUE, 
-                        boost_expires_at = NOW() + INTERVAL '30 minutes',
-                        coins = coins  -- No deduction here, it was direct purchase
-                    WHERE id = $1`,
-                    [userId]
-                );
+                const thirtyMinutesFromNow = new Date(Date.now() + 30 * 60000);
+
+                await tx.users.update({
+                    where: { id: userId },
+                    data: {
+                        is_boosted: true,
+                        boost_expires_at: thirtyMinutesFromNow
+                        // No coin deduction, direct purchase
+                    }
+                });
             }
 
             // Log Transaction
-            await client.query(`
-                INSERT INTO transactions (user_id, type, amount, currency, description, metadata, status)
-                VALUES ($1, $2, $3, $4, $5, $6, 'SUCCESS')
-            `, [
-                userId,
-                type === 'COINS' ? 'DEPOSIT' : type, // Keep DB enum clean
-                paymentAmount,
-                paymentCurrency,
-                description,
-                { orderId, paymentId: successfulPayment.cf_payment_id, coins }
-            ]);
+            await tx.transactions.create({
+                data: {
+                    user_id: userId,
+                    type: type === 'COINS' ? 'DEPOSIT' : type,
+                    amount: Math.floor(amt), // Assuming atomic integer units
+                    currency: paymentCurrency,
+                    description: description,
+                    metadata: { orderId, paymentId: successfulPayment.cf_payment_id, coins },
+                    status: 'SUCCESS'
+                }
+            });
 
-            await client.query('COMMIT');
             return { success: true, message: "Payment Verified & Recorded" };
-
-        } catch (e) {
-            await client.query('ROLLBACK');
-            throw e;
-        } finally {
-            client.release();
-        }
+        });
 
     } catch (error: any) {
         console.error("Verify Internal Error:", error.message);
@@ -206,9 +197,8 @@ const verifyPaymentInternal = async (orderId: string, expectedUserId?: string) =
 router.post('/verify', authenticateToken, async (req: any, res) => {
     try {
         const { orderId } = req.body;
-        const userId = req.user.userId; // Secure User ID
+        const userId = req.user.userId;
 
-        // userId from body helps avoiding extra fetch
         const result = await verifyPaymentInternal(orderId, userId);
 
         if (result.success) {

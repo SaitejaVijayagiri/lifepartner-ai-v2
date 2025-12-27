@@ -1,6 +1,6 @@
 
 import express from 'express';
-import { pool } from '../db';
+import { prisma } from '../prisma';
 import { NotificationService } from '../services/notification';
 import { authenticateToken } from '../middleware/auth';
 
@@ -16,12 +16,19 @@ router.post('/register', authenticateToken, async (req: any, res) => {
         const { token, platform } = req.body;
         if (!token) return res.status(400).json({ error: "Token required" });
 
-        // Upsert
-        await pool.query(`
-            INSERT INTO device_tokens (user_id, token, platform)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id, token) DO NOTHING
-        `, [userId, token, platform || 'android']);
+        // Upsert (DO NOTHING on conflict)
+        // Schema: @@id([user_id, token])
+        await prisma.device_tokens.upsert({
+            where: {
+                user_id_token: { user_id: userId, token }
+            },
+            create: {
+                user_id: userId,
+                token,
+                platform: platform || 'android'
+            },
+            update: {} // Do nothing if exists
+        });
 
         res.json({ success: true });
     } catch (e) {
@@ -30,26 +37,24 @@ router.post('/register', authenticateToken, async (req: any, res) => {
     }
 });
 
-// 2. Test Push (Dev)
 // 2. Test Push (Admin Only)
 router.post('/test', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        // Simple Admin Check (Environmental or Hardcoded for this project scope)
-        // Ideally this should use a proper Role Based Access Control (RBAC) system.
-        // For now, we query the user's email.
-        const userRes = await pool.query("SELECT email FROM users WHERE id = $1", [userId]);
-        const email = userRes.rows[0]?.email;
+        // Admin Check
+        const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true } });
+        const email = user?.email;
 
         const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
-        if (!ADMIN_EMAILS.includes(email) && email !== 'admin@lifepartner.ai') {
+        if (!email || (!ADMIN_EMAILS.includes(email) && email !== 'admin@lifepartner.ai')) {
             return res.status(403).json({ error: "Admin access required" });
         }
 
         const { title, body } = req.body;
 
-        await notificationService.sendToUser(pool, userId, title || "Test Notification", body || "This is a test from LifePartner AI");
+        // Removed pool arg
+        await notificationService.sendToUser(userId, title || "Test Notification", body || "This is a test from LifePartner AI");
 
         res.json({ success: true, message: "Notification queued" });
     } catch (e) {
@@ -63,25 +68,23 @@ router.get('/', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const result = await pool.query(`
-            SELECT id, user_id, type, message, data, 
-                   COALESCE(is_read, false) as is_read, 
-                   created_at
-            FROM notifications 
-            WHERE user_id = $1 
-            ORDER BY created_at DESC 
-            LIMIT 50
-        `, [userId]);
+        const notifications = await prisma.notifications.findMany({
+            where: { user_id: userId },
+            orderBy: { created_at: 'desc' },
+            take: 50
+        });
 
         // Count unread
-        const unreadResult = await pool.query(`
-            SELECT COUNT(*) as count FROM notifications 
-            WHERE user_id = $1 AND (is_read IS NULL OR is_read = FALSE)
-        `, [userId]);
+        const unreadCount = await prisma.notifications.count({
+            where: {
+                user_id: userId,
+                is_read: false // Schema Default false
+            }
+        });
 
         res.json({
-            notifications: result.rows,
-            unreadCount: parseInt(unreadResult.rows[0]?.count || '0')
+            notifications,
+            unreadCount
         });
     } catch (e) {
         console.error("Get Notifications Error", e);
@@ -96,11 +99,14 @@ router.put('/:id/read', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { id } = req.params;
 
-        await pool.query(`
-            UPDATE notifications 
-            SET is_read = TRUE 
-            WHERE id = $1 AND user_id = $2
-        `, [id, userId]);
+        // updateMany to ensure ownership check via where clause
+        await prisma.notifications.updateMany({
+            where: {
+                id,
+                user_id: userId
+            },
+            data: { is_read: true }
+        });
 
         res.json({ success: true });
     } catch (e) {
@@ -113,11 +119,10 @@ router.put('/read-all', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        await pool.query(`
-            UPDATE notifications 
-            SET is_read = TRUE 
-            WHERE user_id = $1
-        `, [userId]);
+        await prisma.notifications.updateMany({
+            where: { user_id: userId },
+            data: { is_read: true }
+        });
 
         res.json({ success: true });
     } catch (e) {

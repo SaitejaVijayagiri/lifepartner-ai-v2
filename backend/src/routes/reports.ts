@@ -1,6 +1,7 @@
 import express from 'express';
 // import { pool } from '../db';
 import { prisma } from '../prisma';
+import { getIO } from '../socket';
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -26,6 +27,17 @@ router.post('/', authenticateToken, async (req: any, res) => {
                 details
             }
         });
+
+        // Notify Admins
+        try {
+            const io = getIO();
+            io.emit('admin:newReport', {
+                id: report.id,
+                reason,
+                reporterId,
+                created_at: new Date()
+            });
+        } catch (e) { /* ignore if socket not ready */ }
 
         res.status(201).json({
             message: "Report submitted successfully",

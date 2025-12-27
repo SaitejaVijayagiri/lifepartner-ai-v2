@@ -172,7 +172,7 @@ const verifyPaymentInternal = async (orderId: string, expectedUserId?: string) =
             }
 
             // Log Transaction
-            await tx.transactions.create({
+            const txRecord = await tx.transactions.create({
                 data: {
                     user_id: userId,
                     type: type === 'COINS' ? 'DEPOSIT' : type,
@@ -181,8 +181,23 @@ const verifyPaymentInternal = async (orderId: string, expectedUserId?: string) =
                     description: description,
                     metadata: { orderId, paymentId: successfulPayment.cf_payment_id, coins },
                     status: 'SUCCESS'
-                }
+                },
+                include: { users: { select: { full_name: true, email: true } } }
             });
+
+            // Notify Admins (Fire & Forget inside transaction might be risky if tx fails, 
+            // but here we are at the end, and socket failure shouldn't abort DB tx)
+            try {
+                // We need to require outside because getIO isn't available in tx context strictly 
+                // but this is an async callback.
+                const { getIO } = require('../socket');
+                const io = getIO();
+                io.emit('admin:newTransaction', {
+                    ...txRecord,
+                    full_name: txRecord.users?.full_name,
+                    email: txRecord.users?.email
+                });
+            } catch (e) { /* ignore */ }
 
             return { success: true, message: "Payment Verified & Recorded" };
         });

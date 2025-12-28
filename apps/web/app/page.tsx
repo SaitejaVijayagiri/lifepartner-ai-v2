@@ -48,7 +48,7 @@ export default function LandingPage() {
             "url": "https://lifepartnerai.in",
             "potentialAction": {
               "@type": "SearchAction",
-              "target": "https://lifepartnerai.in/search?q={search_term_string}",
+              "target": "https://lifepartnerai.in/matches?q={search_term_string}",
               "query-input": "required name=search_term_string"
             }
           })
@@ -137,13 +137,13 @@ export default function LandingPage() {
             <div className="mt-16 flex items-center gap-6">
               <div className="flex -space-x-4">
                 {[
-                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces",
-                  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=faces",
-                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces",
-                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces"
+                  "/images/avatars/user-1.jpg",
+                  "/images/avatars/user-2.jpg",
+                  "/images/avatars/user-3.jpg",
+                  "/images/avatars/user-4.jpg"
                 ].map((src, i) => (
                   <div key={i} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
-                    <NextImage src={src} alt="User" width={48} height={48} />
+                    <img src={src} alt="User" className="w-full h-full object-cover" />
                   </div>
                 ))}
                 <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">

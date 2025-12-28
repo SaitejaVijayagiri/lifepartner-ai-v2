@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /dashboard
-Disallow: /api
-Disallow: /admin
-
-Sitemap: https://lifepartnerai.in/sitemap.xml

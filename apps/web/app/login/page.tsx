@@ -19,7 +19,7 @@ export default function LoginPage() {
         try {
             setError('');
             setLoading(true);
-            const res = await api.auth.login(form);
+            const res = await api.auth.login({ ...form, password: form.password.trim() });
             localStorage.setItem('token', res.token);
             localStorage.setItem('userId', res.userId);
             if (res.isNewUser) {

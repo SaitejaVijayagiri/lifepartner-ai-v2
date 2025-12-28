@@ -42,7 +42,7 @@ export default function RegisterPage() {
                 return;
             }
             setLoading(true);
-            const res = await api.auth.register(form);
+            const res = await api.auth.register({ ...form, password: form.password.trim() });
 
             if (res.requiresVerification) {
                 setShowOtp(true);

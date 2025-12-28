@@ -388,9 +388,9 @@ router.post('/forgot-password', async (req, res) => {
 
         res.json({ success: true, message: "OTP sent" });
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Forgot PW Error", e);
-        res.status(500).json({ error: "Request failed" });
+        res.status(500).json({ error: `Request failed: ${e.message || e}` });
     }
 });
 

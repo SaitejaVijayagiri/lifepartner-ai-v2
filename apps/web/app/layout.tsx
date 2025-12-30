@@ -76,6 +76,15 @@ export const metadata: Metadata = {
   verification: {
     google: "h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE",
   },
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+    other: {
+      rel: 'apple-touch-icon-precomposed',
+      url: '/icon.png',
+    },
+  },
 };
 
 export const viewport = {

@@ -33,8 +33,13 @@ function GoogleCallbackContent() {
                 if (res.data.token) {
                     localStorage.setItem('token', res.data.token);
                     localStorage.setItem('userId', res.data.userId);
-                    setStatus('Success! Redirecting...');
-                    setTimeout(() => router.push('/dashboard'), 1000);
+                    if (res.data.requiresOnboarding) {
+                        setStatus('Profile incomplete. Redirecting to Onboarding...');
+                        setTimeout(() => router.push('/onboarding'), 1000);
+                    } else {
+                        setStatus('Success! Redirecting...');
+                        setTimeout(() => router.push('/dashboard'), 1000);
+                    }
                 }
             } catch (err: any) {
                 console.error("Google Auth Error", err);

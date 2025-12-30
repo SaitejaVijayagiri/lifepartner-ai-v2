@@ -507,9 +507,15 @@ router.post('/google', async (req, res) => {
 
         // 4. Generate Token
         // @ts-ignore
-        const token = generateToken(user.id);
         // @ts-ignore
-        res.json({ success: true, token, userId: user.id });
+        const token = generateToken(user.id);
+
+        // Check if onboarding is needed (missing gender or age)
+        // @ts-ignore
+        const requiresOnboarding = !user.gender || !user.age;
+
+        // @ts-ignore
+        res.json({ success: true, token, userId: user.id, requiresOnboarding });
 
     } catch (e: any) {
         console.error("Google Auth Error", e);

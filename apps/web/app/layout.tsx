@@ -175,7 +175,7 @@ export default function RootLayout({
         <ClientProviders>
           <NetworkStatus />
           {children}
-
+          <StickyCTA />
         </ClientProviders>
       </body>
     </html>

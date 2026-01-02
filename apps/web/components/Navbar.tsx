@@ -21,25 +21,25 @@ export default function Navbar() {
             }`}>
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 {/* Logo */}
-                <div className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-2">
                     <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-200">
                         <Sparkles size={18} fill="white" />
                     </div>
                     <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700 tracking-tight">
                         LifePartner AI
                     </span>
-                </div>
+                </Link>
 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex space-x-8 items-center">
                     {['Success Stories', 'How it Works', 'App Features'].map((item) => (
-                        <a
+                        <Link
                             key={item}
-                            href={`#${item.toLowerCase().replace(/ /g, '-')}`}
+                            href={`/#${item.toLowerCase().replace(/ /g, '-')}`}
                             className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide"
                         >
                             {item}
-                        </a>
+                        </Link>
                     ))}
                 </div>
 
@@ -72,14 +72,14 @@ export default function Navbar() {
                 <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-xl animate-in slide-in-from-top-5 duration-200">
                     <div className="px-6 py-8 flex flex-col gap-6">
                         {['Success Stories', 'How it Works', 'App Features'].map((item) => (
-                            <a
+                            <Link
                                 key={item}
-                                href={`#${item.toLowerCase().replace(/ /g, '-')}`}
+                                href={`/#${item.toLowerCase().replace(/ /g, '-')}`}
                                 className="text-lg font-medium text-gray-800 hover:text-indigo-600"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 {item}
-                            </a>
+                            </Link>
                         ))}
                         <hr className="border-gray-100" />
                         <Link

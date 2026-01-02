@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import ClientProviders from '@/components/ClientProviders';
 import NetworkStatus from '@/components/NetworkStatus';
+import StickyCTA from '@/components/StickyCTA';
 
 const fontSans = DM_Sans({
   variable: "--font-sans",

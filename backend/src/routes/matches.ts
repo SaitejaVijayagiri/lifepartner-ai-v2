@@ -19,7 +19,8 @@ router.get('/public-preview', async (req: any, res) => {
         if (!category || !value) return res.json({ matches: [] });
 
         let where: any = {
-            avatar_url: { not: null }
+            avatar_url: { not: null },
+            is_verified: true
         };
 
         // Dynamic Filtering
@@ -165,6 +166,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const candidates = await prisma.users.findMany({
             where: {
                 id: { not: userId },
+                is_verified: true, // Only show Verified profiles
                 ...genderFilter
             },
             include: {
@@ -334,7 +336,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const buildAndRunQuery = async (strictness: 'strict' | 'relaxed') => {
 
             let where: any = {
-                id: { not: userId }
+                id: { not: userId },
+                is_verified: true
             };
 
             // Gender

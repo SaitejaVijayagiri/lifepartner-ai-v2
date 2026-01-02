@@ -1,0 +1,14 @@
+------------------------------------------------------------------------------------------------
+| Name                 | Email                          | Verified | Gender | Age | Created At          |
+|----------------------|--------------------------------|----------|--------|-----|---------------------|
+| Gk                   | giridharkumarmarigarla@gmail.c | ✅       | Male   | 26 | 2/1/2026, 10:04:15 pm |
+| Flow Verify User     | flow_verify_user@example.com   | ✅       | Male   | 28 | 2/1/2026, 8:40:45 pm |
+| Chirag Ternikar      | crternikar@gmail.com           | ✅       |  -   | - | 28/12/2025, 9:05:45 pm |
+| Hamoudi              | asaqoliwamaqoli@gmail.com      | ✅       | Male   | 22 | 28/12/2025, 7:55:16 pm |
+| Saiteja              | sleekora.designs@gmail.com     | ❌       |  -   | - | 27/12/2025, 8:34:12 pm |
+| Anjali Reddy         | verify.female.anjali@test.com  | ✅       | Female | 29 | 23/12/2025, 10:33:17 pm |
+| Sowmya Rao           | verify.female.sowmya@test.com  | ✅       | Female | 27 | 23/12/2025, 10:33:16 pm |
+| Divya Menon          | verify.female.divya@test.com   | ✅       | Female | 28 | 23/12/2025, 10:33:16 pm |
+| Kavya Gowda          | verify.female.kavya@test.com   | ✅       | Female | 25 | 23/12/2025, 10:33:16 pm |
+| Lakshmi Narayanan    | verify.female.lakshmi@test.com | ✅       | Female | 26 | 23/12/2025, 10:33:16 pm |
+------------------------------------------------------------------------------------------------

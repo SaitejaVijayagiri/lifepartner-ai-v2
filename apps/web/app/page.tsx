@@ -216,6 +216,70 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* --- MEET THE FOUNDER / TRUST SECTION --- */}
+      <section className="py-24 bg-white relative overflow-hidden border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+          <div className="relative">
+            <div className="absolute inset-0 bg-indigo-600 rounded-[2rem] rotate-3 opacity-10"></div>
+            <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+              <img src="/images/founder.jpg" alt="Saiteja Vijayagiri - Founder" className="w-full h-auto object-cover" />
+            </div>
+            {/* Verification Badge */}
+            <div className="absolute -bottom-6 -right-6 bg-white p-4 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3">
+              <div className="bg-green-100 p-2 rounded-full text-green-600"><ShieldCheck size={24} /></div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Identity Verified</p>
+                <p className="font-bold text-gray-900">Saiteja Vijayagiri</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-6">
+              <Zap size={14} /> Founder's Message
+            </div>
+            <h2 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 mb-6">Matches made by AI.<br />Verified by Humans.</h2>
+            <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+              "Hi, I'm Saiteja. I built LifePartner AI because I was tired of matrimony sites filled with fake profiles and expensive paywalls.
+              My mission is simple: <b>Zero fake profiles. Zero cost.</b>"
+            </p>
+
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10"><MessageCircle size={80} className="text-indigo-600" /></div>
+              <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2"><Star size={18} className="text-amber-500 fill-amber-500" /> Direct Concierge Service</h4>
+              <p className="text-indigo-800 text-sm mb-4 font-medium">
+                The profiles you see right now are samples to demonstrate our matching engine.
+                <b>Want your profile to be the first REAL profile seen by thousands?</b>
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 text-indigo-900 font-bold">
+                  <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">📧</span>
+                  <img src="mailto:lifepartnerai.in@gmail.com" className="hidden" /> {/* SEO hidden mailto */}
+                  lifepartnerai.in@gmail.com
+                </div>
+                <div className="flex items-center gap-3 text-indigo-900 font-bold">
+                  <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">📱</span>
+                  +91 90148 36399 (WhatsApp Available)
+                </div>
+              </div>
+              <p className="text-xs text-indigo-500 mt-4 italic">Send me your details directly. I will personally verify and list your profile.</p>
+              <div className="mt-6 pt-4 border-t border-indigo-200/50">
+                <p className="text-sm font-bold text-indigo-800 mb-1">🚀 Join the Revolution</p>
+                <p className="text-xs text-indigo-600">Passionate about changing the matrimony landscape? <b>We are hiring.</b> Drop your resume to the email or WhatsApp above.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Link href="/about">
+                <button className="px-8 py-3 rounded-full bg-gray-900 text-white font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl">
+                  Read Our Story
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* --- FEATURES GRID --- */}
       <section id="features" className="py-32 relative bg-slate-50">
         <div className="max-w-7xl mx-auto px-6 relative z-10">

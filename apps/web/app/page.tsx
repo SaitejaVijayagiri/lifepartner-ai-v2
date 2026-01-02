@@ -127,7 +127,7 @@ export default function LandingPage() {
                   <span className="relative flex items-center gap-2">Join the Future <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></span>
                 </button>
               </Link>
-              <Link href="#features">
+              <Link href="#app-features">
                 <button className="h-14 px-10 rounded-full bg-white border border-gray-200 text-gray-800 font-bold text-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md">
                   Explore Features
                 </button>
@@ -281,7 +281,7 @@ export default function LandingPage() {
       </section>
 
       {/* --- FEATURES GRID --- */}
-      <section id="features" className="py-32 relative bg-slate-50">
+      <section id="app-features" className="py-32 relative bg-slate-50">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-20 max-w-3xl mx-auto">
             <h2 className="text-indigo-600 font-bold tracking-[0.2em] uppercase text-xs mb-6">The Future of Dating</h2>

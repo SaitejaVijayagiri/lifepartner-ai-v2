@@ -26,7 +26,7 @@ export default function AdminDashboard() {
 
     const checkAdmin = async () => {
         try {
-            const user = await api.auth.me();
+            const user = await api.profile.getMe();
             // @ts-ignore
             if (!user.is_admin) {
                 router.push('/dashboard');

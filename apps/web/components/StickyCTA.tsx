@@ -2,12 +2,17 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function StickyCTA() {
     const [isVisible, setIsVisible] = useState(false);
     const [lastScrollY, setLastScrollY] = useState(0);
+    const pathname = usePathname();
+
+    // Only show on public pages
+    const isPublicPage = pathname === '/';
 
     useEffect(() => {
         const handleScroll = () => {
@@ -28,7 +33,7 @@ export default function StickyCTA() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [lastScrollY]);
 
-    if (!isVisible) return null;
+    if (!isVisible || !isPublicPage) return null;
 
     return (
         <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 z-40 md:hidden animate-in slide-in-from-bottom duration-300">

@@ -2,7 +2,7 @@
 import { useToast } from '@/components/ui/Toast';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ const TESTIMONIALS = [
 
 export default function RegisterPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const referralCodeParam = searchParams.get('code');
     const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '' });
     const [loading, setLoading] = useState(false);
     const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -31,6 +33,18 @@ export default function RegisterPage() {
         }, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    // Auto-fill Referral Code
+    useEffect(() => {
+        if (referralCodeParam) {
+            setForm(prev => ({ ...prev, referralCode: referralCodeParam }));
+            localStorage.setItem('referralCode', referralCodeParam);
+        } else {
+            // Check stored code
+            const saved = localStorage.getItem('referralCode');
+            if (saved) setForm(prev => ({ ...prev, referralCode: saved }));
+        }
+    }, [referralCodeParam]);
 
     const [showOtp, setShowOtp] = useState(false);
     const [otp, setOtp] = useState('');

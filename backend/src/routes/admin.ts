@@ -90,7 +90,10 @@ router.get('/users', async (req, res) => {
                 created_at: true,
                 is_premium: true,
                 is_banned: true,
-                is_admin: true
+                is_admin: true,
+                coins: true,
+                referral_code: true,
+                referred_by: true
             }
         });
 

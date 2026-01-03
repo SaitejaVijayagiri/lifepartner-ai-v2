@@ -150,7 +150,14 @@ export const api = {
     },
     admin: {
         getStats: () => fetchAPI('/admin/stats'),
-        getUsers: (page = 1, search = '') => fetchAPI(`/admin/users?page=${page}&search=${search}`),
+        getUsers: (params: any = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return fetchAPI(`/admin/users?${qs}`);
+        },
+        getTransactions: (params: any = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return fetchAPI(`/admin/transactions?${qs}`);
+        },
         getReports: () => fetchAPI('/admin/reports'),
         banUser: (userId: string, ban: boolean) => fetchAPI('/admin/ban', {
             method: 'POST',

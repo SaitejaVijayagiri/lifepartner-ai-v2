@@ -21,22 +21,25 @@ export default function ReferPage() {
     const handleShare = async () => {
         const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifepartner.ai';
         const link = `${origin}/register?code=${user?.referral_code}`;
-        const text = `Join me on LifePartner AI! Use my code ${user?.referral_code} or click here: ${link}`;
 
+        // Mobile Share API handles URL separate from Text
         if (navigator.share) {
             try {
                 await navigator.share({
                     title: 'Find your Life Partner',
-                    text: text,
+                    text: `Join me on LifePartner AI! Use my code ${user?.referral_code} or click here:`,
                     url: link
                 });
             } catch (err) {
                 // console.log('Share canceled');
             }
         } else {
+            // Fallback for desktop copy
+            const text = `Join me on LifePartner AI! Use my code ${user?.referral_code} or click here: ${link}`;
             navigator.clipboard.writeText(text);
             toast.success("Link copied to clipboard!");
         }
+
     };
 
     if (loading) return <div className="p-10 text-center">Loading...</div>;

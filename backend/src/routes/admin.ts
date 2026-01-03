@@ -21,7 +21,10 @@ router.get('/stats', async (req, res) => {
         // Assuming status is stored consistently as 'SUCCESS'.
         const totalRevenue = await prisma.transactions.aggregate({
             _sum: { amount: true },
-            where: { status: 'SUCCESS' }
+            where: {
+                status: 'SUCCESS',
+                type: { in: ['SUBSCRIPTION', 'DEPOSIT', 'BOOST'] }
+            }
         });
 
         const premiumRevenue = await prisma.transactions.aggregate({

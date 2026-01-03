@@ -271,7 +271,10 @@ function RegisterForm() {
                                 placeholder="Have a code?"
                                 className="h-12 bg-indigo-50 border-indigo-100 text-indigo-700 placeholder:text-indigo-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-bold uppercase tracking-widest text-sm"
                                 value={form.referralCode}
-                                onChange={e => setForm({ ...form, referralCode: e.target.value })}
+                                onChange={e => {
+                                    setForm({ ...form, referralCode: e.target.value });
+                                    localStorage.setItem('referralCode', e.target.value);
+                                }}
                             />
                             {form.referralCode && <p className="text-[10px] text-green-600 font-bold animate-pulse mt-1 ml-1">🎁 +20 Coins Bonus Applied!</p>}
                         </div>

@@ -370,9 +370,14 @@ export default function Dashboard() {
 
                     {/* Premium Badge */}
                     {currentUser?.is_premium && (
-                        <div className="flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300">
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300 relative group cursor-help">
                             <span>👑</span>
                             <span className="hidden sm:inline">PREMIUM</span>
+                            {currentUser.premium_expiry && (
+                                <div className="absolute top-full mt-2 right-0 bg-gray-900 text-white text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity w-max shadow-lg z-50">
+                                    Expires in {Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
+                                </div>
+                            )}
                         </div>
                     )}
 

@@ -93,7 +93,8 @@ router.get('/users', async (req, res) => {
                 is_admin: true,
                 coins: true,
                 referral_code: true,
-                referred_by: true
+                referred_by: true,
+                premium_expiry: true
             }
         });
 

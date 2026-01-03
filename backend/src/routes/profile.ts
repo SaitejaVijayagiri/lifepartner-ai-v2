@@ -103,6 +103,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             coins: user.coins || 0, // Added Coin Balance
             phone: meta.phone || "", // Added Phone
             referral_code: user.referral_code || "", // Added Referral Code
+            premium_expiry: user.premium_expiry, // Added Premium Expiry
             // Stories logic
             stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()) // Only return active stories
         };

@@ -174,7 +174,16 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="p-4">
                                                         <div className="flex gap-2">
-                                                            {user.is_premium && <Badge className="bg-gradient-to-r from-amber-400 to-orange-500">Premium</Badge>}
+                                                            {user.is_premium && (
+                                                                <div className="flex flex-col gap-1">
+                                                                    <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 w-fit">Premium</Badge>
+                                                                    {user.premium_expiry && (
+                                                                        <span className="text-[10px] text-gray-500 font-medium">
+                                                                            {Math.ceil((new Date(user.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days left
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                             {user.is_banned && <Badge variant="destructive">Banned</Badge>}
                                                             {!user.is_banned && !user.is_premium && <Badge variant="outline">Free</Badge>}
                                                         </div>

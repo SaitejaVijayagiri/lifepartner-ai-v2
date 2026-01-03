@@ -41,6 +41,60 @@ router.post('/register', async (req, res) => {
         });
 
         if (existingUser) {
+            // Self-Healing Logic: If user is UNVERIFIED, allow overwrite and resend OTP
+            if (!existingUser.is_verified) {
+                console.log(`♻️ Self-Healing Registration for unverified user: ${email || phone}`);
+
+                // 3. Hash New Password
+                const salt = await bcrypt.genSalt(10);
+                const passwordHash = await bcrypt.hash(password, salt);
+
+                // 4. Generate New OTP
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+                // Update User Record
+                await prisma.users.update({
+                    where: { id: existingUser.id },
+                    data: {
+                        email: email, // Update email in case of typo fix
+                        phone: phone, // Update phone
+                        password_hash: passwordHash,
+                        full_name: full_name,
+                        otp_code: otp,
+                        otp_expires_at: otpExpiresAt,
+                        // Don't reset created_at, keep original timestamp or not?
+                        // Let's keep ID same. 
+                    }
+                });
+
+                // Send OTP Email
+                if (email) {
+                    try {
+                        const apiKey = process.env.RESEND_API_KEY;
+                        if (apiKey && !apiKey.toLowerCase().includes('mock')) {
+                            await resend.emails.send({
+                                from: 'LifePartner AI <onboarding@resend.dev>',
+                                to: email,
+                                subject: 'Your Verification Code (Resend)',
+                                html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`
+                            });
+                            console.log(`✅ Self-Heal OTP sent to ${email}`);
+                        }
+                    } catch (e) {
+                        console.error("Self-Heal Email Error", e);
+                    }
+                }
+
+                // Return Success
+                return res.json({
+                    success: true,
+                    requiresVerification: true,
+                    email: email,
+                    message: "Verification code resent (Profile updated)"
+                });
+            }
+
             return res.status(400).json({ error: "User already exists" });
         }
 

@@ -502,7 +502,7 @@ router.post('/google', async (req, res) => {
                 code,
                 client_id: process.env.GOOGLE_CLIENT_ID!,
                 client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-                redirect_uri: req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI || 'https://lifepartner-ai.onrender.com/auth/callback/google',
+                redirect_uri: req.body.redirect_uri || process.env.GOOGLE_REDIRECT_URI || 'https://lifepartnerai.in/auth/callback/google',
                 grant_type: 'authorization_code'
             })
         });

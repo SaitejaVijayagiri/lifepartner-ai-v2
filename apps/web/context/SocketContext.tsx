@@ -25,7 +25,6 @@ export const useSocket = () => {
             socket: null,
             isConnected: false,
             onlineUsers: [],
-            onlineUsers: [],
             incomingCall: null,
             clearIncomingCall: () => { },
             publicStats: { onlineCount: 0 }
@@ -42,7 +41,6 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         isReceivingCall: boolean;
         from: string;
         name: string;
-        signal: any;
         signal: any;
         type: 'video' | 'audio';
     } | null>(null);
@@ -123,7 +121,6 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         <SocketContext.Provider value={{
             socket,
             isConnected,
-            onlineUsers,
             onlineUsers,
             incomingCall,
             clearIncomingCall: () => setIncomingCall(null),

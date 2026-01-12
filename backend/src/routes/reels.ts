@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { Prisma } from '@prisma/client';
 import { upload } from '../middleware/upload';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
@@ -70,7 +71,7 @@ router.get('/feed', authenticateOptional, async (req: any, res) => {
             JOIN users u ON r.user_id = u.id
             LEFT JOIN profiles p ON r.user_id = p.user_id
             WHERE r.user_id != ${userId || "'00000000-0000-0000-0000-000000000000'"} 
-            AND (${prisma.raw(genderClause)})
+            AND (${Prisma.raw(genderClause)})
             ORDER BY score DESC
             LIMIT 20;
         ` as any[];

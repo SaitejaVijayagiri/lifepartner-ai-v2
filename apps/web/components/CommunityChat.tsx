@@ -62,6 +62,14 @@ export default function CommunityChat({ currentUser }: { currentUser: any }) {
         setInputText("");
     };
 
+    if (!currentUser) {
+        return (
+            <div className="h-full flex items-center justify-center bg-gray-50 border border-gray-200 rounded-2xl">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+        );
+    }
+
     if (status === 'denied') {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-2xl border border-gray-200">

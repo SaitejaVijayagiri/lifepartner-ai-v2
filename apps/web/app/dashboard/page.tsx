@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import VideoCallModal from '@/components/VideoCallModal';
 import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2 } from 'lucide-react';
+import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee } from 'lucide-react';
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
@@ -126,7 +126,7 @@ export default function Dashboard() {
 
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
-        { id: 'community', label: 'Lounge', icon: Users },
+        { id: 'community', label: 'Lounge', icon: Coffee },
         { id: 'reels', label: 'Vibe', icon: Video },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
         { id: 'connections', label: 'Chat', icon: MessageCircle },

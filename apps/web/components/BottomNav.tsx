@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, Video, Users, MessageCircle, User } from 'lucide-react';
+import { Heart, Video, Users, MessageCircle, User, Coffee } from 'lucide-react';
 
 interface NavItem {
     id: string;
@@ -18,7 +18,7 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, requestsCount }) => {
     const navItems: NavItem[] = [
         { id: 'matches', label: 'Matches', icon: Heart, gradient: 'from-rose-500 to-pink-500' },
-        { id: 'community', label: 'Lounge', icon: Users, gradient: 'from-indigo-500 to-blue-500' },
+        { id: 'community', label: 'Lounge', icon: Coffee, gradient: 'from-indigo-500 to-blue-500' },
         { id: 'reels', label: 'Vibe', icon: Video, gradient: 'from-purple-500 to-indigo-500' },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount, gradient: 'from-amber-500 to-orange-500' },
         { id: 'connections', label: 'Chat', icon: MessageCircle, gradient: 'from-emerald-500 to-teal-500' },

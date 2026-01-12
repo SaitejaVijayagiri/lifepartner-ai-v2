@@ -23,6 +23,7 @@ import ChatWindow from '@/components/ChatWindow';
 import CoinStoreModal from '@/components/CoinStoreModal';
 import { useToast } from '@/components/ui/Toast';
 import FilterModal, { FilterState } from '@/components/FilterModal';
+import CommunityChat from '@/components/CommunityChat';
 
 /* Mock Data for Stories */
 const STORIES = [
@@ -125,6 +126,7 @@ export default function Dashboard() {
 
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
+        { id: 'community', label: 'Lounge', icon: Users },
         { id: 'reels', label: 'Vibe', icon: Video },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
         { id: 'connections', label: 'Chat', icon: MessageCircle },
@@ -1170,6 +1172,26 @@ export default function Dashboard() {
                     ))}
                 </div>
             </div>
-        </div>
+
+
+            {/* Main Content Area */}
+            <main className={`flex-1 transition-all duration-300 md:pb-10 pt-2 ${isEditingProfile ? 'h-screen overflow-hidden' : ''}`}>
+                <div className="max-w-7xl mx-auto w-full md:px-4">
+                    {activeTab === 'matches' && renderDiscoveryFeed()}
+                    {activeTab === 'reels' && <ReelFeed />}
+                    {activeTab === 'community' && (
+                        <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-140px)] pt-2">
+                            <CommunityChat currentUser={currentUser} />
+                        </div>
+                    )}
+                    {activeTab === 'profile' && (
+                        <div className="px-4 py-6">
+                            <ProfileView profile={currentUser} onEdit={() => setIsEditingProfile(true)} />
+                        </div>
+                    )}
+                    {/* ... other tabs ... */}
+                </div>
+            </main>
+        </div >
     );
 }

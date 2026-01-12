@@ -78,13 +78,12 @@ export const metadata: Metadata = {
     google: "h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE",
   },
   icons: {
-    icon: '/icon.png',
-    shortcut: '/icon.png',
-    apple: '/icon.png',
-    other: {
-      rel: 'apple-touch-icon-precomposed',
-      url: '/icon.png',
-    },
+    icon: [
+      { url: 'https://lifepartnerai.in/icon.png' },
+      { url: 'https://lifepartnerai.in/icon.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: 'https://lifepartnerai.in/icon.png',
+    apple: 'https://lifepartnerai.in/icon.png',
   },
 };
 

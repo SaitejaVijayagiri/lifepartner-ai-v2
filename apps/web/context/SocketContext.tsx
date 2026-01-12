@@ -15,6 +15,7 @@ const SocketContext = createContext<{
         type: 'video' | 'audio';
     } | null;
     clearIncomingCall: () => void;
+    publicStats: { onlineCount: number };
 } | null>(null);
 
 export const useSocket = () => {
@@ -24,8 +25,10 @@ export const useSocket = () => {
             socket: null,
             isConnected: false,
             onlineUsers: [],
+            onlineUsers: [],
             incomingCall: null,
-            clearIncomingCall: () => { }
+            clearIncomingCall: () => { },
+            publicStats: { onlineCount: 0 }
         };
     }
     return context;
@@ -40,8 +43,10 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         from: string;
         name: string;
         signal: any;
+        signal: any;
         type: 'video' | 'audio';
     } | null>(null);
+    const [publicStats, setPublicStats] = useState({ onlineCount: 0 });
 
     useEffect(() => {
         // Connect to Backend URL
@@ -85,6 +90,11 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             setOnlineUsers(prev => prev.filter(id => id !== userId));
         });
 
+        // Public Stats
+        newSocket.on('public_stats', (data: { onlineCount: number }) => {
+            setPublicStats(data);
+        });
+
         // CALL EVENTS
         newSocket.on("callUser", ({ from, name: callerName, signal, type }) => {
             console.log("Incoming Call from", callerName);
@@ -114,8 +124,10 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             socket,
             isConnected,
             onlineUsers,
+            onlineUsers,
             incomingCall,
-            clearIncomingCall: () => setIncomingCall(null)
+            clearIncomingCall: () => setIncomingCall(null),
+            publicStats
         }}>
             {children}
         </SocketContext.Provider>

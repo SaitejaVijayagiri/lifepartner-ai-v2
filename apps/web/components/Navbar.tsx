@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Menu, X, ArrowRight, User } from 'lucide-react';
+import { Sparkles, Menu, X, ArrowRight, User, Users } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
+import { useSocket } from '../context/SocketContext';
 
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const [user, setUser] = useState<any>(null);
+    const { publicStats } = useSocket();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -49,6 +51,17 @@ export default function Navbar() {
                         LifePartner AI
                     </span>
                 </Link>
+
+                {/* Live Stats (Visible to All) */}
+                {publicStats.onlineCount > 0 && (
+                    <div className="hidden lg:flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full border border-green-100 ml-4 animate-in fade-in zoom-in duration-500">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <span className="text-xs font-bold text-green-700">{publicStats.onlineCount} Online</span>
+                    </div>
+                )}
 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex space-x-8 items-center">
@@ -124,6 +137,18 @@ export default function Navbar() {
                                 {item}
                             </Link>
                         ))}
+
+                        {/* Mobile Live Stats */}
+                        {publicStats.onlineCount > 0 && (
+                            <div className="flex items-center gap-2 px-0 py-2">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                <span className="text-sm font-bold text-green-700">{publicStats.onlineCount} People Live Now</span>
+                            </div>
+                        )}
+
                         <Link
                             href="/community"
                             className="text-lg font-medium text-gray-800 hover:text-indigo-600 flex items-center gap-2"

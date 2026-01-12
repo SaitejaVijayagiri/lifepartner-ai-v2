@@ -18,16 +18,21 @@ export const initSocket = (httpServer: HttpServer) => {
         }
     });
 
-    // MIDDLEWARE: Authentication
+    // MIDDLEWARE: Authentication (Relaxed for Guests)
     io.use((socket, next) => {
         const token = socket.handshake.auth.token || socket.handshake.query.token;
 
         if (!token) {
-            return next(new Error("Authentication error"));
+            socket.data.isGuest = true;
+            return next();
         }
 
         jwt.verify(token as string, process.env.JWT_SECRET as string, (err, decoded) => {
-            if (err) return next(new Error("Authentication error"));
+            if (err) {
+                // Invalid token? Treat as guest.
+                socket.data.isGuest = true;
+                return next();
+            }
             socket.data.user = decoded; // Store user info in socket session
             next();
         });
@@ -35,7 +40,16 @@ export const initSocket = (httpServer: HttpServer) => {
 
     io.on('connection', (socket: Socket) => {
         const userId = socket.data.user?.userId;
-        console.log(`Socket User Connected: ${socket.id} (User: ${userId})`);
+        const isGuest = socket.data.isGuest;
+        console.log(`Socket Connected: ${socket.id} (User: ${userId || 'Guest'})`);
+
+        // Join Public Updates Room (Stats)
+        socket.join('public_updates');
+
+        // Send initial stats on connect
+        const currentList = Array.from(communityUsers.values());
+        const uniqueCount = new Set(currentList.map(u => u.userId)).size;
+        socket.emit('public_stats', { onlineCount: uniqueCount });
 
         if (userId) {
             socket.join(userId);
@@ -57,6 +71,9 @@ export const initSocket = (httpServer: HttpServer) => {
                 // Use a Map to dedup by userId in case of multiple tabs
                 const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
                 io.to('verified_lounge').emit('update_community_users', uniqueList);
+
+                // Broadcast Count to Public
+                io.to('public_updates').emit('public_stats', { onlineCount: uniqueList.length });
             }
         };
 
@@ -205,7 +222,10 @@ export const initSocket = (httpServer: HttpServer) => {
             // Blast full list to everyone in room
             const list = Array.from(communityUsers.values());
             const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
+
             io.to('verified_lounge').emit('update_community_users', uniqueList);
+            // Broadcast Count to Public
+            io.to('public_updates').emit('public_stats', { onlineCount: uniqueList.length });
 
             socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });
 

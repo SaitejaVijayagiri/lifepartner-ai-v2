@@ -6,6 +6,10 @@ import jwt from 'jsonwebtoken';
 let io: Server;
 const onlineUsers = new Set<string>();
 
+// Track users explicitly in the Verified Lounge
+// socketId -> { userId, name, photo }
+const communityUsers = new Map<string, { userId: string, name: string, photo: string }>();
+
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -46,6 +50,16 @@ export const initSocket = (httpServer: HttpServer) => {
             socket.broadcast.emit('userOnline', userId);
         }
 
+        const leaveCommunity = () => {
+            if (communityUsers.has(socket.id)) {
+                communityUsers.delete(socket.id);
+                const list = Array.from(communityUsers.values());
+                // Use a Map to dedup by userId in case of multiple tabs
+                const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
+                io.to('verified_lounge').emit('update_community_users', uniqueList);
+            }
+        };
+
         // User Greeting
         socket.emit('me', socket.id);
 
@@ -62,6 +76,8 @@ export const initSocket = (httpServer: HttpServer) => {
                     io.emit('userOffline', userId);
                 }
             }
+
+            leaveCommunity();
         });
 
         // JOIN "Personal Room" (using userId as room name)
@@ -150,6 +166,77 @@ export const initSocket = (httpServer: HttpServer) => {
             } catch (e) {
                 console.error("Message Persistence Error:", e);
             }
+        });
+
+        /**
+         * COMMUNITY LOUNGE LOGIC
+         */
+        socket.on('join_community', async () => {
+            if (!userId) {
+                socket.emit('community_error', { message: "Authentication required to join community." });
+                return;
+            }
+
+            // Check if user is premium
+            const user = await prisma.users.findUnique({
+                where: { id: userId },
+                select: { is_premium: true, full_name: true, avatar_url: true }
+            });
+
+            if (!user || !user.is_premium) {
+                socket.emit('community_error', {
+                    message: "The Verified Lounge is a Premium Feature. Upgrade to Plan to Unlock.",
+                    code: "PREMIUM_REQUIRED"
+                });
+                return;
+            }
+
+            socket.join('verified_lounge');
+
+            // Add to Community Map
+            if (user) {
+                communityUsers.set(socket.id, {
+                    userId: userId,
+                    name: user.full_name || 'Verified Member',
+                    photo: user.avatar_url || ''
+                });
+            }
+
+            // Blast full list to everyone in room
+            const list = Array.from(communityUsers.values());
+            const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
+            io.to('verified_lounge').emit('update_community_users', uniqueList);
+
+            socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });
+
+            console.log(`User ${userId} joined verified_lounge`);
+        });
+
+        socket.on('leave_community', () => {
+            socket.leave('verified_lounge');
+            leaveCommunity();
+        });
+
+        socket.on('send_community_message', async ({ text }) => {
+            const from = userId;
+            if (!from || !communityUsers.has(socket.id)) {
+                socket.emit('community_error', { message: "Not authorized or not in community." });
+                return;
+            }
+
+            const user = communityUsers.get(socket.id);
+            if (!user) return; // Should not happen if communityUsers.has(socket.id) is true
+
+            const msgPayload = {
+                text,
+                senderId: from,
+                senderName: user.name,
+                senderPhoto: user.photo,
+                timestamp: new Date()
+            };
+
+            // Emit to everyone in the 'verified_lounge' room
+            io.to('verified_lounge').emit('receive_community_message', msgPayload);
         });
     });
 

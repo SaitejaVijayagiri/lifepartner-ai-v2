@@ -87,37 +87,6 @@ export default function CommunityPage() {
                     <div className="flex-1 h-full">
                         <CommunityChat currentUser={user} />
                     </div>
-
-                    {/* Sidebar (Desktop Only) */}
-                    <div className="hidden md:flex w-80 flex-col gap-4">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex-1">
-                            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                                Online Members
-                            </h3>
-                            <div className="space-y-3 overflow-y-auto max-h-full pr-2">
-                                {/* Mock Data for Social Proof - In real app, socket would populate this */}
-                                {[
-                                    { name: "Priya Sharma", role: "Software Engineer" },
-                                    { name: "Rahul Verma", role: "Doctor" },
-                                    { name: "Ananya Singh", role: "Architect" },
-                                    { name: "Vikram Reddy", role: "Entrepreneur" },
-                                    { name: "Sneha Patel", role: "Artist" },
-                                ].map((u, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer group">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-600 font-bold text-sm border border-gray-200">
-                                            {u.name[0]}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-sm text-gray-800 group-hover:text-indigo-600 transition-colors">{u.name}</p>
-                                            <p className="text-xs text-gray-400">{u.role}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                                <p className="text-xs text-center text-gray-400 mt-4 italic">+ 12 others online</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

@@ -43,7 +43,7 @@ export default function CommunityChat({ currentUser }: { currentUser: any }) {
             socket.off('receive_community_message');
             socket.off('update_community_users');
             socket.emit('leave_community');
-            socket.emit('leave_community');
+
         };
     }, [socket, currentUser]);
 
@@ -58,7 +58,7 @@ export default function CommunityChat({ currentUser }: { currentUser: any }) {
         e.preventDefault();
         if (!inputText.trim()) return;
 
-        socket.emit('community_message', { text: inputText });
+        socket.emit('send_community_message', { text: inputText });
         setInputText("");
     };
 
@@ -124,8 +124,8 @@ export default function CommunityChat({ currentUser }: { currentUser: any }) {
                                             </span>
                                         )}
                                         <div className={`px-4 py-2 rounded-2xl shadow-sm text-sm ${isMe
-                                                ? 'bg-indigo-600 text-white rounded-br-sm'
-                                                : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm'
+                                            ? 'bg-indigo-600 text-white rounded-br-sm'
+                                            : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm'
                                             }`}>
                                             {msg.text}
                                         </div>

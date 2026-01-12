@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import KundliModal from './KundliModal';
 import CoinStoreModal from './CoinStoreModal';
 import VideoCallButton from '@/components/VideoCallButton';
+import VerificationBadge from './VerificationBadge';
 
 interface ProfileModalProps {
     profile: any;
@@ -124,7 +125,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 {profile.name}, {profile.age}
                                 {profile.isPremium && <span className="text-amber-400 text-xl drop-shadow-lg animate-pulse" title="Premium Member">👑</span>}
                             </h2>
-                            {profile.isVerified !== false && <span className="text-blue-400 bg-blue-900/30 p-1 rounded-full text-xs" title="Verified">✓</span>}
+                            {profile.isVerified !== false && <VerificationBadge size={16} className="bg-blue-900/30 p-0.5 rounded-full" showTooltip />}
                         </div>
                         <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
                             <span>{profile.career?.profession || "Professional"}</span>

@@ -45,44 +45,42 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
                     if (entry.isIntersecting) {
                         const index = Number(entry.target.getAttribute('data-index'));
                         setActiveIndex(index);
+
+                        // GUEST SWIPE LIMIT
+                        if (!currentUser && index >= 5) {
+                            // Logic handled by overlay rendering below
+                        }
                     }
                 });
             },
-            { threshold: 0.6 } // Trigger when 60% visible
+            { threshold: 0.6 }
         );
 
-        // We need to wait for elements to be rendered. 
-        // A simple timeout or dependency change handles this for now.
         const elements = document.querySelectorAll('.snap-child');
         elements.forEach(el => observer.observe(el));
-
         return () => observer.disconnect();
-    }, [reels.length]);
+    }, [reels.length, currentUser]);
 
     const loadFeed = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`${API_URL}/reels/feed`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const headers: any = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await axios.get(`${API_URL}/reels/feed`, { headers });
 
             const rawReels: Reel[] = res.data;
             const mixedFeed: FeedItem[] = [];
 
             rawReels.forEach((reel, index) => {
                 mixedFeed.push(reel);
-                // Inject Ad after every 5 reels (e.g. after index 4, 9, 14)
                 if ((index + 1) % 5 === 0) {
                     mixedFeed.push({
                         id: `ad-google-${index}`,
                         type: 'google_ad',
                         title: "Sponsored",
                         description: "",
-                        advertiserName: "Google",
-                        advertiserAvatar: "",
-                        contentUrl: "",
-                        ctaLink: "",
-                        ctaText: ""
+                        advertiserName: "Google"
                     } as any);
                 }
             });
@@ -335,6 +333,26 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
                         </div>
                     );
                 })}
+
+                {/* GUEST LIMIT OVERLAY */}
+                {!currentUser && activeIndex >= 5 && (
+                    <div className="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+                        <div className="w-16 h-16 bg-gradient-to-tr from-pink-500 to-purple-600 rounded-full flex items-center justify-center mb-6 shadow-xl shadow-purple-500/50">
+                            <Heart className="text-white fill-white animate-pulse" size={32} />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-2">Want to see more?</h3>
+                        <p className="text-gray-300 mb-8">Join 10,000+ verified singles finding love on LifePartner AI.</p>
+
+                        <a href="/register" className="w-full">
+                            <button className="w-full py-4 rounded-full bg-white text-black font-bold text-lg hover:scale-105 transition-transform">
+                                Create Free Profile
+                            </button>
+                        </a>
+                        <a href="/login" className="mt-4 text-sm text-gray-400 hover:text-white">
+                            Already have an account? Log in
+                        </a>
+                    </div>
+                )}
             </div>
 
             {isUploading && (
@@ -391,10 +409,11 @@ export interface Reel {
         age?: number;
         location?: { city: string };
         career?: { profession: string };
+        isVerified?: boolean;
     };
     isMe: boolean;
     likes: number;
     isLiked: boolean;
     commentCount: number;
-    comments?: { id: string; user: string; text: string; userAvatar?: string }[];
+    comments?: { id: string; user: string; text: string; userAvatar?: string; isVerified?: boolean }[];
 }

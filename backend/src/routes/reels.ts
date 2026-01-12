@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { prisma } from '../prisma';
 import { upload } from '../middleware/upload';
 import { createClient } from '@supabase/supabase-js';
@@ -11,36 +11,40 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KE
 const router = express.Router();
 
 // 1. Get Reels Feed (Viral Algorithm)
-router.get('/feed', authenticateToken, async (req: any, res) => {
+router.get('/feed', authenticateOptional, async (req: any, res) => {
     try {
         const userId = req.user?.userId;
 
-        // 1. Get Current User's Gender & Location
-        const user = await prisma.users.findUnique({
-            where: { id: userId },
-            select: {
-                gender: true,
-                profiles: {
-                    select: { metadata: true }
+        let myGender = "";
+        let myDistrict = "";
+        let myState = "";
+
+        if (userId) {
+            // 1. Get Current User's Gender & Location
+            const user = await prisma.users.findUnique({
+                where: { id: userId },
+                select: {
+                    gender: true,
+                    profiles: {
+                        select: { metadata: true }
+                    }
                 }
-            }
-        });
-
-        const userLoc: any = (user?.profiles?.metadata as any)?.location || {};
-        const myGender = (user?.gender || "").trim().toLowerCase();
-        const myDistrict = userLoc.district || "";
-        const myState = userLoc.state || "";
-
-        console.log(`Feeding Reels for ${myGender} in ${myDistrict}, ${myState}`);
+            });
+            const userLoc: any = (user?.profiles?.metadata as any)?.location || {};
+            myGender = (user?.gender || "").trim().toLowerCase();
+            myDistrict = userLoc.district || "";
+            myState = userLoc.state || "";
+            // debug log removed
+        } else {
+            // debug log removed
+        }
 
         // Gender Filter Logic
-        let genderFilter = "";
-        if (myGender === 'male') genderFilter = "AND LOWER(u.gender) = 'female'";
-        else if (myGender === 'female') genderFilter = "AND LOWER(u.gender) = 'male'";
+        let genderClause = "1=1"; // Default true
+        if (myGender === 'male') genderClause = "LOWER(u.gender) = 'female'";
+        else if (myGender === 'female') genderClause = "LOWER(u.gender) = 'male'";
 
-        // Algorithm:
-        // Use Prisma Raw Query for complex scoring
-        // Note: Prisma raw query returns dictionaries, need explicit casting if complex
+        // DB Interaction
         const reels = await prisma.$queryRaw`
             SELECT 
                 r.*,
@@ -48,38 +52,25 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
                 u.avatar_url as author_photo,
                 u.location_name as author_city,
                 u.age as author_age,
+                u.is_verified as author_verified,
                 p.metadata->'location' as author_loc,
                 (
                     (EXTRACT(EPOCH FROM r.created_at) * 0.0001) + 
                     (r.likes * 2) + 
                     (r.views * 0.1) +
                     (CASE 
-                        WHEN (p.metadata->'location'->>'district') IS NOT NULL AND LOWER(p.metadata->'location'->>'district') = LOWER(${myDistrict}) THEN 50
-                        WHEN (p.metadata->'location'->>'state') IS NOT NULL AND LOWER(p.metadata->'location'->>'state') = LOWER(${myState}) THEN 20
+                        WHEN ${myDistrict} != '' AND (p.metadata->'location'->>'district') IS NOT NULL AND LOWER(p.metadata->'location'->>'district') = LOWER(${myDistrict}) THEN 50
+                        WHEN ${myState} != '' AND (p.metadata->'location'->>'state') IS NOT NULL AND LOWER(p.metadata->'location'->>'state') = LOWER(${myState}) THEN 20
                         ELSE 0
                     END)
                 ) as score,
-                EXISTS(SELECT 1 FROM interactions i WHERE i.from_user_id = ${userId} AND i.to_user_id = r.user_id AND i.type = 'LIKE') as "is_liked_author",
-                EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.user_id = ${userId} AND rl.reel_id = r.id) as "is_liked"
+                ${userId ? prisma.$queryRaw`EXISTS(SELECT 1 FROM interactions i WHERE i.from_user_id = ${userId} AND i.to_user_id = r.user_id AND i.type = 'LIKE')` : false} as "is_liked_author",
+                ${userId ? prisma.$queryRaw`EXISTS(SELECT 1 FROM reel_likes rl WHERE rl.user_id = ${userId} AND rl.reel_id = r.id)` : false} as "is_liked"
             FROM reels r
             JOIN users u ON r.user_id = u.id
             LEFT JOIN profiles p ON r.user_id = p.user_id
-            WHERE r.user_id != ${userId} 
-            -- Can't easily inject dynamic string in Prisma Raw without unsafe, relying on simple logic or fetch all and filter?
-            -- Safe way: Use multiple queries or fixed string if trusted. 
-            -- But genderFilter is derived from trusted enum.
-            -- Actually, simpler: just filter by gender code if possible.
-            -- Let's put the gender filter in the WHERE clause if needed manually or accept we fetch mixed for now?
-            -- Or better: Use user.target_gender preference if available?
-            -- Sticking to literal inject for this specific line since it is hardcoded logic above, BUT safer to remove dynamic SQL construction.
-            -- Instead:
-            AND (
-                CASE 
-                    WHEN ${myGender} = 'male' THEN LOWER(u.gender) = 'female'
-                    WHEN ${myGender} = 'female' THEN LOWER(u.gender) = 'male'
-                    ELSE TRUE -- Show all if unspecified
-                END
-            )
+            WHERE r.user_id != ${userId || "'00000000-0000-0000-0000-000000000000'"} 
+            AND (${prisma.raw(genderClause)})
             ORDER BY score DESC
             LIMIT 20;
         ` as any[];
@@ -87,7 +78,7 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
         // Map to Frontend Format
         const mappedReels = reels.map(row => ({
             id: row.id,
-            url: row.video_url, // Supabase URL
+            url: row.video_url,
             caption: row.caption || "",
             user: {
                 id: row.user_id,
@@ -98,9 +89,10 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
                     district: row.author_loc?.district,
                     state: row.author_loc?.state
                 },
-                age: row.author_age
+                age: row.author_age,
+                isVerified: row.author_verified || false
             },
-            isMe: false, // Filtered out above
+            isMe: false,
             likes: row.likes || 0,
             isLiked: row.is_liked || false,
             commentCount: row.comments_count || 0
@@ -286,7 +278,7 @@ router.get('/:id/comments', authenticateToken, async (req: any, res) => {
 
         const comments = await prisma.reel_comments.findMany({
             where: { reel_id: id },
-            include: { users: { select: { full_name: true } } },
+            include: { users: { select: { full_name: true, is_verified: true } } },
             orderBy: { created_at: 'desc' },
             take: 50
         });
@@ -294,7 +286,8 @@ router.get('/:id/comments', authenticateToken, async (req: any, res) => {
         const formattedComments = comments.map(c => ({
             id: c.id,
             text: c.text,
-            user: c.users?.full_name || "User"
+            user: c.users?.full_name || "User",
+            isVerified: c.users?.is_verified || false
         }));
 
         res.json(formattedComments);

@@ -14,6 +14,26 @@ export const authenticateToken = (req: any, res: Response, next: NextFunction) =
     });
 };
 
+export const authenticateOptional = (req: any, res: Response, next: NextFunction) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        req.user = undefined;
+        return next();
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET as string, (err: any, user: any) => {
+        if (err) {
+            // If token is invalid (expired), treat as guest instead of 401 blocking
+            req.user = undefined;
+        } else {
+            req.user = user;
+        }
+        next();
+    });
+};
+
 export const requireAdmin = (req: any, res: Response, next: NextFunction) => {
     // Check if user is authenticated
     if (!req.user) return res.sendStatus(401);

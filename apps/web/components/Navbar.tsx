@@ -2,18 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Sparkles, Menu, X, ArrowRight } from 'lucide-react';
+import { Sparkles, Menu, X, ArrowRight, User } from 'lucide-react';
+import VerificationBadge from './VerificationBadge';
 
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 20);
         };
         window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+
+        // Check Auth using localStorage (Simple version)
+        const checkAuth = () => {
+            try {
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    setUser(JSON.parse(userData));
+                }
+            } catch (e) { console.error(e); }
+        };
+        checkAuth();
+        // Listen for storage events (login/logout sync)
+        window.addEventListener('storage', checkAuth);
+
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('storage', checkAuth);
+        };
     }, []);
 
     return (
@@ -41,20 +61,43 @@ export default function Navbar() {
                             {item}
                         </Link>
                     ))}
+                    <Link href="/community" className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
+                        Community <span className="bg-indigo-100 text-indigo-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">New</span>
+                    </Link>
                 </div>
 
                 {/* Desktop Actions */}
                 <div className="hidden md:flex items-center gap-4">
-                    <Link href="/login" className="text-sm font-bold text-gray-700 hover:text-indigo-600 transition-colors">
-                        Log In
-                    </Link>
-                    <Link href="/register">
-                        <button className="group relative px-6 py-2.5 font-bold text-white rounded-full bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95">
-                            <span className="relative flex items-center gap-2 text-sm uppercase tracking-wide">
-                                Get Started <ArrowRight size={14} />
-                            </span>
-                        </button>
-                    </Link>
+                    {user ? (
+                        <Link href="/dashboard" className="flex items-center gap-3 bg-white border border-gray-200 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
+                                {user.avatar_url ? (
+                                    <img src={user.avatar_url} className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={16} />
+                                )}
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <span className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                                    {user.full_name?.split(' ')[0] || 'Dashboard'}
+                                    {user.is_verified && <VerificationBadge size={12} />}
+                                </span>
+                            </div>
+                        </Link>
+                    ) : (
+                        <>
+                            <Link href="/login" className="text-sm font-bold text-gray-700 hover:text-indigo-600 transition-colors">
+                                Log In
+                            </Link>
+                            <Link href="/register">
+                                <button className="group relative px-6 py-2.5 font-bold text-white rounded-full bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95">
+                                    <span className="relative flex items-center gap-2 text-sm uppercase tracking-wide">
+                                        Get Started <ArrowRight size={14} />
+                                    </span>
+                                </button>
+                            </Link>
+                        </>
+                    )}
                 </div>
 
                 {/* Mobile Toggle */}
@@ -81,6 +124,13 @@ export default function Navbar() {
                                 {item}
                             </Link>
                         ))}
+                        <Link
+                            href="/community"
+                            className="text-lg font-medium text-gray-800 hover:text-indigo-600 flex items-center gap-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            Community <span className="bg-indigo-100 text-indigo-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">New</span>
+                        </Link>
                         <hr className="border-gray-100" />
                         <Link
                             href="/login"

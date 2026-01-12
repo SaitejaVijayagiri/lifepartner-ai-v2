@@ -32,11 +32,12 @@ export const metadata: Metadata = {
   keywords: [
     "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
     "AI Dating", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
-    "Free Chat Matrimony", "Marriage Bureau", "Safe Matrimony", "Verified Profiles"
+    "Free Chat Matrimony", "Online Chat", "Chat with Strangers", "Video Dating",
+    "Marriage Bureau", "Safe Matrimony", "Verified Profiles"
   ],
   authors: [{ name: "LifePartner AI Team" }],
   creator: "LifePartner AI",
-  manifest: "/manifest.json",
+  manifest: 'https://lifepartnerai.in/manifest.json',
   openGraph: {
     type: "website",
     locale: "en_IN",
@@ -102,8 +103,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#4F46E5" />
+        <meta name="google-site-verification" content="h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
         {/* Google AdSense - Real ID */}
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355"

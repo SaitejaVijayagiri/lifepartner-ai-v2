@@ -5,6 +5,7 @@ import NextImage from 'next/image';
 import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, MessageCircle, ShieldCheck, Lock, Award, Gift } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
+import ReelFeed from '@/components/ReelFeed';
 
 export default function LandingPage() {
   return (
@@ -277,6 +278,21 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* --- TRENDING VIBE CHECKS (NEW) --- */}
+      <section className="py-20 bg-black relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+        <div className="max-w-7xl mx-auto px-6 text-center mb-12 relative z-10">
+          <span className="inline-block py-1 px-3 rounded-full bg-purple-900/50 text-purple-300 text-xs font-bold uppercase tracking-wider mb-4 border border-purple-500/30">viral now</span>
+          <h2 className="text-4xl md:text-5xl font-heading font-black text-white mb-4">Trending "Vibe Checks"</h2>
+          <p className="text-gray-400 max-w-xl mx-auto">Don't just look at photos. Feel the energy. Watch real profiles.</p>
+        </div>
+
+        <div className="relative h-[650px] w-full max-w-[400px] mx-auto shadow-2xl shadow-purple-500/20 rounded-2xl overflow-hidden border border-gray-800">
+          {/* Guest Feed */}
+          <ReelFeed currentUser={null} />
         </div>
       </section>
 

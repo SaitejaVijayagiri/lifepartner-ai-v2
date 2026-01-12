@@ -3,6 +3,7 @@ import { Heart, MessageCircle, Send, Share2, Volume2, VolumeX, Gift } from 'luci
 import { Reel } from './ReelFeed'; // We'll export interface from parent or redefine
 import GoogleAdCard from './GoogleAdCard';
 import AdCard, { AdItem } from './AdCard';
+import VerificationBadge from './VerificationBadge';
 
 // Redefine interfaces locally if needed to avoid circular deps, or import
 interface ReelItemProps {
@@ -201,9 +202,10 @@ const ReelItem = memo(({
                 >
                     <img src={reel.user.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${reel.user.id}`} className="w-10 h-10 rounded-full border border-white/50" />
                     <div>
-                        <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                        <h3 className="font-bold text-white text-sm flex items-center gap-1">
                             {reel.user.name}
-                            {reel.isMe && <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">YOU</span>}
+                            {reel.user.isVerified && <VerificationBadge size={14} />}
+                            {reel.isMe && <span className="bg-white/20 px-2 py-0.5 rounded text-[10px] ml-1">YOU</span>}
                         </h3>
                         <p className="text-xs text-gray-300">{reel.user.location?.city || "India"}</p>
                     </div>
@@ -231,7 +233,10 @@ const ReelItem = memo(({
                                     {c.user[0]}
                                 </div>
                                 <div>
-                                    <p className="text-gray-400 text-xs font-bold mb-0.5">{c.user}</p>
+                                    <p className="text-gray-400 text-xs font-bold mb-0.5 flex items-center gap-1">
+                                        {c.user}
+                                        {c.isVerified && <VerificationBadge size={12} />}
+                                    </p>
                                     <p className="text-white text-sm">{c.text}</p>
                                 </div>
                             </div>

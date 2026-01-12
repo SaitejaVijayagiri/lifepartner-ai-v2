@@ -82,7 +82,7 @@ export default function CommunityPage() {
                     <p className="text-gray-500 font-medium mt-1">Connect with {523}+ active verified members right now.</p>
                 </div>
 
-                <div className="flex-1 flex flex-col md:flex-row gap-6 h-[600px] md:h-[calc(100vh-200px)]">
+                <div className="flex-1 flex flex-col md:flex-row gap-6 h-[calc(100vh-140px)] md:h-[calc(100vh-140px)]">
                     {/* Main Chat Area */}
                     <div className="flex-1 h-full">
                         <CommunityChat currentUser={user} />

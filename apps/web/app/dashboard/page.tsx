@@ -1181,7 +1181,7 @@ export default function Dashboard() {
                     {activeTab === 'reels' && <ReelFeed />}
                     {activeTab === 'community' && (
                         <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-140px)] pt-2">
-                            <CommunityChat currentUser={currentUser} />
+                            <CommunityChat currentUser={currentUser} onOpenStore={() => setShowCoinStore(true)} />
                         </div>
                     )}
                     {activeTab === 'profile' && (

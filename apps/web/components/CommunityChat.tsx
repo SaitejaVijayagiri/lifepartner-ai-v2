@@ -5,7 +5,7 @@ import { useSocket } from '@/context/SocketContext';
 import { Send, Users, ShieldCheck, Lock } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
 
-export default function CommunityChat({ currentUser }: { currentUser: any }) {
+export default function CommunityChat({ currentUser, onOpenStore }: { currentUser: any, onOpenStore?: () => void }) {
     const { socket } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
     const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
@@ -78,7 +78,9 @@ export default function CommunityChat({ currentUser }: { currentUser: any }) {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h3>
                 <p className="text-gray-500 mb-6">The Community Lounge is exclusive to Verified Members.</p>
-                <a href="/dashboard" className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold text-sm">Get Verified Now</a>
+                <button onClick={onOpenStore} className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold text-sm hover:bg-indigo-700 transition-colors">
+                    Get Verified Now
+                </button>
             </div>
         );
     }

@@ -5,8 +5,10 @@ import Navbar from '@/components/Navbar';
 import CommunityChat from '@/components/CommunityChat';
 import { ShieldCheck, Lock, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function CommunityPage() {
+    const router = useRouter();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -60,11 +62,12 @@ export default function CommunityPage() {
                         </ul>
                     </div>
 
-                    <Link href="/dashboard?action=open_premium"> {/* Assuming verification flow starts at dashboard or settings */}
-                        <button className="bg-indigo-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-indigo-700 hover:scale-105 transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2 mx-auto">
-                            Get Verified Now <ArrowRight size={20} />
-                        </button>
-                    </Link>
+                    <button
+                        onClick={() => router.push('/dashboard?action=open_premium')}
+                        className="bg-indigo-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-indigo-700 hover:scale-105 transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2 mx-auto"
+                    >
+                        Get Verified Now <ArrowRight size={20} />
+                    </button>
                 </div>
             </div>
         );

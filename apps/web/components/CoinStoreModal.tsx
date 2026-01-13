@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { X, Coins, Sparkles, Crown, Zap, Star, CheckCircle, Shield } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -12,10 +12,15 @@ const COIN_BUNDLES = [
     { id: 'pro', coins: 1000, price: 699, label: 'Pro', emoji: '💎', popular: false, bonus: '+150 Bonus' },
 ];
 
-export default function CoinStoreModal({ isOpen, onClose, onSuccess }: { isOpen: boolean, onClose: () => void, onSuccess: () => void }) {
+export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab = 'coins' }: { isOpen: boolean, onClose: () => void, onSuccess: () => void, initialTab?: 'coins' | 'premium' }) {
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'coins' | 'premium'>('coins');
+    const [activeTab, setActiveTab] = useState<'coins' | 'premium'>(initialTab);
     const toast = useToast();
+
+    // Reset tab when modal opens
+    useEffect(() => {
+        if (isOpen) setActiveTab(initialTab);
+    }, [isOpen, initialTab]);
 
     if (!isOpen) return null;
 

@@ -50,6 +50,7 @@ export default function Dashboard() {
     const [requestsCount, setRequestsCount] = useState(0);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [showCoinStore, setShowCoinStore] = useState(false);
+    const [initialStoreTab, setInitialStoreTab] = useState<'coins' | 'premium'>('coins');
     const [showCallHistory, setShowCallHistory] = useState(false);
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
     const [visitorsData, setVisitorsData] = useState<any>(null);
@@ -362,7 +363,10 @@ export default function Dashboard() {
                     {/* Coin Balance */}
                     {currentUser && (
                         <button
-                            onClick={() => setShowCoinStore(true)}
+                            onClick={() => {
+                                setInitialStoreTab('coins');
+                                setShowCoinStore(true);
+                            }}
                             className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200"
                         >
                             <Coins size={14} className="fill-yellow-500 text-yellow-600" />
@@ -1052,6 +1056,7 @@ export default function Dashboard() {
             <CoinStoreModal
                 isOpen={showCoinStore}
                 onClose={() => setShowCoinStore(false)}
+                initialTab={initialStoreTab}
                 onSuccess={() => {
                     setShowCoinStore(false);
                     // refresh user to update coins
@@ -1181,7 +1186,10 @@ export default function Dashboard() {
                     {activeTab === 'reels' && <ReelFeed />}
                     {activeTab === 'community' && (
                         <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-140px)] pt-2">
-                            <CommunityChat currentUser={currentUser} onOpenStore={() => setShowCoinStore(true)} />
+                            <CommunityChat currentUser={currentUser} onOpenStore={() => {
+                                setInitialStoreTab('premium');
+                                setShowCoinStore(true);
+                            }} />
                         </div>
                     )}
                     {activeTab === 'profile' && (

@@ -106,6 +106,17 @@ export default function Dashboard() {
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const orderId = params.get('order_id');
+        const action = params.get('action');
+
+        if (action === 'open_premium') {
+            setInitialStoreTab('premium');
+            setShowCoinStore(true);
+            // Clear URL param purely for visual clean up, optional
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('action');
+            window.history.replaceState({}, '', newUrl.toString());
+        }
+
         if (orderId) {
             // Verify Payment
             api.payments.verifyPayment({ orderId })

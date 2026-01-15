@@ -63,34 +63,17 @@ export default function CommunityPage() {
                     </div>
 
                     <div className="flex flex-col items-center gap-4">
+                        {/* Forced Acquisition Flow: Always Redirect to Register (Logout if needed) */}
                         <button
                             onClick={() => {
-                                console.log("Community Button Clicked. User:", user);
-                                if (!user) {
-                                    // Guest -> Register
-                                    window.location.href = '/register';
-                                } else {
-                                    // User -> Premium Store
-                                    window.location.href = '/dashboard?action=open_premium';
-                                }
+                                localStorage.removeItem('user');
+                                localStorage.removeItem('token');
+                                window.location.href = '/register';
                             }}
                             className="bg-indigo-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-indigo-700 hover:scale-105 transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2"
                         >
-                            Get Verified Now {user ? "(User)" : "(Guest)"} <ArrowRight size={20} />
+                            Get Verified Now <ArrowRight size={20} />
                         </button>
-
-                        {user && (
-                            <button
-                                onClick={() => {
-                                    localStorage.removeItem('user');
-                                    localStorage.removeItem('token');
-                                    window.location.href = '/register';
-                                }}
-                                className="text-sm text-gray-400 hover:text-gray-600 underline"
-                            >
-                                Not {user.name}? Log out & Create New Account
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
@@ -115,7 +98,11 @@ export default function CommunityPage() {
                         <div className="flex-1 h-full">
                             <CommunityChat
                                 currentUser={user}
-                                onOpenStore={() => router.push('/dashboard?action=open_premium')}
+                                onOpenStore={() => {
+                                    localStorage.removeItem('user');
+                                    localStorage.removeItem('token');
+                                    window.location.href = '/register';
+                                }}
                             />
                         </div>
                     </div>

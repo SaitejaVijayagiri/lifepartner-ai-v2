@@ -46,7 +46,6 @@ export default function CommunityPage() {
                             </div>
                             <div className="text-left">
                                 <h3 className="font-bold text-lg text-gray-900">Why Verify?</h3>
-                                <p className="text-sm text-gray-500">Short video selfie verification.</p>
                             </div>
                         </div>
                         <ul className="space-y-4 text-left">

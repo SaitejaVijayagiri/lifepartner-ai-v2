@@ -94,7 +94,12 @@ export default function CommunityPage() {
                 <div className="flex-1 flex flex-col md:flex-row gap-6 h-[calc(100vh-140px)] md:h-[calc(100vh-140px)]">
                     {/* Main Chat Area */}
                     <div className="flex-1 h-full">
-                        <CommunityChat currentUser={user} />
+                        <div className="flex-1 h-full">
+                            <CommunityChat
+                                currentUser={user}
+                                onOpenStore={() => router.push('/dashboard?action=open_premium')}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

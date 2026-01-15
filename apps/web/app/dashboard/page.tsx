@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import VideoCallModal from '@/components/VideoCallModal';
@@ -38,7 +38,16 @@ const STORIES = [
 
 
 export default function Dashboard() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>}>
+            <DashboardContent />
+        </Suspense>
+    );
+}
+
+function DashboardContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const toast = useToast();
     const { socket, onlineUsers } = useSocket() as any;
     const [matches, setMatches] = useState<any[]>([]);
@@ -102,16 +111,16 @@ export default function Dashboard() {
         checkAuth();
     }, [router]);
 
-    // Check for Payment Return
+    // Check for Payment Return & Actions
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const orderId = params.get('order_id');
-        const action = params.get('action');
+        // Use hook for reactivity
+        const orderId = searchParams.get('order_id');
+        const action = searchParams.get('action');
 
         if (action === 'open_premium') {
             setInitialStoreTab('premium');
             setShowCoinStore(true);
-            // Clear URL param purely for visual clean up, optional
+            // Clean URL without refresh
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete('action');
             window.history.replaceState({}, '', newUrl.toString());
@@ -131,10 +140,9 @@ export default function Dashboard() {
                 })
                 .catch((err: any) => {
                     console.error(err);
-                    // Don't alert error on every load, maybe it was already verified
                 });
         }
-    }, []);
+    }, [searchParams]);
 
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },

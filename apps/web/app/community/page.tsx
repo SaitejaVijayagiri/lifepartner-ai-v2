@@ -65,14 +65,16 @@ export default function CommunityPage() {
                     <button
                         onClick={() => {
                             if (!user) {
+                                // Guest -> Register
                                 window.location.href = '/register';
                             } else {
+                                // User -> Premium Store
                                 window.location.href = '/dashboard?action=open_premium';
                             }
                         }}
                         className="bg-indigo-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-indigo-700 hover:scale-105 transition-all shadow-lg hover:shadow-indigo-500/30 flex items-center gap-2 mx-auto"
                     >
-                        {user ? "Get Verified Now" : "Create Account to Join"} <ArrowRight size={20} />
+                        Get Verified Now <ArrowRight size={20} />
                     </button>
                 </div>
             </div>

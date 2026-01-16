@@ -1023,6 +1023,35 @@ function DashboardContent() {
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
 
+                    {activeTab === 'community' && (
+                        <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
+                            <CommunityChat currentUser={currentUser} onOpenStore={() => {
+                                // Force Guest Flow for upgrading users per recent request?
+                                // Actually, if they are here, they are logged in.
+                                // But the prompt said "open premium store modal".
+                                // Wait, the previous task CHANGED the "Get Verified" button to LOGOUT.
+                                // But here, if they are sending "onOpenStore", they are likely in "Access Denied" state inside CommunityChat?
+                                // If they are logged in and Access Denied, they need to verify.
+                                // The user's LAST request was "force logout". 
+                                // So I should probably stick to that logic for "Get Verified" buttons?
+                                // BUT this prop is `onOpenStore`. 
+                                // Let's keep the premium store logic for now unless explicitly told to force logout here too. 
+                                // OH WAIT, the previous turn I DID change CommunityChat prop in `community/page.tsx` to force logout.
+                                // I should probably do the same here for consistency if "Get Verified" is clicked.
+                                // BUT this might be for "Store" in general?
+                                // `CommunityChat` uses `onOpenStore` ONLY for the "Access Denied" button.
+                                // So yes, I should force logout/register flow here too if I want consistency.
+                                // However, keeping it as premium store for DASHBOARD users makes sense since they are already in the dashboard!
+                                // The previous fix was for the "Community Landing Page" where users were confused.
+                                // Here, they vary much ARE in the dashboard.
+                                // If they click "Get Verified", they SHOULD see the premium store.
+                                // So I will use the premium store modal.
+                                setInitialStoreTab('premium');
+                                setShowCoinStore(true);
+                            }} />
+                        </div>
+                    )}
+
                     {activeTab === 'profile' && currentUser && (
                         isEditingProfile ? (
                             <ProfileEditor
@@ -1198,27 +1227,7 @@ function DashboardContent() {
             </div>
 
 
-            {/* Main Content Area */}
-            <main className={`flex-1 transition-all duration-300 md:pb-10 pt-2 ${isEditingProfile ? 'h-screen overflow-hidden' : ''}`}>
-                <div className="max-w-7xl mx-auto w-full md:px-4">
-                    {activeTab === 'matches' && renderDiscoveryFeed()}
-                    {activeTab === 'reels' && <ReelFeed />}
-                    {activeTab === 'community' && (
-                        <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-140px)] pt-2">
-                            <CommunityChat currentUser={currentUser} onOpenStore={() => {
-                                setInitialStoreTab('premium');
-                                setShowCoinStore(true);
-                            }} />
-                        </div>
-                    )}
-                    {activeTab === 'profile' && (
-                        <div className="px-4 py-6">
-                            <ProfileView profile={currentUser} onEdit={() => setIsEditingProfile(true)} />
-                        </div>
-                    )}
-                    {/* ... other tabs ... */}
-                </div>
-            </main>
+            {/* End of Main Content - Duplicate Block Removed */}
         </div >
     );
 }

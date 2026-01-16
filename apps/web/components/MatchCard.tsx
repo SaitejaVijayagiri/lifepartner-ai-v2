@@ -13,10 +13,11 @@ interface MatchCardProps {
     onViewProfile?: () => void;
     onStoryClick?: () => void;
     onShowKundli?: (data: any) => void;
+    onGift?: () => void;
     currentUserName?: string; // For Kundli
 }
 
-export default function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli }: MatchCardProps) {
+export default function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift }: MatchCardProps) {
     // Independent States
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
@@ -280,11 +281,15 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     <span className="text-[10px] font-bold text-white mt-0.5">{likeCount}</span>
                 </button>
 
-                {/* 2.5 Gift Count (Passive Badge) */}
-                <div className="h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 pointer-events-none" title="Gifts Received">
-                    <span className="text-xl">🎁</span>
+                {/* 2.5 Gift Count (Passive Badge) -> Active Button */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
+                    className="h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 hover:bg-black/80 active:scale-95"
+                    title="Send a Gift"
+                >
+                    <span className="text-xl filter drop-shadow-md transform group-hover:scale-110 transition-transform">🎁</span>
                     <span className="text-[10px] font-bold text-white mt-0.5">{match.total_gifts || 0}</span>
-                </div>
+                </button>
 
                 {/* 3. Report Button (Safety) */}
                 <button

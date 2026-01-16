@@ -23,7 +23,7 @@ import ChatWindow from '@/components/ChatWindow';
 import CoinStoreModal from '@/components/CoinStoreModal';
 import { useToast } from '@/components/ui/Toast';
 import FilterModal, { FilterState } from '@/components/FilterModal';
-import CommunityChat from '@/components/CommunityChat';
+import GiftModal from '@/components/GiftModal';
 
 /* Mock Data for Stories */
 const STORIES = [
@@ -69,6 +69,9 @@ function DashboardContent() {
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
     const [selectedKundli, setSelectedKundli] = useState<{ data: any, names: { me: string, partner: string } } | null>(null);
+
+    /* Gift State */
+    const [giftData, setGiftData] = useState<{ userId: string, userName: string } | null>(null);
 
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
@@ -885,6 +888,7 @@ function DashboardContent() {
                                     data,
                                     names: { me: "You", partner: match.name }
                                 })}
+                                onGift={() => setGiftData({ userId: match.id, userName: match.name })}
                             />
                         </div>
                     ))}
@@ -1191,6 +1195,16 @@ function DashboardContent() {
                 }}
                 initialFilters={activeFilters || undefined}
             />
+
+            {/* Gift Modal */}
+            {giftData && (
+                <GiftModal
+                    isOpen={!!giftData}
+                    onClose={() => setGiftData(null)}
+                    toUserId={giftData.userId}
+                    toUserName={giftData.userName}
+                />
+            )}
 
             {/* Global Kundli Modal */}
             {selectedKundli && (

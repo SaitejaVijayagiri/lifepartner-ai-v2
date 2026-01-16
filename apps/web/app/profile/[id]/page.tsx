@@ -14,37 +14,24 @@ export default function ProfileView() {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            // Mock fetch or real fetch
-            // const data = await api.matches.getById(params.id);
-            // setProfile(data);
-            // Mocking for UI dev
-            setTimeout(() => {
-                setProfile({
-                    id: params.id,
-                    name: 'Aditi Rao',
-                    age: 28,
-                    role: 'Product Designer',
-                    location: { city: 'Bangalore, India' },
-                    height: "5'5\"",
-                    photos: [
-                        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80',
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80',
-                        'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&q=80'
-                    ],
-                    bio: "Passionate about design and traveling. Looking for someone who values tradition but has a modern outlook. I love painting, classical music, and spending weekends exploring new cafes.",
-                    about: {
-                        religion: "Hindu",
-                        caste: "Brahmin",
-                        motherTongue: "Kannada",
-                        maritalStatus: "Never Married",
-                        diet: "Vegetarian"
-                    },
-                    education: "B.Des, NIFT Bangalore",
-                    profession: "Senior UX Designer at Flipkart",
-                    family: "Father is suitable for government service, Mother is a homemaker. 1 younger brother."
-                });
+            try {
+                // Fetch real profile data
+                const data = await api.profile.getById(params.id as string);
+
+                // transform data if necessary to match the UI shape, or ensure API returns compatible shape
+                // Assuming API returns flat profile object similar to mock.
+                // If API structure is different, we might need a mapper.
+                // Based on MatchCard, it has { name, age, location: { city... }, photos... }
+                // The UI expects: { id, name, age, role, location: { city }, height, photos[], bio, about: {...}, education, profession, family }
+
+                // Let's assume the API returns the full profile.
+                setProfile(data);
+            } catch (error) {
+                console.error("Failed to load profile", error);
+                // Optionally set error state
+            } finally {
                 setLoading(false);
-            }, 1000);
+            }
         };
         fetchProfile();
     }, [params.id]);

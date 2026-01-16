@@ -74,7 +74,7 @@ router.post('/register', async (req, res) => {
                         const apiKey = process.env.RESEND_API_KEY;
                         if (apiKey && !apiKey.toLowerCase().includes('mock')) {
                             await resend.emails.send({
-                                from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>',
+                                from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
                                 to: email,
                                 subject: 'Your Verification Code (Resend)',
                                 html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`
@@ -186,11 +186,10 @@ router.post('/register', async (req, res) => {
         if (targetEmail) {
             try {
                 const apiKey = process.env.RESEND_API_KEY;
-                console.log(`📧 Preparing to send OTP ${otp} to ${targetEmail}`);
-
+                console.log(`📧 Sending OTP with Key: ${apiKey?.substring(0, 5)}... From: ${process.env.EMAIL_FROM}`);
                 if (apiKey && !apiKey.toLowerCase().includes('mock')) {
                     const { data, error } = await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>', // Update this to your verified domain if available
+                        from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>', // Standardized default
                         to: targetEmail,
                         subject: 'Your Verification Code',
                         html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`

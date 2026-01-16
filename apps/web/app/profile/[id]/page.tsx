@@ -47,6 +47,7 @@ export default function ProfileView() {
             }
         } catch (err) {
             console.error("Share failed:", err);
+            toast.error("Sharing unsupported or cancelled");
         }
     };
 

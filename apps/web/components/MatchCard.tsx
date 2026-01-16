@@ -310,6 +310,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                             }
                         } catch (err) {
                             console.error("Share failed:", err);
+                            toast.error("Sharing unsupported or cancelled");
                         }
                     }}
                     className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 hover:text-blue-400 text-gray-400"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, Mail, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import KundliModal from './KundliModal';
@@ -291,7 +292,33 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     <span className="text-[10px] font-bold text-white mt-0.5">{match.total_gifts || 0}</span>
                 </button>
 
-                {/* 3. Report Button (Safety) */}
+                {/* 3. Share Button (New) */}
+                <button
+                    onClick={async (e) => {
+                        e.stopPropagation();
+                        const shareData = {
+                            title: `Match: ${match.name}`,
+                            text: `Check out ${match.name} on LifePartner AI!`,
+                            url: `https://lifepartnerai.in/profile/${match.id}`
+                        };
+                        try {
+                            if (navigator.share) {
+                                await navigator.share(shareData);
+                            } else {
+                                await navigator.clipboard.writeText(shareData.url);
+                                toast.success("Link copied to clipboard!");
+                            }
+                        } catch (err) {
+                            console.error("Share failed:", err);
+                        }
+                    }}
+                    className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 hover:text-blue-400 text-gray-400"
+                    title="Share Profile"
+                >
+                    <Share2 className="w-5 h-5" />
+                </button>
+
+                {/* 4. Report Button (Safety) */}
                 <button
                     onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
                     className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-400 text-gray-400"

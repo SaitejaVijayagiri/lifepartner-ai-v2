@@ -3,38 +3,49 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, MessageCircle, Star, Calendar, Ruler, CheckCircle, Shield } from 'lucide-react';
+import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, MessageCircle, Star, Calendar, Ruler, CheckCircle, Shield, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ProfileView() {
     const params = useParams();
     const router = useRouter();
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const toast = useToast();
 
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                // Fetch real profile data
                 const data = await api.profile.getById(params.id as string);
-
-                // transform data if necessary to match the UI shape, or ensure API returns compatible shape
-                // Assuming API returns flat profile object similar to mock.
-                // If API structure is different, we might need a mapper.
-                // Based on MatchCard, it has { name, age, location: { city... }, photos... }
-                // The UI expects: { id, name, age, role, location: { city }, height, photos[], bio, about: {...}, education, profession, family }
-
-                // Let's assume the API returns the full profile.
                 setProfile(data);
             } catch (error) {
                 console.error("Failed to load profile", error);
-                // Optionally set error state
             } finally {
                 setLoading(false);
             }
         };
         fetchProfile();
     }, [params.id]);
+
+    // Share Handler
+    const handleShare = async () => {
+        const shareData = {
+            title: `Profile: ${profile.name}`,
+            text: `Check out ${profile.name} on LifePartner AI!`,
+            url: `https://lifepartnerai.in/profile/${params.id}`
+        };
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(shareData.url);
+                toast.success("Profile link copied!");
+            }
+        } catch (err) {
+            console.error("Share failed:", err);
+        }
+    };
 
     if (loading) return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -112,6 +123,9 @@ export default function ProfileView() {
                                     </Button>
                                     <Button variant="outline" className="h-12 w-12 rounded-xl border-gray-200">
                                         <Star size={20} />
+                                    </Button>
+                                    <Button variant="outline" onClick={handleShare} className="h-12 w-12 rounded-xl border-gray-200 text-gray-600 hover:text-blue-600" title="Share Profile">
+                                        <Share2 size={20} />
                                     </Button>
                                 </div>
                             </div>

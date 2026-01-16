@@ -80,6 +80,13 @@ app.use('/wallet', walletRoutes);
 app.use('/calls', require('./routes/calls').default);
 app.use('/verification', require('./routes/verification').default);
 
+// Debug Environment on Startup
+console.log("------------------------------------------------");
+console.log("🚀 Server Starting...");
+console.log(`📧 EMAIL_FROM: '${process.env.EMAIL_FROM}'`);
+console.log(`🔑 RESEND_KEY: '${process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 5) + '...' : 'MISSING'}'`);
+console.log("------------------------------------------------");
+
 import { prisma } from './prisma';
 
 const { createServer } = require('http');

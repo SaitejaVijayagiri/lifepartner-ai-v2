@@ -12,7 +12,7 @@ const router = express.Router();
 const aiService = new AIService();
 
 import { upload } from '../middleware/upload';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {
@@ -116,7 +116,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 });
 
 // Get Public Profile by ID
-router.get('/:id', authenticateToken, async (req: any, res) => {
+router.get('/:id', authenticateOptional, async (req: any, res) => {
     try {
         const { id } = req.params;
 
@@ -133,10 +133,6 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
                 _count: {
                     select: {
                         matches_matches_user_b_idTousers: { where: { is_liked: true } } // Total Likes
-                        // Gifts count? Transactions table needed.
-                        // _count on transactions for 'Sent Gift'? 
-                        // Check relation for transactions. Schema might rely on JSON metadata in transactions.
-                        // Skip gift count for now or use separate count.
                     }
                 }
             }
@@ -146,15 +142,19 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
-        // Fetch Requester
-        const requesterId = req.user.userId;
-        const requester = await prisma.users.findUnique({ where: { id: requesterId }, select: { is_premium: true } });
-        const isRequesterPremium = requester?.is_premium;
+        // Fetch Requester (if logged in)
+        const requesterId = req.user?.userId;
+        let isRequesterPremium = false;
+
+        if (requesterId) {
+            const requester = await prisma.users.findUnique({ where: { id: requesterId }, select: { is_premium: true } });
+            isRequesterPremium = requester?.is_premium || false;
+        }
 
         const meta: any = user.profiles?.metadata || {};
 
         // Contact Info Logic: Only show if requester is Premium
-        // Mask details for free users
+        // Mask details for free users AND guests
         const contactInfo = isRequesterPremium ? {
             email: user.email,
             phone: meta.phone || user.phone

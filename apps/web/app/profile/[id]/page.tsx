@@ -6,6 +6,8 @@ import { api } from '@/lib/api';
 import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, MessageCircle, Star, Calendar, Ruler, CheckCircle, Shield, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/context/AuthContext';
+import Link from 'next/link';
 
 export default function ProfileView() {
     const params = useParams();
@@ -13,6 +15,7 @@ export default function ProfileView() {
     const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const toast = useToast();
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -60,7 +63,14 @@ export default function ProfileView() {
                 <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                     <ArrowLeft size={24} className="text-gray-700" />
                 </button>
-                <span className="font-heading font-bold text-lg text-gray-900">Profile Details</span>
+                <div className="flex-1">
+                    <span className="font-heading font-bold text-lg text-gray-900">Profile Details</span>
+                </div>
+                {!user && (
+                    <Link href="/login">
+                        <Button size="sm" variant="outline" className="text-primary hover:text-primary-dark">Login</Button>
+                    </Link>
+                )}
             </div>
 
             <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
@@ -71,6 +81,13 @@ export default function ProfileView() {
                         {/* Photo Carousel (Simplified) */}
                         <div className="h-[500px] bg-gray-100 relative">
                             <img src={profile.photos[0]} className="w-full h-full object-cover" alt={profile.name} />
+                            {!user && (
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="bg-black/30 backdrop-blur-[2px] px-4 py-2 rounded-full text-white/50 text-xs font-bold uppercase tracking-widest border border-white/10">
+                                        LifePartner AI • Public Preview
+                                    </div>
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
                                 <div className="text-white">
                                     <h1 className="text-4xl font-heading font-bold mb-2">{profile.name}, {profile.age}</h1>
@@ -118,12 +135,22 @@ export default function ProfileView() {
                                 </div>
 
                                 <div className="pt-8 flex gap-4">
-                                    <Button className="flex-1 h-12 bg-primary hover:bg-indigo-700 shadow-lg shadow-indigo-200 rounded-xl font-bold text-base">
-                                        <Heart className="mr-2" size={20} /> Send Interest
-                                    </Button>
-                                    <Button variant="outline" className="h-12 w-12 rounded-xl border-gray-200">
-                                        <Star size={20} />
-                                    </Button>
+                                    {user ? (
+                                        <>
+                                            <Button className="flex-1 h-12 bg-primary hover:bg-indigo-700 shadow-lg shadow-indigo-200 rounded-xl font-bold text-base">
+                                                <Heart className="mr-2" size={20} /> Send Interest
+                                            </Button>
+                                            <Button variant="outline" className="h-12 w-12 rounded-xl border-gray-200">
+                                                <Star size={20} />
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <Link href="/register" className="flex-1">
+                                            <Button className="w-full h-12 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 rounded-xl font-bold text-base text-white border-0 animate-pulse">
+                                                Register to Connect
+                                            </Button>
+                                        </Link>
+                                    )}
                                     <Button variant="outline" onClick={handleShare} className="h-12 w-12 rounded-xl border-gray-200 text-gray-600 hover:text-blue-600" title="Share Profile">
                                         <Share2 size={20} />
                                     </Button>
@@ -162,6 +189,16 @@ export default function ProfileView() {
                     </div>
                 </div>
 
+                {/* Sticky Mobile CTA for Guests */}
+                {!user && (
+                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-200 z-50 md:hidden animate-in slide-in-from-bottom-full duration-500">
+                        <Link href="/register">
+                            <Button className="w-full h-12 bg-black text-white rounded-xl font-bold text-lg shadow-xl">
+                                Join to View Full Profile
+                            </Button>
+                        </Link>
+                    </div>
+                )}
             </div>
         </div>
     );

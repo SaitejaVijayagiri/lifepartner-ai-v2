@@ -52,10 +52,12 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
 
         const newSocket = io(socketUrl, {
             path: '/socket.io',
-            transports: ['websocket', 'polling'],
+            transports: ['websocket'], // Force WebSocket only to avoid polling issues
             auth: {
                 token: localStorage.getItem('token')
-            }
+            },
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
         });
 
         // Connection Events

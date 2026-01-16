@@ -57,6 +57,28 @@ export default function ProfileView() {
         </div>
     );
 
+    if (!profile) return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+            <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Shield size={32} />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Profile Not Found</h1>
+                <p className="text-gray-500 max-w-sm mx-auto">This profile might be private, deleted, or the link is incorrect.</p>
+                <div className="flex gap-4 justify-center pt-4">
+                    <Link href="/">
+                        <Button variant="outline">Go Home</Button>
+                    </Link>
+                    {!user && (
+                        <Link href="/register">
+                            <Button>Register</Button>
+                        </Link>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-slate-50 pb-20 font-sans">
             {/* Sticky Header */}

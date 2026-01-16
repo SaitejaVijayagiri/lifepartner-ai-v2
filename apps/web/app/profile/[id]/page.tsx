@@ -103,7 +103,13 @@ export default function ProfileView() {
                     <div className="grid md:grid-cols-2 gap-0">
                         {/* Photo Carousel (Simplified) */}
                         <div className="h-[500px] bg-gray-100 relative">
-                            <img src={profile.photos[0]} className="w-full h-full object-cover" alt={profile.name} />
+                            {/* Safer Image Access */}
+                            {profile.photos?.[0] ? (
+                                <img src={profile.photos[0]} className="w-full h-full object-cover" alt={profile.name} />
+                            ) : (
+                                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">No Photo</div>
+                            )}
+
                             {!user && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div className="bg-black/30 backdrop-blur-[2px] px-4 py-2 rounded-full text-white/50 text-xs font-bold uppercase tracking-widest border border-white/10">
@@ -115,7 +121,7 @@ export default function ProfileView() {
                                 <div className="text-white">
                                     <h1 className="text-4xl font-heading font-bold mb-2">{profile.name}, {profile.age}</h1>
                                     <div className="flex items-center gap-2 text-sm font-medium opacity-90">
-                                        <MapPin size={16} /> {profile.location.city}
+                                        <MapPin size={16} /> {profile.location?.city || "Unknown City"}
                                     </div>
                                 </div>
                             </div>
@@ -201,7 +207,7 @@ export default function ProfileView() {
                         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                             <h3 className="font-bold text-gray-900 mb-4">Personal Details</h3>
                             <ul className="space-y-3">
-                                {Object.entries(profile.about).map(([key, value]: any) => (
+                                {profile.about && Object.entries(profile.about).map(([key, value]: any) => (
                                     <li key={key} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
                                         <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                                         <span className="font-medium text-gray-900">{value}</span>

@@ -31,8 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const init = async () => {
             try {
-                const storedUser = localStorage.getItem('user');
-                const token = localStorage.getItem('token');
+                // Safeguard LocalStorage for In-App Browsers
+                let storedUser = null;
+                let token = null;
+                try {
+                    storedUser = localStorage.getItem('user');
+                    token = localStorage.getItem('token');
+                } catch (storageErr) {
+                    console.warn("LocalStorage blocked", storageErr);
+                }
 
                 if (storedUser) {
                     // 1. Optimistic Load
@@ -53,7 +60,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             is_admin: freshProfile.is_admin
                         };
                         setUser(updatedUser);
-                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                        try {
+                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                        } catch (e) { /* ignore */ }
                     } catch (apiErr) {
                         console.error("Token verification failed", apiErr);
                         // Optional: logout() if strictly 401? api.ts handles 401 redirect, so we just log here.

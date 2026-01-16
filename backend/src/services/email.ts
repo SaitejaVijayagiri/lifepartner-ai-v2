@@ -12,7 +12,7 @@ export class EmailService {
 
         try {
             await resend.emails.send({
-                from: 'LifePartner AI <onboarding@resend.dev>', // Use verified domain in prod
+                from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>', // Configurable sender
                 to: email,
                 subject: 'Welcome to LifePartner AI 💖',
                 html: `
@@ -34,7 +34,7 @@ export class EmailService {
 
         try {
             await resend.emails.send({
-                from: 'LifePartner AI <no-reply@resend.dev>',
+                from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
                 to: email,
                 subject: `✨ ${senderName} is interested in you!`,
                 html: `
@@ -55,7 +55,7 @@ export class EmailService {
 
         try {
             await resend.emails.send({
-                from: 'LifePartner AI <no-reply@resend.dev>',
+                from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
                 to: email,
                 subject: `💖 It's a Match! You and ${partnerName} are connected.`,
                 html: `

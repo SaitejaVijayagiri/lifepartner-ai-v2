@@ -74,7 +74,7 @@ router.post('/register', async (req, res) => {
                         const apiKey = process.env.RESEND_API_KEY;
                         if (apiKey && !apiKey.toLowerCase().includes('mock')) {
                             await resend.emails.send({
-                                from: 'LifePartner AI <onboarding@resend.dev>',
+                                from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>',
                                 to: email,
                                 subject: 'Your Verification Code (Resend)',
                                 html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`
@@ -190,7 +190,7 @@ router.post('/register', async (req, res) => {
 
                 if (apiKey && !apiKey.toLowerCase().includes('mock')) {
                     const { data, error } = await resend.emails.send({
-                        from: 'LifePartner AI <onboarding@resend.dev>', // Update this to your verified domain if available
+                        from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>', // Update this to your verified domain if available
                         to: targetEmail,
                         subject: 'Your Verification Code',
                         html: `<p>Your verification code is: <strong>${otp}</strong></p><p>This code expires in 10 minutes.</p>`
@@ -359,7 +359,7 @@ router.post('/resend-otp', async (req, res) => {
 
         if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('mock')) {
             await resend.emails.send({
-                from: 'LifePartner AI <onboarding@resend.dev>',
+                from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>',
                 to: email,
                 subject: 'Verify your LifePartner AI Account (Resend)',
                 html: `
@@ -415,7 +415,7 @@ router.post('/forgot-password', async (req, res) => {
 
             if (apiKey && !apiKey.toLowerCase().includes('mock')) {
                 const { data, error } = await resend.emails.send({
-                    from: 'LifePartner AI Safety <security@resend.dev>',
+                    from: process.env.EMAIL_FROM || 'LifePartner AI Safety <security@lifepartnerai.in>',
                     to: email,
                     subject: 'Reset your LifePartner AI Password',
                     html: `

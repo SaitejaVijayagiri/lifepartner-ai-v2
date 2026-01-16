@@ -24,6 +24,7 @@ import CoinStoreModal from '@/components/CoinStoreModal';
 import { useToast } from '@/components/ui/Toast';
 import FilterModal, { FilterState } from '@/components/FilterModal';
 import GiftModal from '@/components/GiftModal';
+import CommunityChat from '@/components/CommunityChat';
 
 /* Mock Data for Stories */
 const STORIES = [

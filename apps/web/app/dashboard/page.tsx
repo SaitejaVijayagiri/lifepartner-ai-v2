@@ -388,44 +388,10 @@ function DashboardContent() {
                         </button>
                     )}
 
-                    {/* Premium Badge - Desktop Only */}
-                    {currentUser?.is_premium && (
-                        <div className="hidden lg:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300 relative group cursor-help">
-                            <span>👑</span>
-                            <span>PREMIUM</span>
-                            {currentUser.premium_expiry && (
-                                <div className="absolute top-full mt-2 right-0 bg-gray-900 text-white text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity w-max shadow-lg z-50">
-                                    Expires in {Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
-                                </div>
-                            )}
-                        </div>
-                    )}
 
 
-                    {/* Boost Button - Desktop Only */}
-                    <button
-                        onClick={async () => {
-                            if (!currentUser || currentUser.coins < 100) {
-                                setShowCoinStore(true);
-                                toast.error("Insufficient coins to boost! (Cost: 100)");
-                                return;
-                            }
-                            if (confirm("Boost your profile for 100 coins? You will be seen by 10x more people! 🚀")) {
-                                try {
-                                    await api.wallet.boostProfile();
-                                    toast.success("Profile Boosted! ⚡ You are now top visibility.");
-                                    // Refresh user to update coins
-                                    api.profile.getMe().then(setCurrentUser);
-                                } catch (e) {
-                                    toast.error("Boost failed.");
-                                }
-                            }
-                        }}
-                        className="hidden lg:flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
-                    >
-                        <Zap size={14} className="fill-yellow-300 text-yellow-300" />
-                        <span>Boost</span>
-                    </button>
+
+
 
                     {(activeTab === 'matches' || activeTab === 'reels') && (
                         <button
@@ -451,21 +417,9 @@ function DashboardContent() {
                     <NotificationBell />
 
 
-                    <button
-                        onClick={() => router.push('/refer')}
-                        className="hidden lg:flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
-                    >
-                        <Users size={14} className="text-white" />
-                        <span>Free Coins</span>
-                    </button>
 
-                    <button
-                        onClick={handleLogout}
-                        className="hidden lg:flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
-                        title="Log Out"
-                    >
-                        <LogOut size={20} />
-                    </button>
+
+
 
                     {currentUser && (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer" onClick={() => setActiveTab('profile')}>

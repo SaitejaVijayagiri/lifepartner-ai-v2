@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Share2 } from 'lucide-react';
+import { ArrowLeft, Mail, Share2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
@@ -246,6 +246,15 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     </div>
 
                     <div className="flex flex-wrap gap-2 text-gray-100 text-xs font-medium mb-3 opacity-95">
+                        {/* 1. AI Match Reasons (Key feature) */}
+                        {match.match_reasons?.map((reason: string, i: number) => (
+                            <span key={i} className="px-2.5 py-1 rounded-full bg-gradient-to-r from-indigo-500/80 to-purple-500/80 backdrop-blur-md border border-white/20 shadow-sm flex items-center gap-1">
+                                <Sparkles size={10} className="text-yellow-200" />
+                                {reason}
+                            </span>
+                        ))}
+
+                        {/* 2. Standard Tags */}
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "N/A"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.role || "Professional"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "Hindu"}</span>

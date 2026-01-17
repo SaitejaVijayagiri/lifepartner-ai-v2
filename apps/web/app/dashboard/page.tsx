@@ -542,18 +542,31 @@ function DashboardContent() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
+    const [aiFilters, setAiFilters] = useState<any>(null); // New: Store AI's understanding
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
         setLoading(true);
+        setIsSearching(true); // Trigger "Thinking" UI
+        setAiFilters(null);
         try {
-            const results = await api.matches.search(searchQuery);
+            // Simulate AI "Thinking" delay for UX (at least 1.5s)
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+            const [results] = await Promise.all([
+                api.matches.search(searchQuery),
+                minDelay
+            ]);
+
             setMatches(results.matches || []);
+            setAiFilters(results.filters || null); // Save filters for feedback header
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
+            setIsSearching(false);
         }
     };
 
@@ -562,11 +575,28 @@ function DashboardContent() {
             return (
                 <div className="w-full space-y-8 pb-32">
                     {/* Skeleton for AI Search */}
-                    <div className="bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-lg border border-indigo-100/50 space-y-4">
-                        <div className="h-6 w-40 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-pulse"></div>
-                        <div className="flex gap-3">
-                            <div className="flex-1 h-12 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 rounded-xl animate-pulse"></div>
-                            <div className="w-24 h-12 bg-gradient-to-r from-indigo-200 via-indigo-100 to-indigo-200 rounded-xl animate-pulse"></div>
+                    {/* AI "Thinking" UI - Replaces generic skeleton */}
+                    <div className="bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-indigo-100/50 space-y-6 text-center relative overflow-hidden">
+                        {/* Animated Gradient Background */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
+
+                        <div className="relative z-10 flex flex-col items-center gap-4">
+                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-bounce">
+                                <Sparkles className="text-white animate-spin-slow" size={32} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent animate-pulse">
+                                    Analyzing your preferences...
+                                </h3>
+                                <p className="text-sm text-gray-500 mt-2">Connecting dots between query, personality, and database...</p>
+                            </div>
+
+                            {/* Fake Progress Steps */}
+                            <div className="flex gap-2 mt-2">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_0ms]"></span>
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_200ms]"></span>
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_400ms]"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -802,10 +832,30 @@ function DashboardContent() {
                 }
 
                 {/* Header for Feed - Enhanced */}
+                {/* Header for Feed - Enhanced with AI Feedback */}
+                {aiFilters && (
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 mb-6 aniimate-in fade-in slide-in-from-top-4">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600">
+                                <Sparkles size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-indigo-900">Here's what I understood:</h3>
+                                <p className="text-sm text-indigo-700 mt-1">
+                                    Looking for
+                                    {aiFilters.profession && <span className="font-bold bg-white px-2 py-0.5 rounded mx-1 shadow-sm">💼 {aiFilters.profession}</span>}
+                                    {aiFilters.location && <span className="font-bold bg-white px-2 py-0.5 rounded mx-1 shadow-sm">📍 {aiFilters.location}</span>}
+                                    {aiFilters.values?.length > 0 && <span className="font-bold bg-white px-2 py-0.5 rounded mx-1 shadow-sm">💛 {aiFilters.values[0]}</span>}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex items-center justify-between px-2">
                     <div>
                         <h2 className="text-2xl font-heading font-bold text-foreground">
-                            {searchQuery ? 'Search Results' : 'Daily Recommendations'}
+                            {searchQuery ? (aiFilters ? 'AI Recommended Matches' : 'Search Results') : 'Daily Recommendations'}
                         </h2>
                         <p className="text-sm text-muted-foreground mt-1">Handpicked matches just for you ✨</p>
                     </div>

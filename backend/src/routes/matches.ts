@@ -694,7 +694,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             analysis: { emotional: m?.score || 50, vision: m?.score || 50 }
         }));
 
-        res.json({ matches: finalMatches });
+        res.json({ matches: finalMatches, filters });
 
     } catch (e) {
         console.error("Search Error", e);

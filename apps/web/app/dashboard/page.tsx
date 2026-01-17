@@ -1062,20 +1062,21 @@ function DashboardContent() {
                         ) : (
                             <div className="space-y-6">
                                 {/* Profile Stats Row */}
-                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                                    <div className="flex gap-8">
-                                        <div className="text-center">
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50">
+                                    <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
+                                        <div className="text-center min-w-[80px]">
                                             <div className="text-2xl font-bold text-gray-900">{connections.length}</div>
                                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Connections</div>
                                         </div>
-                                        <div className="text-center">
+                                        <div className="w-[1px] h-10 bg-gray-200 sm:hidden"></div>
+                                        <div className="text-center min-w-[80px]">
                                             <div className="text-2xl font-bold text-gray-900">{requests.length}</div>
                                             <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Requests</div>
                                         </div>
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="border-indigo-100 text-indigo-600 hover:bg-indigo-50"
+                                        className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
                                         onClick={() => setActiveTab('connections')}
                                     >
                                         Manage Connections

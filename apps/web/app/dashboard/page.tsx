@@ -388,11 +388,11 @@ function DashboardContent() {
                         </button>
                     )}
 
-                    {/* Premium Badge */}
+                    {/* Premium Badge - Desktop Only */}
                     {currentUser?.is_premium && (
-                        <div className="flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-2 sm:px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300 relative group cursor-help">
+                        <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300 relative group cursor-help">
                             <span>👑</span>
-                            <span className="hidden sm:inline">PREMIUM</span>
+                            <span>PREMIUM</span>
                             {currentUser.premium_expiry && (
                                 <div className="absolute top-full mt-2 right-0 bg-gray-900 text-white text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity w-max shadow-lg z-50">
                                     Expires in {Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
@@ -402,7 +402,7 @@ function DashboardContent() {
                     )}
 
 
-                    {/* Boost Button */}
+                    {/* Boost Button - Desktop Only */}
                     <button
                         onClick={async () => {
                             if (!currentUser || currentUser.coins < 100) {
@@ -421,10 +421,10 @@ function DashboardContent() {
                                 }
                             }
                         }}
-                        className="flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                        className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
                     >
                         <Zap size={14} className="fill-yellow-300 text-yellow-300" />
-                        <span className="hidden sm:inline">Boost</span>
+                        <span>Boost</span>
                     </button>
 
                     {(activeTab === 'matches' || activeTab === 'reels') && (
@@ -453,15 +453,15 @@ function DashboardContent() {
 
                     <button
                         onClick={() => router.push('/refer')}
-                        className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                        className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
                     >
                         <Users size={14} className="text-white" />
-                        <span className="hidden sm:inline">Free Coins</span>
+                        <span>Free Coins</span>
                     </button>
 
                     <button
                         onClick={handleLogout}
-                        className="flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
+                        className="hidden sm:flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
                         title="Log Out"
                     >
                         <LogOut size={20} />

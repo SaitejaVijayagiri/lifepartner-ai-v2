@@ -542,8 +542,7 @@ function DashboardContent() {
 
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
+
     const [selectedProfile, setSelectedProfile] = useState<any>(null);
     const [aiFilters, setAiFilters] = useState<any>(null); // New: Store AI's understanding
 

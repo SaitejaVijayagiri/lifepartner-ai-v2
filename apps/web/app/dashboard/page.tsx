@@ -1045,7 +1045,7 @@ function DashboardContent() {
                                             setInitialStoreTab('premium');
                                             setShowCoinStore(true);
                                         }}
-                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : 'bg-gray-50 border-gray-200 hover:border-indigo-300'}`}
+                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200 hover:border-indigo-300'}`}
                                     >
                                         <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 text-gray-500'}`}>
                                             <Crown size={20} />
@@ -1054,8 +1054,10 @@ function DashboardContent() {
                                             <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800' : 'text-gray-700'}`}>
                                                 {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
                                             </div>
-                                            <div className="text-[10px] text-gray-500">
-                                                {currentUser.is_premium ? 'View Details' : 'Unlock Features'}
+                                            <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700' : 'text-gray-500'} font-medium`}>
+                                                {currentUser.is_premium && currentUser.premium_expiry
+                                                    ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
+                                                    : 'Unlock Features'}
                                             </div>
                                         </div>
                                     </div>

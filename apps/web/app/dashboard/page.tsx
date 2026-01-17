@@ -26,6 +26,7 @@ import { useToast } from '@/components/ui/Toast';
 import FilterModal, { FilterState } from '@/components/FilterModal';
 import GiftModal from '@/components/GiftModal';
 import CommunityChat from '@/components/CommunityChat';
+import { BottomNav } from '@/components/BottomNav';
 
 /* Mock Data for Stories */
 const STORIES = [
@@ -1008,7 +1009,7 @@ function DashboardContent() {
             {renderHeader()}
             <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'reels' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-6 px-4'}`}>
                 {/* Main Feed Column */}
-                <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'reels' ? 'pb-0 h-full' : 'pb-24'}`}>
+                <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'reels' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
                     {activeTab === 'matches' && (
                         <div className="mb-8">{renderStories()}</div>
                     )}
@@ -1199,28 +1200,13 @@ function DashboardContent() {
                 />
             )}
 
-            {/* Mobile Bottom Navigation */}
-            <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-200 shadow-lg pb-safe z-50">
-                <div className="flex justify-around items-center h-16">
-                    {navItems.map((item) => (
-                        <button
-                            key={item.id}
-                            onClick={() => setActiveTab(item.id)}
-                            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${activeTab === item.id ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
-                                }`}
-                        >
-                            <div className="relative">
-                                <item.icon size={24} strokeWidth={activeTab === item.id ? 2.5 : 2} />
-                                {item.badge && item.badge > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] min-w-[16px] h-4 flex items-center justify-center rounded-full border-2 border-white">
-                                        {item.badge}
-                                    </span>
-                                )}
-                            </div>
-                            <span className="text-[10px] font-medium">{item.label}</span>
-                        </button>
-                    ))}
-                </div>
+            {/* Mobile Bottom Navigation - Premium Floating */}
+            <div className="sm:hidden block">
+                <BottomNav
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    requestsCount={requestsCount}
+                />
             </div>
 
 

@@ -119,7 +119,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("receiveMessage");
             socket.off("typing");
         };
-    }, [socket, partner.id]);
+    }, [socket, partner.id, user]);
 
     // Auto-scroll to bottom
     useEffect(() => {
@@ -162,7 +162,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     return (
-        <div className={className || "fixed inset-0 w-full h-full md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-bottom duration-300"}>
+        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-bottom duration-300"}>
             {/* Premium Header */}
             {!isCallMode && (
                 <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">

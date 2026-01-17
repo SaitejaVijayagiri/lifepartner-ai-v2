@@ -1,6 +1,6 @@
 'use client';
 
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Gift, Maximize2, Minimize2, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Gift, Maximize2, Minimize2, Volume2, RefreshCw } from 'lucide-react';
 import GiftModal from './GiftModal';
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -206,6 +206,61 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     };
 
+    const switchCamera = async () => {
+        if (!stream || !isVideo) return;
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoInputs = devices.filter(device => device.kind === 'videoinput');
+            if (videoInputs.length < 2) {
+                toast.error("Only one camera found");
+                return;
+            }
+
+            // Find current video track
+            const currentTrack = stream.getVideoTracks()[0];
+            const currentLabel = currentTrack.label;
+
+            // Find next device (simple toggle logic)
+            // This is a naive simplistic toggle, usually you'd track facingMode
+            // But checking label or just cycling index is easier for now.
+            const currentIndex = videoInputs.findIndex(d => currentLabel.includes(d.label));
+            const nextIndex = (currentIndex + 1) % videoInputs.length;
+            const nextDevice = videoInputs[nextIndex];
+
+            const newStream = await navigator.mediaDevices.getUserMedia({
+                audio: true, // Keep audio
+                video: { deviceId: { exact: nextDevice.deviceId } }
+            });
+
+            const newVideoTrack = newStream.getVideoTracks()[0];
+
+            // 1. Replace in Local DOM
+            if (myVideo.current) {
+                myVideo.current.srcObject = newStream;
+            }
+
+            // 2. Replace Track in Local Stream State
+            // (We must keep the *same* stream object reference if possible, or update it)
+            // Actually, replacing the track in the current stream is better for Peer compatibility
+            stream.removeTrack(currentTrack);
+            stream.addTrack(newVideoTrack);
+            currentTrack.stop(); // Stop old camera
+
+            // 3. Replace Track in Peer (Remote)
+            if (connectionRef.current) {
+                // simple-peer replaceTrack: (oldTrack, newTrack, stream)
+                connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
+            }
+
+            // Update State to trigger re-renders if needed
+            setStream(newStream); // Or construct a new stream from tracks
+
+        } catch (err) {
+            console.error("Failed to switch camera", err);
+            toast.error("Failed to switch camera");
+        }
+    };
+
     const leaveCall = (emitEvent = true) => {
         setCallEnded(true);
         try {
@@ -326,6 +381,12 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     <button onClick={toggleMute} className={`p-3 rounded-full transition-colors ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>
                         {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
                     </button>
+
+                    {isVideo && (
+                        <button onClick={switchCamera} className="p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                            <RefreshCw size={20} />
+                        </button>
+                    )}
 
                     {isVideo && (
                         <button onClick={toggleVideo} className={`p-3 rounded-full transition-colors ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}>

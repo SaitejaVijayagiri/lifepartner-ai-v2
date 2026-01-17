@@ -166,7 +166,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
             try {
                 // 1. Save to DB
-                await prisma.messages.create({
+                const newMessageRecord = await prisma.messages.create({
                     data: {
                         sender_id: from,
                         receiver_id: to,
@@ -176,6 +176,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
                 // 2. Emit to Receiver
                 io.to(to).emit("receiveMessage", {
+                    id: newMessageRecord.id,
                     text,
                     senderId: from,
                     timestamp: new Date()

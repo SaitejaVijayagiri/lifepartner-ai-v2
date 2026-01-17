@@ -35,8 +35,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const { socket } = useSocket();
     const toast = useToast();
     const [stream, setStream] = useState<MediaStream | null>(null);
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
     const [callAccepted, setCallAccepted] = useState(false);
     const [callEnded, setCallEnded] = useState(false);
+    const [callAnswered, setCallAnswered] = useState(false); // Valid answer action
     const [status, setStatus] = useState("Initializing...");
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
@@ -72,8 +74,9 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
+    // Initialize Local Stream
     useEffect(() => {
-        if (!SimplePeer) return; // Wait for client load
+        if (!SimplePeer) return;
 
         navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true })
             .then((currentStream) => {
@@ -82,9 +85,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     myVideo.current.srcObject = currentStream;
                 }
 
-                if (incomingCall) {
-                    answerCall(currentStream);
-                } else {
+                // Only call immediately if we are the initiator (NOT incoming call)
+                if (!incomingCall) {
                     callUser(currentStream);
                 }
             })
@@ -100,17 +102,27 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 setStatus(isVideo ? "Connected" : "Audio Connected");
                 connectionRef.current?.signal(signal);
             });
-            socket.on("callEnded", () => leaveCall());
+            socket.on("callEnded", () => {
+                console.log("Peer ended call");
+                leaveCall(false); // Don't emit endCall back
+            });
             socket.on("callError", (data: any) => { toast.error(data.message); leaveCall(); });
         }
 
         return () => {
-            leaveCall();
+            leaveCall(); // Cleanup
             socket?.off("callError");
             socket?.off("callAccepted");
             socket?.off("callEnded");
         }
-    }, [isVideo]); // Run once mostly, or re-run if video mode changes (tricky)
+    }, [isVideo]);
+
+    // Attach Remote Stream when ref or stream changes
+    useEffect(() => {
+        if (userVideo.current && remoteStream) {
+            userVideo.current.srcObject = remoteStream;
+        }
+    }, [remoteStream, isMaximized]);
 
     const callUser = (currentStream: MediaStream) => {
         setStatus(`Calling ${partner.name}...`);
@@ -129,24 +141,28 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             }
         });
 
-        peer.on("stream", (remoteStream: MediaStream) => {
-            if (userVideo.current) {
-                userVideo.current.srcObject = remoteStream;
-            }
+        peer.on("stream", (currentRemoteStream: MediaStream) => {
+            setRemoteStream(currentRemoteStream); // Save to state
         });
 
         peer.on("error", (err: any) => {
             console.error("Peer Error:", err);
-            // setStatus("Connection Error"); 
         });
 
         connectionRef.current = peer;
     };
 
-    const answerCall = (currentStream: MediaStream) => {
+    const answerCall = () => {
+        setCallAnswered(true);
         setCallAccepted(true);
         setStatus("Connected");
-        const peer = new SimplePeer({ initiator: false, trickle: false, stream: currentStream });
+
+        if (!stream) {
+            console.error("No local stream to answer with");
+            return;
+        }
+
+        const peer = new SimplePeer({ initiator: false, trickle: false, stream: stream });
 
         peer.on("signal", (data: any) => {
             if (socket && incomingCall) {
@@ -154,10 +170,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             }
         });
 
-        peer.on("stream", (remoteStream: MediaStream) => {
-            if (userVideo.current) {
-                userVideo.current.srcObject = remoteStream;
-            }
+        peer.on("stream", (currentRemoteStream: MediaStream) => {
+            setRemoteStream(currentRemoteStream); // Save to state
         });
 
         peer.on("error", (err: any) => {
@@ -188,12 +202,19 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     };
 
-    const leaveCall = () => {
+    const leaveCall = (emitEvent = true) => {
         setCallEnded(true);
         try {
             stream?.getTracks().forEach(track => track.stop());
         } catch (e) { }
         connectionRef.current?.destroy();
+
+        if (emitEvent && socket && (callAccepted || incomingCall)) {
+            // If we are in a call or rejecting an incoming one
+            const targetId = incomingCall ? incomingCall.from : partner.id;
+            socket.emit("endCall", { to: targetId });
+        }
+
         onEndCall();
     };
 
@@ -234,40 +255,65 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 </div>
 
                 <div className="flex-1 relative overflow-hidden flex items-center justify-center group">
-                    {/* Remote View */}
-                    {callAccepted && !callEnded ? (
-                        isVideo ? (
-                            <video ref={userVideo} playsInline autoPlay className="w-full h-full object-cover" />
-                        ) : (
-                            // Audio Only UI
-                            <div className="flex flex-col items-center justify-center">
-                                <div className="relative mb-6 transform scale-75 md:scale-100">
-                                    <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>
-                                    <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-gray-800 object-cover z-10" alt={partner.name} />
-                                    <div className="absolute -inset-4 rounded-full border border-indigo-500/20 animate-ping"></div>
-                                </div>
+                    {/* Incoming Call Screen */}
+                    {incomingCall && !callAnswered ? (
+                        <div className="flex flex-col items-center justify-center space-y-8 z-50">
+                            <div className="relative">
+                                <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>
+                                <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-gray-800 object-cover z-10" alt={partner.name} />
                             </div>
-                        )
-                    ) : (
-                        // Connecting UI
-                        <div className="text-center text-white p-4">
-                            <img src={partner.photoUrl} className="w-20 h-20 rounded-full border-4 border-gray-800 mx-auto mb-4 animate-pulse opacity-50" />
-                            <h2 className="text-lg font-bold opacity-80">{status}</h2>
+                            <div className="text-center">
+                                <h2 className="text-2xl font-bold text-white mb-1">{partner.name}</h2>
+                                <p className="text-indigo-300">Incoming {incomingCall.type || 'Video'} Call...</p>
+                            </div>
+                            <div className="flex gap-6">
+                                <button onClick={() => leaveCall(true)} className="p-4 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all shadow-lg hover:scale-105">
+                                    <PhoneOff size={32} />
+                                </button>
+                                <button onClick={answerCall} className="p-4 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all shadow-lg hover:scale-105 animate-bounce">
+                                    <Video size={32} />
+                                </button>
+                            </div>
                         </div>
-                    )}
-
-                    {/* Self View (Video Only) */}
-                    {isVideo && stream && (
-                        <div className={`absolute z-20 overflow-hidden shadow-2xl border-2 border-white/10 transition-all duration-300 bg-gray-900
-                             ${isMaximized ? 'top-20 left-4 w-32 h-44 rounded-xl' : 'top-16 left-4 w-20 h-28 rounded-lg'}
-                        `}>
-                            <video ref={myVideo} autoPlay muted playsInline className={`w-full h-full object-cover transform scale-x-[-1] ${isVideoOff ? 'hidden' : ''}`} />
-                            {isVideoOff && (
-                                <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                                    <VideoOff className="text-white/50" size={20} />
+                    ) : (
+                        // Active Call or Calling...
+                        <>
+                            {/* Remote View */}
+                            {callAccepted && !callEnded ? (
+                                isVideo ? (
+                                    <video ref={userVideo} playsInline autoPlay className="w-full h-full object-cover" />
+                                ) : (
+                                    // Audio Only UI
+                                    <div className="flex flex-col items-center justify-center">
+                                        <div className="relative mb-6 transform scale-75 md:scale-100">
+                                            <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>
+                                            <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-gray-800 object-cover z-10" alt={partner.name} />
+                                            <div className="absolute -inset-4 rounded-full border border-indigo-500/20 animate-ping"></div>
+                                        </div>
+                                    </div>
+                                )
+                            ) : (
+                                // Connecting UI (Calling...)
+                                <div className="text-center text-white p-4">
+                                    <img src={partner.photoUrl} className="w-20 h-20 rounded-full border-4 border-gray-800 mx-auto mb-4 animate-pulse opacity-50" />
+                                    <h2 className="text-lg font-bold opacity-80">{status}</h2>
                                 </div>
                             )}
-                        </div>
+
+                            {/* Self View (Video Only) */}
+                            {isVideo && stream && (
+                                <div className={`absolute z-20 overflow-hidden shadow-2xl border-2 border-white/10 transition-all duration-300 bg-gray-900
+                                    ${isMaximized ? 'top-20 left-4 w-32 h-44 rounded-xl' : 'top-16 left-4 w-20 h-28 rounded-lg'}
+                                `}>
+                                    <video ref={myVideo} autoPlay muted playsInline className={`w-full h-full object-cover transform scale-x-[-1] ${isVideoOff ? 'hidden' : ''}`} />
+                                    {isVideoOff && (
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                                            <VideoOff className="text-white/50" size={20} />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -287,7 +333,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                         <Gift size={20} />
                     </button>
 
-                    <button className="p-3 rounded-full bg-red-600 text-white shadow-lg transform hover:scale-105" onClick={leaveCall}>
+                    <button className="p-3 rounded-full bg-red-600 text-white shadow-lg transform hover:scale-105" onClick={() => leaveCall(true)}>
                         <PhoneOff size={24} />
                     </button>
                 </div>

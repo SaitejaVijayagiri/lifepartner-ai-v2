@@ -92,7 +92,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         socket.on("receiveMessage", (newMsg: any) => {
             if (newMsg.senderId === partner.id || newMsg.senderId === 'me') {
-                setMessages(prev => [...prev, newMsg]);
+                setMessages(prev => {
+                    // Deduplicate by ID if present
+                    if (newMsg.id && prev.some(m => m.id === newMsg.id)) {
+                        return prev;
+                    }
+                    return [...prev, newMsg];
+                });
                 setIsTyping(false);
             }
         });

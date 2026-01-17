@@ -36,7 +36,7 @@ export default function ProfileView() {
         const shareData = {
             title: `Profile: ${profile.name}`,
             text: `Check out ${profile.name} on LifePartner AI!`,
-            url: `https://lifepartnerai.in/profile/${params.id}`
+            url: `https://www.lifepartnerai.in/profile/${params.id}`
         };
         try {
             if (navigator.share) {

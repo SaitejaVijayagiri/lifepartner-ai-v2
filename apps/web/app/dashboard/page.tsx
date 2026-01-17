@@ -1082,6 +1082,85 @@ function DashboardContent() {
                                     </Button>
                                 </div>
 
+                                {/* Mobile Quick Actions - Visible on all screens for better UX */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    {/* Premium Status Card */}
+                                    <div
+                                        onClick={() => {
+                                            setInitialStoreTab('premium');
+                                            setShowCoinStore(true);
+                                        }}
+                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200' : 'bg-gray-50 border-gray-200 hover:border-indigo-300'}`}
+                                    >
+                                        <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 text-gray-500'}`}>
+                                            <Crown size={20} />
+                                        </div>
+                                        <div className="text-left sm:text-center">
+                                            <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800' : 'text-gray-700'}`}>
+                                                {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
+                                            </div>
+                                            <div className="text-[10px] text-gray-500">
+                                                {currentUser.is_premium ? 'View Details' : 'Unlock Features'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Boost Card */}
+                                    <div
+                                        onClick={async () => {
+                                            if (!currentUser || currentUser.coins < 100) {
+                                                setShowCoinStore(true);
+                                                toast.error("Insufficient coins to boost!");
+                                                return;
+                                            }
+                                            if (confirm("Boost your profile for 100 coins?")) {
+                                                try {
+                                                    await api.wallet.boostProfile();
+                                                    toast.success("Profile Boosted!");
+                                                    api.profile.getMe().then(setCurrentUser);
+                                                } catch (e) { toast.error("Boost failed."); }
+                                            }
+                                        }}
+                                        className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 cursor-pointer hover:border-indigo-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                    >
+                                        <div className="p-2 rounded-full bg-indigo-100 text-indigo-600">
+                                            <Zap size={20} className="fill-indigo-600" />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm text-indigo-900">Boost</div>
+                                            <div className="text-[10px] text-indigo-600">Get Visible</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Free Coins Card */}
+                                    <div
+                                        onClick={() => router.push('/refer')}
+                                        className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 cursor-pointer hover:border-emerald-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                    >
+                                        <div className="p-2 rounded-full bg-emerald-100 text-emerald-600">
+                                            <Users size={20} />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm text-emerald-900">Free Coins</div>
+                                            <div className="text-[10px] text-emerald-600">Refer Friend</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Logout Card */}
+                                    <div
+                                        onClick={handleLogout}
+                                        className="p-3 rounded-xl bg-red-50 border border-red-100 cursor-pointer hover:border-red-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                    >
+                                        <div className="p-2 rounded-full bg-red-100 text-red-500">
+                                            <LogOut size={20} />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="font-bold text-sm text-red-900">Log Out</div>
+                                            <div className="text-[10px] text-red-500">Sign Out</div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <ProfileView
                                     profile={currentUser}
                                     onEdit={() => setIsEditingProfile(true)}

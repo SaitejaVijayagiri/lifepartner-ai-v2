@@ -211,24 +211,35 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         try {
             const devices = await navigator.mediaDevices.enumerateDevices();
             const videoInputs = devices.filter(device => device.kind === 'videoinput');
+            console.log("Available Cameras:", videoInputs);
+
             if (videoInputs.length < 2) {
+                // If only 1 camera, maybe user wants to re-init? Allow it but warn.
                 toast.error("Only one camera found");
                 return;
             }
 
-            // Find current video track
+            // Get current trace settings to find deviceId
             const currentTrack = stream.getVideoTracks()[0];
-            const currentLabel = currentTrack.label;
+            const settings = currentTrack.getSettings();
+            const currentDeviceId = settings.deviceId;
 
-            // Find next device (simple toggle logic)
-            // This is a naive simplistic toggle, usually you'd track facingMode
-            // But checking label or just cycling index is easier for now.
-            const currentIndex = videoInputs.findIndex(d => currentLabel.includes(d.label));
+            // Find index of current device
+            let currentIndex = videoInputs.findIndex(d => d.deviceId === currentDeviceId);
+
+            // If not found (e.g. default), try label or default to 0
+            if (currentIndex === -1) {
+                currentIndex = 0;
+            }
+
+            // Calculate next index
             const nextIndex = (currentIndex + 1) % videoInputs.length;
             const nextDevice = videoInputs[nextIndex];
 
+            console.log(`Switching from ${currentDeviceId} to ${nextDevice.deviceId} (${nextDevice.label})`);
+
             const newStream = await navigator.mediaDevices.getUserMedia({
-                audio: true, // Keep audio
+                audio: true,
                 video: { deviceId: { exact: nextDevice.deviceId } }
             });
 
@@ -239,25 +250,29 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 myVideo.current.srcObject = newStream;
             }
 
-            // 2. Replace Track in Local Stream State
-            // (We must keep the *same* stream object reference if possible, or update it)
-            // Actually, replacing the track in the current stream is better for Peer compatibility
-            stream.removeTrack(currentTrack);
-            stream.addTrack(newVideoTrack);
-            currentTrack.stop(); // Stop old camera
-
-            // 3. Replace Track in Peer (Remote)
+            // 2. Replace connection track
             if (connectionRef.current) {
-                // simple-peer replaceTrack: (oldTrack, newTrack, stream)
                 connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
             }
 
-            // Update State to trigger re-renders if needed
-            setStream(newStream); // Or construct a new stream from tracks
+            // 3. Update Stream State
+            // Important: We must create a new stream object or update the existing one correctly
+            // SimplePeer usually needs the stream object to stay consistent or be re-signaled logic?
+            // Actually replaceTrack handles the peer part.
+            // We just need to update local state for React to know.
+            const newStreamObj = new MediaStream([
+                ...stream.getAudioTracks(),
+                newVideoTrack
+            ]);
+
+            setStream(newStreamObj);
+
+            // Cleanup old track
+            currentTrack.stop();
 
         } catch (err) {
             console.error("Failed to switch camera", err);
-            toast.error("Failed to switch camera");
+            toast.error("Failed to switch camera: " + (err as Error).message);
         }
     };
 

@@ -146,8 +146,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         try {
             // Backend expects User ID (partner.id), not Interaction ID
             await api.chat.sendMessage(partner.id, text, 'me');
-            // Backend expects User ID (partner.id), not Interaction ID
-            await api.chat.sendMessage(partner.id, text, 'me');
+
             // Socket emit is now handled by the Backend API to prevent double-writes.
             // if (socket) { ... } REMOVED
         } catch (err) {

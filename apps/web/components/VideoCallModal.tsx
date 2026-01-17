@@ -45,6 +45,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const [callDuration, setCallDuration] = useState(0);
     const [isMaximized, setIsMaximized] = useState(true);
 
+    useEffect(() => {
+        console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode);
+    }, []);
+
     // Determine Call Type and Partner
     const isVideo = mode === 'video' || incomingCall?.type === 'video';
     const partner = initialPartner || {
@@ -122,7 +126,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         if (userVideo.current && remoteStream) {
             userVideo.current.srcObject = remoteStream;
         }
-    }, [remoteStream, isMaximized]);
+    }, [remoteStream, isMaximized, callAccepted]);
 
     const callUser = (currentStream: MediaStream) => {
         setStatus(`Calling ${partner.name}...`);

@@ -286,28 +286,17 @@ function DashboardContent() {
     // Get filtered matches
     const displayMatches = activeFilters ? filterMatches(matches) : matches;
 
-    // Incoming Call Listener
+    // Incoming Call Listener - REMOVED (Handled by Global CallManager)
+    /*
     useEffect(() => {
         if (!socket) return;
         socket.on("callUser", (data: any) => {
-            console.log("Incoming call:", data);
-            api.interactions.getConnections().then(conns => {
-                const caller = conns.find((c: any) => c.partner.id === data.from);
-                if (caller) {
-                    setActiveCall({
-                        partner: caller.partner,
-                        connectionId: caller.interactionId,
-                        incomingCall: { signal: data.signalData, from: data.from, type: data.type },
-                        mode: data.type
-                    });
-                }
-            });
+             // Let CallManager handle this globally to avoid double modals
+             console.log("Dashboard: Handing over incoming call to CallManager");
         });
-
-        return () => {
-            socket.off("callUser");
-        };
+        return () => { socket.off("callUser"); };
     }, [socket]);
+    */
 
     const handleLogout = () => {
         if (confirm("Are you sure you want to log out?")) {

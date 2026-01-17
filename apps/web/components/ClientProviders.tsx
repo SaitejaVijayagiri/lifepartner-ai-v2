@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react';
 import { SocketProvider } from '@/context/SocketContext';
 import { Toaster } from '@/components/ui/Toast';
-
 import CallManager from '@/components/CallManager';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';

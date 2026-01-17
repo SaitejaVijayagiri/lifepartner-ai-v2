@@ -6,6 +6,7 @@ import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Pla
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import ReelFeed from '@/components/ReelFeed';
+import WhatsAppFloat from '@/components/WhatsAppFloat';
 
 export default function LandingPage() {
   return (
@@ -94,6 +95,7 @@ export default function LandingPage() {
       `}</style>
 
       <Navbar />
+      <WhatsAppFloat />
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 lg:pt-44 pb-20 lg:pb-32 overflow-hidden min-h-screen flex items-center">

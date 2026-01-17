@@ -168,29 +168,9 @@ export const initSocket = (httpServer: HttpServer) => {
          * CHAT LOGIC
          */
         socket.on("sendMessage", async ({ to, text }) => {
-            const from = userId; // Secure source
-            // console.log(`Msg: ${from} -> ${to}: ${text}`);
-
-            try {
-                // 1. Save to DB
-                const newMessageRecord = await prisma.messages.create({
-                    data: {
-                        sender_id: from,
-                        receiver_id: to,
-                        content: text
-                    }
-                });
-
-                // 2. Emit to Receiver
-                io.to(to).emit("receiveMessage", {
-                    id: newMessageRecord.id,
-                    text,
-                    senderId: from,
-                    timestamp: new Date()
-                });
-            } catch (e) {
-                console.error("Message Persistence Error:", e);
-            }
+            console.warn("Legacy sendMessage event received. Client should use API.");
+            // DEPRECATED: Logic moved to API route to prevent double-writes.
+            // Leaving empty handler just in case of cached clients.
         });
 
         /**

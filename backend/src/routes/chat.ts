@@ -86,6 +86,16 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             timestamp: newMessageRecord.created_at
         };
 
+        // Broadcast via Socket.IO
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            io.to(connectionId).emit("receiveMessage", newMessage);
+        } catch (socketError) {
+            console.error("Socket broadcast failed", socketError);
+            // Don't fail the request if socket fails, just log it.
+        }
+
         res.json({ success: true, message: newMessage });
 
     } catch (e) {

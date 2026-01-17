@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import ChatWindow from './ChatWindow';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/context/AuthContext';
 
 // Dynamic Import for SimplePeer to avoid SSR issues
 let SimplePeer: any;
@@ -128,18 +129,22 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     }, [remoteStream, isMaximized, callAccepted]);
 
+    const { user } = useAuth(); // Access auth context
+
     const callUser = (currentStream: MediaStream) => {
         setStatus(`Calling ${partner.name}...`);
         const peer = new SimplePeer({ initiator: true, trickle: false, stream: currentStream });
 
         peer.on("signal", (data: any) => {
             if (socket) {
-                const myId = localStorage.getItem('userId');
+                const myId = user?.id || localStorage.getItem('userId');
+                const myName = user?.name || localStorage.getItem('userName') || "Unknown User";
+
                 socket.emit("callUser", {
                     userToCall: partner.id,
                     signalData: data,
                     from: myId,
-                    name: localStorage.getItem('userName') || "User",
+                    name: myName,
                     type: mode
                 });
             }
@@ -214,8 +219,9 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             console.log("Available Cameras:", videoInputs);
 
             if (videoInputs.length < 2) {
-                // If only 1 camera, maybe user wants to re-init? Allow it but warn.
-                toast.error("Only one camera found");
+                // Try to force switch anyway if it's a mobile device sometimes they hide IDs? 
+                // Mostly likely just 1 cam available to browser.
+                toast.error(`Only ${videoInputs.length} camera(s) found. Cannot switch.`);
                 return;
             }
 

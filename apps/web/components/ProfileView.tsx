@@ -21,12 +21,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
         ? profile.photos
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
-    // Fallback Reels
-    const demoReels = [
-        "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-taking-photos-from-different-angles-of-a-model-34421-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-young-mother-playing-with-her-daughter-1208-large.mp4"
-    ];
+    // Fallback Reels (Empty to save memory)
+    const demoReels: string[] = [];
     const displayReels = (profile.reels && profile.reels.length > 0) ? profile.reels : demoReels;
     const hasReels = true;
 

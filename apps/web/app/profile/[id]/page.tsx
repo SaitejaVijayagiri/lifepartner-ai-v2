@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, MessageCircle, Star
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
+import { useSocket } from '@/context/SocketContext';
 import Link from 'next/link';
 
 export default function ProfileView() {
@@ -16,6 +17,8 @@ export default function ProfileView() {
     const [loading, setLoading] = useState(true);
     const toast = useToast();
     const { user } = useAuth();
+    const { onlineUsers } = useSocket();
+    const isUserOnline = profile ? (profile.isOnline || onlineUsers.includes(profile.id)) : false;
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -120,8 +123,17 @@ export default function ProfileView() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
                                 <div className="text-white">
                                     <h1 className="text-4xl font-heading font-bold mb-2">{profile.name}, {profile.age}</h1>
-                                    <div className="flex items-center gap-2 text-sm font-medium opacity-90">
-                                        <MapPin size={16} /> {profile.location?.city || "Unknown City"}
+                                    <div className="flex items-center gap-4 text-sm font-medium opacity-90">
+                                        <div className="flex items-center gap-1">
+                                            <MapPin size={16} /> {profile.location?.city || "Unknown City"}
+                                        </div>
+                                        {/* Online Badge */}
+                                        {isUserOnline && (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-400/30 backdrop-blur-md">
+                                                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]"></div>
+                                                <span className="text-green-200 text-xs font-bold uppercase tracking-wider">Active Now</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

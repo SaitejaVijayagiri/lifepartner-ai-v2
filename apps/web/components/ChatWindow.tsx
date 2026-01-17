@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
+import { useAuth } from '@/context/AuthContext';
 import { Sparkles, Video, Phone, Gift, Send, X } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -26,6 +27,7 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
+    const { user } = useAuth();
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -242,7 +244,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     </div>
                 )}
                 {messages.map((msg, idx) => {
-                    const isMe = msg.senderId === 'me' || msg.senderId === undefined;
+                    const isMe = msg.senderId === 'me' || msg.senderId === user?.id;
                     return (
                         <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
                             {!isMe && (

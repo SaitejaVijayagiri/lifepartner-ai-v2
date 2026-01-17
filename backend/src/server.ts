@@ -48,6 +48,16 @@ const contactLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
+
+// Global Request Logger
+app.use((req, res, next) => {
+    console.log(`📨 [${req.method}] ${req.url}`);
+    if (req.method === 'POST' || req.method === 'PUT') {
+        console.log('📦 Body:', JSON.stringify(req.body, null, 2));
+    }
+    next();
+});
+
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Share2 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { useSocket } from '@/context/SocketContext';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 
@@ -20,6 +21,9 @@ interface MatchCardProps {
 
 export default function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift }: MatchCardProps) {
     // Independent States
+    const { onlineUsers } = useSocket();
+    const isUserOnline = match.isOnline || onlineUsers.includes(match.id);
+
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
     const toast = useToast();
@@ -232,10 +236,11 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                         </h3>
                         {match.isVerified && <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>}
                         {/* Online Indicator */}
-                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${match.isOnline ? 'bg-green-500/20 border-green-400/30' : 'bg-gray-500/20 border-gray-400/30'} mb-1.5`}>
-                            <div className={`w-2 h-2 rounded-full ${match.isOnline ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-gray-400'}`}></div>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${match.isOnline ? 'text-green-200' : 'text-gray-300'}`}>
-                                {match.isOnline ? 'Active' : 'Offline'}
+                        {/* Online Indicator */}
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/20 border-green-400/30' : 'bg-gray-500/20 border-gray-400/30'} mb-1.5`}>
+                            <div className={`w-2 h-2 rounded-full ${isUserOnline ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-gray-400'}`}></div>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${isUserOnline ? 'text-green-200' : 'text-gray-300'}`}>
+                                {isUserOnline ? 'Active' : 'Offline'}
                             </span>
                         </div>
                     </div>

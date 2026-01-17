@@ -81,11 +81,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: 'https://lifepartnerai.in/icon.png' },
-      { url: 'https://lifepartnerai.in/icon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png' },
     ],
-    shortcut: 'https://lifepartnerai.in/icon.png',
-    apple: 'https://lifepartnerai.in/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
   },
 };
 

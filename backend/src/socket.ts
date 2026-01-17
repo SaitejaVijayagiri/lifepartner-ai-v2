@@ -151,6 +151,13 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         /**
+         * END CALL
+         */
+        socket.on("endCall", ({ to }) => {
+            io.to(to).emit("callEnded");
+        });
+
+        /**
          * TYPING
          */
         socket.on("typing", ({ to }) => {

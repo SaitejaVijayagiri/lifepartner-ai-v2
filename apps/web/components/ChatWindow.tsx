@@ -97,7 +97,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             }
 
             if (newMsg.senderId === partner.id) {
-                setMessages(prev => [...prev, newMsg]);
+                setMessages(prev => {
+                    // Strict Deduplication: Check if ID exists (or temp ID matches? usually IDs are distinct)
+                    // Also check if we already have this exact message content + timestamp closely?
+                    // For now, ID check is safest if backend sends IDs.
+                    if (prev.some(m => m.id === newMsg.id)) return prev;
+                    return [...prev, newMsg];
+                });
                 setIsTyping(false);
             }
         });

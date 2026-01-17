@@ -350,7 +350,7 @@ function DashboardContent() {
                         </div>
                     </div>
 
-                    <nav className="hidden sm:flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-full border border-gray-200/50 shadow-sm">
+                    <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-full border border-gray-200/50 shadow-sm">
                         {navItems.map(item => (
                             <button
                                 key={item.id}
@@ -390,7 +390,7 @@ function DashboardContent() {
 
                     {/* Premium Badge - Desktop Only */}
                     {currentUser?.is_premium && (
-                        <div className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300 relative group cursor-help">
+                        <div className="hidden lg:flex items-center gap-1 bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 px-3 py-1 rounded-full text-xs font-bold shadow-sm border border-yellow-300 relative group cursor-help">
                             <span>👑</span>
                             <span>PREMIUM</span>
                             {currentUser.premium_expiry && (
@@ -421,7 +421,7 @@ function DashboardContent() {
                                 }
                             }
                         }}
-                        className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                        className="hidden lg:flex items-center gap-1 bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
                     >
                         <Zap size={14} className="fill-yellow-300 text-yellow-300" />
                         <span>Boost</span>
@@ -453,7 +453,7 @@ function DashboardContent() {
 
                     <button
                         onClick={() => router.push('/refer')}
-                        className="hidden sm:flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
+                        className="hidden lg:flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-md hover:scale-105 transition-transform"
                     >
                         <Users size={14} className="text-white" />
                         <span>Free Coins</span>
@@ -461,7 +461,7 @@ function DashboardContent() {
 
                     <button
                         onClick={handleLogout}
-                        className="hidden sm:flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
+                        className="hidden lg:flex w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-500 items-center justify-center transition-colors text-muted-foreground"
                         title="Log Out"
                     >
                         <LogOut size={20} />
@@ -1201,7 +1201,7 @@ function DashboardContent() {
             )}
 
             {/* Mobile Bottom Navigation - Premium Floating */}
-            <div className="sm:hidden block">
+            <div className="lg:hidden block">
                 <BottomNav
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}

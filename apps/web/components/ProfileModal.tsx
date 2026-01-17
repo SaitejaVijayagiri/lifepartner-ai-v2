@@ -93,14 +93,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-y-auto">
-            <div className="bg-white w-full max-w-5xl md:h-[85vh] min-h-screen md:min-h-0 rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
+            <div className="bg-white w-full max-w-5xl h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
                 {/* Enhanced Close Button (Floating & Glassy) - Fixed Position for Mobile Reliability */}
                 <button
                     onClick={onClose}
-                    className="fixed top-4 right-4 z-[100] bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl border border-white/20"
-                    style={{ position: 'fixed', top: '16px', right: '16px' }}
+                    className="fixed top-4 right-4 z-[210] bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl border border-white/20"
+                    style={{ position: 'fixed', top: 'max(16px, env(safe-area-inset-top))', right: '16px' }}
                 >
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -109,13 +109,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 </button>
 
                 {/* LEFT: Immersive Image Section - Fixed Height on Mobile to Stop Jumps */}
-                <div className="w-full md:w-[45%] h-[55vh] md:h-full bg-gray-900 relative group shrink-0 flex items-center justify-center">
+                <div className="w-full md:w-[45%] h-[45%] md:h-full bg-gray-900 relative group shrink-0 flex items-center justify-center">
 
                     {/* Main Image */}
                     <img
                         src={photos[currentPhotoIndex]}
                         alt={profile.name}
-                        className="w-full h-full object-contain bg-black/90 block transition-opacity duration-500"
+                        className="w-full h-full object-cover bg-black/90 block transition-opacity duration-500"
                     />
 
                     {/* Gradient Overlay for Text Readability (Subtler) */}
@@ -187,9 +187,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 </div>
 
                 {/* RIGHT: Content & Details */}
-                <div className="w-full md:w-[55%] flex flex-col bg-white h-auto md:h-full relative -mt-6 md:mt-0 rounded-t-3xl md:rounded-none z-30 md:z-auto">
+                <div className="w-full md:w-[55%] flex flex-col bg-white h-[55%] md:h-full relative rounded-none z-30 md:z-auto">
 
-                    {/* Compatibility Badge (Floating on Mobile overlap) */}
+                    {/* Compatibility Badge (Floating on Mobile overlap) - Adjusted top to not cut off */}
                     <div className="absolute -top-5 right-6 md:static md:p-6 md:pb-2 md:bg-white z-40">
                         <div className="bg-white/95 md:bg-indigo-50 backdrop-blur shadow-lg md:shadow-none text-indigo-700 px-4 py-2 md:py-1 rounded-full text-sm font-bold border border-indigo-100 flex items-center gap-2">
                             <span className="text-lg">✨</span> {profile.score || 90}% Match
@@ -213,30 +213,22 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
 
                     {/* Mobile Insight (Visible only on mobile) */}
-                    <div className="md:hidden px-6 pt-8 pb-4">
-                        <p className="text-gray-500 italic text-sm border-l-4 border-indigo-500 pl-4 py-1">
+                    <div className="md:hidden px-6 pt-6 pb-2">
+                        <p className="text-gray-500 italic text-xs border-l-4 border-indigo-500 pl-3 py-1 line-clamp-2">
                             "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
                         </p>
-                        <div className="flex gap-2 mt-2">
-                            <div className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 flex items-center gap-1 w-max">
-                                <span>🎁</span> {profile.total_gifts || 0} Gifts
-                            </div>
-                            <div className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100 flex items-center gap-1 w-max">
-                                <span>❤️</span> {profile.total_likes || 0} Likes
-                            </div>
-                        </div>
                     </div>
 
 
                     {/* Sticky Tabs */}
-                    <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-6">
-                        <div className="flex space-x-6 overflow-x-auto no-scrollbar py-3">
+                    <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
+                        <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
                             {['about', 'personal', 'career', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
                                     className={`
-                                        pb-2 text-sm font-semibold capitalize whitespace-nowrap transition-all
+                                        pb-2 text-xs md:text-sm font-semibold capitalize whitespace-nowrap transition-all
                                         ${activeTab === tab
                                             ? 'text-indigo-600 border-b-2 border-indigo-600'
                                             : 'text-gray-400 hover:text-gray-600 border-transparent'}
@@ -249,17 +241,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-6 md:px-8 space-y-8 pb-32 md:pb-6">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-6">
 
                         {activeTab === 'about' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About Me</h3>
-                                    <p className="text-gray-700 leading-relaxed text-[15px]">
+                                    <p className="text-gray-700 leading-relaxed text-sm md:text-[15px]">
                                         {profile.aboutMe || "I am a simple person looking for a partner who values family and traditions while being modern in outlook. I enjoy traveling and reading."}
                                     </p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-3 md:gap-4">
                                     <InfoCard label="Age / Height" value={`${profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : profile.age} Yrs, ${profile.height || "5'5\""}`} />
                                     <InfoCard label="Marital Status" value={profile.maritalStatus || "Never Married"} />
                                     <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
@@ -272,7 +264,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <section>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Horoscope & Faith</h3>
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "Hindu"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
                                         <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
@@ -426,9 +418,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Bottom Action Bar (Fixed on Mobile) */}
-                    <div className="absolute bottom-0 inset-x-0 p-4 bg-white border-t border-gray-100 md:static md:bg-gray-50 z-50">
+                    <div className="absolute bottom-0 inset-x-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-100 md:static md:bg-gray-50 z-[210]">
                         <div className="flex gap-3">
-                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 text-gray-600 font-bold" onClick={onClose}>
+                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 text-gray-600 font-bold hover:bg-gray-50" onClick={onClose}>
                                 Skip
                             </Button>
                             <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30" onClick={onConnect}>

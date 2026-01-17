@@ -271,7 +271,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 location: locString,
                 role: meta.career?.profession || "Member",
                 photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
-                score: (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score,
+                score: Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
                 match_reasons: reasons,
                 analysis: {
                     // id is UUID, can't mod easily. use random.
@@ -680,6 +680,11 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 console.error("Semantic Ranking Failed", e);
             }
         }
+
+        // Final Clamp
+        scoredMatches.forEach((m: any) => {
+            m.score = Math.min(99, Math.max(0, m.score));
+        });
 
         scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
 

@@ -33,7 +33,8 @@ export const metadata: Metadata = {
     "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
     "AI Dating", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
     "Free Chat Matrimony", "Online Chat", "Chat with Strangers", "Video Dating",
-    "Marriage Bureau", "Safe Matrimony", "Verified Profiles"
+    "Marriage Bureau", "Safe Matrimony", "Verified Profiles",
+    "No Payment Matrimony", "100% Free Matchmaking", "Free Kundli Matching", "Biodata Maker"
   ],
   authors: [{ name: "LifePartner AI Team" }],
   creator: "LifePartner AI",

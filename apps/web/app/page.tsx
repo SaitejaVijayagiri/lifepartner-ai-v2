@@ -116,6 +116,10 @@ export default function LandingPage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-pulse-slow">
                 Forever.
               </span>
+              <br />
+              <span className="text-2xl md:text-3xl font-sans font-bold text-gray-400 tracking-normal block mt-4">
+                100% Free. Zero Fees.
+              </span>
             </h1>
 
             <p className="text-xl text-gray-600 max-w-xl mb-12 leading-relaxed font-light">

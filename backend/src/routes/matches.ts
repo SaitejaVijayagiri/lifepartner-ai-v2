@@ -163,35 +163,40 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         else if (myGender === 'female') genderFilter = { gender: { equals: 'male', mode: 'insensitive' } };
 
         // Candidates Fetch
-        const candidates = await prisma.users.findMany({
+        // 2. Get Candidates (Randomized Strategy)
+        // Step A: Fetch ALL eligible IDs (Lightweight)
+        const allCandidateIds = await prisma.users.findMany({
             where: {
                 id: { not: userId },
                 is_verified: true, // Only show Verified profiles
                 ...genderFilter
             },
+            select: { id: true }
+        });
+
+        // Step B: Shuffle and Slice IDs
+        const shuffledIds = allCandidateIds
+            .map(c => c.id)
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 50);
+
+        // Step C: Fetch Full Details for Selected IDs
+        const candidates = await prisma.users.findMany({
+            where: {
+                id: { in: shuffledIds }
+            },
             include: {
                 profiles: true,
-                // Check if I liked them or if we matched
-                // Relation: matches_matches_user_b_idTousers (I am A, they are B)
-                // Wait, match could be A-B or B-A? 
-                // DB definition: unique([user_a_id, user_b_id]). Usually sorted or specific direction?
-                // The original query checked `user_a_id = $1 AND user_b_id = u.id` (Implies I am A).
-                // Schema has separate relations for A and B.
                 matches_matches_user_b_idTousers: {
                     where: { user_a_id: userId },
                     select: { status: true, is_liked: true }
                 },
-                // For Total Likes (Received)
                 _count: {
                     select: {
                         matches_matches_user_b_idTousers: { where: { is_liked: true } }
                     }
                 }
-            },
-            take: 50
-            // orderBy: random is hard. standard approach: fetch more and shuffle, or queryRaw.
-            // Using queryRaw is better for random+limit efficiency, but findMany is strictly typed.
-            // Let's use findMany and shuffle small set (50 is small).
+            }
         });
 
         // Shuffle in memory for "Random" effect

@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import VideoCallModal from '@/components/VideoCallModal';
 import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
+import { useCall } from '@/context/CallContext';
 import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee } from 'lucide-react';
 
 /* Components */
@@ -76,7 +77,7 @@ function DashboardContent() {
 
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
-    const [activeCall, setActiveCall] = useState<any>(null);
+    const { startCall } = useCall();
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -1132,8 +1133,8 @@ function DashboardContent() {
                     connectionId={selectedConnection.interactionId}
                     partner={selectedConnection.partner}
                     onClose={() => setSelectedConnection(null)}
-                    onVideoCall={() => setActiveCall({ partner: selectedConnection.partner, connectionId: selectedConnection.interactionId, mode: 'video' })}
-                    onAudioCall={() => setActiveCall({ partner: selectedConnection.partner, connectionId: selectedConnection.interactionId, mode: 'audio' })}
+                    onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
+                    onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
                 />
             )}
 
@@ -1156,16 +1157,8 @@ function DashboardContent() {
                 />
             )}
 
-            {/* Video Call Modal */}
-            {activeCall && (
-                <VideoCallModal
-                    connectionId={activeCall.connectionId}
-                    partner={activeCall.partner}
-                    incomingCall={activeCall.incomingCall}
-                    mode={activeCall.mode}
-                    onEndCall={() => setActiveCall(null)}
-                />
-            )}
+            {/* Video Call Modal - UPDATED: Handled globally by GlobalCallUI, removed from here */}
+
             {/* Call History Modal */}
             {showCallHistory && (
                 <CallHistoryModal

@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react';
 import { SocketProvider } from '@/context/SocketContext';
 import { Toaster } from '@/components/ui/Toast';
-import CallManager from '@/components/CallManager';
-
+import { CallProvider } from '@/context/CallContext';
+import GlobalCallUI from '@/components/GlobalCallUI';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 function ProvidersContent({ children }: { children: React.ReactNode }) {
@@ -13,8 +13,10 @@ function ProvidersContent({ children }: { children: React.ReactNode }) {
 
     return (
         <SocketProvider userId={user?.id}>
-            {children}
-            <CallManager />
+            <CallProvider>
+                {children}
+                <GlobalCallUI />
+            </CallProvider>
             <Toaster />
         </SocketProvider>
     );

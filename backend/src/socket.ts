@@ -237,9 +237,12 @@ export const initSocket = (httpServer: HttpServer) => {
 
             const msgPayload = {
                 text,
-                senderId: from,
-                senderName: user.name,
-                senderPhoto: user.photo,
+                sender: {
+                    id: from,
+                    name: user.name,
+                    photo: user.photo,
+                    isVerified: true
+                },
                 timestamp: new Date()
             };
 

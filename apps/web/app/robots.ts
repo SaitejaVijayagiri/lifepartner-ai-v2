@@ -6,8 +6,13 @@ export default function robots(): MetadataRoute.Robots {
         rules: {
             userAgent: '*',
             allow: '/',
-            disallow: ['/admin/', '/dashboard/'], // Don't index private areas
+            disallow: ['/admin/', '/dashboard/'],
         },
-        sitemap: 'https://lifepartnerai.in/sitemap.xml',
+        {
+        userAgent: 'Googlebot',
+            allow: '/',
+                disallow: '/private/',
+        }],
+    sitemap: 'https://lifepartnerai.in/sitemap.xml',
     };
 }

@@ -254,8 +254,8 @@ export default function LandingPage() {
               <div className="absolute top-0 right-0 p-4 opacity-10"><MessageCircle size={80} className="text-indigo-600" /></div>
               <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2"><Star size={18} className="text-amber-500 fill-amber-500" /> Direct Concierge Service</h4>
               <p className="text-indigo-800 text-sm mb-4 font-medium">
-                The profiles you see right now are samples to demonstrate our matching engine.
-                <b>Want your profile to be the first REAL profile seen by thousands?</b>
+                We are building a community of genuine singles.
+                <b>Want your profile to be the first profile seen by thousands?</b>
               </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-indigo-900 font-bold">

@@ -530,25 +530,13 @@ Request: "{query}"
         }
     }
 
-    // Voice Safety: Local Transcription (Free)
+    // Voice Safety: Local Transcription (DISABLED to save RAM)
     async transcribeAudio(filePath: string): Promise<string> {
-        try {
-            console.log(`🎙️ Transcribing: ${filePath}`);
-
-            // Dynamic import to handle ESM/CommonJS compat
-            const { pipeline } = await import('@xenova/transformers');
-
-            const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
-            const output = await transcriber(filePath);
-            const transcript = (output as any).text || "";
-
-            console.log(`📝 Transcript: "${transcript}"`);
-            return transcript;
-
-        } catch (e) {
-            console.error("Transcription Error", e);
-            return "";
-        }
+        console.log(`🎙️ Transcribing (DISABLED): ${filePath}`);
+        // Memory Optimization: Removed whisper-tiny model loading.
+        // const { pipeline } = await import('@xenova/transformers');
+        // const transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny');
+        return "";
     }
 
     // Phase 2: Analyze Personality Vibe from Transcript

@@ -33,8 +33,15 @@ function RegisterForm() {
         return () => clearInterval(interval);
     }, []);
 
-    // Auto-fill Referral Code
+    // Auto-fill Referral Code and Check Auth
     useEffect(() => {
+        // Auth check
+        const token = localStorage.getItem('token');
+        if (token) {
+            router.replace('/dashboard');
+            return;
+        }
+
         if (referralCodeParam) {
             setForm(prev => ({ ...prev, referralCode: referralCodeParam }));
             localStorage.setItem('referralCode', referralCodeParam);
@@ -43,7 +50,7 @@ function RegisterForm() {
             const saved = localStorage.getItem('referralCode');
             if (saved) setForm(prev => ({ ...prev, referralCode: saved }));
         }
-    }, [referralCodeParam]);
+    }, [referralCodeParam, router]);
 
     const [showOtp, setShowOtp] = useState(false);
     const [otp, setOtp] = useState('');
@@ -63,7 +70,7 @@ function RegisterForm() {
                 // Fallback for old flow
                 localStorage.setItem('token', res.token);
                 localStorage.setItem('userId', res.userId);
-                router.push('/onboarding');
+                router.replace('/onboarding');
             }
         } catch (err: any) {
             console.error("Registration Error", err);
@@ -88,7 +95,7 @@ function RegisterForm() {
             if (res.token) {
                 localStorage.setItem('token', res.token);
                 localStorage.setItem('userId', res.userId);
-                router.push('/onboarding');
+                router.replace('/onboarding');
             }
         } catch (err: any) {
             toast.error('Invalid OTP');

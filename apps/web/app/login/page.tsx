@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,14 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Auto-redirect if already logged in
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            router.replace('/dashboard');
+        }
+    }, [router]);
+
     const handleLogin = async () => {
         try {
             setError('');
@@ -23,9 +31,9 @@ export default function LoginPage() {
             localStorage.setItem('token', res.token);
             localStorage.setItem('userId', res.userId);
             if (res.isNewUser) {
-                router.push('/onboarding');
+                router.replace('/onboarding');
             } else {
-                router.push('/dashboard');
+                router.replace('/dashboard');
             }
         } catch (err: any) {
             setError(err.message || 'Login failed');

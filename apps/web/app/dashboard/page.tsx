@@ -1026,10 +1026,16 @@ function DashboardContent() {
                             <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
                             <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-lg truncate flex items-center gap-2">
-                                {conn.partner.name}
-                            </h4>
+                            <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-lg truncate">
+                                    {conn.partner.name}
+                                </h4>
+                                {conn.unreadCount > 0 && (
+                                    <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full min-w-[18px] sm:min-w-[20px] text-center shadow-sm animate-pulse">
+                                        {conn.unreadCount}
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-sm text-gray-500 line-clamp-1">
                                 {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
                             </p>
@@ -1065,300 +1071,301 @@ function DashboardContent() {
                         </Button>
                     </div>
                 </div>
-            ))}
-        </div>
+    ))
+}
+        </div >
     );
 
-    return (
-        <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'reels' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
-            {renderHeader()}
-            <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'reels' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-6 px-4'}`}>
-                {/* Main Feed Column */}
-                <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'reels' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
-                    {activeTab === 'matches' && (
-                        <div className="mb-8">{renderStories()}</div>
-                    )}
+return (
+    <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'reels' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
+        {renderHeader()}
+        <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'reels' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-6 px-4'}`}>
+            {/* Main Feed Column */}
+            <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'reels' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
+                {activeTab === 'matches' && (
+                    <div className="mb-8">{renderStories()}</div>
+                )}
 
-                    {activeTab === 'matches' && renderDiscoveryFeed()}
-                    {activeTab === 'reels' && <ReelFeed currentUser={currentUser} />}
-                    {activeTab === 'requests' && renderRequests()}
-                    {activeTab === 'connections' && renderConnections()}
+                {activeTab === 'matches' && renderDiscoveryFeed()}
+                {activeTab === 'reels' && <ReelFeed currentUser={currentUser} />}
+                {activeTab === 'requests' && renderRequests()}
+                {activeTab === 'connections' && renderConnections()}
 
-                    {activeTab === 'community' && (
-                        <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
-                            <CommunityChat currentUser={currentUser} onOpenStore={() => {
-                                // Force Guest Flow for upgrading users per recent request?
-                                // Actually, if they are here, they are logged in.
-                                // But the prompt said "open premium store modal".
-                                // Wait, the previous task CHANGED the "Get Verified" button to LOGOUT.
-                                // But here, if they are sending "onOpenStore", they are likely in "Access Denied" state inside CommunityChat?
-                                // If they are logged in and Access Denied, they need to verify.
-                                // The user's LAST request was "force logout". 
-                                // So I should probably stick to that logic for "Get Verified" buttons?
-                                // BUT this prop is `onOpenStore`. 
-                                // Let's keep the premium store logic for now unless explicitly told to force logout here too. 
-                                // OH WAIT, the previous turn I DID change CommunityChat prop in `community/page.tsx` to force logout.
-                                // I should probably do the same here for consistency if "Get Verified" is clicked.
-                                // BUT this might be for "Store" in general?
-                                // `CommunityChat` uses `onOpenStore` ONLY for the "Access Denied" button.
-                                // So yes, I should force logout/register flow here too if I want consistency.
-                                // However, keeping it as premium store for DASHBOARD users makes sense since they are already in the dashboard!
-                                // The previous fix was for the "Community Landing Page" where users were confused.
-                                // Here, they vary much ARE in the dashboard.
-                                // If they click "Get Verified", they SHOULD see the premium store.
-                                // So I will use the premium store modal.
-                                setInitialStoreTab('premium');
-                                setShowCoinStore(true);
-                            }} />
-                        </div>
-                    )}
+                {activeTab === 'community' && (
+                    <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
+                        <CommunityChat currentUser={currentUser} onOpenStore={() => {
+                            // Force Guest Flow for upgrading users per recent request?
+                            // Actually, if they are here, they are logged in.
+                            // But the prompt said "open premium store modal".
+                            // Wait, the previous task CHANGED the "Get Verified" button to LOGOUT.
+                            // But here, if they are sending "onOpenStore", they are likely in "Access Denied" state inside CommunityChat?
+                            // If they are logged in and Access Denied, they need to verify.
+                            // The user's LAST request was "force logout". 
+                            // So I should probably stick to that logic for "Get Verified" buttons?
+                            // BUT this prop is `onOpenStore`. 
+                            // Let's keep the premium store logic for now unless explicitly told to force logout here too. 
+                            // OH WAIT, the previous turn I DID change CommunityChat prop in `community/page.tsx` to force logout.
+                            // I should probably do the same here for consistency if "Get Verified" is clicked.
+                            // BUT this might be for "Store" in general?
+                            // `CommunityChat` uses `onOpenStore` ONLY for the "Access Denied" button.
+                            // So yes, I should force logout/register flow here too if I want consistency.
+                            // However, keeping it as premium store for DASHBOARD users makes sense since they are already in the dashboard!
+                            // The previous fix was for the "Community Landing Page" where users were confused.
+                            // Here, they vary much ARE in the dashboard.
+                            // If they click "Get Verified", they SHOULD see the premium store.
+                            // So I will use the premium store modal.
+                            setInitialStoreTab('premium');
+                            setShowCoinStore(true);
+                        }} />
+                    </div>
+                )}
 
-                    {activeTab === 'profile' && currentUser && (
-                        isEditingProfile ? (
-                            <ProfileEditor
-                                initialData={currentUser}
-                                onSave={(newData) => {
-                                    setCurrentUser(newData);
-                                    setIsEditingProfile(false);
-                                    toast.success("Profile Saved!");
-                                }}
-                                onCancel={() => setIsEditingProfile(false)}
-                            />
-                        ) : (
-                            <div className="space-y-6">
-                                {/* Profile Stats Row */}
-                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50">
-                                    <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
-                                        <div className="text-center min-w-[80px]">
-                                            <div className="text-2xl font-bold text-gray-900">{connections.length}</div>
-                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Connections</div>
-                                        </div>
-                                        <div className="w-[1px] h-10 bg-gray-200 sm:hidden"></div>
-                                        <div className="text-center min-w-[80px]">
-                                            <div className="text-2xl font-bold text-gray-900">{requests.length}</div>
-                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Requests</div>
-                                        </div>
+                {activeTab === 'profile' && currentUser && (
+                    isEditingProfile ? (
+                        <ProfileEditor
+                            initialData={currentUser}
+                            onSave={(newData) => {
+                                setCurrentUser(newData);
+                                setIsEditingProfile(false);
+                                toast.success("Profile Saved!");
+                            }}
+                            onCancel={() => setIsEditingProfile(false)}
+                        />
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Profile Stats Row */}
+                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50">
+                                <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
+                                    <div className="text-center min-w-[80px]">
+                                        <div className="text-2xl font-bold text-gray-900">{connections.length}</div>
+                                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Connections</div>
                                     </div>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
-                                        onClick={() => setActiveTab('connections')}
-                                    >
-                                        Manage Connections
-                                    </Button>
-                                </div>
-
-                                {/* Mobile Quick Actions - Visible on all screens for better UX */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    {/* Premium Status Card */}
-                                    <div
-                                        onClick={() => {
-                                            setInitialStoreTab('premium');
-                                            setShowCoinStore(true);
-                                        }}
-                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200 hover:border-indigo-300'}`}
-                                    >
-                                        <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 text-gray-500'}`}>
-                                            <Crown size={20} />
-                                        </div>
-                                        <div className="text-left sm:text-center">
-                                            <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800' : 'text-gray-700'}`}>
-                                                {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
-                                            </div>
-                                            <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700' : 'text-gray-500'} font-medium`}>
-                                                {currentUser.is_premium && currentUser.premium_expiry
-                                                    ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
-                                                    : 'Unlock Features'}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Boost Card */}
-                                    <div
-                                        onClick={async () => {
-                                            if (!currentUser || currentUser.coins < 100) {
-                                                setShowCoinStore(true);
-                                                toast.error("Insufficient coins to boost!");
-                                                return;
-                                            }
-                                            if (confirm("Boost your profile for 100 coins?")) {
-                                                try {
-                                                    await api.wallet.boostProfile();
-                                                    toast.success("Profile Boosted!");
-                                                    api.profile.getMe().then(setCurrentUser);
-                                                } catch (e) { toast.error("Boost failed."); }
-                                            }
-                                        }}
-                                        className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 cursor-pointer hover:border-indigo-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
-                                    >
-                                        <div className="p-2 rounded-full bg-indigo-100 text-indigo-600">
-                                            <Zap size={20} className="fill-indigo-600" />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="font-bold text-sm text-indigo-900">Boost</div>
-                                            <div className="text-[10px] text-indigo-600">Get Visible</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Free Coins Card */}
-                                    <div
-                                        onClick={() => router.push('/refer')}
-                                        className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 cursor-pointer hover:border-emerald-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
-                                    >
-                                        <div className="p-2 rounded-full bg-emerald-100 text-emerald-600">
-                                            <Users size={20} />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="font-bold text-sm text-emerald-900">Free Coins</div>
-                                            <div className="text-[10px] text-emerald-600">Refer Friend</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Logout Card */}
-                                    <div
-                                        onClick={handleLogout}
-                                        className="p-3 rounded-xl bg-red-50 border border-red-100 cursor-pointer hover:border-red-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
-                                    >
-                                        <div className="p-2 rounded-full bg-red-100 text-red-500">
-                                            <LogOut size={20} />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="font-bold text-sm text-red-900">Log Out</div>
-                                            <div className="text-[10px] text-red-500">Sign Out</div>
-                                        </div>
+                                    <div className="w-[1px] h-10 bg-gray-200 sm:hidden"></div>
+                                    <div className="text-center min-w-[80px]">
+                                        <div className="text-2xl font-bold text-gray-900">{requests.length}</div>
+                                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Requests</div>
                                     </div>
                                 </div>
-
-                                <ProfileView
-                                    profile={currentUser}
-                                    onEdit={() => setIsEditingProfile(true)}
-                                />
+                                <Button
+                                    variant="outline"
+                                    className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
+                                    onClick={() => setActiveTab('connections')}
+                                >
+                                    Manage Connections
+                                </Button>
                             </div>
-                        )
-                    )}
-                </div>
 
+                            {/* Mobile Quick Actions - Visible on all screens for better UX */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                {/* Premium Status Card */}
+                                <div
+                                    onClick={() => {
+                                        setInitialStoreTab('premium');
+                                        setShowCoinStore(true);
+                                    }}
+                                    className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200 hover:border-indigo-300'}`}
+                                >
+                                    <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 text-gray-500'}`}>
+                                        <Crown size={20} />
+                                    </div>
+                                    <div className="text-left sm:text-center">
+                                        <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800' : 'text-gray-700'}`}>
+                                            {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
+                                        </div>
+                                        <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700' : 'text-gray-500'} font-medium`}>
+                                            {currentUser.is_premium && currentUser.premium_expiry
+                                                ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
+                                                : 'Unlock Features'}
+                                        </div>
+                                    </div>
+                                </div>
 
-            </main>
+                                {/* Boost Card */}
+                                <div
+                                    onClick={async () => {
+                                        if (!currentUser || currentUser.coins < 100) {
+                                            setShowCoinStore(true);
+                                            toast.error("Insufficient coins to boost!");
+                                            return;
+                                        }
+                                        if (confirm("Boost your profile for 100 coins?")) {
+                                            try {
+                                                await api.wallet.boostProfile();
+                                                toast.success("Profile Boosted!");
+                                                api.profile.getMe().then(setCurrentUser);
+                                            } catch (e) { toast.error("Boost failed."); }
+                                        }
+                                    }}
+                                    className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 cursor-pointer hover:border-indigo-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                >
+                                    <div className="p-2 rounded-full bg-indigo-100 text-indigo-600">
+                                        <Zap size={20} className="fill-indigo-600" />
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-sm text-indigo-900">Boost</div>
+                                        <div className="text-[10px] text-indigo-600">Get Visible</div>
+                                    </div>
+                                </div>
 
+                                {/* Free Coins Card */}
+                                <div
+                                    onClick={() => router.push('/refer')}
+                                    className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 cursor-pointer hover:border-emerald-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                >
+                                    <div className="p-2 rounded-full bg-emerald-100 text-emerald-600">
+                                        <Users size={20} />
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-sm text-emerald-900">Free Coins</div>
+                                        <div className="text-[10px] text-emerald-600">Refer Friend</div>
+                                    </div>
+                                </div>
 
+                                {/* Logout Card */}
+                                <div
+                                    onClick={handleLogout}
+                                    className="p-3 rounded-xl bg-red-50 border border-red-100 cursor-pointer hover:border-red-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                >
+                                    <div className="p-2 rounded-full bg-red-100 text-red-500">
+                                        <LogOut size={20} />
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="font-bold text-sm text-red-900">Log Out</div>
+                                        <div className="text-[10px] text-red-500">Sign Out</div>
+                                    </div>
+                                </div>
+                            </div>
 
-            {/* Modals */}
-            <CoinStoreModal
-                isOpen={showCoinStore}
-                onClose={() => setShowCoinStore(false)}
-                initialTab={initialStoreTab}
-                onSuccess={() => {
-                    setShowCoinStore(false);
-                    // refresh user to update coins
-                    api.profile.getMe().then(setCurrentUser);
-                }}
-            />
-
-            {activeStorySet && (
-                <StoryModal
-                    initialIndex={0}
-                    stories={activeStorySet.stories}
-                    user={{
-                        id: activeStorySet.user?.id || activeStorySet.user?.userId || 'me',
-                        name: activeStorySet.user?.name || activeStorySet.user?.full_name || 'User',
-                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || "https://i.pravatar.cc/150"
-                    }}
-                    currentUser={currentUser}
-                    onClose={() => setActiveStorySet(null)}
-                    onDelete={async (deletedId) => {
-                        await api.interactions.deleteStory(deletedId);
-                        // Optimistically remove from view or refresh
-                        setActiveStorySet(null);
-                        // Refresh full feed
-                        api.profile.getMe().then(setCurrentUser);
-                    }}
-                />
-            )}
-
-            {selectedConnection && (
-                <ChatWindow
-                    connectionId={selectedConnection.interactionId}
-                    partner={selectedConnection.partner}
-                    onClose={() => setSelectedConnection(null)}
-                    onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
-                    onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
-                    onMessagesRead={() => handleMarkRead(selectedConnection.partner.id)}
-                />
-            )}
-
-            {/* Profile Detail Modal for Matches */}
-            {selectedProfile && (
-                <ProfileModal
-                    profile={selectedProfile}
-                    currentUser={currentUser}
-                    onClose={() => setSelectedProfile(null)}
-                    onConnect={() => {
-                        api.interactions.sendInterest(selectedProfile.id);
-                        setSelectedProfile(null);
-                        setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
-                        toast.success(`Interest sent to ${selectedProfile.name}!`);
-                    }}
-                    onUpgrade={() => {
-                        setSelectedProfile(null);
-                        setShowCoinStore(true);
-                    }}
-                />
-            )}
-
-            {/* Video Call Modal - UPDATED: Handled globally by GlobalCallUI, removed from here */}
-
-            {/* Call History Modal */}
-            {showCallHistory && (
-                <CallHistoryModal
-                    onClose={() => setShowCallHistory(false)}
-                />
-            )}
-
-            {/* Filter Modal */}
-            <FilterModal
-                isOpen={showFilterModal}
-                onClose={() => setShowFilterModal(false)}
-                onApply={(filters) => {
-                    setActiveFilters(filters);
-                    // Apply filters to matches
-                    // Note: For now, filters are stored and can be used client-side
-                    // Ideally send to backend for optimized filtering
-                }}
-                initialFilters={activeFilters || undefined}
-            />
-
-            {/* Gift Modal */}
-            {giftData && (
-                <GiftModal
-                    isOpen={!!giftData}
-                    onClose={() => setGiftData(null)}
-                    toUserId={giftData.userId}
-                    toUserName={giftData.userName}
-                />
-            )}
-
-            {/* Global Kundli Modal */}
-            {selectedKundli && (
-                <KundliModal
-                    isOpen={true}
-                    onClose={() => setSelectedKundli(null)}
-                    data={selectedKundli.data}
-                    names={selectedKundli.names}
-                />
-            )}
-
-            {/* Mobile Bottom Navigation - Premium Floating */}
-            <div className="lg:hidden block">
-                <BottomNav
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    requestsCount={requestsCount}
-                />
+                            <ProfileView
+                                profile={currentUser}
+                                onEdit={() => setIsEditingProfile(true)}
+                            />
+                        </div>
+                    )
+                )}
             </div>
 
 
-            {/* End of Main Content - Duplicate Block Removed */}
-        </div >
-    );
+        </main>
+
+
+
+        {/* Modals */}
+        <CoinStoreModal
+            isOpen={showCoinStore}
+            onClose={() => setShowCoinStore(false)}
+            initialTab={initialStoreTab}
+            onSuccess={() => {
+                setShowCoinStore(false);
+                // refresh user to update coins
+                api.profile.getMe().then(setCurrentUser);
+            }}
+        />
+
+        {activeStorySet && (
+            <StoryModal
+                initialIndex={0}
+                stories={activeStorySet.stories}
+                user={{
+                    id: activeStorySet.user?.id || activeStorySet.user?.userId || 'me',
+                    name: activeStorySet.user?.name || activeStorySet.user?.full_name || 'User',
+                    photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || "https://i.pravatar.cc/150"
+                }}
+                currentUser={currentUser}
+                onClose={() => setActiveStorySet(null)}
+                onDelete={async (deletedId) => {
+                    await api.interactions.deleteStory(deletedId);
+                    // Optimistically remove from view or refresh
+                    setActiveStorySet(null);
+                    // Refresh full feed
+                    api.profile.getMe().then(setCurrentUser);
+                }}
+            />
+        )}
+
+        {selectedConnection && (
+            <ChatWindow
+                connectionId={selectedConnection.interactionId}
+                partner={selectedConnection.partner}
+                onClose={() => setSelectedConnection(null)}
+                onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
+                onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
+                onMessagesRead={() => handleMarkRead(selectedConnection.partner.id)}
+            />
+        )}
+
+        {/* Profile Detail Modal for Matches */}
+        {selectedProfile && (
+            <ProfileModal
+                profile={selectedProfile}
+                currentUser={currentUser}
+                onClose={() => setSelectedProfile(null)}
+                onConnect={() => {
+                    api.interactions.sendInterest(selectedProfile.id);
+                    setSelectedProfile(null);
+                    setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
+                    toast.success(`Interest sent to ${selectedProfile.name}!`);
+                }}
+                onUpgrade={() => {
+                    setSelectedProfile(null);
+                    setShowCoinStore(true);
+                }}
+            />
+        )}
+
+        {/* Video Call Modal - UPDATED: Handled globally by GlobalCallUI, removed from here */}
+
+        {/* Call History Modal */}
+        {showCallHistory && (
+            <CallHistoryModal
+                onClose={() => setShowCallHistory(false)}
+            />
+        )}
+
+        {/* Filter Modal */}
+        <FilterModal
+            isOpen={showFilterModal}
+            onClose={() => setShowFilterModal(false)}
+            onApply={(filters) => {
+                setActiveFilters(filters);
+                // Apply filters to matches
+                // Note: For now, filters are stored and can be used client-side
+                // Ideally send to backend for optimized filtering
+            }}
+            initialFilters={activeFilters || undefined}
+        />
+
+        {/* Gift Modal */}
+        {giftData && (
+            <GiftModal
+                isOpen={!!giftData}
+                onClose={() => setGiftData(null)}
+                toUserId={giftData.userId}
+                toUserName={giftData.userName}
+            />
+        )}
+
+        {/* Global Kundli Modal */}
+        {selectedKundli && (
+            <KundliModal
+                isOpen={true}
+                onClose={() => setSelectedKundli(null)}
+                data={selectedKundli.data}
+                names={selectedKundli.names}
+            />
+        )}
+
+        {/* Mobile Bottom Navigation - Premium Floating */}
+        <div className="lg:hidden block">
+            <BottomNav
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                requestsCount={requestsCount}
+            />
+        </div>
+
+
+        {/* End of Main Content - Duplicate Block Removed */}
+    </div >
+);
 }

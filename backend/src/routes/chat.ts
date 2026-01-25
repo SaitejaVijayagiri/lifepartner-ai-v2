@@ -19,6 +19,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                 ]
             },
             orderBy: { created_at: 'asc' },
+            take: -100, // Optimize: Load last 100 messages only
             select: {
                 id: true,
                 sender_id: true,

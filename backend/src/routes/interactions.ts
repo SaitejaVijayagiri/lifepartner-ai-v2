@@ -57,8 +57,12 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                 status: 'connected'
             },
             include: {
-                users_interactions_from_user_idTousers: true,
-                users_interactions_to_user_idTousers: true
+                users_interactions_from_user_idTousers: {
+                    select: { id: true, full_name: true, avatar_url: true, location_name: true }
+                },
+                users_interactions_to_user_idTousers: {
+                    select: { id: true, full_name: true, avatar_url: true, location_name: true }
+                }
             }
         });
 

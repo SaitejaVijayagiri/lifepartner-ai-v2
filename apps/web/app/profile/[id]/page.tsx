@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, MessageCircle, Star, Calendar, Ruler, CheckCircle, Shield, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
@@ -201,49 +202,92 @@ export default function ProfileView() {
                     </div>
                 </div>
 
-                {/* AI Compatibility Insight (New) */}
-                {profile.summary && (
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 md:p-8 rounded-[2rem] shadow-sm border border-indigo-100 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 bg-white rounded-2xl shadow-sm text-2xl">✨</div>
-                            <div className="space-y-2">
-                                <h3 className="font-heading font-bold text-xl text-indigo-900">AI Compatibility Insight</h3>
-                                <p className="text-indigo-800/80 text-lg leading-relaxed font-medium">
-                                    "{profile.summary}"
-                                </p>
+                {/* 2. Tabbed Content Area */}
+                <Tabs defaultValue="about" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 mb-8 h-14 p-1 bg-gray-100/80 backdrop-blur-md rounded-2xl">
+                        <TabsTrigger value="about" className="rounded-xl text-base font-medium data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">About</TabsTrigger>
+                        <TabsTrigger value="details" className="rounded-xl text-base font-medium data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">Details</TabsTrigger>
+                        {profile.summary && (
+                            <TabsTrigger value="ai" className="rounded-xl text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md">
+                                ✨ AI Insight
+                            </TabsTrigger>
+                        )}
+                    </TabsList>
+
+                    {/* Tab: About */}
+                    <TabsContent value="about" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6 flex items-center gap-2">
+                                <span className="p-2 bg-indigo-50 rounded-xl text-indigo-600 text-lg">📝</span> About Me
+                            </h3>
+                            <p className="text-gray-600 leading-relaxed text-lg">{profile.bio || "No bio available."}</p>
+                        </div>
+
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6 flex items-center gap-2">
+                                <span className="p-2 bg-purple-50 rounded-xl text-purple-600 text-lg">🏡</span> Family Background
+                            </h3>
+                            <p className="text-gray-600 leading-relaxed text-lg">{profile.family || "No family details added."}</p>
+                        </div>
+                    </TabsContent>
+
+                    {/* Tab: Details */}
+                    <TabsContent value="details" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6">Personal Information</h3>
+                            <div className="grid md:grid-cols-2 gap-y-4 gap-x-12">
+                                {profile.about && Object.entries(profile.about).map(([key, value]: any) => (
+                                    <div key={key} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0 group hover:bg-gray-50/50 transition-colors px-2 rounded-lg">
+                                        <span className="text-gray-500 font-medium capitalize flex items-center gap-2">
+                                            <CheckCircle size={14} className="text-indigo-300" />
+                                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                                        </span>
+                                        <span className="font-semibold text-gray-900">{value}</span>
+                                    </div>
+                                ))}
+                                {!profile.about && <p className="text-gray-400 italic">No additional details.</p>}
                             </div>
                         </div>
-                    </div>
-                )}
+                    </TabsContent>
 
-                {/* 2. About & Family */}
-                <div className="grid md:grid-cols-3 gap-8">
-                    <div className="md:col-span-2 space-y-8">
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6">About Me</h3>
-                            <p className="text-gray-600 leading-relaxed text-lg">{profile.bio}</p>
-                        </div>
+                    {/* Tab: AI Insight */}
+                    {profile.summary && (
+                        <TabsContent value="ai" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-8 md:p-10 rounded-[2.5rem] shadow-lg border border-white/50 relative overflow-hidden">
+                                {/* Decorative BG */}
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6">Family Background</h3>
-                            <p className="text-gray-600 leading-relaxed text-lg">{profile.family}</p>
-                        </div>
-                    </div>
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-indigo-100">
+                                            ✨
+                                        </div>
+                                        <div>
+                                            <h3 className="font-heading font-bold text-2xl text-indigo-900">AI Compatibility Analysis</h3>
+                                            <p className="text-indigo-600/80 text-sm font-medium">Why you matched with {profile.name}</p>
+                                        </div>
+                                    </div>
 
-                    <div className="space-y-6">
-                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-bold text-gray-900 mb-4">Personal Details</h3>
-                            <ul className="space-y-3">
-                                {profile.about && Object.entries(profile.about).map(([key, value]: any) => (
-                                    <li key={key} className="flex justify-between text-sm py-2 border-b border-gray-50 last:border-0">
-                                        <span className="text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                        <span className="font-medium text-gray-900">{value}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+                                    <div className="bg-white/60 backdrop-blur-xl p-6 rounded-2xl border border-white/40 shadow-sm">
+                                        <p className="text-indigo-900/90 text-xl leading-relaxed font-medium">
+                                            "{profile.summary}"
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-8 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                                        {/* AI Tags derived from content logic would go here, currently just placeholders or reuse match reasons if available in profile */}
+                                        <div className="px-4 py-2 bg-white/50 rounded-full text-indigo-700 text-xs font-bold uppercase tracking-wider border border-white/20">
+                                            🧠 Smart Match
+                                        </div>
+                                        <div className="px-4 py-2 bg-white/50 rounded-full text-indigo-700 text-xs font-bold uppercase tracking-wider border border-white/20">
+                                            ⚡ High Compatibility
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    )}
+                </Tabs>
 
                 {/* Sticky Mobile CTA for Guests */}
                 {!user && (

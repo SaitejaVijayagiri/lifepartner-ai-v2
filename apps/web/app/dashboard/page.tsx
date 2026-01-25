@@ -113,6 +113,8 @@ function DashboardContent() {
 
             fetchMatches();
             refreshCounts();
+            // Fast count fetch for badge
+            api.interactions.getUnreadCount().then(res => setUnreadMessageCount(res.count)).catch(console.error);
         };
         checkAuth();
     }, [router]);

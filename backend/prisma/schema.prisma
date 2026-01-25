@@ -126,6 +126,7 @@ model messages {
   @@index([match_id], map: "idx_messages_match")
   @@index([sender_id], map: "idx_messages_sender")
   @@index([created_at], map: "idx_messages_timestamp")
+  @@index([sender_id, receiver_id, created_at], map: "idx_messages_composite")
 }
 
 model notifications {
@@ -140,7 +141,11 @@ model notifications {
 
   @@index([created_at(sort: Desc)], map: "idx_notifications_created_at")
   @@index([user_id], map: "idx_notifications_user_id")
-}
+} 
+
+// Performance Optimization: Compound Index for Chats
+// Adding this manually to schema model messages:
+// @@index([sender_id, receiver_id, created_at], map: "idx_messages_composite")
 
 model profiles {
   user_id         String                 @id @db.Uuid

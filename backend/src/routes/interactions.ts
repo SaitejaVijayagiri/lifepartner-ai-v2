@@ -43,6 +43,23 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Get Total Unread Count (Fast)
+router.get('/unread-count', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const count = await prisma.messages.count({
+            where: {
+                receiver_id: userId,
+                is_read: false
+            }
+        });
+        res.json({ count });
+    } catch (e) {
+        console.error("Unread Count Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 // Get Connections (Accepted Interactions)
 router.get('/connections', authenticateToken, async (req: any, res) => {
     try {

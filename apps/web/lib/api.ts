@@ -79,6 +79,7 @@ export const api = {
     },
     interactions: {
         getRequests: () => fetchAPI('/interactions/requests'),
+        getUnreadCount: () => fetchAPI('/interactions/unread-count'),
         getConnections: () => fetchAPI('/interactions/connections'),
         acceptRequest: (id: string) => fetchAPI(`/interactions/requests/${id}/accept`, { method: 'POST' }),
         declineRequest: (id: string) => fetchAPI(`/interactions/requests/${id}/decline`, { method: 'POST' }),

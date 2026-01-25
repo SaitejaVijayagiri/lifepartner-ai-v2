@@ -372,7 +372,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoRow label="College" value={profile.career?.college || "Tier 1 Institute"} />
                                         <InfoRow
                                             label="Annual Income"
-                                            value={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium) ? (profile.career?.income || "Hidden") : "🔒 Connect to Unlock"}
+                                            value={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium) ? (profile.career?.income || "Not Specified") : "🔒 Connect to Unlock"}
                                             highlight={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium)}
                                             premiumUnlocked={currentUser?.is_premium && !(profile.match_status === 'accepted' || currentUser?.id === profile.id)}
                                         />

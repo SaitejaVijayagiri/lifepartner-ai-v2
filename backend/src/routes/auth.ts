@@ -293,8 +293,9 @@ router.post('/verify-otp', async (req, res) => {
 
         // Validate OTP
         if (user.otp_code !== otp) return res.status(400).json({ error: "Invalid OTP" });
-        // @ts-ignore
-        if (user.otp_expires_at && new Date() > new Date(user.otp_expires_at)) return res.status(400).json({ error: "OTP Expired" });
+        if (user.otp_expires_at && new Date().getTime() > new Date(user.otp_expires_at).getTime()) {
+            return res.status(400).json({ error: "OTP Expired" });
+        }
 
         // Update User
         await prisma.users.update({

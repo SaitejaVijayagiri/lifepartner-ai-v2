@@ -79,7 +79,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 if (Array.isArray(history)) {
                     setMessages(history);
                 } else {
-                    console.error("Invalid history format:", history);
+                    // console.warn("History empty or invalid format, resetting.");
                     setMessages([]);
                 }
                 // Mark messages as read

@@ -249,7 +249,8 @@ function DashboardContent() {
                 return c;
             }));
 
-            toast.success(`New message from ${msg.senderName || 'Someone'}`);
+
+            // toast.success(`New message from ${msg.senderName || 'Someone'}`); // Removed as per request
         };
 
         socket.on('receiveMessage', handleNewMessage);
@@ -258,6 +259,25 @@ function DashboardContent() {
             socket.off('receiveMessage', handleNewMessage);
         };
     }, [socket, activeTab, selectedConnection]);
+
+    // Handle instant read update
+    const handleMarkRead = (partnerId: string) => {
+        setConnections(prev => {
+            const connIndex = prev.findIndex(c => c.partner?.id === partnerId);
+            if (connIndex === -1) return prev;
+
+            const oldUnread = prev[connIndex].unreadCount || 0;
+            if (oldUnread === 0) return prev; // No change
+
+            // Update global count
+            setUnreadMessageCount(curr => Math.max(0, curr - oldUnread));
+
+            // Return new connections list with 0 unread
+            const newConns = [...prev];
+            newConns[connIndex] = { ...newConns[connIndex], unreadCount: 0 };
+            return newConns;
+        });
+    };
 
     // Client-side filter function
     const filterMatches = (matchList: any[]) => {
@@ -1261,6 +1281,7 @@ function DashboardContent() {
                     onClose={() => setSelectedConnection(null)}
                     onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
                     onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
+                    onMessagesRead={() => handleMarkRead(selectedConnection.partner.id)}
                 />
             )}
 

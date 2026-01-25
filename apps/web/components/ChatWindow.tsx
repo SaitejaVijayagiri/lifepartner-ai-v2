@@ -23,9 +23,10 @@ interface ChatWindowProps {
     onAudioCall?: () => void;
     className?: string;
     isCallMode?: boolean;
+    onMessagesRead?: () => void;
 }
 
-export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false }: ChatWindowProps) {
+export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
     const { user } = useAuth();
     const [messages, setMessages] = useState<any[]>([]);
@@ -83,6 +84,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 }
                 // Mark messages as read
                 await api.chat.markRead(partner.id);
+                if (onMessagesRead) onMessagesRead();
             } catch (e) { console.error(e); setMessages([]); }
         };
         loadHistory();

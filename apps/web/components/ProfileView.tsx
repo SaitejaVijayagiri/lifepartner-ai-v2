@@ -143,6 +143,28 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             </div>
 
                             <div className="mt-6">
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Lifestyle & Interests</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InfoCard label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : "-"} />
+                                    <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} />
+                                    <InfoCard label="Smoking" value={profile.lifestyle?.smoking || "No"} />
+                                    <InfoCard label="Drinking" value={profile.lifestyle?.drinking || "No"} />
+                                </div>
+                                {profile.interests && profile.interests.length > 0 && (
+                                    <div className="mt-4">
+                                        <div className="text-[10px] uppercase font-bold text-gray-400 mb-2">Interests</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {profile.interests.map((tag: string, i: number) => (
+                                                <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-6">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Contact</h3>
                                 <div className="bg-gray-50 p-4 rounded-xl space-y-3">
                                     <div className="flex justify-between">

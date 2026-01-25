@@ -86,6 +86,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             partnerPreferences: meta.partnerPreferences || {},
             motherTongue: meta.motherTongue || "", // Fallback
             dob: meta.dob, // Added DOB
+            interests: meta.interests || (user.profiles?.traits as any)?.hobbies || [], // Map interests/hobbies
 
             reels: (meta.reels as string[]) || [], // Use metadata reels or user.reels logic if column exists. Old code used user.reels?
             // Actually old code used user.reels. Schema has user.reels? No, standard schema puts it in profiles or JSON.

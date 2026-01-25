@@ -177,7 +177,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                 district: user.district,
                 state: user.state
             },
-            aboutMe: meta.bio || "",
+            aboutMe: user.profiles?.raw_prompt || meta.bio || "",
             photos: meta.photos || [user.avatar_url],
             reels: meta.reels || [],
             total_gifts: 0, // Migrated: 0 for now
@@ -290,7 +290,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     dob,
                     location, // already sanitized
                     height, // Added Height
-                    phone // Added Phone
+                    phone, // Added Phone
+                    bio: cleanPrompt // Sync aboutMe to bio
                 };
 
                 // Upsert Profile

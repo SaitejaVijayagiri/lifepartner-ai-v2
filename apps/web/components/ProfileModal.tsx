@@ -189,12 +189,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 {/* RIGHT: Content & Details */}
                 <div className="w-full md:w-[55%] flex flex-col bg-white h-[55%] md:h-full relative rounded-none z-30 md:z-auto">
 
-                    {/* Compatibility Badge (Floating on Mobile overlap) - Adjusted top to not cut off */}
-                    <div className="absolute -top-5 right-6 md:static md:p-6 md:pb-2 md:bg-white z-40">
-                        <div className="bg-white/95 md:bg-indigo-50 backdrop-blur shadow-lg md:shadow-none text-indigo-700 px-4 py-2 md:py-1 rounded-full text-sm font-bold border border-indigo-100 flex items-center gap-2">
-                            <span className="text-lg">✨</span> {profile.score || 90}% Match
-                        </div>
-                    </div>
+
 
                     {/* Desktop Header (Hidden on Mobile) */}
                     <div className="hidden md:block px-8 pt-8 pb-4">

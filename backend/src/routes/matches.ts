@@ -12,6 +12,68 @@ const astrologyService = new AstrologyService();
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
+
+// Helper: Smart Narrative (Shared)
+const generateSmartSummary = (score: number, reasons: string[], meta: any, bio: string, p1: any, p2: any) => {
+    let narrative = "";
+    const p1Meta = (p1.profiles?.metadata as any) || {};
+
+    // 1. Hook based on Score
+    if (score >= 95) narrative = "🌟 **Perfect Match!** You align on almost every level. ";
+    else if (score >= 85) narrative = "✨ **Exceptional Compatibility.** A rare find! ";
+    else if (score >= 75) narrative = "❤️ **Great Match.** Strong potential here. ";
+    else narrative = "👍 **Worth Exploring.** Interesting overlap. ";
+
+    // 2. Detailed Attribute Analysis
+    const points: string[] = [];
+
+    // Career & Education
+    if (reasons.includes("Career Match")) points.push("You share similar professional fields.");
+    const edu1 = p1Meta.career?.educationLevel || "";
+    const edu2 = meta.career?.educationLevel || "";
+    if (edu1 && edu2 && edu1 === edu2) points.push(`Both are ${edu1} graduates.`);
+
+    // Cultural (Religion/Caste/Gothra)
+    if (reasons.includes("Same Religion")) {
+        let cultStr = "Shared cultural background";
+        if (reasons.includes("Same Caste")) cultStr += " and community";
+        if (p1Meta.religion?.gothra && meta.religion?.gothra && p1Meta.religion.gothra !== meta.religion.gothra) cultStr += " (Gothra compatible)";
+        points.push(cultStr + ".");
+    }
+
+    // Lifestyle & Diet
+    if (p1Meta.lifestyle?.diet && meta.lifestyle?.diet && p1Meta.lifestyle.diet === meta.lifestyle.diet) {
+        points.push(`Your ${meta.lifestyle.diet} lifestyle choices align.`);
+    }
+
+    // Location
+    if (p1.city && p2.city && p1.city === p2.city) points.push(`You both live in ${p1.city}.`);
+    else if (p1.location_name && p2.location_name && p1.location_name === p2.location_name) points.push("You are in the same location.");
+
+    // Age & Height
+    const ageDiff = Math.abs(p1.age - p2.age);
+    if (ageDiff <= 3) points.push("You are in a similar age group.");
+
+    // Family Values
+    const val1 = p1Meta.family?.values || "";
+    const val2 = meta.family?.values || "";
+    if (val1 && val2 && val1 === val2) points.push(`Both value ${val1} family traditions.`);
+
+    // 3. Assemble Narrative
+    // Pick top 3 most relevant points to avoid overwhelming text
+    if (points.length > 0) {
+        narrative += points.slice(0, 3).join(" ");
+    }
+
+    // 4. Personality / Bio Fallback
+    if (narrative.length < 80 && bio) {
+        const bioSnippet = bio.substring(0, 60).trim();
+        if (bioSnippet) narrative += ` "${bioSnippet}..."`;
+    }
+
+    return narrative;
+};
+
 // Public Preview Route (SEO)
 router.get('/public-preview', async (req: any, res) => {
     try {
@@ -223,10 +285,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const userPrompt = (me.profiles?.raw_prompt || "").toLowerCase();
 
         // 3. Score
+
+
         const matches = shuffledCandidates.map(c => {
             const meta = (c.profiles?.metadata as any) || {};
             let score = 50;
             let reasons: string[] = [];
+
+            // 4. Smart AI Narrative Generator (Local Logic)
+
 
             // Simple Logic mirroring old one
             if (meMeta.religion?.religion && meta.religion?.religion && meMeta.religion.religion === meta.religion.religion) {
@@ -278,7 +345,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     emotional: 75 + Math.floor(Math.random() * 20),
                     vision: 80 + Math.floor(Math.random() * 15)
                 },
-                summary: (c.profiles?.raw_prompt || meta.aboutMe || "No bio yet.").substring(0, 150),
+                summary: generateSmartSummary(
+                    Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
+                    reasons,
+                    meta,
+                    c.profiles?.raw_prompt || meta.aboutMe || "",
+                    me,
+                    c
+                ),
                 reels: meta.reels || [],
                 photos: meta.photos || [],
 
@@ -624,7 +698,14 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },
                 isOnline: isUserOnline(c.id), // Fixed ID issue
-                summary: (c.profiles?.raw_prompt || meta.aboutMe || "No bio yet.").substring(0, 150),
+                summary: generateSmartSummary(
+                    Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
+                    reasons,
+                    meta,
+                    c.profiles?.raw_prompt || meta.aboutMe || "",
+                    me,
+                    c
+                ),
                 reels: meta.reels || [],
                 photos: meta.photos || [],
                 career: meta.career || {},

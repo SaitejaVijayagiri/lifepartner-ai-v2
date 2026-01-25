@@ -63,6 +63,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
         });
 
         const uniqueConnections = new Map();
+        const partnerIds: string[] = [];
 
         connections.forEach(r => {
             const u1 = r.users_interactions_from_user_idTousers!;
@@ -71,8 +72,8 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             const isFromMe = r.from_user_id === userId;
             const partner = isFromMe ? u2 : u1;
 
-            // Prefer the one where I am the sender if duplicates exist, or just take the first one
             if (!uniqueConnections.has(partner.id)) {
+                partnerIds.push(partner.id);
                 uniqueConnections.set(partner.id, {
                     interactionId: r.id,
                     partner: {
@@ -80,12 +81,34 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         name: partner.full_name,
                         photoUrl: partner.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.id}`,
                         role: "Member",
-                        location: "India" // TODO: Add real location from profile
+                        location: "India"
                     },
-                    timestamp: r.created_at
+                    timestamp: r.created_at,
+                    unreadCount: 0 // Default
                 });
             }
         });
+
+        // Batch fetch unread counts
+        if (partnerIds.length > 0) {
+            const unreadCounts = await prisma.messages.groupBy({
+                by: ['sender_id'],
+                where: {
+                    sender_id: { in: partnerIds },
+                    receiver_id: userId,
+                    is_read: false
+                },
+                _count: {
+                    id: true
+                }
+            });
+
+            unreadCounts.forEach((c: any) => {
+                if (c.sender_id && uniqueConnections.has(c.sender_id)) {
+                    uniqueConnections.get(c.sender_id).unreadCount = c._count.id;
+                }
+            });
+        }
 
         const formattedConnections = Array.from(uniqueConnections.values());
 

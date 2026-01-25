@@ -104,4 +104,25 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     }
 });
 
+// MARK AS READ
+router.post('/:connectionId/read', authenticateToken, async (req: any, res) => {
+    const { connectionId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        await prisma.messages.updateMany({
+            where: {
+                sender_id: connectionId,
+                receiver_id: userId,
+                is_read: false
+            },
+            data: { is_read: true }
+        });
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Mark Read Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 export default router;

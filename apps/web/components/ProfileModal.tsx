@@ -198,9 +198,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Desktop Header (Hidden on Mobile) */}
                     <div className="hidden md:block px-8 pt-8 pb-4">
-                        <p className="text-gray-500 italic text-sm border-l-4 border-indigo-500 pl-4 py-1">
-                            "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
-                        </p>
                         <div className="flex gap-2 mt-2 pl-4">
                             <div className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 flex items-center gap-1 w-max">
                                 <span>🎁</span> {profile.total_gifts || 0} Gifts
@@ -212,18 +209,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
 
-                    {/* Mobile Insight (Visible only on mobile) */}
-                    <div className="md:hidden px-6 pt-6 pb-2">
-                        <p className="text-gray-500 italic text-xs border-l-4 border-indigo-500 pl-3 py-1 line-clamp-2">
-                            "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
-                        </p>
-                    </div>
+
 
 
                     {/* Sticky Tabs */}
                     <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
                         <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
-                            {['about', 'personal', 'career', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                            {['about', 'ai insight', 'personal', 'career', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -234,7 +226,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             : 'text-gray-400 hover:text-gray-600 border-transparent'}
                                     `}
                                 >
-                                    {tab === 'vibe check' ? '✨ Vibe Check' : tab}
+                                    {tab === 'vibe check' ? '✨ Vibe Check' : tab === 'ai insight' ? '🤖 AI Insight' : tab}
                                 </button>
                             ))}
                         </div>
@@ -242,6 +234,33 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Scrollable Content */}
                     <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-6">
+
+                        {activeTab === 'ai insight' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="p-2 bg-white rounded-lg shadow-sm text-xl">🤖</div>
+                                        <h3 className="font-bold text-indigo-900">AI Compatibility Analysis</h3>
+                                    </div>
+                                    <p className="text-indigo-800/80 italic text-sm leading-relaxed border-l-4 border-indigo-400 pl-4 py-1">
+                                        "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
+                                    </p>
+
+                                    <div className="flex gap-3 mt-6">
+                                        <div className="bg-white/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 border border-indigo-100 shadow-sm flex items-center gap-2">
+                                            <span>✨</span> {profile.score || 90}% Match Score
+                                        </div>
+                                        <div className="bg-pink-100/50 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 border border-pink-100 shadow-sm flex items-center gap-2">
+                                            <span>🎁</span> {profile.total_gifts || 0} Gifts
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* Placeholder for future detailed AI breakdown */}
+                                </div>
+                            </div>
+                        )}
 
                         {activeTab === 'about' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

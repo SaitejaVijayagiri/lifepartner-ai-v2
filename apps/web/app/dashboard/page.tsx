@@ -150,12 +150,14 @@ function DashboardContent() {
         }
     }, [searchParams]);
 
+    const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
         { id: 'community', label: 'Lounge', icon: Coffee },
         { id: 'reels', label: 'Vibe', icon: Video },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
-        { id: 'connections', label: 'Chat', icon: MessageCircle },
+        { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
         { id: 'profile', label: 'Profile', icon: User },
     ];
 
@@ -212,6 +214,10 @@ function DashboardContent() {
             setLoading(true);
             const data = await api.interactions.getConnections();
             setConnections(data);
+
+            // Calculate total unread
+            const totalUnread = data.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
+            setUnreadMessageCount(totalUnread);
         } catch (e) {
             console.error(e);
         } finally {

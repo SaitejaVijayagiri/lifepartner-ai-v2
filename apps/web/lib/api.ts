@@ -107,7 +107,8 @@ export const api = {
         sendMessage: (connId: string, text: string, senderId: string) => fetchAPI(`/messages/${connId}/send`, {
             method: 'POST',
             body: JSON.stringify({ text, senderId })
-        })
+        }),
+        markRead: (connId: string) => fetchAPI(`/messages/${connId}/read`, { method: 'POST' })
     },
     games: {
         start: (partnerId: string) => fetchAPI('/games/start', { method: 'POST', body: JSON.stringify({ partnerId }) }),

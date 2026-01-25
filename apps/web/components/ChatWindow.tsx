@@ -81,6 +81,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     console.error("Invalid history format:", history);
                     setMessages([]);
                 }
+                // Mark messages as read
+                await api.chat.markRead(partner.id);
             } catch (e) { console.error(e); setMessages([]); }
         };
         loadHistory();

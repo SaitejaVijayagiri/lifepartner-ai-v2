@@ -32,8 +32,13 @@ const ConnectionsModal = ({ connections, onClose, onDelete, onChat }: Connection
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50" onClick={() => onChat(c)}>
+                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-indigo-600 hover:bg-indigo-50 relative" onClick={() => onChat(c)}>
                                         <MessageCircle size={16} />
+                                        {c.unreadCount > 0 && (
+                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                                                {c.unreadCount}
+                                            </span>
+                                        )}
                                     </Button>
                                     <Button
                                         size="sm"

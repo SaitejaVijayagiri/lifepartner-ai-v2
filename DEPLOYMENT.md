@@ -46,12 +46,18 @@ If you have Docker installed, you can switch to the Production Database locally:
     -   `SUPABASE_KEY`: ...
     -   `JWT_SECRET`: ...
 
-### Frontend (Static Site)
-1.  Connect your Repo.
-2.  **Build Command**: `cd apps/web && npm install && npm run build`
-3.  **Publish Directory**: `apps/web/.next`
-4.  **Environment Variables**:
-    -   `NEXT_PUBLIC_API_URL`: `https://your-backend-url.onrender.com`
+### Frontend (Web Service - Node.js)
+> [!IMPORTANT]
+> Do **NOT** deploy as a Static Site. This app uses Server-Side Image Optimization and Dynamic Routing.
+
+1.  Create a **Web Service** on Render (not Static Site).
+2.  Connect your Repo.
+3.  **Root Directory**: `apps/web`
+4.  **Build Command**: `npm install && npm run build`
+5.  **Start Command**: `npm start`
+6.  **Environment Variables**:
+    -   `NEXT_PUBLIC_API_URL`: `https://your-backend-url.onrender.com` (Must include `https://`)
+    -   `NODE_ENV`: `production`
 
 ## 4. Scaling
 -   **Horizontal Scaling**: spin up more Backend instances behind a Load Balancer.

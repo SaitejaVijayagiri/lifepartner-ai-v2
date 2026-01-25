@@ -205,7 +205,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             religion, horoscope, career, family, lifestyle,
             prompt, aboutMe, // Accept aboutMe as alias for prompt
             partnerPreferences,
-            motherTongue, dob, height, // Accept DOB & Height
+            motherTongue, dob, height, maritalStatus, // Accept DOB & Height & Marital Status
             photos, photoUrl,
             email, phone // Added email and phone
         } = req.body;

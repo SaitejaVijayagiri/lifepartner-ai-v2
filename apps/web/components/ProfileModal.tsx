@@ -210,7 +210,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     {/* Sticky Tabs */}
                     <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
                         <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
-                            {['about', 'ai insight', 'personal', 'career', 'family', ...(currentUser?.id === profile.id ? ['preferences'] : []), ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                            {['about', 'ai insight', 'personal', 'career', 'family', 'preferences', ...(hasReels ? ['vibe check'] : [])].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}

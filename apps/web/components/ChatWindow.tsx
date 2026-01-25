@@ -170,32 +170,32 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
-                    <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity" onClick={handleViewProfile}>
-                        <div className="relative">
+                    <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
+                        <div className="relative flex-shrink-0">
                             <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
                                 <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" />
                             </div>
                             <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                         </div>
-                        <div>
-                            <h3 className="font-bold text-lg leading-tight">{partner.name}</h3>
+                        <div className="min-w-0">
+                            <h3 className="font-bold text-lg leading-tight truncate pr-1">{partner.name}</h3>
                             <p className="text-xs text-white/70 flex items-center gap-1">
                                 {onlineUsers?.includes(partner.id) ? (
                                     <>
-                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                                        Online now
+                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
+                                        <span className="truncate">Online now</span>
                                     </>
                                 ) : (
                                     <>
-                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
-                                        Offline
+                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                        <span className="truncate">Offline</span>
                                     </>
                                 )}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex gap-1 relative z-10">
+                    <div className="flex gap-1 relative z-10 flex-shrink-0">
                         <button
                             onClick={() => setShowGiftModal(true)}
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"

@@ -73,13 +73,22 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
     if (status === 'denied') {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-2xl border border-gray-200">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                    <Lock className="text-red-500" size={32} />
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <ShieldCheck className="text-blue-500" size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h3>
-                <p className="text-gray-500 mb-6">The Community Lounge is exclusive to Verified Members.</p>
-                <button onClick={onOpenStore} className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold text-sm hover:bg-indigo-700 transition-colors">
-                    Get Verified Now
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Verification Required</h3>
+                <p className="text-gray-500 mb-6 max-w-xs">
+                    The Community Lounge is a safe space for genuine singles. <br />
+                    <b>Verify your profile for FREE to join!</b>
+                </p>
+                {/* 
+                  NOTE: onOpenStore currently opens Coin/Premium store. 
+                  Ideally, this should link to Profile -> Verify. 
+                  For now, we keep the button but change text to "Go to Profile" if possible, 
+                  or just keep it generic. "Get Verified" implies action. 
+                */}
+                <button onClick={() => window.location.href = '/dashboard?tab=profile'} className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                    Go to Profile to Verify
                 </button>
             </div>
         );
@@ -96,11 +105,11 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                     <div>
                         <h2 className="font-bold text-lg flex items-center gap-2">
                             Verified Lounge
-                            <span className="bg-blue-500/20 text-[10px] px-2 py-0.5 rounded-full border border-blue-400/30 text-blue-200">BETA</span>
+                            <span className="bg-green-500/10 text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 text-green-600 ml-2">LIVE</span>
                         </h2>
-                        <p className="text-xs text-indigo-200 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                            Live Community Chat
+                        <p className="text-xs text-indigo-400/80 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                            Open to all Verified Members
                         </p>
                     </div>
                 </div>

@@ -182,16 +182,16 @@ export const initSocket = (httpServer: HttpServer) => {
                 return;
             }
 
-            // Check if user is premium
+            // Check if user is verified (Open to all verified users)
             const user = await prisma.users.findUnique({
                 where: { id: userId },
-                select: { is_premium: true, full_name: true, avatar_url: true }
+                select: { is_verified: true, full_name: true, avatar_url: true }
             });
 
-            if (!user || !user.is_premium) {
+            if (!user || !user.is_verified) {
                 socket.emit('community_error', {
-                    message: "The Verified Lounge is a Premium Feature. Upgrade to Plan to Unlock.",
-                    code: "PREMIUM_REQUIRED"
+                    message: "The Community Lounge is for Verified Members only. Please verify your profile to join.",
+                    code: "VERIFICATION_REQUIRED"
                 });
                 return;
             }

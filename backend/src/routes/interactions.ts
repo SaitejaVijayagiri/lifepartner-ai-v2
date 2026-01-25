@@ -62,25 +62,32 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             }
         });
 
-        const formattedConnections = connections.map(r => {
+        const uniqueConnections = new Map();
+
+        connections.forEach(r => {
             const u1 = r.users_interactions_from_user_idTousers!;
             const u2 = r.users_interactions_to_user_idTousers!;
 
             const isFromMe = r.from_user_id === userId;
             const partner = isFromMe ? u2 : u1;
 
-            return {
-                interactionId: r.id,
-                partner: {
-                    id: partner.id,
-                    name: partner.full_name,
-                    photoUrl: partner.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.id}`,
-                    role: "Member",
-                    location: "India"
-                },
-                timestamp: r.created_at
-            };
+            // Prefer the one where I am the sender if duplicates exist, or just take the first one
+            if (!uniqueConnections.has(partner.id)) {
+                uniqueConnections.set(partner.id, {
+                    interactionId: r.id,
+                    partner: {
+                        id: partner.id,
+                        name: partner.full_name,
+                        photoUrl: partner.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.id}`,
+                        role: "Member",
+                        location: "India" // TODO: Add real location from profile
+                    },
+                    timestamp: r.created_at
+                });
+            }
         });
+
+        const formattedConnections = Array.from(uniqueConnections.values());
 
         res.json(formattedConnections);
     } catch (e) {

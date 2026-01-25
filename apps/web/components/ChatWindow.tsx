@@ -225,7 +225,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             mode="audio"
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
-                        <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-xl transition-all ml-1">
+                        <button onClick={onClose} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
                             <X size={20} />
                         </button>
                     </div>

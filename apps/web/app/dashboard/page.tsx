@@ -225,6 +225,40 @@ function DashboardContent() {
         }
     };
 
+    // Real-time Message Listener for Unread Counts
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleNewMessage = (msg: any) => {
+            // If the chat window with this user is NOT open, increment count
+            // Note: We don't have access to the "open chat" state here easily unless we tracked it.
+            // For now, we increment. If the user is IN the chat, the ChatWindow component should mark it read immediately,
+            // triggering a fetch or update. Ideally, we check if selectedConnection?.partner?.id === msg.senderId.
+
+            if (activeTab === 'connections' && selectedConnection?.partner?.id === msg.senderId) {
+                // User is currently chatting with this person, do not increment (or mark read immediately)
+                return;
+            }
+
+            setUnreadMessageCount(prev => prev + 1);
+
+            setConnections(prev => prev.map(c => {
+                if (c.partner.id === msg.senderId) {
+                    return { ...c, unreadCount: (c.unreadCount || 0) + 1 };
+                }
+                return c;
+            }));
+
+            toast.success(`New message from ${msg.senderName || 'Someone'}`);
+        };
+
+        socket.on('receiveMessage', handleNewMessage);
+
+        return () => {
+            socket.off('receiveMessage', handleNewMessage);
+        };
+    }, [socket, activeTab, selectedConnection]);
+
     // Client-side filter function
     const filterMatches = (matchList: any[]) => {
         if (!activeFilters) return matchList;

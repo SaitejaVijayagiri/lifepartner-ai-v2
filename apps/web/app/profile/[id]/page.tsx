@@ -201,6 +201,21 @@ export default function ProfileView() {
                     </div>
                 </div>
 
+                {/* AI Compatibility Insight (New) */}
+                {profile.summary && (
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 md:p-8 rounded-[2rem] shadow-sm border border-indigo-100 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-white rounded-2xl shadow-sm text-2xl">✨</div>
+                            <div className="space-y-2">
+                                <h3 className="font-heading font-bold text-xl text-indigo-900">AI Compatibility Insight</h3>
+                                <p className="text-indigo-800/80 text-lg leading-relaxed font-medium">
+                                    "{profile.summary}"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* 2. About & Family */}
                 <div className="grid md:grid-cols-3 gap-8">
                     <div className="md:col-span-2 space-y-8">

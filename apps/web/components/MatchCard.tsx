@@ -246,107 +246,103 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     </div>
 
                     <div className="flex flex-wrap gap-2 text-gray-100 text-xs font-medium mb-3 opacity-95">
-
-
                         {/* 2. Standard Tags */}
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "N/A"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.role || "Professional"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "Hindu"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📍 {[match.location?.city, match.location?.district, match.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "India"}</span>
                     </div>
-
-                    <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed opacity-90">{match.summary}</p>
                 </div>
-            </div>
 
-            {/* Hidden ACTION Buttons (Appears on Hover) - RESTORED */}
-            <div className="absolute bottom-4 left-4 right-4 flex gap-2 translate-y-20 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
-                {/* 1. Send Interest Button (Primary Action) */}
-                <Button
-                    onClick={handleConnect}
-                    disabled={loading || isRequestSent}
-                    className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
-                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        }`}
-                    style={{ opacity: 1 }}
-                >
-                    {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
-                </Button>
+                {/* Hidden ACTION Buttons (Appears on Hover) - RESTORED */}
+                <div className="absolute bottom-4 left-4 right-4 flex gap-2 translate-y-20 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
+                    {/* 1. Send Interest Button (Primary Action) */}
+                    <Button
+                        onClick={handleConnect}
+                        disabled={loading || isRequestSent}
+                        className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            }`}
+                        style={{ opacity: 1 }}
+                    >
+                        {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
+                    </Button>
 
-                {/* 2. Like/Heart Button (Social Proof Action) */}
-                <button
-                    onClick={handleLike}
-                    disabled={loading}
-                    className={`h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border shadow-xl transition-all duration-300 active:scale-95 hover:bg-black/80 ${hasLiked
-                        ? 'bg-pink-500/20 border-pink-500/50'
-                        : 'bg-black/60 border-white/10'
-                        }`}
-                    title={hasLiked ? "You liked this profile" : "Like this profile"}
-                >
-                    <span className={`text-xs transition-transform duration-300 ${hasLiked ? 'scale-125 text-pink-500' : 'text-gray-300 group-hover:text-pink-400'}`}>
-                        {hasLiked ? '❤️' : '🤍'}
-                    </span>
-                    <span className="text-[10px] font-bold text-white mt-0.5">{likeCount}</span>
-                </button>
+                    {/* 2. Like/Heart Button (Social Proof Action) */}
+                    <button
+                        onClick={handleLike}
+                        disabled={loading}
+                        className={`h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border shadow-xl transition-all duration-300 active:scale-95 hover:bg-black/80 ${hasLiked
+                            ? 'bg-pink-500/20 border-pink-500/50'
+                            : 'bg-black/60 border-white/10'
+                            }`}
+                        title={hasLiked ? "You liked this profile" : "Like this profile"}
+                    >
+                        <span className={`text-xs transition-transform duration-300 ${hasLiked ? 'scale-125 text-pink-500' : 'text-gray-300 group-hover:text-pink-400'}`}>
+                            {hasLiked ? '❤️' : '🤍'}
+                        </span>
+                        <span className="text-[10px] font-bold text-white mt-0.5">{likeCount}</span>
+                    </button>
 
-                {/* 2.5 Gift Count (Passive Badge) -> Active Button */}
-                <button
-                    onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
-                    className="h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 hover:bg-black/80 active:scale-95"
-                    title="Send a Gift"
-                >
-                    <span className="text-xl filter drop-shadow-md transform group-hover:scale-110 transition-transform">🎁</span>
-                    <span className="text-[10px] font-bold text-white mt-0.5">{match.total_gifts || 0}</span>
-                </button>
+                    {/* 2.5 Gift Count (Passive Badge) -> Active Button */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
+                        className="h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 hover:bg-black/80 active:scale-95"
+                        title="Send a Gift"
+                    >
+                        <span className="text-xl filter drop-shadow-md transform group-hover:scale-110 transition-transform">🎁</span>
+                        <span className="text-[10px] font-bold text-white mt-0.5">{match.total_gifts || 0}</span>
+                    </button>
 
-                {/* 3. Share Button (New) */}
-                <button
-                    onClick={async (e) => {
-                        e.stopPropagation();
-                        const shareData = {
-                            title: `Match: ${match.name}`,
-                            text: `Check out ${match.name} on LifePartner AI!`,
-                            url: `https://lifepartnerai.in/profile/${match.id}`
-                        };
-                        try {
-                            if (navigator.share) {
-                                await navigator.share(shareData);
-                            } else {
-                                await navigator.clipboard.writeText(shareData.url);
-                                toast.success("Link copied to clipboard!");
+                    {/* 3. Share Button (New) */}
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            const shareData = {
+                                title: `Match: ${match.name}`,
+                                text: `Check out ${match.name} on LifePartner AI!`,
+                                url: `https://lifepartnerai.in/profile/${match.id}`
+                            };
+                            try {
+                                if (navigator.share) {
+                                    await navigator.share(shareData);
+                                } else {
+                                    await navigator.clipboard.writeText(shareData.url);
+                                    toast.success("Link copied to clipboard!");
+                                }
+                            } catch (err) {
+                                console.error("Share failed:", err);
+                                toast.error("Sharing unsupported or cancelled");
                             }
-                        } catch (err) {
-                            console.error("Share failed:", err);
-                            toast.error("Sharing unsupported or cancelled");
-                        }
-                    }}
-                    className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 hover:text-blue-400 text-gray-400"
-                    title="Share Profile"
-                >
-                    <Share2 className="w-5 h-5" />
-                </button>
+                        }}
+                        className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 hover:text-blue-400 text-gray-400"
+                        title="Share Profile"
+                    >
+                        <Share2 className="w-5 h-5" />
+                    </button>
 
-                {/* 4. Report Button (Safety) */}
-                <button
-                    onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
-                    className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-400 text-gray-400"
-                    title="Report User"
-                >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                </button>
+                    {/* 4. Report Button (Safety) */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
+                        className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-400 text-gray-400"
+                        title="Report User"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </button>
+                </div>
+
+                {/* Kundli Modal removed from here, handled by parent via onShowKundli */}
+
+                <ReportModal
+                    isOpen={showReport}
+                    onClose={() => setShowReport(false)}
+                    targetUserId={match.id}
+                    targetUserName={match.name}
+                />
             </div>
-
-            {/* Kundli Modal removed from here, handled by parent via onShowKundli */}
-
-            <ReportModal
-                isOpen={showReport}
-                onClose={() => setShowReport(false)}
-                targetUserId={match.id}
-                targetUserName={match.name}
-            />
-        </div >
+        </div>
     );
 }

@@ -179,6 +179,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 <option value="Female">Female</option>
                             </select>
                         </div>
+                        {/* Marital Status Selector */}
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700">Marital Status</label>
+                            <select
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                value={formData.maritalStatus || ''}
+                                onChange={e => handleChange('root', 'maritalStatus', e.target.value)}
+                            >
+                                <option value="">Select Status</option>
+                                <option value="Never Married">Never Married</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Widowed">Widowed</option>
+                                <option value="Awaiting Divorce">Awaiting Divorce</option>
+                            </select>
+                        </div>
                         {/* Date of Birth (Calculates Age) */}
                         <Input
                             label="Date of Birth"

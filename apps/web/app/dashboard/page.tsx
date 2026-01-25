@@ -1125,10 +1125,17 @@ function DashboardContent() {
                         isEditingProfile ? (
                             <ProfileEditor
                                 initialData={currentUser}
-                                onSave={(newData) => {
+                                onSave={async (newData) => {
+                                    // Optimization: optimistic update
                                     setCurrentUser(newData);
                                     setIsEditingProfile(false);
                                     toast.success("Profile Saved!");
+
+                                    // Verify with backend source of truth
+                                    try {
+                                        const freshData = await api.profile.getMe();
+                                        setCurrentUser(freshData);
+                                    } catch (e) { console.error("Refresh failed", e); }
                                 }}
                                 onCancel={() => setIsEditingProfile(false)}
                             />

@@ -93,7 +93,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                 {/* Tabs */}
                 <div className="border-b border-gray-100 px-6">
                     <div className="flex space-x-6 overflow-x-auto no-scrollbar py-3">
-                        {['about', 'personal', 'career', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                        {['about', 'personal', 'career', 'preferences', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}

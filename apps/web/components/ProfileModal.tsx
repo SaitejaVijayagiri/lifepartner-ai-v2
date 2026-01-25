@@ -210,7 +210,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     {/* Sticky Tabs */}
                     <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
                         <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
-                            {['about', 'ai insight', 'personal', 'career', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                            {['about', 'ai insight', 'personal', 'career', 'family', ...(currentUser?.id === profile.id ? ['preferences'] : []), ...(hasReels ? ['vibe check'] : [])].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -425,6 +425,20 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'preferences' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
+                                    <h3 className="font-bold text-indigo-900 mb-4">Your Match Preferences</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Open"} />
+                                        <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Open"} />
+                                        <InfoCard label="Min Income" value={profile.partnerPreferences?.income || "Any"} />
+                                        <InfoCard label="Preferred Location" value={profile.partnerPreferences?.location || "Anywhere"} />
+                                    </div>
                                 </div>
                             </div>
                         )}

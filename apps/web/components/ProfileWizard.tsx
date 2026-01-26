@@ -57,11 +57,11 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         // Religion
         religion: 'Hindu', caste: '', interCasteOpen: false,
         // Career
-        education: 'Bachelors', profession: '', income: '', company: '',
+        education: "Bachelor's", profession: '', income: '', company: '',
         // Family
-        familyType: 'Nuclear', familyValues: 'Moderate', fatherOccupation: '', motherTongue: 'English', maritalStatus: 'Single',
+        familyType: 'Nuclear', familyValues: 'Moderate', fatherOccupation: '', motherTongue: 'Hindi', maritalStatus: 'Single',
         // Lifestyle
-        diet: 'Veg', smoke: 'No', drink: 'No',
+        diet: 'Vegetarian', smoke: 'No', drink: 'No',
         // Partner
         partnerAgeRange: '', partnerHeightRange: '', partnerIncome: '', partnerLocation: '', prompt: '',
         // Photos
@@ -345,7 +345,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Religion</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.religion} onChange={e => update('religion', e.target.value)}>
-                                        <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Other</option>
+                                        <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Buddhist</option><option>Parsi</option><option>Other</option>
                                     </select>
                                 </div>
                                 <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer, BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
@@ -374,7 +374,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Highest Education</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.education} onChange={e => update('education', e.target.value)}>
-                                        <option>Bachelors</option><option>Masters</option><option>Doctorate</option><option>High School</option>
+                                        <option>High School</option><option>Bachelor's</option><option>Master's</option><option>PhD</option><option>Professional Degree</option>
                                     </select>
                                 </div>
                                 <Input label="College / University" placeholder="e.g. IIT Bombay" value={data.college} onChange={e => update('college', e.target.value)} />
@@ -404,7 +404,12 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Mother's Occupation" value={data.motherOccupation} onChange={e => update('motherOccupation', e.target.value)} />
                                 <Input label="Brothers (Count)" placeholder="e.g. 1" type="number" value={data.brothers} onChange={e => update('brothers', e.target.value)} />
                                 <Input label="Sisters (Count)" placeholder="e.g. 0" type="number" value={data.sisters} onChange={e => update('sisters', e.target.value)} />
-                                <Input label="Mother Tongue" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)} />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Mother Tongue</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
+                                        <option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option><option>Marathi</option><option>Bengali</option><option>Kannada</option><option>Gujarati</option><option>Malayalam</option><option>Punjabi</option><option>Other</option>
+                                    </select>
+                                </div>
                                 <Input label="Native Place / Ancestral Origin" placeholder="e.g. Kanchipuram" value={data.nativePlace} onChange={e => update('nativePlace', e.target.value)} />
                             </div>
                         </div>
@@ -417,7 +422,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Diet</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.diet} onChange={e => update('diet', e.target.value)}>
-                                        <option>Veg</option><option>Non-Veg</option><option>Eggetarian</option><option>Vegan</option>
+                                        <option>Vegetarian</option><option>Non-Vegetarian</option><option>Eggetarian</option><option>Vegan</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -429,7 +434,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Drinking</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.drink} onChange={e => update('drink', e.target.value)}>
-                                        <option>No</option><option>Yes</option><option>Socially</option>
+                                        <option>No</option><option>Yes</option><option>Occasionally</option>
                                     </select>
                                 </div>
                             </div>

@@ -212,7 +212,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     {/* Sticky Tabs */}
                     <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
                         <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
-                            {['about', 'ai insight', 'personal', 'career', 'family', 'preferences', ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                            {['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences', ...(hasReels ? ['vibe check'] : [])].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -394,6 +394,32 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
                                     <InfoCard label="Native Place" value={profile.family?.nativePlace || profile.location?.city || "City"} />
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'lifestyle' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
+                                    <h3 className="font-bold text-green-900 mb-4">Habits & Lifestyle</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <InfoCard label="Diet" value={profile.lifestyle?.diet || "Veg"} icon="🥗" />
+                                        <InfoCard label="Smoking" value={profile.lifestyle?.smoking || profile.lifestyle?.smoke || "No"} icon="🚬" />
+                                        <InfoCard label="Drinking" value={profile.lifestyle?.drinking || profile.lifestyle?.drink || "No"} icon="🍷" />
+                                    </div>
+                                </div>
+
+                                {profile.lifestyle?.hobbies && (
+                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                        <h3 className="font-bold text-slate-900 mb-4">Interests & Hobbies</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {profile.lifestyle.hobbies.split(',').map((hobby: string, idx: number) => (
+                                                <span key={idx} className="bg-white px-3 py-1.5 rounded-full text-sm text-slate-700 border border-slate-200 shadow-sm">
+                                                    {hobby.trim()}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

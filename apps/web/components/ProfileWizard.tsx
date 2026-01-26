@@ -279,6 +279,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="text-sm font-medium">About Me (Bio)</label>
+                                    <textarea
+                                        className="w-full h-20 p-3 border rounded-md bg-white text-sm focus:ring-1 focus:outline-none focus:ring-indigo-600"
+                                        placeholder="Briefly describe your personality..."
+                                        value={data.aboutMe || ''}
+                                        onChange={e => update('aboutMe', e.target.value)}
+                                    />
+                                </div>
                                 <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Gender</label>

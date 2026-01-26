@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
 import dynamic from 'next/dynamic';

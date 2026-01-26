@@ -85,7 +85,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             horoscope: meta.horoscope || {},
             partnerPreferences: meta.partnerPreferences || {},
             motherTongue: meta.motherTongue || "", // Fallback
-            maritalStatus: meta.maritalStatus || "Never Married", // Added Marital Status
+            maritalStatus: meta.maritalStatus || "Single", // Changed default to Single
             dob: meta.dob, // Added DOB
             interests: meta.interests || (user.profiles?.traits as any)?.hobbies || [], // Map interests/hobbies
 

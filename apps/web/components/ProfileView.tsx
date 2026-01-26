@@ -203,6 +203,20 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         </div>
                     )}
 
+                    {activeTab === 'preferences' && (
+                        <div className="space-y-6 animate-in fade-in duration-300">
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Partner Preferences</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Any"} />
+                                    <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Any"} />
+                                    <InfoCard label="Min Income" value={profile.partnerPreferences?.income || "Any"} />
+                                    <InfoCard label="Preferred Location" value={profile.partnerPreferences?.location || "Any"} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {activeTab === 'vibe check' && (
                         <div className="grid grid-cols-3 gap-2 animate-in fade-in duration-300">
                             {displayReels.map((url: string, idx: number) => (

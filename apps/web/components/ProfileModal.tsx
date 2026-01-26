@@ -4,10 +4,13 @@
 import { useState, useEffect } from 'react';
 import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import KundliModal from './KundliModal';
-import CoinStoreModal from './CoinStoreModal';
+import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
+import dynamic from 'next/dynamic';
+
+const KundliModal = dynamic(() => import('./KundliModal'), { ssr: false });
+const CoinStoreModal = dynamic(() => import('./CoinStoreModal'), { ssr: false });
 
 interface ProfileModalProps {
     profile: any;

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
-import { MapPin } from 'lucide-react';
+import { MapPin, LogOut } from 'lucide-react';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
@@ -216,9 +216,32 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 <div className="z-10 flex justify-between lg:block items-center mb-4 lg:mb-0">
                     <h1 className="text-xl lg:text-3xl font-bold lg:mb-2">LifePartner AI</h1>
                     <div className="hidden lg:block h-1 w-12 bg-white/50 rounded-full"></div>
-                    {/* Mobile Progress Indicator (Simple) */}
-                    <div className="lg:hidden text-xs font-medium opacity-80 bg-white/20 px-2 py-1 rounded-full">
-                        Step {currentStep + 1}/{STEPS.length}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('userId');
+                                window.location.href = '/login';
+                            }}
+                            className="hidden lg:flex items-center gap-2 text-white/70 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20"
+                        >
+                            <LogOut size={14} />
+                            Log Out
+                        </button>
+                        {/* Mobile Progress Indicator (Simple) */}
+                        <div className="lg:hidden text-xs font-medium opacity-80 bg-white/20 px-2 py-1 rounded-full">
+                            Step {currentStep + 1}/{STEPS.length}
+                        </div>
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('userId');
+                                window.location.href = '/login';
+                            }}
+                            className="lg:hidden text-white/80 hover:text-white p-1"
+                        >
+                            <LogOut size={16} />
+                        </button>
                     </div>
                 </div>
 

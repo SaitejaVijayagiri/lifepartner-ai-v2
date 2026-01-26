@@ -144,8 +144,15 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                         min={18} max={60}
                                         value={filters.ageRange[0]}
                                         onChange={e => {
-                                            const val = Math.min(parseInt(e.target.value) || 18, filters.ageRange[1] - 1);
-                                            setFilters({ ...filters, ageRange: [Math.max(18, val), filters.ageRange[1]] });
+                                            const val = parseInt(e.target.value);
+                                            // Allow partial input (NaN) or valid numbers
+                                            if (isNaN(val)) setFilters({ ...filters, ageRange: [0, filters.ageRange[1]] }); // Temp 0 for empty
+                                            else setFilters({ ...filters, ageRange: [val, filters.ageRange[1]] });
+                                        }}
+                                        onBlur={e => {
+                                            let val = parseInt(e.target.value) || 18;
+                                            val = Math.max(18, Math.min(val, filters.ageRange[1] - 1));
+                                            setFilters({ ...filters, ageRange: [val, filters.ageRange[1]] });
                                         }}
                                         className="w-full px-3 py-2 rounded-lg border border-gray-200 text-center font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
                                     />
@@ -158,8 +165,14 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                         min={18} max={60}
                                         value={filters.ageRange[1]}
                                         onChange={e => {
-                                            const val = Math.max(parseInt(e.target.value) || 60, filters.ageRange[0] + 1);
-                                            setFilters({ ...filters, ageRange: [filters.ageRange[0], Math.min(60, val)] });
+                                            const val = parseInt(e.target.value);
+                                            if (isNaN(val)) setFilters({ ...filters, ageRange: [filters.ageRange[0], 0] });
+                                            else setFilters({ ...filters, ageRange: [filters.ageRange[0], val] });
+                                        }}
+                                        onBlur={e => {
+                                            let val = parseInt(e.target.value) || 60;
+                                            val = Math.max(filters.ageRange[0] + 1, Math.min(val, 60));
+                                            setFilters({ ...filters, ageRange: [filters.ageRange[0], val] });
                                         }}
                                         className="w-full px-3 py-2 rounded-lg border border-gray-200 text-center font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
                                     />
@@ -395,9 +408,13 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                             {MARITAL_STATUS.map(status => (
                                 <button
                                     key={status}
-                                    onClick={() => toggleArrayFilter('maritalStatus', status)}
+                                    onClick={() => {
+                                        // Toggle logic: If treating 'Never Married' and 'Single' as same, handle it?
+                                        // UI just selects string. Logic handles mapping.
+                                        toggleArrayFilter('maritalStatus', status);
+                                    }}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.maritalStatus.includes(status)
-                                        ? 'bg-indigo-600 text-white'
+                                        ? 'bg-indigo-600 text-white shadow-md transform scale-105'
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >

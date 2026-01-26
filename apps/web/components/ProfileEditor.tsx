@@ -343,6 +343,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <Input label="Preferred Age Range" placeholder="e.g. 24-28" value={formData.partnerPreferences?.ageRange || ''} onChange={e => handleChange('partnerPreferences', 'ageRange', e.target.value)} />
                         <Input label="Preferred Height" placeholder="e.g. 5'2 - 5'6" value={formData.partnerPreferences?.heightRange || ''} onChange={e => handleChange('partnerPreferences', 'heightRange', e.target.value)} />
                         <Input label="Preferred Income" placeholder="e.g. > 10 LPA" value={formData.partnerPreferences?.income || ''} onChange={e => handleChange('partnerPreferences', 'income', e.target.value)} />
+                        <Input label="Preferred Location" placeholder="e.g. Mumbai, Bangalore" value={formData.partnerPreferences?.location || ''} onChange={e => handleChange('partnerPreferences', 'location', e.target.value)} />
                     </div>
                 </div>
 

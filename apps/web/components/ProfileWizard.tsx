@@ -63,7 +63,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         // Lifestyle
         diet: 'Veg', smoke: 'No', drink: 'No',
         // Partner
-        partnerAgeRange: '', partnerHeightRange: '', partnerIncome: '', prompt: '',
+        partnerAgeRange: '', partnerHeightRange: '', partnerIncome: '', partnerLocation: '', prompt: '',
         // Photos
         photos: [],
         voiceBioUrl: ''
@@ -453,6 +453,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Pref Age Range" placeholder="24-29" value={data.partnerAgeRange} onChange={e => update('partnerAgeRange', e.target.value)} />
                                 <Input label="Pref Height" placeholder="5'2 - 5'8" value={data.partnerHeightRange} onChange={e => update('partnerHeightRange', e.target.value)} />
                                 <Input label="Min Income" placeholder="e.g. 10 LPA" value={data.partnerIncome} onChange={e => update('partnerIncome', e.target.value)} />
+                                <Input label="Pref Location" placeholder="e.g. Mumbai" value={data.partnerLocation} onChange={e => update('partnerLocation', e.target.value)} />
                             </div>
                         </div>
                     )}

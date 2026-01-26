@@ -79,7 +79,8 @@ export default function OnboardingPage() {
                 partnerPreferences: {
                     ageRange: data.partnerAgeRange,
                     heightRange: data.partnerHeightRange,
-                    income: data.partnerIncome
+                    income: data.partnerIncome,
+                    location: data.partnerLocation
                 },
 
                 motherTongue: data.motherTongue,

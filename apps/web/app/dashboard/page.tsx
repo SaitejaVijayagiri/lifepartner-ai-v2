@@ -323,7 +323,11 @@ function DashboardContent() {
 
             // 3. Marital Status (Normalize 'Single' <-> 'Never Married')
             if (activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0) {
-                const normalizedFilters = activeFilters.maritalStatus.map(s => s.toLowerCase() === 'never married' ? 'single' : s.toLowerCase());
+                const normalizedFilters = activeFilters.maritalStatus.map(s => {
+                    const lower = s.toLowerCase();
+                    if (lower.includes('never married') || lower.includes('single')) return 'single';
+                    return lower;
+                });
                 const normalizedStatus = maritalStr === 'never married' ? 'single' : maritalStr;
 
                 // Matches if status is in list OR (status is 'single' and list has 'never married')
@@ -355,8 +359,18 @@ function DashboardContent() {
 
             // 7. Income (Min LPA)
             if (activeFilters.minIncome) {
-                const nums = incomeStr.match(/(\d+)/);
-                const val = nums ? parseInt(nums[0]) : 0;
+                let val = 0;
+                // If explicitly says LPA, trust it
+                if (incomeStr.toLowerCase().includes('lpa')) {
+                    const match = incomeStr.match(/([\d.]+)/);
+                    val = match ? parseFloat(match[0]) : 0;
+                } else {
+                    // Heuristic: If number > 100, assume it's raw rupees and convert to LPA
+                    const nums = incomeStr.replace(/,/g, '').match(/(\d+)/);
+                    val = nums ? parseInt(nums[0]) : 0;
+                    if (val > 100) val = val / 100000;
+                }
+
                 if (val < activeFilters.minIncome) return false;
             }
 

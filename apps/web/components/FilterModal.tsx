@@ -30,7 +30,7 @@ const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', '
 const MOTHER_TONGUES = ['Hindi', 'English', 'Telugu', 'Tamil', 'Marathi', 'Bengali', 'Kannada', 'Gujarati', 'Malayalam', 'Punjabi', 'Other'];
 const DIETS = ['Vegetarian', 'Non-Vegetarian', 'Eggetarian', 'Vegan'];
 const EDUCATION = ['High School', 'Bachelor\'s', 'Master\'s', 'PhD', 'Professional Degree'];
-const MARITAL_STATUS = ['Never Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];
+const MARITAL_STATUS = ['Single / Never Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];
 
 const DEFAULT_FILTERS: FilterState = {
     ageRange: [21, 45],
@@ -95,7 +95,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                 {expandedSections.includes(id) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
             {expandedSections.includes(id) && (
-                <div className="px-4 pb-4 pt-0 animate-in slide-in-from-top-2 duration-200">
+                <div className="px-4 pb-4 pt-0">
                     {children}
                 </div>
             )}
@@ -135,64 +135,53 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                 <div className="flex-1 overflow-y-auto">
                     {/* Age Range */}
                     <Section id="age" title="Age Range">
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="flex-1">
-                                    <label className="text-xs text-gray-500 mb-1 block">Min Age</label>
-                                    <input
-                                        type="number"
-                                        min={18} max={60}
-                                        value={filters.ageRange[0]}
-                                        onChange={e => {
-                                            const val = parseInt(e.target.value);
-                                            // Allow partial input (NaN) or valid numbers
-                                            if (isNaN(val)) setFilters({ ...filters, ageRange: [0, filters.ageRange[1]] }); // Temp 0 for empty
-                                            else setFilters({ ...filters, ageRange: [val, filters.ageRange[1]] });
-                                        }}
-                                        onBlur={e => {
-                                            let val = parseInt(e.target.value) || 18;
-                                            val = Math.max(18, Math.min(val, filters.ageRange[1] - 1));
-                                            setFilters({ ...filters, ageRange: [val, filters.ageRange[1]] });
-                                        }}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-center font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                                <span className="text-gray-400 font-medium">—</span>
-                                <div className="flex-1">
-                                    <label className="text-xs text-gray-500 mb-1 block">Max Age</label>
-                                    <input
-                                        type="number"
-                                        min={18} max={60}
-                                        value={filters.ageRange[1]}
-                                        onChange={e => {
-                                            const val = parseInt(e.target.value);
-                                            if (isNaN(val)) setFilters({ ...filters, ageRange: [filters.ageRange[0], 0] });
-                                            else setFilters({ ...filters, ageRange: [filters.ageRange[0], val] });
-                                        }}
-                                        onBlur={e => {
-                                            let val = parseInt(e.target.value) || 60;
-                                            val = Math.max(filters.ageRange[0] + 1, Math.min(val, 60));
-                                            setFilters({ ...filters, ageRange: [filters.ageRange[0], val] });
-                                        }}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-center font-semibold focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                </div>
-                            </div>
-                            {/* Visual Range Bar */}
-                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                    className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                                    style={{
-                                        left: `${((filters.ageRange[0] - 18) / 42) * 100}%`,
-                                        width: `${((filters.ageRange[1] - filters.ageRange[0]) / 42) * 100}%`
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-500 mb-1 block">Min Age</label>
+                                <select
+                                    value={filters.ageRange[0]}
+                                    onChange={e => {
+                                        const val = parseInt(e.target.value);
+                                        setFilters({ ...filters, ageRange: [val, Math.max(val, filters.ageRange[1])] });
                                     }}
-                                />
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                >
+                                    {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
+                                        <option key={age} value={age}>{age}</option>
+                                    ))}
+                                </select>
                             </div>
-                            <div className="flex justify-between text-xs text-gray-400">
-                                <span>18</span>
-                                <span className="font-medium text-indigo-600">{filters.ageRange[0]} - {filters.ageRange[1]} years</span>
-                                <span>60</span>
+                            <span className="text-gray-400 font-medium">—</span>
+                            <div className="flex-1">
+                                <label className="text-xs text-gray-500 mb-1 block">Max Age</label>
+                                <select
+                                    value={filters.ageRange[1]}
+                                    onChange={e => {
+                                        const val = parseInt(e.target.value);
+                                        setFilters({ ...filters, ageRange: [Math.min(filters.ageRange[0], val), val] });
+                                    }}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                >
+                                    {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
+                                        <option key={age} value={age}>{age}</option>
+                                    ))}
+                                </select>
                             </div>
+                        </div>
+                        {/* Visual Range Bar */}
+                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                                className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                                style={{
+                                    left: `${((filters.ageRange[0] - 18) / 42) * 100}%`,
+                                    width: `${((filters.ageRange[1] - filters.ageRange[0]) / 42) * 100}%`
+                                }}
+                            />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-400">
+                            <span>18</span>
+                            <span className="font-medium text-indigo-600">{filters.ageRange[0]} - {filters.ageRange[1]} years</span>
+                            <span>60</span>
                         </div>
                     </Section>
 
@@ -441,7 +430,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                         Apply Filters
                     </button>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

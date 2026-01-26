@@ -254,7 +254,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP 1: BASICS */}
                     {stepId === 'basics' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
                                 <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
@@ -306,7 +306,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP 2: HOROSCOPE (Detailed) */}
                     {stepId === 'horoscope' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Religion</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.religion} onChange={e => update('religion', e.target.value)}>
@@ -335,7 +335,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Profession / Job Title *" value={data.profession} onChange={e => update('profession', e.target.value)} />
                                 <Input label="Company Name" value={data.company} onChange={e => update('company', e.target.value)} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Highest Education</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.education} onChange={e => update('education', e.target.value)}>
@@ -352,7 +352,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP: FAMILY */}
                     {stepId === 'family' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Family Type</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.familyType} onChange={e => update('familyType', e.target.value)}>
@@ -423,7 +423,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     onChange={e => update('prompt', e.target.value)}
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Pref Age Range" placeholder="24-29" value={data.partnerAgeRange} onChange={e => update('partnerAgeRange', e.target.value)} />
                                 <Input label="Pref Height" placeholder="5'2 - 5'8" value={data.partnerHeightRange} onChange={e => update('partnerHeightRange', e.target.value)} />
                                 <Input label="Min Income" placeholder="e.g. 10 LPA" value={data.partnerIncome} onChange={e => update('partnerIncome', e.target.value)} />

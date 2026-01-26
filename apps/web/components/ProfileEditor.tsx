@@ -189,6 +189,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             >
                                 <option value="">Select Status</option>
                                 <option value="Single">Single</option>
+                                <option value="Married">Married</option>
                                 <option value="Divorced">Divorced</option>
                                 <option value="Widowed">Widowed</option>
                                 <option value="Awaiting Divorce">Awaiting Divorce</option>

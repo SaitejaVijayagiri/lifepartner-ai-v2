@@ -83,6 +83,7 @@ export default function OnboardingPage() {
                 },
 
                 motherTongue: data.motherTongue,
+                maritalStatus: data.maritalStatus || "Single", // Added Marital Status
                 photos: data.photos,
                 photoUrl: data.photos?.[0] || '' // Set primary
             };

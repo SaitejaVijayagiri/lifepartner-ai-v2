@@ -293,7 +293,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             {gpsLoading ? 'Locating...' : 'Use GPS'}
                                         </Button>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                                         <Input placeholder="District" value={data.district} onChange={e => update('district', e.target.value)} />
                                         <Input placeholder="State" value={data.state} onChange={e => update('state', e.target.value)} />
                                     </div>

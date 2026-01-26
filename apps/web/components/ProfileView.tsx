@@ -126,6 +126,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 <InfoCard label="Marital Status" value={profile.maritalStatus || "-"} />
                                 <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
                                 <InfoCard label="Mother Tongue" value={profile.motherTongue || "-"} />
+                                <InfoCard label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : "-"} />
                             </div>
                         </div>
                     )}
@@ -145,7 +146,6 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             <div className="mt-6">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Lifestyle & Interests</h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <InfoCard label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : "-"} />
                                     <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} />
                                     <InfoCard label="Smoking" value={profile.lifestyle?.smoking || "No"} />
                                     <InfoCard label="Drinking" value={profile.lifestyle?.drinking || "No"} />

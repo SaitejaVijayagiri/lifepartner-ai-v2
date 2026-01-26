@@ -281,117 +281,92 @@ function DashboardContent() {
         });
     };
 
-    // Client-side filter function
+    // Client-side filter function - ROBUST & AUDITED
     const filterMatches = (matchList: any[]) => {
         if (!activeFilters) return matchList;
 
         return matchList.filter((match) => {
             const meta = match.metadata || {};
-            const age = match.age || meta.basics?.age || 0;
-            const heightStr = match.height || meta.basics?.height || '';
 
-            // Parse height from string like "5'8\"" to inches
-            const parseHeight = (h: string): number => {
-                if (!h) return 0;
-                const match = h.match(/(\d+)'(\d+)/);
-                if (match) return parseInt(match[1]) * 12 + parseInt(match[2]);
-                return 0;
-            };
-            const heightInches = parseHeight(heightStr);
+            // Unified Data Accessors (Check root first, then meta)
+            const age = match.age ?? meta.basics?.age ?? meta.age ?? 0;
+            const heightStr = match.height || meta.basics?.height || meta.height || '';
+            const religionStr = (match.religion?.religion || meta.religion?.religion || meta.background?.religion || match.religion || '').toLowerCase();
+            const casteStr = (match.religion?.caste || meta.religion?.caste || '').toLowerCase();
+            const dietStr = (match.lifestyle?.diet || meta.lifestyle?.diet || match.diet || '').toLowerCase();
+            const maritalStr = (match.maritalStatus || meta.maritalStatus || 'Single').toLowerCase();
+            const incomeStr = (match.career?.income || meta.career?.income || '').toLowerCase();
 
-            // Age filter
-            if (age && (age < activeFilters.ageRange[0] || age > activeFilters.ageRange[1])) {
-                return false;
+            // Safe Location search across multiple fields
+            const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();
+
+            // 1. Age Filter
+            if (activeFilters.ageRange) {
+                // Ignore if age is 0 (missing data) - prevent filtering out everyone? 
+                // Currently: if age is outside range, remove it.
+                if (age > 0 && (age < activeFilters.ageRange[0] || age > activeFilters.ageRange[1])) return false;
             }
 
-            // Height filter
-            if (heightInches && (heightInches < activeFilters.heightRange[0] || heightInches > activeFilters.heightRange[1])) {
-                return false;
+            // 2. Height Filter
+            if (heightStr) {
+                const parseHeight = (h: string): number => {
+                    const clean = h.replace(/[^0-9.]/g, ' ').trim().split(/\s+/).map(Number);
+                    if (h.includes("'") || clean.length >= 2) return (clean[0] * 12) + (clean[1] || 0);
+                    if (clean[0] > 8 && clean[0] < 250) return Math.round(clean[0] / 2.54); // cm assumption
+                    if (clean[0] < 8) return clean[0] * 12; // feet assumption
+                    return 0;
+                };
+                const inches = parseHeight(heightStr);
+                // Only filter if we successfully parsed a valid height
+                if (inches > 0 && (inches < activeFilters.heightRange[0] || inches > activeFilters.heightRange[1])) return false;
             }
 
-            // Religion filter
-            if (activeFilters.religions.length > 0) {
-                const religion = meta.background?.religion || match.religion || '';
-                if (!activeFilters.religions.some(r => religion.toLowerCase().includes(r.toLowerCase()))) {
-                    return false;
-                }
-            }
-
-            // Diet filter
-            if (activeFilters.diet) {
-                const diet = meta.lifestyle?.diet || match.diet || '';
-                // Strict match or partial match for things like "Veg" matching "Pure Veg"
-                if (!diet.toLowerCase().includes(activeFilters.diet.toLowerCase())) {
-                    return false;
-                }
-            }
-
-            // Smoking filter
-            if (activeFilters.smoking) {
-                const smoking = meta.lifestyle?.smoking || '';
-                // Strict match: If I say "No", I want "No". If I say "Yes", I want "Yes".
-                if (smoking.toLowerCase() !== activeFilters.smoking.toLowerCase()) {
-                    return false;
-                }
-            }
-
-            // Drinking filter
-            if (activeFilters.drinking) {
-                const drinking = meta.lifestyle?.drinking || '';
-                if (drinking.toLowerCase() !== activeFilters.drinking.toLowerCase()) {
-                    return false;
-                }
-            }
-
-            // --- NEW FILTERS ---
-
-            // Marital Status
+            // 3. Marital Status (Normalize 'Single' <-> 'Never Married')
             if (activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0) {
-                const status = (meta.maritalStatus || match.maritalStatus || 'Single');
-                if (!activeFilters.maritalStatus.some(s => s.toLowerCase() === status.toLowerCase())) {
-                    return false;
-                }
+                const normalizedFilters = activeFilters.maritalStatus.map(s => s.toLowerCase() === 'never married' ? 'single' : s.toLowerCase());
+                const normalizedStatus = maritalStr === 'never married' ? 'single' : maritalStr;
+
+                // Matches if status is in list OR (status is 'single' and list has 'never married')
+                const isMatch = normalizedFilters.some(f =>
+                    normalizedStatus.includes(f) || (f === 'single' && normalizedStatus === 'single')
+                );
+                if (!isMatch) return false;
             }
 
-            // Location Filter (Text Search)
-            if (activeFilters.location) {
-                const locQuery = activeFilters.location.toLowerCase();
-                const city = (match.city || meta.location?.city || '').toLowerCase();
-                const state = (match.state || meta.location?.state || '').toLowerCase();
-                const locName = (match.location_name || '').toLowerCase();
-
-                if (!city.includes(locQuery) && !state.includes(locQuery) && !locName.includes(locQuery)) {
-                    return false;
-                }
+            // 4. Religion
+            if (activeFilters.religions.length > 0) {
+                if (!activeFilters.religions.some(r => religionStr.includes(r.toLowerCase()))) return false;
             }
 
-            // Mother Tongue
-            if (activeFilters.motherTongue && activeFilters.motherTongue.length > 0) {
-                const mt = (meta.motherTongue || '').toLowerCase();
-                // Relaxed check: if any selected tongue matches the user's tongue
-                if (!activeFilters.motherTongue.some(lang => mt.includes(lang.toLowerCase()))) {
-                    return false;
-                }
+            // 5. Caste
+            if (activeFilters.caste && !casteStr.includes(activeFilters.caste.toLowerCase())) return false;
+
+            // 6. Lifestyle (Diet, Smoking, Drinking)
+            if (activeFilters.diet && !dietStr.includes(activeFilters.diet.toLowerCase())) return false;
+
+            if (activeFilters.smoking) {
+                const smoking = (match.lifestyle?.smoking || meta.lifestyle?.smoking || 'No').toLowerCase();
+                if (smoking !== activeFilters.smoking.toLowerCase()) return false;
+            }
+            if (activeFilters.drinking) {
+                const drinking = (match.lifestyle?.drinking || meta.lifestyle?.drinking || 'No').toLowerCase();
+                if (drinking !== activeFilters.drinking.toLowerCase()) return false;
             }
 
-            // Caste
-            if (activeFilters.caste) {
-                const caste = (meta.religion?.caste || '').toLowerCase();
-                if (!caste.includes(activeFilters.caste.toLowerCase())) {
-                    return false;
-                }
-            }
-
-            // Income (Min Check)
+            // 7. Income (Min LPA)
             if (activeFilters.minIncome) {
-                const incomeStr = (meta.career?.income || '').toLowerCase();
-                // Extract number: "10 LPA" -> 10, "15-20 LPA" -> 15
-                const matchInc = incomeStr.match(/(\d+)/);
-                const incomeVal = matchInc ? parseInt(matchInc[0]) : 0;
+                const nums = incomeStr.match(/(\d+)/);
+                const val = nums ? parseInt(nums[0]) : 0;
+                if (val < activeFilters.minIncome) return false;
+            }
 
-                if (incomeVal < activeFilters.minIncome) {
-                    return false;
-                }
+            // 8. Location
+            if (activeFilters.location && !locStr.includes(activeFilters.location.toLowerCase())) return false;
+
+            // 9. Mother Tongue
+            if (activeFilters.motherTongue && activeFilters.motherTongue.length > 0) {
+                const mt = (meta.motherTongue || match.motherTongue || '').toLowerCase();
+                if (!activeFilters.motherTongue.some(lang => mt.includes(lang.toLowerCase()))) return false;
             }
 
             return true;

@@ -20,12 +20,17 @@ export interface FilterState {
     drinking: string | null;
     education: string[];
     maritalStatus: string[];
+    motherTongue: string[];
+    location: string;
+    minIncome: number | null;
+    caste: string;
 }
 
 const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', 'Parsi', 'Other'];
+const MOTHER_TONGUES = ['Hindi', 'English', 'Telugu', 'Tamil', 'Marathi', 'Bengali', 'Kannada', 'Gujarati', 'Malayalam', 'Punjabi', 'Other'];
 const DIETS = ['Vegetarian', 'Non-Vegetarian', 'Eggetarian', 'Vegan'];
 const EDUCATION = ['High School', 'Bachelor\'s', 'Master\'s', 'PhD', 'Professional Degree'];
-const MARITAL_STATUS = ['Never Married', 'Divorced', 'Widowed'];
+const MARITAL_STATUS = ['Never Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];
 
 const DEFAULT_FILTERS: FilterState = {
     ageRange: [21, 45],
@@ -36,6 +41,10 @@ const DEFAULT_FILTERS: FilterState = {
     drinking: null,
     education: [],
     maritalStatus: [],
+    motherTongue: [],
+    location: '',
+    minIncome: null,
+    caste: '',
 };
 
 export default function FilterModal({ isOpen, onClose, onApply, initialFilters }: FilterModalProps) {
@@ -228,21 +237,79 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                         </div>
                     </Section>
 
-                    {/* Religion */}
-                    <Section id="religion" title="Religion">
+                    {/* Expanded Filters */}
+
+                    {/* Location */}
+                    <Section id="location" title="Location & Income">
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Preferred City / State</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Mumbai or Maharashtra"
+                                    value={filters.location || ''}
+                                    onChange={e => setFilters({ ...filters, location: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Min Annual Income (LPA)</label>
+                                <input
+                                    type="number"
+                                    placeholder="e.g. 10 (Lakhs)"
+                                    value={filters.minIncome || ''}
+                                    onChange={e => setFilters({ ...filters, minIncome: e.target.value ? parseFloat(e.target.value) : null })}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                />
+                            </div>
+                        </div>
+                    </Section>
+
+                    {/* Mother Tongue */}
+                    <Section id="language" title="Mother Tongue">
                         <div className="flex flex-wrap gap-2">
-                            {RELIGIONS.map(religion => (
+                            {MOTHER_TONGUES.map(lang => (
                                 <button
-                                    key={religion}
-                                    onClick={() => toggleArrayFilter('religions', religion)}
-                                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.religions.includes(religion)
+                                    key={lang}
+                                    onClick={() => toggleArrayFilter('motherTongue', lang)}
+                                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.motherTongue.includes(lang)
                                         ? 'bg-indigo-600 text-white'
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
                                 >
-                                    {religion}
+                                    {lang}
                                 </button>
                             ))}
+                        </div>
+                    </Section>
+
+                    {/* Religion & Caste */}
+                    <Section id="religion" title="Religion & Caste">
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap gap-2">
+                                {RELIGIONS.map(religion => (
+                                    <button
+                                        key={religion}
+                                        onClick={() => toggleArrayFilter('religions', religion)}
+                                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.religions.includes(religion)
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        {religion}
+                                    </button>
+                                ))}
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 mb-1 block">Caste Preference (Optional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Brahmin"
+                                    value={filters.caste || ''}
+                                    onChange={e => setFilters({ ...filters, caste: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                />
+                            </div>
                         </div>
                     </Section>
 

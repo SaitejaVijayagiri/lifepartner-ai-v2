@@ -343,6 +343,57 @@ function DashboardContent() {
                 }
             }
 
+            // --- NEW FILTERS ---
+
+            // Marital Status
+            if (activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0) {
+                const status = (meta.maritalStatus || match.maritalStatus || 'Single');
+                if (!activeFilters.maritalStatus.some(s => s.toLowerCase() === status.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            // Location Filter (Text Search)
+            if (activeFilters.location) {
+                const locQuery = activeFilters.location.toLowerCase();
+                const city = (match.city || meta.location?.city || '').toLowerCase();
+                const state = (match.state || meta.location?.state || '').toLowerCase();
+                const locName = (match.location_name || '').toLowerCase();
+
+                if (!city.includes(locQuery) && !state.includes(locQuery) && !locName.includes(locQuery)) {
+                    return false;
+                }
+            }
+
+            // Mother Tongue
+            if (activeFilters.motherTongue && activeFilters.motherTongue.length > 0) {
+                const mt = (meta.motherTongue || '').toLowerCase();
+                // Relaxed check: if any selected tongue matches the user's tongue
+                if (!activeFilters.motherTongue.some(lang => mt.includes(lang.toLowerCase()))) {
+                    return false;
+                }
+            }
+
+            // Caste
+            if (activeFilters.caste) {
+                const caste = (meta.religion?.caste || '').toLowerCase();
+                if (!caste.includes(activeFilters.caste.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            // Income (Min Check)
+            if (activeFilters.minIncome) {
+                const incomeStr = (meta.career?.income || '').toLowerCase();
+                // Extract number: "10 LPA" -> 10, "15-20 LPA" -> 15
+                const matchInc = incomeStr.match(/(\d+)/);
+                const incomeVal = matchInc ? parseInt(matchInc[0]) : 0;
+
+                if (incomeVal < activeFilters.minIncome) {
+                    return false;
+                }
+            }
+
             return true;
         });
     };
@@ -1369,6 +1420,7 @@ function DashboardContent() {
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                     requestsCount={requestsCount}
+                    unreadCount={unreadMessageCount}
                 />
             </div>
 

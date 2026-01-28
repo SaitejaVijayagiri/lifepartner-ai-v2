@@ -269,7 +269,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                                     <InfoCard label="Age / Height" value={`${profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : profile.age} Yrs, ${profile.height || "5'5\""}`} />
-                                    <InfoCard label="Marital Status" value={profile.maritalStatus || "Never Married"} />
+                                    <InfoCard label="Marital Status" value={(!profile.maritalStatus || profile.maritalStatus === "Never Married") ? "Single" : profile.maritalStatus} />
                                     <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
                                     <InfoCard label="Mother Tongue" value={profile.motherTongue || "English"} />
                                 </div>

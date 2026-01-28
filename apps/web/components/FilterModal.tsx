@@ -30,7 +30,7 @@ const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', '
 const MOTHER_TONGUES = ['Hindi', 'English', 'Telugu', 'Tamil', 'Marathi', 'Bengali', 'Kannada', 'Gujarati', 'Malayalam', 'Punjabi', 'Other'];
 const DIETS = ['Vegetarian', 'Non-Vegetarian', 'Eggetarian', 'Vegan'];
 const EDUCATION = ['High School', 'Bachelor\'s', 'Master\'s', 'PhD', 'Professional Degree'];
-const MARITAL_STATUS = ['Single / Never Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];
+const MARITAL_STATUS = ['Single', 'Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];
 
 const DEFAULT_FILTERS: FilterState = {
     ageRange: [21, 45],
@@ -117,15 +117,15 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
 
                     <div className="flex justify-between items-center relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                                <Filter size={22} />
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner">
+                                <Filter size={22} className="text-white" />
                             </div>
-                            <div>
-                                <h3 className="font-bold text-lg">Filter Matches</h3>
-                                <p className="text-white/70 text-xs">Find your perfect match</p>
+                            <div className="flex flex-col justify-center">
+                                <h3 className="font-bold text-lg leading-tight">Filter Matches</h3>
+                                <p className="text-white/80 text-xs font-medium">Find your perfect match</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2.5 hover:bg-white/20 rounded-xl transition-colors">
+                        <button onClick={onClose} className="p-2.5 hover:bg-white/20 rounded-xl transition-colors active:scale-95">
                             <X size={20} />
                         </button>
                     </div>
@@ -135,53 +135,55 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                 <div className="flex-1 overflow-y-auto">
                     {/* Age Range */}
                     <Section id="age" title="Age Range">
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                                <label className="text-xs text-gray-500 mb-1 block">Min Age</label>
-                                <select
-                                    value={filters.ageRange[0]}
-                                    onChange={e => {
-                                        const val = parseInt(e.target.value);
-                                        setFilters({ ...filters, ageRange: [val, Math.max(val, filters.ageRange[1])] });
-                                    }}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                                >
-                                    {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
-                                        <option key={age} value={age}>{age}</option>
-                                    ))}
-                                </select>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <label className="text-xs text-gray-500 mb-1 block font-medium">Min Age</label>
+                                    <select
+                                        value={filters.ageRange[0]}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setFilters({ ...filters, ageRange: [val, Math.max(val, filters.ageRange[1])] });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-sm"
+                                    >
+                                        {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
+                                            <option key={age} value={age}>{age}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <span className="text-gray-400 font-medium pt-4">—</span>
+                                <div className="flex-1">
+                                    <label className="text-xs text-gray-500 mb-1 block font-medium">Max Age</label>
+                                    <select
+                                        value={filters.ageRange[1]}
+                                        onChange={e => {
+                                            const val = parseInt(e.target.value);
+                                            setFilters({ ...filters, ageRange: [Math.min(filters.ageRange[0], val), val] });
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-sm"
+                                    >
+                                        {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
+                                            <option key={age} value={age}>{age}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <span className="text-gray-400 font-medium">—</span>
-                            <div className="flex-1">
-                                <label className="text-xs text-gray-500 mb-1 block">Max Age</label>
-                                <select
-                                    value={filters.ageRange[1]}
-                                    onChange={e => {
-                                        const val = parseInt(e.target.value);
-                                        setFilters({ ...filters, ageRange: [Math.min(filters.ageRange[0], val), val] });
+                            {/* Visual Range Bar */}
+                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                    className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-sm"
+                                    style={{
+                                        left: `${((filters.ageRange[0] - 18) / 42) * 100}%`,
+                                        width: `${((filters.ageRange[1] - filters.ageRange[0]) / 42) * 100}%`
                                     }}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-                                >
-                                    {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
-                                        <option key={age} value={age}>{age}</option>
-                                    ))}
-                                </select>
+                                />
                             </div>
-                        </div>
-                        {/* Visual Range Bar */}
-                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                                className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                                style={{
-                                    left: `${((filters.ageRange[0] - 18) / 42) * 100}%`,
-                                    width: `${((filters.ageRange[1] - filters.ageRange[0]) / 42) * 100}%`
-                                }}
-                            />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-400">
-                            <span>18</span>
-                            <span className="font-medium text-indigo-600">{filters.ageRange[0]} - {filters.ageRange[1]} years</span>
-                            <span>60</span>
+                            <div className="flex justify-between text-xs text-gray-400 font-medium">
+                                <span>18 y/o</span>
+                                <span className="text-indigo-600 font-semibold">{filters.ageRange[0]} - {filters.ageRange[1]} years</span>
+                                <span>60 y/o</span>
+                            </div>
                         </div>
                     </Section>
 
@@ -224,16 +226,16 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                             {/* Visual Range Bar */}
                             <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
                                 <div
-                                    className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                                    className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-sm"
                                     style={{
                                         left: `${((filters.heightRange[0] - 48) / 36) * 100}%`,
                                         width: `${((filters.heightRange[1] - filters.heightRange[0]) / 36) * 100}%`
                                     }}
                                 />
                             </div>
-                            <div className="flex justify-between text-xs text-gray-400">
+                            <div className="flex justify-between text-xs text-gray-400 font-medium">
                                 <span>4'0"</span>
-                                <span className="font-medium text-indigo-600">{formatHeight(filters.heightRange[0])} - {formatHeight(filters.heightRange[1])}</span>
+                                <span className="text-indigo-600 font-semibold">{formatHeight(filters.heightRange[0])} - {formatHeight(filters.heightRange[1])}</span>
                                 <span>7'0"</span>
                             </div>
                         </div>

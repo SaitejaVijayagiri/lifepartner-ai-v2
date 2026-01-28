@@ -123,7 +123,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <InfoCard label="Age / Height" value={`${profile.age} Yrs, ${profile.height || "-"}`} />
-                                <InfoCard label="Marital Status" value={profile.maritalStatus || "-"} />
+                                <InfoCard label="Marital Status" value={(!profile.maritalStatus || profile.maritalStatus === "Never Married" || profile.maritalStatus === "Single / Never Married") ? "Single" : profile.maritalStatus} />
                                 <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
                                 <InfoCard label="Mother Tongue" value={profile.motherTongue || "-"} />
                                 <InfoCard label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : "-"} />

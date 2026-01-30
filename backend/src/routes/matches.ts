@@ -196,7 +196,15 @@ router.get('/public-preview', async (req: any, res) => {
                     const mDistrict = isObj ? loc.district : "";
                     const mState = isObj ? loc.state : "";
                     const mCountry = isObj ? loc.country : "";
-                    return mCity || row.city || row.location_name || mDistrict || mState || mCountry || "India";
+                    const rowCity = row.city || row.location_name;
+
+                    const city = mCity || rowCity;
+                    const parts = [city, mState, mCountry].filter(p => p && p !== "Unknown" && p !== "null");
+
+                    let locStr = parts.length > 0 ? parts.join(", ") : "India";
+                    if (locStr === "India" && mDistrict) locStr = `${mDistrict}, India`;
+
+                    return locStr;
                 })(),
                 role: meta.career?.profession || "Member",
                 photoUrl: row.avatar_url,
@@ -339,8 +347,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             const userCity = c.city || c.location_name;
 
-            // Priority: City -> District -> State -> Country -> Default
-            const locString = metaCity || userCity || metaDistrict || metaState || metaCountry || "India";
+            // Concatenate available fields
+            const city = metaCity || userCity;
+            const parts = [city, metaState, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
+
+            let locString = parts.length > 0 ? parts.join(", ") : "India";
+
+            // Fallback for extreme cases
+            if (locString === "India" && metaDistrict) locString = `${metaDistrict}, India`;
 
             // Interaction Status
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
@@ -627,7 +641,14 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
             const userCity = c.city || c.location_name;
 
-            let locString = metaCity || userCity || metaDistrict || metaState || metaCountry || "India";
+            // Concatenate available fields
+            const city = metaCity || userCity;
+            const parts = [city, metaState, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
+
+            let locString = parts.length > 0 ? parts.join(", ") : "India";
+
+            // Fallback for extreme cases
+            if (locString === "India" && metaDistrict) locString = `${metaDistrict}, India`;
 
             const profileHeight = meta.height || "";
             const heightInches = parseHeightToInches(profileHeight);

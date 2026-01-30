@@ -375,7 +375,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 voiceBioUrl: c.voice_bio_url || null,
 
                 // Astrology
-                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra)
+                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
+
+                // Missing Core Fields
+                motherTongue: meta.motherTongue || "Unknown",
+                maritalStatus: meta.maritalStatus || "Single"
             };
         })
             .sort((a, b) => b.score - a.score);
@@ -718,7 +722,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
-                isPremium: c.is_premium || false
+                isPremium: c.is_premium || false,
+                motherTongue: meta.motherTongue || "Unknown",
+                maritalStatus: meta.maritalStatus || "Single"
             };
         }).filter(m => m !== null);
 

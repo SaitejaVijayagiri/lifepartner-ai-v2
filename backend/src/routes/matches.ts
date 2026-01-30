@@ -189,7 +189,15 @@ router.get('/public-preview', async (req: any, res) => {
                 id: row.id,
                 name: (row.full_name || "").split(' ')[0] + '...', // Privacy
                 age: row.age,
-                location: row.location_name || row.city || "India",
+                location: (() => {
+                    const loc = meta.location;
+                    const isObj = loc && typeof loc === 'object';
+                    const mCity = isObj ? loc.city : (typeof loc === 'string' ? loc : "");
+                    const mDistrict = isObj ? loc.district : "";
+                    const mState = isObj ? loc.state : "";
+                    const mCountry = isObj ? loc.country : "";
+                    return mCity || row.city || row.location_name || mDistrict || mState || mCountry || "India";
+                })(),
                 role: meta.career?.profession || "Member",
                 photoUrl: row.avatar_url,
                 blur: true
@@ -321,9 +329,18 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             // Safe Location Access
             // Safe Location Access
-            const metaCity = (typeof meta.location === 'string') ? meta.location : meta.location?.city;
-            const userCity = c.location_name || c.city;
-            const locString = metaCity || userCity || "India";
+            const metaLoc = meta.location;
+            const isMetaObj = metaLoc && typeof metaLoc === 'object';
+
+            const metaCity = isMetaObj ? metaLoc.city : (typeof metaLoc === 'string' ? metaLoc : "");
+            const metaDistrict = isMetaObj ? metaLoc.district : "";
+            const metaState = isMetaObj ? metaLoc.state : "";
+            const metaCountry = isMetaObj ? metaLoc.country : "";
+
+            const userCity = c.city || c.location_name;
+
+            // Priority: City -> District -> State -> Country -> Default
+            const locString = metaCity || userCity || metaDistrict || metaState || metaCountry || "India";
 
             // Interaction Status
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
@@ -599,9 +616,18 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const scoredMatches = rows.map(c => {
             const meta = (c.profiles?.metadata as any) || {};
             // ... [Logic reused from original, copied below] ...
-            const metaCity = (typeof meta.location === 'string') ? meta.location : meta.location?.city;
-            const userCity = c.location_name || c.city;
-            let locString = metaCity || userCity || "India";
+            // Safe Location Access
+            const metaLoc = meta.location;
+            const isMetaObj = metaLoc && typeof metaLoc === 'object';
+
+            const metaCity = isMetaObj ? metaLoc.city : (typeof metaLoc === 'string' ? metaLoc : "");
+            const metaDistrict = isMetaObj ? metaLoc.district : "";
+            const metaState = isMetaObj ? metaLoc.state : "";
+            const metaCountry = isMetaObj ? metaLoc.country : "";
+
+            const userCity = c.city || c.location_name;
+
+            let locString = metaCity || userCity || metaDistrict || metaState || metaCountry || "India";
 
             const profileHeight = meta.height || "";
             const heightInches = parseHeightToInches(profileHeight);

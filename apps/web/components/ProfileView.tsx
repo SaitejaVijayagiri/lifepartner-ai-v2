@@ -41,7 +41,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-20">
                     <h2 className="text-2xl font-bold text-white tracking-tight">{profile.name}, {profile.age}</h2>
                     <p className="text-gray-300 text-sm font-medium">
-                        {profile.career?.profession || "Professional"} • {typeof profile.location === 'string' ? profile.location : (profile.location?.city || "India")}
+                        {profile.career?.profession || "-"} • {typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown Location")}
                     </p>
                 </div>
 

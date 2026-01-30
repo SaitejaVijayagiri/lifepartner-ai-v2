@@ -247,11 +247,11 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
 
                     <div className="flex flex-wrap gap-2 text-gray-100 text-xs font-medium mb-3 opacity-95">
                         {/* 2. Standard Tags */}
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "N/A"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.role || "Professional"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "Hindu"}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "-"}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.role || "-"}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "-"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-                            📍 {typeof match.location === 'string' ? match.location : ([match.location?.city, match.location?.district, match.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "India")}
+                            📍 {typeof match.location === 'string' ? match.location : ([match.location?.city, match.location?.district, match.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "-")}
                         </span>
                     </div>
                 </div>

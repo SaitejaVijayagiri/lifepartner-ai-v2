@@ -76,13 +76,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     }, [profile.id]);
 
     // FALLBACK REELS FOR DEMO (If user has none)
-    const demoReels = [
-        "https://assets.mixkit.co/videos/preview/mixkit-girl-in-neon-sign-1232-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-taking-photos-from-different-angles-of-a-model-34421-large.mp4",
-        "https://assets.mixkit.co/videos/preview/mixkit-young-mother-playing-with-her-daughter-1208-large.mp4"
-    ];
+    // NO DEMO REELS - Use empty if none
+    const demoReels: string[] = [];
     const displayReels = (safeProfile.reels.length > 0) ? safeProfile.reels : demoReels;
-    const hasReels = true;
+    const hasReels = displayReels.length > 0;
 
     // Helper for safe Date parsing
     const getAge = (dob: string | undefined, defaultAge: any) => {
@@ -130,9 +127,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             {profile.isVerified !== false && <VerificationBadge size={16} className="bg-blue-900/30 p-0.5 rounded-full" showTooltip />}
                         </div>
                         <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
-                            <span>{profile.career?.profession || "Professional"}</span>
+                            <span>{profile.career?.profession || "-"}</span>
                             <span className="w-1 h-1 bg-gray-400 rounded-full" />
-                            <span>{typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")}</span>
+                            <span>{typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown Location")}</span>
                         </p>
                     </div>
 
@@ -245,7 +242,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                                     <div className="flex gap-3 mt-6">
                                         <div className="bg-white/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 border border-indigo-100 shadow-sm flex items-center gap-2">
-                                            <span>✨</span> {profile.score || 90}% Match Score
+                                            <span>✨</span> {profile.score || 0}% Match Score
                                         </div>
                                         <div className="bg-pink-100/50 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 border border-pink-100 shadow-sm flex items-center gap-2">
                                             <span>🎁</span> {profile.total_gifts || 0} Gifts
@@ -264,14 +261,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About Me</h3>
                                     <p className="text-gray-700 leading-relaxed text-sm md:text-[15px]">
-                                        {profile.aboutMe || "I am a simple person looking for a partner who values family and traditions while being modern in outlook. I enjoy traveling and reading."}
+                                        {profile.aboutMe || "No bio provided."}
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                    <InfoCard label="Age / Height" value={`${profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : profile.age} Yrs, ${profile.height || "5'5\""}`} />
-                                    <InfoCard label="Marital Status" value={(!profile.maritalStatus || profile.maritalStatus === "Never Married") ? "Single" : profile.maritalStatus} />
+                                    <InfoCard label="Age / Height" value={`${profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : profile.age} Yrs, ${profile.height || "-"}`} />
+                                    <InfoCard label="Marital Status" value={(!profile.maritalStatus) ? "Not Specified" : profile.maritalStatus} />
                                     <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
-                                    <InfoCard label="Mother Tongue" value={profile.motherTongue || "English"} />
+                                    <InfoCard label="Mother Tongue" value={profile.motherTongue || "-"} />
                                 </div>
                             </div>
                         )}
@@ -281,10 +278,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <section>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Horoscope & Faith</h3>
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                        <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "Hindu"} />
+                                        <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
                                         <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
-                                        <InfoCard label="Manglik" value={profile.horoscope?.manglik || "No"} icon="✨" />
+                                        <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} icon="✨" />
                                         <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign || "-"} />
                                         <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
                                         <InfoCard label="Time of Birth" value={profile.horoscope?.birthTime || "-"} />
@@ -355,13 +352,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     <div className="flex items-center gap-4 mb-6">
                                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm">💼</div>
                                         <div>
-                                            <div className="font-bold text-gray-900 text-lg">{profile.career?.profession || "Professional"}</div>
+                                            <div className="font-bold text-gray-900 text-lg">{profile.career?.profession || "-"}</div>
                                             <div className="text-sm text-gray-500 flex items-center gap-2">
                                                 {/* Show Company if Connected OR Premium */}
                                                 {(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium)
                                                     ? (
                                                         <>
-                                                            {profile.career?.company || "Top Company"}
+                                                            {profile.career?.company || "-"}
                                                             {currentUser?.is_premium && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200">💎 UNLOCKED</span>}
                                                         </>
                                                     )
@@ -370,8 +367,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <InfoRow label="Education" value={profile.career?.education || "Masters"} />
-                                        <InfoRow label="College" value={profile.career?.college || "Tier 1 Institute"} />
+                                        <InfoRow label="Education" value={profile.career?.education || "-"} />
+                                        <InfoRow label="College" value={profile.career?.college || "-"} />
                                         <InfoRow
                                             label="Annual Income"
                                             value={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium) ? (profile.career?.income || "Not Specified") : "🔒 Connect to Unlock"}
@@ -386,8 +383,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         {activeTab === 'family' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "Nuclear"} />
-                                    <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "Moderate"} />
+                                    <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
+                                    <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
                                     <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
                                     <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
                                     <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
@@ -402,9 +399,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
                                     <h3 className="font-bold text-green-900 mb-4">Habits & Lifestyle</h3>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <InfoCard label="Diet" value={profile.lifestyle?.diet || "Veg"} icon="🥗" />
-                                        <InfoCard label="Smoking" value={profile.lifestyle?.smoking || profile.lifestyle?.smoke || "No"} icon="🚬" />
-                                        <InfoCard label="Drinking" value={profile.lifestyle?.drinking || profile.lifestyle?.drink || "No"} icon="🍷" />
+                                        <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} icon="🥗" />
+                                        <InfoCard label="Smoking" value={profile.lifestyle?.smoking || profile.lifestyle?.smoke || "-"} icon="🚬" />
+                                        <InfoCard label="Drinking" value={profile.lifestyle?.drinking || profile.lifestyle?.drink || "-"} icon="🍷" />
                                     </div>
                                 </div>
 

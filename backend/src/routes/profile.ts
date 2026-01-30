@@ -75,17 +75,17 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             age: user.age, // Added Age
             gender: user.gender,
             // Prefer metadata location (full object) over user.location_name (string)
-            location: meta.location || { city: user.location_name, country: "India" },
+            location: meta.location || { city: user.location_name },
 
             // Read from Metadata with fallbacks
             career: meta.career || { profession: "", education: "" },
-            family: meta.family || { type: "Nuclear" },
-            lifestyle: meta.lifestyle || { diet: "Veg" },
-            religion: meta.religion || { religion: "Hindu" },
+            family: meta.family || {},
+            lifestyle: meta.lifestyle || {},
+            religion: meta.religion || {},
             horoscope: meta.horoscope || {},
             partnerPreferences: meta.partnerPreferences || {},
-            motherTongue: meta.motherTongue || "", // Fallback
-            maritalStatus: meta.maritalStatus || "Single", // Changed default to Single
+            motherTongue: meta.motherTongue || "",
+            maritalStatus: meta.maritalStatus || "", // Removed "Single" default
             dob: meta.dob, // Added DOB
             interests: meta.interests || (user.profiles?.traits as any)?.hobbies || [], // Map interests/hobbies
 

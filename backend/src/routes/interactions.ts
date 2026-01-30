@@ -7,6 +7,25 @@ import { authenticateToken } from '../middleware/auth';
 const router = express.Router();
 
 // Get Requests (Pending interactions of type 'REQUEST')
+// Helper for consistent location
+const getLocationString = (u: any) => {
+    const meta = (u.profiles?.metadata as any) || {};
+    const loc = meta.location;
+    const isObj = loc && typeof loc === 'object';
+    const mCity = isObj ? loc.city : (typeof loc === 'string' ? loc : "");
+    const mDistrict = isObj ? loc.district : "";
+    const mState = isObj ? loc.state : "";
+    const mCountry = isObj ? loc.country : "";
+
+    const rowCity = u.city || u.location_name;
+    const city = mCity || rowCity;
+    const parts = [city, mState, mCountry].filter((p: any) => p && p !== "Unknown" && p !== "null");
+
+    let locStr = parts.length > 0 ? parts.join(", ") : "India";
+    if (locStr === "India" && mDistrict) locStr = `${mDistrict}, India`;
+    return locStr;
+};
+
 router.get('/requests', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -18,7 +37,9 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                 status: 'pending'
             },
             include: {
-                users_interactions_from_user_idTousers: true
+                users_interactions_from_user_idTousers: {
+                    include: { profiles: true }
+                }
             }
         });
 
@@ -30,7 +51,8 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                     id: fromUser.id,
                     name: fromUser.full_name,
                     photoUrl: fromUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser.id}`,
-                    career: { profession: "Member" }
+                    career: { profession: (fromUser.profiles?.metadata as any)?.career?.profession || "Member" },
+                    location: getLocationString(fromUser)
                 },
                 timestamp: r.created_at
             };
@@ -75,10 +97,10 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             },
             include: {
                 users_interactions_from_user_idTousers: {
-                    select: { id: true, full_name: true, avatar_url: true, location_name: true }
+                    include: { profiles: true }
                 },
                 users_interactions_to_user_idTousers: {
-                    select: { id: true, full_name: true, avatar_url: true, location_name: true }
+                    include: { profiles: true }
                 }
             }
         });
@@ -101,8 +123,8 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         id: partner.id,
                         name: partner.full_name,
                         photoUrl: partner.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.id}`,
-                        role: "Member",
-                        location: "India"
+                        role: (partner.profiles?.metadata as any)?.career?.profession || "Member",
+                        location: getLocationString(partner)
                     },
                     timestamp: r.created_at,
                     unreadCount: 0 // Default
@@ -427,8 +449,8 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 name: u.full_name || "User",
                 age: u.age || meta.age,
                 photoUrl: u.avatar_url || meta.photos?.[0] || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
-                location: u.location_name || meta.location?.city || "India",
-                profession: meta.career?.profession || "Professional",
+                location: getLocationString(u),
+                profession: meta.career?.profession || "Member",
                 isBlurred: false,
                 likedAt: r.created_at
             };
@@ -612,8 +634,8 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
                 photoUrl: isBlurred
                     ? `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`
                     : (u.avatar_url || meta.photos?.[0]),
-                location: isBlurred ? "Hidden" : (u.location_name || meta.location?.city || "India"),
-                profession: isBlurred ? "Hidden" : (meta.career?.profession || "Professional"),
+                location: isBlurred ? "Hidden" : getLocationString(u),
+                profession: isBlurred ? "Hidden" : (meta.career?.profession || "Member"),
                 viewedAt: r.created_at,
                 isBlurred
             };

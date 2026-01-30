@@ -1030,13 +1030,10 @@ function DashboardContent() {
                 <div key={req.interactionId} className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md justify-between">
                     <div className="flex items-center gap-4 w-full sm:w-auto">
                         <img src={req.fromUser.photoUrl || "https://i.pravatar.cc/150"} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
-                        <div>
-                            <h4 className="font-bold text-lg">{req.fromUser.name}</h4>
-                            <p className="text-xs text-gray-500 flex items-center gap-1">
-                                <MapPin size={12} />
-                                {req.fromUser.location?.city || "Unknown Location"}
-                            </p>
-                        </div>
+                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <MapPin size={12} />
+                            {typeof req.fromUser.location === 'string' ? req.fromUser.location : (req.fromUser.location?.city || "Unknown Location")}
+                        </p>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                         <button onClick={() => handleDeclineRequest(req.interactionId)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><X size={20} /></button>

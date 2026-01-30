@@ -320,12 +320,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             if (score > 99) score = 99;
 
             // Safe Location Access
-            let locString = "India";
-            if (meta.location && typeof meta.location === 'object') {
-                locString = meta.location.city || locString;
-            } else if (c.location_name) {
-                locString = c.location_name;
-            }
+            // Safe Location Access
+            const metaCity = (typeof meta.location === 'string') ? meta.location : meta.location?.city;
+            const userCity = c.location_name || c.city;
+            const locString = metaCity || userCity || "India";
 
             // Interaction Status
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
@@ -601,9 +599,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const scoredMatches = rows.map(c => {
             const meta = (c.profiles?.metadata as any) || {};
             // ... [Logic reused from original, copied below] ...
-            let locString = "India";
-            if (meta.location && typeof meta.location === 'object') locString = meta.location.city || locString;
-            else if (c.location_name) locString = c.location_name;
+            const metaCity = (typeof meta.location === 'string') ? meta.location : meta.location?.city;
+            const userCity = c.location_name || c.city;
+            let locString = metaCity || userCity || "India";
 
             const profileHeight = meta.height || "";
             const heightInches = parseHeightToInches(profileHeight);

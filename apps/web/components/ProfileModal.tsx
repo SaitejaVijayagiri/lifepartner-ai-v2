@@ -132,7 +132,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
                             <span>{profile.career?.profession || "Professional"}</span>
                             <span className="w-1 h-1 bg-gray-400 rounded-full" />
-                            <span>{typeof profile.location === 'string' ? profile.location : (profile.location?.city || "India")}</span>
+                            <span>{typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")}</span>
                         </p>
                     </div>
 
@@ -388,8 +388,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "Nuclear"} />
                                     <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "Moderate"} />
-                                    <InfoCard label="Father" value={profile.family?.fatherOccupation || "Retired"} />
-                                    <InfoCard label="Mother" value={profile.family?.motherOccupation || "Homemaker"} />
+                                    <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
+                                    <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
                                     <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
                                     <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
                                     <InfoCard label="Native Place" value={profile.family?.nativePlace || profile.location?.city || "City"} />

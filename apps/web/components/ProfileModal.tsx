@@ -456,8 +456,18 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'preferences' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                {profile.prompt && (
+                                    <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-4">
+                                        <h3 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                            <span className="text-xl">💭</span> Expectations
+                                        </h3>
+                                        <p className="text-indigo-800 text-sm italic leading-relaxed">
+                                            "{profile.prompt}"
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                                    <h3 className="font-bold text-indigo-900 mb-4">Your Match Preferences</h3>
+                                    <h3 className="font-bold text-indigo-900 mb-4">Basic Preferences</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Open"} />
                                         <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Open"} />

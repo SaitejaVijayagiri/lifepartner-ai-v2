@@ -339,11 +339,22 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 {/* Partner Preferences (New) */}
                 <div>
                     <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Partner Preferences</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Preferred Age Range" placeholder="e.g. 24-28" value={formData.partnerPreferences?.ageRange || ''} onChange={e => handleChange('partnerPreferences', 'ageRange', e.target.value)} />
-                        <Input label="Preferred Height" placeholder="e.g. 5'2 - 5'6" value={formData.partnerPreferences?.heightRange || ''} onChange={e => handleChange('partnerPreferences', 'heightRange', e.target.value)} />
-                        <Input label="Preferred Income" placeholder="e.g. > 10 LPA" value={formData.partnerPreferences?.income || ''} onChange={e => handleChange('partnerPreferences', 'income', e.target.value)} />
-                        <Input label="Preferred Location" placeholder="e.g. Mumbai, Bangalore" value={formData.partnerPreferences?.location || ''} onChange={e => handleChange('partnerPreferences', 'location', e.target.value)} />
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Expectations / Describe your ideal partner</label>
+                            <textarea
+                                className="w-full h-24 p-3 border rounded-md bg-white border-gray-200 focus:ring-1 focus:ring-indigo-500 text-sm"
+                                placeholder="e.g. Someone who is ambitious, loves travel..."
+                                value={formData.prompt || ''}
+                                onChange={e => handleChange('root', 'prompt', e.target.value)}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Input label="Preferred Age Range" placeholder="e.g. 24-28" value={formData.partnerPreferences?.ageRange || ''} onChange={e => handleChange('partnerPreferences', 'ageRange', e.target.value)} />
+                            <Input label="Preferred Height" placeholder="e.g. 5'2 - 5'6" value={formData.partnerPreferences?.heightRange || ''} onChange={e => handleChange('partnerPreferences', 'heightRange', e.target.value)} />
+                            <Input label="Preferred Income" placeholder="e.g. > 10 LPA" value={formData.partnerPreferences?.income || ''} onChange={e => handleChange('partnerPreferences', 'income', e.target.value)} />
+                            <Input label="Preferred Location" placeholder="e.g. Mumbai, Bangalore" value={formData.partnerPreferences?.location || ''} onChange={e => handleChange('partnerPreferences', 'location', e.target.value)} />
+                        </div>
                     </div>
                 </div>
 

@@ -256,7 +256,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 const InfoCard = ({ label, value }: any) => (
     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
         <div className="text-[10px] uppercase font-bold text-gray-400 mb-1">{label}</div>
-        <div className="font-semibold text-gray-900 text-sm truncate">{value}</div>
+        <div className="font-semibold text-gray-900 text-sm break-words">{value}</div>
     </div>
 );
 

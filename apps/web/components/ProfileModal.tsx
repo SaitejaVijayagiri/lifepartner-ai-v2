@@ -533,7 +533,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 const InfoCard = ({ label, value, icon }: any) => (
     <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
         <div className="text-[10px] uppercase font-bold text-gray-400 mb-1">{label}</div>
-        <div className="font-semibold text-gray-900 text-sm truncate flex items-center gap-1">
+        <div className="font-semibold text-gray-900 text-sm flex items-center gap-1 break-words">
             {icon && <span>{icon}</span>} {value}
         </div>
     </div>

@@ -66,7 +66,8 @@ export default function OnboardingPage() {
                 family: {
                     type: data.familyType,
                     values: data.familyValues,
-                    fatherOccupation: data.fatherOccupation
+                    fatherOccupation: data.fatherOccupation,
+                    nativePlace: data.nativePlace
                 },
 
                 lifestyle: {

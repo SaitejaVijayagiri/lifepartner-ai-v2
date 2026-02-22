@@ -210,7 +210,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                 {/* Info that moves up on hover - includes Kundli badge now */}
                 <div className="transform transition-transform duration-300 group-hover:-translate-y-20">
                     {/* Kundli Badge - Now inside the animated container */}
-                    {match.kundli && (
+                    {match.kundli && match.kundli.details?.[0]?.name !== "Data Missing" && (
                         <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                             <button
                                 onClick={(e) => {

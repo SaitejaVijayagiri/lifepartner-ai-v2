@@ -99,7 +99,7 @@ export class AIService {
         let responseString = "";
         try {
             if (this.llm instanceof ChatGoogleGenerativeAI) {
-                const res = await this.llm.invoke(input);
+                const res = await (this.llm as any).invoke(input);
                 responseString = typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
             } else {
                 responseString = await this.llm.call(input);
@@ -118,7 +118,7 @@ export class AIService {
 
         try {
             if (this.llm instanceof ChatGoogleGenerativeAI) {
-                const res = await this.llm.invoke(inputProps);
+                const res = await (this.llm as any).invoke(inputProps);
                 return typeof res.content === 'string' ? res.content : JSON.stringify(res.content);
             } else {
                 // OpenAI Legacy

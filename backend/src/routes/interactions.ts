@@ -36,6 +36,8 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                 type: 'REQUEST',
                 status: 'pending'
             },
+            take: 100, // Memory Limit Protection
+            orderBy: { created_at: 'desc' },
             include: {
                 users_interactions_from_user_idTousers: {
                     include: { profiles: true }
@@ -95,6 +97,8 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                 ],
                 status: 'connected'
             },
+            take: 100, // Memory Limit Protection
+            orderBy: { created_at: 'desc' },
             include: {
                 users_interactions_from_user_idTousers: {
                     include: { profiles: true }

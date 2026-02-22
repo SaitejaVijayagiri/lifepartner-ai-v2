@@ -36,7 +36,7 @@ export default function InteractiveMap({ profiles, currentUser }: { profiles: an
     const defaultZoom = currentUser?.location?.lat ? 10 : 4;
 
     // Filter out profiles with no valid coordinates
-    const mapProfiles = profiles.filter(p => p.location && p.location.lat && p.location.lng);
+    const mapProfiles = profiles.filter(p => p.location_data && p.location_data.lat && p.location_data.lng);
 
     return (
         <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg border border-indigo-900/30">
@@ -50,7 +50,6 @@ export default function InteractiveMap({ profiles, currentUser }: { profiles: an
                 zoomControl={false}
             >
                 {/* Premium Dark Mode Map Tiles */}
-                {/* @ts-expect-error */}
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -58,9 +57,8 @@ export default function InteractiveMap({ profiles, currentUser }: { profiles: an
 
                 {/* Current User Marker (Distinctive) */}
                 {currentUser?.location?.lat && (
-                    /* @ts-expect-error */
                     <Marker position={[myLat, myLng]} zIndexOffset={1000}>
-                        {/* @ts-expect-error */}
+
                         <Popup className="premium-popup">
                             <div className="text-center p-1">
                                 <div className="w-12 h-12 mx-auto rounded-full overflow-hidden border-2 border-indigo-500 mb-2">
@@ -76,15 +74,14 @@ export default function InteractiveMap({ profiles, currentUser }: { profiles: an
                 {/* Nearby Matches Markers */}
                 {mapProfiles.map((profile, i) => (
                     // Add slight random jitter to prevent markers overlapping if they have exact same city lat/lng
-                    /* @ts-expect-error */
                     <Marker
                         key={profile.id}
                         position={[
-                            parseFloat(profile.location.lat) + (Math.random() - 0.5) * 0.01,
-                            parseFloat(profile.location.lng) + (Math.random() - 0.5) * 0.01
+                            Number(profile.location_data.lat) + (Math.random() - 0.5) * 0.01,
+                            Number(profile.location_data.lng) + (Math.random() - 0.5) * 0.01
                         ]}
                     >
-                        {/* @ts-expect-error */}
+
                         <Popup className="premium-popup">
                             <div className="text-center p-1 min-w-[120px] cursor-pointer hover:opacity-90 transition-opacity">
                                 <div className="w-14 h-14 mx-auto rounded-full overflow-hidden border-2 border-pink-500 mb-2 relative">
@@ -96,7 +93,7 @@ export default function InteractiveMap({ profiles, currentUser }: { profiles: an
                                 </h3>
                                 <p className="text-xs text-indigo-600 font-medium mb-1 line-clamp-1">{profile.career?.profession || "Professional"}</p>
                                 <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500">
-                                    <MapPin size={10} /> {profile.location.city}
+                                    <MapPin size={10} /> {profile.location_data.city || profile.location}
                                 </div>
                                 <button className="mt-2 w-full py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition">
                                     View Profile

@@ -206,6 +206,7 @@ router.get('/public-preview', async (req: any, res) => {
 
                     return locStr;
                 })(),
+                location_data: meta.location || null,
                 role: meta.career?.profession || "Member",
                 photoUrl: row.avatar_url,
                 blur: true
@@ -365,6 +366,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 age: c.age,
                 height: meta.height || "Not Specified",
                 location: locString,
+                location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
                 photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
                 score: Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
@@ -679,6 +681,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 age: c.age,
                 height: meta.height || "Not Specified",
                 location: locString,
+                location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
                 photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
                 score: Math.max(0, Math.min(score, 99)),

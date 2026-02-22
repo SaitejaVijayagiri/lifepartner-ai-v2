@@ -18,8 +18,10 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     { sender_id: connectionId, receiver_id: userId }
                 ]
             },
-            orderBy: { created_at: 'asc' },
-            take: -100, // Optimize: Load last 100 messages only
+            // Optimize: Use indexed desc sort and take 100, then reverse in memory
+            // This avoids the slow negative take / subquery approach in PostgreSQL
+            orderBy: { created_at: 'desc' },
+            take: 100,
             select: {
                 id: true,
                 sender_id: true,
@@ -29,8 +31,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             }
         });
 
-        // Format for frontend
-        const history = messages.map(row => ({
+        // Format for frontend and restore chronological order
+        const history = messages.reverse().map(row => ({
             id: row.id,
             text: row.content, // Map content -> text
             senderId: row.sender_id,

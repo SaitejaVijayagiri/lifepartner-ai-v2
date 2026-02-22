@@ -38,9 +38,23 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
             },
             take: 100, // Memory Limit Protection
             orderBy: { created_at: 'desc' },
-            include: {
+            select: {
+                id: true,
+                created_at: true,
                 users_interactions_from_user_idTousers: {
-                    include: { profiles: true }
+                    select: {
+                        id: true,
+                        full_name: true,
+                        avatar_url: true,
+                        city: true,
+                        location_name: true,
+                        profiles: {
+                            select: {
+                                metadata: true // Unfortunately Prisma doesn't support selecting specific JSON keys inside a select yet. 
+                                // BUT omitting 'raw_prompt', 'traits', 'embedding' drastically reduces memory footprint vs include: true.
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -97,14 +111,33 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                 ],
                 status: 'connected'
             },
-            take: 100, // Memory Limit Protection
+            // Memory Limit Protection
+            take: 100,
             orderBy: { created_at: 'desc' },
-            include: {
+            select: {
+                id: true,
+                created_at: true,
+                from_user_id: true,
+                to_user_id: true,
                 users_interactions_from_user_idTousers: {
-                    include: { profiles: true }
+                    select: {
+                        id: true,
+                        full_name: true,
+                        avatar_url: true,
+                        city: true,
+                        location_name: true,
+                        profiles: { select: { metadata: true } }
+                    }
                 },
                 users_interactions_to_user_idTousers: {
-                    include: { profiles: true }
+                    select: {
+                        id: true,
+                        full_name: true,
+                        avatar_url: true,
+                        city: true,
+                        location_name: true,
+                        profiles: { select: { metadata: true } }
+                    }
                 }
             }
         });

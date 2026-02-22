@@ -444,171 +444,109 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const meMeta: any = me.profiles?.metadata || {};
         const myGender = (me.gender || "").trim().toLowerCase();
 
-        // --- HELPER: Build & Run Query ---
-        const buildAndRunQuery = async (strictness: 'strict' | 'relaxed') => {
+        // --- NEW OPTIMIZED PGVECTOR + JSONB QUERY ---
+        let queryVector: number[] = [];
+        try {
+            queryVector = await aiService.generateEmbedding(query);
+        } catch (e) {
+            console.error("Query Embedding Failed", e);
+            // Fallback to random ordering if AI fails
+            queryVector = Array(384).fill(0);
+        }
 
-            let where: any = {
-                id: { not: userId },
-                is_verified: true
-            };
+        // Build dynamic SQL
+        let whereClauses = [`u.id != '${userId}'`, `u.is_verified = true`];
 
-            // Gender
-            if (myGender === 'male') where.gender = { equals: 'female', mode: 'insensitive' };
-            else if (myGender === 'female') where.gender = { equals: 'male', mode: 'insensitive' };
+        // Gender
+        if (myGender === 'male') whereClauses.push(`u.gender ILIKE 'female'`);
+        else if (myGender === 'female') whereClauses.push(`u.gender ILIKE 'male'`);
 
-            // Age
-            if (filters.minAge || filters.maxAge) {
-                where.age = {};
-                if (filters.minAge) where.age.gte = strictness === 'strict' ? filters.minAge : Math.max(18, filters.minAge - 5);
-                if (filters.maxAge) where.age.lte = strictness === 'strict' ? filters.maxAge : filters.maxAge + 5;
+        // Age
+        if (filters.minAge) whereClauses.push(`u.age >= ${filters.minAge}`);
+        if (filters.maxAge) whereClauses.push(`u.age <= ${filters.maxAge}`);
+
+        // Location
+        if (filters.location) {
+            const loc = filters.location.replace(/'/g, "''");
+            whereClauses.push(`(u.location_name ILIKE '%${loc}%' OR u.city ILIKE '%${loc}%' OR u.state ILIKE '%${loc}%')`);
+        }
+
+        // Profession (Native JSONB)
+        if (filters.profession) {
+            const prof = filters.profession.replace(/'/g, "''");
+            whereClauses.push(`p.metadata->'career'->>'profession' ILIKE '%${prof}%'`);
+        }
+
+        // Income (Native JSONB)
+        if (filters.minIncome) {
+            // Need to extract digits using regex in postgres
+            whereClauses.push(`COALESCE(NULLIF(regexp_replace(p.metadata->'career'->>'income', '[^0-9]', '', 'g'), ''), '0')::int >= ${filters.minIncome}`);
+        }
+
+        const whereSql = whereClauses.join(' AND ');
+
+        // Safely Convert Vector to Postgres format '[0.1, 0.2, ...]'
+        const vectorString = `[${queryVector.join(',')}]`;
+
+        console.log("🚀 Executing AI Vector Search...");
+
+        const rawResults: any[] = await prisma.$queryRawUnsafe(`
+            SELECT 
+                u.id, u.full_name, u.age, u.gender, u.city, u.state, u.location_name, u.avatar_url, u.is_premium,
+                p.raw_prompt, p.metadata,
+                1 - (p.embedding <=> '${vectorString}'::vector) AS ai_similarity
+            FROM users u
+            LEFT JOIN profiles p ON u.id = p.user_id
+            WHERE ${whereSql}
+            ORDER BY p.embedding <=> '${vectorString}'::vector ASC
+            LIMIT 50
+        `);
+
+        // Map raw query results back to expected Prisma-like structure
+        let rows = rawResults.map(r => ({
+            ...r,
+            profiles: {
+                raw_prompt: r.raw_prompt,
+                metadata: r.metadata
             }
+        }));
 
-            // NOTE: Relaxed mode in Prisma: "OR" logic across different fields is complex.
-            // Strict mode = AND. 
-            // Relaxed mode logic in original SQL: "AND (cond1 OR cond2 OR ...)" ?
-            // Original Code: 
-            // Strict: AND ... AND ...
-            // Relaxed: AND (cond1 OR cond2 OR ...)
-
-            const orConditions: any[] = []; // For Relaxed Mode or OR blocks
-
-            // --- FILTER APPLIER ---
-            // Helper to add condition. In strict, add to `where`. In relaxed, add to `orConditions`.
-            const addCondition = (cond: any) => {
-                if (strictness === 'strict') {
-                    // Merge AND conditions. If `where` already has an `OR` property,
-                    // we need to wrap existing `where` and new `cond` in an `AND` array.
-                    if (where.OR) {
-                        where.AND = [{ OR: where.OR }, cond];
-                        delete where.OR; // Remove the top-level OR
-                    } else {
-                        Object.assign(where, cond); // Simple merge for AND
-                    }
-                } else {
-                    // For relaxed, we need to push to OR array.
-                    orConditions.push(cond);
-                }
-            };
-
-            // Common JSON Path Handler for specific fields
-            // Assuming metadata structure is consistent
-
-            // Profession
-            if (filters.profession) {
-                // Since we can't easily ILIKE inside JSONB with Prisma without Raw,
-                // We will skip strict JSON filtering here or use basic check.
-                // Or better: Use `findMany` and filter in memory? 
-                // Search is critical, so memory filtering 50 candidates might be okay if base filters reduce enough.
-                // But efficient DB search is better.
-                // Let's use `prisma.$queryRaw` for search if we care about performance,
-                // BUT I will attempt Prisma implementation knowing its limits.
-
-                // WORKAROUND: Raw Filter for Metadata
-                // Or simply don't filter in DB for complex JSON text?
-                // Given the task is "Migrate to Prisma", I will prioritize valid Prisma code.
-                // If I can't express it, I fallback to memory filtering or Raw.
-
-                // Let's use Memory Filtering for JSON Text fields to avoid Raw SQL complexity 
-                // and because dataset is likely small for this demo.
-                // Wait, if I don't filter in DB, I might fetch 1000 users.
-                // I should apply core filters (Age, Gender, Location) in DB.
-            }
-
-            // Location (Text search on columns is easy)
-            if (filters.location) {
-                const locFilter = {
-                    OR: [
-                        { location_name: { contains: filters.location, mode: 'insensitive' } },
-                        { city: { contains: filters.location, mode: 'insensitive' } },
-                        { state: { contains: filters.location, mode: 'insensitive' } },
-                        // Skip profile.metadata location DB search for now
-                    ]
-                };
-
-                if (strictness === 'strict') {
-                    // In strict mode, `where` already has fields. We need to add AND clause.
-                    // Prisma implicit AND is object merge. But OR is a property.
-                    // If we have existing OR (unlikely in strict base), use AND: [ ... ]
-                    if (where.OR) {
-                        where.AND = [{ OR: where.OR }, locFilter];
-                        delete where.OR;
-                    } else {
-                        addCondition(locFilter);
-                    }
-                } else {
-                    orConditions.push(locFilter);
-                }
-            }
-
-            // Religion, Caste, Gothra (JSON fields, exact match for now)
-            if (filters.religion) {
-                addCondition({ profiles: { metadata: { path: ['religion', 'faith'], string_contains: filters.religion } } });
-            }
-            if (filters.caste) {
-                addCondition({ profiles: { metadata: { path: ['religion', 'caste'], string_contains: filters.caste } } });
-            }
-            if (filters.gothra) {
-                addCondition({ profiles: { metadata: { path: ['religion', 'gothra'], string_contains: filters.gothra } } });
-            }
-
-            // Habits (JSON fields, exact match for 'No')
-            if (filters.smoking === 'No') {
-                addCondition({
-                    OR: [
-                        { profiles: { metadata: { path: ['lifestyle', 'smoking'], equals: 'No' } } },
-                        { profiles: { metadata: { path: ['lifestyle', 'smoking'], equals: null } } }
-                    ]
-                });
-            }
-            if (filters.drinking === 'No') {
-                addCondition({
-                    OR: [
-                        { profiles: { metadata: { path: ['lifestyle', 'drinking'], equals: 'No' } } },
-                        { profiles: { metadata: { path: ['lifestyle', 'drinking'], equals: null } } }
-                    ]
-                });
-            }
-
-            // Education (JSON fields, text search)
-            if (filters.education) {
-                addCondition({
-                    OR: [
-                        { profiles: { metadata: { path: ['career', 'educationLevel'], string_contains: filters.education } } },
-                        { profiles: { metadata: { path: ['career', 'college'], string_contains: filters.education } } }
-                    ]
-                });
-            }
-
-            // Execute Query
-            if (strictness === 'relaxed' && orConditions.length > 0) {
-                // If there are existing AND conditions in `where`, combine them with the OR conditions
-                if (Object.keys(where).length > 1 || (Object.keys(where).length === 1 && !where.id)) { // Check if `where` has other conditions besides `id: { not: userId }`
-                    where.AND = [where, { OR: orConditions }];
-                } else {
-                    where.OR = orConditions;
-                }
-            }
-
-            return await prisma.users.findMany({
-                where,
-                include: { profiles: true },
-                take: 50
-            });
-        };
-
-        // 3. Execution Strategy
-        let rows = await buildAndRunQuery('strict');
         let isBroad = false;
 
         if (rows.length < 5) {
-            console.log("⚠️ Low Strict Results. Running Broad Search...");
-            const broadRows = await buildAndRunQuery('relaxed');
+            console.log("⚠️ Low Strict Results. Relaxing filters...");
+            isBroad = true;
+            // Relaxed query: remove strict JSON/Location constraints but keep AI ordering
+            let relaxedClauses = [`u.id != '${userId}'`, `u.is_verified = true`];
+            if (myGender === 'male') relaxedClauses.push(`u.gender ILIKE 'female'`);
+            else if (myGender === 'female') relaxedClauses.push(`u.gender ILIKE 'male'`);
+
+            const relaxedSql = relaxedClauses.join(' AND ');
+
+            const broadResults: any[] = await prisma.$queryRawUnsafe(`
+                SELECT 
+                    u.id, u.full_name, u.age, u.gender, u.city, u.state, u.location_name, u.avatar_url, u.is_premium,
+                    p.raw_prompt, p.metadata,
+                    1 - (p.embedding <=> '${vectorString}'::vector) AS ai_similarity
+                FROM users u
+                LEFT JOIN profiles p ON u.id = p.user_id
+                WHERE ${relaxedSql}
+                ORDER BY p.embedding <=> '${vectorString}'::vector ASC
+                LIMIT 50
+            `);
 
             // Deduplicate
             const existingIds = new Set(rows.map(r => r.id));
-            const newRows = broadRows.filter(r => !existingIds.has(r.id));
+            const newRows = broadResults
+                .filter(r => !existingIds.has(r.id))
+                .map(r => ({
+                    ...r,
+                    profiles: {
+                        raw_prompt: r.raw_prompt,
+                        metadata: r.metadata
+                    }
+                }));
             rows = [...rows, ...newRows];
-            isBroad = true;
         }
 
         // 4. Scoring & Mapping (Heavy logic in JS)
@@ -772,58 +710,16 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 maritalStatus: meta.maritalStatus || "Single"
             };
         }).filter(m => m !== null);
-
-        // 5. Semantic Re-ranking
-        // (Logic reused directly from original code, assuming aiservice uses vectors)
-        if (query && scoredMatches.length > 0) {
-            try {
-                const aiService = new (require('../services/ai').AIService)();
-                console.log("🧠 Semantic Ranking", scoredMatches.length, "candidates...");
-
-                if (true) {
-                    const queryVector = await aiService.generateEmbedding(query);
-                    // Helper Cosine
-                    const cosineSimilarity = (vecA: number[], vecB: number[]) => {
-                        let dot = 0; let nA = 0; let nB = 0;
-                        for (let i = 0; i < vecA.length; i++) {
-                            dot += vecA[i] * vecB[i];
-                            nA += vecA[i] * vecA[i];
-                            nB += vecB[i] * vecB[i];
-                        }
-                        return dot / (Math.sqrt(nA) * Math.sqrt(nB));
-                    };
-
-                    await Promise.all(scoredMatches.map(async (m: any) => {
-                        const bio = m.summary || "";
-                        if (bio.length > 10) {
-                            const bioVector = await aiService.generateEmbedding(bio);
-                            const similarity = cosineSimilarity(queryVector, bioVector);
-                            if (similarity > 0.3) {
-                                m.score += (similarity * 30);
-                                m.match_reasons.push(`✨ Conceptual Match (${Math.round(similarity * 100)}%)`);
-                            }
-                            const sentiment = await aiService.analyzeSentiment(bio);
-                            if (sentiment === 'POSITIVE') m.score += 5;
-                            else if (sentiment === 'NEGATIVE') m.score -= 5;
-                        }
-                    }));
-                }
-            } catch (e) {
-                console.error("Semantic Ranking Failed", e);
-            }
-        }
-
-        // Final Clamp
-        scoredMatches.forEach((m: any) => {
-            m.score = Math.min(99, Math.max(0, m.score));
-        });
-
-        scoredMatches.sort((a: any, b: any) => (b?.score || 0) - (a?.score || 0));
-
+        // Final Output
         const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
             ...m,
+            // Only add Online status (AI Score is already populated by DB `ai_similarity`)
             isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),
-            analysis: { emotional: m?.score || 50, vision: m?.score || 50 }
+            // Map Postgres `ai_similarity` (0-1) to UI percentages (0-100)
+            analysis: {
+                emotional: Math.round((m.ai_similarity || 0.5) * 100),
+                vision: Math.round((m.ai_similarity || 0.5) * 100)
+            }
         }));
 
         res.json({ matches: finalMatches, filters });

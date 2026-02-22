@@ -295,16 +295,6 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 };
 
                 // Upsert Profile
-                // Prisma uses explicit update or create logic for JSON merges if needed.
-                // However, metadata default merge is NOT automatic in Prisma update.
-                // We need to fetch existing if we want deep merge, OR just overwrite.
-                // The SQL used `||` concatenation for partial updates.
-                // For now, simpler to fetch existing metadata or just trust frontend sends full state?
-                // Frontend usually sends full state. Let's assume full state overwrite for metadata.
-                // IF partial is needed, we must fetch first.
-                // The SQL was `COALESCE(public.profiles.metadata, '{}'::jsonb) || EXCLUDED.metadata` which implies merge by key.
-                // Let's FETCH first to be safe.
-
                 const existingProfile = await tx.profiles.findUnique({ where: { user_id: userId } });
                 const existingMeta = (existingProfile?.metadata as any) || {};
                 const newMeta = { ...existingMeta, ...metadata };
@@ -321,6 +311,29 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         metadata: newMeta // On update use merge
                     }
                 });
+
+                // Pre-compute Optimization: Generate and store pgvector
+                // We combine aboutMe (bio) and profession to build a rich vector
+                const bioTextToEmbed = [
+                    cleanPrompt,
+                    metadata.career?.profession,
+                    metadata.career?.educationLevel,
+                    metadata.location?.city
+                ].filter(Boolean).join(" ");
+
+                if (bioTextToEmbed.length > 5) {
+                    try {
+                        const bioVector = await aiService.generateEmbedding(bioTextToEmbed);
+                        // PGVector requires raw SQL to insert correctly as a typed array
+                        await tx.$executeRaw`
+                            UPDATE profiles 
+                            SET embedding = ${bioVector}::vector 
+                            WHERE user_id = ${userId}::uuid
+                        `;
+                    } catch (e) {
+                        console.error("Failed to generate or save profile embedding during /me update", e);
+                    }
+                }
             });
 
             res.json({ success: true, message: "Profile saved" });
@@ -345,14 +358,32 @@ router.post('/prompt', authenticateToken, async (req: any, res) => {
         // 1. AI Analysis
         const analysis = await aiService.parseUserPrompt(prompt);
 
-        // 2. Save to DB
-        await prisma.profiles.update({
-            where: { user_id: userId },
-            data: {
-                raw_prompt: prompt,
-                traits: analysis.traits || {},
-                values: (analysis.values as any) || [],
-                updated_at: new Date()
+        // Pre-compute Optimization: Generate pgvector
+        let bioVector: number[] = [];
+        try {
+            bioVector = await aiService.generateEmbedding(prompt);
+        } catch (e) {
+            console.error("Failed to generate embedding during /prompt", e);
+        }
+
+        // 2. Save to DB using Transaction to handle Prisma Update + Raw Vector Update
+        await prisma.$transaction(async (tx) => {
+            await tx.profiles.update({
+                where: { user_id: userId },
+                data: {
+                    raw_prompt: prompt,
+                    traits: analysis.traits || {},
+                    values: (analysis.values as any) || [],
+                    updated_at: new Date()
+                }
+            });
+
+            if (bioVector && bioVector.length > 0) {
+                await tx.$executeRaw`
+                    UPDATE profiles 
+                    SET embedding = ${bioVector}::vector 
+                    WHERE user_id = ${userId}::uuid
+                `;
             }
         });
 

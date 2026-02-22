@@ -6,6 +6,7 @@ import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Pla
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
+import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 
 export default function LandingPage() {
   return (
@@ -208,6 +209,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* --- AI MATCHMAKER DEMO SECTION --- */}
+      <AnimatedSearchSection />
 
       {/* --- INFINITE MARQUEE --- */}
       <section className="py-12 border-y border-gray-200 bg-white relative overflow-hidden z-20">

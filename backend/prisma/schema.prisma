@@ -88,6 +88,8 @@ model interactions {
   users_interactions_to_user_idTousers   users?    @relation("interactions_to_user_idTousers", fields: [to_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([from_user_id, to_user_id, type], map: "unique_interaction_type")
+  @@index([from_user_id, status], map: "idx_interactions_from_status")
+  @@index([to_user_id, status], map: "idx_interactions_to_status")
 }
 
 model matches {

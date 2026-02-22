@@ -18,7 +18,6 @@ import StoryModal from '@/components/StoryModal';
 import { NotificationBell } from '@/components/NotificationBell';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileModal from '@/components/ProfileModal';
-import ReelFeed from '@/components/ReelFeed';
 import ProfileView from '@/components/ProfileView';
 import ChatWindow from '@/components/ChatWindow';
 import CoinStoreModal from '@/components/CoinStoreModal';
@@ -27,6 +26,7 @@ import FilterModal, { FilterState } from '@/components/FilterModal';
 import GiftModal from '@/components/GiftModal';
 import CommunityChat from '@/components/CommunityChat';
 import { BottomNav } from '@/components/BottomNav';
+import InteractiveMap from '@/components/InteractiveMap';
 
 /* Mock Data for Stories */
 const STORIES = [
@@ -432,7 +432,7 @@ function DashboardContent() {
     };
 
     const renderHeader = () => (
-        <header className={`sticky top-0 z-40 bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-sm transition-all duration-300 ${activeTab === 'reels' ? 'hidden sm:block' : ''}`}>
+        <header className={`sticky top-0 z-40 bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-sm transition-all duration-300 ${activeTab === 'map' ? 'hidden sm:block' : ''}`}>
             <div className="max-w-7xl mx-auto px-4 h-18 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Premium Logo */}
@@ -495,7 +495,7 @@ function DashboardContent() {
 
 
 
-                    {(activeTab === 'matches' || activeTab === 'reels') && (
+                    {(activeTab === 'matches' || activeTab === 'map') && (
                         <button
                             onClick={() => setShowFilterModal(true)}
                             className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50' : ''}`}
@@ -1115,17 +1115,17 @@ function DashboardContent() {
     );
 
     return (
-        <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'reels' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
+        <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'map' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
             {renderHeader()}
-            <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'reels' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-6 px-4'}`}>
+            <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'map' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-6 px-4'}`}>
                 {/* Main Feed Column */}
-                <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'reels' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
+                <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'map' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
                     {activeTab === 'matches' && (
                         <div className="mb-8">{renderStories()}</div>
                     )}
 
                     {activeTab === 'matches' && renderDiscoveryFeed()}
-                    {activeTab === 'reels' && <ReelFeed currentUser={currentUser} />}
+                    {activeTab === 'map' && <InteractiveMap profiles={displayMatches} currentUser={currentUser} />}
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
 

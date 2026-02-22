@@ -20,7 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     const navItems: NavItem[] = [
         { id: 'matches', label: 'Matches', icon: Heart, gradient: 'from-rose-500 to-pink-500' },
         { id: 'community', label: 'Lounge', icon: Coffee, gradient: 'from-indigo-500 to-blue-500' },
-        { id: 'reels', label: 'Vibe', icon: Video, gradient: 'from-purple-500 to-indigo-500' },
+        { id: 'map', label: 'Live Map', icon: require('lucide-react').MapPin, gradient: 'from-purple-500 to-indigo-500' },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount, gradient: 'from-amber-500 to-orange-500' },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadCount, gradient: 'from-emerald-500 to-teal-500' },
         { id: 'profile', label: 'Profile', icon: User, gradient: 'from-blue-500 to-cyan-500' },

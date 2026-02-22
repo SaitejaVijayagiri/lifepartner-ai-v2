@@ -158,3 +158,21 @@ html, body {
     min-height: 100dvh;
   }
 }
+
+/* Leaflet Map Premium Popup Overrides */
+.premium-popup .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  padding: 0;
+  overflow: hidden;
+}
+.premium-popup .leaflet-popup-content {
+  margin: 8px 10px;
+}
+.premium-popup .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}

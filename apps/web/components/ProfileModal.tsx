@@ -105,13 +105,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 </button>
 
                 {/* LEFT: Immersive Image Section - Fixed Height on Mobile to Stop Jumps */}
-                <div className="w-full md:w-[45%] h-[45%] md:h-full bg-gray-900 relative group shrink-0 flex items-center justify-center">
+                <div className="w-full md:w-[45%] h-[50%] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
 
                     {/* Main Image */}
                     <img
                         src={photos[currentPhotoIndex]}
                         alt={profile.name}
-                        className="w-full h-full object-cover bg-black/90 block transition-opacity duration-500"
+                        className="w-full h-full object-contain md:object-cover bg-black/90 block transition-opacity duration-500"
                     />
 
                     {/* Gradient Overlay for Text Readability (Subtler) */}
@@ -183,7 +183,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 </div>
 
                 {/* RIGHT: Content & Details */}
-                <div className="w-full md:w-[55%] flex flex-col bg-white h-[55%] md:h-full relative rounded-none z-30 md:z-auto">
+                <div className="w-full md:w-[55%] flex flex-col bg-white h-[50%] md:h-full relative rounded-none z-30 md:z-auto">
 
 
 

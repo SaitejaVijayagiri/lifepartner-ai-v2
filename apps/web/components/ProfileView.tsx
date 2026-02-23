@@ -28,15 +28,15 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
         <div className="bg-white w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-gray-100 min-h-[600px]">
 
             {/* LEFT: Image Section */}
-            <div className="w-full md:w-[40%] bg-gray-900 relative group shrink-0 h-[400px] md:h-auto overflow-hidden">
+            <div className="w-full md:w-[40%] bg-gray-950 relative group shrink-0 h-[450px] md:h-auto overflow-hidden">
                 <img
                     src={photos[currentPhotoIndex]}
                     alt={profile.name}
-                    className="w-full h-full object-cover opacity-90 transition-opacity duration-500"
+                    className="w-full h-full object-contain md:object-cover opacity-90 transition-opacity duration-500"
                 />
 
                 {/* Overlay Text */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-20">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-20 pointer-events-none">
                     <h2 className="text-2xl font-bold text-white tracking-tight">{profile.name}, {profile.age}</h2>
                     <p className="text-gray-300 text-sm font-medium">
                         {profile.career?.profession || "-"} • {typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown Location")}

@@ -22,23 +22,10 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
     const myLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : 78.9629;
     const defaultZoom = currentUser?.location?.lat ? 10 : 4;
 
-    // Ensure all profiles show on the map even if they haven't set GPS coordinates yet
-    const mapProfiles = (profiles || []).map((p: any, index: number) => {
-        if (p.location_data && p.location_data.lat && p.location_data.lng) {
-            return p;
-        }
-        // Generate a fake offset around the user's location based on their ID if they don't have GPS
-        const idStr = String(p.id || index);
-        const offsetLat = ((idStr.charCodeAt(0) % 20) - 10) * 0.01; // ~10km radius
-        const offsetLng = ((idStr.charCodeAt(idStr.length - 1) % 20) - 10) * 0.01;
-        return {
-            ...p,
-            location_data: {
-                lat: myLat + offsetLat,
-                lng: myLng + offsetLng
-            }
-        };
-    });
+    // Only show profiles that have real coordinates
+    const mapProfiles = (profiles || []).filter(
+        (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
+    );
 
     // We must use dynamic require inside the component to avoid Next.js window undefined errors during build
     // Doing this globally ONCE per render instead of inside the map loop to massively improve speed

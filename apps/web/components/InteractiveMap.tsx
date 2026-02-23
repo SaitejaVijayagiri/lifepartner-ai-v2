@@ -39,8 +39,10 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
         }
     });
 
-    // Count all filtered profiles since we will auto-assign GPS coords to those missing them
-    const mapProfilesCount = filteredProfiles.length;
+    // Only count profiles that have actual coordinates
+    const mapProfilesCount = filteredProfiles.filter(
+        (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
+    ).length;
 
     const filters = ['Software', 'Doctor', 'Engineer', 'Telugu', 'Hindi', 'Tamil'];
 

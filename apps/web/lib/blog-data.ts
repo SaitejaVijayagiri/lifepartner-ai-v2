@@ -8,25 +8,21 @@ export const BLOG_POSTS = [
         category: "Market Trends",
         image: "https://images.unsplash.com/photo-1596120236172-231999844c20?auto=format&fit=crop&q=80&w=1000",
         content: `
-            <p>Finding a life partner in India has traditionally been a stressful, expensive affair. Parents scrolling through endless biodatas on Shaadi.com, paying thousands of rupees just to see a phone number, and awkward "arranged" meetings.</p>
-            
-            <p>But in 2025, the game has changed. Enter <strong>LifePartner AI</strong>, the first app that combines the fun of Instagram Reels with the seriousness of Matrimony.</p>
-
-            <h2>Why Old Matrimony Apps are Dying</h2>
+            <p>Finding a life partner is easily the biggest decision you'll ever make. Yet, we've trusted this process to arranged marriage brokers or soulless swiping apps that treat humans like catalog items.</p>
+            <p>Welcome to <strong>LifePartner AI</strong>—where technology meets tradition to help you find true compatibility.</p>
+            <h2>The Problem with Traditional Matrimony</h2>
             <ul>
-                <li><strong>Expensive:</strong> Most apps charge ₹5,000+ just to chat.</li>
-                <li><strong>Fake Profiles:</strong> Bots and dead accounts are everywhere.</li>
-                <li><strong>Boring:</strong> Reading text biodatas tells you nothing about a person's "vibe".</li>
+                <li><strong>Fake Profiles:</strong> Scammers and bots waste your time and put your safety at risk.</li>
+                <li><strong>Paywalls:</strong> You have to pay just to message someone you like.</li>
+                <li><strong>Boring:</strong> Reading text biodatas tells you nothing about a person's energy.</li>
             </ul>
-
-            <h2>The LifePartner AI Difference</h2>
-            <p>We believe love shouldn't be paywalled. That's why:</p>
+            <h2>How LifePartner AI is Different</h2>
+            <p>We built this platform from the ground up to solve these exact problems.</p>
             <ol>
-                <li><strong>Reels First:</strong> See the real person, hear their voice, and catch their vibe before you match.</li>
-                <li><strong>AI Compatibility:</strong> Our "VibeMatch" algorithm doesn't just check caste and salary. It checks personality compatibility.</li>
+                <li><strong>Reels First:</strong> See the real person, hear their voice, and catch their personality before you match.</li>
+                <li><strong>AI Compatibility:</strong> Our AI matching algorithm doesn't just check caste and salary. It checks personality compatibility.</li>
                 <li><strong>Privacy First:</strong> Your phone number is hidden until YOU decide to share it.</li>
             </ol>
-
             <p>Join the revolution today. It's free, it's safe, and it's built for the modern Indian.</p>
         `
     },
@@ -88,15 +84,15 @@ export const BLOG_POSTS = [
             <h2>The "Catfish" Problem</h2>
             <p>Static photos are easy to fake. Filters, angles, old pictures. It's hard to trust what you see.</p>
 
-            <h2>Video Usage is High Trust</h2>
-            <p>On <strong>LifePartner AI</strong>, users upload short Reels showcasing their hobbies, their voice, or just their day. You can instantly tell:</p>
+            <h2>The Problem with Text Biodatas</h2>
+            <p>Have you ever read a biodata and thought, "Wow, this person sounds identical to the last 10 people I read about"? That's because text cannot convey personality. You can list "listening to music" and "watching movies" as hobbies, but what does that actually tell you about someone?</p>
+            <p>It doesn't tell you:</p>
             <ul>
-                <li>Are they kind?</li>
-                <li>Do they have a sense of humor?</li>
-                <li>Is their vibe compatible with yours?</li>
+                <li>How they laugh.</li>
+                <li>Are their core values compatible with yours?</li>
+                <li>What they sound like when they are passionate about something.</li>
             </ul>
-
-            <p>Don't waste time on bad dates. Watch the Reel, catch the vibe, then swipe.</p>
+            <p>Don't waste time on bad dates. Use our Interactive Live Map to find people nearby organically, then swipe.</p>
         `
     },
     {

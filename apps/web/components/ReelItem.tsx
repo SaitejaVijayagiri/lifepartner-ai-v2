@@ -177,7 +177,7 @@ const ReelItem = memo(({
                         // Share Logic
                         if (navigator.share) {
                             navigator.share({
-                                title: `Watch ${reel.user.name}'s Vibe on LifePartner.AI`,
+                                title: `Watch ${reel.user.name}'s Profile on LifePartner.AI`,
                                 text: reel.caption || "Check out this amazing profile!",
                                 url: window.location.href // Ideally deep link: /reels/id
                             }).catch(console.error);

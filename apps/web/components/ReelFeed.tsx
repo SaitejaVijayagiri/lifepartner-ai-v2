@@ -251,7 +251,7 @@ export default function ReelFeed({ currentUser }: { currentUser?: any }) {
                 ) : (
                     <>
                         <p className="text-xl font-bold">No Reels Yet</p>
-                        <p className="text-gray-400 mb-4">Be the first to post a vibe!</p>
+                        <p className="text-gray-400 mb-4">Be the first to post a Reel!</p>
                         <label className="cursor-pointer bg-gradient-to-r from-pink-500 to-red-500 px-6 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2">
                             <span>📹 Post First Reel</span>
                             <input type="file" className="hidden" onChange={handleUpload} />

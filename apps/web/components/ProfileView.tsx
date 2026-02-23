@@ -167,16 +167,16 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 )}
                             </div>
 
-                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-6">
-                                <h3 className="font-bold text-gray-900 mb-4">Contact</h3>
+                            <div className="bg-teal-50 p-6 rounded-2xl border border-teal-100 mt-6">
+                                <h3 className="font-bold text-teal-900 mb-4">Contact Information</h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Phone</span>
-                                        <span className="text-sm font-medium">{profile.phone || "-"}</span>
+                                        <span className="text-sm text-teal-800/70">Phone</span>
+                                        <span className="text-sm font-medium text-teal-950">{profile.phone || "-"}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Email</span>
-                                        <span className="text-sm font-medium">{profile.email || "-"}</span>
+                                        <span className="text-sm text-teal-800/70">Email</span>
+                                        <span className="text-sm font-medium text-teal-950">{profile.email || "-"}</span>
                                     </div>
                                 </div>
                             </div>

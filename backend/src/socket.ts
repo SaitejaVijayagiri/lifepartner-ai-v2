@@ -48,9 +48,13 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.join('public_updates');
 
         // Send initial stats on connect
-        const currentList = Array.from(communityUsers.values());
-        const uniqueCount = new Set(currentList.map(u => u.userId)).size;
-        socket.emit('public_stats', { onlineCount: uniqueCount });
+        const loungeList = Array.from(communityUsers.values());
+        const loungeCount = new Set(loungeList.map(u => u.userId)).size;
+
+        socket.emit('public_stats', {
+            onlineCount: onlineUsers.size || 1,
+            loungeCount: loungeCount
+        });
 
         if (userId) {
             socket.join(userId);
@@ -65,6 +69,7 @@ export const initSocket = (httpServer: HttpServer) => {
             // Notify OTHERS that this user is online ONLY if they just came online
             if (currentCount === 0) {
                 socket.broadcast.emit('userOnline', userId);
+                io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
             }
         }
 
@@ -77,7 +82,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 io.to('verified_lounge').emit('update_community_users', uniqueList);
 
                 // Broadcast Count to Public
-                io.to('public_updates').emit('public_stats', { onlineCount: uniqueList.length });
+                io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
             }
         };
 
@@ -94,6 +99,7 @@ export const initSocket = (httpServer: HttpServer) => {
                     // Last connection dying
                     onlineUsers.delete(userId);
                     io.emit('userOffline', userId);
+                    io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
                 } else {
                     onlineUsers.set(userId, currentCount - 1);
                 }
@@ -218,7 +224,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
             io.to('verified_lounge').emit('update_community_users', uniqueList);
             // Broadcast Count to Public
-            io.to('public_updates').emit('public_stats', { onlineCount: uniqueList.length });
+            io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
 
             socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });
 

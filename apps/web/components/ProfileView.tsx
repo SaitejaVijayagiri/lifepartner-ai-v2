@@ -60,8 +60,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                 {/* Prev/Next Touch Areas */}
                 <div className="absolute inset-0 flex z-10">
-                    <div className="w-1/2 h-full" onClick={() => setCurrentPhotoIndex(prev => prev === 0 ? photos.length - 1 : prev - 1)} />
-                    <div className="w-1/2 h-full" onClick={() => setCurrentPhotoIndex(prev => prev === photos.length - 1 ? 0 : prev + 1)} />
+                    <div className="w-[30%] h-full cursor-pointer" onClick={() => setCurrentPhotoIndex(prev => prev === 0 ? photos.length - 1 : prev - 1)} />
+                    <div className="w-[40%] h-full cursor-zoom-in" onClick={() => setIsFullscreen(true)} />
+                    <div className="w-[30%] h-full cursor-pointer" onClick={() => setCurrentPhotoIndex(prev => prev === photos.length - 1 ? 0 : prev + 1)} />
                 </div>
             </div>
 

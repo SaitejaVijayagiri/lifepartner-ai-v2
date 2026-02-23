@@ -233,7 +233,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
             {/* Fullscreen Image Overlay (Zoom) */}
             {isFullscreen && (
                 <div
-                    className="fixed inset-0 z-[20000] bg-black/98 flex items-center justify-center animate-in fade-in zoom-in duration-200"
+                    className="fixed inset-0 z-[20000] bg-black flex items-center justify-center animate-in fade-in zoom-in duration-200"
                     onClick={() => setIsFullscreen(false)}
                 >
                     <button

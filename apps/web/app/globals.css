@@ -176,3 +176,81 @@ html, body {
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
+
+/* --- Live Map Premium Features --- */
+
+/* 1. Radar Sweep Animation */
+.radar-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200vw;
+  height: 200vw;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 400; /* Above tiles, below markers */
+  overflow: hidden;
+}
+
+.radar-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 280deg,
+    rgba(99, 102, 241, 0.1) 330deg,
+    rgba(99, 102, 241, 0.4) 360deg
+  );
+  border-radius: 50%;
+  animation: radar-spin 4s linear infinite;
+}
+
+@keyframes radar-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 2. Fuzzy Zones (Privacy) */
+.fuzzy-zone {
+  width: 100% !important;
+  height: 100% !important;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.6) 0%, rgba(236, 72, 153, 0.1) 60%, transparent 100%);
+  border-radius: 50%;
+  animation: pulse-slow 3s ease-in-out infinite alternate;
+  pointer-events: none; /* Let clicks pass to the marker hit area */
+}
+
+@keyframes pulse-slow {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(1.1); opacity: 1; }
+}
+
+/* 3. Glowing Auras (High Matches) */
+.match-aura-high {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160%;
+  height: 160%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.8) 0%, rgba(168, 85, 247, 0.4) 50%, transparent 100%);
+  animation: aura-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes aura-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}

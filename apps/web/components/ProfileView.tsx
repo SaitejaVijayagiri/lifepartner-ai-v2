@@ -14,7 +14,6 @@ interface ProfileViewProps {
 export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
     const [activeTab, setActiveTab] = useState('about');
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-    const [playingReel, setPlayingReel] = useState<string | null>(null);
 
     // Ensure we have an array
     const photos: string[] = profile.photos?.length > 0
@@ -24,7 +23,6 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
     // Fallback Reels (Empty to save memory)
     const demoReels: string[] = [];
     const displayReels = (profile.reels && profile.reels.length > 0) ? profile.reels : demoReels;
-    const hasReels = true;
 
     return (
         <div className="bg-white w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-gray-100 min-h-[600px]">
@@ -93,7 +91,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                 {/* Tabs */}
                 <div className="border-b border-gray-100 px-6">
                     <div className="flex space-x-6 overflow-x-auto no-scrollbar py-3">
-                        {['about', 'personal', 'career', 'preferences', 'family', ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                        {['about', 'personal', 'career', 'preferences', 'family'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
@@ -104,7 +102,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                         : 'text-gray-400 hover:text-gray-600 border-transparent'}
                                 `}
                             >
-                                {tab === 'vibe check' ? '✨ Vibe Check' : tab}
+                                {tab}
                             </button>
                         ))}
                     </div>
@@ -226,38 +224,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             </div>
                         </div>
                     )}
-
-                    {activeTab === 'vibe check' && (
-                        <div className="grid grid-cols-3 gap-2 animate-in fade-in duration-300">
-                            {displayReels.map((url: string, idx: number) => (
-                                <div
-                                    key={idx}
-                                    className="aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden relative cursor-pointer group"
-                                    onClick={() => setPlayingReel(url)}
-                                >
-                                    <video src={url.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${url}`} className="w-full h-full object-cover opacity-90 group-hover:opacity-100" />
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Play size={24} className="text-white drop-shadow-md" fill="white" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
                 </div>
             </div>
-
-            {/* Video Player Modal */}
-            {playingReel && (
-                <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setPlayingReel(null)}>
-                    <video
-                        src={playingReel.startsWith('http') ? playingReel : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${playingReel}`}
-                        className="max-h-[80vh] w-full max-w-md rounded-xl"
-                        controls
-                        autoPlay
-                        onClick={e => e.stopPropagation()}
-                    />
-                </div>
-            )}
         </div>
     );
 }

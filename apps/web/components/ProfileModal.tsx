@@ -20,10 +20,9 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ profile, currentUser, onClose, onConnect, onUpgrade }: ProfileModalProps) {
-    const [activeTab, setActiveTab] = useState('about');
+    const [activeTab, setActiveTab] = useState('ai insight');
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [lastInteracted, setLastInteracted] = useState(0);
-    const [playingReel, setPlayingReel] = useState<string | null>(null);
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [showKundli, setShowKundli] = useState(false);
 
@@ -78,8 +77,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     // FALLBACK REELS FOR DEMO (If user has none)
     // NO DEMO REELS - Use empty if none
     const demoReels: string[] = [];
-    const displayReels = (safeProfile.reels.length > 0) ? safeProfile.reels : demoReels;
-    const hasReels = displayReels.length > 0;
 
     // Helper for safe Date parsing
     const getAge = (dob: string | undefined, defaultAge: any) => {
@@ -209,7 +206,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     {/* Sticky Tabs */}
                     <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
                         <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
-                            {['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences', ...(hasReels ? ['vibe check'] : [])].map(tab => (
+                            {['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -220,7 +217,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             : 'text-gray-400 hover:text-gray-600 border-transparent'}
                                     `}
                                 >
-                                    {tab === 'vibe check' ? '✨ Vibe Check' : tab === 'ai insight' ? '🤖 AI Insight' : tab}
+                                    {tab === 'ai insight' ? '🤖 AI Insight' : tab}
                                 </button>
                             ))}
                         </div>
@@ -420,40 +417,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             </div>
                         )}
 
-                        {activeTab === 'vibe check' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-4 rounded-xl border border-purple-100 mb-4">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-xl">✨</span>
-                                        <h3 className="font-bold text-purple-900">Vibe Check</h3>
-                                    </div>
-                                    <p className="text-purple-700 text-sm">Watch short reels to get a sense of {profile.name}'s personality.</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    {displayReels.map((url: string, idx: number) => (
-                                        <div
-                                            key={idx}
-                                            className="aspect-[9/16] bg-gray-900 rounded-xl overflow-hidden relative cursor-pointer group shadow-md hover:shadow-xl transition-all"
-                                            onClick={() => setPlayingReel(url)}
-                                        >
-                                            <video src={url.startsWith('http') ? url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${url}`} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" muted />
-                                            <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-all flex items-center justify-center">
-                                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/40 rounded-full flex items-center justify-center text-white scale-100 group-hover:scale-110 transition-transform shadow-lg">
-                                                    <Play size={24} fill="white" />
-                                                </div>
-                                            </div>
-                                            <div className="absolute bottom-2 left-2 right-2">
-                                                <div className="bg-black/40 backdrop-blur text-white text-[10px] px-2 py-1 rounded-full w-max">
-                                                    Reel #{idx + 1}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         {activeTab === 'preferences' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 {profile.prompt && (
@@ -494,26 +457,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                 </div>
 
-                {/* Full Screen Reel Player Overlay */}
-                {playingReel && (
-                    <div className="fixed inset-0 z-[150] bg-black flex items-center justify-center animate-in fade-in zoom-in-95 duration-200">
-                        <button
-                            className="absolute top-4 right-4 z-[80] text-white bg-black/50 p-4 rounded-full backdrop-blur-md hover:bg-black/70"
-                            onClick={() => setPlayingReel(null)}
-                        >
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                        <video
-                            src={playingReel.startsWith('http') ? playingReel : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}${playingReel}`}
-                            className="w-full h-full md:w-auto md:h-[90vh] object-contain"
-                            controls
-                            autoPlay
-                        />
-                    </div>
-                )}
             </div>
 
             {

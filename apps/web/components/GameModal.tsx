@@ -84,7 +84,7 @@ export default function GameModal({ onClose, partnerName }: { onClose: () => voi
                 {status === 'intro' && (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-8 space-y-6">
                         <div className="text-6xl animate-bounce">🧩</div>
-                        <h2 className="text-2xl font-bold text-gray-900">Vibe Check</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">Compatibility Quiz</h2>
                         <p className="text-gray-500">Waiting for {partnerName} to join...</p>
                         <div className="w-full max-w-xs bg-gray-200 h-2 rounded-full overflow-hidden">
                             <div className="h-full bg-indigo-500 animate-[loading_2s_ease-in-out_infinite] w-1/2"></div>

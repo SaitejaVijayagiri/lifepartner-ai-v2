@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     default: "LifePartner AI | #1 Free Matrimony & Matchmaking App in India",
     template: "%s | LifePartner AI - Best Matrimony Site"
   },
-  description: "Stop paying for matches. LifePartner AI is India's most advanced Free Matrimony app. 100% Verified Profiles for Telugu, Tamil, Hindi, & Kannada matchmaking. AI-powered vibe checks, secure video calls, and zero fake profiles.",
+  description: "Stop paying for matches. LifePartner AI is India's most advanced Free Matrimony app. 100% Verified Profiles for Telugu, Tamil, Hindi, & Kannada matchmaking. Interactive maps, secure video calls, and zero fake profiles.",
   keywords: [
     "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
     "AI Dating", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",

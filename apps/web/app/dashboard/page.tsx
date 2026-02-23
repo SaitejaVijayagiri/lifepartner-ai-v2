@@ -1056,75 +1056,82 @@ function DashboardContent() {
         </div>
     );
 
-    const renderConnections = () => (
-        <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1">Your Connections</h2>
-            {connections.length === 0 && (
-                <div className="text-center py-20 text-gray-500">No connections yet</div>
-            )}
-            {connections.map((conn: any) => (
-                <div
-                    key={conn.interactionId}
-                    className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md"
-                >
-                    <div
-                        className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
-                        onClick={() => setSelectedConnection(conn)}
-                    >
-                        <div className="relative">
-                            <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
-                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-lg truncate">
-                                    {conn.partner.name}
-                                </h4>
-                                {conn.unreadCount > 0 && (
-                                    <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full min-w-[18px] sm:min-w-[20px] text-center shadow-sm animate-pulse">
-                                        {conn.unreadCount}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-500 line-clamp-1">
-                                {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
-                            </p>
-                        </div>
-                    </div>
+    const renderConnections = () => {
+        // Sort connections so online users appear at the top, preserving the recent-message order within groups
+        const onlineConns = connections.filter(c => onlineUsers.includes(c.partner.id));
+        const offlineConns = connections.filter(c => !onlineUsers.includes(c.partner.id));
+        const sortedConnections = [...onlineConns, ...offlineConns];
 
-                    <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-2 sm:mt-0">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!confirm("Are you sure you want to remove this connection?")) return;
-                                try {
-                                    await api.interactions.deleteConnection(conn.interactionId);
-                                    setConnections(prev => prev.filter((c: any) => c.interactionId !== conn.interactionId));
-                                    toast.success("Connection removed");
-                                } catch (err) {
-                                    toast.error("Failed to remove");
-                                }
-                            }}
-                        >
-                            <Trash2 size={20} />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full"
+        return (
+            <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1">Your Connections</h2>
+                {sortedConnections.length === 0 && (
+                    <div className="text-center py-20 text-gray-500">No connections yet</div>
+                )}
+                {sortedConnections.map((conn: any) => (
+                    <div
+                        key={conn.interactionId}
+                        className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md"
+                    >
+                        <div
+                            className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
                             onClick={() => setSelectedConnection(conn)}
                         >
-                            <MessageCircle size={20} />
-                        </Button>
+                            <div className="relative">
+                                <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
+                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-lg truncate">
+                                        {conn.partner.name}
+                                    </h4>
+                                    {conn.unreadCount > 0 && (
+                                        <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full min-w-[18px] sm:min-w-[20px] text-center shadow-sm animate-pulse">
+                                            {conn.unreadCount}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-500 line-clamp-1">
+                                    {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm("Are you sure you want to remove this connection?")) return;
+                                    try {
+                                        await api.interactions.deleteConnection(conn.interactionId);
+                                        setConnections(prev => prev.filter((c: any) => c.interactionId !== conn.interactionId));
+                                        toast.success("Connection removed");
+                                    } catch (err) {
+                                        toast.error("Failed to remove");
+                                    }
+                                }}
+                            >
+                                <Trash2 size={20} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full"
+                                onClick={() => setSelectedConnection(conn)}
+                            >
+                                <MessageCircle size={20} />
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            ))
-            }
-        </div >
-    );
+                ))
+                }
+            </div >
+        );
+    };
 
     return (
         <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'map' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>

@@ -52,12 +52,14 @@ If you have Docker installed, you can switch to the Production Database locally:
 
 1.  Create a **Web Service** on Render (not Static Site).
 2.  Connect your Repo.
-3.  **Root Directory**: `apps/web`
-4.  **Build Command**: `npm install && npm run build`
-5.  **Start Command**: `npm start`
+3.  **Root Directory**: `.` *(Leave completely blank so it uses the monorepo root)*
+4.  **Build Command**: `npm install && npm run build --workspace=apps/web`
+5.  **Start Command**: `npm run start --workspace=apps/web`
 6.  **Environment Variables**:
     -   `NEXT_PUBLIC_API_URL`: `https://your-backend-url.onrender.com` (Must include `https://`)
     -   `NODE_ENV`: `production`
+    -   `NODE_OPTIONS`: `--max-old-space-size=400` *(CRITICAL: Prevents 15-minute build hangs by forcing Garbage Collection on Render's 512MB free tier)*
+    -   `NEXT_TELEMETRY_DISABLED`: `1`
 
 ## 4. Scaling
 -   **Horizontal Scaling**: spin up more Backend instances behind a Load Balancer.

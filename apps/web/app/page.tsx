@@ -354,7 +354,7 @@ export default function LandingPage() {
             <StoryCard
               image="/images/register-hero-wiki.jpg"
               names="Sarah & James"
-              story="I was skeptical about AI, but LifePartner's vibe check reels showed me James's genuine smile. Best decision ever."
+              story="I was skeptical about AI, but LifePartner's interactive map showed me James was grabbing coffee just down the street! Best decision ever."
             />
             <StoryCard
               image="/images/orbital.jpg"

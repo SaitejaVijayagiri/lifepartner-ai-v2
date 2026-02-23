@@ -116,9 +116,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'about' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About Me</h3>
-                                <p className="text-gray-700 leading-relaxed text-[15px]">
+                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                                <h3 className="font-bold text-blue-900 mb-3">About Me</h3>
+                                <p className="text-blue-800/90 leading-relaxed text-[15px]">
                                     {profile.aboutMe || "No bio added yet."}
                                 </p>
                             </div>
@@ -134,18 +134,20 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'personal' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Horoscope & Faith</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
-                                <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
-                                <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
-                                <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} />
-                                <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign || "-"} />
-                                <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
+                            <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100">
+                                <h3 className="font-bold text-purple-900 mb-4">Horoscope & Faith</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
+                                    <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
+                                    <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
+                                    <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} />
+                                    <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign || "-"} />
+                                    <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
+                                </div>
                             </div>
 
-                            <div className="mt-6">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Lifestyle & Interests</h3>
+                            <div className="bg-green-50 p-6 rounded-2xl border border-green-100 mt-6">
+                                <h3 className="font-bold text-green-900 mb-4">Lifestyle & Interests</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} />
                                     <InfoCard label="Smoking" value={profile.lifestyle?.smoking || "No"} />
@@ -153,10 +155,10 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 </div>
                                 {profile.interests && profile.interests.length > 0 && (
                                     <div className="mt-4">
-                                        <div className="text-[10px] uppercase font-bold text-gray-400 mb-2">Interests</div>
+                                        <div className="text-[10px] uppercase font-bold text-green-700/70 mb-2">Interests</div>
                                         <div className="flex flex-wrap gap-2">
                                             {profile.interests.map((tag: string, i: number) => (
-                                                <span key={i} className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
+                                                <span key={i} className="bg-white/60 text-green-800 px-3 py-1 rounded-full text-xs font-medium border border-green-200/50">
                                                     {tag}
                                                 </span>
                                             ))}
@@ -165,9 +167,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 )}
                             </div>
 
-                            <div className="mt-6">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Contact</h3>
-                                <div className="bg-gray-50 p-4 rounded-xl space-y-3">
+                            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 mt-6">
+                                <h3 className="font-bold text-gray-900 mb-4">Contact</h3>
+                                <div className="space-y-3">
                                     <div className="flex justify-between">
                                         <span className="text-sm text-gray-500">Phone</span>
                                         <span className="text-sm font-medium">{profile.phone || "-"}</span>
@@ -183,47 +185,55 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'career' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="grid grid-cols-1 gap-4">
-                                <InfoRow label="Profession" value={profile.career?.profession || "-"} />
-                                <InfoRow label="Company" value={profile.career?.company || "-"} />
-                                <InfoRow label="Education" value={profile.career?.education || "-"} />
-                                <InfoRow label="Degree" value={profile.career?.degree || "-"} />
-                                <InfoRow label="College" value={profile.career?.college || "-"} />
-                                <InfoRow label="Annual Income" value={profile.career?.income || "-"} />
+                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                <h3 className="font-bold text-slate-900 mb-4">Career & Education</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <InfoRow label="Profession" value={profile.career?.profession || "-"} />
+                                    <InfoRow label="Company" value={profile.career?.company || "-"} />
+                                    <InfoRow label="Education" value={profile.career?.education || "-"} />
+                                    <InfoRow label="Degree" value={profile.career?.degree || "-"} />
+                                    <InfoRow label="College" value={profile.career?.college || "-"} />
+                                    <InfoRow label="Annual Income" value={profile.career?.income || "-"} />
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'family' && (
-                        <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-300">
-                            <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
-                            <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
-                            <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
-                            <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
-                            <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
-                            <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
+                        <div className="space-y-6 animate-in fade-in duration-300">
+                            <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                                <h3 className="font-bold text-orange-900 mb-4">Family Background</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
+                                    <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
+                                    <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
+                                    <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
+                                    <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
+                                    <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'preferences' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="space-y-6 animate-in fade-in duration-300">
-                                {profile.prompt && (
-                                    <div>
-                                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Expectations</h3>
-                                        <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 text-gray-700 leading-relaxed text-[15px] italic">
-                                            "{profile.prompt}"
-                                        </div>
-                                    </div>
-                                )}
-                                <div>
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Basic Preferences</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Any"} />
-                                        <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Any"} />
-                                        <InfoCard label="Min Income" value={profile.partnerPreferences?.income || "Any"} />
-                                        <InfoCard label="Preferred Location" value={profile.partnerPreferences?.location || "Any"} />
-                                    </div>
+                            {profile.prompt && (
+                                <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-4">
+                                    <h3 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                        <span className="text-xl">💭</span> Expectations
+                                    </h3>
+                                    <p className="text-indigo-800 text-sm italic leading-relaxed">
+                                        "{profile.prompt}"
+                                    </p>
+                                </div>
+                            )}
+                            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
+                                <h3 className="font-bold text-indigo-900 mb-4">Basic Preferences</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Any"} />
+                                    <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Any"} />
+                                    <InfoCard label="Min Income" value={profile.partnerPreferences?.income || "Any"} />
+                                    <InfoCard label="Preferred Location" value={profile.partnerPreferences?.location || "Any"} />
                                 </div>
                             </div>
                         </div>

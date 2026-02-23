@@ -258,9 +258,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'about' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div>
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">About Me</h3>
-                                    <p className="text-gray-700 leading-relaxed text-sm md:text-[15px]">
+                                <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                                    <h3 className="font-bold text-blue-900 mb-3">About Me</h3>
+                                    <p className="text-blue-800/90 leading-relaxed text-sm md:text-[15px]">
                                         {profile.aboutMe || "No bio provided."}
                                     </p>
                                 </div>
@@ -275,8 +275,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'personal' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <section>
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Horoscope & Faith</h3>
+                                <section className="bg-purple-50 p-6 rounded-2xl border border-purple-100">
+                                    <h3 className="font-bold text-purple-900 mb-4">Horoscope & Faith</h3>
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
@@ -383,14 +383,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'family' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
-                                    <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
-                                    <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
-                                    <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
-                                    <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
-                                    <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
-                                    <InfoCard label="Native Place" value={profile.family?.nativePlace || profile.location?.city || "City"} />
+                                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
+                                    <h3 className="font-bold text-orange-900 mb-4">Family Background</h3>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
+                                        <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
+                                        <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
+                                        <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
+                                        <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
+                                        <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
+                                        <InfoCard label="Native Place" value={profile.family?.nativePlace || profile.location?.city || "City"} />
+                                    </div>
                                 </div>
                             </div>
                         )}

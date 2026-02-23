@@ -156,6 +156,7 @@ function DashboardContent() {
 
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
+        { id: 'map', label: 'Live Map', icon: MapPin },
         { id: 'community', label: 'Lounge', icon: Coffee },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },

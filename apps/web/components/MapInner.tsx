@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, ChevronLeft } from 'lucide-react';
+import { useSocket } from '@/context/SocketContext';
 
 export default function MapInner({ profiles, currentUser, onViewProfile, onBack, astrologyMode = false }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void, astrologyMode?: boolean }) {
     useEffect(() => {
@@ -26,6 +27,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
     const mapProfiles = (profiles || []).filter(
         (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
     );
+
+    const { onlineUsers } = useSocket() as any;
 
     // We must use dynamic require inside the component to avoid Next.js window undefined errors during build
     // Doing this globally ONCE per render instead of inside the map loop to massively improve speed
@@ -83,9 +86,15 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
 
                     let markerHtml = '';
 
+                    const isOnline = onlineUsers?.includes(profile.id);
+
                     const photoHtml = profile.photoUrl
                         ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;" />`
                         : `<span style="color:white;font-weight:bold;">${(profile.name || '?')[0]}</span>`;
+
+                    const onlineIndicatorHtml = isOnline
+                        ? `<div class="absolute bottom-1 right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm z-30"></div>`
+                        : '';
 
                     if (astrologyMode) {
                         markerHtml = `
@@ -93,9 +102,10 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                                 <div class="astrology-glow"></div>
                                 <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 z-10 bg-gray-900 shadow-glow flex flex-col items-center justify-center relative">
                                     ${photoHtml}
-                                    <div class="absolute -bottom-2 -right-3 bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[10px] whitespace-nowrap font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-orange-200 z-20">
-                                        🕉️ ${gunaScore}/36
-                                    </div>
+                                </div>
+                                ${onlineIndicatorHtml}
+                                <div class="absolute -bottom-2 -right-3 bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[10px] whitespace-nowrap font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-orange-200 z-20">
+                                    🕉️ ${gunaScore}/36
                                 </div>
                             </div>
                         `;
@@ -107,6 +117,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                                 <div class="w-10 h-10 rounded-full overflow-hidden border-2 flex items-center justify-center ${isHighMatch ? 'border-amber-400 z-10 box-shadow-glow' : 'border-pink-500 z-10'} bg-gray-900 text-white">
                                     ${photoHtml}
                                 </div>
+                                ${onlineIndicatorHtml}
                             </div>
                         `;
                     }

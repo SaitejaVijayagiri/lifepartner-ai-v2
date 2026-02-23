@@ -89,13 +89,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
             <div className="bg-white w-full max-w-5xl h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
                 {/* Enhanced Close Button (Floating & Glassy) - Fixed Position for Mobile Reliability */}
                 <button
                     onClick={onClose}
-                    className="fixed top-4 right-4 z-[210] bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl border border-white/20"
+                    className="fixed top-4 right-4 z-[10000] bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl border border-white/20"
                     style={{ position: 'fixed', top: 'max(16px, env(safe-area-inset-top))', right: '16px' }}
                 >
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

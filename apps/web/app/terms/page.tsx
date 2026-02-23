@@ -1,3 +1,11 @@
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Terms of Service | LifePartner AI',
+    description: 'Read the terms of service for using LifePartner AI. By accessing or using our services, you agree to be bound by these terms.',
+    keywords: ['terms of service', 'lifepartner terms', 'user agreement']
+};
+
 export default function TermsPage() {
     return (
         <div className="min-h-screen bg-white p-8 md:p-16 max-w-4xl mx-auto">

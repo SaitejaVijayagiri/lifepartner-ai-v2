@@ -1,3 +1,11 @@
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Privacy Policy | LifePartner AI',
+    description: 'Read the privacy policy for LifePartner AI. We respect your privacy and are committed to protecting your personal data.',
+    keywords: ['privacy policy', 'data protection', 'lifepartner privacy']
+};
+
 export default function PrivacyPage() {
     return (
         <div className="min-h-screen bg-white p-8 md:p-16 max-w-4xl mx-auto">

@@ -304,7 +304,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         // 3. Score
 
 
-        const matches = shuffledCandidates.map(c => {
+        const matches = await Promise.all(shuffledCandidates.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
             let score = 50;
             let reasons: string[] = [];
@@ -337,8 +337,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             if (score > 99) score = 99;
 
             // Safe Location Access
-            // Safe Location Access
-            const metaLoc = meta.location;
+            let metaLoc = meta.location;
             const isMetaObj = metaLoc && typeof metaLoc === 'object';
 
             const metaCity = isMetaObj ? metaLoc.city : (typeof metaLoc === 'string' ? metaLoc : "");
@@ -356,6 +355,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             // Fallback for extreme cases
             if (locString === "India" && metaDistrict) locString = `${metaDistrict}, India`;
+
+            // NEW: Auto-Geocoding for Map Support
+            // If they don't have lat/lng but they have a city string, dynamically geocode it
+            if ((!metaLoc || !metaLoc.lat || !metaLoc.lng) && locString !== "India") {
+                const LocationService = require('../services/location').LocationService;
+                const coords = await LocationService.geocodeCity(locString);
+                if (coords) {
+                    // Inject synthetic GPS coordinates to be consumed by the frontend Live Map
+                    metaLoc = { ...metaLoc, lat: coords.lat, lng: coords.lng, city: city };
+                }
+            }
 
             // Interaction Status
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
@@ -412,8 +422,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 motherTongue: meta.motherTongue || "Unknown",
                 maritalStatus: meta.maritalStatus || "Single"
             };
-        })
-            .sort((a, b) => b.score - a.score);
+        }));
+
+        matches.sort((a, b) => b.score - a.score);
 
         res.json({ matches });
 
@@ -567,11 +578,11 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             return nums ? parseInt(nums[0]) : 0;
         };
 
-        const scoredMatches = rows.map(c => {
+        const scoredMatchesArray = await Promise.all(rows.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
             // ... [Logic reused from original, copied below] ...
             // Safe Location Access
-            const metaLoc = meta.location;
+            let metaLoc = meta.location;
             const isMetaObj = metaLoc && typeof metaLoc === 'object';
 
             const metaCity = isMetaObj ? metaLoc.city : (typeof metaLoc === 'string' ? metaLoc : "");
@@ -589,6 +600,15 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
             // Fallback for extreme cases
             if (locString === "India" && metaDistrict) locString = `${metaDistrict}, India`;
+
+            // NEW: Auto-Geocoding for Map Support
+            if ((!metaLoc || !metaLoc.lat || !metaLoc.lng) && locString !== "India") {
+                const LocationService = require('../services/location').LocationService;
+                const coords = await LocationService.geocodeCity(locString);
+                if (coords) {
+                    metaLoc = { ...metaLoc, lat: coords.lat, lng: coords.lng, city: city };
+                }
+            }
 
             const profileHeight = meta.height || "";
             const heightInches = parseHeightToInches(profileHeight);
@@ -712,7 +732,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 motherTongue: meta.motherTongue || "Unknown",
                 maritalStatus: meta.maritalStatus || "Single"
             };
-        }).filter(m => m !== null);
+        }));
+
+        const scoredMatches = scoredMatchesArray.filter(m => m !== null);
+
         // Final Output
         const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
             ...m,

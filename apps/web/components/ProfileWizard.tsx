@@ -358,7 +358,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
                                 <Input label="Birth Place" placeholder="e.g. Chennai, TN" value={data.birthPlace} onChange={e => update('birthPlace', e.target.value)} />
                                 <Input label="Time of Birth" placeholder="e.g. 10:30 AM" value={data.birthTime} onChange={e => update('birthTime', e.target.value)} />
-                                <Input label="Zodiac & Nakshatra" placeholder="e.g. Libra, Rohini" value={data.nakshatra} onChange={e => update('nakshatra', e.target.value)} />
+                                <Input label="Zodiac Sign" placeholder="e.g. Libra" value={data.zodiacSign} onChange={e => update('zodiacSign', e.target.value)} />
+                                <Input label="Nakshatra" placeholder="e.g. Rohini" value={data.nakshatra} onChange={e => update('nakshatra', e.target.value)} />
                             </div>
                         </div>
                     )}

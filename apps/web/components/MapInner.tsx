@@ -132,15 +132,14 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                         popupAnchor: [0, -24]
                     });
 
-                    // Add a fuzzy offset (approx 500m-1km) based on user ID for privacy
-                    const idStr = String(profile.id || '12345');
-                    const fuzzyLat = Number(profile.location_data.lat) + ((idStr.charCodeAt(0) % 10) - 5) * 0.002;
-                    const fuzzyLng = Number(profile.location_data.lng) + ((idStr.charCodeAt(idStr.length - 1) % 10) - 5) * 0.002;
+                    // Use explicit exact GPS location as requested by the user
+                    const exactLat = Number(profile.location_data.lat);
+                    const exactLng = Number(profile.location_data.lng);
 
                     return (
                         <Marker
                             key={profile.id}
-                            position={[fuzzyLat, fuzzyLng]}
+                            position={[exactLat, exactLng]}
                             icon={fuzzyIcon}
                             zIndexOffset={isHighMatch ? 900 : 100}
                         >

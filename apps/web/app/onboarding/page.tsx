@@ -60,6 +60,8 @@ export default function OnboardingPage() {
                     profession: data.profession,
                     company: data.company,
                     education: data.education,
+                    college: data.college,
+                    degree: data.degree,
                     income: data.income
                 },
 

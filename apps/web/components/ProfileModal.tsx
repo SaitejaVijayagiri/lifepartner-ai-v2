@@ -368,6 +368,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     </div>
                                     <div className="space-y-3">
                                         <InfoRow label="Education" value={profile.career?.education || "-"} />
+                                        <InfoRow label="Degree" value={profile.career?.degree || "-"} />
                                         <InfoRow label="College" value={profile.career?.college || "-"} />
                                         <InfoRow
                                             label="Annual Income"

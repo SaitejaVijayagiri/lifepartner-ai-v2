@@ -187,6 +187,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 <InfoRow label="Profession" value={profile.career?.profession || "-"} />
                                 <InfoRow label="Company" value={profile.career?.company || "-"} />
                                 <InfoRow label="Education" value={profile.career?.education || "-"} />
+                                <InfoRow label="Degree" value={profile.career?.degree || "-"} />
                                 <InfoRow label="College" value={profile.career?.college || "-"} />
                                 <InfoRow label="Annual Income" value={profile.career?.income || "-"} />
                             </div>

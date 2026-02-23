@@ -410,6 +410,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Profession" value={formData.career?.profession || ''} onChange={(e) => handleChange('career', 'profession', e.target.value)} />
                         <Input label="Company" value={formData.career?.company || ''} onChange={(e) => handleChange('career', 'company', e.target.value)} />
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700">Highest Education</label>
+                            <select
+                                className="w-full h-10 px-3 border rounded-md bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
+                                value={formData.career?.education || ''}
+                                onChange={(e) => handleChange('career', 'education', e.target.value)}
+                            >
+                                <option value="">Select Education</option>
+                                <option value="High School">High School</option>
+                                <option value="Bachelor's">Bachelor's</option>
+                                <option value="Master's">Master's</option>
+                                <option value="PhD">PhD</option>
+                                <option value="Professional Degree">Professional Degree</option>
+                            </select>
+                        </div>
                         <Input label="College / Univ" value={formData.career?.college || ''} onChange={(e) => handleChange('career', 'college', e.target.value)} />
                         <Input label="Degree Details" value={formData.career?.degree || ''} onChange={(e) => handleChange('career', 'degree', e.target.value)} />
                         <Input label="Annual Income" value={formData.career?.income || ''} onChange={(e) => handleChange('career', 'income', e.target.value)} />

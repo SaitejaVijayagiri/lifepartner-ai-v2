@@ -232,27 +232,27 @@ function DashboardContent() {
         if (!socket) return;
 
         const handleNewMessage = (msg: any) => {
-            // If the chat window with this user is NOT open, increment count
-            // Note: We don't have access to the "open chat" state here easily unless we tracked it.
-            // For now, we increment. If the user is IN the chat, the ChatWindow component should mark it read immediately,
-            // triggering a fetch or update. Ideally, we check if selectedConnection?.partner?.id === msg.senderId.
+            const isChatting = activeTab === 'connections' && selectedConnection?.partner?.id === msg.senderId;
 
-            if (activeTab === 'connections' && selectedConnection?.partner?.id === msg.senderId) {
-                // User is currently chatting with this person, do not increment (or mark read immediately)
-                return;
+            if (!isChatting) {
+                setUnreadMessageCount(prev => prev + 1);
             }
 
-            setUnreadMessageCount(prev => prev + 1);
+            setConnections(prev => {
+                const existingIndex = prev.findIndex(c => c.partner?.id === msg.senderId);
 
-            setConnections(prev => prev.map(c => {
-                if (c.partner.id === msg.senderId) {
-                    return { ...c, unreadCount: (c.unreadCount || 0) + 1 };
+                if (existingIndex > -1) {
+                    const newConns = [...prev];
+                    const [targetConn] = newConns.splice(existingIndex, 1);
+                    if (!isChatting) {
+                        targetConn.unreadCount = (targetConn.unreadCount || 0) + 1;
+                    }
+                    return [targetConn, ...newConns];
                 }
-                return c;
-            }));
 
-
-            // toast.success(`New message from ${msg.senderName || 'Someone'}`); // Removed as per request
+                fetchConnections();
+                return prev;
+            });
         };
 
         socket.on('receiveMessage', handleNewMessage);
@@ -278,6 +278,18 @@ function DashboardContent() {
             const newConns = [...prev];
             newConns[connIndex] = { ...newConns[connIndex], unreadCount: 0 };
             return newConns;
+        });
+    };
+
+    const handleMessageSentAction = (partnerId: string) => {
+        setConnections(prev => {
+            const existingIndex = prev.findIndex(c => c.partner?.id === partnerId);
+            if (existingIndex > -1) {
+                const newConns = [...prev];
+                const [targetConn] = newConns.splice(existingIndex, 1);
+                return [targetConn, ...newConns];
+            }
+            return prev;
         });
     };
 
@@ -1336,6 +1348,7 @@ function DashboardContent() {
                     onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
                     onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
                     onMessagesRead={() => handleMarkRead(selectedConnection.partner.id)}
+                    onMessageSent={() => handleMessageSentAction(selectedConnection.partner.id)}
                 />
             )}
 

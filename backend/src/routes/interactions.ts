@@ -169,7 +169,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             }
         });
 
-        // Batch fetch unread counts
+        // Batch fetch unread counts and latest messages
         if (partnerIds.length > 0) {
             const unreadCounts = await prisma.messages.groupBy({
                 by: ['sender_id'],
@@ -188,9 +188,42 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                     uniqueConnections.get(c.sender_id).unreadCount = c._count.id;
                 }
             });
+
+            // Fetch the latest message timestamp for each connection
+            const latestMessages = await prisma.messages.findMany({
+                where: {
+                    OR: [
+                        { sender_id: userId, receiver_id: { in: partnerIds } },
+                        { sender_id: { in: partnerIds }, receiver_id: userId }
+                    ]
+                },
+                orderBy: { created_at: 'desc' },
+                select: {
+                    sender_id: true,
+                    receiver_id: true,
+                    created_at: true
+                }
+            });
+
+            // Map the latest message to the connection
+            latestMessages.forEach((msg: any) => {
+                const pId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+                const conn = uniqueConnections.get(pId);
+                // Since it's ordered by desc, the first one we encounter is the latest
+                if (conn && (!conn.latestMessageAt || new Date(msg.created_at) > new Date(conn.latestMessageAt))) {
+                    conn.latestMessageAt = msg.created_at;
+                }
+            });
         }
 
         const formattedConnections = Array.from(uniqueConnections.values());
+
+        // Sort by latest message, fallback to interaction timestamp
+        formattedConnections.sort((a: any, b: any) => {
+            const dateA = a.latestMessageAt ? new Date(a.latestMessageAt) : new Date(a.timestamp);
+            const dateB = b.latestMessageAt ? new Date(b.latestMessageAt) : new Date(b.timestamp);
+            return dateB.getTime() - dateA.getTime();
+        });
 
         res.json(formattedConnections);
     } catch (e) {

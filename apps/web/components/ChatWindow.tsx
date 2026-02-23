@@ -24,9 +24,10 @@ interface ChatWindowProps {
     className?: string;
     isCallMode?: boolean;
     onMessagesRead?: () => void;
+    onMessageSent?: () => void;
 }
 
-export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead }: ChatWindowProps) {
+export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
     const { user } = useAuth();
     const [messages, setMessages] = useState<any[]>([]);
@@ -150,6 +151,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         try {
             // Backend expects User ID (partner.id), not Interaction ID
             await api.chat.sendMessage(partner.id, text, 'me');
+
+            // Trigger re-order in parent connection list
+            if (onMessageSent) onMessageSent();
 
             // Socket emit is now handled by the Backend API to prevent double-writes.
             // if (socket) { ... } REMOVED

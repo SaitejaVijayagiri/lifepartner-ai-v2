@@ -22,10 +22,28 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
     const myLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : 78.9629;
     const defaultZoom = currentUser?.location?.lat ? 10 : 4;
 
-    // Only show profiles that have real coordinates
-    const mapProfiles = (profiles || []).filter(
-        (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
-    );
+    // Ensure all profiles show on the map even if they haven't set GPS coordinates yet
+    const mapProfiles = (profiles || []).map((p: any, index: number) => {
+        if (p.location_data && p.location_data.lat && p.location_data.lng) {
+            return p;
+        }
+        // Generate a fake offset around the user's location based on their ID if they don't have GPS
+        const idStr = String(p.id || index);
+        const offsetLat = ((idStr.charCodeAt(0) % 20) - 10) * 0.01; // ~10km radius
+        const offsetLng = ((idStr.charCodeAt(idStr.length - 1) % 20) - 10) * 0.01;
+        return {
+            ...p,
+            location_data: {
+                lat: myLat + offsetLat,
+                lng: myLng + offsetLng
+            }
+        };
+    });
+
+    // We must use dynamic require inside the component to avoid Next.js window undefined errors during build
+    // Doing this globally ONCE per render instead of inside the map loop to massively improve speed
+    const L = typeof window !== 'undefined' ? require('leaflet') : null;
+    if (!L) return null;
 
     return (
         <div className="w-full h-full relative">
@@ -70,10 +88,6 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     // Decide if high match based on score (mocked randomly for visual demo here if missing)
                     const isHighMatch = (profile.score && profile.score > 80) || (!profile.score && Math.random() > 0.7);
 
-                    // We must use dynamic require inside the component to avoid Next.js window undefined errors during build
-                    // Doing this globally ONCE per render instead of inside the map loop to massively improve speed
-                    const L = require('leaflet');
-
                     // Generate Mock Guna Score and Icebreakers for Demo
                     const gunaScore = 18 + (profile.id.charCodeAt(0) % 18); // Generates 18 to 35
                     const icebreakers = ["☕ Craving filter coffee", "💻 Working late", "🎬 Watching a movie", "🍕 Pizza time", "🎵 Listening to AR Rahman"];
@@ -82,13 +96,19 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
 
                     let markerHtml = '';
 
+                    const photoHtml = profile.photoUrl
+                        ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;" />`
+                        : `<span style="color:white;font-weight:bold;">${(profile.name || '?')[0]}</span>`;
+
                     if (astrologyMode) {
                         markerHtml = `
                             <div class="relative w-12 h-12 flex items-center justify-center">
                                 <div class="astrology-glow"></div>
-                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 z-10 bg-gray-900 shadow-glow flex flex-col items-center justify-center">
-                                    <span class="text-orange-400 font-bold text-sm leading-none">${gunaScore}</span>
-                                    <span class="text-[8px] text-gray-400 font-medium">/ 36</span>
+                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 z-10 bg-gray-900 shadow-glow flex flex-col items-center justify-center relative">
+                                    ${photoHtml}
+                                    <div class="absolute -bottom-2 -right-3 bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[10px] whitespace-nowrap font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-orange-200 z-20">
+                                        🕉️ ${gunaScore}/36
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -97,10 +117,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                             <div class="relative w-12 h-12 flex items-center justify-center">
                                 ${showIcebreaker ? `<div class="map-icebreaker">${icebreakerText}</div>` : ''}
                                 <div class="${isHighMatch ? 'match-aura-high' : 'fuzzy-zone'}"></div>
-                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 flex items-center justify-center ${isHighMatch ? 'border-amber-400 z-10 box-shadow-glow' : 'border-pink-500 z-10'} bg-gray-900">
-                                    ${profile.photoUrl
-                                ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;" />`
-                                : `<span style="color:white;font-weight:bold;">${(profile.name || '?')[0]}</span>`}
+                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 flex items-center justify-center ${isHighMatch ? 'border-amber-400 z-10 box-shadow-glow' : 'border-pink-500 z-10'} bg-gray-900 text-white">
+                                    ${photoHtml}
                                 </div>
                             </div>
                         `;

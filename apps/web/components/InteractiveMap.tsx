@@ -2,7 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Users } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 
 // Dynamically import the entire inner map component with SSR disabled.
 const MapInner = dynamic(() => import('./MapInner'), {
@@ -18,6 +19,7 @@ const MapInner = dynamic(() => import('./MapInner'), {
 export default function InteractiveMap({ profiles, currentUser, onViewProfile, onBack }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void }) {
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [astrologyMode, setAstrologyMode] = useState(false);
+    const { publicStats, onlineUsers } = useSocket() as any;
 
     // Apply Live Map Filters
     const filteredProfiles = profiles.filter((p) => {
@@ -54,17 +56,26 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
 
                 {/* Row 1: Back Button & Stats */}
                 <div className="flex justify-between items-start pointer-events-auto">
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 relative">
                         {onBack && (
                             <button
                                 onClick={onBack}
-                                className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-full border border-gray-200 shadow-md transition-colors"
+                                className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-full border border-gray-200 shadow-md transition-colors w-max"
                             >
                                 <ChevronLeft size={14} /> Back to Dashboard
                             </button>
                         )}
-                        <div className="bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow w-max">
-                            <span className="text-indigo-400 font-bold">{mapProfilesCount}</span> nearby matches
+                        <div className="flex flex-col gap-1.5 mt-1">
+                            <div className="bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow w-max flex items-center gap-1.5">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                <span className="font-bold">{Math.max(publicStats.onlineCount, onlineUsers?.length || 0) + 1}</span> users online
+                            </div>
+                            <div className="bg-gray-900/80 backdrop-blur-md text-white text-[10px] px-3 py-1 rounded-full border border-gray-700 shadow w-max">
+                                <span className="text-gray-300 font-bold">{mapProfilesCount}</span> nearby matches
+                            </div>
                         </div>
                     </div>
                 </div>

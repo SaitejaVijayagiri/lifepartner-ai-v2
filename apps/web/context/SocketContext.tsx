@@ -50,11 +50,14 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         // Connect to Backend URL
         const socketUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+        // Dynamically get token right before connecting
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
         const newSocket = io(socketUrl, {
             path: '/socket.io',
             transports: ['websocket'], // Force WebSocket only to avoid polling issues
             auth: {
-                token: localStorage.getItem('token')
+                token: token
             },
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
@@ -109,7 +112,7 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
 
         setSocket(newSocket);
 
-        // Join Personal Room if UserID exists
+        // Join Personal Room if UserID exists (Legacy fallback)
         if (userId) {
             newSocket.emit('join-room', userId);
         }

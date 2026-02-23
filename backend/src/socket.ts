@@ -4,7 +4,8 @@ import { prisma } from './prisma'; // Use Prisma
 import jwt from 'jsonwebtoken';
 
 let io: Server;
-const onlineUsers = new Set<string>();
+// userId -> count of active sockets
+const onlineUsers = new Map<string, number>();
 
 // Track users explicitly in the Verified Lounge
 // socketId -> { userId, name, photo }
@@ -54,14 +55,17 @@ export const initSocket = (httpServer: HttpServer) => {
         if (userId) {
             socket.join(userId);
 
-            // Add to Online Set
-            onlineUsers.add(userId);
+            // Add to Online Map (track connection count)
+            const currentCount = onlineUsers.get(userId) || 0;
+            onlineUsers.set(userId, currentCount + 1);
 
             // Send CURRENT online list to THIS user
-            socket.emit('onlineUsers', Array.from(onlineUsers));
+            socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
 
-            // Notify OTHERS that this user is online
-            socket.broadcast.emit('userOnline', userId);
+            // Notify OTHERS that this user is online ONLY if they just came online
+            if (currentCount === 0) {
+                socket.broadcast.emit('userOnline', userId);
+            }
         }
 
         const leaveCommunity = () => {
@@ -85,12 +89,13 @@ export const initSocket = (httpServer: HttpServer) => {
             socket.broadcast.emit('callEnded');
 
             if (userId) {
-                // Check if truly offline (no other sockets for this user)
-                // We check rooms. If room for userId is empty or undefined, they are gone.
-                const room = io.sockets.adapter.rooms.get(userId);
-                if (!room || room.size === 0) {
+                const currentCount = onlineUsers.get(userId) || 0;
+                if (currentCount <= 1) {
+                    // Last connection dying
                     onlineUsers.delete(userId);
                     io.emit('userOffline', userId);
+                } else {
+                    onlineUsers.set(userId, currentCount - 1);
                 }
             }
 

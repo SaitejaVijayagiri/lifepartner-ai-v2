@@ -25,6 +25,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [lastInteracted, setLastInteracted] = useState(0);
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [showKundli, setShowKundli] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     if (!profile) return null;
 
@@ -111,7 +112,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     <img
                         src={photos[currentPhotoIndex]}
                         alt={profile.name}
-                        className="w-full h-full object-contain md:object-cover bg-black/90 block transition-opacity duration-500"
+                        onClick={() => setIsFullscreen(true)}
+                        className="w-full h-full object-contain md:object-cover bg-black/90 block transition-opacity duration-500 cursor-zoom-in"
                     />
 
                     {/* Gradient Overlay for Text Readability (Subtler) */}
@@ -478,6 +480,28 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     // Trigger refresh in parent if needed
                 }}
             />
+            {/* Fullscreen Image Overlay (Zoom) */}
+            {isFullscreen && (
+                <div
+                    className="fixed inset-0 z-[20000] bg-black/98 flex items-center justify-center animate-in fade-in zoom-in duration-200"
+                    onClick={() => setIsFullscreen(false)}
+                >
+                    <button
+                        className="absolute top-4 right-4 z-50 text-white p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsFullscreen(false);
+                        }}
+                    >
+                        <X size={24} />
+                    </button>
+                    <img
+                        src={photos[currentPhotoIndex]}
+                        alt="Zoomed Profile"
+                        className="w-full h-full object-contain cursor-zoom-out"
+                    />
+                </div>
+            )}
         </div >
     );
 }

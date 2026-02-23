@@ -254,3 +254,60 @@ html, body {
     transform: translate(-50%, -50%) scale(1.2);
   }
 }
+
+/* 4. Astrology Mode Glow */
+.astrology-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140%;
+  height: 140%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(234, 88, 12, 0.8) 0%, rgba(249, 115, 22, 0.4) 50%, transparent 100%);
+  animation: astro-pulse 3s ease-in-out infinite alternate;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes astro-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+}
+
+/* 5. Map Icebreaker Bubble */
+.map-icebreaker {
+  position: absolute;
+  bottom: 110%; /* Place directly above the marker */
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  color: #1e1b4b; /* deep indigo */
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  animation: float-bubble 3s ease-in-out infinite alternate;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* The tiny triangle pointer for the speech bubble */
+.map-icebreaker::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+}
+
+@keyframes float-bubble {
+  0% { transform: translateX(-50%) translateY(0); }
+  100% { transform: translateX(-50%) translateY(-3px); }
+}

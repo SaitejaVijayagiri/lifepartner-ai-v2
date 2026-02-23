@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, ChevronLeft } from 'lucide-react';
 
-export default function MapInner({ profiles, currentUser, onViewProfile, onBack }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void }) {
+export default function MapInner({ profiles, currentUser, onViewProfile, onBack, astrologyMode = false }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void, astrologyMode?: boolean }) {
     useEffect(() => {
         // Fix Leaflet default icon URLs broken by webpack
         import('leaflet').then((L) => {
@@ -87,10 +87,29 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack 
                     // Create Fuzzy Zone CSS Custom Icon
                     // We must use dynamic require inside the component to avoid Next.js window undefined errors during build
                     const L = require('leaflet');
-                    const fuzzyIcon = L.divIcon({
-                        className: 'bg-transparent border-0',
-                        html: `
+
+                    // Generate Mock Guna Score and Icebreakers for Demo
+                    const gunaScore = 18 + (profile.id.charCodeAt(0) % 18); // Generates 18 to 35
+                    const icebreakers = ["☕ Craving filter coffee", "💻 Working late", "🎬 Watching a movie", "🍕 Pizza time", "🎵 Listening to AR Rahman"];
+                    const showIcebreaker = !astrologyMode && profile.id.charCodeAt(profile.id.length - 1) % 4 === 0;
+                    const icebreakerText = icebreakers[profile.id.charCodeAt(0) % icebreakers.length];
+
+                    let markerHtml = '';
+
+                    if (astrologyMode) {
+                        markerHtml = `
                             <div class="relative w-12 h-12 flex items-center justify-center">
+                                <div class="astrology-glow"></div>
+                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 z-10 bg-gray-900 shadow-glow flex flex-col items-center justify-center">
+                                    <span class="text-orange-400 font-bold text-sm leading-none">${gunaScore}</span>
+                                    <span class="text-[8px] text-gray-400 font-medium">/ 36</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        markerHtml = `
+                            <div class="relative w-12 h-12 flex items-center justify-center">
+                                ${showIcebreaker ? `<div class="map-icebreaker">${icebreakerText}</div>` : ''}
                                 <div class="${isHighMatch ? 'match-aura-high' : 'fuzzy-zone'}"></div>
                                 <div class="w-10 h-10 rounded-full overflow-hidden border-2 flex items-center justify-center ${isHighMatch ? 'border-amber-400 z-10 box-shadow-glow' : 'border-pink-500 z-10'} bg-gray-900">
                                     ${profile.photoUrl
@@ -98,7 +117,12 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack 
                                 : `<span style="color:white;font-weight:bold;">${(profile.name || '?')[0]}</span>`}
                                 </div>
                             </div>
-                        `,
+                        `;
+                    }
+
+                    const fuzzyIcon = L.divIcon({
+                        className: 'bg-transparent border-0',
+                        html: markerHtml,
                         iconSize: [48, 48],
                         iconAnchor: [24, 24],
                         popupAnchor: [0, -24]
@@ -119,7 +143,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack 
                             <Popup className="premium-popup">
                                 <div className="text-center p-1 min-w-[120px] cursor-pointer hover:opacity-90 transition-opacity">
                                     <h3 className="text-sm font-bold text-gray-900 mb-0.5">{profile.name}, {profile.age}</h3>
-                                    {isHighMatch && <p className="text-xs font-bold text-amber-600 mb-1">✨ Strong Match ✨</p>}
+                                    {astrologyMode && <p className="text-xs font-bold text-orange-600 mb-1">🕉️ Guna: {gunaScore}/36</p>}
+                                    {!astrologyMode && isHighMatch && <p className="text-xs font-bold text-amber-600 mb-1">✨ Strong Match ✨</p>}
                                     <p className="text-xs text-indigo-600 font-medium mb-1 line-clamp-1">{profile.career?.profession || profile.role || 'Professional'}</p>
                                     <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500">
                                         <MapPin size={10} /> {profile.location_data?.city || profile.location}

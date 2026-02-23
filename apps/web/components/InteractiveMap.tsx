@@ -15,6 +15,6 @@ const MapInner = dynamic(() => import('./MapInner'), {
     )
 });
 
-export default function InteractiveMap({ profiles, currentUser }: { profiles: any[], currentUser: any }) {
-    return <MapInner profiles={profiles} currentUser={currentUser} />;
+export default function InteractiveMap({ profiles, currentUser, onViewProfile, onBack }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void }) {
+    return <MapInner profiles={profiles} currentUser={currentUser} onViewProfile={onViewProfile} onBack={onBack} />;
 }

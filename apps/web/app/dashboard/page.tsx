@@ -1125,7 +1125,7 @@ function DashboardContent() {
                     )}
 
                     {activeTab === 'matches' && renderDiscoveryFeed()}
-                    {activeTab === 'map' && <InteractiveMap profiles={displayMatches} currentUser={currentUser} />}
+                    {activeTab === 'map' && <InteractiveMap profiles={displayMatches} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />}
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
 

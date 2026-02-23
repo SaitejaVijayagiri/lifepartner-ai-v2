@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin } from 'lucide-react';
+import { MapPin, ChevronLeft } from 'lucide-react';
 
-export default function MapInner({ profiles, currentUser }: { profiles: any[], currentUser: any }) {
+export default function MapInner({ profiles, currentUser, onViewProfile, onBack }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void }) {
     useEffect(() => {
         // Fix Leaflet default icon URLs broken by webpack
         import('leaflet').then((L) => {
@@ -30,8 +30,18 @@ export default function MapInner({ profiles, currentUser }: { profiles: any[], c
     return (
         <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg border border-indigo-900/30">
             {/* Stats overlay */}
-            <div className="absolute top-3 left-3 z-[999] bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow">
-                <span className="text-indigo-400 font-bold">{mapProfiles.length}</span> nearby matches
+            <div className="absolute top-3 left-3 z-[999] flex flex-col gap-2">
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-full border border-gray-200 shadow-md transition-colors"
+                    >
+                        <ChevronLeft size={14} /> Back to Dashboard
+                    </button>
+                )}
+                <div className="bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow w-max">
+                    <span className="text-indigo-400 font-bold">{mapProfiles.length}</span> nearby matches
+                </div>
             </div>
 
             <MapContainer
@@ -86,7 +96,13 @@ export default function MapInner({ profiles, currentUser }: { profiles: any[], c
                                 <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500">
                                     <MapPin size={10} /> {profile.location_data?.city || profile.location}
                                 </div>
-                                <button className="mt-2 w-full py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onViewProfile) onViewProfile(profile);
+                                    }}
+                                    className="mt-2 w-full py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition"
+                                >
                                     View Profile
                                 </button>
                             </div>

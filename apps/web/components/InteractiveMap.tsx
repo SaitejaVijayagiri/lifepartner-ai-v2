@@ -71,7 +71,7 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                 </span>
-                                <span className="font-bold">{Math.max(publicStats.onlineCount, onlineUsers?.length || 0) + 1}</span> users online
+                                <span className="font-bold">{publicStats?.onlineCount || onlineUsers?.length || 1}</span> users online
                             </div>
                             <div className="bg-gray-900/80 backdrop-blur-md text-white text-[10px] px-3 py-1 rounded-full border border-gray-700 shadow w-max">
                                 <span className="text-gray-300 font-bold">{mapProfilesCount}</span> nearby matches

@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
 
 // Dynamically import the entire inner map component with SSR disabled.
 const MapInner = dynamic(() => import('./MapInner'), {
@@ -38,36 +39,63 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
         }
     });
 
+    // Only count profiles that have actual coordinates
+    const mapProfilesCount = filteredProfiles.filter(
+        (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
+    ).length;
+
     const filters = ['Software', 'Doctor', 'Engineer', 'Telugu', 'Hindi', 'Tamil'];
 
     return (
-        <div className="w-full h-full relative flex flex-col">
-            {/* Floating Filter Bar */}
-            <div className="absolute top-16 left-3 right-3 z-[1000] flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none pointer-events-auto">
-                <button
-                    onClick={() => setAstrologyMode(!astrologyMode)}
-                    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1 shadow-md
-                        ${astrologyMode
-                            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white border-none'
-                            : 'bg-white/90 text-gray-700 hover:bg-white border border-gray-200'}`}
-                >
-                    🕉️ Astrology Mode
-                </button>
+        <div className="w-full h-full relative flex flex-col rounded-2xl overflow-hidden shadow-lg border border-indigo-900/30">
 
-                <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
+            {/* Unified Top Overlay */}
+            <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-3 pointer-events-none">
 
-                {filters.map(filter => (
+                {/* Row 1: Back Button & Stats */}
+                <div className="flex justify-between items-start pointer-events-auto">
+                    <div className="flex flex-col gap-2">
+                        {onBack && (
+                            <button
+                                onClick={onBack}
+                                className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-full border border-gray-200 shadow-md transition-colors"
+                            >
+                                <ChevronLeft size={14} /> Back to Dashboard
+                            </button>
+                        )}
+                        <div className="bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow w-max">
+                            <span className="text-indigo-400 font-bold">{mapProfilesCount}</span> nearby matches
+                        </div>
+                    </div>
+                </div>
+
+                {/* Row 2: Filters */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none pointer-events-auto">
                     <button
-                        key={filter}
-                        onClick={() => setActiveFilter(activeFilter === filter ? null : filter)}
-                        className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-md border
-                            ${activeFilter === filter
-                                ? 'bg-indigo-600 text-white border-indigo-600'
-                                : 'bg-white/90 text-gray-700 hover:bg-white border-gray-200'}`}
+                        onClick={() => setAstrologyMode(!astrologyMode)}
+                        className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1 shadow-md
+                            ${astrologyMode
+                                ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white border-none'
+                                : 'bg-white/90 text-gray-700 hover:bg-white border border-gray-200'}`}
                     >
-                        {filter}
+                        🕉️ Astrology Mode
                     </button>
-                ))}
+
+                    <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
+
+                    {filters.map(filter => (
+                        <button
+                            key={filter}
+                            onClick={() => setActiveFilter(activeFilter === filter ? null : filter)}
+                            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-md border
+                                ${activeFilter === filter
+                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white/90 text-gray-700 hover:bg-white border-gray-200'}`}
+                        >
+                            {filter}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Map Canvas */}
@@ -75,7 +103,6 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
                 profiles={filteredProfiles}
                 currentUser={currentUser}
                 onViewProfile={onViewProfile}
-                onBack={onBack}
                 astrologyMode={astrologyMode}
             />
         </div>

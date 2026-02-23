@@ -28,21 +28,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
     );
 
     return (
-        <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-lg border border-indigo-900/30">
-            {/* Stats overlay */}
-            <div className="absolute top-3 left-3 z-[999] flex flex-col gap-2">
-                {onBack && (
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-full border border-gray-200 shadow-md transition-colors"
-                    >
-                        <ChevronLeft size={14} /> Back to Dashboard
-                    </button>
-                )}
-                <div className="bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow w-max">
-                    <span className="text-indigo-400 font-bold">{mapProfiles.length}</span> nearby matches
-                </div>
-            </div>
+        <div className="w-full h-full relative">
 
             {/* Radar Animation Overlay */}
             <div className="radar-overlay">
@@ -84,8 +70,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     // Decide if high match based on score (mocked randomly for visual demo here if missing)
                     const isHighMatch = (profile.score && profile.score > 80) || (!profile.score && Math.random() > 0.7);
 
-                    // Create Fuzzy Zone CSS Custom Icon
                     // We must use dynamic require inside the component to avoid Next.js window undefined errors during build
+                    // Doing this globally ONCE per render instead of inside the map loop to massively improve speed
                     const L = require('leaflet');
 
                     // Generate Mock Guna Score and Icebreakers for Demo

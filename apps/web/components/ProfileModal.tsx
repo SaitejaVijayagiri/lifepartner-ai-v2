@@ -290,14 +290,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </section>
 
                                 {/* Premium Contact Section */}
-                                <section className="pt-2">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex justify-between items-center">
+                                <section className="bg-teal-50 p-6 rounded-2xl border border-teal-100 mt-2">
+                                    <h3 className="font-bold text-teal-900 mb-4 flex justify-between items-center">
                                         Contact Information
                                         {!currentUser?.is_premium && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">PREMIUM</span>}
                                     </h3>
 
                                     {currentUser?.is_premium ? (
-                                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-2xl p-5 space-y-4">
+                                        <div className="bg-white/60 border border-teal-200/50 rounded-2xl p-5 space-y-4">
                                             <ContactRow icon="📞" label="Phone" value={profile.phone || "Not Available"} />
                                             <ContactRow icon="✉️" label="Email" value={profile.email || "hidden@email.com"} />
                                             <div className="pt-2">
@@ -310,16 +310,16 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="relative overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 p-8 text-center">
+                                        <div className="relative overflow-hidden rounded-2xl bg-white/50 border border-teal-200/50 p-8 text-center backdrop-blur-sm">
                                             <div className="absolute inset-0 blur-md opacity-40 bg-white/50 pointer-events-none p-6 space-y-4">
-                                                <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto" />
-                                                <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto" />
+                                                <div className="h-4 bg-teal-200/50 rounded w-3/4 mx-auto" />
+                                                <div className="h-4 bg-teal-200/50 rounded w-1/2 mx-auto" />
                                             </div>
                                             <div className="relative z-10 flex flex-col items-center">
                                                 <div className="w-14 h-14 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30 text-white text-2xl animate-bounce">
                                                     👑
                                                 </div>
-                                                <h4 className="font-bold text-gray-900 text-lg mb-4">Upgrade to Premium</h4>
+                                                <h4 className="font-bold text-teal-950 text-lg mb-4">Upgrade to Premium</h4>
 
                                                 <div className="space-y-2 text-left mb-6 bg-white/60 p-4 rounded-xl border border-white/40 shadow-sm w-full max-w-[280px]">
                                                     <div className="flex items-center gap-2 text-sm text-gray-700">

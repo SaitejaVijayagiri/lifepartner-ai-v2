@@ -115,6 +115,26 @@ export const initSocket = (httpServer: HttpServer) => {
             console.log(`User ${userId} auto-joined room ${userId}`);
         }
 
+        // --- MESSAGE STATUS TRACKING ---
+        socket.on('messageDelivered', async (data: { messageId: string, senderId: string }) => {
+            if (!userId || !data.messageId) return;
+            try {
+                // Update DB safely
+                await prisma.messages.updateMany({
+                    where: { id: data.messageId, delivery_status: "sent" },
+                    data: { delivery_status: "delivered" }
+                });
+
+                // Notify original sender that their message was delivered
+                io.to(data.senderId).emit('updateMessageStatus', {
+                    messageId: data.messageId,
+                    status: "delivered"
+                });
+            } catch (e) {
+                console.error("Failed to update delivery status:", e);
+            }
+        });
+
         /**
          * CALL USER
          */

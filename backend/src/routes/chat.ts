@@ -27,7 +27,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                 sender_id: true,
                 receiver_id: true,
                 content: true,
-                created_at: true
+                created_at: true,
+                delivery_status: true
             }
         });
 
@@ -36,7 +37,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             id: row.id,
             text: row.content, // Map content -> text
             senderId: row.sender_id,
-            timestamp: row.created_at
+            timestamp: row.created_at,
+            status: row.delivery_status
         }));
 
         res.json(history);
@@ -78,7 +80,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             data: {
                 sender_id: senderId,
                 receiver_id: connectionId,
-                content: cleanText
+                content: cleanText,
+                delivery_status: "sent"
             }
         });
 
@@ -86,7 +89,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             id: newMessageRecord.id,
             text: cleanText,
             senderId,
-            timestamp: newMessageRecord.created_at
+            timestamp: newMessageRecord.created_at,
+            status: "sent"
         };
 
         // Broadcast via Socket.IO
@@ -117,10 +121,23 @@ router.post('/:connectionId/read', authenticateToken, async (req: any, res) => {
             where: {
                 sender_id: connectionId,
                 receiver_id: userId,
-                is_read: false
+                NOT: { delivery_status: "read" }
             },
-            data: { is_read: true }
+            data: { delivery_status: "read" }
         });
+
+        // Notify the original sender that their messages were read
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            io.to(connectionId).emit("updateMessageStatus", {
+                readerMode: userId,
+                status: "read"
+            });
+        } catch (socketError) {
+            console.error("Socket broadcast failed", socketError);
+        }
+
         res.json({ success: true });
     } catch (e) {
         console.error("Mark Read Error", e);

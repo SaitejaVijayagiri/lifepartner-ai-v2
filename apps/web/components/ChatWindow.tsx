@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -110,6 +110,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     return [...prev, newMsg];
                 });
                 setIsTyping(false);
+
+                // Immediately emit delivered receipt now that we received the message
+                socket.emit("messageDelivered", {
+                    messageId: newMsg.id,
+                    senderId: partner.id
+                });
             }
         });
 
@@ -120,9 +126,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             }
         });
 
+        socket.on("updateMessageStatus", (data: any) => {
+            // Can be for a single messageId, or a readerMode event for ALL messages
+            setMessages(prev => prev.map(msg => {
+                if (data.readerMode === partner.id || msg.id === data.messageId) {
+                    return { ...msg, status: data.status };
+                }
+                return msg;
+            }));
+        });
+
         return () => {
             socket.off("receiveMessage");
             socket.off("typing");
+            socket.off("updateMessageStatus");
         };
     }, [socket, partner.id, user]);
 
@@ -162,13 +179,19 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             id: 'temp-' + Date.now(),
             text,
             senderId: 'me',
-            timestamp: new Date()
+            timestamp: new Date(),
+            status: 'sending'
         };
         setMessages(prev => [...prev, tempMsg]);
 
         try {
             // Backend expects User ID (partner.id), not Interaction ID
-            await api.chat.sendMessage(partner.id, text, 'me');
+            const response = await api.chat.sendMessage(partner.id, text, 'me');
+
+            // Replace temporary message with the real one from DB (which has status: 'sent')
+            if (response && response.message) {
+                setMessages(prev => prev.map(m => m.id === tempMsg.id ? response.message : m));
+            }
 
             // Trigger re-order in parent connection list
             if (onMessageSent) onMessageSent();
@@ -288,8 +311,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md'
                                 }`}>
                                 {msg.text}
-                                <div className={`text-[10px] mt-1 ${isMe ? 'text-white/60' : 'text-gray-400'}`}>
+                                <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-white/80' : 'text-gray-400'}`}>
                                     {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+
+                                    {isMe && (
+                                        <div className="flex items-center justify-center">
+                                            {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
+                                            {msg.status === 'sent' && <Check size={12} />}
+                                            {msg.status === 'delivered' && <CheckCheck size={12} />}
+                                            {msg.status === 'read' && <CheckCheck size={12} className={isMe ? "text-yellow-300" : "text-blue-500"} />}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

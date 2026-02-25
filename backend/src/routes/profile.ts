@@ -331,20 +331,22 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 });
 
-                // Pre-compute Optimization: store pgvector
-                if (bioVector && bioVector.length > 0) {
-                    try {
-                        // PGVector requires raw SQL to insert correctly as a typed array
-                        await tx.$executeRaw`
-                            UPDATE profiles 
-                            SET embedding = ${bioVector}::vector 
-                            WHERE user_id = ${userId}::uuid
-                        `;
-                    } catch (e) {
-                        console.error("Failed to save profile embedding during /me update", e);
-                    }
-                }
             });
+
+            // Pre-compute Optimization: store pgvector OUTSIDE the main transaction!
+            // This prevents a silent transaction abort if the AI vector dimension size mismatches Postgres.
+            if (bioVector && bioVector.length > 0) {
+                try {
+                    // PGVector requires raw SQL to insert correctly as a typed array
+                    await prisma.$executeRaw`
+                        UPDATE profiles 
+                        SET embedding = ${bioVector}::vector 
+                        WHERE user_id = ${userId}::uuid
+                    `;
+                } catch (e) {
+                    console.error("Failed to save profile embedding during /me update. This did NOT break the profile save.", e);
+                }
+            }
 
             res.json({ success: true, message: "Profile saved" });
 

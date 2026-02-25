@@ -88,7 +88,7 @@ router.get('/unread-count', authenticateToken, async (req: any, res) => {
         const count = await prisma.messages.count({
             where: {
                 receiver_id: userId,
-                is_read: false
+                NOT: { delivery_status: "read" }
             }
         });
         res.json({ count });
@@ -176,7 +176,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                 where: {
                     sender_id: { in: partnerIds },
                     receiver_id: userId,
-                    is_read: false
+                    NOT: { delivery_status: "read" }
                 },
                 _count: {
                     id: true

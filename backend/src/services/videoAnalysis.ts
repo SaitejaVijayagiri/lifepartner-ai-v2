@@ -59,9 +59,8 @@ export const analyzeVideoVibe = async (videoPath: string) => {
 
         if (!jsonRaw) throw new Error("AI returned empty response");
 
-        // CLEANUP JSON (Gemini sometimes adds markdown backticks)
-        const cleanJson = jsonRaw.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(cleanJson);
+        // The new local AI engine returns an object directly, no parsing needed
+        return jsonRaw;
 
     } catch (e) {
         console.error("Video Analysis Failed", e);

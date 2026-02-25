@@ -175,7 +175,8 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             location: {
                 city: user.city || "Unknown",
                 district: user.district,
-                state: user.state
+                state: user.state,
+                country: meta?.location?.country || "" // Use JSON metadata country
             },
             aboutMe: user.profiles?.raw_prompt || meta.bio || "",
             photos: meta.photos || [user.avatar_url],
@@ -259,6 +260,24 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             finalAge = calculatedAge;
         }
 
+        // SPEED OPTIMIZATION: Generate the AI Vector OUTSIDE the database transaction
+        // External network calls inside transactions cause DB lock timeouts and silent connection crashes!
+        const bioTextToEmbed = [
+            cleanPrompt,
+            career?.profession,
+            career?.educationLevel,
+            location?.city
+        ].filter(Boolean).join(" ");
+
+        let bioVector: number[] = [];
+        if (bioTextToEmbed.length > 5) {
+            try {
+                bioVector = await aiService.generateEmbedding(bioTextToEmbed);
+            } catch (e) {
+                console.error("Failed to generate embedding before tx", e);
+            }
+        }
+
         try {
             await prisma.$transaction(async (tx) => {
                 // 2. Update Core User Info
@@ -268,12 +287,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         full_name: name || undefined, // COALESCE equivalent: standard undefined ignored
                         age: finalAge,
                         gender,
-                        location_name: location?.city, // Fallback
+                        location_name: location?.city ? `${location.city}, ${location.country || ''}`.trim().replace(/,$/, '') : undefined, // Better location string
                         avatar_url: finalPhotoUrl,
                         email,
                         city: location?.city,
                         district: location?.district,
-                        state: location?.state
+                        state: location?.state,
+                        country: location?.country // Added country to base schema
                     }
                 });
 
@@ -312,18 +332,9 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 });
 
-                // Pre-compute Optimization: Generate and store pgvector
-                // We combine aboutMe (bio) and profession to build a rich vector
-                const bioTextToEmbed = [
-                    cleanPrompt,
-                    metadata.career?.profession,
-                    metadata.career?.educationLevel,
-                    metadata.location?.city
-                ].filter(Boolean).join(" ");
-
-                if (bioTextToEmbed.length > 5) {
+                // Pre-compute Optimization: store pgvector
+                if (bioVector && bioVector.length > 0) {
                     try {
-                        const bioVector = await aiService.generateEmbedding(bioTextToEmbed);
                         // PGVector requires raw SQL to insert correctly as a typed array
                         await tx.$executeRaw`
                             UPDATE profiles 
@@ -331,7 +342,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                             WHERE user_id = ${userId}::uuid
                         `;
                     } catch (e) {
-                        console.error("Failed to generate or save profile embedding during /me update", e);
+                        console.error("Failed to save profile embedding during /me update", e);
                     }
                 }
             });

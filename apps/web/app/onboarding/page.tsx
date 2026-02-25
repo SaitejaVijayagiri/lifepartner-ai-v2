@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProfileWizard from '@/components/ProfileWizard';
 import { useToast } from '@/components/ui/Toast';
+import { Sparkles } from 'lucide-react';
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -98,29 +99,56 @@ export default function OnboardingPage() {
             localStorage.removeItem('lifepartner_onboarding_data');
             localStorage.removeItem('lifepartner_onboarding_step');
 
-            // Simulate analysis delay
-            await new Promise(r => setTimeout(r, 1000));
+            // Minimal delay just to ensure the success animation renders smoothly
+            await new Promise(r => setTimeout(r, 400));
             router.push('/dashboard');
         } catch (error) {
             console.error(error);
             toast.error('Failed to save profile. Please try again.');
-        } finally {
-            setLoading(false);
+            setLoading(false); // Only unset loading if it fails, otherwise keep it spinning until redirect
         }
     };
 
+    if (loading) {
+        return (
+            <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-gray-950 overflow-hidden font-sans">
+                {/* Glowing animated background */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/20 rounded-full blur-[100px] animate-pulse"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-purple-500/20 rounded-full blur-[80px] animate-ping" style={{ animationDuration: '3s' }}></div>
+
+                {/* Foreground content */}
+                <div className="relative z-10 flex flex-col items-center">
+                    <div className="relative w-28 h-28 mb-10">
+                        {/* Outer Glow Ring */}
+                        <div className="absolute inset-0 border-[6px] border-indigo-500/20 rounded-full"></div>
+                        {/* Spinning Gradient Ring */}
+                        <div className="absolute inset-0 border-[6px] border-indigo-400 border-t-purple-400 border-l-transparent border-b-transparent rounded-full animate-spin" style={{ animationDuration: '1s' }}></div>
+                        {/* Center Icon */}
+                        <div className="absolute inset-0 flex items-center justify-center text-indigo-200">
+                            <Sparkles className="w-10 h-10 animate-pulse" />
+                        </div>
+                    </div>
+
+                    <h2 className="text-4xl font-extrabold text-white mb-4 tracking-tight drop-shadow-lg">
+                        Building Your Profile
+                    </h2>
+
+                    <div className="flex flex-col items-center space-y-3 text-indigo-200/80 font-medium text-lg">
+                        <p className="animate-pulse">Analyzing compatibility factors...</p>
+                        <p className="animate-pulse" style={{ animationDelay: '0.5s' }}>Generating AI match vectors...</p>
+                        <p className="animate-pulse" style={{ animationDelay: '1s' }}>Securing your preferences...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 font-sans">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-0 lg:p-6 font-sans">
             {authChecking ? (
                 <div className="text-center">
                     <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
                     <h2 className="text-xl font-bold">Loading...</h2>
-                </div>
-            ) : loading ? (
-                <div className="text-center">
-                    <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <h2 className="text-xl font-bold">Building your Matrimony Profile...</h2>
-                    <p className="text-gray-500">AI is analyzing your compatibility factors.</p>
                 </div>
             ) : (
                 <ProfileWizard onComplete={handleWizardComplete} />

@@ -333,7 +333,85 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <Input placeholder="State" value={data.state} onChange={e => update('state', e.target.value)} />
                                     </div>
                                 </div>
-                                <Input label="Country" value={data.country} onChange={e => update('country', e.target.value)} />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Country</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        value={data.country || 'India'}
+                                        onChange={e => update('country', e.target.value)}
+                                    >
+                                        <option value="India">India</option>
+                                        <option value="United States">United States</option>
+                                        <option value="United Kingdom">United Kingdom</option>
+                                        <option value="Canada">Canada</option>
+                                        <option value="Australia">Australia</option>
+                                        <option value="United Arab Emirates">United Arab Emirates</option>
+                                        <option value="Singapore">Singapore</option>
+                                        <option value="New Zealand">New Zealand</option>
+                                        <option value="Germany">Germany</option>
+                                        <option value="France">France</option>
+                                        <option disabled>──────────</option>
+                                        <option value="Afghanistan">Afghanistan</option>
+                                        <option value="Albania">Albania</option>
+                                        <option value="Algeria">Algeria</option>
+                                        <option value="Argentina">Argentina</option>
+                                        <option value="Austria">Austria</option>
+                                        <option value="Bahrain">Bahrain</option>
+                                        <option value="Bangladesh">Bangladesh</option>
+                                        <option value="Belgium">Belgium</option>
+                                        <option value="Bhutan">Bhutan</option>
+                                        <option value="Brazil">Brazil</option>
+                                        <option value="China">China</option>
+                                        <option value="Denmark">Denmark</option>
+                                        <option value="Egypt">Egypt</option>
+                                        <option value="Fiji">Fiji</option>
+                                        <option value="Finland">Finland</option>
+                                        <option value="Greece">Greece</option>
+                                        <option value="Hong Kong">Hong Kong</option>
+                                        <option value="Indonesia">Indonesia</option>
+                                        <option value="Iran">Iran</option>
+                                        <option value="Iraq">Iraq</option>
+                                        <option value="Ireland">Ireland</option>
+                                        <option value="Israel">Israel</option>
+                                        <option value="Italy">Italy</option>
+                                        <option value="Japan">Japan</option>
+                                        <option value="Jordan">Jordan</option>
+                                        <option value="Kenya">Kenya</option>
+                                        <option value="Kuwait">Kuwait</option>
+                                        <option value="Lebanon">Lebanon</option>
+                                        <option value="Malaysia">Malaysia</option>
+                                        <option value="Maldives">Maldives</option>
+                                        <option value="Mauritius">Mauritius</option>
+                                        <option value="Mexico">Mexico</option>
+                                        <option value="Myanmar">Myanmar</option>
+                                        <option value="Nepal">Nepal</option>
+                                        <option value="Netherlands">Netherlands</option>
+                                        <option value="Nigeria">Nigeria</option>
+                                        <option value="Norway">Norway</option>
+                                        <option value="Oman">Oman</option>
+                                        <option value="Pakistan">Pakistan</option>
+                                        <option value="Philippines">Philippines</option>
+                                        <option value="Poland">Poland</option>
+                                        <option value="Portugal">Portugal</option>
+                                        <option value="Qatar">Qatar</option>
+                                        <option value="Russia">Russia</option>
+                                        <option value="Saudi Arabia">Saudi Arabia</option>
+                                        <option value="South Africa">South Africa</option>
+                                        <option value="South Korea">South Korea</option>
+                                        <option value="Spain">Spain</option>
+                                        <option value="Sri Lanka">Sri Lanka</option>
+                                        <option value="Sweden">Sweden</option>
+                                        <option value="Switzerland">Switzerland</option>
+                                        <option value="Thailand">Thailand</option>
+                                        <option value="Turkey">Turkey</option>
+                                        <option value="Uganda">Uganda</option>
+                                        <option value="Ukraine">Ukraine</option>
+                                        <option value="Vietnam">Vietnam</option>
+                                        <option value="Yemen">Yemen</option>
+                                        <option value="Zambia">Zambia</option>
+                                        <option value="Zimbabwe">Zimbabwe</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     )}

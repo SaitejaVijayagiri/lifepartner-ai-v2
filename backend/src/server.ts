@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cron from 'node-cron';
+import { BlogGenerator } from './services/blogGenerator';
 // import { pool, checkDbConnection } from './db'; -> Removed
 
 import authRoutes from './routes/auth';
@@ -113,6 +115,30 @@ if (require.main === module) {
         try {
             await prisma.$connect();
             console.log("✅ Prisma Connected (Schema Verified)");
+
+            // ⏰ Start Daily SEO Blog Generation
+            cron.schedule('0 12 * * *', async () => {
+                const topics = [
+                    "Online Dating Tips for Introverts in India",
+                    "How to Know if someone is serious on a Matrimony App",
+                    "The Science behind successful Relationships",
+                    "Red Flags to look out for on Dating Apps",
+                    "Is Astrology Important for Marriage in Modern Day?",
+                    "Best Places for a First Date in Mumbai",
+                    "How AI is Changing Matchmaking",
+                    "Navigating Long Distance Relationships"
+                ];
+                const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+                console.log(`[CRON] Generating Daily SEO Blog: "${randomTopic}"`);
+                try {
+                    await BlogGenerator.generateAndSavePost(randomTopic);
+                    console.log("[CRON] Successfully generated daily blog.");
+                } catch (error) {
+                    console.error("[CRON] Failed to generate daily blog:", error);
+                }
+            });
+            console.log("⏰ Daily Blog Generation Cron Job Scheduled for 12:00 PM.");
+
         } catch (e) {
             console.error("❌ Prisma Connection Failed", e);
         }

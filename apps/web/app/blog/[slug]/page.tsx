@@ -3,6 +3,7 @@ import { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
+import GoogleAdBanner from '../../../components/GoogleAdBanner';
 
 interface BlogPost {
     id: string;
@@ -90,6 +91,10 @@ export default async function BlogPostPage({ params }: Props) {
                             </div>
                         </header>
 
+                        <div className="my-10">
+                            <GoogleAdBanner format="horizontal" />
+                        </div>
+
                         <div
                             className="prose prose-lg prose-rose mx-auto text-gray-700 
                             prose-headings:font-bold prose-headings:text-gray-900 
@@ -97,6 +102,10 @@ export default async function BlogPostPage({ params }: Props) {
                             prose-img:rounded-xl prose-img:shadow-sm"
                             dangerouslySetInnerHTML={{ __html: post.content }}
                         />
+
+                        <div className="mt-16 pt-8 border-t border-gray-100">
+                            <GoogleAdBanner format="rectangle" />
+                        </div>
                     </div>
                 </article>
             </main>

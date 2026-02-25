@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Metadata } from 'next';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import GoogleAdBanner from '../../components/GoogleAdBanner';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,13 +55,17 @@ export default async function BlogIndexPage() {
             <Navbar />
 
             <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16">
-                <div className="text-center mb-16">
+                <div className="text-center mb-12">
                     <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl">
                         Relationship Insights & Advice
                     </h1>
                     <p className="mt-4 text-xl text-gray-600 max-w-3xl mx-auto">
                         Discover expert tips on matchmaking, dating safely, the science of compatibility, and finding true love.
                     </p>
+                </div>
+
+                <div className="max-w-4xl mx-auto mb-12">
+                    <GoogleAdBanner format="horizontal" />
                 </div>
 
                 {error && (

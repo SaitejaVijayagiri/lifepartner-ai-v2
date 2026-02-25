@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
-import { BlogGenerator } from './services/blogGenerator';
+import { generateBlogPost } from './services/blogGenerator';
 // import { pool, checkDbConnection } from './db'; -> Removed
 
 import authRoutes from './routes/auth';
@@ -131,7 +131,7 @@ if (require.main === module) {
                 const randomTopic = topics[Math.floor(Math.random() * topics.length)];
                 console.log(`[CRON] Generating Daily SEO Blog: "${randomTopic}"`);
                 try {
-                    await BlogGenerator.generateAndSavePost(randomTopic);
+                    await generateBlogPost(randomTopic);
                     console.log("[CRON] Successfully generated daily blog.");
                 } catch (error) {
                     console.error("[CRON] Failed to generate daily blog:", error);

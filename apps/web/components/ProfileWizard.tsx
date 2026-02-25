@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
-import { MapPin, LogOut } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
@@ -57,13 +57,13 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         // Religion
         religion: 'Hindu', caste: '', interCasteOpen: false,
         // Career
-        education: "Bachelor's", profession: '', income: '', company: '',
+        education: 'Bachelors', profession: '', income: '', company: '',
         // Family
-        familyType: 'Nuclear', familyValues: 'Moderate', fatherOccupation: '', motherTongue: 'Hindi', maritalStatus: 'Single',
+        familyType: 'Nuclear', familyValues: 'Moderate', fatherOccupation: '', motherTongue: 'English', maritalStatus: 'Single',
         // Lifestyle
-        diet: 'Vegetarian', smoke: 'No', drink: 'No',
+        diet: 'Veg', smoke: 'No', drink: 'No',
         // Partner
-        partnerAgeRange: '', partnerHeightRange: '', partnerIncome: '', partnerLocation: '', prompt: '',
+        partnerAgeRange: '', partnerHeightRange: '', partnerIncome: '', prompt: '',
         // Photos
         photos: [],
         voiceBioUrl: ''
@@ -216,32 +216,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 <div className="z-10 flex justify-between lg:block items-center mb-4 lg:mb-0">
                     <h1 className="text-xl lg:text-3xl font-bold lg:mb-2">LifePartner AI</h1>
                     <div className="hidden lg:block h-1 w-12 bg-white/50 rounded-full"></div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('userId');
-                                window.location.href = '/login';
-                            }}
-                            className="hidden lg:flex items-center gap-2 text-white/70 hover:text-white transition-colors text-xs font-bold uppercase tracking-wider bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20"
-                        >
-                            <LogOut size={14} />
-                            Log Out
-                        </button>
-                        {/* Mobile Progress Indicator (Simple) */}
-                        <div className="lg:hidden text-xs font-medium opacity-80 bg-white/20 px-2 py-1 rounded-full">
-                            Step {currentStep + 1}/{STEPS.length}
-                        </div>
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem('token');
-                                localStorage.removeItem('userId');
-                                window.location.href = '/login';
-                            }}
-                            className="lg:hidden text-white/80 hover:text-white p-1"
-                        >
-                            <LogOut size={16} />
-                        </button>
+                    {/* Mobile Progress Indicator (Simple) */}
+                    <div className="lg:hidden text-xs font-medium opacity-80 bg-white/20 px-2 py-1 rounded-full">
+                        Step {currentStep + 1}/{STEPS.length}
                     </div>
                 </div>
 
@@ -276,18 +253,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP 1: BASICS */}
                     {stepId === 'basics' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
-                                <div className="md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium">About Me (Bio)</label>
-                                    <textarea
-                                        className="w-full h-20 p-3 border rounded-md bg-white text-sm focus:ring-1 focus:outline-none focus:ring-indigo-600"
-                                        placeholder="Briefly describe your personality..."
-                                        value={data.aboutMe || ''}
-                                        onChange={e => update('aboutMe', e.target.value)}
-                                    />
-                                </div>
                                 <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Gender</label>
@@ -300,19 +268,16 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
                                         <option value="">Select Status</option>
                                         <option value="Single">Single</option>
-                                        <option value="Married">Married</option>
                                         <option value="Divorced">Divorced</option>
                                         <option value="Widowed">Widowed</option>
                                         <option value="Awaiting Divorce">Awaiting Divorce</option>
                                     </select>
                                 </div>
                                 <Input label="Height (e.g. 5'9) *" value={data.height} onChange={e => update('height', e.target.value)} />
-                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                <div className="col-span-2 space-y-2">
                                     <label className="text-sm font-medium">Location *</label>
-                                    <div className="flex gap-2 w-full">
-                                        <div className="flex-1">
-                                            <Input placeholder="City" value={data.city} onChange={e => update('city', e.target.value)} />
-                                        </div>
+                                    <div className="flex gap-2">
+                                        <Input placeholder="City" value={data.city} onChange={e => update('city', e.target.value)} />
                                         <Button
                                             type="button"
                                             variant="outline"
@@ -346,70 +311,36 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <option value="Canada">Canada</option>
                                         <option value="Australia">Australia</option>
                                         <option value="United Arab Emirates">United Arab Emirates</option>
+                                        <option value="Saudi Arabia">Saudi Arabia</option>
                                         <option value="Singapore">Singapore</option>
+                                        <option value="Malaysia">Malaysia</option>
                                         <option value="New Zealand">New Zealand</option>
                                         <option value="Germany">Germany</option>
                                         <option value="France">France</option>
-                                        <option disabled>──────────</option>
-                                        <option value="Afghanistan">Afghanistan</option>
-                                        <option value="Albania">Albania</option>
-                                        <option value="Algeria">Algeria</option>
-                                        <option value="Argentina">Argentina</option>
-                                        <option value="Austria">Austria</option>
-                                        <option value="Bahrain">Bahrain</option>
-                                        <option value="Bangladesh">Bangladesh</option>
-                                        <option value="Belgium">Belgium</option>
-                                        <option value="Bhutan">Bhutan</option>
-                                        <option value="Brazil">Brazil</option>
-                                        <option value="China">China</option>
-                                        <option value="Denmark">Denmark</option>
-                                        <option value="Egypt">Egypt</option>
-                                        <option value="Fiji">Fiji</option>
-                                        <option value="Finland">Finland</option>
-                                        <option value="Greece">Greece</option>
-                                        <option value="Hong Kong">Hong Kong</option>
-                                        <option value="Indonesia">Indonesia</option>
-                                        <option value="Iran">Iran</option>
-                                        <option value="Iraq">Iraq</option>
-                                        <option value="Ireland">Ireland</option>
-                                        <option value="Israel">Israel</option>
-                                        <option value="Italy">Italy</option>
-                                        <option value="Japan">Japan</option>
-                                        <option value="Jordan">Jordan</option>
-                                        <option value="Kenya">Kenya</option>
-                                        <option value="Kuwait">Kuwait</option>
-                                        <option value="Lebanon">Lebanon</option>
-                                        <option value="Malaysia">Malaysia</option>
-                                        <option value="Maldives">Maldives</option>
-                                        <option value="Mauritius">Mauritius</option>
-                                        <option value="Mexico">Mexico</option>
-                                        <option value="Myanmar">Myanmar</option>
-                                        <option value="Nepal">Nepal</option>
                                         <option value="Netherlands">Netherlands</option>
-                                        <option value="Nigeria">Nigeria</option>
-                                        <option value="Norway">Norway</option>
-                                        <option value="Oman">Oman</option>
-                                        <option value="Pakistan">Pakistan</option>
-                                        <option value="Philippines">Philippines</option>
-                                        <option value="Poland">Poland</option>
-                                        <option value="Portugal">Portugal</option>
-                                        <option value="Qatar">Qatar</option>
-                                        <option value="Russia">Russia</option>
-                                        <option value="Saudi Arabia">Saudi Arabia</option>
+                                        <option value="Ireland">Ireland</option>
                                         <option value="South Africa">South Africa</option>
-                                        <option value="South Korea">South Korea</option>
-                                        <option value="Spain">Spain</option>
+                                        <option value="Oman">Oman</option>
+                                        <option value="Qatar">Qatar</option>
+                                        <option value="Kuwait">Kuwait</option>
+                                        <option value="Bahrain">Bahrain</option>
+                                        <option value="Nepal">Nepal</option>
                                         <option value="Sri Lanka">Sri Lanka</option>
-                                        <option value="Sweden">Sweden</option>
-                                        <option value="Switzerland">Switzerland</option>
-                                        <option value="Thailand">Thailand</option>
-                                        <option value="Turkey">Turkey</option>
-                                        <option value="Uganda">Uganda</option>
-                                        <option value="Ukraine">Ukraine</option>
+                                        <option value="Bangladesh">Bangladesh</option>
+                                        <option value="Pakistan">Pakistan</option>
+                                        <option value="China">China</option>
+                                        <option value="Japan">Japan</option>
+                                        <option value="South Korea">South Korea</option>
+                                        <option value="Indonesia">Indonesia</option>
+                                        <option value="Philippines">Philippines</option>
                                         <option value="Vietnam">Vietnam</option>
-                                        <option value="Yemen">Yemen</option>
-                                        <option value="Zambia">Zambia</option>
-                                        <option value="Zimbabwe">Zimbabwe</option>
+                                        <option value="Thailand">Thailand</option>
+                                        <option value="Egypt">Egypt</option>
+                                        <option value="Nigeria">Nigeria</option>
+                                        <option value="Kenya">Kenya</option>
+                                        <option value="Brazil">Brazil</option>
+                                        <option value="Mexico">Mexico</option>
+                                        <option value="Other">Other</option>
                                     </select>
                                 </div>
                             </div>
@@ -418,12 +349,12 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP 2: HOROSCOPE (Detailed) */}
                     {stepId === 'horoscope' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Religion</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.religion} onChange={e => update('religion', e.target.value)}>
-                                        <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Buddhist</option><option>Parsi</option><option>Other</option>
+                                        <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Other</option>
                                     </select>
                                 </div>
                                 <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer, BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
@@ -436,15 +367,14 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
                                 <Input label="Birth Place" placeholder="e.g. Chennai, TN" value={data.birthPlace} onChange={e => update('birthPlace', e.target.value)} />
                                 <Input label="Time of Birth" placeholder="e.g. 10:30 AM" value={data.birthTime} onChange={e => update('birthTime', e.target.value)} />
-                                <Input label="Zodiac Sign" placeholder="e.g. Libra" value={data.zodiacSign} onChange={e => update('zodiacSign', e.target.value)} />
-                                <Input label="Nakshatra" placeholder="e.g. Rohini" value={data.nakshatra} onChange={e => update('nakshatra', e.target.value)} />
+                                <Input label="Zodiac & Nakshatra" placeholder="e.g. Libra, Rohini" value={data.nakshatra} onChange={e => update('nakshatra', e.target.value)} />
                             </div>
                         </div>
                     )}
 
                     {/* STEP 3: CAREER & EDU */}
                     {stepId === 'career' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 gap-6">
                                 <Input label="Profession / Job Title *" value={data.profession} onChange={e => update('profession', e.target.value)} />
                                 <Input label="Company Name" value={data.company} onChange={e => update('company', e.target.value)} />
@@ -453,7 +383,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Highest Education</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.education} onChange={e => update('education', e.target.value)}>
-                                        <option>High School</option><option>Bachelor's</option><option>Master's</option><option>PhD</option><option>Professional Degree</option>
+                                        <option>Bachelors</option><option>Masters</option><option>Doctorate</option><option>High School</option>
                                     </select>
                                 </div>
                                 <Input label="College / University" placeholder="e.g. IIT Bombay" value={data.college} onChange={e => update('college', e.target.value)} />
@@ -465,7 +395,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: FAMILY */}
                     {stepId === 'family' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Family Type</label>
@@ -483,12 +413,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Mother's Occupation" value={data.motherOccupation} onChange={e => update('motherOccupation', e.target.value)} />
                                 <Input label="Brothers (Count)" placeholder="e.g. 1" type="number" value={data.brothers} onChange={e => update('brothers', e.target.value)} />
                                 <Input label="Sisters (Count)" placeholder="e.g. 0" type="number" value={data.sisters} onChange={e => update('sisters', e.target.value)} />
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">Mother Tongue</label>
-                                    <select className="w-full h-10 px-3 border rounded-md" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
-                                        <option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option><option>Marathi</option><option>Bengali</option><option>Kannada</option><option>Gujarati</option><option>Malayalam</option><option>Punjabi</option><option>Other</option>
-                                    </select>
-                                </div>
+                                <Input label="Mother Tongue" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)} />
                                 <Input label="Native Place / Ancestral Origin" placeholder="e.g. Kanchipuram" value={data.nativePlace} onChange={e => update('nativePlace', e.target.value)} />
                             </div>
                         </div>
@@ -496,12 +421,12 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: LIFESTYLE & INTERESTS */}
                     {stepId === 'lifestyle' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Diet</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.diet} onChange={e => update('diet', e.target.value)}>
-                                        <option>Vegetarian</option><option>Non-Vegetarian</option><option>Eggetarian</option><option>Vegan</option>
+                                        <option>Veg</option><option>Non-Veg</option><option>Eggetarian</option><option>Vegan</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -513,7 +438,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Drinking</label>
                                     <select className="w-full h-10 px-3 border rounded-md" value={data.drink} onChange={e => update('drink', e.target.value)}>
-                                        <option>No</option><option>Yes</option><option>Occasionally</option>
+                                        <option>No</option><option>Yes</option><option>Socially</option>
                                     </select>
                                 </div>
                             </div>
@@ -532,7 +457,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: PARTNER PREF */}
                     {stepId === 'partner' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="space-y-2">
                                 <h3 className="font-semibold text-gray-900">Partner Expectations</h3>
                                 <textarea
@@ -546,14 +471,13 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Pref Age Range" placeholder="24-29" value={data.partnerAgeRange} onChange={e => update('partnerAgeRange', e.target.value)} />
                                 <Input label="Pref Height" placeholder="5'2 - 5'8" value={data.partnerHeightRange} onChange={e => update('partnerHeightRange', e.target.value)} />
                                 <Input label="Min Income" placeholder="e.g. 10 LPA" value={data.partnerIncome} onChange={e => update('partnerIncome', e.target.value)} />
-                                <Input label="Pref Location" placeholder="e.g. Mumbai" value={data.partnerLocation} onChange={e => update('partnerLocation', e.target.value)} />
                             </div>
                         </div>
                     )}
 
                     {/* STEP: PHOTOS */}
                     {stepId === 'photos' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center">
                             <div className="border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/30 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 transition-all group">
                                 <input
                                     type="file"

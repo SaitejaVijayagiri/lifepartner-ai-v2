@@ -4,6 +4,8 @@ import { Metadata } from 'next';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: 'Relationship Advice & Matchmaking Blog | LifePartner AI',
     description: 'Expert advice on dating, marriage, astrology matching, and finding a serious relationship in the modern world.',
@@ -18,27 +20,34 @@ interface BlogPost {
     created_at: string;
 }
 
-async function getBlogPosts(): Promise<BlogPost[]> {
+async function getBlogPosts(): Promise<{ posts: BlogPost[], error: string | null }> {
     try {
-        // Fetch from the backend API. Revalidate every 1 hour (3600 seconds)
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/blog`, {
-            next: { revalidate: 3600 }
+        // Fetch from the backend API. Using 127.0.0.1 bypasses Node 18+ IPv6 localhost resolution failures
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('localhost', '127.0.0.1') || 'http://127.0.0.1:4000';
+        const fetchUrl = `${apiUrl}/blog`;
+
+        console.log("Fetching SEO Blogs from:", fetchUrl);
+
+        const res = await fetch(fetchUrl, {
+            cache: 'no-store'
         });
 
         if (!res.ok) {
-            return [];
+            const body = await res.text();
+            console.error("Invalid fetch response:", res.status, body);
+            return { posts: [], error: `Backend returned ${res.status}: ${body}` };
         }
 
         const data = await res.json();
-        return data.posts || [];
-    } catch (error) {
+        return { posts: data.posts || [], error: null };
+    } catch (error: any) {
         console.error("Failed to fetch blog posts:", error);
-        return [];
+        return { posts: [], error: `Network/Fetch Error: ${error.message}` };
     }
 }
 
 export default async function BlogIndexPage() {
-    const posts = await getBlogPosts();
+    const { posts, error } = await getBlogPosts();
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -54,7 +63,14 @@ export default async function BlogIndexPage() {
                     </p>
                 </div>
 
-                {posts.length === 0 ? (
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 mb-8 text-center">
+                        <h3 className="font-bold text-lg mb-2">Debug Error: Could not load articles</h3>
+                        <p className="font-mono text-sm break-all">{error}</p>
+                    </div>
+                )}
+
+                {posts.length === 0 && !error ? (
                     <div className="text-center text-gray-500 py-12">
                         No articles published yet. Check back soon!
                     </div>

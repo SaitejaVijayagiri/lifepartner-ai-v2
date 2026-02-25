@@ -276,7 +276,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP 1: BASICS */}
                     {stepId === 'basics' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
                                 <div className="md:col-span-2 space-y-2">
@@ -418,7 +418,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP 2: HOROSCOPE (Detailed) */}
                     {stepId === 'horoscope' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Religion</label>
@@ -444,7 +444,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP 3: CAREER & EDU */}
                     {stepId === 'career' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="grid grid-cols-1 gap-6">
                                 <Input label="Profession / Job Title *" value={data.profession} onChange={e => update('profession', e.target.value)} />
                                 <Input label="Company Name" value={data.company} onChange={e => update('company', e.target.value)} />
@@ -465,7 +465,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: FAMILY */}
                     {stepId === 'family' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Family Type</label>
@@ -496,7 +496,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: LIFESTYLE & INTERESTS */}
                     {stepId === 'lifestyle' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Diet</label>
@@ -532,7 +532,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: PARTNER PREF */}
                     {stepId === 'partner' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="space-y-2">
                                 <h3 className="font-semibold text-gray-900">Partner Expectations</h3>
                                 <textarea
@@ -553,7 +553,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                     {/* STEP: PHOTOS */}
                     {stepId === 'photos' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center">
+                        <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <div className="border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/30 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 transition-all group">
                                 <input
                                     type="file"

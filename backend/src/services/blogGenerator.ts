@@ -1,59 +1,29 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 export async function generateBlogPost(topic: string): Promise<boolean> {
     try {
-        console.log(`\n🤖 Starting SEO Blog Generation for: "${topic}"...`);
+        console.log(`\n🤖 Generating Local Heuristic Blog Post for: "${topic}"...`);
 
-        const prompt = `
-            You are an expert relationship psychologist and a master SEO copywriter.
-            Write a highly engaging, long-form SEO blog article about: "${topic}".
-            
-            The target audience is people looking for serious relationships and marriage on dating apps.
-            
-            You must return ONLY a raw JSON object string with no markdown formatting and no backticks. The JSON must have these exact keys:
-            - "title": A catchy, click-worthy SEO optimized title (max 60 chars)
-            - "slug": A URL-friendly slug based on the title (e.g., "finding-love-in-bangalore")
-            - "excerpt": A compelling 2-sentence summary for the meta description
-            - "meta_title": SEO meta title (max 60 chars)
-            - "meta_description": SEO meta description (max 160 chars)
-            - "keywords": An array of 5-8 long-tail SEO keywords as strings
-            - "content": The full HTML content of the article. It must include <h2> and <h3> tags, <p> tags, and <ul> lists. It should be at least 800 words long. It should mention the platform "LifePartner AI" naturally as the best modern way to find matches based on deep compatibility (Astrology Guna matching and Psychological profiling).
-        `;
-
-        const response = await model.generateContent({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: {
-                temperature: 0.7,
-                responseMimeType: 'application/json'
-            }
-        });
-
-        const jsonString = response.response.text();
-        if (!jsonString) {
-            throw new Error("No response text from Gemini");
-        }
-
-        const blogData = JSON.parse(jsonString);
+        // Static fallback since we removed external AI APIs
+        const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        const blogData = {
+            title: `Guide to ${topic} | Matchmaking Advice`,
+            slug: slug,
+            excerpt: `Discover the best tips and advice regarding ${topic} in our latest relationship guide.`,
+            meta_title: `Ultimate Guide to ${topic}`,
+            meta_description: `Read our comprehensive guide on ${topic} to find your perfect match using modern matchmaking principles.`,
+            keywords: [topic, "relationships", "matchmaking", "dating advice", "love"],
+            content: `<h2>Understanding ${topic}</h2><p>When it comes to building a lasting relationship, understanding ${topic} is absolutely crucial. LifePartner AI takes this into account using advanced psychological profiling and compatibility scoring.</p><h3>Why it Matters</h3><p>Many couples find that aligning on core values and interests leads to a stronger bond.</p><ul><li>Communication is key</li><li>Shared values create a strong foundation</li><li>Mutual respect ensures longevity</li></ul>`
+        };
 
         // @ts-ignore
         await prisma.blog_posts.create({
-            data: {
-                title: blogData.title,
-                slug: blogData.slug,
-                excerpt: blogData.excerpt,
-                meta_title: blogData.meta_title,
-                meta_description: blogData.meta_description,
-                keywords: blogData.keywords,
-                content: blogData.content
-            }
+            data: blogData
         });
 
-        console.log(`✅ Successfully generated and saved SEO Blog Post: ${blogData.title}`);
+        console.log(`✅ Successfully generated and saved Local Blog Post: ${blogData.title}`);
         return true;
 
     } catch (error) {

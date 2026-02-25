@@ -13,7 +13,7 @@ interface GoogleAdBannerProps {
     format?: 'auto' | 'horizontal' | 'rectangle';
 }
 
-export default function GoogleAdBanner({ slotId = "8536302476", format = 'auto' }: GoogleAdBannerProps) {
+export default function GoogleAdBanner({ slotId = "1994444490", format = 'auto' }: GoogleAdBannerProps) {
     const initialized = useRef(false);
 
     useEffect(() => {

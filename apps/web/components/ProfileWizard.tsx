@@ -291,13 +291,13 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Gender</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.gender} onChange={e => update('gender', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.gender} onChange={e => update('gender', e.target.value)}>
                                         <option>Male</option><option>Female</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Marital Status</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
                                         <option value="">Select Status</option>
                                         <option value="Single">Single</option>
                                         <option value="Married">Married</option>
@@ -336,7 +336,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Country</label>
                                     <select
-                                        className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        className="w-full h-10 px-3 border rounded-md"
                                         value={data.country || 'India'}
                                         onChange={e => update('country', e.target.value)}
                                     >
@@ -422,7 +422,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Religion</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.religion} onChange={e => update('religion', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.religion} onChange={e => update('religion', e.target.value)}>
                                         <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Buddhist</option><option>Parsi</option><option>Other</option>
                                     </select>
                                 </div>
@@ -430,7 +430,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Gothra (Optional)" placeholder="e.g. Bharadwaj" value={data.gothra} onChange={e => update('gothra', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Manglik</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.manglik} onChange={e => update('manglik', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.manglik} onChange={e => update('manglik', e.target.value)}>
                                         <option>No</option><option>Yes</option><option>Don't Know</option>
                                     </select>
                                 </div>
@@ -452,7 +452,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Highest Education</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.education} onChange={e => update('education', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.education} onChange={e => update('education', e.target.value)}>
                                         <option>High School</option><option>Bachelor's</option><option>Master's</option><option>PhD</option><option>Professional Degree</option>
                                     </select>
                                 </div>
@@ -469,13 +469,13 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Family Type</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyType} onChange={e => update('familyType', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.familyType} onChange={e => update('familyType', e.target.value)}>
                                         <option>Nuclear</option><option>Joint</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Family Values</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyValues} onChange={e => update('familyValues', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.familyValues} onChange={e => update('familyValues', e.target.value)}>
                                         <option>Moderate</option><option>Traditional</option><option>Orthodox</option><option>Liberal</option>
                                     </select>
                                 </div>
@@ -485,7 +485,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Sisters (Count)" placeholder="e.g. 0" type="number" value={data.sisters} onChange={e => update('sisters', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Mother Tongue</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
                                         <option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option><option>Marathi</option><option>Bengali</option><option>Kannada</option><option>Gujarati</option><option>Malayalam</option><option>Punjabi</option><option>Other</option>
                                     </select>
                                 </div>
@@ -500,19 +500,19 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Diet</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.diet} onChange={e => update('diet', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.diet} onChange={e => update('diet', e.target.value)}>
                                         <option>Vegetarian</option><option>Non-Vegetarian</option><option>Eggetarian</option><option>Vegan</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Smoking</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.smoke} onChange={e => update('smoke', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.smoke} onChange={e => update('smoke', e.target.value)}>
                                         <option>No</option><option>Yes</option><option>Occasionally</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Drinking</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.drink} onChange={e => update('drink', e.target.value)}>
+                                    <select className="w-full h-10 px-3 border rounded-md" value={data.drink} onChange={e => update('drink', e.target.value)}>
                                         <option>No</option><option>Yes</option><option>Occasionally</option>
                                     </select>
                                 </div>

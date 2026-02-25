@@ -74,6 +74,9 @@ export default function Navbar() {
                             {item}
                         </Link>
                     ))}
+                    <Link href="/blog" className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
+                        Blog <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">SEO</span>
+                    </Link>
                     <Link href="/community" className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
                         Community <span className="bg-indigo-100 text-indigo-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">New</span>
                     </Link>
@@ -149,6 +152,13 @@ export default function Navbar() {
                             </div>
                         )}
 
+                        <Link
+                            href="/blog"
+                            className="text-lg font-medium text-gray-800 hover:text-indigo-600 flex items-center gap-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            Read our SEO Blog <span className="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Top Articles</span>
+                        </Link>
                         <Link
                             href="/community"
                             className="text-lg font-medium text-gray-800 hover:text-indigo-600 flex items-center gap-2"

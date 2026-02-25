@@ -1,69 +1,104 @@
-import { BLOG_POSTS } from '@/lib/blog-data';
-import StaticPageLayout from '@/components/StaticPageLayout';
+import React from 'react';
+import { Metadata, ResolvingMetadata } from 'next';
 import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
-import NextImage from 'next/image';
+import Navbar from '../../../components/Navbar';
+import Footer from '../../../components/Footer';
 
-export async function generateStaticParams() {
-    return BLOG_POSTS.map((post) => ({
-        slug: post.slug,
-    }));
+interface BlogPost {
+    id: string;
+    slug: string;
+    title: string;
+    content: string;
+    excerpt: string;
+    meta_title: string;
+    meta_description: string;
+    keywords: string[];
+    created_at: string;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-    const post = BLOG_POSTS.find((p) => p.slug === params.slug);
-    if (!post) return { title: 'Post Not Found' };
+interface Props {
+    params: { slug: string }
+}
+
+async function getPost(slug: string): Promise<BlogPost | null> {
+    try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/blog/${slug}`, {
+            next: { revalidate: 3600 }
+        });
+
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
+    }
+}
+
+export async function generateMetadata(
+    { params }: Props,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const post = await getPost(params.slug);
+
+    if (!post) {
+        return { title: 'Post Not Found | LifePartner AI' };
+    }
 
     return {
-        title: `${post.title} | LifePartner AI`,
-        description: post.excerpt,
+        title: post.meta_title || post.title,
+        description: post.meta_description || post.excerpt,
+        keywords: post.keywords,
         openGraph: {
-            title: post.title,
-            description: post.excerpt,
-            images: [post.image]
+            title: post.meta_title || post.title,
+            description: post.meta_description || post.excerpt,
+            type: 'article',
+            publishedTime: post.created_at,
         }
     };
 }
 
-export default function BlogPost({ params }: { params: { slug: string } }) {
-    const post = BLOG_POSTS.find((p) => p.slug === params.slug);
+export default async function BlogPostPage({ params }: Props) {
+    const post = await getPost(params.slug);
 
     if (!post) {
         notFound();
     }
 
     return (
-        <StaticPageLayout>
-            <article className="max-w-4xl mx-auto px-4 py-16">
-                <div className="mb-8 text-center">
-                    <span className="text-sm font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-3 py-1 rounded-full">
-                        {post.category}
-                    </span>
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mt-4 mb-6 leading-tight">
-                        {post.title}
-                    </h1>
-                    <div className="flex items-center justify-center gap-4 text-gray-500 text-sm">
-                        <span>{post.date}</span>
-                        <span>•</span>
-                        <span>5 min read</span>
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            <Navbar />
+
+            <main className="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16 w-full">
+                <article className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="p-8 md:p-12">
+                        <header className="mb-10 text-center border-b border-gray-100 pb-10">
+                            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+                                {post.title}
+                            </h1>
+                            <div className="flex items-center justify-center text-sm text-gray-500 gap-4">
+                                <time dateTime={post.created_at}>
+                                    Published on {new Date(post.created_at).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </time>
+                                <span>•</span>
+                                <span>LifePartner AI Editorial</span>
+                            </div>
+                        </header>
+
+                        <div
+                            className="prose prose-lg prose-rose mx-auto text-gray-700 
+                            prose-headings:font-bold prose-headings:text-gray-900 
+                            prose-a:text-rose-600 hover:prose-a:text-rose-500
+                            prose-img:rounded-xl prose-img:shadow-sm"
+                            dangerouslySetInnerHTML={{ __html: post.content }}
+                        />
                     </div>
-                </div>
+                </article>
+            </main>
 
-                <div className="rounded-2xl overflow-hidden mb-12 shadow-xl aspect-video relative">
-                    <NextImage
-                        src={post.image}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
-                        priority
-                    />
-                </div>
-
-                <div
-                    className="prose prose-lg prose-indigo mx-auto text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
-                />
-            </article>
-        </StaticPageLayout>
+            <Footer />
+        </div>
     );
 }

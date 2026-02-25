@@ -15,6 +15,7 @@ import aiRoutes from './routes/ai';
 import notificationRoutes from './routes/notifications';
 import reportRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
+import blogRoutes from './routes/blog';
 import path from 'path';
 
 dotenv.config();
@@ -89,6 +90,7 @@ app.use('/admin', adminRoutes);
 app.use('/wallet', walletRoutes);
 app.use('/calls', require('./routes/calls').default);
 app.use('/verification', require('./routes/verification').default);
+app.use('/blog', blogRoutes);
 
 // Debug Environment on Startup
 console.log("------------------------------------------------");

@@ -300,6 +300,19 @@ model users {
   @@index([gender, age, is_verified, location_name], map: "idx_users_match_composite")
 }
 
+model blog_posts {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug             String    @unique @db.VarChar(255)
+  title            String    @db.VarChar(255)
+  content          String
+  excerpt          String?
+  meta_title       String?   @db.VarChar(255)
+  meta_description String?
+  keywords         String[]
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  updated_at       DateTime? @default(now()) @db.Timestamp(6)
+}
+
 model verification_requests {
   id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id      String?   @db.Uuid

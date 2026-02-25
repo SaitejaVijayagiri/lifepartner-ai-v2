@@ -292,8 +292,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         email,
                         city: location?.city,
                         district: location?.district,
-                        state: location?.state,
-                        country: location?.country // Added country to base schema
+                        state: location?.state
                     }
                 });
 

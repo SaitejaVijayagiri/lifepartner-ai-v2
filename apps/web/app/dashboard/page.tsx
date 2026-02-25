@@ -93,7 +93,8 @@ function DashboardContent() {
             try {
                 const profile = await api.profile.getMe();
                 // If profile is incomplete, redirect to onboarding
-                if (!profile || (!profile.photos?.length && !profile.photoUrl) || !profile.name) {
+                // strictly enforce age and gender to catch Google OAuth bypassers
+                if (!profile || (!profile.photos?.length && !profile.photoUrl) || !profile.name || !profile.age || !profile.gender) {
                     console.log("Profile incomplete, redirecting to onboarding...", profile);
                     router.push('/onboarding');
                     return;

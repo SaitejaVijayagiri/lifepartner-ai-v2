@@ -530,9 +530,15 @@ router.post('/reset-password', async (req, res) => {
         const passwordHash = await bcrypt.hash(newPassword, salt);
 
         // 3. Update DB
+        // Security Fix: Entering a valid reset password OTP implicitly verifies their email ownership
         await prisma.users.update({
             where: { id: user.id },
-            data: { password_hash: passwordHash, otp_code: null, otp_expires_at: null }
+            data: {
+                password_hash: passwordHash,
+                otp_code: null,
+                otp_expires_at: null,
+                is_verified: true
+            }
         });
 
         res.json({ success: true, message: "Password updated successfully" });

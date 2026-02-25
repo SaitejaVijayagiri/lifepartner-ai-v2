@@ -55,6 +55,15 @@ function RegisterForm() {
     const [showOtp, setShowOtp] = useState(false);
     const [otp, setOtp] = useState('');
 
+    // Restore pending OTP state
+    useEffect(() => {
+        const pendingEmail = localStorage.getItem('pendingVerificationEmail');
+        if (pendingEmail) {
+            setForm(prev => ({ ...prev, email: pendingEmail }));
+            setShowOtp(true);
+        }
+    }, []);
+
     const handleRegister = async () => {
         try {
             if (!form.full_name || !form.email || !form.password) {
@@ -65,6 +74,7 @@ function RegisterForm() {
             const res = await api.auth.register({ ...form, password: form.password.trim() });
 
             if (res.requiresVerification) {
+                localStorage.setItem('pendingVerificationEmail', form.email);
                 setShowOtp(true);
             } else if (res.token) {
                 // Fallback for old flow
@@ -93,6 +103,7 @@ function RegisterForm() {
             setLoading(true);
             const res = await api.auth.verifyOtp({ email: form.email, otp });
             if (res.token) {
+                localStorage.removeItem('pendingVerificationEmail');
                 localStorage.setItem('token', res.token);
                 localStorage.setItem('userId', res.userId);
                 router.replace('/onboarding');
@@ -125,7 +136,8 @@ function RegisterForm() {
                         value={otp}
                         onChange={e => setOtp(e.target.value)}
                         placeholder="000000"
-                        className="text-center text-3xl tracking-[1em] font-mono h-16 bg-gray-50 border-gray-200 text-gray-900 focus:border-indigo-500 rounded-xl"
+                        autoComplete="one-time-code"
+                        className="text-center text-3xl tracking-[1em] font-mono h-16 bg-gray-50 border-gray-200 text-gray-900 focus:border-indigo-500 rounded-xl transition-all"
                         maxLength={6}
                     />
 
@@ -136,6 +148,16 @@ function RegisterForm() {
                     >
                         {loading ? 'Verifying...' : 'Verify & Continue'}
                     </Button>
+
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('pendingVerificationEmail');
+                            setShowOtp(false);
+                        }}
+                        className="mt-6 text-sm text-gray-500 hover:text-indigo-600 font-medium transition-colors"
+                    >
+                        Change Email / Go Back
+                    </button>
                 </div>
             </div>
         );

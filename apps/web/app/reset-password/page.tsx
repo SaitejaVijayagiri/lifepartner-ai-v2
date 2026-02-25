@@ -92,6 +92,7 @@ function ResetPasswordContent() {
                             required
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
+                            autoComplete="one-time-code"
                             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none text-center tracking-[0.5em] font-bold text-xl"
                             placeholder="123456"
                             maxLength={6}

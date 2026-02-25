@@ -126,10 +126,28 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         };
     }, [socket, partner.id, user]);
 
-    // Auto-scroll to bottom
+    const prevMsgCountRef = useRef(0);
+
+    // Smart auto-scroll to bottom
     useEffect(() => {
         if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+
+            // Allow a 150px threshold to be considered "at the bottom" so we don't yank users viewing history
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+            const isInitialLoad = prevMsgCountRef.current === 0 && messages.length > 0;
+
+            const lastMsg = messages[messages.length - 1];
+            const isMyLatest = lastMsg?.senderId === 'me' || lastMsg?.senderId === user?.id;
+
+            if (isNearBottom || isInitialLoad || isMyLatest) {
+                scrollRef.current.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    // Use instant jump for initial load so users don't see the long scroll animation
+                    behavior: isInitialLoad ? 'instant' : 'smooth'
+                });
+            }
+            prevMsgCountRef.current = messages.length;
         }
     }, [messages, isTyping]);
 

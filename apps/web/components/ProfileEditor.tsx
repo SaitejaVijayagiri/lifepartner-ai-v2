@@ -379,8 +379,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             <label className="text-sm font-medium text-gray-700">Smoking</label>
                             <select
                                 className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
-                                value={formData.lifestyle?.smoking || ''}
-                                onChange={e => handleChange('lifestyle', 'smoking', e.target.value)}
+                                value={formData.lifestyle?.smoke || formData.lifestyle?.smoking || ''}
+                                onChange={e => handleChange('lifestyle', 'smoke', e.target.value)}
                             >
                                 <option value="">Select</option>
                                 <option value="No">No</option>
@@ -392,8 +392,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             <label className="text-sm font-medium text-gray-700">Drinking</label>
                             <select
                                 className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
-                                value={formData.lifestyle?.drinking || ''}
-                                onChange={e => handleChange('lifestyle', 'drinking', e.target.value)}
+                                value={formData.lifestyle?.drink || formData.lifestyle?.drinking || ''}
+                                onChange={e => handleChange('lifestyle', 'drink', e.target.value)}
                             >
                                 <option value="">Select</option>
                                 <option value="No">No</option>
@@ -447,6 +447,20 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
                         <Input label="Caste" value={formData.religion?.caste || ''} onChange={(e) => handleChange('religion', 'caste', e.target.value)} />
 
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium">Inter-Caste Marriage</label>
+                            <select
+                                className="w-full h-10 px-3 border rounded-md bg-white"
+                                value={formData.religion?.interCasteOpen || 'Open Details'}
+                                onChange={(e) => handleChange('religion', 'interCasteOpen', e.target.value)}
+                            >
+                                <option>Yes, open to inter-caste</option>
+                                <option>No, strictly same caste</option>
+                                <option>Open Details</option>
+                            </select>
+                        </div>
+                        <Input label="Gothra" value={formData.religion?.gothra || formData.horoscope?.gothra || ''} onChange={(e) => handleChange('religion', 'gothra', e.target.value)} />
+
                         <Input label="Zodiac Sign" placeholder="e.g. Libra" value={formData.horoscope?.zodiacSign || ''} onChange={e => handleChange('horoscope', 'zodiacSign', e.target.value)} />
                         <Input label="Nakshatra" value={formData.horoscope?.nakshatra || ''} onChange={(e) => handleChange('horoscope', 'nakshatra', e.target.value)} />
 
@@ -461,7 +475,6 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             </select>
                         </div>
 
-                        <Input label="Gothra" value={formData.horoscope?.gothra || ''} onChange={(e) => handleChange('horoscope', 'gothra', e.target.value)} />
                         <Input label="Birth Place" value={formData.horoscope?.birthPlace || ''} onChange={(e) => handleChange('horoscope', 'birthPlace', e.target.value)} />
                         <Input label="Time of Birth" value={formData.horoscope?.birthTime || ''} onChange={(e) => handleChange('horoscope', 'birthTime', e.target.value)} />
                     </div>
@@ -479,8 +492,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             <label className="text-sm font-medium">Family Type</label>
                             <select
                                 className="w-full h-10 px-3 border rounded-md"
-                                value={formData.family?.familyType || formData.family?.type || 'Nuclear'}
-                                onChange={(e) => handleChange('family', 'familyType', e.target.value)}
+                                value={formData.family?.type || formData.family?.familyType || 'Nuclear'}
+                                onChange={(e) => handleChange('family', 'type', e.target.value)}
                             >
                                 <option>Nuclear</option>
                                 <option>Joint</option>
@@ -490,8 +503,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             <label className="text-sm font-medium">Family Values</label>
                             <select
                                 className="w-full h-10 px-3 border rounded-md"
-                                value={formData.family?.familyValues || 'Moderate'}
-                                onChange={(e) => handleChange('family', 'familyValues', e.target.value)}
+                                value={formData.family?.values || formData.family?.familyValues || 'Moderate'}
+                                onChange={(e) => handleChange('family', 'values', e.target.value)}
                             >
                                 <option>Moderate</option>
                                 <option>Traditional</option>

@@ -139,6 +139,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                     <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
+                                    <InfoCard label="Inter-Caste" value={profile.religion?.interCasteOpen || "-"} />
                                     <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
                                     <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} />
                                     <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign || "-"} />
@@ -150,8 +151,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 <h3 className="font-bold text-green-900 mb-4">Lifestyle & Interests</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} />
-                                    <InfoCard label="Smoking" value={profile.lifestyle?.smoking || "No"} />
-                                    <InfoCard label="Drinking" value={profile.lifestyle?.drinking || "No"} />
+                                    <InfoCard label="Smoking" value={profile.lifestyle?.smoke || profile.lifestyle?.smoking || "No"} />
+                                    <InfoCard label="Drinking" value={profile.lifestyle?.drink || profile.lifestyle?.drinking || "No"} />
                                 </div>
                                 {profile.interests && profile.interests.length > 0 && (
                                     <div className="mt-4">

@@ -26,6 +26,10 @@ const req = https.request(options, (res) => {
 
     res.on('end', () => {
         console.log('Body:', responseData);
+        try {
+            const json = JSON.parse(responseData);
+            console.log("Parsed Error Details:", json.details);
+        } catch (e) { }
     });
 });
 

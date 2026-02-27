@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import GoogleAdBanner from '../../components/GoogleAdBanner';
+import { BLOG_POSTS } from '../../lib/blog-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,34 +22,41 @@ interface BlogPost {
     created_at: string;
 }
 
-async function getBlogPosts(): Promise<{ posts: BlogPost[], error: string | null }> {
+// Adapt static posts to the same shape as the API response
+const staticPosts: BlogPost[] = BLOG_POSTS.map((p, i) => ({
+    id: String(i),
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    created_at: p.date,
+}));
+
+async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
     try {
-        // Fetch from the backend API. Using 127.0.0.1 bypasses Node 18+ IPv6 localhost resolution failures
         const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('localhost', '127.0.0.1') || 'http://127.0.0.1:4000';
         const fetchUrl = `${apiUrl}/blog`;
-
         console.log("Fetching SEO Blogs from:", fetchUrl);
 
-        const res = await fetch(fetchUrl, {
-            cache: 'no-store'
-        });
+        const res = await fetch(fetchUrl, { cache: 'no-store' });
 
         if (!res.ok) {
-            const body = await res.text();
-            console.error("Invalid fetch response:", res.status, body);
-            return { posts: [], error: `Backend returned ${res.status}: ${body}` };
+            console.error("Blog API error:", res.status);
+            return { posts: staticPosts };
         }
 
         const data = await res.json();
-        return { posts: data.posts || [], error: null };
+        // Fall back to static posts if DB is empty so the page is never blank
+        const posts: BlogPost[] = data.posts?.length ? data.posts : staticPosts;
+        return { posts };
     } catch (error: any) {
-        console.error("Failed to fetch blog posts:", error);
-        return { posts: [], error: `Network/Fetch Error: ${error.message}` };
+        console.error("Failed to fetch blog posts:", error.message);
+        return { posts: staticPosts };
     }
 }
 
 export default async function BlogIndexPage() {
-    const { posts, error } = await getBlogPosts();
+
+    const { posts } = await getBlogPosts();
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -68,14 +76,7 @@ export default async function BlogIndexPage() {
                     <GoogleAdBanner format="horizontal" />
                 </div>
 
-                {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 mb-8 text-center">
-                        <h3 className="font-bold text-lg mb-2">Debug Error: Could not load articles</h3>
-                        <p className="font-mono text-sm break-all">{error}</p>
-                    </div>
-                )}
-
-                {posts.length === 0 && !error ? (
+                {posts.length === 0 ? (
                     <div className="text-center text-gray-500 py-12">
                         No articles published yet. Check back soon!
                     </div>

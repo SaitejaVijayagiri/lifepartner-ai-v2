@@ -33,14 +33,19 @@ const staticPosts: BlogPost[] = BLOG_POSTS.map((p, i) => ({
 
 async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('localhost', '127.0.0.1') || 'http://127.0.0.1:4000';
+        // In Next.js standalone on Render, NEXT_PUBLIC_API_URL is the public backend URL.
+        // No need to rewrite localhost → 127.0.0.1 since production doesn't use localhost.
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.INTERNAL_API_URL || 'http://localhost:4000';
         const fetchUrl = `${apiUrl}/blog`;
         console.log("Fetching SEO Blogs from:", fetchUrl);
 
-        const res = await fetch(fetchUrl, { cache: 'no-store' });
+        const res = await fetch(fetchUrl, {
+            cache: 'no-store',
+            signal: AbortSignal.timeout(5000) // 5 second timeout to avoid hanging
+        });
 
         if (!res.ok) {
-            console.error("Blog API error:", res.status);
+            console.error("Blog API error:", res.status, "- Using static fallback");
             return { posts: staticPosts };
         }
 
@@ -49,7 +54,7 @@ async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
         const posts: BlogPost[] = data.posts?.length ? data.posts : staticPosts;
         return { posts };
     } catch (error: any) {
-        console.error("Failed to fetch blog posts:", error.message);
+        console.error("Failed to fetch blog posts:", error.message, "- Using static fallback");
         return { posts: staticPosts };
     }
 }

@@ -21,7 +21,7 @@ function ChatContent({ params }: { params: { id: string } }) {
             <ChatWindow
                 connectionId={params.id}
                 partner={{
-                    id: 'unknown',
+                    id: params.id,
                     name: partnerName,
                     photoUrl: partnerPhoto,
                     role: partnerRole

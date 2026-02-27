@@ -10,7 +10,11 @@ const nextConfig = {
         remotePatterns: [
             { protocol: 'https', hostname: 'images.unsplash.com' },
             { protocol: 'https', hostname: 'api.dicebear.com' },
-            { protocol: 'https', hostname: 'mxzflpidclfcdqrgimqn.supabase.co' }
+            { protocol: 'https', hostname: 'mxzflpidclfcdqrgimqn.supabase.co' },
+            { protocol: 'https', hostname: '*.supabase.co' },
+            { protocol: 'https', hostname: 'i.pravatar.cc' },
+            { protocol: 'https', hostname: 'via.placeholder.com' },
+            { protocol: 'https', hostname: 'placehold.co' },
         ],
     },
     output: 'standalone',

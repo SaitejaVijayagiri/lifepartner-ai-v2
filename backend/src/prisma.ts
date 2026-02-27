@@ -12,11 +12,12 @@ const getDatabaseUrl = () => {
         url = url + (url.includes('?') ? '&pgbouncer=true' : '?pgbouncer=true');
     }
 
-    // Auto-fix: Supabase requires SSL - append sslmode=require if not set
-    if (!url.includes('sslmode=')) {
-        console.log("⚠️ SSL mode not set. Auto-appending sslmode=require for Supabase...");
-        url = url + (url.includes('?') ? '&sslmode=require' : '?sslmode=require');
-    }
+    // Auto-fix: On Render, OpenSSL cannot verify Supabase's cert chain.
+    // Use no-verify to bypass cert verification (connection is still encrypted).
+    // Remove any existing sslmode first, then set no-verify.
+    url = url.replace(/[&?]sslmode=[^&]*/g, '');
+    url = url + (url.includes('?') ? '&sslmode=no-verify' : '?sslmode=no-verify');
+    console.log("🔐 SSL mode set to no-verify for Render+Supabase compatibility.");
 
     return url;
 };

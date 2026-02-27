@@ -1,3 +1,9 @@
+// Fix: Disable TLS cert rejection on Render (OpenSSL cert verification fails with Supabase)
+// Connection is still encrypted; this only skips certificate chain verification.
+if (process.env.NODE_ENV === 'production') {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';

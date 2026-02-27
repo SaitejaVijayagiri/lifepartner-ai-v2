@@ -56,6 +56,14 @@ const contactLimiter = rateLimit({
     message: "Too many contact requests, please try again later."
 });
 
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://www.lifepartnerai.in', 'https://lifepartnerai.in', '*'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length']
+}));
+
 app.use(globalLimiter);
 
 // Global Request Logger
@@ -67,12 +75,6 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length']
-}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

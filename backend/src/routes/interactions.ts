@@ -628,7 +628,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 id: u.id,
                 name: u.full_name || "User",
                 age: u.age || meta.age,
-                photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id) || meta.photos?.[0],
+                photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: getLocationString(u),
                 profession: meta.career?.profession || "Member",
                 isBlurred: false,

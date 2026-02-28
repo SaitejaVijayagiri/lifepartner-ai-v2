@@ -387,8 +387,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(c.avatar_url, c.full_name || c.id),
-                score: Math.min(99, (c.avatar_url && !c.avatar_url.startsWith('data:') && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
+                photoUrl: sanitizePhotoUrl(c.avatar_url || meta.photos?.[0], c.full_name || c.id),
+                score: Math.min(99, ((c.avatar_url || meta.photos?.[0]) && !c.avatar_url?.startsWith('data:') && !c.avatar_url?.includes('dicebear')) ? score + 40 : score),
                 match_reasons: reasons,
                 analysis: {
                     // id is UUID, can't mod easily. use random.
@@ -712,7 +712,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(c.avatar_url, c.full_name || c.id),
+                photoUrl: sanitizePhotoUrl(c.avatar_url || meta.photos?.[0], c.full_name || c.id),
                 score: Math.max(0, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },

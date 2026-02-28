@@ -34,6 +34,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout>();
+    const lastEmitTypingRef = useRef<number>(0);
 
     const [showGame, setShowGame] = useState(false);
     const [showGiftModal, setShowGiftModal] = useState(false);
@@ -127,7 +129,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         socket.on("typing", (data: any) => {
             if (data.from === partner.id) {
                 setIsTyping(true);
-                setTimeout(() => setIsTyping(false), 3000);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
             }
         });
 
@@ -211,7 +214,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         setInputText(e.target.value);
         if (socket) {
-            socket.emit("typing", { to: partner.id, from: "me" });
+            const now = Date.now();
+            if (now - lastEmitTypingRef.current > 2000) {
+                socket.emit("typing", { to: partner.id, from: "me" });
+                lastEmitTypingRef.current = now;
+            }
         }
     };
 

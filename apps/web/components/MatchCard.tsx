@@ -125,6 +125,12 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; // Prevent infinite loop if fallback fails
+                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${match.name || match.id}`;
+                    }}
                 />
 
                 {/* Photo Progress Bar (Card Style) */}

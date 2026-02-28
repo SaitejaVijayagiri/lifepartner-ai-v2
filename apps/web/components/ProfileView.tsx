@@ -35,6 +35,12 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     alt={profile.name}
                     onClick={() => setIsFullscreen(true)}
                     className="w-full h-full object-contain md:object-cover opacity-90 transition-opacity duration-500 cursor-zoom-in"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name || 'User'}`;
+                    }}
                 />
 
                 {/* Overlay Text */}
@@ -261,6 +267,12 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         src={photos[currentPhotoIndex]}
                         alt="Zoomed Profile"
                         className="w-full h-full object-contain cursor-zoom-out"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name || 'User'}`;
+                        }}
                     />
                 </div>
             )}

@@ -9,6 +9,7 @@ import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck } from 'lucide
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
+import { useToast } from '@/components/ui/Toast';
 
 interface ChatWindowProps {
     connectionId: string;
@@ -30,6 +31,7 @@ interface ChatWindowProps {
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
     const { user } = useAuth();
+    const toast = useToast();
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -93,6 +95,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 setMessages([]);
                 // Only show toast if it's a real api error and not an empty state
                 toast.error(`Failed to load chat: ${e.message || 'Network error'}`);
+                // Suppress for silent/empty states - do not crash
             }
         };
         loadHistory();
@@ -234,7 +237,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
                         <div className="relative flex-shrink-0">
                             <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
-                                <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" />
+                                <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" referrerPolicy="no-referrer" onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${partner.name || 'User'}`;
+                                }} />
                             </div>
                             <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                         </div>
@@ -352,7 +359,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             )}
                             <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2`}>
                                 {!isMe && (
-                                    <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" />
+                                    <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" referrerPolicy="no-referrer" onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.onerror = null;
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${partner.name || 'User'}`;
+                                    }} />
                                 )}
                                 <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${isMe
                                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md'
@@ -379,7 +390,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 {/* Typing Indicator */}
                 {isTyping && (
                     <div className="flex justify-start animate-in fade-in duration-300">
-                        <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" />
+                        <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" referrerPolicy="no-referrer" onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${partner.name || 'User'}`;
+                        }} />
                         <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 rounded-bl-md shadow-sm">
                             <div className="flex gap-1.5 h-4 items-center">
                                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>

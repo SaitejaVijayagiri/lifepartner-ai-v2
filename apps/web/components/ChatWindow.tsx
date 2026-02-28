@@ -237,7 +237,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
                         <div className="relative flex-shrink-0">
                             <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
-                                <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" referrerPolicy="no-referrer" onError={(e) => {
+                                <img src={partner.photoUrl} alt={partner.name} className="w-full h-full rounded-full border-2 border-white object-cover" onError={(e) => {
                                     const target = e.target as HTMLImageElement;
                                     target.onerror = null;
                                     target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${partner.name || 'User'}`;
@@ -359,7 +359,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             )}
                             <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2`}>
                                 {!isMe && (
-                                    <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" referrerPolicy="no-referrer" onError={(e) => {
+                                    <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = null;
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${partner.name || 'User'}`;
@@ -390,7 +390,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 {/* Typing Indicator */}
                 {isTyping && (
                     <div className="flex justify-start animate-in fade-in duration-300">
-                        <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" referrerPolicy="no-referrer" onError={(e) => {
+                        <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.onerror = null;
                             target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${partner.name || 'User'}`;

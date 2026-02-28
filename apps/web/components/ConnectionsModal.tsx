@@ -25,7 +25,7 @@ const ConnectionsModal = ({ connections, onClose, onDelete, onChat }: Connection
                         connections.map((c: any) => (
                             <div key={c.interactionId} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group">
                                 <div className="flex items-center gap-3">
-                                    <img src={c.partner.photoUrl} className="w-12 h-12 rounded-full object-cover border border-white shadow-sm" alt="" referrerPolicy="no-referrer" onError={(e) => {
+                                    <img src={c.partner.photoUrl} className="w-12 h-12 rounded-full object-cover border border-white shadow-sm" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = null;
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${c.partner.name || 'U'}`;

@@ -88,7 +88,7 @@ export default function Navbar() {
                         <Link href="/dashboard" className="flex items-center gap-3 bg-white border border-gray-200 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
                             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
                                 {user.avatar_url ? (
-                                    <img src={user.avatar_url} className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={(e) => {
+                                    <img src={user.avatar_url} className="w-full h-full object-cover" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = null;
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name || 'User'}`;

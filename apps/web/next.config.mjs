@@ -18,6 +18,7 @@ const nextConfig = {
             { protocol: 'https', hostname: 'via.placeholder.com' },
             { protocol: 'https', hostname: 'placehold.co' },
         ],
+        unoptimized: true,
     },
     output: 'standalone',
     async headers() {

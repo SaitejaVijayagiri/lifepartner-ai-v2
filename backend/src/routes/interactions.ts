@@ -146,8 +146,12 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
         const partnerIds: string[] = [];
 
         connections.forEach(r => {
-            const u1 = r.users_interactions_from_user_idTousers!;
-            const u2 = r.users_interactions_to_user_idTousers!;
+            const u1 = r.users_interactions_from_user_idTousers;
+            const u2 = r.users_interactions_to_user_idTousers;
+
+            // Safe guard: if either user profile was deleted, skip this interaction
+            // instead of crashing the server with a TypeError on the '!' assertion.
+            if (!u1 || !u2) return;
 
             const isFromMe = r.from_user_id === userId;
             const partner = isFromMe ? u2 : u1;

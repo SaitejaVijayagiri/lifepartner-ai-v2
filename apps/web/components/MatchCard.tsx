@@ -123,9 +123,9 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     src={match.photos?.[currentPhotoIndex] || match.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`}
                     alt={match.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    loading="lazy"
-                    decoding="async"
+                    loading="eager"
                     referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop if fallback fails

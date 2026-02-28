@@ -12,12 +12,31 @@ const nextConfig = {
             { protocol: 'https', hostname: 'api.dicebear.com' },
             { protocol: 'https', hostname: 'mxzflpidclfcdqrgimqn.supabase.co' },
             { protocol: 'https', hostname: '*.supabase.co' },
+            { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+            { protocol: 'https', hostname: 'storage.googleapis.com' },
             { protocol: 'https', hostname: 'i.pravatar.cc' },
             { protocol: 'https', hostname: 'via.placeholder.com' },
             { protocol: 'https', hostname: 'placehold.co' },
         ],
     },
     output: 'standalone',
+    async headers() {
+        return [
+            {
+                source: '/(.*)',
+                headers: [
+                    {
+                        key: 'Cross-Origin-Resource-Policy',
+                        value: 'cross-origin',
+                    },
+                    {
+                        key: 'Cross-Origin-Embedder-Policy',
+                        value: 'unsafe-none',
+                    },
+                ],
+            },
+        ];
+    },
     async rewrites() {
         return [
             {

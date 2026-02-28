@@ -60,7 +60,9 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
         });
 
         const formattedRequests = requests.map(r => {
-            const fromUser = r.users_interactions_from_user_idTousers!;
+            const fromUser = r.users_interactions_from_user_idTousers;
+            if (!fromUser) return null; // Safe guard for deleted accounts
+
             return {
                 interactionId: r.id,
                 fromUser: {
@@ -72,7 +74,7 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                 },
                 timestamp: r.created_at
             };
-        });
+        }).filter(Boolean);
 
         res.json(formattedRequests);
     } catch (e) {
@@ -508,7 +510,9 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
 
         // Map Results
         const formattedLikes = likes.map(r => {
-            const u = r.users_matches_user_a_idTousers!;
+            const u = r.users_matches_user_a_idTousers;
+            if (!u) return null; // Safe guard
+
             const meta = (u.profiles?.metadata as any) || {};
 
             const isBlurred = !isPremium;
@@ -536,7 +540,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 isBlurred: false,
                 likedAt: r.created_at
             };
-        });
+        }).filter(Boolean);
 
         res.json({
             isPremium,
@@ -705,7 +709,9 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
         });
 
         const formattedVisitors = visitors.map(r => {
-            const u = r.users_interactions_from_user_idTousers!;
+            const u = r.users_interactions_from_user_idTousers;
+            if (!u) return null; // Safe guard
+
             const meta = (u.profiles?.metadata as any) || {};
             const isBlurred = !isPremium;
 
@@ -721,7 +727,7 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
                 viewedAt: r.created_at,
                 isBlurred
             };
-        });
+        }).filter(Boolean);
 
         res.json({
             isPremium,

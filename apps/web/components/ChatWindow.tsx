@@ -86,7 +86,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 // Mark messages as read
                 await api.chat.markRead(partner.id);
                 if (onMessagesRead) onMessagesRead();
-            } catch (e) { console.error(e); setMessages([]); }
+            } catch (e: any) {
+                console.error("Chat history fetch error:", e);
+                setMessages([]);
+                // Only show toast if it's a real api error and not an empty state
+                toast.error(`Failed to load chat: ${e.message || 'Network error'}`);
+            }
         };
         loadHistory();
     }, [partner.id]);

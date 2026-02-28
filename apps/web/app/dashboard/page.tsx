@@ -205,8 +205,9 @@ function DashboardContent() {
             const data = await api.interactions.getRequests();
             setRequests(data);
             setRequestsCount(data.length);
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error('fetchRequests error:', e);
+            toast.error(`Failed to load requests: ${e.message || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
@@ -221,8 +222,9 @@ function DashboardContent() {
             // Calculate total unread
             const totalUnread = data.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
             setUnreadMessageCount(totalUnread);
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error('fetchConnections error:', e);
+            toast.error(`Failed to load connections: ${e.message || 'Network error — check if backend is running'}`);
         } finally {
             setLoading(false);
         }

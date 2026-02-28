@@ -86,6 +86,29 @@ app.get('/', (req, res) => {
     res.send('Life Partner AI Backend is Running (Production Mode)');
 });
 
+// Health Check endpoint — tests DB connectivity
+app.get('/health', async (req, res) => {
+    try {
+        const { pool } = require('./prisma');
+        const client = await pool.connect();
+        await client.query('SELECT 1');
+        client.release();
+        res.json({
+            status: 'ok',
+            db: 'connected',
+            env: process.env.NODE_ENV,
+            timestamp: new Date().toISOString()
+        });
+    } catch (e: any) {
+        res.status(500).json({
+            status: 'error',
+            db: 'disconnected',
+            error: e.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 app.use('/auth', authLimiter, authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/matches', matchRoutes);

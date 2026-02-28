@@ -90,8 +90,8 @@ export default function Navbar() {
                                 {user.avatar_url ? (
                                     <img src={user.avatar_url} className="w-full h-full object-cover" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
-                                        target.onerror = null;
-                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.full_name || 'User'}`;
+                                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.full_name || 'User')}`;
                                     }} />
                                 ) : (
                                     <User size={16} />

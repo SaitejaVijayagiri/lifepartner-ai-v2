@@ -113,8 +113,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         loading="eager"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name || 'User'}`;
+                            target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
                         }}
                     />
 

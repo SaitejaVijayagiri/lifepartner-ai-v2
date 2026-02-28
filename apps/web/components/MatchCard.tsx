@@ -126,8 +126,9 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     loading="eager"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.onerror = null; // Prevent infinite loop if fallback fails
-                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${match.name || match.id}`;
+                        // Stage 1: Try local SVG (guaranteed to work even offline/mobile)
+                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`;
                     }}
                 />
 

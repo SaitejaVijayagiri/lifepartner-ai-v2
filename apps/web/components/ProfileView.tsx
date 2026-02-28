@@ -33,8 +33,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     className="w-full h-full object-contain md:object-cover opacity-90 transition-opacity duration-500 cursor-zoom-in"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name || 'User'}`;
+                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
                     }}
                 />
 
@@ -264,8 +264,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         className="w-full h-full object-contain cursor-zoom-out"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name || 'User'}`;
+                            target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
                         }}
                     />
                 </div>

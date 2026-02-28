@@ -27,8 +27,8 @@ const ConnectionsModal = ({ connections, onClose, onDelete, onChat }: Connection
                                 <div className="flex items-center gap-3">
                                     <img src={c.partner.photoUrl} className="w-12 h-12 rounded-full object-cover border border-white shadow-sm" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
-                                        target.onerror = null;
-                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${c.partner.name || 'U'}`;
+                                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.partner.name || 'U')}`;
                                     }} />
                                     <div>
                                         <h4 className="font-bold text-gray-900 text-sm">{c.partner.name}</h4>

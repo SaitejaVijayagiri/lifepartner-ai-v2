@@ -24,6 +24,7 @@ import notificationRoutes from './routes/notifications';
 import reportRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
 import blogRoutes from './routes/blog';
+import migrateRoutes from './routes/migrate';
 import path from 'path';
 
 dotenv.config();
@@ -123,6 +124,7 @@ app.use('/wallet', walletRoutes);
 app.use('/calls', require('./routes/calls').default);
 app.use('/verification', require('./routes/verification').default);
 app.use('/blog', blogRoutes);
+app.use('/migrate', migrateRoutes); // One-time migration route — remove after use
 
 // Debug Environment on Startup
 console.log("------------------------------------------------");

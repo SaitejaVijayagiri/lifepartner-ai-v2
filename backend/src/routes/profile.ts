@@ -406,69 +406,7 @@ router.post('/prompt', authenticateToken, async (req: any, res) => {
     }
 });
 
-// 4. POST /reel (Stream from Disk to Supabase)
-router.post('/reel', authenticateToken, upload.single('video'), async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
 
-        if (!req.file) return res.status(400).json({ error: "No video file" });
-
-        const filePath = req.file.path;
-        const filename = `${userId}/${path.basename(filePath)}`;
-
-        console.log(`Starting stream upload: ${filename} (${req.file.size} bytes)`);
-
-        // 1. Stream to Supabase Storage
-        const fileStream = fs.createReadStream(filePath);
-
-        const { data, error } = await supabase
-            .storage
-            .from('reels')
-            .upload(filename, fileStream, {
-                contentType: req.file.mimetype,
-                upsert: true,
-                duplex: 'half' // Important for node streams
-            });
-
-        // 2. Cleanup Temp File
-        fs.unlink(filePath, (err) => {
-            if (err) console.error("Failed to delete temp file:", err);
-            else console.log("Temp file cleaned up");
-        });
-
-        if (error) {
-            console.error("Supabase Upload Error:", error);
-            throw error;
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('reels').getPublicUrl(filename);
-        console.log("Uploaded Reel:", publicUrl);
-
-        // 4. Save URL to DB
-        // Append to 'reels' JSONB array in profiles? Or users?
-        // Original code: `UPDATE public.profiles SET reels = COALESCE(reels, '[]'::jsonb) || $1::jsonb`
-        // Wait, earlier I saw `user.reels`. Let's assume it IS in `profiles.reels`.
-        // We need to fetch current reels to append (PRISMA JSON APPEND WORKAROUND)
-
-        const profile = await prisma.profiles.findUnique({ where: { user_id: userId } });
-        const currentReels = (profile?.reels as any[]) || [];
-        const updatedReels = [...currentReels, publicUrl];
-
-        await prisma.profiles.update({
-            where: { user_id: userId },
-            data: { reels: updatedReels }
-        });
-
-        res.json({ success: true, videoUrl: publicUrl });
-
-    } catch (e: any) {
-        console.error("Upload Error", e);
-        if (req.file && req.file.path) {
-            fs.unlink(req.file.path, () => { });
-        }
-        res.status(500).json({ error: "Upload failed", details: e.message || JSON.stringify(e) });
-    }
-});
 
 
 

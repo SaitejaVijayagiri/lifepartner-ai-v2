@@ -41,17 +41,6 @@ const nextConfig = {
             },
         ];
     },
-    async redirects() {
-        return [
-            // Force canonical non-www domain — fixes CORS on mobile browsers
-            {
-                source: '/:path*',
-                has: [{ type: 'host', value: 'www.lifepartnerai.in' }],
-                destination: 'https://lifepartnerai.in/:path*',
-                permanent: true,
-            },
-        ];
-    },
     async rewrites() {
         return [
             {

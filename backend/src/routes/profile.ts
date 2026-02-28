@@ -31,9 +31,9 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         const filename = `profiles/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
 
         const { data, error } = await supabase.storage
-            // NOTE: Using 'reels' bucket which is already public.
-            // To use a dedicated 'images' bucket, create it manually in Supabase Dashboard > Storage > New Bucket > public: true
-            .from('reels')
+            // Using dedicated 'profiles' bucket for user profile photos (public bucket)
+            // Create this in: Supabase Dashboard > Storage > New Bucket > name: profiles > Enable Public
+            .from('profiles')
             .upload(filename, buffer, {
                 contentType: 'image/webp',
                 upsert: true
@@ -41,7 +41,7 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
 
         if (error) throw error;
 
-        const { data: { publicUrl } } = supabase.storage.from('reels').getPublicUrl(filename);
+        const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
         return publicUrl;
     } catch (e) {
         console.error("Optimize upload failed", e);
@@ -461,8 +461,8 @@ router.post('/stories', authenticateToken, (req, res, next) => {
             const removed = validStories.shift();
             logDebug(`Limit reached. Auto-deleted story: ${removed?.id}`);
             if (removed?.url) {
-                const oldPath = removed.url.split('reels/')[1];
-                if (oldPath) supabase.storage.from('reels').remove([oldPath]);
+                const oldPath = removed.url.split('stories/')[1];
+                if (oldPath) supabase.storage.from('stories').remove([`stories/${oldPath}`]);
             }
         }
 
@@ -474,7 +474,9 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         // 1. Upload to Supabase Storage
         const fileContent = fs.readFileSync(filePath);
         const { data, error } = await supabase.storage
-            .from('reels')
+            // Using dedicated 'stories' bucket for user story media (public bucket)
+            // Create this in: Supabase Dashboard > Storage > New Bucket > name: stories > Enable Public
+            .from('stories')
             .upload(filename, fileContent, {
                 contentType: req.file.mimetype,
                 upsert: true
@@ -482,7 +484,7 @@ router.post('/stories', authenticateToken, (req, res, next) => {
 
         if (error) throw error;
 
-        const { data: { publicUrl } } = supabase.storage.from('reels').getPublicUrl(filename);
+        const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filename);
         logDebug(`Upload Success: ${publicUrl}`);
 
         // 2. Add to DB

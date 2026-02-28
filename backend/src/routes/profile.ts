@@ -15,12 +15,20 @@ import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 
-// Helper: Sanitize avatar_url — base64 data URIs (100KB+) silently fail on mobile browsers.
+// Helper: Sanitize avatar_url — base64 data URIs fail on mobile; Supabase is DNS-blocked in India (Feb 2026).
+// Route all Supabase URLs through our Render-based image proxy to bypass India ISP block.
+const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
+
+const toProxyUrl = (url: string): string => {
+    if (!url || !url.includes('supabase.co/storage')) return url;
+    return `${BACKEND_URL}/photo?url=${encodeURIComponent(url)}`;
+};
+
 const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
     if (!url || url.startsWith('data:')) {
         return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
     }
-    return url;
+    return toProxyUrl(url);
 };
 
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {

@@ -10,13 +10,20 @@ import { isUserOnline } from '../socket';
 const router = express.Router();
 const astrologyService = new AstrologyService();
 
-// Helper: Sanitize avatar_url — base64 data URIs (100KB+) silently fail on mobile browsers.
-// Replace with a DiceBear fallback SVG which loads fast on all devices.
+// Helper: Sanitize avatar_url — base64 data URIs fail on mobile; Supabase is DNS-blocked in India.
+// Route all Supabase URLs through our Render-based image proxy to bypass India ISP block.
+const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
+
+const toProxyUrl = (url: string): string => {
+    if (!url || !url.includes('supabase.co/storage')) return url;
+    return `${BACKEND_URL}/photo?url=${encodeURIComponent(url)}`;
+};
+
 const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
     if (!url || url.startsWith('data:')) {
         return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
     }
-    return url;
+    return toProxyUrl(url);
 };
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now

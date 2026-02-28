@@ -25,6 +25,7 @@ import reportRoutes from './routes/reports';
 import adminRoutes from './routes/admin';
 import blogRoutes from './routes/blog';
 import migrateRoutes from './routes/migrate';
+import photoRoutes from './routes/photo';
 import path from 'path';
 
 dotenv.config();
@@ -125,6 +126,7 @@ app.use('/calls', require('./routes/calls').default);
 app.use('/verification', require('./routes/verification').default);
 app.use('/blog', blogRoutes);
 app.use('/migrate', migrateRoutes); // One-time migration route — remove after use
+app.use('/photo', photoRoutes);     // Image proxy — bypasses India ISP Supabase DNS block
 
 // Debug Environment on Startup
 console.log("------------------------------------------------");

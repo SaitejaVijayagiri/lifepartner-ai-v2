@@ -15,6 +15,14 @@ import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 
+// Helper: Sanitize avatar_url — base64 data URIs (100KB+) silently fail on mobile browsers.
+const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
+    if (!url || url.startsWith('data:')) {
+        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+    }
+    return url;
+};
+
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {
     if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Return as is if url
 
@@ -98,7 +106,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             prompt: user.profiles?.raw_prompt,
             aboutMe: user.profiles?.raw_prompt, // Map raw_prompt to aboutMe for frontend
             photos: meta.photos || [],
-            photoUrl: user.avatar_url,
+            photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
             is_premium: user.is_premium || false,
             is_admin: user.is_admin || false, // Exposed to Frontend
@@ -171,7 +179,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             age: user.age,
             gender: user.gender,
             isPremium: user.is_premium,
-            photoUrl: user.avatar_url,
+            photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             location: {
                 city: user.city || "Unknown",
                 district: user.district,

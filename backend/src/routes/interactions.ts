@@ -4,6 +4,14 @@ import { prisma } from '../prisma';
 import { getIO } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
 
+// Helper: Sanitize avatar_url — base64 data URIs (100KB+) silently fail on mobile browsers.
+const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
+    if (!url || url.startsWith('data:')) {
+        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+    }
+    return url;
+};
+
 const router = express.Router();
 
 // Get Requests (Pending interactions of type 'REQUEST')
@@ -68,7 +76,7 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                 fromUser: {
                     id: fromUser.id,
                     name: fromUser.full_name,
-                    photoUrl: fromUser.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fromUser.id}`,
+                    photoUrl: sanitizePhotoUrl(fromUser.avatar_url, fromUser.full_name || fromUser.id),
                     career: { profession: (fromUser.profiles?.metadata as any)?.career?.profession || "Member" },
                     location: getLocationString(fromUser)
                 },
@@ -165,7 +173,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                     partner: {
                         id: partner.id,
                         name: partner.full_name,
-                        photoUrl: partner.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partner.id}`,
+                        photoUrl: sanitizePhotoUrl(partner.avatar_url, partner.full_name || partner.id),
                         role: (partner.profiles?.metadata as any)?.career?.profession || "Member",
                         location: getLocationString(partner)
                     },
@@ -620,7 +628,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 id: u.id,
                 name: u.full_name || "User",
                 age: u.age || meta.age,
-                photoUrl: u.avatar_url || meta.photos?.[0] || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`,
+                photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id) || meta.photos?.[0],
                 location: getLocationString(u),
                 profession: meta.career?.profession || "Member",
                 isBlurred: false,

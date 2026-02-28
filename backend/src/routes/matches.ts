@@ -10,6 +10,15 @@ import { isUserOnline } from '../socket';
 const router = express.Router();
 const astrologyService = new AstrologyService();
 
+// Helper: Sanitize avatar_url — base64 data URIs (100KB+) silently fail on mobile browsers.
+// Replace with a DiceBear fallback SVG which loads fast on all devices.
+const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
+    if (!url || url.startsWith('data:')) {
+        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+    }
+    return url;
+};
+
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
 
@@ -378,8 +387,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
-                score: Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
+                photoUrl: sanitizePhotoUrl(c.avatar_url, c.full_name || c.id),
+                score: Math.min(99, (c.avatar_url && !c.avatar_url.startsWith('data:') && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
                 match_reasons: reasons,
                 analysis: {
                     // id is UUID, can't mod easily. use random.
@@ -387,7 +396,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     vision: 80 + Math.floor(Math.random() * 15)
                 },
                 summary: generateSmartSummary(
-                    Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
+                    Math.min(99, (c.avatar_url && !c.avatar_url.startsWith('data:') && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
                     reasons,
                     meta,
                     c.profiles?.raw_prompt || meta.aboutMe || "",
@@ -703,13 +712,13 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: c.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`,
+                photoUrl: sanitizePhotoUrl(c.avatar_url, c.full_name || c.id),
                 score: Math.max(0, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },
                 isOnline: isUserOnline(c.id), // Fixed ID issue
                 summary: generateSmartSummary(
-                    Math.min(99, (c.avatar_url && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
+                    Math.min(99, (c.avatar_url && !c.avatar_url.startsWith('data:') && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
                     reasons,
                     meta,
                     c.profiles?.raw_prompt || meta.aboutMe || "",

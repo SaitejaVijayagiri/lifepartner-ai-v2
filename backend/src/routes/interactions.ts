@@ -175,49 +175,57 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
 
         // Batch fetch unread counts and latest messages
         if (partnerIds.length > 0) {
-            const unreadCounts = await prisma.messages.groupBy({
-                by: ['sender_id'],
-                where: {
-                    sender_id: { in: partnerIds },
-                    receiver_id: userId,
-                    NOT: { delivery_status: "read" }
-                },
-                _count: {
-                    id: true
-                }
-            });
+            try {
+                const unreadCounts = await prisma.messages.groupBy({
+                    by: ['sender_id'],
+                    where: {
+                        sender_id: { in: partnerIds },
+                        receiver_id: userId,
+                        NOT: { delivery_status: "read" }
+                    },
+                    _count: {
+                        id: true
+                    }
+                });
 
-            unreadCounts.forEach((c: any) => {
-                if (c.sender_id && uniqueConnections.has(c.sender_id)) {
-                    uniqueConnections.get(c.sender_id).unreadCount = c._count.id;
-                }
-            });
+                unreadCounts.forEach((c: any) => {
+                    if (c.sender_id && uniqueConnections.has(c.sender_id)) {
+                        uniqueConnections.get(c.sender_id).unreadCount = c._count.id;
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to fetch unreadCounts in Connections", err);
+            }
 
-            // Fetch the latest message timestamp for each connection
-            const latestMessages = await prisma.messages.findMany({
-                where: {
-                    OR: [
-                        { sender_id: userId, receiver_id: { in: partnerIds } },
-                        { sender_id: { in: partnerIds }, receiver_id: userId }
-                    ]
-                },
-                orderBy: { created_at: 'desc' },
-                select: {
-                    sender_id: true,
-                    receiver_id: true,
-                    created_at: true
-                }
-            });
+            try {
+                // Fetch the latest message timestamp for each connection
+                const latestMessages = await prisma.messages.findMany({
+                    where: {
+                        OR: [
+                            { sender_id: userId, receiver_id: { in: partnerIds } },
+                            { sender_id: { in: partnerIds }, receiver_id: userId }
+                        ]
+                    },
+                    orderBy: { created_at: 'desc' },
+                    select: {
+                        sender_id: true,
+                        receiver_id: true,
+                        created_at: true
+                    }
+                });
 
-            // Map the latest message to the connection
-            latestMessages.forEach((msg: any) => {
-                const pId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-                const conn = uniqueConnections.get(pId);
-                // Since it's ordered by desc, the first one we encounter is the latest
-                if (conn && (!conn.latestMessageAt || new Date(msg.created_at) > new Date(conn.latestMessageAt))) {
-                    conn.latestMessageAt = msg.created_at;
-                }
-            });
+                // Map the latest message to the connection
+                latestMessages.forEach((msg: any) => {
+                    const pId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+                    const conn = uniqueConnections.get(pId);
+                    // Since it's ordered by desc, the first one we encounter is the latest
+                    if (conn && (!conn.latestMessageAt || new Date(msg.created_at) > new Date(conn.latestMessageAt))) {
+                        conn.latestMessageAt = msg.created_at;
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to fetch latestMessages in Connections", err);
+            }
         }
 
         const formattedConnections = Array.from(uniqueConnections.values());

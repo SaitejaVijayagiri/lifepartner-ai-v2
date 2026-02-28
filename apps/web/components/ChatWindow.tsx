@@ -313,27 +313,64 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 )}
                 {messages.map((msg, idx) => {
                     const isMe = msg.senderId === 'me' || msg.senderId === user?.id;
-                    return (
-                        <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                            {!isMe && (
-                                <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" />
-                            )}
-                            <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${isMe
-                                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md'
-                                : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md'
-                                }`}>
-                                {msg.text}
-                                <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-white/80' : 'text-gray-400'}`}>
-                                    {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    const msgDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
 
-                                    {isMe && (
-                                        <div className="flex items-center justify-center">
-                                            {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
-                                            {msg.status === 'sent' && <Check size={12} />}
-                                            {msg.status === 'delivered' && <CheckCheck size={12} />}
-                                            {msg.status === 'read' && <CheckCheck size={12} className={isMe ? "text-yellow-300" : "text-blue-500"} />}
-                                        </div>
-                                    )}
+                    // Grouping Logic: Check if this message is on a different day than the previous one
+                    let showDateHeader = false;
+                    let dateHeaderText = "";
+                    if (idx === 0) {
+                        showDateHeader = true;
+                    } else if (messages[idx - 1].timestamp) {
+                        const prevDate = new Date(messages[idx - 1].timestamp);
+                        if (prevDate.toDateString() !== msgDate.toDateString()) {
+                            showDateHeader = true;
+                        }
+                    }
+
+                    if (showDateHeader) {
+                        const today = new Date();
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+
+                        if (msgDate.toDateString() === today.toDateString()) {
+                            dateHeaderText = "Today";
+                        } else if (msgDate.toDateString() === yesterday.toDateString()) {
+                            dateHeaderText = "Yesterday";
+                        } else {
+                            dateHeaderText = msgDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+                        }
+                    }
+
+                    return (
+                        <div key={idx} className="flex flex-col">
+                            {showDateHeader && (
+                                <div className="flex justify-center my-4">
+                                    <span className="text-xs font-semibold bg-gray-200/50 text-gray-500 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
+                                        {dateHeaderText}
+                                    </span>
+                                </div>
+                            )}
+                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2`}>
+                                {!isMe && (
+                                    <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" />
+                                )}
+                                <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${isMe
+                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md'
+                                    : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md'
+                                    }`}>
+                                    {msg.text}
+                                    <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-white/80' : 'text-gray-400'}`}>
+                                        {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+
+                                        {isMe && (
+                                            <div className="flex items-center justify-center">
+                                                {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
+                                                {msg.status === 'sent' && <Check size={12} />}
+                                                {msg.status === 'delivered' && <CheckCheck size={12} />}
+                                                {msg.status === 'read' && <CheckCheck size={12} className={isMe ? "text-yellow-300" : "text-blue-500"} />}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -30,21 +30,6 @@ const nextConfig = {
                         key: 'Access-Control-Allow-Origin',
                         value: '*',
                     },
-                    {
-                        // Allow images from Supabase storage, DiceBear, Google, and all HTTPS sources
-                        // This fixes mobile browsers that block external image sources by default
-                        key: 'Content-Security-Policy',
-                        value: [
-                            "default-src 'self'",
-                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagmanager.com",
-                            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-                            "font-src 'self' https://fonts.gstatic.com",
-                            "img-src 'self' data: blob: https: http:",
-                            "connect-src 'self' https: wss: ws:",
-                            "media-src 'self' https: blob:",
-                            "frame-src 'self' https:",
-                        ].join('; '),
-                    },
                 ],
             },
         ];

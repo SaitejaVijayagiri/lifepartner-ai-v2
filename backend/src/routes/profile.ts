@@ -23,9 +23,9 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         const filename = `profiles/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
 
         const { data, error } = await supabase.storage
-            .from('reels') // Reuse 'reels' bucket or specific 'images' bucket. Using 'reels' for simplicity as it exists (or 'media' if available).
-            // Note: Ideally create a 'public' bucket. Let's try 'public' or stick to 'reels' for now.
-            // Guide mentions 'reels' bucket is used. I'll use 'reels' for now to ensure it works without creating new buckets manually.
+            // NOTE: Using 'reels' bucket which is already public.
+            // To use a dedicated 'images' bucket, create it manually in Supabase Dashboard > Storage > New Bucket > public: true
+            .from('reels')
             .upload(filename, buffer, {
                 contentType: 'image/webp',
                 upsert: true

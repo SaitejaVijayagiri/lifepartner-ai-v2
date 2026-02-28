@@ -479,6 +479,81 @@ router.post('/contact', async (req, res) => {
     }
 });
 
+// DELETE /interest/:toUserId
+router.delete('/interest/:toUserId', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { toUserId } = req.params;
+
+        await prisma.interactions.deleteMany({
+            where: {
+                from_user_id: userId,
+                to_user_id: toUserId,
+                type: 'REQUEST'
+            }
+        });
+
+        res.json({ success: true, message: "Interest revoked" });
+    } catch (e) {
+        console.error("Revoke Interest Error", e);
+        res.status(500).json({ error: "Failed to revoke interest" });
+    }
+});
+
+// POST /like
+router.post('/like', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { toUserId } = req.body;
+
+        await prisma.matches.upsert({
+            where: {
+                user_a_id_user_b_id: {
+                    user_a_id: userId,
+                    user_b_id: toUserId
+                }
+            },
+            update: {
+                is_liked: true
+            },
+            create: {
+                user_a_id: userId,
+                user_b_id: toUserId,
+                is_liked: true,
+                status: 'pending'
+            }
+        });
+
+        res.json({ success: true, message: "Profile Liked!" });
+    } catch (e) {
+        console.error("Like Error", e);
+        res.status(500).json({ error: "Failed to send like" });
+    }
+});
+
+// DELETE /like/:toUserId
+router.delete('/like/:toUserId', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { toUserId } = req.params;
+
+        await prisma.matches.updateMany({
+            where: {
+                user_a_id: userId,
+                user_b_id: toUserId
+            },
+            data: {
+                is_liked: false
+            }
+        });
+
+        res.json({ success: true, message: "Like revoked" });
+    } catch (e) {
+        console.error("Revoke Like Error", e);
+        res.status(500).json({ error: "Failed to revoke like" });
+    }
+});
+
 // GET /who-liked-me - Premium Feature
 router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
     try {

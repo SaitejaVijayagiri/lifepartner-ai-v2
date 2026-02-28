@@ -21,10 +21,6 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
         ? profile.photos
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
-    // Fallback Reels (Empty to save memory)
-    const demoReels: string[] = [];
-    const displayReels = (profile.reels && profile.reels.length > 0) ? profile.reels : demoReels;
-
     return (
         <div className="bg-white w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-gray-100 min-h-[600px]">
 

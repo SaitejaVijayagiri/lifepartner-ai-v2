@@ -54,8 +54,6 @@ export const api = {
         updatePrompt: (payload: any) => fetchAPI('/profile/prompt', { method: 'POST', body: JSON.stringify(payload) }),
         getMe: () => fetchAPI('/profile/me'),
         updateProfile: (data: any) => fetchAPI('/profile/me', { method: 'PUT', body: JSON.stringify(data) }),
-        uploadReel: (videoUrl: string) => fetchAPI('/profile/reel', { method: 'POST', body: JSON.stringify({ videoUrl }) }),
-        deleteReel: (videoUrl: string) => fetchAPI('/profile/reel', { method: 'DELETE', body: JSON.stringify({ videoUrl }) }),
         uploadStory: (formData: FormData) => fetchAPI('/profile/stories', {
             method: 'POST',
             body: formData instanceof FormData ? formData : JSON.stringify(formData)

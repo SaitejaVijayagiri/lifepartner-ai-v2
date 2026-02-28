@@ -37,7 +37,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         religion: profile.religion || {},
         horoscope: profile.horoscope || {},
         photos: Array.isArray(profile.photos) ? profile.photos : [],
-        reels: Array.isArray(profile.reels) ? profile.reels : [],
         location: profile.location || {},
         match_reasons: Array.isArray(profile.match_reasons) ? profile.match_reasons : [],
     };
@@ -75,9 +74,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }
     }, [profile.id]);
 
-    // FALLBACK REELS FOR DEMO (If user has none)
-    // NO DEMO REELS - Use empty if none
-    const demoReels: string[] = [];
 
     // Helper for safe Date parsing
     const getAge = (dob: string | undefined, defaultAge: any) => {

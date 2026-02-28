@@ -116,7 +116,6 @@ app.use('/interactions', interactionRoutes);
 app.use('/messages', chatRoutes);
 app.use('/games', gameRoutes);
 app.use('/payments', paymentRoutes);
-app.use('/reels', require('./routes/reels').default);
 app.use('/notifications', notificationRoutes);
 app.use('/reports', reportRoutes);
 app.use('/admin', adminRoutes);

@@ -540,7 +540,7 @@ function DashboardContent() {
 
                     {currentUser && (
                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer" onClick={() => setActiveTab('profile')}>
-                            <img src={currentUser.photos?.[0] || currentUser.photoUrl || "https://i.pravatar.cc/150"} className="rounded-full w-full h-full border-2 border-background object-cover" alt="Profile" />
+                            <img src={currentUser.photos?.[0] || currentUser.photoUrl || "/avatar-fallback.svg"} className="rounded-full w-full h-full border-2 border-background object-cover" alt="Profile" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.full_name || 'Me')}`; }} />
                         </div>
                     )}
                 </div>
@@ -619,7 +619,7 @@ function DashboardContent() {
                         <div className="relative">
                             <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
                                 <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                    <img src={currentUser.photos?.[0] || currentUser.photoUrl} className="w-full h-full rounded-full object-cover" alt="You" />
+                                    <img src={currentUser.photos?.[0] || currentUser.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt="You" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.full_name || 'Me')}`; }} />
                                 </div>
                             </div>
                             {/* Live indicator */}
@@ -642,7 +642,7 @@ function DashboardContent() {
                         <div className="relative">
                             <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
                                 <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                    <img src={match.photoUrl} className="w-full h-full rounded-full object-cover" alt={match.name} />
+                                    <img src={match.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt={match.name} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || 'User')}`; }} />
                                 </div>
                             </div>
                             {/* Unread indicator */}
@@ -841,9 +841,10 @@ function DashboardContent() {
                                     >
                                         <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-blue-200 ring-offset-2 ${visitor.isBlurred ? 'blur-md' : 'group-hover:ring-blue-400 transition-all'}`}>
                                             <img
-                                                src={visitor.photoUrl}
+                                                src={visitor.photoUrl || '/avatar-fallback.svg'}
                                                 alt={visitor.name}
                                                 className="w-full h-full object-cover"
+                                                onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(visitor.name || 'User')}`; }}
                                             />
                                             {visitor.isBlurred && (
                                                 <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
@@ -912,9 +913,10 @@ function DashboardContent() {
                                     >
                                         <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
                                             <img
-                                                src={like.photoUrl}
+                                                src={like.photoUrl || '/avatar-fallback.svg'}
                                                 alt={like.name}
                                                 className="w-full h-full object-cover"
+                                                onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(like.name || 'User')}`; }}
                                             />
                                             {like.isBlurred && (
                                                 <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
@@ -1044,7 +1046,7 @@ function DashboardContent() {
             {requests.map((req: any) => (
                 <div key={req.interactionId} className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md justify-between">
                     <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <img src={req.fromUser.photoUrl || "https://i.pravatar.cc/150"} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
+                        <img src={req.fromUser.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.fromUser.name || 'User')}`; }} />
                         <p className="text-xs text-gray-500 flex items-center gap-1">
                             <MapPin size={12} />
                             {typeof req.fromUser.location === 'string' ? req.fromUser.location : (req.fromUser.location?.city || "Unknown Location")}
@@ -1081,7 +1083,7 @@ function DashboardContent() {
                             onClick={() => setSelectedConnection(conn)}
                         >
                             <div className="relative">
-                                <img src={conn.partner.photoUrl} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" />
+                                <img src={conn.partner.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(conn.partner.name || 'User')}`; }} />
                                 <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                             </div>
                             <div className="flex-1 min-w-0">

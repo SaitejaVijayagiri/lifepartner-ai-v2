@@ -320,11 +320,20 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
             }
         }
 
-        // UPSERT Interaction
+        // Check if interaction already exists to avoid duplicate notifications
+        const existingInteraction = await prisma.interactions.findUnique({
+            where: {
+                from_user_id_to_user_id_type: {
+                    from_user_id: userId,
+                    to_user_id: toUserId,
+                    type: 'REQUEST'
+                }
+            }
+        });
+
         // UPSERT Interaction
         await prisma.interactions.upsert({
             where: {
-                // Prisma uses the field names concatenated by default unless named with @@unique(name:...)
                 from_user_id_to_user_id_type: {
                     from_user_id: userId,
                     to_user_id: toUserId,
@@ -343,31 +352,33 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
             }
         });
 
-        // Notifications
-        try {
-            const msg = "Someone sent you an Interest Request! 💖";
+        // Only send notifications if this is a NEW request (or it wasn't pending before)
+        if (!existingInteraction || existingInteraction.status !== 'pending') {
+            try {
+                const msg = "Someone sent you an Interest Request! 💖";
 
-            // Persist
-            await prisma.notifications.create({
-                data: {
-                    user_id: toUserId,
+                // Persist
+                await prisma.notifications.create({
+                    data: {
+                        user_id: toUserId,
+                        type: 'request',
+                        message: msg,
+                        data: { fromUserId: userId }
+                    }
+                });
+
+                // Realtime
+                getIO().to(toUserId).emit('notification:new', {
                     type: 'request',
                     message: msg,
-                    data: { fromUserId: userId }
-                }
-            });
+                    timestamp: new Date()
+                });
 
-            // Realtime
-            getIO().to(toUserId).emit('notification:new', {
-                type: 'request',
-                message: msg,
-                timestamp: new Date()
-            });
-
-            // Email
-            await EmailService.sendInterestReceivedEmail(targetEmail, targetName, myName);
-        } catch (err) {
-            console.warn("Notification/Email failed:", err);
+                // Email
+                await EmailService.sendInterestReceivedEmail(targetEmail, targetName, myName);
+            } catch (err) {
+                console.warn("Notification/Email failed:", err);
+            }
         }
 
         res.json({ success: true });

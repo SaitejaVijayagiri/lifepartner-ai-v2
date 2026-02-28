@@ -124,8 +124,6 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                     alt={match.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="eager"
-                    referrerPolicy="no-referrer"
-                    crossOrigin="anonymous"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop if fallback fails

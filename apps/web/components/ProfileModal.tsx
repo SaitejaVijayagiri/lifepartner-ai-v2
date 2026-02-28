@@ -110,8 +110,6 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         alt={profile.name}
                         onClick={() => setIsFullscreen(true)}
                         className="w-full h-full object-contain md:object-cover bg-black/90 block transition-opacity duration-500 cursor-zoom-in"
-                        referrerPolicy="no-referrer"
-                        crossOrigin="anonymous"
                         loading="eager"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;

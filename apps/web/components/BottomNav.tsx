@@ -29,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
             <div className="relative flex justify-center pb-4 px-4">
-                <div className="bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-black/10 border border-gray-100/50 flex justify-between items-center px-3 py-2 w-full max-w-md">
+                <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-black/10 border border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center px-3 py-2 w-full max-w-md">
                     {navItems.map((item) => {
                         const isActive = activeTab === item.id;
                         return (
@@ -47,7 +47,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                                     relative p-2.5 rounded-2xl transition-all duration-300 ease-out
                                     ${isActive
                                         ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg scale-110`
-                                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                                     }
                                 `}>
                                     <item.icon
@@ -62,7 +62,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                                         <span className={`
                                             absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full 
                                             bg-gradient-to-r from-red-500 to-rose-500 text-[10px] font-bold text-white 
-                                            ring-2 ring-white shadow-lg animate-in zoom-in duration-300
+                                            ring-2 ring-white dark:ring-gray-900 shadow-lg animate-in zoom-in duration-300
                                         `}>
                                             {item.badge > 9 ? '9+' : item.badge}
                                         </span>
@@ -72,7 +72,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                                 {/* Label */}
                                 <span className={`
                                     mt-1 text-[10px] font-semibold transition-all duration-300
-                                    ${isActive ? 'text-gray-800' : 'text-gray-400 group-hover:text-gray-600'}
+                                    ${isActive ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'}
                                 `}>
                                     {item.label}
                                 </span>

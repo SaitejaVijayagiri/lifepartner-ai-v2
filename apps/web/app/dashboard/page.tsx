@@ -447,7 +447,7 @@ function DashboardContent() {
     };
 
     const renderHeader = () => (
-        <header className={`sticky top-0 z-40 bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-sm transition-all duration-300 ${activeTab === 'map' ? 'hidden sm:block' : ''}`}>
+        <header className={`sticky top-0 z-40 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-b border-gray-100/50 dark:border-gray-800/50 shadow-sm transition-all duration-300 ${activeTab === 'map' ? 'hidden sm:block' : ''}`}>
             <div className="max-w-7xl mx-auto px-4 h-18 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Premium Logo */}
@@ -463,11 +463,11 @@ function DashboardContent() {
                             <span className="text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                                 LifePartner
                             </span>
-                            <span className="text-xl font-heading font-bold text-gray-800"> AI</span>
+                            <span className="text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
                         </div>
                     </div>
 
-                    <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/50 backdrop-blur-sm rounded-full border border-gray-200/50 shadow-sm">
+                    <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
                         {navItems.map(item => (
                             <button
                                 key={item.id}
@@ -475,8 +475,8 @@ function DashboardContent() {
                                 className={`
                                     px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all
                                     ${activeTab === item.id
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}
+                                        ? 'bg-primary/10 text-primary dark:text-indigo-400'
+                                        : 'text-muted-foreground hover:bg-secondary/50 dark:hover:bg-gray-700 hover:text-foreground md:dark:hover:text-gray-200'}
                                 `}
                             >
                                 <item.icon size={18} />
@@ -599,8 +599,8 @@ function DashboardContent() {
                 {/* My Story Upload - Premium Design */}
                 <div className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group">
                     <label className="relative cursor-pointer">
-                        <div className="w-20 h-20 rounded-full p-[3px] border-2 border-dashed border-gray-300 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
-                            <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                        <div className="w-20 h-20 rounded-full p-[3px] border-2 border-dashed border-gray-300 dark:border-gray-700 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
+                            <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
                                     +
                                 </div>
@@ -610,7 +610,7 @@ function DashboardContent() {
                         </div>
                         <input type="file" className="hidden" accept="image/*,video/*" onChange={handleStoryUpload} />
                     </label>
-                    <span className="text-xs font-semibold text-gray-600 group-hover:text-indigo-600 transition-colors">Your Story</span>
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
                 </div>
 
                 {/* My Active Story (if any) */}
@@ -692,7 +692,7 @@ function DashboardContent() {
                 <div className="w-full space-y-8 pb-32">
                     {/* Skeleton for AI Search */}
                     {/* AI "Thinking" UI - Replaces generic skeleton */}
-                    <div className="bg-white/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-indigo-100/50 space-y-6 text-center relative overflow-hidden">
+                    <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-indigo-100/50 dark:border-indigo-900/50 space-y-6 text-center relative overflow-hidden">
                         {/* Animated Gradient Background */}
                         <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
 
@@ -760,13 +760,13 @@ function DashboardContent() {
         return (
             <div className="w-full space-y-8 pb-32">
                 {/* AI Search Bar - Premium Glass Design */}
-                <div className="relative bg-white/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 space-y-4 overflow-hidden">
+                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
                     {/* Decorative gradient orbs */}
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
 
                     <div className="relative z-10">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3 mb-1">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-1">
                             <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
                                 <Sparkles className="text-white" size={20} />
                             </div>
@@ -782,7 +782,7 @@ function DashboardContent() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             placeholder="e.g., 'Architect in Mumbai who loves hiking and reading'..."
-                            className="flex-1 bg-gray-50/80 border border-gray-200/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 transition-all placeholder:text-gray-400"
+                            className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
                         />
                         <button
                             onClick={handleSearch}
@@ -798,7 +798,7 @@ function DashboardContent() {
                 {/* Recent Visitors Section */}
                 {
                     visitorsData && visitorsData.visitors?.length > 0 && (
-                        <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 p-5 rounded-3xl border border-blue-100 overflow-hidden">
+                        <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-blue-900/20 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
                             {/* Decorative */}
                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-200/40 to-indigo-300/40 rounded-full blur-2xl"></div>
 
@@ -808,7 +808,7 @@ function DashboardContent() {
                                         <Eye className="text-white" size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             Recent Visitors
                                             {!visitorsData.isPremium && (
                                                 <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
@@ -852,7 +852,7 @@ function DashboardContent() {
                                                 </div>
                                             )}
                                         </div>
-                                        <p className={`text-xs font-semibold truncate ${visitor.isBlurred ? 'text-gray-400' : 'text-gray-700 group-hover:text-blue-600'}`}>
+                                        <p className={`text-xs font-semibold truncate ${visitor.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
                                             {visitor.name}
                                         </p>
                                         {!visitor.isBlurred && (
@@ -868,7 +868,7 @@ function DashboardContent() {
                 {/* Who Liked You Section */}
                 {
                     whoLikedMe && whoLikedMe.totalLikes > 0 && (
-                        <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 p-5 rounded-3xl border border-pink-100 overflow-hidden">
+                        <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 dark:from-pink-900/20 dark:via-rose-900/20 dark:to-pink-900/20 p-5 rounded-3xl border border-pink-100 dark:border-pink-900/30 overflow-hidden">
                             {/* Decorative */}
                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
 
@@ -878,7 +878,7 @@ function DashboardContent() {
                                         <Heart className="text-white" size={20} fill="white" />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                             Who Liked You
                                             {!whoLikedMe.isPremium && (
                                                 <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
@@ -924,7 +924,7 @@ function DashboardContent() {
                                                 </div>
                                             )}
                                         </div>
-                                        <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400' : 'text-gray-700 group-hover:text-pink-600'}`}>
+                                        <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-pink-600 dark:group-hover:text-pink-400'}`}>
                                             {like.name}
                                         </p>
                                         {!like.isBlurred && (
@@ -952,18 +952,18 @@ function DashboardContent() {
                 {/* Header for Feed - Enhanced */}
                 {/* Header for Feed - Enhanced with AI Feedback */}
                 {aiFilters && (
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 mb-6 aniimate-in fade-in slide-in-from-top-4">
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-2xl p-4 mb-6 aniimate-in fade-in slide-in-from-top-4">
                         <div className="flex items-start gap-3">
-                            <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600">
+                            <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400">
                                 <Sparkles size={18} />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-indigo-900">Here's what I understood:</h3>
-                                <p className="text-sm text-indigo-700 mt-1">
+                                <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-100">Here's what I understood:</h3>
+                                <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">
                                     Looking for
-                                    {aiFilters.profession && <span className="font-bold bg-white px-2 py-0.5 rounded mx-1 shadow-sm">💼 {aiFilters.profession}</span>}
-                                    {aiFilters.location && <span className="font-bold bg-white px-2 py-0.5 rounded mx-1 shadow-sm">📍 {aiFilters.location}</span>}
-                                    {aiFilters.values?.length > 0 && <span className="font-bold bg-white px-2 py-0.5 rounded mx-1 shadow-sm">💛 {aiFilters.values[0]}</span>}
+                                    {aiFilters.profession && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💼 {aiFilters.profession}</span>}
+                                    {aiFilters.location && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">📍 {aiFilters.location}</span>}
+                                    {aiFilters.values?.length > 0 && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💛 {aiFilters.values[0]}</span>}
                                 </p>
                             </div>
                         </div>
@@ -1203,21 +1203,21 @@ function DashboardContent() {
                         ) : (
                             <div className="space-y-6">
                                 {/* Profile Stats Row */}
-                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50">
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
                                     <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
                                         <div className="text-center min-w-[80px]">
-                                            <div className="text-2xl font-bold text-gray-900">{connections.length}</div>
-                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Connections</div>
+                                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{connections.length}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Connections</div>
                                         </div>
-                                        <div className="w-[1px] h-10 bg-gray-200 sm:hidden"></div>
+                                        <div className="w-[1px] h-10 bg-gray-200 dark:bg-gray-700 sm:hidden"></div>
                                         <div className="text-center min-w-[80px]">
-                                            <div className="text-2xl font-bold text-gray-900">{requests.length}</div>
-                                            <div className="text-xs text-gray-500 uppercase font-bold tracking-wide">Requests</div>
+                                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{requests.length}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Requests</div>
                                         </div>
                                     </div>
                                     <Button
                                         variant="outline"
-                                        className="w-full sm:w-auto border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-semibold"
+                                        className="w-full sm:w-auto border-indigo-200 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold"
                                         onClick={() => setActiveTab('connections')}
                                     >
                                         Manage Connections
@@ -1232,16 +1232,16 @@ function DashboardContent() {
                                             setInitialStoreTab('premium');
                                             setShowCoinStore(true);
                                         }}
-                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200 hover:border-indigo-300'}`}
+                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500/50'}`}
                                     >
-                                        <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 text-gray-500'}`}>
+                                        <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                                             <Crown size={20} />
                                         </div>
                                         <div className="text-left sm:text-center">
-                                            <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800' : 'text-gray-700'}`}>
+                                            <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800 dark:text-amber-500' : 'text-gray-700 dark:text-gray-300'}`}>
                                                 {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
                                             </div>
-                                            <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700' : 'text-gray-500'} font-medium`}>
+                                            <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700 dark:text-amber-600/80' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
                                                 {currentUser.is_premium && currentUser.premium_expiry
                                                     ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
                                                     : 'Unlock Features'}
@@ -1265,42 +1265,42 @@ function DashboardContent() {
                                                 } catch (e) { toast.error("Boost failed."); }
                                             }
                                         }}
-                                        className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 cursor-pointer hover:border-indigo-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                        className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
                                     >
-                                        <div className="p-2 rounded-full bg-indigo-100 text-indigo-600">
-                                            <Zap size={20} className="fill-indigo-600" />
+                                        <div className="p-2 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+                                            <Zap size={20} className="fill-indigo-600 dark:fill-indigo-400" />
                                         </div>
                                         <div className="text-center">
-                                            <div className="font-bold text-sm text-indigo-900">Boost</div>
-                                            <div className="text-[10px] text-indigo-600">Get Visible</div>
+                                            <div className="font-bold text-sm text-indigo-900 dark:text-indigo-300">Boost</div>
+                                            <div className="text-[10px] text-indigo-600 dark:text-indigo-400">Get Visible</div>
                                         </div>
                                     </div>
 
                                     {/* Free Coins Card */}
                                     <div
                                         onClick={() => router.push('/refer')}
-                                        className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 cursor-pointer hover:border-emerald-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                        className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
                                     >
-                                        <div className="p-2 rounded-full bg-emerald-100 text-emerald-600">
+                                        <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
                                             <Users size={20} />
                                         </div>
                                         <div className="text-center">
-                                            <div className="font-bold text-sm text-emerald-900">Free Coins</div>
-                                            <div className="text-[10px] text-emerald-600">Refer Friend</div>
+                                            <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Free Coins</div>
+                                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Refer Friend</div>
                                         </div>
                                     </div>
 
                                     {/* Logout Card */}
                                     <div
                                         onClick={handleLogout}
-                                        className="p-3 rounded-xl bg-red-50 border border-red-100 cursor-pointer hover:border-red-300 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                        className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 cursor-pointer hover:border-red-300 dark:hover:border-red-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
                                     >
-                                        <div className="p-2 rounded-full bg-red-100 text-red-500">
+                                        <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400">
                                             <LogOut size={20} />
                                         </div>
                                         <div className="text-center">
-                                            <div className="font-bold text-sm text-red-900">Log Out</div>
-                                            <div className="text-[10px] text-red-500">Sign Out</div>
+                                            <div className="font-bold text-sm text-red-900 dark:text-red-300">Log Out</div>
+                                            <div className="text-[10px] text-red-500 dark:text-red-400">Sign Out</div>
                                         </div>
                                     </div>
                                 </div>

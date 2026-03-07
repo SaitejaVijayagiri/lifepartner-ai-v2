@@ -61,6 +61,34 @@ const config: Config = {
                     "4": "hsl(var(--chart-4))",
                     "5": "hsl(var(--chart-5))",
                 },
+                keyframes: {
+                    wiggle: {
+                        '0%, 100%': { transform: 'rotate(-10deg)' },
+                        '50%': { transform: 'rotate(10deg)' },
+                    },
+                    heartbeat: {
+                        '0%, 100%': { transform: 'scale(1)' },
+                        '25%': { transform: 'scale(1.1)' },
+                        '50%': { transform: 'scale(1)' },
+                        '75%': { transform: 'scale(1.1)' },
+                    },
+                    float: {
+                        '0%, 100%': { transform: 'translateY(0)' },
+                        '50%': { transform: 'translateY(-6px)' },
+                    },
+                    shake: {
+                        '0%, 100%': { transform: 'translateX(0)' },
+                        '25%': { transform: 'translateX(-5px)' },
+                        '50%': { transform: 'translateX(5px)' },
+                        '75%': { transform: 'translateX(-5px)' },
+                    }
+                },
+                animation: {
+                    wiggle: 'wiggle 1.5s ease-in-out infinite',
+                    heartbeat: 'heartbeat 1.5s ease-in-out infinite',
+                    float: 'float 3s ease-in-out infinite',
+                    shake: 'shake 3s ease-in-out infinite',
+                },
             },
             fontFamily: {
                 sans: ["var(--font-sans)", "system-ui", "sans-serif"],

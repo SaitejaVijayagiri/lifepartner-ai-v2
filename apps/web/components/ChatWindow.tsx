@@ -40,6 +40,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
 
+    const getStickerAnimation = (url: string) => {
+        if (url.includes('alien')) return 'animate-wiggle';
+        if (url.includes('heart')) return 'animate-heartbeat';
+        if (url.includes('robot')) return 'animate-shake';
+        if (url.includes('gift')) return 'animate-float';
+        return '';
+    };
+
     const [showGame, setShowGame] = useState(false);
     const [showGiftModal, setShowGiftModal] = useState(false);
     const [showStickers, setShowStickers] = useState(false);
@@ -383,7 +391,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md')
                                     }`}>
                                     {msg.text.startsWith('[STICKER]') ? (
-                                        <img src={msg.text.replace('[STICKER]', '')} className="w-32 h-32 object-contain drop-shadow-lg" alt="sticker" />
+                                        <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
                                     ) : (
                                         msg.text
                                     )}

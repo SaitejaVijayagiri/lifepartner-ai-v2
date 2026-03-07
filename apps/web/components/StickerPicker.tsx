@@ -12,6 +12,14 @@ const DEMO_STICKER_STORE = [
     "/stickers/gift.png"
 ];
 
+export const getStickerAnimation = (url: string) => {
+    if (url.includes('alien')) return 'animate-wiggle';
+    if (url.includes('heart')) return 'animate-heartbeat';
+    if (url.includes('robot')) return 'animate-shake';
+    if (url.includes('gift')) return 'animate-float';
+    return '';
+};
+
 export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: string) => void, onClose: () => void }) {
     const [activeTab, setActiveTab] = useState<'mine' | 'store'>('mine');
     const [savedStickers, setSavedStickers] = useState<string[]>([]);
@@ -116,7 +124,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                                     className="relative group aspect-square rounded-xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
                                     onClick={() => onSelect(url)}
                                 >
-                                    <img src={url} className="w-full h-full object-contain p-1" />
+                                    <img src={url} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)}`} />
 
                                     {/* Delete Button (Visible on Hover in Desktop, always accessible via long press logic in mobile, but we use explicit button for simplicity) */}
                                     <button
@@ -140,7 +148,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                                     key={i}
                                     className={`relative group aspect-square rounded-xl bg-white border ${isSaved ? 'border-indigo-200' : 'border-gray-100'} overflow-hidden shadow-sm hover:shadow-md transition-all`}
                                 >
-                                    <img src={url} className={`w-full h-full object-contain p-1 ${isSaved ? 'opacity-50' : ''}`} />
+                                    <img src={url} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)} ${isSaved ? 'opacity-50' : ''}`} />
 
                                     {isSaved ? (
                                         <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">

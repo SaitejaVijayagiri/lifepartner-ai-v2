@@ -1,34 +1,22 @@
 'use client';
 
 import * as React from 'react';
-import { Moon, Sun, X } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { motion, useDragControls } from 'framer-motion';
 
 export function ThemeToggle() {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
-    const [isVisible, setIsVisible] = React.useState(true);
     const [isDragging, setIsDragging] = React.useState(false);
     const dragControls = useDragControls();
 
     // useEffect only runs on the client, so now we can safely show the UI
     React.useEffect(() => {
         setMounted(true);
-        // Optional: Persist "hidden" state in sessionStorage so it doesn't reappear on every navigation
-        const hiddenState = sessionStorage.getItem('theme-toggle-hidden');
-        if (hiddenState === 'true') {
-            setIsVisible(false);
-        }
     }, []);
 
-    const handleHide = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent theme switch
-        setIsVisible(false);
-        sessionStorage.setItem('theme-toggle-hidden', 'true');
-    };
-
-    if (!mounted || !isVisible) {
+    if (!mounted) {
         return null;
     }
 
@@ -38,7 +26,6 @@ export function ThemeToggle() {
         <motion.div
             drag
             dragControls={dragControls}
-            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
             dragElastic={0.1}
             dragMomentum={false}
             onDragStart={() => setIsDragging(true)}
@@ -54,15 +41,6 @@ export function ThemeToggle() {
             style={{ touchAction: 'none' }}
         >
             <div className="relative">
-                {/* Hide Button (Shows on Hover/Active) */}
-                <button
-                    onClick={handleHide}
-                    className={`absolute -top-2 -right-2 p-1 rounded-full bg-red-500 text-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600 scale-75 cursor-pointer`}
-                    title="Hide theme toggle"
-                >
-                    <X size={14} />
-                </button>
-
                 {/* Main Toggle Button */}
                 <button
                     onClick={() => {

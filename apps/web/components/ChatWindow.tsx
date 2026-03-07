@@ -325,10 +325,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     </div>
                 )}
                 {messages.map((msg, idx) => {
-                    // Safe verification: user object might be null if localStorage fails on mobile Safari in AuthContext, 
-                    // so we fallback to reading the token/userId directly from localStorage if possible.
-                    const fallbackUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-                    const isMe = msg.senderId === 'me' || msg.senderId === user?.id || msg.senderId === fallbackUserId;
+                    // Safe sender determination: Since it's a 1-on-1 chat, if they aren't the partner, they are me.
+                    // This completely avoids mobile Capacitor / Safari localStorage sync bugs.
+                    const isMe = msg.senderId !== partner.id;
 
                     const msgDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
 

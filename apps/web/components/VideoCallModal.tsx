@@ -46,6 +46,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const [callDuration, setCallDuration] = useState(0);
     const [isMaximized, setIsMaximized] = useState(true);
 
+    // UI Enhancements
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+    const [localPos, setLocalPos] = useState({ x: 16, y: 80 });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
+    const [isLocalMinimized, setIsLocalMinimized] = useState(false);
+
     useEffect(() => {
         console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode);
     }, []);
@@ -221,69 +228,45 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const switchCamera = async () => {
         if (!stream || !isVideo) return;
         try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const videoInputs = devices.filter(device => device.kind === 'videoinput');
-            console.log("Available Cameras:", videoInputs);
+            const nextMode = facingMode === 'user' ? 'environment' : 'user';
 
-            if (videoInputs.length < 2) {
-                // Try to force switch anyway if it's a mobile device sometimes they hide IDs? 
-                // Mostly likely just 1 cam available to browser.
-                toast.error(`Only ${videoInputs.length} camera(s) found. Cannot switch.`);
-                return;
+            // Try standard facingMode switch (works best on mobile)
+            let newStream: MediaStream;
+            try {
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: { facingMode: { exact: nextMode } }
+                });
+            } catch (fallbackErr) {
+                // Fallback for desktops / specific browsers missing exact facingMode support
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoInputs = devices.filter(device => device.kind === 'videoinput');
+                if (videoInputs.length < 2) throw new Error("Only 1 camera found");
+
+                const currentTrack = stream.getVideoTracks()[0];
+                const currentDeviceId = currentTrack.getSettings().deviceId;
+                let currentIndex = videoInputs.findIndex(d => d.deviceId === currentDeviceId);
+                const nextIndex = (currentIndex + 1) % videoInputs.length;
+                const nextDevice = videoInputs[nextIndex];
+
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: { deviceId: { exact: nextDevice.deviceId } }
+                });
             }
-
-            // Get current trace settings to find deviceId
-            const currentTrack = stream.getVideoTracks()[0];
-            const settings = currentTrack.getSettings();
-            const currentDeviceId = settings.deviceId;
-
-            // Find index of current device
-            let currentIndex = videoInputs.findIndex(d => d.deviceId === currentDeviceId);
-
-            // If not found (e.g. default), try label or default to 0
-            if (currentIndex === -1) {
-                currentIndex = 0;
-            }
-
-            // Calculate next index
-            const nextIndex = (currentIndex + 1) % videoInputs.length;
-            const nextDevice = videoInputs[nextIndex];
-
-            console.log(`Switching from ${currentDeviceId} to ${nextDevice.deviceId} (${nextDevice.label})`);
-
-            const newStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-                video: { deviceId: { exact: nextDevice.deviceId } }
-            });
 
             const newVideoTrack = newStream.getVideoTracks()[0];
+            const currentTrack = stream.getVideoTracks()[0];
 
-            // 1. Replace in Local DOM
-            if (myVideo.current) {
-                myVideo.current.srcObject = newStream;
-            }
+            if (myVideo.current) myVideo.current.srcObject = newStream;
+            if (connectionRef.current) connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
 
-            // 2. Replace connection track
-            if (connectionRef.current) {
-                connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
-            }
-
-            // 3. Update Stream State
-            // Important: We must create a new stream object or update the existing one correctly
-            // SimplePeer usually needs the stream object to stay consistent or be re-signaled logic?
-            // Actually replaceTrack handles the peer part.
-            // We just need to update local state for React to know.
-            const newStreamObj = new MediaStream([
-                ...stream.getAudioTracks(),
-                newVideoTrack
-            ]);
-
+            const newStreamObj = new MediaStream([...stream.getAudioTracks(), newVideoTrack]);
             setStream(newStreamObj);
-
-            // Cleanup old track
+            setFacingMode(nextMode);
             currentTrack.stop();
 
-        } catch (err) {
+        } catch (err: any) {
             console.error("Failed to switch camera", err);
             toast.error("Failed to switch camera: " + (err as Error).message);
         }
@@ -389,14 +372,49 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
                             {/* Self View (Video Only) */}
                             {isVideo && stream && (
-                                <div className={`absolute z-20 overflow-hidden shadow-2xl border-2 border-white/10 transition-all duration-300 bg-gray-900
-                                    ${isMaximized ? 'top-20 left-4 w-32 h-44 rounded-xl' : 'top-16 left-4 w-20 h-28 rounded-lg'}
-                                `}>
-                                    <video ref={myVideo} autoPlay muted playsInline className={`w-full h-full object-cover transform scale-x-[-1] ${isVideoOff ? 'hidden' : ''}`} />
-                                    {isVideoOff && (
-                                        <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                                            <VideoOff className="text-white/50" size={20} />
+                                <div
+                                    className={`absolute z-20 shadow-2xl border-2 border-white/10 bg-gray-900 group ${isDragging ? 'cursor-grabbing opacity-90 !transition-none' : 'cursor-grab transition-all duration-300'} ${isLocalMinimized ? 'rounded-full w-14 h-14 overflow-hidden border-indigo-500' : (isMaximized ? 'w-32 h-44 rounded-xl overflow-hidden' : 'w-20 h-28 rounded-lg overflow-hidden')}`}
+                                    style={{ left: localPos.x, top: localPos.y, touchAction: 'none' }}
+                                    onPointerDown={(e) => {
+                                        if ((e.target as HTMLElement).tagName.toLowerCase() === 'button' || (e.target as HTMLElement).closest('button')) return;
+                                        setIsDragging(true);
+                                        dragRef.current = { startX: e.clientX, startY: e.clientY, initialX: localPos.x, initialY: localPos.y };
+                                        e.currentTarget.setPointerCapture(e.pointerId);
+                                    }}
+                                    onPointerMove={(e) => {
+                                        if (!isDragging) return;
+                                        const dx = e.clientX - dragRef.current.startX;
+                                        const dy = e.clientY - dragRef.current.startY;
+                                        setLocalPos({ x: Math.max(0, dragRef.current.initialX + dx), y: Math.max(0, dragRef.current.initialY + dy) });
+                                    }}
+                                    onPointerUp={(e) => {
+                                        setIsDragging(false);
+                                        e.currentTarget.releasePointerCapture(e.pointerId);
+                                    }}
+                                    onPointerCancel={() => setIsDragging(false)}
+                                >
+                                    {isLocalMinimized ? (
+                                        <div className="w-full h-full flex items-center justify-center bg-gray-800 relative cursor-pointer hover:bg-gray-700 transition" onClick={(e) => { e.stopPropagation(); setIsLocalMinimized(false); }}>
+                                            <span className="text-xs text-white font-bold tracking-wider">YOU</span>
+                                            <div className="absolute inset-0 rounded-full border-2 border-indigo-500/50 animate-pulse pointer-events-none"></div>
                                         </div>
+                                    ) : (
+                                        <>
+                                            <video ref={myVideo} autoPlay muted playsInline className={`w-full h-full object-cover transform scale-x-[-1] pointer-events-none ${isVideoOff ? 'hidden' : ''}`} />
+                                            {isVideoOff && (
+                                                <div className="w-full h-full flex items-center justify-center bg-gray-800 pointer-events-none">
+                                                    <VideoOff className="text-white/50" size={20} />
+                                                </div>
+                                            )}
+
+                                            {/* Minimize Control */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setIsLocalMinimized(true); }}
+                                                className="absolute top-1.5 right-1.5 p-1.5 bg-black/50 hover:bg-black/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                                            >
+                                                <Minimize2 size={12} />
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             )}

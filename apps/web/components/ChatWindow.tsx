@@ -391,7 +391,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     ) : (
                                         msg.text
                                     )}
-                                    <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-white/80' : 'text-gray-400'}`}>
+                                    <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') ? 'text-gray-500 font-medium drop-shadow-sm' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
                                         {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
 
                                         {isMe && (
@@ -399,7 +399,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
                                                 {msg.status === 'sent' && <Check size={12} />}
                                                 {msg.status === 'delivered' && <CheckCheck size={12} />}
-                                                {msg.status === 'read' && <CheckCheck size={12} className="text-blue-300" />}
+                                                {msg.status === 'read' && <CheckCheck size={12} className={msg.text.startsWith('[STICKER]') ? 'text-blue-500' : 'text-blue-300'} />}
                                             </div>
                                         )}
                                     </div>

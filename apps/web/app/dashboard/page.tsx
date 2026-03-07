@@ -1039,21 +1039,21 @@ function DashboardContent() {
 
     const renderRequests = () => (
         <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1">Pending Requests ({requests.length})</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1 text-gray-900 dark:text-white">Pending Requests ({requests.length})</h2>
             {requests.length === 0 && (
-                <div className="text-center py-20 text-gray-500">No pending requests</div>
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">No pending requests</div>
             )}
             {requests.map((req: any) => (
-                <div key={req.interactionId} className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md justify-between">
+                <div key={req.interactionId} className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md justify-between">
                     <div className="flex items-center gap-4 w-full sm:w-auto">
-                        <img src={req.fromUser.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.fromUser.name || 'User')}`; }} />
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <img src={req.fromUser.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.fromUser.name || 'User')}`; }} />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <MapPin size={12} />
                             {typeof req.fromUser.location === 'string' ? req.fromUser.location : (req.fromUser.location?.city || "Unknown Location")}
                         </p>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                        <button onClick={() => handleDeclineRequest(req.interactionId)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><X size={20} /></button>
+                        <button onClick={() => handleDeclineRequest(req.interactionId)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"><X size={20} /></button>
                         <button onClick={() => handleAcceptRequest(req.interactionId)} className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700">Accept</button>
                     </div>
                 </div>
@@ -1069,26 +1069,26 @@ function DashboardContent() {
 
         return (
             <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1">Your Connections</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1 text-gray-900 dark:text-white">Your Connections</h2>
                 {sortedConnections.length === 0 && (
-                    <div className="text-center py-20 text-gray-500">No connections yet</div>
+                    <div className="text-center py-20 text-gray-500 dark:text-gray-400">No connections yet</div>
                 )}
                 {sortedConnections.map((conn: any) => (
                     <div
                         key={conn.interactionId}
-                        className="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md"
+                        className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md group"
                     >
                         <div
                             className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
                             onClick={() => setSelectedConnection(conn)}
                         >
                             <div className="relative">
-                                <img src={conn.partner.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(conn.partner.name || 'User')}`; }} />
-                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                <img src={conn.partner.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(conn.partner.name || 'User')}`; }} />
+                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-lg truncate">
+                                    <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">
                                         {conn.partner.name}
                                     </h4>
                                     {conn.unreadCount > 0 && (
@@ -1097,17 +1097,17 @@ function DashboardContent() {
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm text-gray-500 line-clamp-1">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
                                     {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                        <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 dark:border-gray-700 pt-3 sm:pt-0 mt-2 sm:mt-0">
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
                                 onClick={async (e) => {
                                     e.stopPropagation();
                                     if (!confirm("Are you sure you want to remove this connection?")) return;
@@ -1125,7 +1125,7 @@ function DashboardContent() {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-full"
+                                className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full"
                                 onClick={() => setSelectedConnection(conn)}
                             >
                                 <MessageCircle size={20} />

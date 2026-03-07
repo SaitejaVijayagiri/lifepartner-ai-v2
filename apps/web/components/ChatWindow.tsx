@@ -398,17 +398,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 })}
                 {/* Typing Indicator */}
                 {isTyping && (
-                    <div className="flex justify-start animate-in fade-in duration-300">
-                        <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
-                        }} />
-                        <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 rounded-bl-md shadow-sm">
-                            <div className="flex gap-1.5 h-4 items-center">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="flex flex-col items-start mb-2">
+                        <span className="text-[10px] text-gray-400 ml-11 mb-1">{partner.name} is typing...</span>
+                        <div className="flex justify-start animate-in fade-in duration-300">
+                            <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
+                            }} />
+                            <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 rounded-bl-md shadow-sm">
+                                <div className="flex gap-1.5 h-4 items-center">
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                                </div>
                             </div>
                         </div>
                     </div>

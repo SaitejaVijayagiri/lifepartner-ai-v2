@@ -89,10 +89,13 @@ function ResetPasswordContent() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">OTP Code</label>
                         <input
                             type="text"
+                            name="otp"
                             required
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
                             autoComplete="one-time-code"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none text-center tracking-[0.5em] font-bold text-xl"
                             placeholder="123456"
                             maxLength={6}

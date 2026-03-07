@@ -133,6 +133,9 @@ function RegisterForm() {
                     <p className="text-gray-500">We sent a 6-digit code to <br /><strong className="text-gray-900">{form.email}</strong></p>
 
                     <Input
+                        name="otp"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={otp}
                         onChange={e => setOtp(e.target.value)}
                         placeholder="000000"

@@ -25,7 +25,18 @@ const DEMO_STICKER_STORE = [
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f984/512.webp", // Unicorn
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a5/512.webp", // Collision/Explosion
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f3b5/512.webp", // Musical Notes
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4af/512.webp"  // 100 symbol
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4af/512.webp", // 100 symbol
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f649/512.webp", // Hear no evil
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f64a/512.webp", // Speak no evil
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f648/512.webp", // See no evil
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f97a/512.webp", // Pleading face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f929/512.webp", // Star struck
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp", // Ghost
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a9/512.webp", // Poo
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f354/512.webp", // Burger
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f355/512.webp", // Pizza
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp", // Rocket
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f6f8/512.webp"  // Flying saucer
 ];
 
 export const getStickerAnimation = (url: string) => {
@@ -137,7 +148,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                                     className="relative group aspect-square rounded-xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
                                     onClick={() => onSelect(url)}
                                 >
-                                    <img src={url} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)}`} />
+                                    <img src={url} loading="lazy" className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)}`} />
 
                                     {/* Delete Button (Visible on Hover in Desktop, always accessible via long press logic in mobile, but we use explicit button for simplicity) */}
                                     <button
@@ -161,7 +172,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                                     key={i}
                                     className={`relative group aspect-square rounded-xl bg-white border ${isSaved ? 'border-indigo-200' : 'border-gray-100'} overflow-hidden shadow-sm hover:shadow-md transition-all`}
                                 >
-                                    <img src={url} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)} ${isSaved ? 'opacity-50' : ''}`} />
+                                    <img src={url} loading="lazy" className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)} ${isSaved ? 'opacity-50' : ''}`} />
 
                                     {isSaved ? (
                                         <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">

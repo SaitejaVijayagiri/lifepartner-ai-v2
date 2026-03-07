@@ -718,36 +718,36 @@ function DashboardContent() {
 
                     {/* Skeleton Header */}
                     <div className="flex items-center justify-between px-2">
-                        <div className="h-8 w-56 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 rounded-lg animate-pulse"></div>
-                        <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
+                        <div className="h-8 w-56 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-lg animate-pulse"></div>
+                        <div className="h-4 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
                     </div>
 
                     {/* Skeleton Cards Grid - 3 columns on desktop */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 animate-pulse">
+                            <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 dark:border-gray-800 animate-pulse">
                                 {/* Image Skeleton with gradient shimmer */}
-                                <div className="h-72 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent skeleton-shimmer"></div>
+                                <div className="h-72 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/5 to-transparent skeleton-shimmer"></div>
                                 </div>
                                 {/* Content Skeleton */}
                                 <div className="p-5 space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <div className="h-6 w-32 bg-gray-200 rounded-lg"></div>
-                                        <div className="h-8 w-16 bg-indigo-100 rounded-full"></div>
+                                        <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
+                                        <div className="h-8 w-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-full"></div>
                                     </div>
                                     <div className="space-y-2">
-                                        <div className="h-4 w-full bg-gray-100 rounded"></div>
-                                        <div className="h-4 w-3/4 bg-gray-100 rounded"></div>
+                                        <div className="h-4 w-full bg-gray-100 dark:bg-gray-800 rounded"></div>
+                                        <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded"></div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <div className="h-6 w-16 bg-gray-100 rounded-full"></div>
-                                        <div className="h-6 w-20 bg-gray-100 rounded-full"></div>
-                                        <div className="h-6 w-14 bg-gray-100 rounded-full"></div>
+                                        <div className="h-6 w-16 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
+                                        <div className="h-6 w-20 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
+                                        <div className="h-6 w-14 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
                                     </div>
                                     <div className="flex gap-3 pt-2">
-                                        <div className="flex-1 h-12 bg-gray-100 rounded-xl"></div>
-                                        <div className="w-12 h-12 bg-rose-100 rounded-xl"></div>
+                                        <div className="flex-1 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
+                                        <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 rounded-xl"></div>
                                     </div>
                                 </div>
                             </div>

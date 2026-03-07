@@ -67,19 +67,19 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex items-center justify-center">
             <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
     );
 
     if (!profile) return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
             <div className="text-center space-y-4">
                 <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Shield size={32} />
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">Profile Not Found</h1>
-                <p className="text-gray-500 max-w-sm mx-auto">This profile might be private, deleted, or the link is incorrect.</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Profile Not Found</h1>
+                <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">This profile might be private, deleted, or the link is incorrect.</p>
                 <div className="flex gap-4 justify-center pt-4">
                     <Link href="/">
                         <Button variant="outline">Go Home</Button>
@@ -95,14 +95,14 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20 font-sans">
+        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 pb-20 font-sans">
             {/* Sticky Header */}
             <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center gap-4">
                 <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                    <ArrowLeft size={24} className="text-gray-700" />
+                    <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
                 </button>
                 <div className="flex-1">
-                    <span className="font-heading font-bold text-lg text-gray-900">Profile Details</span>
+                    <span className="font-heading font-bold text-lg text-gray-900 dark:text-gray-100">Profile Details</span>
                 </div>
                 {!user && (
                     <Link href="/login">
@@ -114,7 +114,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
             <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
 
                 {/* 1. Hero Card (Biodata Style) */}
-                <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-white">
+                <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-xl overflow-hidden border border-white">
                     <div className="grid md:grid-cols-2 gap-0">
                         {/* Photo Carousel (Simplified) */}
                         <div className="h-[500px] bg-gray-100 relative">
@@ -152,7 +152,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                         </div>
 
                         {/* Quick Specs */}
-                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white relative">
+                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-gray-800 relative">
                             {/* Ornamental Corner */}
                             <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
                                 <img src="https://www.svgrepo.com/show/486228/ornamental-design.svg" className="w-32 h-32" />
@@ -163,7 +163,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                     <Shield size={14} /> ID Verified
                                 </div>
 
-                                <div className="space-y-4 text-gray-700">
+                                <div className="space-y-4 text-gray-700 dark:text-gray-300">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><Briefcase size={20} /></div>
                                         <div>
@@ -204,7 +204,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                             </Button>
                                         </Link>
                                     )}
-                                    <Button variant="outline" onClick={handleShare} className="h-12 w-12 rounded-xl border-gray-200 text-gray-600 hover:text-blue-600" title="Share Profile">
+                                    <Button variant="outline" onClick={handleShare} className="h-12 w-12 rounded-xl border-gray-200 text-gray-600 dark:text-gray-300 hover:text-blue-600" title="Share Profile">
                                         <Share2 size={20} />
                                     </Button>
                                 </div>
@@ -216,8 +216,8 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                 {/* 2. Tabbed Content Area */}
                 <Tabs defaultValue="about" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-8 h-14 p-1 bg-gray-100/80 backdrop-blur-md rounded-2xl">
-                        <TabsTrigger value="about" className="rounded-xl text-base font-medium data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">About</TabsTrigger>
-                        <TabsTrigger value="details" className="rounded-xl text-base font-medium data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">Details</TabsTrigger>
+                        <TabsTrigger value="about" className="rounded-xl text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">About</TabsTrigger>
+                        <TabsTrigger value="details" className="rounded-xl text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">Details</TabsTrigger>
                         {profile.summary && (
                             <TabsTrigger value="ai" className="rounded-xl text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md">
                                 ✨ AI Insight
@@ -227,45 +227,45 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                     {/* Tab: About */}
                     <TabsContent value="about" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6 flex items-center gap-2">
+                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                                 <span className="p-2 bg-indigo-50 rounded-xl text-indigo-600 text-lg">📝</span> About Me
                             </h3>
-                            <p className="text-gray-600 leading-relaxed text-lg">{profile.bio || profile.aboutMe || "No bio available."}</p>
+                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{profile.bio || profile.aboutMe || "No bio available."}</p>
                         </div>
 
-                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6 flex items-center gap-2">
+                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
                                 <span className="p-2 bg-purple-50 rounded-xl text-purple-600 text-lg">🏡</span> Family Background
                             </h3>
-                            <p className="text-gray-600 leading-relaxed text-lg">{profile.family?.about || profile.family?.description || "No family details added."}</p>
+                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{profile.family?.about || profile.family?.description || "No family details added."}</p>
                         </div>
                     </TabsContent>
 
                     {/* Tab: Details */}
                     <TabsContent value="details" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 mb-6">Personal Information</h3>
+                        <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-6">Personal Information</h3>
                             <div className="grid md:grid-cols-2 gap-y-4 gap-x-12">
                                 {profile.religion && (
                                     <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                        <span className="text-gray-500 font-medium">Religion</span>
-                                        <span className="font-semibold text-gray-900">{profile.religion.religion}</span>
+                                        <span className="text-gray-500 dark:text-gray-400 font-medium">Religion</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.religion.religion}</span>
                                     </div>
                                 )}
                                 {profile.caste && (
                                     <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                        <span className="text-gray-500 font-medium">Caste</span>
-                                        <span className="font-semibold text-gray-900">{profile.caste || profile.religion?.caste}</span>
+                                        <span className="text-gray-500 dark:text-gray-400 font-medium">Caste</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.caste || profile.religion?.caste}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                    <span className="text-gray-500 font-medium">Height</span>
-                                    <span className="font-semibold text-gray-900">{profile.height}</span>
+                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Height</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.height}</span>
                                 </div>
                                 <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                    <span className="text-gray-500 font-medium">Mother Tongue</span>
-                                    <span className="font-semibold text-gray-900">{profile.motherTongue}</span>
+                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Mother Tongue</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.motherTongue}</span>
                                 </div>
                             </div>
                         </div>
@@ -280,7 +280,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                                 <div className="relative z-10">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-indigo-100">
+                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-indigo-100">
                                             ✨
                                         </div>
                                         <div>

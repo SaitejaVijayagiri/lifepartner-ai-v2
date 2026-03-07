@@ -39,7 +39,7 @@ export default function Navbar() {
     }, []);
 
     return (
-        <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${isScrolled || isMobileMenuOpen ? 'bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm' : 'bg-transparent'
+        <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${isScrolled || isMobileMenuOpen ? 'bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm' : 'bg-transparent'
             }`}>
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 {/* Logo */}
@@ -69,15 +69,15 @@ export default function Navbar() {
                         <Link
                             key={item}
                             href={`/#${item.toLowerCase().replace(/ /g, '-')}`}
-                            className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide"
+                            className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
                         >
                             {item}
                         </Link>
                     ))}
-                    <Link href="/blog" className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
+                    <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
                         Blog <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">SEO</span>
                     </Link>
-                    <Link href="/community" className="text-sm font-semibold text-gray-600 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
+                    <Link href="/community" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
                         Community <span className="bg-indigo-100 text-indigo-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">New</span>
                     </Link>
                 </div>
@@ -85,7 +85,7 @@ export default function Navbar() {
                 {/* Desktop Actions */}
                 <div className="hidden md:flex items-center gap-4">
                     {user ? (
-                        <Link href="/dashboard" className="flex items-center gap-3 bg-white border border-gray-200 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
+                        <Link href="/dashboard" className="flex items-center gap-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
                             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
                                 {user.avatar_url ? (
                                     <img src={user.avatar_url} className="w-full h-full object-cover" onError={(e) => {
@@ -98,7 +98,7 @@ export default function Navbar() {
                                 )}
                             </div>
                             <div className="flex flex-col text-left">
-                                <span className="text-xs font-bold text-gray-900 flex items-center gap-1">
+                                <span className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
                                     {user.full_name?.split(' ')[0] || 'Dashboard'}
                                     {user.is_verified && <VerificationBadge size={12} />}
                                 </span>
@@ -106,7 +106,7 @@ export default function Navbar() {
                         </Link>
                     ) : (
                         <>
-                            <Link href="/login" className="text-sm font-bold text-gray-700 hover:text-indigo-600 transition-colors">
+                            <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">
                                 Log In
                             </Link>
                             <Link href="/register">
@@ -122,7 +122,7 @@ export default function Navbar() {
 
                 {/* Mobile Toggle */}
                 <button
-                    className="md:hidden p-2 text-gray-600 hover:text-indigo-600 transition-colors"
+                    className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors"
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                     aria-label="Toggle menu"
                 >
@@ -132,13 +132,13 @@ export default function Navbar() {
 
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-gray-100 shadow-xl animate-in slide-in-from-top-5 duration-200">
+                <div className="md:hidden absolute top-20 left-0 w-full bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-xl animate-in slide-in-from-top-5 duration-200">
                     <div className="px-6 py-8 flex flex-col gap-6">
                         {['Success Stories', 'How it Works', 'App Features'].map((item) => (
                             <Link
                                 key={item}
                                 href={`/#${item.toLowerCase().replace(/ /g, '-')}`}
-                                className="text-lg font-medium text-gray-800 hover:text-indigo-600"
+                                className="text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
                                 {item}
@@ -158,22 +158,22 @@ export default function Navbar() {
 
                         <Link
                             href="/blog"
-                            className="text-lg font-medium text-gray-800 hover:text-indigo-600 flex items-center gap-2"
+                            className="text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             Read our SEO Blog <span className="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Top Articles</span>
                         </Link>
                         <Link
                             href="/community"
-                            className="text-lg font-medium text-gray-800 hover:text-indigo-600 flex items-center gap-2"
+                            className="text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             Community <span className="bg-indigo-100 text-indigo-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">New</span>
                         </Link>
-                        <hr className="border-gray-100" />
+                        <hr className="border-gray-100 dark:border-gray-800" />
                         <Link
                             href="/login"
-                            className="text-lg font-bold text-gray-700 hover:text-indigo-600"
+                            className="text-lg font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             Log In

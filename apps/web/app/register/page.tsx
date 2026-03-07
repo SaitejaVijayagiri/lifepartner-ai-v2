@@ -117,20 +117,20 @@ function RegisterForm() {
 
     if (showOtp) {
         return (
-            <div className="h-screen flex items-center justify-center bg-slate-50 font-sans text-gray-900 relative overflow-hidden">
+            <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 relative overflow-hidden">
                 {/* Background Blobs for OTP Screen - Light Mode */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
                     <div className="absolute top-[20%] left-[30%] w-[50%] h-[50%] bg-indigo-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-pulse"></div>
                 </div>
 
-                <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl text-center space-y-6 ring-1 ring-gray-100">
+                <div className="max-w-md w-full bg-white dark:bg-gray-950 p-10 rounded-3xl shadow-xl text-center space-y-6 ring-1 ring-gray-100">
                     <div className="mb-4 flex justifying-center">
                         <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto text-indigo-600 shadow-sm">
                             <Sparkles size={32} />
                         </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900">Verify Your Email</h2>
-                    <p className="text-gray-500">We sent a 6-digit code to <br /><strong className="text-gray-900">{form.email}</strong></p>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Verify Your Email</h2>
+                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">We sent a 6-digit code to <br /><strong className="text-gray-900 dark:text-gray-100">{form.email}</strong></p>
 
                     <Input
                         name="otp"
@@ -140,7 +140,7 @@ function RegisterForm() {
                         onChange={e => setOtp(e.target.value)}
                         placeholder="000000"
                         autoComplete="one-time-code"
-                        className="text-center text-3xl tracking-[1em] font-mono h-16 bg-gray-50 border-gray-200 text-gray-900 focus:border-indigo-500 rounded-xl transition-all"
+                        className="text-center text-3xl tracking-[1em] font-mono h-16 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-indigo-500 rounded-xl transition-all"
                         maxLength={6}
                     />
 
@@ -157,7 +157,7 @@ function RegisterForm() {
                             localStorage.removeItem('pendingVerificationEmail');
                             setShowOtp(false);
                         }}
-                        className="mt-6 text-sm text-gray-500 hover:text-indigo-600 font-medium transition-colors"
+                        className="mt-6 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-indigo-600 font-medium transition-colors"
                     >
                         Change Email / Go Back
                     </button>
@@ -167,7 +167,7 @@ function RegisterForm() {
     }
 
     return (
-        <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row font-sans bg-slate-50 text-gray-900 relative overflow-hidden">
+        <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row font-sans bg-slate-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 relative overflow-hidden">
             {/* Noise Texture Overlay */}
             <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-50 mix-blend-multiply"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}>
@@ -200,13 +200,13 @@ function RegisterForm() {
             `}</style>
 
             {/* Background Aurora - Light Mode */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 bg-slate-50">
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 bg-slate-50 dark:bg-gray-900">
                 <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-purple-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 animate-blob"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 animate-blob animation-delay-2000"></div>
             </div>
 
             {/* Left Panel: Real Matrimony Image */}
-            <div className="hidden lg:block w-full lg:w-5/12 h-64 lg:h-full relative flex-shrink-0 lg:border-r border-gray-200 overflow-hidden group">
+            <div className="hidden lg:block w-full lg:w-5/12 h-64 lg:h-full relative flex-shrink-0 lg:border-r border-gray-200 dark:border-gray-800 overflow-hidden group">
                 <div className="absolute inset-0 bg-purple-900/10 mix-blend-multiply z-10"></div>
                 <img
                     src="/images/register-hero-wiki.jpg"
@@ -249,48 +249,48 @@ function RegisterForm() {
 
             {/* Right Panel: Clean Form */}
             <div className="w-full lg:w-7/12 flex items-center justify-center p-4 relative z-10">
-                <div className="max-w-sm w-full bg-white p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in slide-in-from-right-8 duration-700 ring-1 ring-gray-100">
+                <div className="max-w-sm w-full bg-white dark:bg-gray-950 p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in slide-in-from-right-8 duration-700 ring-1 ring-gray-100">
                     <div className="text-center">
-                        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create Account</h2>
-                        <p className="text-gray-500 mt-2 text-sm font-medium">Begin your journey to a happy marriage.</p>
+                        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Create Account</h2>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2 text-sm font-medium">Begin your journey to a happy marriage.</p>
                     </div>
 
                     <div className="space-y-4">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Full Name</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Full Name</label>
                             <Input
                                 placeholder="e.g. Aditi Rao"
-                                className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.full_name}
                                 onChange={e => setForm({ ...form, full_name: e.target.value })}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Email Address</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Email Address</label>
                             <Input
                                 type="email"
                                 placeholder="aditi@example.com"
-                                className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.email}
                                 onChange={e => setForm({ ...form, email: e.target.value })}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Password</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Password</label>
                             <div className="relative">
                                 <Input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Min 8 characters"
-                                    className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
+                                    className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
                                     value={form.password}
                                     onChange={e => setForm({ ...form, password: e.target.value })}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 focus:outline-none transition-colors"
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -298,10 +298,10 @@ function RegisterForm() {
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Referral Code (Optional)</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Referral Code (Optional)</label>
                             <Input
                                 placeholder="Have a code?"
-                                className="h-12 bg-indigo-50 border-indigo-100 text-indigo-700 placeholder:text-indigo-300 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-bold uppercase tracking-widest text-sm"
+                                className="h-12 bg-indigo-50 border-indigo-100 text-indigo-700 placeholder:text-indigo-300 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-bold uppercase tracking-widest text-sm"
                                 value={form.referralCode}
                                 onChange={e => {
                                     setForm({ ...form, referralCode: e.target.value });
@@ -321,9 +321,9 @@ function RegisterForm() {
                     </Button>
 
                     <div className="relative flex py-2 items-center">
-                        <div className="flex-grow border-t border-gray-200"></div>
-                        <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-widest">Or Continue With</span>
-                        <div className="flex-grow border-t border-gray-200"></div>
+                        <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest">Or Continue With</span>
+                        <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
                     </div>
 
                     <div>
@@ -334,14 +334,14 @@ function RegisterForm() {
                                 const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
                                 window.location.href = startUrl;
                             }}
-                            className="w-full flex items-center justify-center h-12 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all group shadow-sm hover:shadow-md hover:border-gray-300"
+                            className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"
                         >
                             <img src="/icons/google.svg" className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" alt="Google" />
-                            <span className="text-sm font-bold text-gray-600 group-hover:text-gray-900">Continue with Google</span>
+                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-gray-100">Continue with Google</span>
                         </button>
                     </div>
 
-                    <p className="text-center text-sm text-gray-500 pt-2">
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 pt-2">
                         Already have an account? <Link href="/login" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Log in</Link>
                     </p>
                 </div>
@@ -352,7 +352,7 @@ function RegisterForm() {
 
 export default function RegisterPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-gray-900">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
         </div>}>
             <RegisterForm />

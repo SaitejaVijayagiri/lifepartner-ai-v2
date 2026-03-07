@@ -10,7 +10,7 @@ import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-gray-900 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-900 relative scroll-smooth">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-900 relative scroll-smooth">
 
       {/* Noise Texture */}
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-50 mix-blend-multiply"
@@ -100,7 +100,7 @@ export default function LandingPage() {
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 lg:pt-44 pb-20 lg:pb-32 overflow-hidden min-h-screen flex items-center">
         {/* Pastel Aurora Background */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 bg-slate-50">
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 bg-slate-50 dark:bg-gray-900">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-200/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob"></div>
           <div className="absolute top-[10%] right-[-20%] w-[50%] h-[50%] bg-indigo-200/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob animation-delay-2000"></div>
           <div className="absolute bottom-[-20%] left-[20%] w-[50%] h-[50%] bg-pink-200/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000"></div>
@@ -108,23 +108,23 @@ export default function LandingPage() {
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
           <div className="text-left relative">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-gray-100 text-indigo-700 text-xs font-bold mb-8 shadow-sm backdrop-blur-md uppercase tracking-widest hover:shadow-md transition-all cursor-default">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-indigo-700 text-xs font-bold mb-8 shadow-sm backdrop-blur-md uppercase tracking-widest hover:shadow-md transition-all cursor-default">
               <Sparkles size={12} className="text-indigo-500" />
               <span>Next-Gen Matchmaking</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-heading font-black tracking-tighter text-gray-900 mb-6 lg:mb-8 leading-[0.95]">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-6 lg:mb-8 leading-[0.95]">
               Find Your <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-pulse-slow">
                 Forever.
               </span>
               <br />
-              <span className="text-2xl md:text-3xl font-sans font-bold text-gray-400 tracking-normal block mt-4">
+              <span className="text-2xl md:text-3xl font-sans font-bold text-gray-400 dark:text-gray-500 tracking-normal block mt-4">
                 100% Free. Zero Fees.
               </span>
             </h1>
 
-            <p className="text-xl text-gray-600 max-w-xl mb-12 leading-relaxed font-light">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-12 leading-relaxed font-light">
               Experience the future of matrimony. Our <span className="font-semibold text-indigo-700">AI-driven algorithm</span> connects you with compatible partners based on deep personality insights, values, and life goals.
             </p>
 
@@ -135,7 +135,7 @@ export default function LandingPage() {
                 </button>
               </Link>
               <Link href="#app-features">
-                <button className="h-14 px-10 rounded-full bg-white border border-gray-200 text-gray-800 font-bold text-lg hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md">
+                <button className="h-14 px-10 rounded-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-800 dark:text-gray-200 font-bold text-lg hover:bg-gray-50 dark:bg-gray-900 hover:border-gray-300 dark:border-gray-700 transition-all shadow-sm hover:shadow-md">
                   Explore Features
                 </button>
               </Link>
@@ -153,13 +153,13 @@ export default function LandingPage() {
                     <img src={src} alt="User" className="w-full h-full object-cover" />
                   </div>
                 ))}
-                <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 uppercase">
+                <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">
                   +2k
                 </div>
               </div>
               <div className="flex flex-col">
                 <div className="flex text-yellow-500 mb-1 gap-0.5"><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /></div>
-                <span className="text-sm text-gray-500 font-medium">TrustScore 4.9/5</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">TrustScore 4.9/5</span>
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export default function LandingPage() {
                 />
 
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-max">
-                  <div className="bg-white/90 backdrop-blur-md border border-white/50 text-gray-800 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
+                  <div className="bg-white/90 backdrop-blur-md border border-white/50 text-gray-800 dark:text-gray-200 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
                     <span className="text-pink-500 animate-pulse">❤️</span> 98% Compatible
                   </div>
                 </div>
@@ -188,21 +188,21 @@ export default function LandingPage() {
             </div>
 
             {/* Orbit Rings */}
-            <div className="absolute w-[500px] h-[500px] border border-gray-200/80 rounded-full animate-[spin_40s_linear_infinite]">
+            <div className="absolute w-[500px] h-[500px] border border-gray-200 dark:border-gray-800/80 rounded-full animate-[spin_40s_linear_infinite]">
               <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-indigo-500 rounded-full shadow-lg border-2 border-white"></div>
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center animate-[spin_30s_linear_infinite]">
-              <div className="absolute w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-pink-500 shadow-xl border border-pink-100" style={{ transform: 'translate(260px) rotate(-90deg)' }}>
+              <div className="absolute w-16 h-16 bg-white dark:bg-gray-950 rounded-2xl flex items-center justify-center text-pink-500 shadow-xl border border-pink-100" style={{ transform: 'translate(260px) rotate(-90deg)' }}>
                 <Heart fill="currentColor" size={24} className="opacity-80" />
               </div>
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center animate-[spin_35s_linear_infinite_reverse]">
-              <div className="absolute w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-xl border border-indigo-100" style={{ transform: 'translate(320px) rotate(10deg)' }}>
+              <div className="absolute w-16 h-16 bg-white dark:bg-gray-950 rounded-2xl flex items-center justify-center text-indigo-500 shadow-xl border border-indigo-100" style={{ transform: 'translate(320px) rotate(10deg)' }}>
                 <Bot size={28} />
               </div>
-              <div className="absolute w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-green-500 shadow-xl border border-green-100" style={{ transform: 'translate(-320px) rotate(-10deg)' }}>
+              <div className="absolute w-16 h-16 bg-white dark:bg-gray-950 rounded-2xl flex items-center justify-center text-green-500 shadow-xl border border-green-100" style={{ transform: 'translate(-320px) rotate(-10deg)' }}>
                 <Video size={28} />
               </div>
             </div>
@@ -214,12 +214,12 @@ export default function LandingPage() {
       <AnimatedSearchSection />
 
       {/* --- INFINITE MARQUEE --- */}
-      <section className="py-12 border-y border-gray-200 bg-white relative overflow-hidden z-20">
+      <section className="py-12 border-y border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 relative overflow-hidden z-20">
         <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
         <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
         <div className="flex w-[200%] animate-scroll">
           {[...Array(10)].map((_, i) => (
-            <div key={i} className="flex-shrink-0 mx-12 flex items-center gap-4 text-gray-400 font-bold uppercase tracking-[0.2em] text-sm hover:text-indigo-600 transition-colors cursor-default">
+            <div key={i} className="flex-shrink-0 mx-12 flex items-center gap-4 text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] text-sm hover:text-indigo-600 transition-colors cursor-default">
               <ShieldCheck size={18} /> Secure • Verified • Honest •
             </div>
           ))}
@@ -227,7 +227,7 @@ export default function LandingPage() {
       </section>
 
       {/* --- MEET THE FOUNDER / TRUST SECTION --- */}
-      <section className="py-24 bg-white relative overflow-hidden border-b border-gray-100">
+      <section className="py-24 bg-white dark:bg-gray-950 relative overflow-hidden border-b border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
           <div className="relative">
             <div className="absolute inset-0 bg-indigo-600 rounded-[2rem] rotate-3 opacity-10"></div>
@@ -235,11 +235,11 @@ export default function LandingPage() {
               <img src="/images/founder.jpg" alt="Saiteja Vijayagiri - Founder" className="w-full h-auto object-cover" />
             </div>
             {/* Verification Badge */}
-            <div className="absolute -bottom-6 -right-6 bg-white p-4 rounded-xl shadow-xl border border-gray-100 flex items-center gap-3">
+            <div className="absolute -bottom-6 -right-6 bg-white dark:bg-gray-950 p-4 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 flex items-center gap-3">
               <div className="bg-green-100 p-2 rounded-full text-green-600"><ShieldCheck size={24} /></div>
               <div>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Identity Verified</p>
-                <p className="font-bold text-gray-900">Saiteja Vijayagiri</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Identity Verified</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100">Saiteja Vijayagiri</p>
               </div>
             </div>
           </div>
@@ -248,8 +248,8 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-6">
               <Zap size={14} /> Founder's Message
             </div>
-            <h2 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 mb-6">Matches made by AI.<br />Verified by Humans.</h2>
-            <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+            <h2 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Matches made by AI.<br />Verified by Humans.</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
               "Hi, I'm Saiteja. I built LifePartner AI because I was tired of matrimony sites filled with fake profiles and expensive paywalls.
               My mission is simple: <b>Zero fake profiles. Zero cost.</b>"
             </p>
@@ -263,12 +263,12 @@ export default function LandingPage() {
               </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-indigo-900 font-bold">
-                  <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">📧</span>
+                  <span className="w-8 h-8 rounded-full bg-white dark:bg-gray-950 flex items-center justify-center shadow-sm">📧</span>
                   <img src="mailto:lifepartnerai.in@gmail.com" className="hidden" /> {/* SEO hidden mailto */}
                   lifepartnerai.in@gmail.com
                 </div>
                 <div className="flex items-center gap-3 text-indigo-900 font-bold">
-                  <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">📱</span>
+                  <span className="w-8 h-8 rounded-full bg-white dark:bg-gray-950 flex items-center justify-center shadow-sm">📱</span>
                   +91 90148 36399 (WhatsApp Available)
                 </div>
               </div>
@@ -293,12 +293,12 @@ export default function LandingPage() {
 
 
       {/* --- FEATURES GRID --- */}
-      <section id="app-features" className="py-32 relative bg-slate-50">
+      <section id="app-features" className="py-32 relative bg-slate-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-20 max-w-3xl mx-auto">
             <h2 className="text-indigo-600 font-bold tracking-[0.2em] uppercase text-xs mb-6">The Future of Dating</h2>
-            <h3 className="text-5xl md:text-6xl font-heading font-bold text-gray-900 mb-6">Upgrade Your Love Life.</h3>
-            <p className="text-gray-500 text-lg">Leave the swipe fatigue behind using our advanced AI tools designed for meaningful, long-term connections.</p>
+            <h3 className="text-5xl md:text-6xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Upgrade Your Love Life.</h3>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-lg">Leave the swipe fatigue behind using our advanced AI tools designed for meaningful, long-term connections.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -337,12 +337,12 @@ export default function LandingPage() {
       </section>
 
       {/* --- SUCCESS STORIES --- */}
-      <section id="success-stories" className="py-24 bg-white relative border-t border-gray-100">
+      <section id="success-stories" className="py-24 bg-white dark:bg-gray-950 relative border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block py-1 px-3 rounded-full bg-pink-100 text-pink-600 text-xs font-bold uppercase tracking-wider mb-4">Real Love</span>
-            <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900 mb-4">Success Stories</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">See how AI helped these couples find their perfect match.</p>
+            <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-4">Success Stories</h2>
+            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 max-w-2xl mx-auto">See how AI helped these couples find their perfect match.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -366,11 +366,11 @@ export default function LandingPage() {
       </section>
 
       {/* --- HOW IT WORKS --- */}
-      <section id="how-it-works" className="py-24 bg-slate-50">
+      <section id="how-it-works" className="py-24 bg-slate-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="inline-block py-1 px-3 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-4">Simple Process</span>
-            <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900">How It Works</h2>
+            <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100">How It Works</h2>
           </div>
 
           <div className="grid md:grid-cols-4 gap-8">
@@ -394,7 +394,7 @@ export default function LandingPage() {
             <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto">Join the exclusive community of singles who value meaningful connections over mindless swiping.</p>
 
             <Link href="/register">
-              <button className="group relative px-12 py-6 rounded-full bg-white text-indigo-900 font-bold text-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
+              <button className="group relative px-12 py-6 rounded-full bg-white dark:bg-gray-950 text-indigo-900 font-bold text-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
                 <span className="relative z-10">Create Free Account</span>
               </button>
             </Link>
@@ -410,13 +410,13 @@ export default function LandingPage() {
 
 function FeatureCard({ icon, title, desc }: { icon: any, title: string, desc: string }) {
   return (
-    <div className="glass-card p-10 rounded-[2rem] transition-all duration-500 group cursor-pointer bg-white relative overflow-hidden hover:shadow-xl border border-gray-100">
+    <div className="glass-card p-10 rounded-[2rem] transition-all duration-500 group cursor-pointer bg-white dark:bg-gray-950 relative overflow-hidden hover:shadow-xl border border-gray-100 dark:border-gray-800">
       <div className="absolute top-0 left-0 w-1.5 h-0 bg-gradient-to-b from-indigo-500 to-purple-500 group-hover:h-full transition-all duration-500"></div>
-      <div className="mb-8 p-5 rounded-2xl bg-indigo-50 w-fit group-hover:bg-white group-hover:shadow-md transition-all duration-300">
+      <div className="mb-8 p-5 rounded-2xl bg-indigo-50 w-fit group-hover:bg-white dark:bg-gray-950 group-hover:shadow-md transition-all duration-300">
         {icon}
       </div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-indigo-600 transition-colors">{title}</h3>
-      <p className="text-gray-500 leading-relaxed font-medium">
+      <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 group-hover:text-indigo-600 transition-colors">{title}</h3>
+      <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 leading-relaxed font-medium">
         {desc}
       </p>
     </div>
@@ -440,28 +440,28 @@ function StoryCard({ image, names, story }: { image: string, names: string, stor
 
 function StepCard({ step, title, desc }: { step: string, title: string, desc: string }) {
   return (
-    <div className="text-center p-6 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
+    <div className="text-center p-6 rounded-3xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
       <div className="text-6xl font-black text-indigo-100 mb-4">{step}</div>
-      <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-      <p className="text-sm text-gray-500">{desc}</p>
+      <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{desc}</p>
     </div>
   )
 }
 
 function PricingCard({ title, price, features, isPopular }: { title: string, price: string, features: string[], isPopular?: boolean }) {
   return (
-    <div className={`p-8 rounded-[2rem] border ${isPopular ? 'border-amber-400 bg-white ring-4 ring-amber-100 shadow-xl scale-105' : 'border-gray-100 bg-white shadow-lg'} relative flex flex-col`}>
+    <div className={`p-8 rounded-[2rem] border ${isPopular ? 'border-amber-400 bg-white dark:bg-gray-950 ring-4 ring-amber-100 shadow-xl scale-105' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950 shadow-lg'} relative flex flex-col`}>
       {isPopular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wide shadow-md">Most Popular</div>}
-      <h3 className="text-xl font-bold text-gray-600 mb-2">{title}</h3>
-      <div className="text-4xl font-black text-gray-900 mb-8">{price}</div>
+      <h3 className="text-xl font-bold text-gray-600 dark:text-gray-300 mb-2">{title}</h3>
+      <div className="text-4xl font-black text-gray-900 dark:text-gray-100 mb-8">{price}</div>
       <ul className="space-y-4 mb-8 flex-1">
         {features.map((f, i) => (
-          <li key={i} className="flex items-center gap-3 text-sm font-medium text-gray-600">
+          <li key={i} className="flex items-center gap-3 text-sm font-medium text-gray-600 dark:text-gray-300">
             <CheckCircle size={16} className={`flex-shrink-0 ${isPopular ? 'text-amber-500' : 'text-indigo-500'}`} /> {f}
           </li>
         ))}
       </ul>
-      <button className={`w-full py-4 rounded-xl font-bold transition-all ${isPopular ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-amber-200' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+      <button className={`w-full py-4 rounded-xl font-bold transition-all ${isPopular ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg hover:shadow-amber-200' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-200'}`}>
         Choose {title}
       </button>
     </div>

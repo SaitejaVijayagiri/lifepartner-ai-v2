@@ -46,13 +46,13 @@ function ResetPasswordContent() {
 
     if (isSuccess) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center animate-in fade-in zoom-in duration-300">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-md bg-white dark:bg-gray-950 rounded-2xl shadow-xl p-8 text-center animate-in fade-in zoom-in duration-300">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="text-green-600 w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Reset!</h2>
-                    <p className="text-gray-600 mb-8">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Password Reset!</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mb-8">
                         Your password has been updated securely. You can now login with your new credentials.
                     </p>
                     <Link
@@ -67,26 +67,26 @@ function ResetPasswordContent() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white dark:bg-gray-950 rounded-2xl shadow-xl p-8">
                 <div className="flex items-center gap-2 mb-6">
                     <KeyRound className="text-indigo-600" />
-                    <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reset Password</h1>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                         <input
                             type="email"
                             value={email}
                             disabled
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 dark:text-gray-500 cursor-not-allowed"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">OTP Code</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">OTP Code</label>
                         <input
                             type="text"
                             name="otp"
@@ -96,22 +96,22 @@ function ResetPasswordContent() {
                             autoComplete="one-time-code"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none text-center tracking-[0.5em] font-bold text-xl"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-center tracking-[0.5em] font-bold text-xl"
                             placeholder="123456"
                             maxLength={6}
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
+                            <Lock className="absolute left-3 top-3.5 text-gray-400 dark:text-gray-500 w-5 h-5" />
                             <input
                                 type="password"
                                 required
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 placeholder="Min 8 characters"
                                 minLength={6}
                             />
@@ -119,15 +119,15 @@ function ResetPasswordContent() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
                         <div className="relative">
-                            <Lock className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
+                            <Lock className="absolute left-3 top-3.5 text-gray-400 dark:text-gray-500 w-5 h-5" />
                             <input
                                 type="password"
                                 required
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 placeholder="Re-enter password"
                             />
                         </div>

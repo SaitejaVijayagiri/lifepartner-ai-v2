@@ -33,13 +33,13 @@ export default function ForgotPasswordPage() {
 
     if (isSent) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 text-center animate-in fade-in zoom-in duration-300">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-md bg-white dark:bg-gray-950 rounded-2xl shadow-xl p-8 text-center animate-in fade-in zoom-in duration-300">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Mail className="text-green-600 w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your Email</h2>
-                    <p className="text-gray-600 mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Check your Email</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">
                         We have sent a password reset OTP to <strong>{email}</strong>
                     </p>
                     <Link
@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
                     </Link>
                     <button
                         onClick={() => setIsSent(false)}
-                        className="mt-4 text-sm text-gray-500 hover:text-gray-800"
+                        className="mt-4 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-200"
                     >
                         Try different email
                     </button>
@@ -60,24 +60,24 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-                <Link href="/login" className="inline-flex items-center text-gray-500 hover:text-gray-800 mb-6 transition-colors">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="w-full max-w-md bg-white dark:bg-gray-950 rounded-2xl shadow-xl p-8">
+                <Link href="/login" className="inline-flex items-center text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-200 mb-6 transition-colors">
                     <ArrowLeft size={16} className="mr-1" /> Back to Login
                 </Link>
 
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Forgot Password?</h1>
-                <p className="text-gray-600 mb-8">Enter your registered email address and we'll send you a code to reset your password.</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Forgot Password?</h1>
+                <p className="text-gray-600 dark:text-gray-300 mb-8">Enter your registered email address and we'll send you a code to reset your password.</p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                         <input
                             type="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                             placeholder="you@example.com"
                         />
                     </div>

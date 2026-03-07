@@ -43,7 +43,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row font-sans bg-slate-50 text-gray-900 overflow-hidden">
+        <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row font-sans bg-slate-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
             {/* Noise Texture Overlay */}
             <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-50 mix-blend-multiply"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}>
@@ -57,7 +57,7 @@ export default function LoginPage() {
             `}</style>
 
             {/* Left Panel: Image */}
-            <div className="hidden lg:block w-full lg:w-5/12 h-64 lg:h-full relative flex-shrink-0 lg:border-r border-gray-200 overflow-hidden group">
+            <div className="hidden lg:block w-full lg:w-5/12 h-64 lg:h-full relative flex-shrink-0 lg:border-r border-gray-200 dark:border-gray-800 overflow-hidden group">
                 {/* Premium Overlay */}
                 <div className="absolute inset-0 bg-indigo-900/10 mix-blend-multiply z-10 transition-opacity duration-700 group-hover:opacity-0"></div>
                 <img
@@ -87,42 +87,42 @@ export default function LoginPage() {
             </div>
 
             {/* Right Panel: Form */}
-            <div className="w-full lg:w-7/12 flex items-center justify-center p-4 relative z-10 bg-slate-50">
+            <div className="w-full lg:w-7/12 flex items-center justify-center p-4 relative z-10 bg-slate-50 dark:bg-gray-900">
                 {/* Background Blobs for specific interest */}
                 <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-pulse"></div>
                 <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-indigo-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-pulse delay-1000"></div>
 
-                <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl space-y-8 relative z-20 border border-gray-100 animate-in fade-in slide-in-from-right-8 duration-700">
+                <div className="max-w-md w-full bg-white dark:bg-gray-950 p-10 rounded-3xl shadow-xl space-y-8 relative z-20 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-right-8 duration-700">
                     <div className="text-center">
-                        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome Back</h2>
-                        <p className="text-gray-500 mt-2 text-sm font-medium">Please enter your details to sign in.</p>
+                        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Welcome Back</h2>
+                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2 text-sm font-medium">Please enter your details to sign in.</p>
                     </div>
 
                     <div className="space-y-5">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Email</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Email</label>
                             <Input
                                 placeholder="name@example.com"
-                                className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.email}
                                 onChange={e => setForm({ ...form, email: e.target.value })}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide ml-1">Password</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Password</label>
                             <div className="relative">
                                 <Input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
-                                    className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
+                                    className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
                                     value={form.password}
                                     onChange={e => setForm({ ...form, password: e.target.value })}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 focus:outline-none transition-colors"
                                 >
                                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
@@ -156,9 +156,9 @@ export default function LoginPage() {
                     </Button>
 
                     <div className="relative flex py-2 items-center">
-                        <div className="flex-grow border-t border-gray-200"></div>
-                        <span className="flex-shrink-0 mx-4 text-gray-400 text-[10px] font-bold uppercase tracking-widest">Or Continue With</span>
-                        <div className="flex-grow border-t border-gray-200"></div>
+                        <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+                        <span className="flex-shrink-0 mx-4 text-gray-400 dark:text-gray-500 text-[10px] font-bold uppercase tracking-widest">Or Continue With</span>
+                        <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
                     </div>
 
                     <div>
@@ -169,14 +169,14 @@ export default function LoginPage() {
                                 const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
                                 window.location.href = startUrl;
                             }}
-                            className="w-full flex items-center justify-center h-12 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all group shadow-sm hover:shadow-md hover:border-gray-300"
+                            className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"
                         >
                             <img src="/icons/google.svg" className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" alt="Google" />
-                            <span className="text-sm font-bold text-gray-600 group-hover:text-gray-900">Continue with Google</span>
+                            <span className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-gray-100">Continue with Google</span>
                         </button>
                     </div>
 
-                    <p className="text-center text-sm text-gray-500 pt-2">
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 pt-2">
                         Don't have an account? <Link href="/register" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Create one for free</Link>
                     </p>
                 </div>

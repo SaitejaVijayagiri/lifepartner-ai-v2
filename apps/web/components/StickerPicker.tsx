@@ -93,44 +93,44 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
     };
 
     return (
-        <div className="absolute bottom-20 right-4 left-4 md:left-auto md:w-80 bg-white shadow-2xl rounded-2xl border border-gray-200 overflow-hidden z-[110] animate-in slide-in-from-bottom-5">
+        <div className="absolute bottom-20 right-4 left-4 md:left-auto md:w-80 bg-white dark:bg-gray-900 shadow-2xl rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[110] animate-in slide-in-from-bottom-5">
             {/* Header / Tabs */}
-            <div className="flex items-center justify-between border-b border-gray-100 p-2 bg-gray-50/50">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 p-2 bg-gray-50 dark:bg-gray-800/50 dark:bg-gray-800/50">
                 <div className="flex gap-1">
                     <button
                         onClick={() => setActiveTab('mine')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'mine' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'mine' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-gray-800'}`}
                     >
                         <Heart size={14} className={activeTab === 'mine' ? 'fill-indigo-500' : ''} />
                         My Stickers
                     </button>
                     <button
                         onClick={() => setActiveTab('store')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'store' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'store' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-gray-800'}`}
                     >
                         <Store size={14} />
                         Store
                     </button>
                 </div>
-                <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-200 rounded-full">
+                <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:bg-gray-700 rounded-full">
                     <X size={16} />
                 </button>
             </div>
 
             {/* Grid Area */}
-            <div className="h-64 overflow-y-auto p-3 bg-gray-50/30">
+            <div className="h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800/30 dark:bg-gray-800/30">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 ) : activeTab === 'mine' ? (
                     savedStickers.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
+                        <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 gap-3">
                             <Store size={32} className="opacity-50" />
                             <p className="text-sm font-medium">No saved stickers</p>
                             <button
                                 onClick={() => setActiveTab('store')}
-                                className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold mt-2"
+                                className="px-4 py-2 bg-indigo-50 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold mt-2"
                             >
                                 Browse Store
                             </button>
@@ -140,7 +140,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                             {savedStickers.map((url, i) => (
                                 <div
                                     key={i}
-                                    className="relative group aspect-square rounded-xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
+                                    className="relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
                                     onClick={() => onSelect(url)}
                                 >
                                     <img src={url} loading="lazy" decoding="async" width={128} height={128} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)}`} />
@@ -165,7 +165,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                             return (
                                 <div
                                     key={i}
-                                    className={`relative group aspect-square rounded-xl bg-white border ${isSaved ? 'border-indigo-200' : 'border-gray-100'} overflow-hidden shadow-sm hover:shadow-md transition-all`}
+                                    className={`relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border ${isSaved ? 'border-indigo-200' : 'border-gray-100 dark:border-gray-800'} overflow-hidden shadow-sm hover:shadow-md transition-all`}
                                 >
                                     <img src={url} loading="lazy" decoding="async" width={128} height={128} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)} ${isSaved ? 'opacity-50' : ''}`} />
 
@@ -189,8 +189,8 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                 )}
             </div>
 
-            <div className="p-2 text-center border-t border-gray-100 bg-gray-50/50">
-                <p className="text-[10px] text-gray-400 font-medium">Click a sticker in your library to send it instantly.</p>
+            <div className="p-2 text-center border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 dark:bg-gray-800/50">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">Click a sticker in your library to send it instantly.</p>
             </div>
         </div>
     );

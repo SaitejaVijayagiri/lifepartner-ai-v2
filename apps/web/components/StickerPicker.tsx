@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { Download, Trash2, X, PlusCircle, CheckCircle2, Store, Heart } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -37,6 +37,41 @@ const DEMO_STICKER_STORE = [
 export const getStickerAnimation = (url: string) => {
     // Native WebP animations are used now, no extra CSS needed.
     return '';
+};
+
+const LazySticker = ({ url, isSaved }: { url: string; isSaved?: boolean }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setIsVisible(true);
+                observer.disconnect();
+            }
+        }, { rootMargin: '250px' });
+
+        if (ref.current) observer.observe(ref.current);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <div ref={ref} className="w-full h-full flex items-center justify-center p-1">
+            {isVisible ? (
+                <img
+                    src={url}
+                    loading="lazy"
+                    decoding="async"
+                    width={128}
+                    height={128}
+                    className={`w-full h-full object-contain transition-opacity duration-300 ${isSaved ? 'opacity-50' : 'opacity-100'}`}
+                    alt="sticker"
+                />
+            ) : (
+                <div className="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-gray-700 border-t-indigo-500 animate-spin opacity-50"></div>
+            )}
+        </div>
+    );
 };
 
 export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: string) => void, onClose: () => void }) {
@@ -143,7 +178,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                                     className="relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
                                     onClick={() => onSelect(url)}
                                 >
-                                    <img src={url} loading="lazy" decoding="async" width={128} height={128} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)}`} />
+                                    <LazySticker url={url} />
 
                                     {/* Delete Button (Visible on Hover in Desktop, always accessible via long press logic in mobile, but we use explicit button for simplicity) */}
                                     <button
@@ -167,7 +202,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                                     key={i}
                                     className={`relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border ${isSaved ? 'border-indigo-200' : 'border-gray-100 dark:border-gray-800'} overflow-hidden shadow-sm hover:shadow-md transition-all`}
                                 >
-                                    <img src={url} loading="lazy" decoding="async" width={128} height={128} className={`w-full h-full object-contain p-1 ${getStickerAnimation(url)} ${isSaved ? 'opacity-50' : ''}`} />
+                                    <LazySticker url={url} isSaved={isSaved} />
 
                                     {isSaved ? (
                                         <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">

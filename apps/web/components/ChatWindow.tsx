@@ -105,7 +105,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     useEffect(() => {
         if (!socket) return;
 
-        socket.on("receiveMessage", (newMsg: any) => {
+        const handleReceiveMessage = (newMsg: any) => {
             // Ignore my own messages from socket (handled optimistically)
             if (newMsg.senderId === 'me' || newMsg.senderId === user?.id) {
                 return;
@@ -113,9 +113,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             if (newMsg.senderId === partner.id) {
                 setMessages(prev => {
-                    // Strict Deduplication: Check if ID exists (or temp ID matches? usually IDs are distinct)
-                    // Also check if we already have this exact message content + timestamp closely?
-                    // For now, ID check is safest if backend sends IDs.
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     return [...prev, newMsg];
                 });
@@ -133,17 +130,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     if (onMessagesRead) onMessagesRead();
                 }
             }
-        });
+        };
 
-        socket.on("typing", (data: any) => {
+        const handleTyping = (data: any) => {
             if (data.from === partner.id) {
                 setIsTyping(true);
                 if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
                 typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
             }
-        });
+        };
 
-        socket.on("updateMessageStatus", (data: any) => {
+        const handleStatus = (data: any) => {
             // Can be for a single messageId, or a readerMode event for ALL messages
             setMessages(prev => prev.map(msg => {
                 if (data.readerMode === partner.id || msg.id === data.messageId) {
@@ -151,12 +148,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 }
                 return msg;
             }));
-        });
+        };
+
+        socket.on("receiveMessage", handleReceiveMessage);
+        socket.on("typing", handleTyping);
+        socket.on("updateMessageStatus", handleStatus);
 
         return () => {
-            socket.off("receiveMessage");
-            socket.off("typing");
-            socket.off("updateMessageStatus");
+            socket.off("receiveMessage", handleReceiveMessage);
+            socket.off("typing", handleTyping);
+            socket.off("updateMessageStatus", handleStatus);
         };
     }, [socket, partner.id, user]);
 

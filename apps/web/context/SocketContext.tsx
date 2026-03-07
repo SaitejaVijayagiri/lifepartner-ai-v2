@@ -110,6 +110,16 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             });
         });
 
+        // Global message receipt event - always mark as delivered when a message hits any open client
+        newSocket.on("receiveMessage", (msg: any) => {
+            if (msg && msg.id && msg.senderId) {
+                newSocket.emit("messageDelivered", {
+                    messageId: msg.id,
+                    senderId: msg.senderId
+                });
+            }
+        });
+
         setSocket(newSocket);
 
         // Join Personal Room if UserID exists (Legacy fallback)

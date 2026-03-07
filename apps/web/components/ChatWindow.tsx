@@ -126,6 +126,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     messageId: newMsg.id,
                     senderId: partner.id
                 });
+
+                // If chat is open and visible on screen, automatically mark as read
+                if (document.visibilityState === 'visible') {
+                    api.chat.markRead(partner.id).catch(err => console.error("Auto-read failed", err));
+                    if (onMessagesRead) onMessagesRead();
+                }
             }
         });
 
@@ -378,7 +384,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
                                                 {msg.status === 'sent' && <Check size={12} />}
                                                 {msg.status === 'delivered' && <CheckCheck size={12} />}
-                                                {msg.status === 'read' && <CheckCheck size={12} className={isMe ? "text-yellow-300" : "text-blue-500"} />}
+                                                {msg.status === 'read' && <CheckCheck size={12} className="text-blue-300" />}
                                             </div>
                                         )}
                                     </div>
@@ -441,7 +447,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     e.preventDefault();
                     handleSend(e);
                 }}
-                className="p-4 border-t border-gray-100 bg-white flex gap-3 items-center"
+                className="p-4 border-t border-gray-100 bg-white flex gap-3 items-center pb-[max(1rem,env(safe-area-inset-bottom))]"
             >
                 <button
                     type="button"

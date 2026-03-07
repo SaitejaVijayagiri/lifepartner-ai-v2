@@ -69,7 +69,7 @@ export default function AnimatedSearchSection() {
     }, [displayedText, isDeleting, promptIndex]);
 
     return (
-        <section className="py-24 relative overflow-hidden bg-white border-y border-gray-100">
+        <section className="py-24 relative overflow-hidden bg-white dark:bg-gray-950 border-y border-gray-100 dark:border-gray-800">
             {/* Background Decor */}
             <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-100/50 rounded-full blur-3xl pointer-events-none -z-10"></div>
             <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-pink-100/50 rounded-full blur-3xl pointer-events-none -z-10"></div>
@@ -79,10 +79,10 @@ export default function AnimatedSearchSection() {
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 border border-indigo-100/50 text-indigo-700 font-bold uppercase tracking-widest text-xs mb-6 shadow-sm">
                         <Sparkles size={14} className="text-indigo-500" /> AI Matchmaker
                     </div>
-                    <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900 mb-6 tracking-tight">
+                    <h2 className="text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-gray-100 mb-6 tracking-tight">
                         Just tell us what you're looking for.
                     </h2>
-                    <p className="text-lg text-gray-500 max-w-2xl mx-auto font-medium">
+                    <p className="text-lg text-gray-500 dark:text-gray-400 dark:text-gray-500 max-w-2xl mx-auto font-medium">
                         Our proprietary NLP engine translates natural language into deep-filtered matches instantly. Stop checking boxes and start describing your ideal partner.
                     </p>
                 </div>
@@ -93,7 +93,7 @@ export default function AnimatedSearchSection() {
                         initial={{ y: 20, opacity: 0 }}
                         whileInView={{ y: 0, opacity: 1 }}
                         viewport={{ once: true }}
-                        className="bg-white rounded-3xl p-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200 flex items-center gap-4 relative z-20"
+                        className="bg-white dark:bg-gray-950 rounded-3xl p-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200 dark:border-gray-800 flex items-center gap-4 relative z-20"
                     >
                         <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center shrink-0">
                             <Search className="text-indigo-500" size={24} />
@@ -128,7 +128,7 @@ export default function AnimatedSearchSection() {
                                             key={i}
                                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                                            className="w-full min-w-[300px] shrink-0 bg-white/80 backdrop-blur-xl border border-gray-100 p-5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.04)] flex gap-5 items-center relative overflow-hidden group hover:border-indigo-200 transition-colors"
+                                            className="w-full min-w-[300px] shrink-0 bg-white/80 backdrop-blur-xl border border-gray-100 dark:border-gray-800 p-5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.04)] flex gap-5 items-center relative overflow-hidden group hover:border-indigo-200 transition-colors"
                                         >
                                             {/* Top right match badge */}
                                             <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
@@ -136,7 +136,7 @@ export default function AnimatedSearchSection() {
                                             </div>
 
                                             <div className="relative">
-                                                <div className="w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-500">
+                                                <div className="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-gray-800 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-500">
                                                     <img src={res.img} alt={res.name} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="absolute -bottom-2 -right-2 bg-green-500 w-5 h-5 rounded-full border-[3px] border-white flex items-center justify-center">
@@ -145,11 +145,11 @@ export default function AnimatedSearchSection() {
                                             </div>
 
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-gray-900 text-lg">{res.name}</h4>
-                                                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5 font-medium">
+                                                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{res.name}</h4>
+                                                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1.5 font-medium">
                                                     <Briefcase size={12} className="text-indigo-400" /> {res.role}
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1 font-medium">
+                                                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1 font-medium">
                                                     <MapPin size={12} className="text-rose-400" /> {res.loc}
                                                 </div>
                                             </div>

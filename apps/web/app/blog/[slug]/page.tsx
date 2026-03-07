@@ -68,17 +68,17 @@ export default async function BlogPostPage({ params }: Props) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
             <Navbar />
 
             <main className="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16 w-full">
-                <article className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <article className="bg-white dark:bg-gray-950 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
                     <div className="p-8 md:p-12">
-                        <header className="mb-10 text-center border-b border-gray-100 pb-10">
-                            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6">
+                        <header className="mb-10 text-center border-b border-gray-100 dark:border-gray-800 pb-10">
+                            <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 dark:text-gray-100 leading-tight mb-6">
                                 {post.title}
                             </h1>
-                            <div className="flex items-center justify-center text-sm text-gray-500 gap-4">
+                            <div className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 gap-4">
                                 <time dateTime={post.created_at}>
                                     Published on {new Date(post.created_at).toLocaleDateString('en-US', {
                                         year: 'numeric',
@@ -96,14 +96,14 @@ export default async function BlogPostPage({ params }: Props) {
                         </div>
 
                         <div
-                            className="prose prose-lg prose-rose mx-auto text-gray-700 
-                            prose-headings:font-bold prose-headings:text-gray-900 
+                            className="prose prose-lg prose-rose mx-auto text-gray-700 dark:text-gray-300 
+                            prose-headings:font-bold prose-headings:text-gray-900 dark:text-gray-100 
                             prose-a:text-rose-600 hover:prose-a:text-rose-500
                             prose-img:rounded-xl prose-img:shadow-sm"
                             dangerouslySetInnerHTML={{ __html: post.content }}
                         />
 
-                        <div className="mt-16 pt-8 border-t border-gray-100">
+                        <div className="mt-16 pt-8 border-t border-gray-100 dark:border-gray-800">
                             <GoogleAdBanner format="rectangle" />
                         </div>
                     </div>

@@ -129,6 +129,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     }, [remoteStream, isMaximized, callAccepted]);
 
+    // Attach Local Stream when ref renders (solves React empty box race-condition)
+    useEffect(() => {
+        if (myVideo.current && stream) {
+            myVideo.current.srcObject = stream;
+        }
+    }, [stream, isMaximized, callAccepted, callAnswered]);
+
     const { user } = useAuth(); // Access auth context
 
     const callUser = (currentStream: MediaStream) => {

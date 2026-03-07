@@ -325,7 +325,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     </div>
                 )}
                 {messages.map((msg, idx) => {
-                    const isMe = msg.senderId === 'me' || msg.senderId === user?.id;
+                    // Safe verification: user object might be null if localStorage fails on mobile Safari in AuthContext, 
+                    // so we fallback to reading the token/userId directly from localStorage if possible.
+                    const fallbackUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+                    const isMe = msg.senderId === 'me' || msg.senderId === user?.id || msg.senderId === fallbackUserId;
+
                     const msgDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
 
                     // Grouping Logic: Check if this message is on a different day than the previous one

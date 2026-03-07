@@ -9,7 +9,11 @@ const DEMO_STICKER_STORE = [
     "/stickers/alien.png",
     "/stickers/heart.png",
     "/stickers/robot.png",
-    "/stickers/gift.png"
+    "/stickers/gift.png",
+    "/stickers/cat.png",
+    "/stickers/cloud.png",
+    "/stickers/penguin.png",
+    "/stickers/fire.png"
 ];
 
 export const getStickerAnimation = (url: string) => {
@@ -17,6 +21,10 @@ export const getStickerAnimation = (url: string) => {
     if (url.includes('heart')) return 'animate-heartbeat';
     if (url.includes('robot')) return 'animate-shake';
     if (url.includes('gift')) return 'animate-float';
+    if (url.includes('cat')) return 'animate-wiggle';
+    if (url.includes('cloud')) return 'animate-float';
+    if (url.includes('penguin')) return 'animate-shake';
+    if (url.includes('fire')) return 'animate-heartbeat';
     return '';
 };
 

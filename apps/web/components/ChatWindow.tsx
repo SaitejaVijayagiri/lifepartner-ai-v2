@@ -41,14 +41,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const lastEmitTypingRef = useRef<number>(0);
 
     const getStickerAnimation = (url: string) => {
-        if (url.includes('alien')) return 'animate-wiggle';
-        if (url.includes('heart')) return 'animate-heartbeat';
-        if (url.includes('robot')) return 'animate-shake';
-        if (url.includes('gift')) return 'animate-float';
-        if (url.includes('cat')) return 'animate-wiggle';
-        if (url.includes('cloud')) return 'animate-float';
-        if (url.includes('penguin')) return 'animate-shake';
-        if (url.includes('fire')) return 'animate-heartbeat';
         return '';
     };
 

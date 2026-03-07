@@ -6,25 +6,18 @@ import { Download, Trash2, X, PlusCircle, CheckCircle2, Store, Heart } from 'luc
 import { useToast } from '@/components/ui/Toast';
 
 const DEMO_STICKER_STORE = [
-    "/stickers/alien.png",
-    "/stickers/heart.png",
-    "/stickers/robot.png",
-    "/stickers/gift.png",
-    "/stickers/cat.png",
-    "/stickers/cloud.png",
-    "/stickers/penguin.png",
-    "/stickers/fire.png"
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f970/512.webp", // Heart Eyes
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp", // Alien
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f498/512.webp", // Heart with Arrow
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f916/512.webp", // Robot
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f427/512.webp", // Penguin
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp", // Fire
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp", // Party
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f602/512.webp"  // Laughing Tears
 ];
 
 export const getStickerAnimation = (url: string) => {
-    if (url.includes('alien')) return 'animate-wiggle';
-    if (url.includes('heart')) return 'animate-heartbeat';
-    if (url.includes('robot')) return 'animate-shake';
-    if (url.includes('gift')) return 'animate-float';
-    if (url.includes('cat')) return 'animate-wiggle';
-    if (url.includes('cloud')) return 'animate-float';
-    if (url.includes('penguin')) return 'animate-shake';
-    if (url.includes('fire')) return 'animate-heartbeat';
+    // Native WebP animations are used now, no extra CSS needed.
     return '';
 };
 

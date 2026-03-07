@@ -22,7 +22,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
     return (
-        <div className="bg-white w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-gray-100 min-h-[600px]">
+        <div className="bg-white dark:bg-gray-900 w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-gray-100 dark:border-gray-800 min-h-[600px]">
 
             {/* LEFT: Image Section */}
             <div className="w-full md:w-[40%] bg-gray-950 relative group shrink-0 h-[450px] md:h-auto overflow-hidden">
@@ -68,12 +68,12 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
             </div>
 
             {/* RIGHT: Content & Details */}
-            <div className="w-full md:w-[60%] flex flex-col bg-white">
+            <div className="w-full md:w-[60%] flex flex-col bg-white dark:bg-gray-900">
 
                 {/* Header with Edit Button */}
-                <div className="p-4 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-20">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-gray-800">My Profile</h3>
+                        <h3 className="font-bold text-gray-800 dark:text-gray-100">My Profile</h3>
                         {profile.is_verified && (
                             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
                                 <Shield size={10} className="fill-blue-600" /> Verified
@@ -86,14 +86,14 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         )}
 
 
-                        <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
+                        <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                             <Edit size={16} /> Edit Profile
                         </Button>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="border-b border-gray-100 px-6">
+                <div className="border-b border-gray-100 dark:border-gray-800 px-6">
                     <div className="flex space-x-6 overflow-x-auto no-scrollbar py-3">
                         {['about', 'personal', 'career', 'preferences', 'family'].map(tab => (
                             <button
@@ -102,8 +102,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 className={`
                                     pb-2 text-sm font-semibold capitalize whitespace-nowrap transition-all
                                     ${activeTab === tab
-                                        ? 'text-indigo-600 border-b-2 border-indigo-600'
-                                        : 'text-gray-400 hover:text-gray-600 border-transparent'}
+                                        ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-transparent'}
                                 `}
                             >
                                 {tab}
@@ -117,9 +117,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'about' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                                <h3 className="font-bold text-blue-900 mb-3">About Me</h3>
-                                <p className="text-blue-800/90 leading-relaxed text-[15px]">
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/50">
+                                <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-3">About Me</h3>
+                                <p className="text-blue-800/90 dark:text-blue-300 leading-relaxed text-[15px]">
                                     {profile.aboutMe || "No bio added yet."}
                                 </p>
                             </div>
@@ -135,8 +135,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'personal' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100">
-                                <h3 className="font-bold text-purple-900 mb-4">Horoscope & Faith</h3>
+                            <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-900/50">
+                                <h3 className="font-bold text-purple-900 dark:text-purple-100 mb-4">Horoscope & Faith</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                     <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
@@ -148,8 +148,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 </div>
                             </div>
 
-                            <div className="bg-green-50 p-6 rounded-2xl border border-green-100 mt-6">
-                                <h3 className="font-bold text-green-900 mb-4">Lifestyle & Interests</h3>
+                            <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-900/50 mt-6">
+                                <h3 className="font-bold text-green-900 dark:text-green-100 mb-4">Lifestyle & Interests</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} />
                                     <InfoCard label="Smoking" value={profile.lifestyle?.smoke || profile.lifestyle?.smoking || "No"} />
@@ -157,10 +157,10 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 </div>
                                 {profile.interests && profile.interests.length > 0 && (
                                     <div className="mt-4">
-                                        <div className="text-[10px] uppercase font-bold text-green-700/70 mb-2">Interests</div>
+                                        <div className="text-[10px] uppercase font-bold text-green-700/70 dark:text-green-400/80 mb-2">Interests</div>
                                         <div className="flex flex-wrap gap-2">
                                             {profile.interests.map((tag: string, i: number) => (
-                                                <span key={i} className="bg-white/60 text-green-800 px-3 py-1 rounded-full text-xs font-medium border border-green-200/50">
+                                                <span key={i} className="bg-white/60 dark:bg-gray-800/60 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-800/50 shadow-sm">
                                                     {tag}
                                                 </span>
                                             ))}
@@ -169,16 +169,16 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 )}
                             </div>
 
-                            <div className="bg-teal-50 p-6 rounded-2xl border border-teal-100 mt-6">
-                                <h3 className="font-bold text-teal-900 mb-4">Contact Information</h3>
+                            <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-2xl border border-teal-100 dark:border-teal-900/50 mt-6">
+                                <h3 className="font-bold text-teal-900 dark:text-teal-100 mb-4">Contact Information</h3>
                                 <div className="space-y-3">
                                     <div className="flex justify-between">
-                                        <span className="text-sm text-teal-800/70">Phone</span>
-                                        <span className="text-sm font-medium text-teal-950">{profile.phone || "-"}</span>
+                                        <span className="text-sm text-teal-800/70 dark:text-teal-400">Phone</span>
+                                        <span className="text-sm font-medium text-teal-950 dark:text-teal-300">{profile.phone || "-"}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-sm text-teal-800/70">Email</span>
-                                        <span className="text-sm font-medium text-teal-950">{profile.email || "-"}</span>
+                                        <span className="text-sm text-teal-800/70 dark:text-teal-400">Email</span>
+                                        <span className="text-sm font-medium text-teal-950 dark:text-teal-300">{profile.email || "-"}</span>
                                     </div>
                                 </div>
                             </div>
@@ -187,8 +187,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'career' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                <h3 className="font-bold text-slate-900 mb-4">Career & Education</h3>
+                            <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+                                <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-4">Career & Education</h3>
                                 <div className="grid grid-cols-1 gap-4">
                                     <InfoRow label="Profession" value={profile.career?.profession || "-"} />
                                     <InfoRow label="Company" value={profile.career?.company || "-"} />
@@ -203,8 +203,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'family' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
-                                <h3 className="font-bold text-orange-900 mb-4">Family Background</h3>
+                            <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-2xl border border-orange-100 dark:border-orange-900/50">
+                                <h3 className="font-bold text-orange-900 dark:text-orange-100 mb-4">Family Background</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
                                     <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
@@ -220,17 +220,17 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     {activeTab === 'preferences' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
                             {profile.prompt && (
-                                <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-4">
-                                    <h3 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                <div className="bg-indigo-50/50 dark:bg-indigo-900/30 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 mb-4">
+                                    <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-2 flex items-center gap-2">
                                         <span className="text-xl">💭</span> Expectations
                                     </h3>
-                                    <p className="text-indigo-800 text-sm italic leading-relaxed">
+                                    <p className="text-indigo-800 dark:text-indigo-300 text-sm italic leading-relaxed">
                                         "{profile.prompt}"
                                     </p>
                                 </div>
                             )}
-                            <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                                <h3 className="font-bold text-indigo-900 mb-4">Basic Preferences</h3>
+                            <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
+                                <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-4">Basic Preferences</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Any"} />
                                     <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Any"} />
@@ -276,15 +276,15 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
 // Helpers
 const InfoCard = ({ label, value }: any) => (
-    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-        <div className="text-[10px] uppercase font-bold text-gray-400 mb-1">{label}</div>
-        <div className="font-semibold text-gray-900 text-sm break-words">{value}</div>
+    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
+        <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">{label}</div>
+        <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm break-words">{value}</div>
     </div>
 );
 
 const InfoRow = ({ label, value }: any) => (
-    <div className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
-        <span className="text-gray-500 text-sm">{label}</span>
-        <span className="font-medium text-gray-900 text-sm">{value}</span>
+    <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800/50 last:border-0">
+        <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{value}</span>
     </div>
 );

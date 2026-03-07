@@ -55,7 +55,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
             <div className="bg-indigo-600 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center text-white sticky top-0 z-10">
                 <h3 className="text-base md:text-lg font-bold">Edit Profile</h3>
                 <button onClick={onCancel} className="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white transition-colors">
@@ -67,9 +67,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 {/* Photo Upload Section */}
                 {/* Photo Gallery Upload Section */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Profile Photos</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
 
-                    <div className="border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/50 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group">
+                    <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group">
                         <input
                             type="file"
                             multiple
@@ -110,7 +110,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-3 text-2xl group-hover:scale-110 transition-transform">
                             📸
                         </div>
-                        <h5 className="font-semibold text-gray-900">Upload Photos</h5>
+                        <h5 className="font-semibold text-gray-900 dark:text-gray-100">Upload Photos</h5>
                         <p className="text-xs text-gray-500 mt-1">Drag & drop or Click to browse (Multiple allowed)</p>
                     </div>
 
@@ -118,7 +118,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     {formData.photos?.length > 0 && (
                         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
                             {formData.photos.map((photo: string, idx: number) => (
-                                <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 shadow-sm group">
+                                <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm group">
                                     <img src={photo} alt="Upload" className="w-full h-full object-cover" />
                                     <button
                                         onClick={() => {
@@ -151,9 +151,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* About Me */}
                 <div>
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">About Me</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">About Me</h4>
                     <textarea
-                        className="w-full p-3 border rounded-md text-sm text-gray-900 bg-white focus:ring-1 focus:ring-indigo-500"
+                        className="w-full p-3 border rounded-md text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-indigo-500"
                         rows={3}
                         placeholder="Describe your personality, hobbies, and what you are looking for..."
                         value={formData.aboutMe || ''}
@@ -163,14 +163,14 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Section 1: Basic Info */}
                 <div>
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Basic Information</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Basic Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Full Name" value={formData.name || ''} onChange={e => handleChange('root', 'name', e.target.value)} />
                         {/* Gender Selector */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Gender</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gender</label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.gender || ''}
                                 onChange={e => handleChange('root', 'gender', e.target.value)}
                             >
@@ -181,9 +181,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
                         {/* Marital Status Selector */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Marital Status</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Marital Status</label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.maritalStatus || ''}
                                 onChange={e => handleChange('root', 'maritalStatus', e.target.value)}
                             >
@@ -197,9 +197,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
                         {/* Mother Tongue - Added */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Mother Tongue</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mother Tongue</label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.motherTongue || ''}
                                 onChange={e => handleChange('root', 'motherTongue', e.target.value)}
                             >
@@ -240,7 +240,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                         <Input label="Height (e.g. 5'9)" value={formData.height || ''} onChange={e => handleChange('root', 'height', e.target.value)} />
                         <div className="md:col-span-2 space-y-2 border p-3 rounded-md bg-slate-50 relative group">
-                            <label className="text-sm font-medium text-gray-700 flex justify-between">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex justify-between">
                                 <span>Current Location</span>
                                 <button
                                     onClick={(e) => {
@@ -326,7 +326,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Contact Information (New) */}
                 <div>
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Contact Information</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Contact Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Email Address" value={formData.email || ''} onChange={e => handleChange('root', 'email', e.target.value)} />
                         <Input label="Phone Number" value={formData.phone || ''} onChange={e => handleChange('root', 'phone', e.target.value)} />
@@ -338,12 +338,12 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Partner Preferences (New) */}
                 <div>
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Partner Preferences</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Partner Preferences</h4>
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Expectations / Describe your ideal partner</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Expectations / Describe your ideal partner</label>
                             <textarea
-                                className="w-full h-24 p-3 border rounded-md bg-white border-gray-200 focus:ring-1 focus:ring-indigo-500 text-sm"
+                                className="w-full h-24 p-3 border rounded-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500 text-sm"
                                 placeholder="e.g. Someone who is ambitious, loves travel..."
                                 value={formData.prompt || ''}
                                 onChange={e => handleChange('root', 'prompt', e.target.value)}
@@ -360,12 +360,12 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Section: Lifestyle (New) */}
                 <div>
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Lifestyle</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Lifestyle</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Diet</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Diet</label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.lifestyle?.diet || ''}
                                 onChange={e => handleChange('lifestyle', 'diet', e.target.value)}
                             >
@@ -376,9 +376,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Smoking</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Smoking</label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.lifestyle?.smoke || formData.lifestyle?.smoking || ''}
                                 onChange={e => handleChange('lifestyle', 'smoke', e.target.value)}
                             >
@@ -389,9 +389,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Drinking</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Drinking</label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 bg-white text-gray-900 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.lifestyle?.drink || formData.lifestyle?.drinking || ''}
                                 onChange={e => handleChange('lifestyle', 'drink', e.target.value)}
                             >
@@ -406,14 +406,14 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Section 2: Career */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Career & Education</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Career & Education</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Profession" value={formData.career?.profession || ''} onChange={(e) => handleChange('career', 'profession', e.target.value)} />
                         <Input label="Company" value={formData.career?.company || ''} onChange={(e) => handleChange('career', 'company', e.target.value)} />
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Highest Education</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Highest Education</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md bg-white text-gray-900 border-gray-300 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
                                 value={formData.career?.education || ''}
                                 onChange={(e) => handleChange('career', 'education', e.target.value)}
                             >
@@ -433,7 +433,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Section 3: Religion & Horoscope */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Religion & Horoscope</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Religion & Horoscope</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Religion</label>
@@ -450,7 +450,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <div className="space-y-1">
                             <label className="text-sm font-medium">Inter-Caste Marriage</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md bg-white"
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800"
                                 value={formData.religion?.interCasteOpen || 'Open Details'}
                                 onChange={(e) => handleChange('religion', 'interCasteOpen', e.target.value)}
                             >
@@ -482,7 +482,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Section 4: Family Details */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Family Background</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Family Background</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Father's Job" value={formData.family?.fatherOccupation || ''} onChange={(e) => handleChange('family', 'fatherOccupation', e.target.value)} />
                         <Input label="Mother's Job" value={formData.family?.motherOccupation || ''} onChange={(e) => handleChange('family', 'motherOccupation', e.target.value)} />
@@ -518,7 +518,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* Section 5: Hobbies */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-900 border-b pb-2 mb-4 uppercase tracking-wide">Interests</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Interests</h4>
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Hobbies (Comma separated)</label>
                         <textarea
@@ -528,7 +528,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                     </div>
                 </div>
-                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
+                <div className="bg-gray-50 dark:bg-gray-900 px-6 py-4 flex justify-end gap-3 border-t">
                     <Button variant="outline" onClick={onCancel}>Cancel</Button>
                     <Button onClick={handleSave} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700">
                         {loading ? 'Saving...' : 'Save Changes'}

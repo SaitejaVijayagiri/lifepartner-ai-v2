@@ -6,24 +6,10 @@ import { Download, Trash2, X, PlusCircle, CheckCircle2, Store, Heart } from 'luc
 import { useToast } from '@/components/ui/Toast';
 
 const DEMO_STICKER_STORE = [
-    // Flork of Cows / Cartoon memes (Very popular)
-    "https://media.tenor.com/2s_m3WwO9C0AAAAj/flork-of-cows-flork.gif",
-    "https://media.tenor.com/_qQ1I-v1oEwAAAAj/flork.gif",
-
-    // Love & Hearts
-    "https://media.tenor.com/0dZ2t_z8sZMAAAAj/cat-heart.gif",
-    "https://media.tenor.com/R0R9z2fTIfEAAAAj/cute-love.gif",
-    "https://media.tenor.com/V81p9K54-oIAAAAj/sending-love-sending-kisses.gif",
-
-    // Funny / Reactions
-    "https://media.tenor.com/O4oQ2mPWeXQAAAAj/dog-side-eye.gif",
-    "https://media.tenor.com/n14a-p20k5kAAAAj/stare-staring.gif",
-    "https://media.tenor.com/tHtcGIfhJgcAAAAj/shocked.gif",
-
-    // Greetings
-    "https://media.tenor.com/rNl168lIfPIAAAAj/hello-hi.gif",
-    "https://media.tenor.com/_NqY5-m7rI4AAAAj/good-morning.gif",
-    "https://media.tenor.com/JbH1T8q363QAAAAj/good-night.gif",
+    "/stickers/alien.png",
+    "/stickers/heart.png",
+    "/stickers/robot.png",
+    "/stickers/gift.png"
 ];
 
 export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: string) => void, onClose: () => void }) {

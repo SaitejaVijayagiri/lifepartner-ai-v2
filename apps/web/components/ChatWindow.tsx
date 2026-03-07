@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, Sticker } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -379,8 +379,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     }} />
                                 )}
                                 <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${msg.text.startsWith('[STICKER]')
-                                        ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                        : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md')
+                                    ? 'bg-transparent shadow-none p-0 max-w-[50%]'
+                                    : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md')
                                     }`}>
                                     {msg.text.startsWith('[STICKER]') ? (
                                         <img src={msg.text.replace('[STICKER]', '')} className="w-32 h-32 object-contain drop-shadow-lg" alt="sticker" />
@@ -478,7 +478,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     className={`p-3 rounded-xl transition-all ${showStickers ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                     title="Send Sticker"
                 >
-                    <Sticker size={18} />
+                    <SmilePlus size={20} />
                 </button>
                 <button
                     type="button"

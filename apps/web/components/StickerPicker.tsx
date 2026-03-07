@@ -13,7 +13,19 @@ const DEMO_STICKER_STORE = [
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f427/512.webp", // Penguin
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp", // Fire
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp", // Party
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f602/512.webp"  // Laughing Tears
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f602/512.webp", // Laughing Tears
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60d/512.webp", // Heart Eyes 2
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f618/512.webp", // Kissing Heart
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92a/512.webp", // Zany Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f973/512.webp", // Party Horn Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f62d/512.webp", // Loudly Crying
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f621/512.webp", // Pouting/Angry
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f436/512.webp", // Dog
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f431/512.webp", // Cat
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f984/512.webp", // Unicorn
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a5/512.webp", // Collision/Explosion
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f3b5/512.webp", // Musical Notes
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4af/512.webp"  // 100 symbol
 ];
 
 export const getStickerAnimation = (url: string) => {

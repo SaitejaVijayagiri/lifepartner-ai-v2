@@ -224,7 +224,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             partnerPreferences,
             motherTongue, dob, height, maritalStatus, // Accept DOB & Height & Marital Status
             photos, photoUrl,
-            email, phone // Added email and phone
+            email, phone, // Added email and phone
+            savedStickers
         } = req.body;
 
         // OPTIMIZATION: Handle Base64 Images
@@ -326,7 +327,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     location, // already sanitized
                     height, // Added Height
                     phone, // Added Phone
-                    bio: cleanPrompt // Sync aboutMe to bio
+                    bio: cleanPrompt, // Sync aboutMe to bio
+                    savedStickers
                 };
 
                 // Upsert Profile

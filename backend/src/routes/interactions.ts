@@ -298,10 +298,17 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { toUserId } = req.body;
 
-        // Fetch Names & Premium
+        // Fetch Names, Premium & Details for Notification
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { full_name: true, is_premium: true }
+            select: {
+                full_name: true,
+                is_premium: true,
+                age: true,
+                city: true,
+                location_name: true,
+                profiles: { select: { metadata: true } }
+            }
         });
         const target = await prisma.users.findUnique({
             where: { id: toUserId },
@@ -371,7 +378,15 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         // Only send notifications if this is a NEW request (or it wasn't pending before)
         if (!existingInteraction || existingInteraction.status !== 'pending') {
             try {
-                const msg = "Someone sent you an Interest Request! 💖";
+                const meta = (user.profiles?.metadata as any) || {};
+                const ageStr = user.age ? `${user.age} yr` : '';
+                const profStr = meta.career?.profession || "";
+                const locStr = user.city || user.location_name || meta.location?.city || "";
+
+                const detailsArr = [ageStr, profStr, locStr].filter(Boolean);
+                const detailsStr = detailsArr.length > 0 ? ` (${detailsArr.join(', ')})` : '';
+
+                const msg = `${myName}${detailsStr} sent you an Interest Request! 💖`;
 
                 // Persist
                 await prisma.notifications.create({

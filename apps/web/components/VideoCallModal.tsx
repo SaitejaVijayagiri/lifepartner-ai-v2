@@ -273,8 +273,24 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const leaveCall = (emitEvent = true) => {
         setCallEnded(true);
         try {
+            // Aggressively stop all tracks in state
             stream?.getTracks().forEach(track => track.stop());
-        } catch (e) { }
+            remoteStream?.getTracks().forEach(track => track.stop());
+
+            // Aggressively stop all tracks currently bound to the actual video DOM elements
+            if (myVideo.current && myVideo.current.srcObject) {
+                const domStream = myVideo.current.srcObject as MediaStream;
+                domStream.getTracks().forEach(track => track.stop());
+                myVideo.current.srcObject = null;
+            }
+            if (userVideo.current && userVideo.current.srcObject) {
+                const domStream = userVideo.current.srcObject as MediaStream;
+                domStream.getTracks().forEach(track => track.stop());
+                userVideo.current.srcObject = null;
+            }
+        } catch (e) {
+            console.error("Cleanup error", e);
+        }
         connectionRef.current?.destroy();
 
         if (emitEvent && socket && (callAccepted || incomingCall)) {

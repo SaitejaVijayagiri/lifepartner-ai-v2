@@ -234,8 +234,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             let newStream: MediaStream;
             try {
                 newStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: { facingMode: { exact: nextMode } }
+                    video: { facingMode: { exact: nextMode } } // Do NOT request audio here to avoid mic stutter/leaks
                 });
             } catch (fallbackErr) {
                 // Fallback for desktops / specific browsers missing exact facingMode support
@@ -250,8 +249,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 const nextDevice = videoInputs[nextIndex];
 
                 newStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: { deviceId: { exact: nextDevice.deviceId } }
+                    video: { deviceId: { exact: nextDevice.deviceId } } // Do NOT request audio here
                 });
             }
 

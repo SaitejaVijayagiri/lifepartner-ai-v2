@@ -75,20 +75,20 @@ export const NotificationBell = () => {
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50"
+                className="relative p-2 text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-indigo-600 transition-colors rounded-full hover:bg-indigo-50 dark:hover:bg-gray-800"
             >
                 <Bell size={24} />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-sm border border-white">
+                    <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-sm border border-white dark:border-gray-900">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-96 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                        <h3 className="font-bold text-gray-900">Notifications</h3>
+                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                        <h3 className="font-bold text-gray-900 dark:text-gray-100">Notifications</h3>
                         {unreadCount > 0 && (
                             <button
                                 onClick={markAllRead}
@@ -101,12 +101,12 @@ export const NotificationBell = () => {
 
                     <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
                         {notifications.length === 0 ? (
-                            <div className="p-8 text-center text-gray-400">
+                            <div className="p-8 text-center text-gray-400 dark:text-gray-500">
                                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                 <p className="text-sm">No notifications yet</p>
                             </div>
                         ) : (
-                            <div className="divide-y divide-gray-50">
+                            <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
                                 {notifications.map((n, i) => {
                                     const dateStr = n.created_at || n.timestamp;
                                     const dateObj = dateStr ? new Date(dateStr) : new Date();
@@ -115,7 +115,7 @@ export const NotificationBell = () => {
                                     return (
                                         <div
                                             key={n.id || i}
-                                            className={`p-4 hover:bg-gray-50 transition-colors flex gap-3 ${!n.is_read ? 'bg-indigo-50/30' : ''}`}
+                                            className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex gap-3 ${!n.is_read ? 'bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}
                                             onClick={() => n.id && !n.is_read && markRead(n.id)}
                                         >
                                             <div className={`
@@ -123,10 +123,10 @@ export const NotificationBell = () => {
                                                 ${!n.is_read ? 'bg-indigo-500' : 'bg-transparent'}
                                             `} />
                                             <div className="flex-1">
-                                                <p className="text-sm text-gray-800 leading-relaxed">
+                                                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
                                                     {n.message}
                                                 </p>
-                                                <p className="text-xs text-gray-400 mt-1">
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                                     {isValidDate ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                                     {' · '}
                                                     {isValidDate ? dateObj.toLocaleDateString() : ''}
@@ -138,8 +138,8 @@ export const NotificationBell = () => {
                             </div>
                         )}
                     </div>
-                    <div className="p-2 border-t border-gray-50 bg-gray-50/30 text-center">
-                        <p className="text-xs text-gray-400">Real-time updates active</p>
+                    <div className="p-2 border-t border-gray-50 dark:border-gray-800/50 bg-gray-50/30 dark:bg-gray-800/30 text-center">
+                        <p className="text-xs text-gray-400 dark:text-gray-500">Real-time updates active</p>
                     </div>
                 </div>
             )}

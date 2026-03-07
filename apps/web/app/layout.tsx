@@ -5,6 +5,8 @@ import "./globals.css";
 import ClientProviders from '@/components/ClientProviders';
 import NetworkStatus from '@/components/NetworkStatus';
 import StickyCTA from '@/components/StickyCTA';
+import { ThemeProvider } from '@/components/ThemeProvider';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const fontSans = DM_Sans({
   variable: "--font-sans",
@@ -173,11 +175,14 @@ export default function RootLayout({
         className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <ClientProviders>
-          <NetworkStatus />
-          {children}
-          <StickyCTA />
-        </ClientProviders>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ClientProviders>
+            <NetworkStatus />
+            {children}
+            <StickyCTA />
+            <ThemeToggle />
+          </ClientProviders>
+        </ThemeProvider>
       </body>
     </html>
   );

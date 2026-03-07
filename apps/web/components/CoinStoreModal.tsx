@@ -55,7 +55,7 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                 {/* Premium Header */}
                 <div className="relative p-6 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-white flex justify-between items-center flex-shrink-0 overflow-hidden">
                     {/* Decorative elements */}
@@ -80,12 +80,12 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                 </div>
 
                 {/* Tabs */}
-                <div className="flex bg-gray-50 p-1.5 mx-4 mt-4 rounded-2xl">
+                <div className="flex bg-gray-50 dark:bg-gray-800/80 p-1.5 mx-4 mt-4 rounded-2xl">
                     <button
                         onClick={() => setActiveTab('coins')}
                         className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'coins'
-                            ? 'bg-white text-amber-600 shadow-md'
-                            : 'text-gray-500 hover:text-gray-700'}`}
+                            ? 'bg-white dark:bg-gray-900 text-amber-600 shadow-md'
+                            : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}
                     >
                         <Coins size={16} />
                         Coins
@@ -93,8 +93,8 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                     <button
                         onClick={() => setActiveTab('premium')}
                         className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'premium'
-                            ? 'bg-white text-indigo-600 shadow-md'
-                            : 'text-gray-500 hover:text-gray-700'}`}
+                            ? 'bg-white dark:bg-gray-900 text-indigo-600 shadow-md'
+                            : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:text-gray-300'}`}
                     >
                         <Crown size={16} />
                         Premium
@@ -112,7 +112,7 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                                         relative flex items-center justify-between p-4 border-2 rounded-2xl cursor-pointer transition-all duration-300
                                         ${bundle.popular
                                             ? 'border-amber-400 bg-gradient-to-r from-amber-50 to-yellow-50 shadow-lg shadow-amber-100'
-                                            : 'border-gray-100 hover:border-amber-200 hover:bg-amber-50/50'}
+                                            : 'border-gray-100 dark:border-gray-800 hover:border-amber-200 hover:bg-amber-50/50'}
                                         ${loading ? 'opacity-50 pointer-events-none' : 'hover:scale-[1.02] active:scale-[0.98]'}
                                     `}
                                 >
@@ -127,9 +127,9 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                                             {bundle.emoji}
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-xl text-gray-900">{bundle.coins} <span className="text-sm font-medium text-gray-500">Coins</span></h4>
+                                            <h4 className="font-bold text-xl text-gray-900 dark:text-gray-100">{bundle.coins} <span className="text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">Coins</span></h4>
                                             <div className="flex items-center gap-2">
-                                                <p className="text-gray-500 text-sm">{bundle.label}</p>
+                                                <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 text-sm">{bundle.label}</p>
                                                 {bundle.bonus && (
                                                     <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{bundle.bonus}</span>
                                                 )}
@@ -138,16 +138,16 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                                     </div>
                                     <button className={`px-5 py-2.5 rounded-xl font-bold transition-all ${bundle.popular
                                         ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:shadow-lg'
-                                        : 'bg-gray-900 text-white hover:bg-gray-800'}`}>
+                                        : 'bg-gray-900 text-white hover:bg-gray-800 dark:hover:bg-gray-700'}`}>
                                         ₹{bundle.price}
                                     </button>
                                 </div>
                             ))}
 
                             {/* Coin usage hint */}
-                            <div className="bg-gray-50 rounded-2xl p-4 mt-4">
-                                <p className="text-xs text-gray-500 text-center">
-                                    Use coins for <span className="font-semibold text-gray-700">Super Likes</span>, <span className="font-semibold text-gray-700">Profile Boosts</span>, and <span className="font-semibold text-gray-700">Gifts</span>
+                            <div className="bg-gray-50 dark:bg-gray-800/80 rounded-2xl p-4 mt-4">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 text-center">
+                                    Use coins for <span className="font-semibold text-gray-700 dark:text-gray-300">Super Likes</span>, <span className="font-semibold text-gray-700 dark:text-gray-300">Profile Boosts</span>, and <span className="font-semibold text-gray-700 dark:text-gray-300">Gifts</span>
                                 </p>
                             </div>
                         </div>
@@ -176,11 +176,11 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                                     { icon: <Sparkles size={18} />, label: "5 Super Likes/Day", color: "text-purple-500 bg-purple-50" },
                                     { icon: <Shield size={18} />, label: "Priority Support", color: "text-blue-500 bg-blue-50" },
                                 ].map((feat, i) => (
-                                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/80 rounded-xl">
                                         <div className={`p-2 rounded-lg ${feat.color}`}>
                                             {feat.icon}
                                         </div>
-                                        <span className="text-sm font-semibold text-gray-700">{feat.label}</span>
+                                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{feat.label}</span>
                                     </div>
                                 ))}
                             </div>
@@ -194,7 +194,7 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                                 Get Premium — ₹499/year
                             </button>
 
-                            <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+                            <div className="flex items-center justify-center gap-4 text-xs text-gray-400 dark:text-gray-500">
                                 <span className="flex items-center gap-1"><CheckCircle size={12} /> Secure Payment</span>
                                 <span className="flex items-center gap-1"><CheckCircle size={12} /> Cancel Anytime</span>
                             </div>
@@ -202,7 +202,7 @@ export default function CoinStoreModal({ isOpen, onClose, onSuccess, initialTab 
                     )}
                 </div>
 
-                <div className="p-4 bg-gray-50 text-center text-xs text-gray-400 flex-shrink-0 border-t border-gray-100">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/80 text-center text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 border-t border-gray-100 dark:border-gray-800">
                     <span className="flex items-center justify-center gap-2">
                         <Shield size={12} />
                         Secure payments powered by Cashfree

@@ -86,12 +86,12 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
     };
 
     const Section = ({ id, title, children }: { id: string; title: string; children: React.ReactNode }) => (
-        <div className="border-b border-gray-100 last:border-b-0">
+        <div className="border-b border-gray-100 dark:border-gray-800 last:border-b-0">
             <button
                 onClick={() => toggleSection(id)}
-                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-800 transition-colors"
             >
-                <span className="font-semibold text-gray-800">{title}</span>
+                <span className="font-semibold text-gray-800 dark:text-gray-200">{title}</span>
                 {expandedSections.includes(id) ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
             {expandedSections.includes(id) && (
@@ -108,7 +108,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
             onClick={onClose}
         >
             <div
-                className="bg-white w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+                className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
@@ -138,30 +138,30 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                    <label className="text-xs text-gray-500 mb-1 block font-medium">Min Age</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block font-medium">Min Age</label>
                                     <select
                                         value={filters.ageRange[0]}
                                         onChange={e => {
                                             const val = parseInt(e.target.value);
                                             setFilters({ ...filters, ageRange: [val, Math.max(val, filters.ageRange[1])] });
                                         }}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-sm"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-900 text-sm"
                                     >
                                         {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
                                             <option key={age} value={age}>{age}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <span className="text-gray-400 font-medium pt-4">—</span>
+                                <span className="text-gray-400 dark:text-gray-500 font-medium pt-4">—</span>
                                 <div className="flex-1">
-                                    <label className="text-xs text-gray-500 mb-1 block font-medium">Max Age</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block font-medium">Max Age</label>
                                     <select
                                         value={filters.ageRange[1]}
                                         onChange={e => {
                                             const val = parseInt(e.target.value);
                                             setFilters({ ...filters, ageRange: [Math.min(filters.ageRange[0], val), val] });
                                         }}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white text-sm"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-900 text-sm"
                                     >
                                         {Array.from({ length: 43 }, (_, i) => 18 + i).map(age => (
                                             <option key={age} value={age}>{age}</option>
@@ -170,7 +170,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                 </div>
                             </div>
                             {/* Visual Range Bar */}
-                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="relative h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                 <div
                                     className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-sm"
                                     style={{
@@ -179,7 +179,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     }}
                                 />
                             </div>
-                            <div className="flex justify-between text-xs text-gray-400 font-medium">
+                            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 font-medium">
                                 <span>18 y/o</span>
                                 <span className="text-indigo-600 font-semibold">{filters.ageRange[0]} - {filters.ageRange[1]} years</span>
                                 <span>60 y/o</span>
@@ -192,30 +192,30 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className="flex-1">
-                                    <label className="text-xs text-gray-500 mb-1 block">Min Height</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Min Height</label>
                                     <select
                                         value={filters.heightRange[0]}
                                         onChange={e => {
                                             const val = parseInt(e.target.value);
                                             setFilters({ ...filters, heightRange: [val, Math.max(val + 1, filters.heightRange[1])] });
                                         }}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-900"
                                     >
                                         {Array.from({ length: 37 }, (_, i) => 48 + i).map(inches => (
                                             <option key={inches} value={inches}>{formatHeight(inches)}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <span className="text-gray-400 font-medium">—</span>
+                                <span className="text-gray-400 dark:text-gray-500 font-medium">—</span>
                                 <div className="flex-1">
-                                    <label className="text-xs text-gray-500 mb-1 block">Max Height</label>
+                                    <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Max Height</label>
                                     <select
                                         value={filters.heightRange[1]}
                                         onChange={e => {
                                             const val = parseInt(e.target.value);
                                             setFilters({ ...filters, heightRange: [Math.min(filters.heightRange[0], val - 1), val] });
                                         }}
-                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-white dark:bg-gray-900"
                                     >
                                         {Array.from({ length: 37 }, (_, i) => 48 + i).map(inches => (
                                             <option key={inches} value={inches}>{formatHeight(inches)}</option>
@@ -224,7 +224,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                 </div>
                             </div>
                             {/* Visual Range Bar */}
-                            <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="relative h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                 <div
                                     className="absolute h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full shadow-sm"
                                     style={{
@@ -233,7 +233,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     }}
                                 />
                             </div>
-                            <div className="flex justify-between text-xs text-gray-400 font-medium">
+                            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 font-medium">
                                 <span>4'0"</span>
                                 <span className="text-indigo-600 font-semibold">{formatHeight(filters.heightRange[0])} - {formatHeight(filters.heightRange[1])}</span>
                                 <span>7'0"</span>
@@ -247,23 +247,23 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                     <Section id="location" title="Location & Income">
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Preferred City / State</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Preferred City / State</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. Mumbai or Maharashtra"
                                     value={filters.location || ''}
                                     onChange={e => setFilters({ ...filters, location: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Min Annual Income (LPA)</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Min Annual Income (LPA)</label>
                                 <input
                                     type="number"
                                     placeholder="e.g. 10 (Lakhs)"
                                     value={filters.minIncome || ''}
                                     onChange={e => setFilters({ ...filters, minIncome: e.target.value ? parseFloat(e.target.value) : null })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                                 />
                             </div>
                         </div>
@@ -278,7 +278,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     onClick={() => toggleArrayFilter('motherTongue', lang)}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.motherTongue.includes(lang)
                                         ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                         }`}
                                 >
                                     {lang}
@@ -297,7 +297,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                         onClick={() => toggleArrayFilter('religions', religion)}
                                         className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.religions.includes(religion)
                                             ? 'bg-indigo-600 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                             }`}
                                     >
                                         {religion}
@@ -305,13 +305,13 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                 ))}
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 mb-1 block">Caste Preference (Optional)</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Caste Preference (Optional)</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. Brahmin"
                                     value={filters.caste || ''}
                                     onChange={e => setFilters({ ...filters, caste: e.target.value })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                                 />
                             </div>
                         </div>
@@ -326,7 +326,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     onClick={() => setFilters({ ...filters, diet: filters.diet === diet ? null : diet })}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.diet === diet
                                         ? 'bg-green-600 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                         }`}
                                 >
                                     {diet}
@@ -339,7 +339,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                     <Section id="lifestyle" title="Lifestyle">
                         <div className="space-y-3">
                             <div>
-                                <p className="text-xs text-gray-500 mb-2 font-medium">Smoking</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2 font-medium">Smoking</p>
                                 <div className="flex gap-2">
                                     {['No', 'Occasionally', 'Yes'].map(opt => (
                                         <button
@@ -347,7 +347,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                             onClick={() => setFilters({ ...filters, smoking: filters.smoking === opt ? null : opt })}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.smoking === opt
                                                 ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                                 }`}
                                         >
                                             {opt}
@@ -356,7 +356,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                 </div>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500 mb-2 font-medium">Drinking</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-2 font-medium">Drinking</p>
                                 <div className="flex gap-2">
                                     {['No', 'Occasionally', 'Yes'].map(opt => (
                                         <button
@@ -364,7 +364,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                             onClick={() => setFilters({ ...filters, drinking: filters.drinking === opt ? null : opt })}
                                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.drinking === opt
                                                 ? 'bg-indigo-600 text-white'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                                 }`}
                                         >
                                             {opt}
@@ -384,7 +384,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     onClick={() => toggleArrayFilter('education', edu)}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.education.includes(edu)
                                         ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                         }`}
                                 >
                                     {edu}
@@ -406,7 +406,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                     }}
                                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${filters.maritalStatus.includes(status)
                                         ? 'bg-indigo-600 text-white shadow-md transform scale-105'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                         }`}
                                 >
                                     {status}
@@ -417,10 +417,10 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-3xl flex gap-3">
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 rounded-b-3xl flex gap-3">
                     <button
                         onClick={handleReset}
-                        className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-100 transition-colors"
+                        className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-800 transition-colors"
                     >
                         Reset All
                     </button>

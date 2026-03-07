@@ -64,7 +64,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
 
     if (!currentUser) {
         return (
-            <div className="h-full flex items-center justify-center bg-gray-50 border border-gray-200 rounded-2xl">
+            <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
         );
@@ -72,12 +72,12 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
 
     if (status === 'denied') {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-2xl border border-gray-200">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                    <ShieldCheck className="text-blue-500" size={32} />
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+                    <ShieldCheck className="text-blue-500 dark:text-blue-400" size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Verification Required</h3>
-                <p className="text-gray-500 mb-6 max-w-xs">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Verification Required</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">
                     The Community Lounge is a safe space for genuine singles. <br />
                     <b>Verify your profile for FREE to join!</b>
                 </p>
@@ -95,7 +95,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
     }
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800">
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
             <div className="flex flex-1 overflow-hidden">
                 {/* Messages Area */}
                 <div className="flex-1 flex flex-col min-w-0">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 relative" ref={scrollRef}>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-gray-950 relative" ref={scrollRef}>
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
                         {/* Welcome Message */}
@@ -144,7 +144,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                                         )}
                                         <div className={`px-4 py-2 rounded-2xl shadow-sm text-sm ${isMe
                                             ? 'bg-indigo-600 text-white rounded-br-sm'
-                                            : 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm'
+                                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-sm'
                                             }`}>
                                             {msg.text}
                                         </div>
@@ -158,13 +158,13 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100 flex gap-2 shrink-0 z-10">
+                    <form onSubmit={handleSend} className="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10">
                         <input
                             type="text"
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
                             placeholder="Type a message..."
-                            className="flex-1 bg-gray-50 text-gray-800 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border border-transparent focus:border-indigo-200 transition-all"
+                            className="flex-1 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border border-transparent dark:border-gray-700 focus:border-indigo-200 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
                         />
                         <button
                             type="submit"
@@ -177,25 +177,25 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                 </div>
 
                 {/* Sidebar (Desktop Only) - Integrated */}
-                <div className="hidden md:flex w-72 bg-white border-l border-gray-100 flex-col">
-                    <div className="p-4 border-b border-gray-100 font-bold text-sm text-gray-700 flex justify-between items-center">
+                <div className="hidden md:flex w-72 bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex-col">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 font-bold text-sm text-gray-700 dark:text-gray-200 flex justify-between items-center">
                         <span>Online Members</span>
-                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">{onlineMembers.length}</span>
+                        <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full text-xs">{onlineMembers.length}</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
                         {onlineMembers.map((u, i) => (
-                            <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer group">
-                                <div className="w-8 h-8 rounded-full bg-gray-100 overflow-hidden border border-gray-200">
+                            <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors cursor-pointer group">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700">
                                     {u.photo ? (
                                         <img src={u.photo} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-bold">
+                                        <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs font-bold">
                                             {u.name[0]}
                                         </div>
                                     )}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="font-bold text-xs text-gray-800 truncate group-hover:text-indigo-600 transition-colors flex items-center gap-1">
+                                    <p className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
                                         {u.name}
                                         {u.isVerified && <VerificationBadge size={10} />}
                                     </p>

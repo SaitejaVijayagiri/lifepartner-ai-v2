@@ -240,7 +240,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     return (
-        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 overflow-hidden z-[100] animate-in slide-in-from-bottom duration-300"}>
+        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[100] animate-in slide-in-from-bottom duration-300"}>
             {/* Premium Header */}
             {!isCallMode && (
                 <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">
@@ -316,20 +316,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* In Call Mode Header (Minimal) */}
             {isCallMode && (
-                <div className="p-3 bg-gray-100 border-b flex justify-between items-center">
-                    <span className="font-bold text-gray-700">Chat</span>
+                <div className="p-3 bg-gray-100 dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between items-center">
+                    <span className="font-bold text-gray-700 dark:text-white">Chat</span>
                 </div>
             )}
 
             {/* Messages - Premium Design */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-50 to-gray-50 space-y-3" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900 space-y-3" ref={scrollRef}>
                 {messages.length === 0 && (
                     <div className="text-center py-16">
-                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-3xl">👋</span>
                         </div>
-                        <p className="text-gray-500 font-medium">Say hello to {partner.name}!</p>
-                        <p className="text-gray-400 text-sm mt-1">Start a conversation</p>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Say hello to {partner.name}!</p>
+                        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Start a conversation</p>
                     </div>
                 )}
                 {messages.map((msg, idx) => {
@@ -369,7 +369,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         <div key={idx} className="flex flex-col">
                             {showDateHeader && (
                                 <div className="flex justify-center my-4">
-                                    <span className="text-xs font-semibold bg-gray-200/50 text-gray-500 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
+                                    <span className="text-xs font-semibold bg-gray-200/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
                                         {dateHeaderText}
                                     </span>
                                 </div>
@@ -384,7 +384,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 )}
                                 <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${msg.text.startsWith('[STICKER]')
                                     ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                    : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md')
+                                    : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md')
                                     }`}>
                                     {msg.text.startsWith('[STICKER]') ? (
                                         <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
@@ -418,7 +418,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
                                 target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
                             }} />
-                            <div className="bg-white px-4 py-3 rounded-2xl border border-gray-100 rounded-bl-md shadow-sm">
+                            <div className="bg-white dark:bg-gray-800 px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 rounded-bl-md shadow-sm">
                                 <div className="flex gap-1.5 h-4 items-center">
                                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
                                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
@@ -432,7 +432,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* AI Icebreaker Suggestions */}
             {aiSuggestions.length > 0 && (
-                <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-100 animate-in slide-in-from-bottom duration-300">
+                <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40 border-t border-indigo-100 dark:border-indigo-900 animate-in slide-in-from-bottom duration-300">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
                             <Sparkles size={14} className="text-purple-500" />
@@ -450,7 +450,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     setInputText(suggestion);
                                     setAiSuggestions([]);
                                 }}
-                                className="text-left text-sm bg-white border border-indigo-100 p-3 rounded-xl hover:bg-indigo-50 hover:border-indigo-200 transition-all text-gray-700 shadow-sm"
+                                className="text-left text-sm bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-900/50 p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 shadow-sm"
                             >
                                 {suggestion}
                             </button>
@@ -465,7 +465,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     e.preventDefault();
                     handleSend(e);
                 }}
-                className="p-4 border-t border-gray-100 bg-white flex gap-2 items-center pb-[max(1rem,env(safe-area-inset-bottom))] relative"
+                className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-2 items-center pb-[max(1rem,env(safe-area-inset-bottom))] relative"
             >
                 {showStickers && (
                     <StickerPicker
@@ -479,7 +479,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <button
                     type="button"
                     onClick={() => setShowStickers(!showStickers)}
-                    className={`p-3 rounded-xl transition-all ${showStickers ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    className={`p-3 rounded-xl transition-all ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                     title="Send Sticker"
                 >
                     <SmilePlus size={20} />
@@ -499,7 +499,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     value={inputText}
                     onChange={handleInput}
                     placeholder="Type a message..."
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-all placeholder:text-gray-400"
+                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500 dark:text-white"
                 />
 
                 <button

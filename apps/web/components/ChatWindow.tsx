@@ -5,10 +5,11 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, Sticker } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
+import StickerPicker from './StickerPicker';
 import { useToast } from '@/components/ui/Toast';
 
 interface ChatWindowProps {
@@ -41,6 +42,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const [showGame, setShowGame] = useState(false);
     const [showGiftModal, setShowGiftModal] = useState(false);
+    const [showStickers, setShowStickers] = useState(false);
 
     // Profile View State
     const [showProfile, setShowProfile] = useState(false);
@@ -186,16 +188,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     }, [messages, isTyping]);
 
-    const handleSend = async (e?: React.FormEvent) => {
+    const handleSend = async (e?: React.FormEvent, forcedText?: string) => {
         if (e) e.preventDefault();
-        if (!inputText.trim()) return;
 
-        const text = inputText;
-        setInputText("");
+        const textToSend = forcedText || inputText;
+        if (!textToSend.trim()) return;
+
+        if (!forcedText) setInputText("");
 
         const tempMsg = {
             id: 'temp-' + Date.now(),
-            text,
+            text: textToSend,
             senderId: 'me',
             timestamp: new Date(),
             status: 'sending'
@@ -204,7 +207,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         try {
             // Backend expects User ID (partner.id), not Interaction ID
-            const response = await api.chat.sendMessage(partner.id, text, 'me');
+            const response = await api.chat.sendMessage(partner.id, textToSend, 'me');
 
             // Replace temporary message with the real one from DB (which has status: 'sent')
             if (response && response.message) {
@@ -375,11 +378,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
                                     }} />
                                 )}
-                                <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${isMe
-                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md'
-                                    : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md'
+                                <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${msg.text.startsWith('[STICKER]')
+                                        ? 'bg-transparent shadow-none p-0 max-w-[50%]'
+                                        : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-md')
                                     }`}>
-                                    {msg.text}
+                                    {msg.text.startsWith('[STICKER]') ? (
+                                        <img src={msg.text.replace('[STICKER]', '')} className="w-32 h-32 object-contain drop-shadow-lg" alt="sticker" />
+                                    ) : (
+                                        msg.text
+                                    )}
                                     <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${isMe ? 'text-white/80' : 'text-gray-400'}`}>
                                         {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
 
@@ -454,8 +461,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     e.preventDefault();
                     handleSend(e);
                 }}
-                className="p-4 border-t border-gray-100 bg-white flex gap-3 items-center pb-[max(1rem,env(safe-area-inset-bottom))]"
+                className="p-4 border-t border-gray-100 bg-white flex gap-2 items-center pb-[max(1rem,env(safe-area-inset-bottom))] relative"
             >
+                {showStickers && (
+                    <StickerPicker
+                        onClose={() => setShowStickers(false)}
+                        onSelect={(url) => {
+                            setShowStickers(false);
+                            handleSend(undefined, `[STICKER]${url}`);
+                        }}
+                    />
+                )}
+                <button
+                    type="button"
+                    onClick={() => setShowStickers(!showStickers)}
+                    className={`p-3 rounded-xl transition-all ${showStickers ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    title="Send Sticker"
+                >
+                    <Sticker size={18} />
+                </button>
                 <button
                     type="button"
                     onClick={handleIcebreaker}

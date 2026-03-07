@@ -62,7 +62,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                             <div className="text-center p-1">
                                 <div className="w-12 h-12 mx-auto rounded-full overflow-hidden border-2 border-indigo-500 mb-2">
                                     {currentUser.photoUrl
-                                        ? <img src={currentUser.photoUrl} alt="You" className="w-full h-full object-cover" />
+                                        ? <img src={currentUser.photoUrl} alt="You" className="w-full h-full object-cover" onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.name || 'User')}`; }} />
                                         : <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-lg font-bold">{(currentUser.name || 'Y')[0]}</div>
                                     }
                                 </div>
@@ -89,7 +89,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     const isOnline = onlineUsers?.includes(profile.id);
 
                     const photoHtml = profile.photoUrl
-                        ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;" />`
+                        ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null;this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}';" />`
                         : `<span style="color:white;font-weight:bold;">${(profile.name || '?')[0]}</span>`;
 
                     const onlineIndicatorHtml = isOnline

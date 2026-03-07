@@ -87,7 +87,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
-            <div className="bg-white w-full max-w-5xl h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
                 {/* Enhanced Close Button (Floating & Glassy) - Fixed Position for Mobile Reliability */}
                 <button
@@ -188,17 +188,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 </div>
 
                 {/* RIGHT: Content & Details */}
-                <div className="w-full md:w-[55%] flex flex-col bg-white h-[50%] md:h-full relative rounded-none z-30 md:z-auto">
+                <div className="w-full md:w-[55%] flex flex-col bg-white dark:bg-gray-900 h-[50%] md:h-full relative rounded-none z-30 md:z-auto">
 
 
 
                     {/* Desktop Header (Hidden on Mobile) */}
                     <div className="hidden md:block px-8 pt-8 pb-4">
                         <div className="flex gap-2 mt-2 pl-4">
-                            <div className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 flex items-center gap-1 w-max">
+                            <div className="bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 dark:border-pink-800/50 flex items-center gap-1 w-max">
                                 <span>🎁</span> {profile.total_gifts || 0} Gifts
                             </div>
-                            <div className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold border border-red-100 flex items-center gap-1 w-max">
+                            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-100 dark:border-red-800/50 flex items-center gap-1 w-max">
                                 <span>❤️</span> {profile.total_likes || 0} Likes
                             </div>
                         </div>
@@ -209,7 +209,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
 
                     {/* Sticky Tabs */}
-                    <div className="sticky top-0 bg-white/95 backdrop-blur z-40 border-b border-gray-100 px-4 md:px-6">
+                    <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-40 border-b border-gray-100 dark:border-gray-800 px-4 md:px-6">
                         <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
                             {['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'].map(tab => (
                                 <button
@@ -218,8 +218,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     className={`
                                         pb-2 text-xs md:text-sm font-semibold capitalize whitespace-nowrap transition-all
                                         ${activeTab === tab
-                                            ? 'text-indigo-600 border-b-2 border-indigo-600'
-                                            : 'text-gray-400 hover:text-gray-600 border-transparent'}
+                                            ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+                                            : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-transparent'}
                                     `}
                                 >
                                     {tab === 'ai insight' ? '🤖 AI Insight' : tab}
@@ -233,20 +233,20 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'ai insight' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl border border-indigo-100 shadow-sm">
+                                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm">
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm text-xl">🤖</div>
-                                        <h3 className="font-bold text-indigo-900">AI Compatibility Analysis</h3>
+                                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-xl">🤖</div>
+                                        <h3 className="font-bold text-indigo-900 dark:text-indigo-100">AI Compatibility Analysis</h3>
                                     </div>
-                                    <p className="text-indigo-800/80 italic text-sm leading-relaxed border-l-4 border-indigo-400 pl-4 py-1">
+                                    <p className="text-indigo-800/80 dark:text-indigo-300 italic text-sm leading-relaxed border-l-4 border-indigo-400 dark:border-indigo-500 pl-4 py-1">
                                         "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
                                     </p>
 
                                     <div className="flex gap-3 mt-6">
-                                        <div className="bg-white/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 border border-indigo-100 shadow-sm flex items-center gap-2">
+                                        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">
                                             <span>✨</span> {profile.score || 0}% Match Score
                                         </div>
-                                        <div className="bg-pink-100/50 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 border border-pink-100 shadow-sm flex items-center gap-2">
+                                        <div className="bg-pink-100/50 dark:bg-pink-900/20 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 dark:text-pink-300 border border-pink-100 dark:border-pink-900/50 shadow-sm flex items-center gap-2">
                                             <span>🎁</span> {profile.total_gifts || 0} Gifts
                                         </div>
                                     </div>
@@ -260,9 +260,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'about' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                                    <h3 className="font-bold text-blue-900 mb-3">About Me</h3>
-                                    <p className="text-blue-800/90 leading-relaxed text-sm md:text-[15px]">
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/50">
+                                    <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-3">About Me</h3>
+                                    <p className="text-blue-800/90 dark:text-blue-300 leading-relaxed text-sm md:text-[15px]">
                                         {profile.aboutMe || "No bio provided."}
                                     </p>
                                 </div>
@@ -277,8 +277,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'personal' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <section className="bg-purple-50 p-6 rounded-2xl border border-purple-100">
-                                    <h3 className="font-bold text-purple-900 mb-4">Horoscope & Faith</h3>
+                                <section className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-900/50">
+                                    <h3 className="font-bold text-purple-900 dark:text-purple-100 mb-4">Horoscope & Faith</h3>
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
@@ -292,14 +292,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </section>
 
                                 {/* Premium Contact Section */}
-                                <section className="bg-teal-50 p-6 rounded-2xl border border-teal-100 mt-2">
-                                    <h3 className="font-bold text-teal-900 mb-4 flex justify-between items-center">
+                                <section className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-2xl border border-teal-100 dark:border-teal-900/50 mt-2">
+                                    <h3 className="font-bold text-teal-900 dark:text-teal-100 mb-4 flex justify-between items-center">
                                         Contact Information
-                                        {!currentUser?.is_premium && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold">PREMIUM</span>}
+                                        {!currentUser?.is_premium && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] px-2 py-0.5 rounded-full font-bold">PREMIUM</span>}
                                     </h3>
 
                                     {currentUser?.is_premium ? (
-                                        <div className="bg-white/60 border border-teal-200/50 rounded-2xl p-5 space-y-4">
+                                        <div className="bg-white/60 dark:bg-gray-800/60 border border-teal-200/50 dark:border-teal-800/50 rounded-2xl p-5 space-y-4">
                                             <ContactRow icon="📞" label="Phone" value={profile.phone || "Not Available"} />
                                             <ContactRow icon="✉️" label="Email" value={profile.email || "hidden@email.com"} />
                                             <div className="pt-2">
@@ -312,33 +312,33 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="relative overflow-hidden rounded-2xl bg-white/50 border border-teal-200/50 p-8 text-center backdrop-blur-sm">
-                                            <div className="absolute inset-0 blur-md opacity-40 bg-white/50 pointer-events-none p-6 space-y-4">
-                                                <div className="h-4 bg-teal-200/50 rounded w-3/4 mx-auto" />
-                                                <div className="h-4 bg-teal-200/50 rounded w-1/2 mx-auto" />
+                                        <div className="relative overflow-hidden rounded-2xl bg-white/50 dark:bg-gray-800/50 border border-teal-200/50 dark:border-teal-800/50 p-8 text-center backdrop-blur-sm">
+                                            <div className="absolute inset-0 blur-md opacity-40 bg-white/50 dark:bg-gray-900/50 pointer-events-none p-6 space-y-4">
+                                                <div className="h-4 bg-teal-200/50 dark:bg-teal-800/50 rounded w-3/4 mx-auto" />
+                                                <div className="h-4 bg-teal-200/50 dark:bg-teal-800/50 rounded w-1/2 mx-auto" />
                                             </div>
                                             <div className="relative z-10 flex flex-col items-center">
                                                 <div className="w-14 h-14 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30 text-white text-2xl animate-bounce">
                                                     👑
                                                 </div>
-                                                <h4 className="font-bold text-teal-950 text-lg mb-4">Upgrade to Premium</h4>
+                                                <h4 className="font-bold text-teal-950 dark:text-teal-100 text-lg mb-4">Upgrade to Premium</h4>
 
-                                                <div className="space-y-2 text-left mb-6 bg-white/60 p-4 rounded-xl border border-white/40 shadow-sm w-full max-w-[280px]">
-                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                                        <span className="text-green-600">✓</span> Instant Contact Numbers
+                                                <div className="space-y-2 text-left mb-6 bg-white/60 dark:bg-gray-800/60 p-4 rounded-xl border border-white/40 dark:border-gray-700/50 shadow-sm w-full max-w-[280px]">
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Instant Contact Numbers
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                                        <span className="text-green-600">✓</span> Video & Audio Calls
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Video & Audio Calls
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                                        <span className="text-green-600">✓</span> See Who Liked You
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> See Who Liked You
                                                     </div>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                                        <span className="text-green-600">✓</span> Unlimited Interest Requests
+                                                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Unlimited Interest Requests
                                                     </div>
                                                 </div>
 
-                                                <Button onClick={onUpgrade} className="bg-gradient-to-r from-gray-900 to-black text-white hover:scale-105 transition-transform rounded-full px-8 py-6 shadow-xl font-bold text-lg">
+                                                <Button onClick={onUpgrade} className="bg-gradient-to-r from-gray-900 to-black dark:from-white dark:to-gray-200 dark:text-black text-white hover:scale-105 transition-transform rounded-full px-8 py-6 shadow-xl font-bold text-lg">
                                                     Unlock All Features
                                                 </Button>
                                             </div>
@@ -350,18 +350,18 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'career' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                                <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm">💼</div>
+                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-2xl shadow-sm">💼</div>
                                         <div>
-                                            <div className="font-bold text-gray-900 text-lg">{profile.career?.profession || "-"}</div>
-                                            <div className="text-sm text-gray-500 flex items-center gap-2">
+                                            <div className="font-bold text-gray-900 dark:text-gray-100 text-lg">{profile.career?.profession || "-"}</div>
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
                                                 {/* Show Company if Connected OR Premium */}
                                                 {(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium)
                                                     ? (
                                                         <>
                                                             {profile.career?.company || "-"}
-                                                            {currentUser?.is_premium && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200">💎 UNLOCKED</span>}
+                                                            {currentUser?.is_premium && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">💎 UNLOCKED</span>}
                                                         </>
                                                     )
                                                     : "🔒 Connect to Unlock Company"}
@@ -385,8 +385,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'family' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100">
-                                    <h3 className="font-bold text-orange-900 mb-4">Family Background</h3>
+                                <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-2xl border border-orange-100 dark:border-orange-900/50">
+                                    <h3 className="font-bold text-orange-900 dark:text-orange-100 mb-4">Family Background</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <InfoCard label="Family Type" value={profile.family?.type || profile.family?.familyType || "-"} />
                                         <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
@@ -402,8 +402,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                         {activeTab === 'lifestyle' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
-                                    <h3 className="font-bold text-green-900 mb-4">Habits & Lifestyle</h3>
+                                <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-900/50">
+                                    <h3 className="font-bold text-green-900 dark:text-green-100 mb-4">Habits & Lifestyle</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} icon="🥗" />
                                         <InfoCard label="Smoking" value={profile.lifestyle?.smoking || profile.lifestyle?.smoke || "-"} icon="🚬" />
@@ -412,11 +412,11 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </div>
 
                                 {profile.lifestyle?.hobbies && (
-                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                                        <h3 className="font-bold text-slate-900 mb-4">Interests & Hobbies</h3>
+                                    <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-4">Interests & Hobbies</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {profile.lifestyle.hobbies.split(',').map((hobby: string, idx: number) => (
-                                                <span key={idx} className="bg-white px-3 py-1.5 rounded-full text-sm text-slate-700 border border-slate-200 shadow-sm">
+                                                <span key={idx} className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm">
                                                     {hobby.trim()}
                                                 </span>
                                             ))}
@@ -429,17 +429,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         {activeTab === 'preferences' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 {profile.prompt && (
-                                    <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-4">
-                                        <h3 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                    <div className="bg-indigo-50/50 dark:bg-indigo-900/30 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 mb-4">
+                                        <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-2 flex items-center gap-2">
                                             <span className="text-xl">💭</span> Expectations
                                         </h3>
-                                        <p className="text-indigo-800 text-sm italic leading-relaxed">
+                                        <p className="text-indigo-800 dark:text-indigo-300 text-sm italic leading-relaxed">
                                             "{profile.prompt}"
                                         </p>
                                     </div>
                                 )}
-                                <div className="bg-indigo-50 p-6 rounded-2xl border border-indigo-100">
-                                    <h3 className="font-bold text-indigo-900 mb-4">Basic Preferences</h3>
+                                <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
+                                    <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-4">Basic Preferences</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <InfoCard label="Age Range" value={profile.partnerPreferences?.ageRange || "Open"} />
                                         <InfoCard label="Height Range" value={profile.partnerPreferences?.heightRange || "Open"} />
@@ -453,12 +453,12 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Bottom Action Bar (Fixed on Mobile) */}
-                    <div className="absolute bottom-0 inset-x-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-100 md:static md:bg-gray-50 z-[210]">
+                    <div className="absolute bottom-0 inset-x-0 p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210]">
                         <div className="flex gap-3">
-                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 text-gray-600 font-bold hover:bg-gray-50" onClick={onClose}>
+                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800" onClick={onClose}>
                                 Skip
                             </Button>
-                            <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30" onClick={onConnect}>
+                            <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10" onClick={onConnect}>
                                 Send Interest 💖
                             </Button>
                         </div>
@@ -515,30 +515,30 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
 // Sub-components for cleaner code
 const InfoCard = ({ label, value, icon }: any) => (
-    <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-        <div className="text-[10px] uppercase font-bold text-gray-400 mb-1">{label}</div>
-        <div className="font-semibold text-gray-900 text-sm flex items-center gap-1 break-words">
+    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
+        <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">{label}</div>
+        <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1 break-words">
             {icon && <span>{icon}</span>} {value}
         </div>
     </div>
 );
 
 const InfoRow = ({ label, value, highlight, premiumUnlocked }: any) => (
-    <div className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
-        <span className="text-gray-500 text-sm">{label}</span>
+    <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50 last:border-0">
+        <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
         <div className="flex items-center gap-2">
-            <span className={`font-medium text-sm ${highlight ? 'text-green-700 font-bold' : 'text-gray-900'}`}>{value}</span>
-            {premiumUnlocked && <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200">💎</span>}
+            <span className={`font-medium text-sm ${highlight ? 'text-green-700 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>{value}</span>
+            {premiumUnlocked && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">💎</span>}
         </div>
     </div>
 );
 
 const ContactRow = ({ icon, label, value }: any) => (
-    <div className="flex items-center gap-4 bg-white p-3 rounded-xl border border-green-100/50 shadow-sm">
-        <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center text-xl">{icon}</div>
+    <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-xl border border-green-100/50 dark:border-green-800/30 shadow-sm">
+        <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-xl">{icon}</div>
         <div>
-            <div className="text-[10px] text-green-800 font-bold uppercase tracking-wider">{label}</div>
-            <div className="text-gray-900 font-mono font-medium">{value}</div>
+            <div className="text-[10px] text-green-800 dark:text-green-400 font-bold uppercase tracking-wider">{label}</div>
+            <div className="text-gray-900 dark:text-gray-100 font-mono font-medium">{value}</div>
         </div>
     </div>
 );

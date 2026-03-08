@@ -210,9 +210,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const stepId = STEPS[currentStep].id;
 
     return (
-        <div className="flex flex-col lg:flex-row w-full min-h-[100dvh] lg:min-h-0 h-auto lg:h-[85vh] bg-white dark:bg-gray-900 lg:rounded-2xl shadow-none lg:shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col lg:flex-row w-full h-[100dvh] lg:h-[85vh] bg-white dark:bg-gray-900 lg:rounded-2xl shadow-none lg:shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
             {/* LEFT PANEL: Visual & Quote */}
-            <div className={`w-full lg:w-1/3 h-auto lg:h-auto text-white p-5 lg:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
+            <div className={`w-full lg:w-1/3 shrink-0 h-auto lg:h-auto text-white p-5 lg:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
                 <div className="z-10 flex justify-between lg:block items-center mb-4 lg:mb-0">
                     <h1 className="text-xl lg:text-3xl font-bold lg:mb-2">LifePartner AI</h1>
                     <div className="hidden lg:block h-1 w-12 bg-white/50 rounded-full"></div>

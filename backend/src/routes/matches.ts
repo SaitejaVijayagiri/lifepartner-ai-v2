@@ -20,7 +20,10 @@ const toProxyUrl = (url: string): string => {
 };
 
 const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
-    if (!url || url.startsWith('data:')) {
+    if (url && url.startsWith('data:image')) {
+        return url;
+    }
+    if (!url) {
         return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
     }
     return toProxyUrl(url);

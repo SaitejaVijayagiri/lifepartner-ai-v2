@@ -25,7 +25,11 @@ const toProxyUrl = (url: string): string => {
 };
 
 const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
-    if (!url || url.startsWith('data:')) {
+    // Pass base64 data URIs through directly - they are compressed ~200KB images stored in postgres
+    if (url && url.startsWith('data:image')) {
+        return url;
+    }
+    if (!url) {
         return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
     }
     return toProxyUrl(url);
@@ -52,8 +56,8 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
         return publicUrl;
     } catch (e) {
-        console.error("Optimize upload failed. Supabase rejected the file. Returning empty photo to prevent Database Payload crashes.", e);
-        return ""; // Safe fail-open: Do not crash the entire database with a 7MB string push
+        console.error("Supabase storage upload failed. Falling back to base64 for display.", e);
+        return base64; // Return compressed base64 (~200KB after frontend canvas resize) - safe to store in postgres
     }
 }
 

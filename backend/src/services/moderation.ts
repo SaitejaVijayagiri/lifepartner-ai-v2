@@ -69,7 +69,7 @@ export class ModerationService {
             // Run detection 
             const detections = await faceapi.detectAllFaces(
                 img as any,
-                new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 })
             );
 
             console.log(`🔍 [ModerationService] Detected ${detections.length} face(s) in upload.`);

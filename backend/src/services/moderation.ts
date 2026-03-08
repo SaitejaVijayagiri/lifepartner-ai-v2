@@ -19,10 +19,15 @@ export class ModerationService {
         const modelsPath = path.join(__dirname, '../../public/models');
         console.log(`🤖 [ModerationService] Loading Tiny Face Detector from: ${modelsPath}`);
 
-        this.loadPromise = faceapi.nets.tinyFaceDetector.loadFromDisk(modelsPath).then(() => {
+        this.loadPromise = (async () => {
+            // WebAssembly backend must initialize asynchronously before weights can be loaded
+            await (faceapi.tf as any).setBackend('wasm');
+            await (faceapi.tf as any).ready();
+
+            await faceapi.nets.tinyFaceDetector.loadFromDisk(modelsPath);
             this.modelsLoaded = true;
-            console.log(`✅ [ModerationService] Offline Face AI Initialized!`);
-        }).catch(err => {
+            console.log(`✅ [ModerationService] Offline Face AI Initialized using pure WASM!`);
+        })().catch(err => {
             console.error(`❌ [ModerationService] Failed to load Face AI:`, err);
             // reset promise on fail
             this.loadPromise = null;
@@ -66,11 +71,26 @@ export class ModerationService {
                 img.src = buffer;
             });
 
+            // Convert @napi-rs/canvas Image explicitly into a Uint8Array Tensor for WebAssembly inference
+            const canvas = new Canvas(img.width, img.height);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            const tensor = (faceapi.tf as any).browser.fromPixels({
+                data: new Uint8Array(imgData.data),
+                width: imgData.width,
+                height: imgData.height,
+            });
+
             // Run detection 
             const detections = await faceapi.detectAllFaces(
-                img as any,
+                tensor as any,
                 new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.3 })
             );
+
+            // Critical: Free memory manually to prevent WASM heap leaks
+            tensor.dispose();
 
             console.log(`🔍 [ModerationService] Detected ${detections.length} face(s) in upload.`);
 

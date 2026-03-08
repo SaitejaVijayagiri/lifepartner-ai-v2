@@ -188,6 +188,8 @@ router.get('/public-preview', async (req: any, res) => {
                 age: true,
                 location_name: true,
                 city: true,
+                district: true,
+                state: true,
                 avatar_url: true,
                 profiles: {
                     select: { metadata: true }
@@ -215,11 +217,13 @@ router.get('/public-preview', async (req: any, res) => {
                     const rowCity = row.city || row.location_name;
 
                     const city = mCity || rowCity;
-                    const parts = [city, mState, mCountry].filter(p => p && p !== "Unknown" && p !== "null");
+                    const district = mDistrict || row.district;
+                    const state = mState || row.state;
+
+                    const rawParts = [city, district, state, mCountry].filter(p => p && p !== "Unknown" && p !== "null");
+                    const parts = Array.from(new Set(rawParts));
 
                     let locStr = parts.length > 0 ? parts.join(", ") : "India";
-                    if (locStr === "India" && mDistrict) locStr = `${mDistrict}, India`;
-
                     return locStr;
                 })(),
                 location_data: meta.location || null,
@@ -363,14 +367,16 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             const userCity = c.city || c.location_name;
 
-            // Concatenate available fields
+            // Concatenate available fields, including the new precise district
             const city = metaCity || userCity;
-            const parts = [city, metaState, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
+            const district = metaDistrict || c.district;
+            const state = metaState || c.state;
+
+            // Build the array and use a Set to remove duplicate names (e.g. City and District being the same)
+            const rawParts = [city, district, state, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
+            const parts = Array.from(new Set(rawParts));
 
             let locString = parts.length > 0 ? parts.join(", ") : "India";
-
-            // Fallback for extreme cases
-            if (locString === "India" && metaDistrict) locString = `${metaDistrict}, India`;
 
             // NEW: Auto-Geocoding for Map Support
             // If they don't have lat/lng but they have a city string, dynamically geocode it
@@ -608,14 +614,16 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
             const userCity = c.city || c.location_name;
 
-            // Concatenate available fields
+            // Concatenate available fields, including the new precise district
             const city = metaCity || userCity;
-            const parts = [city, metaState, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
+            const district = metaDistrict || c.district;
+            const state = metaState || c.state;
+
+            // Build the array and use a Set to remove duplicate names (e.g. City and District being the same)
+            const rawParts = [city, district, state, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
+            const parts = Array.from(new Set(rawParts));
 
             let locString = parts.length > 0 ? parts.join(", ") : "India";
-
-            // Fallback for extreme cases
-            if (locString === "India" && metaDistrict) locString = `${metaDistrict}, India`;
 
             // NEW: Auto-Geocoding for Map Support
             if ((!metaLoc || !metaLoc.lat || !metaLoc.lng) && locString !== "India") {

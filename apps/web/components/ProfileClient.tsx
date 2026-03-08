@@ -137,7 +137,8 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                     <h1 className="text-4xl font-heading font-bold mb-2">{profile.name}, {profile.age}</h1>
                                     <div className="flex items-center gap-4 text-sm font-medium opacity-90">
                                         <div className="flex items-center gap-1">
-                                            <MapPin size={16} /> {profile.location?.city || "Unknown City"}
+                                            <MapPin size={16} />
+                                            {typeof profile.location === 'string' ? profile.location : ([profile.location?.city, profile.location?.district, profile.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown City")}
                                         </div>
                                         {/* Online Badge */}
                                         {isUserOnline && (

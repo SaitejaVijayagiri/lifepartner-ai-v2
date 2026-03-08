@@ -148,7 +148,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                                     {!astrologyMode && isHighMatch && <p className="text-xs font-bold text-amber-600 mb-1">✨ Strong Match ✨</p>}
                                     <p className="text-xs text-indigo-600 font-medium mb-1 line-clamp-1">{profile.career?.profession || profile.role || 'Professional'}</p>
                                     <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500">
-                                        <MapPin size={10} /> {profile.location_data?.city || profile.location}
+                                        <MapPin size={10} /> {typeof profile.location === 'string' ? profile.location : ([profile.location_data?.city, profile.location_data?.district, profile.location_data?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown Location")}
                                     </div>
                                     <button
                                         onClick={(e) => {

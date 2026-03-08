@@ -130,7 +130,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
                             <span>{profile.career?.profession || "-"}</span>
                             <span className="w-1 h-1 bg-gray-400 rounded-full" />
-                            <span>{typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown Location")}</span>
+                            <span>{typeof profile.location === 'string' ? profile.location : ([profile.location?.city, profile.location?.district, profile.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown Location")}</span>
                         </p>
                     </div>
 

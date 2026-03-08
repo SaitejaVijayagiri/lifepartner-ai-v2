@@ -210,7 +210,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const stepId = STEPS[currentStep].id;
 
     return (
-        <div className="flex flex-col lg:flex-row w-full h-auto lg:h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col lg:flex-row w-full min-h-[100dvh] lg:min-h-0 h-auto lg:h-[85vh] bg-white dark:bg-gray-900 lg:rounded-2xl shadow-none lg:shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
             {/* LEFT PANEL: Visual & Quote */}
             <div className={`w-full lg:w-1/3 h-auto lg:h-auto text-white p-5 lg:p-12 flex flex-col justify-between relative transition-all duration-700 bg-gradient-to-br ${GRADIENTS[stepId as keyof typeof GRADIENTS] || "from-gray-700 to-gray-900"}`}>
                 <div className="z-10 flex justify-between lg:block items-center mb-4 lg:mb-0">
@@ -262,14 +262,14 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             </div>
 
             {/* RIGHT PANEL: Form */}
-            <div className="w-full lg:w-2/3 p-6 lg:p-12 flex flex-col relative overflow-y-auto h-[60vh] lg:h-auto">
+            <div className="w-full lg:w-2/3 p-5 sm:p-6 lg:p-12 flex flex-col relative overflow-y-auto flex-1 lg:h-auto bg-white dark:bg-gray-900 border-t lg:border-t-0 dark:border-gray-800">
                 <div className="flex-1 max-w-2xl mx-auto w-full">
                     {/* STEP 0: WELCOME */}
                     {stepId === 'welcome' && (
                         <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-                            <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center text-4xl mb-4">💍</div>
-                            <h2 className="text-3xl font-bold text-gray-900">Let's Create Your Profile</h2>
-                            <p className="text-gray-500 max-w-md">We need a few details to find your perfect match. The process takes about 2 minutes.</p>
+                            <div className="w-24 h-24 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-4xl mb-4">💍</div>
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Let's Create Your Profile</h2>
+                            <p className="text-gray-500 dark:text-gray-400 max-w-md">We need a few details to find your perfect match. The process takes about 2 minutes.</p>
                             <Button onClick={handleNext} className="w-48 h-12 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-xl transition-all">Get Started</Button>
                         </div>
                     )}
@@ -280,9 +280,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
                                 <div className="md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium">About Me (Bio)</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">About Me (Bio)</label>
                                     <textarea
-                                        className="w-full h-20 p-3 border rounded-md bg-white text-sm focus:ring-1 focus:outline-none focus:ring-indigo-600"
+                                        className="w-full h-20 p-3 border dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:outline-none focus:ring-indigo-600 dark:focus:ring-indigo-500 dark:text-white"
                                         placeholder="Briefly describe your personality..."
                                         value={data.aboutMe || ''}
                                         onChange={e => update('aboutMe', e.target.value)}
@@ -290,14 +290,14 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
                                 <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Gender</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.gender} onChange={e => update('gender', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Gender</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.gender} onChange={e => update('gender', e.target.value)}>
                                         <option>Male</option><option>Female</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Marital Status</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Marital Status</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
                                         <option value="">Select Status</option>
                                         <option value="Single">Single</option>
                                         <option value="Married">Married</option>
@@ -308,7 +308,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
                                 <Input label="Height (e.g. 5'9) *" value={data.height} onChange={e => update('height', e.target.value)} />
                                 <div className="col-span-1 md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium">Location *</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Location *</label>
                                     <div className="flex gap-2 w-full">
                                         <div className="flex-1">
                                             <Input placeholder="City" value={data.city} onChange={e => update('city', e.target.value)} />
@@ -334,9 +334,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Country</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Country</label>
                                     <select
-                                        className="w-full h-10 px-3 border rounded-md"
+                                        className="w-full h-10 px-3 border dark:border-gray-700 rounded-md bg-transparent dark:bg-gray-900 dark:text-white"
                                         value={data.country || 'India'}
                                         onChange={e => update('country', e.target.value)}
                                     >
@@ -387,16 +387,16 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Religion</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.religion} onChange={e => update('religion', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Religion</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.religion} onChange={e => update('religion', e.target.value)}>
                                         <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Buddhist</option><option>Parsi</option><option>Other</option>
                                     </select>
                                 </div>
                                 <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer, BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
                                 <Input label="Gothra (Optional)" placeholder="e.g. Bharadwaj" value={data.gothra} onChange={e => update('gothra', e.target.value)} />
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Manglik</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.manglik} onChange={e => update('manglik', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Manglik</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.manglik} onChange={e => update('manglik', e.target.value)}>
                                         <option>No</option><option>Yes</option><option>Don't Know</option>
                                     </select>
                                 </div>
@@ -417,8 +417,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Highest Education</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.education} onChange={e => update('education', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Highest Education</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.education} onChange={e => update('education', e.target.value)}>
                                         <option>High School</option><option>Bachelor's</option><option>Master's</option><option>PhD</option><option>Professional Degree</option>
                                     </select>
                                 </div>
@@ -434,14 +434,14 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Family Type</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyType} onChange={e => update('familyType', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Family Type</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyType} onChange={e => update('familyType', e.target.value)}>
                                         <option>Nuclear</option><option>Joint</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Family Values</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyValues} onChange={e => update('familyValues', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Family Values</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyValues} onChange={e => update('familyValues', e.target.value)}>
                                         <option>Moderate</option><option>Traditional</option><option>Orthodox</option><option>Liberal</option>
                                     </select>
                                 </div>
@@ -450,8 +450,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <Input label="Brothers (Count)" placeholder="e.g. 1" type="number" value={data.brothers} onChange={e => update('brothers', e.target.value)} />
                                 <Input label="Sisters (Count)" placeholder="e.g. 0" type="number" value={data.sisters} onChange={e => update('sisters', e.target.value)} />
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Mother Tongue</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Mother Tongue</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
                                         <option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option><option>Marathi</option><option>Bengali</option><option>Kannada</option><option>Gujarati</option><option>Malayalam</option><option>Punjabi</option><option>Other</option>
                                     </select>
                                 </div>
@@ -465,28 +465,28 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Diet</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.diet} onChange={e => update('diet', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Diet</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.diet} onChange={e => update('diet', e.target.value)}>
                                         <option>Vegetarian</option><option>Non-Vegetarian</option><option>Eggetarian</option><option>Vegan</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Smoking</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.smoke} onChange={e => update('smoke', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Smoking</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.smoke} onChange={e => update('smoke', e.target.value)}>
                                         <option>No</option><option>Yes</option><option>Occasionally</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">Drinking</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.drink} onChange={e => update('drink', e.target.value)}>
+                                    <label className="text-sm font-medium dark:text-gray-200">Drinking</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.drink} onChange={e => update('drink', e.target.value)}>
                                         <option>No</option><option>Yes</option><option>Occasionally</option>
                                     </select>
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">Hobbies & Interests</label>
+                                <label className="text-sm font-medium dark:text-gray-200">Hobbies & Interests</label>
                                 <textarea
-                                    className="w-full h-24 p-3 border rounded-md bg-white"
+                                    className="w-full h-24 p-3 border dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                                     placeholder="e.g. Classical Dance, Cricket, Reading Novels, Traveling..."
                                     value={data.hobbies}
                                     onChange={e => update('hobbies', e.target.value)}
@@ -500,9 +500,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {stepId === 'partner' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
                             <div className="space-y-2">
-                                <h3 className="font-semibold text-gray-900">Partner Expectations</h3>
+                                <h3 className="font-semibold text-gray-900 dark:text-white">Partner Expectations</h3>
                                 <textarea
-                                    className="w-full h-32 p-4 border rounded-md focus:ring-2 focus:ring-indigo-600 bg-gray-50"
+                                    className="w-full h-32 p-4 border dark:border-gray-700 rounded-md focus:ring-2 focus:ring-indigo-600 bg-gray-50 dark:bg-gray-900 dark:text-white"
                                     placeholder="Describe your ideal partner... (e.g. Someone who is ambitious, loves travel, and respects family values. Should be willing to settle in Bangalore.)"
                                     value={data.prompt}
                                     onChange={e => update('prompt', e.target.value)}
@@ -520,7 +520,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP: PHOTOS */}
                     {stepId === 'photos' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center">
-                            <div className="border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/30 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 transition-all group">
+                            <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 rounded-xl bg-indigo-50/30 dark:bg-indigo-900/10 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group">
                                 <input
                                     type="file"
                                     multiple
@@ -542,9 +542,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         update('photos', [...(data.photos || []), ...newPhotos]);
                                     }}
                                 />
-                                <div className="w-20 h-20 bg-white shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>
-                                <h3 className="text-xl font-bold text-gray-900">Upload Your Best Photos</h3>
-                                <p className="text-gray-500 mt-2">Profiles with photos get 10x more matches.</p>
+                                <div className="w-20 h-20 bg-white dark:bg-gray-800 shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Upload Your Best Photos</h3>
+                                <p className="text-gray-500 dark:text-gray-400 mt-2">Profiles with photos get 10x more matches.</p>
                             </div>
 
                             {/* Preview */}
@@ -572,8 +572,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                 {/* Footer Buttons */}
                 {stepId !== 'welcome' && (
-                    <div className="mt-8 pt-4 border-t flex justify-between">
-                        <Button variant="outline" onClick={handleBack} className="w-32">Back</Button>
+                    <div className="mt-8 pt-4 border-t dark:border-gray-800 flex justify-between">
+                        <Button variant="outline" onClick={handleBack} className="w-32 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">Back</Button>
                         <Button
                             onClick={handleNext}
                             className="w-32 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"

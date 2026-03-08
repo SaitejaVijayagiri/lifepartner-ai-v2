@@ -144,11 +144,11 @@ export default function OnboardingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 font-sans">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-950 flex flex-col items-center justify-center p-0 md:p-6 font-sans">
             {authChecking ? (
-                <div className="text-center">
+                <div className="text-center w-full h-screen flex flex-col justify-center items-center">
                     <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <h2 className="text-xl font-bold">Loading...</h2>
+                    <h2 className="text-xl font-bold dark:text-white">Loading...</h2>
                 </div>
             ) : (
                 <ProfileWizard onComplete={handleWizardComplete} />

@@ -52,8 +52,8 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
         return publicUrl;
     } catch (e) {
-        console.error("Optimize upload failed", e);
-        return base64; // Fallback to storing base64 (not ideal but safe)
+        console.error("Optimize upload failed. Supabase rejected the file. Returning empty photo to prevent Database Payload crashes.", e);
+        return ""; // Safe fail-open: Do not crash the entire database with a 7MB string push
     }
 }
 
@@ -443,14 +443,14 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             // This prevents a silent transaction abort if the AI vector dimension size mismatches Postgres.
             if (bioVector && bioVector.length > 0) {
                 try {
-                    // PGVector requires raw SQL to insert correctly as a typed array
+                    const vectorString = `[${bioVector.join(',')}]`;
                     await prisma.$executeRaw`
                         UPDATE profiles 
-                        SET embedding = ${bioVector}::vector 
+                        SET embedding = ${vectorString}::vector 
                         WHERE user_id = ${userId}::uuid
                     `;
                 } catch (e) {
-                    console.error("Failed to save profile embedding during /me update. This did NOT break the profile save.", e);
+                    console.error("Failed to save profile embedding during /me update", e);
                 }
             }
 
@@ -497,9 +497,10 @@ router.post('/prompt', authenticateToken, async (req: any, res) => {
             });
 
             if (bioVector && bioVector.length > 0) {
+                const vectorString = `[${bioVector.join(',')}]`;
                 await tx.$executeRaw`
                     UPDATE profiles 
-                    SET embedding = ${bioVector}::vector 
+                    SET embedding = ${vectorString}::vector 
                     WHERE user_id = ${userId}::uuid
                 `;
             }

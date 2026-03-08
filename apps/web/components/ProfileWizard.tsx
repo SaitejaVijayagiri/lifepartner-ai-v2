@@ -132,7 +132,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     setData((prev: any) => ({
                         ...prev,
                         city: apiData.city || apiData.locality || "",
-                        district: apiData.localityInfo?.administrative?.find((x: any) => x.order === 6)?.name || apiData.principalSubdivision || "", // District fallback
+                        // In BigDataCloud, Indian Districts are usually adminLevel 5 or contain the word 'district'
+                        district: apiData.localityInfo?.administrative?.find((x: any) => x.adminLevel === 5 || (x.name && x.name.toLowerCase().includes('district')))?.name || apiData.principalSubdivision || "",
                         state: apiData.principalSubdivision || "",
                         country: apiData.countryName || "",
                         lat: latitude.toString(),

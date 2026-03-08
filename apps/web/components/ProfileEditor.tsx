@@ -256,7 +256,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                                                     // Better Address Parsing
                                                     const detectedCity = data.locality || data.city || data.principalSubdivision || "Unknown City";
-                                                    const detectedDistrict = data.localityInfo?.administrative?.find((x: any) => x.order === 6 || x.order === 7)?.name || data.city || detectedCity;
+                                                    const detectedDistrict = data.localityInfo?.administrative?.find((x: any) => x.adminLevel === 5 || (x.name && x.name.toLowerCase().includes('district')))?.name || data.principalSubdivision || detectedCity;
                                                     const detectedState = data.principalSubdivision || data.localityInfo?.administrative?.find((x: any) => x.order === 4)?.name || "Unknown State";
                                                     const detectedCountry = data.countryName || "India";
 

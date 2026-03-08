@@ -349,6 +349,62 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 });
 
+                // --- REFERRAL BONUS DEFERMENT LOGIC ---
+                // If the user just completed core onboarding (Age & Gender provided)
+                if (finalAge && gender) {
+                    const currentUser = await tx.users.findUnique({
+                        where: { id: userId },
+                        select: { referred_by: true, id: true }
+                    });
+
+                    if (currentUser && currentUser.referred_by) {
+                        // Check if they already got the bonus to prevent double-dipping on subsequent profile saves
+                        const existingBonus = await tx.transactions.findFirst({
+                            where: {
+                                user_id: currentUser.id,
+                                type: 'REFERRAL_BONUS'
+                            }
+                        });
+
+                        if (!existingBonus) {
+                            console.log(`🎉 Onboarding complete for User ${currentUser.id}. Minting Deferred Referral Coins...`);
+
+                            // 1. Credit Referrer (+50 Coins)
+                            await tx.users.update({
+                                where: { id: currentUser.referred_by },
+                                data: { coins: { increment: 50 } }
+                            });
+                            await tx.transactions.create({
+                                data: {
+                                    user_id: currentUser.referred_by,
+                                    amount: 50,
+                                    type: 'REFERRAL_REWARD',
+                                    status: 'SUCCESS',
+                                    description: 'Referral Bonus',
+                                    metadata: { referredUser: currentUser.id }
+                                }
+                            });
+
+                            // 2. Credit New User (+20 Coins)
+                            await tx.users.update({
+                                where: { id: currentUser.id },
+                                data: { coins: { increment: 20 } }
+                            });
+                            await tx.transactions.create({
+                                data: {
+                                    user_id: currentUser.id,
+                                    amount: 20,
+                                    type: 'REFERRAL_BONUS',
+                                    status: 'SUCCESS',
+                                    description: 'Signup Bonus',
+                                    metadata: { referrer: currentUser.referred_by }
+                                }
+                            });
+                        }
+                    }
+                }
+                // --- END REFERRAL LOGIC ---
+
             });
 
             // Pre-compute Optimization: store pgvector OUTSIDE the main transaction!

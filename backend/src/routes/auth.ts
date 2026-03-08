@@ -166,39 +166,9 @@ router.post('/register', async (req, res) => {
                 select: { id: true, full_name: true }
             });
 
-            // Process Referral Rewards
+            // Referral Tracking (Coins are now deferred to Onboarding completion in profile.ts)
             if (referredByUserId) {
-                // 1. Credit Referrer (+50 Coins)
-                await tx.users.update({
-                    where: { id: referredByUserId },
-                    data: { coins: { increment: 50 } }
-                });
-                await tx.transactions.create({
-                    data: {
-                        user_id: referredByUserId,
-                        amount: 50,
-                        type: 'REFERRAL_REWARD',
-                        status: 'SUCCESS',
-                        description: 'Referral Bonus',
-                        metadata: { referredUser: user.id }
-                    }
-                });
-
-                // 2. Credit New User (+20 Coins)
-                await tx.users.update({
-                    where: { id: user.id },
-                    data: { coins: { increment: 20 } }
-                });
-                await tx.transactions.create({
-                    data: {
-                        user_id: user.id,
-                        amount: 20,
-                        type: 'REFERRAL_BONUS',
-                        status: 'SUCCESS',
-                        description: 'Signup Bonus',
-                        metadata: { referrer: referredByUserId }
-                    }
-                });
+                console.log(`🤝 Referral logged for User ${user.id} -> Referrer ${referredByUserId} (Pending Onboarding)`);
             }
 
             return user;

@@ -144,7 +144,7 @@ export default function OnboardingPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-950 flex flex-col items-center justify-center p-0 md:p-6 font-sans">
+        <div className="min-h-[100dvh] bg-gray-100 dark:bg-gray-950 flex flex-col items-center justify-start lg:justify-center p-0 md:p-6 font-sans">
             {authChecking ? (
                 <div className="text-center w-full h-screen flex flex-col justify-center items-center">
                     <div className="animate-spin h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>

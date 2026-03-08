@@ -332,6 +332,19 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 });
 
+                // PostGIS Coordinate Synchronization for Live Map
+                if (location?.lat && location?.lng) {
+                    const lat = parseFloat(location.lat);
+                    const lng = parseFloat(location.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        await tx.$executeRaw`
+                            UPDATE users 
+                            SET location_coords = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography 
+                            WHERE id = ${userId}::uuid
+                        `;
+                    }
+                }
+
                 // 2. Update Profile Metadata
                 const metadata = {
                     religion,

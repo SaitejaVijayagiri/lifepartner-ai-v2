@@ -174,7 +174,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 <div>
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">About Me</h4>
                     <textarea
-                        className="w-full p-3 border rounded-md text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-indigo-500"
+                        className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                         rows={3}
                         placeholder="Describe your personality, hobbies, and what you are looking for..."
                         value={formData.aboutMe || ''}
@@ -260,7 +260,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             }}
                         />
                         <Input label="Height (e.g. 5'9)" value={formData.height || ''} onChange={e => handleChange('root', 'height', e.target.value)} />
-                        <div className="md:col-span-2 space-y-2 border p-3 rounded-md bg-slate-50 relative group">
+                        <div className="md:col-span-2 space-y-2 border border-gray-200 dark:border-gray-700 p-3 rounded-md bg-slate-50 dark:bg-gray-800/50 relative group">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex justify-between">
                                 <span>Current Location</span>
                                 <button
@@ -304,7 +304,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                             });
                                         }
                                     }}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-2 py-0.5 rounded transition-colors"
+                                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-bold bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded transition-colors"
                                 >
                                     📍 Use GPS
                                 </button>
@@ -327,13 +327,13 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     placeholder="District (e.g. Ranga Reddy)"
                                     value={formData.location?.district || ''}
                                     onChange={e => handleChange('location', 'district', e.target.value)}
-                                    className={`${!formData.location?.district ? 'border-amber-300 bg-amber-50' : ''}`}
+                                    className={`${!formData.location?.district ? 'border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20' : ''}`}
                                 />
                                 <Input
                                     placeholder="State (e.g. Telangana)"
                                     value={formData.location?.state || ''}
                                     onChange={e => handleChange('location', 'state', e.target.value)}
-                                    className={`${!formData.location?.state ? 'border-amber-300 bg-amber-50' : ''}`}
+                                    className={`${!formData.location?.state ? 'border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20' : ''}`}
                                 />
                                 <Input
                                     placeholder="Country (e.g. India)"

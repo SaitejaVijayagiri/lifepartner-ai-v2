@@ -537,12 +537,33 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                                 toast.error(`Image is too large (>5MB). Please upload a smaller photo.`);
                                                 continue;
                                             }
-                                            const reader = new FileReader();
-                                            const base64 = await new Promise((resolve) => {
-                                                reader.onload = (ev) => resolve(ev.target?.result);
-                                                reader.readAsDataURL(file);
-                                            });
-                                            newPhotos.push(base64 as string);
+                                            const base64 = await new Promise<string>((resolve, reject) => {
+                                                const url = URL.createObjectURL(file);
+                                                const img = new Image();
+                                                img.onload = () => {
+                                                    URL.revokeObjectURL(url);
+                                                    const canvas = document.createElement('canvas');
+                                                    let { width, height } = img;
+                                                    const maxDim = 1200;
+
+                                                    if (width > maxDim || height > maxDim) {
+                                                        const ratio = Math.min(maxDim / width, maxDim / height);
+                                                        width = width * ratio;
+                                                        height = height * ratio;
+                                                    }
+
+                                                    canvas.width = width;
+                                                    canvas.height = height;
+                                                    const ctx = canvas.getContext('2d');
+                                                    if (!ctx) return reject('Failed to get canvas context');
+                                                    ctx.drawImage(img, 0, 0, width, height);
+                                                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                                };
+                                                img.onerror = () => reject('Failed to load image');
+                                                img.src = url;
+                                            }).catch(() => null);
+
+                                            if (base64) newPhotos.push(base64 as string);
                                         }
                                         update('photos', [...(data.photos || []), ...newPhotos]);
                                     }}

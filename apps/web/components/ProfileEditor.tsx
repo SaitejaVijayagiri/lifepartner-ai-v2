@@ -87,11 +87,33 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                         continue;
                                     }
 
-                                    const reader = new FileReader();
-                                    newPhotos.push(await new Promise((resolve) => {
-                                        reader.onload = (ev) => resolve(ev.target?.result as string);
-                                        reader.readAsDataURL(file);
-                                    }));
+                                    const base64 = await new Promise<string>((resolve, reject) => {
+                                        const url = URL.createObjectURL(file);
+                                        const img = new Image();
+                                        img.onload = () => {
+                                            URL.revokeObjectURL(url);
+                                            const canvas = document.createElement('canvas');
+                                            let { width, height } = img;
+                                            const maxDim = 1200;
+
+                                            if (width > maxDim || height > maxDim) {
+                                                const ratio = Math.min(maxDim / width, maxDim / height);
+                                                width = width * ratio;
+                                                height = height * ratio;
+                                            }
+
+                                            canvas.width = width;
+                                            canvas.height = height;
+                                            const ctx = canvas.getContext('2d');
+                                            if (!ctx) return reject('Failed to get context');
+                                            ctx.drawImage(img, 0, 0, width, height);
+                                            resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                        };
+                                        img.onerror = () => reject('Failed to load image');
+                                        img.src = url;
+                                    }).catch(() => null);
+
+                                    if (base64) newPhotos.push(base64);
                                 }
 
                                 // Update State

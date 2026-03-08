@@ -1,10 +1,8 @@
 import * as faceapi from '@vladmandic/face-api';
-// Use dynamic import or require for canvas to avoid TS strictness issues with undocumented types
-const canvas = require('canvas');
+const { Canvas, Image, ImageData } = require('@napi-rs/canvas');
 import path from 'path';
 
 // Monkey patch the node.js environment to behave like a browser for face-api
-const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData } as any);
 
 export class ModerationService {

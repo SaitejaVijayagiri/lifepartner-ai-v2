@@ -532,6 +532,10 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         const newPhotos: string[] = [];
                                         for (let i = 0; i < files.length; i++) {
                                             const file = files[i];
+                                            if (file.size > 5 * 1024 * 1024) {
+                                                toast.error(`Image is too large (>5MB). Please upload a smaller photo.`);
+                                                continue;
+                                            }
                                             const reader = new FileReader();
                                             const base64 = await new Promise((resolve) => {
                                                 reader.onload = (ev) => resolve(ev.target?.result);
@@ -545,6 +549,11 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="w-20 h-20 bg-white dark:bg-gray-800 shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Upload Your Best Photos</h3>
                                 <p className="text-gray-500 dark:text-gray-400 mt-2">Profiles with photos get 10x more matches.</p>
+                                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/40 max-w-sm">
+                                    <p className="text-red-600 dark:text-red-400 text-sm font-medium">
+                                        ⚠️ Note: Please upload clear photos of your face. Our AI will automatically analyze and reject scenery, cartoons, and fake pictures.
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Preview */}

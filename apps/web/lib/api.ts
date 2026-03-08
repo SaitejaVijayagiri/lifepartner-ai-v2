@@ -20,6 +20,10 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         headers,
     });
 
+    if (res.status === 413) {
+        throw new Error("The image file is too large! Please upload a smaller photo (under 5MB).");
+    }
+
     let data;
     const contentType = res.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {

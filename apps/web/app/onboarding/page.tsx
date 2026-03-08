@@ -102,9 +102,9 @@ export default function OnboardingPage() {
             // Minimal delay just to ensure the success animation renders smoothly
             await new Promise(r => setTimeout(r, 400));
             router.push('/dashboard');
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error('Failed to save profile. Please try again.');
+            toast.error(error.message || 'Failed to save profile. Please try again.');
             setLoading(false); // Only unset loading if it fails, otherwise keep it spinning until redirect
         }
     };

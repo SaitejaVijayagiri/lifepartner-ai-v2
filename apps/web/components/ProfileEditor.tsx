@@ -46,9 +46,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
             if (res.success) {
                 onSave(formData);
             }
-        } catch (err) {
-            toast.error("Failed to save profile.");
-
+        } catch (err: any) {
+            toast.error(err.message || "Failed to save profile.");
         } finally {
             setLoading(false);
         }

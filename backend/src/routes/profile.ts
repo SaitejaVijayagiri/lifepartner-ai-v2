@@ -209,6 +209,11 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
         res.status(500).json({ error: "Failed" });
     }
 });
+import { ModerationService } from '../services/moderation';
+
+// ... (existing imports)
+
+// ...
 
 // 2.5 PUT /me (Update Profile)
 router.put('/me', authenticateToken, async (req: any, res) => {
@@ -228,20 +233,34 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             savedStickers
         } = req.body;
 
-        // OPTIMIZATION: Handle Base64 Images
+        // OPTIMIZATION & MODERATION: Handle Base64 Images
         let finalPhotoUrl = photoUrl;
         if (ImageOptimizer.isBase64(photoUrl)) {
+            // Check for fake photos locally via AI before accepting
+            const modResult = await ModerationService.validateProfilePhoto(photoUrl);
+            if (!modResult.isValid) {
+                console.log(`🛡️ Blocked fake photo upload for ${userId}: ${modResult.reason}`);
+                return res.status(400).json({ error: modResult.reason });
+            }
             finalPhotoUrl = await uploadOptimizedImage(photoUrl, userId);
         }
 
         let finalPhotos = photos || [];
         if (Array.isArray(finalPhotos)) {
-            finalPhotos = await Promise.all(finalPhotos.map(async (p: string) => {
+            // Use sequential loop for moderation stability
+            const processedPhotos = [];
+            for (const p of finalPhotos) {
                 if (ImageOptimizer.isBase64(p)) {
-                    return await uploadOptimizedImage(p, userId);
+                    const modResult = await ModerationService.validateProfilePhoto(p);
+                    if (!modResult.isValid) {
+                        return res.status(400).json({ error: modResult.reason });
+                    }
+                    processedPhotos.push(await uploadOptimizedImage(p, userId));
+                } else {
+                    processedPhotos.push(p);
                 }
-                return p;
-            }));
+            }
+            finalPhotos = processedPhotos;
         }
 
         // REVENUE PROTECTION: Sanitize Inputs

@@ -93,8 +93,61 @@ const generateSmartSummary = (score: number, reasons: string[], meta: any, bio: 
     return narrative;
 };
 
+// Map Users Route: Returns ALL users with coordinates for the Live Map
+router.get('/map-users', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Fetch all verified users that have lat/lng stored in their profile metadata
+        const usersWithCoords: any[] = await prisma.$queryRawUnsafe(`
+            SELECT 
+                u.id,
+                u.full_name,
+                u.age,
+                u.avatar_url,
+                u.city,
+                u.state,
+                u.location_name,
+                (p.metadata->'location'->>'lat')::float AS lat,
+                (p.metadata->'location'->>'lng')::float AS lng,
+                p.metadata->'location' AS location_data,
+                p.metadata->'career'->>'profession' AS profession
+            FROM users u
+            LEFT JOIN profiles p ON u.id = p.user_id
+            WHERE u.id != '${userId}'
+              AND u.is_verified = true
+              AND (p.metadata->'location'->>'lat') IS NOT NULL
+              AND (p.metadata->'location'->>'lat') != ''
+              AND (p.metadata->'location'->>'lng') IS NOT NULL
+              AND (p.metadata->'location'->>'lng') != ''
+            LIMIT 500
+        `);
+
+        const profiles = usersWithCoords.map(u => ({
+            id: u.id,
+            name: u.full_name,
+            age: u.age,
+            photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id),
+            location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'India',
+            location_data: {
+                lat: u.lat,
+                lng: u.lng,
+                city: u.city || '',
+                state: u.state || ''
+            },
+            role: u.profession || 'Member'
+        }));
+
+        res.json({ profiles });
+    } catch (e) {
+        console.error('Map Users Error', e);
+        res.status(500).json({ error: 'Failed to fetch map users' });
+    }
+});
+
 // Public Preview Route (SEO)
 router.get('/public-preview', async (req: any, res) => {
+
     try {
         const { category, value } = req.query;
         if (!category || !value) return res.json({ matches: [] });

@@ -72,6 +72,7 @@ export const api = {
     },
     matches: {
         getAll: () => fetchAPI('/matches/recommendations'),
+        getMapUsers: () => fetchAPI('/matches/map-users'),
         search: (query: string) => fetchAPI('/matches/search', {
             method: 'POST',
             body: JSON.stringify({ query })

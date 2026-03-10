@@ -54,6 +54,8 @@ function DashboardContent() {
     const toast = useToast();
     const { socket, onlineUsers } = useSocket() as any;
     const [matches, setMatches] = useState<any[]>([]);
+    const [mapProfiles, setMapProfiles] = useState<any[]>([]);
+    const [mapLoading, setMapLoading] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
     const [connections, setConnections] = useState<any[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
@@ -168,7 +170,20 @@ function DashboardContent() {
     useEffect(() => {
         if (activeTab === 'requests') fetchRequests();
         if (activeTab === 'connections') fetchConnections();
+        if (activeTab === 'map' && mapProfiles.length === 0) fetchMapProfiles();
     }, [activeTab]);
+
+    const fetchMapProfiles = async () => {
+        try {
+            setMapLoading(true);
+            const data = await api.matches.getMapUsers();
+            setMapProfiles(data.profiles || []);
+        } catch (err) {
+            console.error('Failed to load map users', err);
+        } finally {
+            setMapLoading(false);
+        }
+    };
 
     const refreshCounts = async () => {
         try {
@@ -1149,7 +1164,8 @@ function DashboardContent() {
                     )}
 
                     {activeTab === 'matches' && renderDiscoveryFeed()}
-                    {activeTab === 'map' && <InteractiveMap profiles={displayMatches} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />}
+                    {activeTab === 'map' && <InteractiveMap profiles={mapProfiles} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />}
+
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
 

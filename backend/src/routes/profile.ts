@@ -300,6 +300,23 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             finalAge = calculatedAge;
         }
 
+        // 1.5 Auto-Geocode city → lat/lng if not already provided via GPS
+        // This ensures every user with a typed city shows up on the Live Map
+        if (location && location.city && !location.lat && !location.lng) {
+            try {
+                const { LocationService } = require('../services/location');
+                const cityQuery = [location.city, location.district, location.state].filter(Boolean).join(', ');
+                const coords = await LocationService.geocodeCity(cityQuery);
+                if (coords) {
+                    location.lat = coords.lat;
+                    location.lng = coords.lng;
+                    console.log(`🗺️ Auto-geocoded "${cityQuery}" → ${coords.lat}, ${coords.lng}`);
+                }
+            } catch (e) {
+                console.error('Auto-geocode failed (non-blocking):', e);
+            }
+        }
+
         // SPEED OPTIMIZATION: Generate the AI Vector OUTSIDE the database transaction
         // External network calls inside transactions cause DB lock timeouts and silent connection crashes!
         const bioTextToEmbed = [

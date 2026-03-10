@@ -72,7 +72,17 @@ app.use(globalLimiter);
 app.use((req, res, next) => {
     console.log(`📨 [${req.method}] ${req.url}`);
     if (req.method === 'POST' || req.method === 'PUT') {
-        console.log('📦 Body:', JSON.stringify(req.body, null, 2));
+        // Sanitize body before logging — strip base64 blobs to prevent memory bloat on Render
+        const sanitized = JSON.parse(JSON.stringify(req.body || {}));
+        if (sanitized.photoUrl && typeof sanitized.photoUrl === 'string' && sanitized.photoUrl.startsWith('data:')) {
+            sanitized.photoUrl = `[base64 image, ${Math.round(sanitized.photoUrl.length / 1024)}KB]`;
+        }
+        if (Array.isArray(sanitized.photos)) {
+            sanitized.photos = sanitized.photos.map((p: string) =>
+                typeof p === 'string' && p.startsWith('data:') ? `[base64 image, ${Math.round(p.length / 1024)}KB]` : p
+            );
+        }
+        console.log('📦 Body:', JSON.stringify(sanitized, null, 2));
     }
     next();
 });

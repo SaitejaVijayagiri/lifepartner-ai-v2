@@ -72,7 +72,10 @@ export class ModerationService {
     }
 
     /**
-     * Determines if an uploaded profile picture contains exactly one human face.
+     * Soft-validates an uploaded profile picture.
+     * NOTE: This is now non-blocking — it logs warnings but ALWAYS allows the photo through.
+     * Hard-blocking face detection was causing false rejections on Render (WASM instability,
+     * model failures with angled/dark/non-closeup photos).
      */
     static async validateProfilePhoto(base64Data: string): Promise<{ isValid: boolean; reason?: string }> {
         try {
@@ -91,7 +94,10 @@ export class ModerationService {
                 rawB64 = base64Data.split('base64,')[1];
             }
 
-            if (!rawB64) return { isValid: false, reason: 'Invalid image format.' };
+            if (!rawB64) {
+                console.warn('[ModerationService] Invalid image format — allowing anyway.');
+                return { isValid: true };
+            }
 
             const buffer = Buffer.from(rawB64, 'base64');
             const tensor = this.bufferToTensor(buffer, isPng);
@@ -103,23 +109,17 @@ export class ModerationService {
             tensor.dispose();
 
             if (faces.length === 0) {
-                return {
-                    isValid: false,
-                    reason: "We couldn't detect a face in this picture. Please upload a clear photo of yourself."
-                };
-            }
-
-            if (faces.length > 1) {
-                return {
-                    isValid: false,
-                    reason: "Multiple faces detected. For your main profile verification, please upload a solo picture."
-                };
+                // Soft warn: log but don't block. Face detection is unreliable for angled/distant shots.
+                console.warn(`⚠️ [ModerationService] No face detected — allowing photo (soft moderation).`);
+            } else if (faces.length > 1) {
+                // Soft warn: multiple faces detected — log but don't block.
+                console.warn(`⚠️ [ModerationService] ${faces.length} faces detected — allowing photo (soft moderation).`);
             }
 
             return { isValid: true };
 
         } catch (e: any) {
-            console.error(`❌ [ModerationService] Exception during scan:`, e);
+            console.error(`❌ [ModerationService] Exception during scan — allowing photo:`, e);
             return { isValid: true };
         }
     }

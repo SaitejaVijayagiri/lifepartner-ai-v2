@@ -98,24 +98,36 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        // Fetch all verified users that have lat/lng stored in their profile metadata
+        // Get current user's gender to filter opposite gender
+        const me = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { gender: true }
+        });
+
+        const myGender = (me?.gender || '').trim().toLowerCase();
+        let genderClause = '';
+        if (myGender === 'male') genderClause = `AND LOWER(u.gender) = 'female'`;
+        else if (myGender === 'female') genderClause = `AND LOWER(u.gender) = 'male'`;
+
+        // Fetch all verified users of opposite gender that have lat/lng stored
         const usersWithCoords: any[] = await prisma.$queryRawUnsafe(`
             SELECT 
                 u.id,
                 u.full_name,
                 u.age,
+                u.gender,
                 u.avatar_url,
                 u.city,
                 u.state,
                 u.location_name,
                 (p.metadata->'location'->>'lat')::float AS lat,
                 (p.metadata->'location'->>'lng')::float AS lng,
-                p.metadata->'location' AS location_data,
                 p.metadata->'career'->>'profession' AS profession
             FROM users u
             LEFT JOIN profiles p ON u.id = p.user_id
             WHERE u.id != '${userId}'
               AND u.is_verified = true
+              ${genderClause}
               AND (p.metadata->'location'->>'lat') IS NOT NULL
               AND (p.metadata->'location'->>'lat') != ''
               AND (p.metadata->'location'->>'lng') IS NOT NULL
@@ -127,6 +139,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
             id: u.id,
             name: u.full_name,
             age: u.age,
+            gender: u.gender,
             photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id),
             location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'India',
             location_data: {

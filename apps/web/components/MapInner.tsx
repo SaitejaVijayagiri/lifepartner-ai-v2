@@ -89,38 +89,26 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     const isOnline = onlineUsers?.includes(profile.id);
 
                     const photoHtml = profile.photoUrl
-                        ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null;this.src='https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}';" />`
-                        : `<span style="color:white;font-weight:bold;">${(profile.name || '?')[0]}</span>`;
+                        ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.style.display='none';this.parentNode.innerHTML='<span style=\\'color:white;font-weight:bold;font-size:14px;\\'>${(profile.name || '?')[0]}</span>';" />`
+                        : `<span style="color:white;font-weight:bold;font-size:14px;">${(profile.name || '?')[0]}</span>`;
 
                     const onlineIndicatorHtml = isOnline
-                        ? `<div class="absolute bottom-1 right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm z-30"></div>`
+                        ? `<div style="position:absolute;bottom:0;right:0;width:12px;height:12px;background:#22c55e;border-radius:50%;border:2px solid white;z-index:30;"></div>`
                         : '';
 
-                    if (astrologyMode) {
-                        markerHtml = `
-                            <div class="relative w-12 h-12 flex items-center justify-center">
-                                <div class="astrology-glow"></div>
-                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-500 z-10 bg-gray-900 shadow-glow flex flex-col items-center justify-center relative">
-                                    ${photoHtml}
-                                </div>
-                                ${onlineIndicatorHtml}
-                                <div class="absolute -bottom-2 -right-3 bg-gradient-to-r from-orange-600 to-amber-500 text-white text-[10px] whitespace-nowrap font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-orange-200 z-20">
-                                    🕉️ ${gunaScore}/36
-                                </div>
+                    const borderColor = astrologyMode ? '#f97316' : (isHighMatch ? '#f59e0b' : '#ec4899');
+
+                    markerHtml = `
+                        <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
+                            ${astrologyMode ? `<div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,0.3),transparent);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>` : `<div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.2),transparent);"></div>`}
+                            <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2.5px solid ${borderColor};background:#1f2937;display:flex;align-items:center;justify-content:center;color:white;position:relative;z-index:10;box-shadow:0 0 8px ${borderColor}66;">
+                                ${photoHtml}
                             </div>
-                        `;
-                    } else {
-                        markerHtml = `
-                            <div class="relative w-12 h-12 flex items-center justify-center">
-                                ${showIcebreaker ? `<div class="map-icebreaker">${icebreakerText}</div>` : ''}
-                                <div class="${isHighMatch ? 'match-aura-high' : 'fuzzy-zone'}"></div>
-                                <div class="w-10 h-10 rounded-full overflow-hidden border-2 flex items-center justify-center ${isHighMatch ? 'border-amber-400 z-10 box-shadow-glow' : 'border-pink-500 z-10'} bg-gray-900 text-white">
-                                    ${photoHtml}
-                                </div>
-                                ${onlineIndicatorHtml}
-                            </div>
-                        `;
-                    }
+                            ${onlineIndicatorHtml}
+                            ${astrologyMode ? `<div style="position:absolute;bottom:-8px;right:-10px;background:linear-gradient(to right,#ea580c,#f59e0b);color:white;font-size:9px;font-weight:bold;padding:2px 5px;border-radius:999px;white-space:nowrap;z-index:20;">🕉️ ${gunaScore}/36</div>` : ''}
+                            ${showIcebreaker && !astrologyMode ? `<div style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,0.9);color:white;font-size:9px;padding:3px 6px;border-radius:999px;white-space:nowrap;border:1px solid rgba(99,102,241,0.5);">${icebreakerText}</div>` : ''}
+                        </div>
+                    `;
 
                     const fuzzyIcon = L.divIcon({
                         className: 'bg-transparent border-0',

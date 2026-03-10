@@ -54,6 +54,8 @@ function RegisterForm() {
 
     const [showOtp, setShowOtp] = useState(false);
     const [otp, setOtp] = useState('');
+    const [resendCooldown, setResendCooldown] = useState(0);
+    const [resendLoading, setResendLoading] = useState(false);
 
     // Restore pending OTP state
     useEffect(() => {
@@ -64,14 +66,49 @@ function RegisterForm() {
         }
     }, []);
 
+    // Countdown timer for Resend OTP
+    useEffect(() => {
+        if (resendCooldown <= 0) return;
+        const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+        return () => clearTimeout(t);
+    }, [resendCooldown]);
+
+    const handleResendOtp = async () => {
+        try {
+            setResendLoading(true);
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: form.email })
+            });
+            setResendCooldown(60);
+            toast.success('A new verification code has been sent!');
+        } catch {
+            toast.error('Failed to resend. Please try again.');
+        } finally {
+            setResendLoading(false);
+        }
+    };
+
     const handleRegister = async () => {
         try {
             if (!form.full_name || !form.email || !form.password) {
-                toast.error("Please fill in all fields.");
+                toast.error('Please fill in all fields.');
+                return;
+            }
+            // Client-side email format check
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(form.email.trim())) {
+                toast.error('Please enter a valid email address.');
+                return;
+            }
+            // Password strength check
+            if (form.password.trim().length < 8) {
+                toast.error('Password must be at least 8 characters.');
                 return;
             }
             setLoading(true);
-            const res = await api.auth.register({ ...form, password: form.password.trim() });
+            const res = await api.auth.register({ ...form, email: form.email.trim().toLowerCase(), password: form.password.trim() });
 
             if (res.requiresVerification) {
                 localStorage.setItem('pendingVerificationEmail', form.email);
@@ -118,26 +155,26 @@ function RegisterForm() {
     if (showOtp) {
         return (
             <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 relative overflow-hidden">
-                {/* Background Blobs for OTP Screen - Light Mode */}
+                {/* Background Blobs for OTP Screen */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
                     <div className="absolute top-[20%] left-[30%] w-[50%] h-[50%] bg-indigo-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-pulse"></div>
                 </div>
 
                 <div className="max-w-md w-full bg-white dark:bg-gray-950 p-10 rounded-3xl shadow-xl text-center space-y-6 ring-1 ring-gray-100">
-                    <div className="mb-4 flex justifying-center">
+                    <div className="mb-4 flex justify-center">
                         <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto text-indigo-600 shadow-sm">
                             <Sparkles size={32} />
                         </div>
                     </div>
                     <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Verify Your Email</h2>
-                    <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500">We sent a 6-digit code to <br /><strong className="text-gray-900 dark:text-gray-100">{form.email}</strong></p>
+                    <p className="text-gray-500 dark:text-gray-400">We sent a 6-digit code to<br /><strong className="text-gray-900 dark:text-gray-100">{form.email}</strong></p>
 
                     <Input
                         name="otp"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         value={otp}
-                        onChange={e => setOtp(e.target.value)}
+                        onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
                         placeholder="000000"
                         autoComplete="one-time-code"
                         className="text-center text-3xl tracking-[1em] font-mono h-16 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 focus:border-indigo-500 rounded-xl transition-all"
@@ -152,15 +189,32 @@ function RegisterForm() {
                         {loading ? 'Verifying...' : 'Verify & Continue'}
                     </Button>
 
-                    <button
-                        onClick={() => {
-                            localStorage.removeItem('pendingVerificationEmail');
-                            setShowOtp(false);
-                        }}
-                        className="mt-6 text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:text-indigo-600 font-medium transition-colors"
-                    >
-                        Change Email / Go Back
-                    </button>
+                    {/* Resend OTP */}
+                    <div className="flex flex-col items-center gap-2">
+                        {resendCooldown > 0 ? (
+                            <p className="text-sm text-gray-400 dark:text-gray-500">
+                                Resend code in <span className="font-bold text-indigo-600">{resendCooldown}s</span>
+                            </p>
+                        ) : (
+                            <button
+                                onClick={handleResendOtp}
+                                disabled={resendLoading}
+                                className="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline transition-colors disabled:opacity-50"
+                            >
+                                {resendLoading ? 'Sending...' : "Didn't receive a code? Resend"}
+                            </button>
+                        )}
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('pendingVerificationEmail');
+                                setShowOtp(false);
+                                setOtp('');
+                            }}
+                            className="text-xs text-gray-400 dark:text-gray-500 hover:text-indigo-600 font-medium transition-colors"
+                        >
+                            Change Email / Go Back
+                        </button>
+                    </div>
                 </div>
             </div>
         );

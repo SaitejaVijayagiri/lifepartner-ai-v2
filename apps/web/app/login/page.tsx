@@ -26,8 +26,20 @@ export default function LoginPage() {
     const handleLogin = async () => {
         try {
             setError('');
+
+            // Client-side email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!form.email.trim() || !emailRegex.test(form.email.trim())) {
+                setError('Please enter a valid email address.');
+                return;
+            }
+            if (!form.password) {
+                setError('Please enter your password.');
+                return;
+            }
+
             setLoading(true);
-            const res = await api.auth.login({ ...form, password: form.password.trim() });
+            const res = await api.auth.login({ email: form.email.trim().toLowerCase(), password: form.password.trim() });
             localStorage.setItem('token', res.token);
             localStorage.setItem('userId', res.userId);
             if (res.isNewUser) {
@@ -36,6 +48,12 @@ export default function LoginPage() {
                 router.replace('/dashboard');
             }
         } catch (err: any) {
+            // If unverified — redirect to OTP verification screen on /register
+            if (err.message?.toLowerCase().includes('verify your email')) {
+                localStorage.setItem('pendingVerificationEmail', form.email.trim().toLowerCase());
+                router.push('/register');
+                return;
+            }
             setError(err.message || 'Login failed');
         } finally {
             setLoading(false);

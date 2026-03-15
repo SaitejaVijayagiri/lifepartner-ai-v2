@@ -1,3 +1,7 @@
+// MUST be first: load env vars before any imports read process.env
+import dotenv from 'dotenv';
+dotenv.config();
+
 // Fix: Disable TLS cert rejection on Render (OpenSSL cert verification fails with Supabase)
 // Connection is still encrypted; this only skips certificate chain verification.
 if (process.env.NODE_ENV === 'production') {
@@ -6,7 +10,6 @@ if (process.env.NODE_ENV === 'production') {
 
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import cron from 'node-cron';
 import cookieParser from 'cookie-parser';
 import { generateBlogPost } from './services/blogGenerator';
@@ -29,7 +32,6 @@ import migrateRoutes from './routes/migrate';
 import photoRoutes from './routes/photo';
 import path from 'path';
 
-dotenv.config();
 
 import rateLimit from 'express-rate-limit';
 

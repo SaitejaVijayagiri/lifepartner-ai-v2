@@ -1,0 +1,102 @@
+{
+  "latitude": 18.4231,
+  "lookupSource": "coordinates",
+  "longitude": 79.1309,
+  "localityLanguageRequested": "en",
+  "continent": "Asia",
+  "continentCode": "AS",
+  "countryName": "India",
+  "countryCode": "IN",
+  "principalSubdivision": "Telangana",
+  "principalSubdivisionCode": "IN-TS",
+  "city": "Karimnagar",
+  "locality": "Karimnagar",
+  "postcode": "",
+  "plusCode": "7JCXC4FJ+69",
+  "localityInfo": {
+    "administrative": [
+      {
+        "name": "India",
+        "description": "country in South Asia",
+        "isoName": "India",
+        "order": 3,
+        "adminLevel": 2,
+        "isoCode": "IN",
+        "wikidataId": "Q668",
+        "geonameId": 1269750
+      },
+      {
+        "name": "Telangana",
+        "description": "state in southern India",
+        "isoName": "Telangana",
+        "order": 9,
+        "adminLevel": 4,
+        "isoCode": "IN-TS",
+        "wikidataId": "Q677037",
+        "geonameId": 1254788
+      },
+      {
+        "name": "Karimnagar district",
+        "description": "district of Telangana",
+        "order": 10,
+        "adminLevel": 5,
+        "wikidataId": "Q15373",
+        "geonameId": 1267756
+      },
+      {
+        "name": "Karimnagar",
+        "description": "city in Karimnagar district, Telangana, India",
+        "order": 11,
+        "adminLevel": 6,
+        "wikidataId": "Q25563078",
+        "geonameId": 1267755
+      },
+      {
+        "name": "Karimnagar mandal",
+        "description": "new mandal in Karimnagar district, Telangana",
+        "order": 12,
+        "adminLevel": 6,
+        "wikidataId": "Q122949093"
+      }
+    ],
+    "informative": [
+      {
+        "name": "Asia",
+        "description": "terrestrial continent, mainly in the northeastern quadrant",
+        "isoName": "Asia",
+        "order": 1,
+        "isoCode": "AS",
+        "wikidataId": "Q48",
+        "geonameId": 6255147
+      },
+      {
+        "name": "Asia/Kolkata",
+        "description": "time zone",
+        "order": 2
+      },
+      {
+        "name": "Indian subcontinent",
+        "description": "physiographical region in South Asia",
+        "order": 4,
+        "wikidataId": "Q60140",
+        "geonameId": 6269134
+      },
+      {
+        "name": "Mainland India",
+        "order": 5
+      },
+      {
+        "name": "Southern Zonal Council",
+        "order": 6
+      },
+      {
+        "name": "Godavari river basin",
+        "order": 7
+      },
+      {
+        "name": "South Central Railway",
+        "order": 8
+      }
+    ]
+  }
+}

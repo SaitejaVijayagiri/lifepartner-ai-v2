@@ -149,6 +149,10 @@ export const api = {
         getIcebreaker: (targetUserId: string) => fetchAPI('/ai/icebreaker', {
             method: 'POST',
             body: JSON.stringify({ userId: typeof window !== 'undefined' ? localStorage.getItem('userId') : null, targetUserId })
+        }),
+        chat: (message: string, history: any[]) => fetchAPI('/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message, history })
         })
     },
     calls: {

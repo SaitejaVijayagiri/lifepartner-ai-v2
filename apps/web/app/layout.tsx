@@ -7,6 +7,7 @@ import NetworkStatus from '@/components/NetworkStatus';
 import StickyCTA from '@/components/StickyCTA';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import FloatingLoveGuru from '@/components/FloatingLoveGuru';
 
 const fontSans = DM_Sans({
   variable: "--font-sans",
@@ -181,6 +182,7 @@ export default function RootLayout({
             {children}
             <StickyCTA />
             <ThemeToggle />
+            <FloatingLoveGuru />
           </ClientProviders>
         </ThemeProvider>
       </body>

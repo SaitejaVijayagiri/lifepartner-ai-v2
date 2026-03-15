@@ -59,6 +59,7 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             auth: {
                 token: token
             },
+            withCredentials: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
         });

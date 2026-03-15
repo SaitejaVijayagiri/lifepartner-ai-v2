@@ -40,7 +40,7 @@ export default function LoginPage() {
 
             setLoading(true);
             const res = await api.auth.login({ email: form.email.trim().toLowerCase(), password: form.password.trim() });
-            localStorage.setItem('token', res.token);
+            // Token is now secured via HttpOnly Cookie. We don't save it to local storage.
             localStorage.setItem('userId', res.userId);
             if (res.isNewUser) {
                 router.replace('/onboarding');

@@ -16,6 +16,25 @@ const generateToken = (userId: string) => {
     return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
 };
 
+// Helper: Set HttpOnly Cookie
+const setTokenCookie = (res: express.Response, token: string) => {
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+};
+
+router.post('/logout', (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+    res.json({ success: true, message: "Logged out" });
+});
+
 // 1. Register with OTP
 // 1. Register with OTP
 router.post('/register', async (req, res) => {
@@ -258,6 +277,7 @@ router.post('/verify-otp', async (req, res) => {
         // Check if already verified
         if (user.is_verified) {
             const token = generateToken(user.id);
+            setTokenCookie(res, token);
             return res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name } });
         }
 
@@ -278,6 +298,7 @@ router.post('/verify-otp', async (req, res) => {
 
         // Return Token
         const token = generateToken(user.id);
+        setTokenCookie(res, token);
         res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name } });
 
     } catch (e) {
@@ -333,6 +354,7 @@ router.post('/login', async (req, res) => {
 
         console.log(`✅ Login successful: ${email} (Admin: ${user.is_admin})`);
         const token = generateToken(user.id);
+        setTokenCookie(res, token);
         res.json({ token, userId: user.id, user: { id: user.id, name: user.full_name, is_admin: user.is_admin } });
 
     } catch (error: any) {
@@ -604,7 +626,8 @@ router.post('/google', async (req, res) => {
         const requiresOnboarding = !user.gender || !user.age;
 
         // @ts-ignore
-        res.json({ success: true, token, userId: user.id, requiresOnboarding });
+        setTokenCookie(res, token);
+        res.json({ success: true, token, userId: user!.id, requiresOnboarding });
 
     } catch (e: any) {
         console.error("Google Auth Error", e);

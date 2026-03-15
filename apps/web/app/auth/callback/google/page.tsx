@@ -31,7 +31,7 @@ function GoogleCallbackContent() {
                 });
 
                 if (res.data.token) {
-                    localStorage.setItem('token', res.data.token);
+                    // Token is now secured via HttpOnly Cookie
                     localStorage.setItem('userId', res.data.userId);
                     if (res.data.requiresOnboarding) {
                         setStatus('Profile incomplete. Redirecting to Onboarding...');

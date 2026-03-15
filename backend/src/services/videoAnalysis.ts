@@ -54,9 +54,6 @@ export const analyzeVideoVibe = async (videoPath: string) => {
 
         const jsonRaw = await aiService.analyzeImage(imageBuffer, prompt);
 
-        // Cleanup frame
-        fs.unlinkSync(screenshotPath);
-
         if (!jsonRaw) throw new Error("AI returned empty response");
 
         // The new local AI engine returns an object directly, no parsing needed
@@ -71,5 +68,13 @@ export const analyzeVideoVibe = async (videoPath: string) => {
             confidence: 0.6,
             summary: "Video content analyzed (Auto-Fallback)."
         };
+    } finally {
+        if (screenshotPath && fs.existsSync(screenshotPath)) {
+            try {
+                fs.unlinkSync(screenshotPath);
+            } catch (cleanupErr) {
+                console.error("Video Analysis Cleanup error", cleanupErr);
+            }
+        }
     }
 };

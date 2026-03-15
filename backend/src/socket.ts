@@ -21,14 +21,26 @@ export const initSocket = (httpServer: HttpServer) => {
 
     // MIDDLEWARE: Authentication (Relaxed for Guests)
     io.use((socket, next) => {
-        const token = socket.handshake.auth.token || socket.handshake.query.token;
+        let token = socket.handshake.auth.token || socket.handshake.query.token;
+
+        if (!token && socket.handshake.headers.cookie) {
+            const cookies = socket.handshake.headers.cookie.split(';').reduce((acc: any, currentStr: string) => {
+                const [key, val] = currentStr.split('=');
+                if (key && val) {
+                    acc[key.trim()] = val.trim();
+                }
+                return acc;
+            }, {});
+            token = cookies['token'];
+        }
 
         if (!token) {
             socket.data.isGuest = true;
             return next();
         }
 
-        jwt.verify(token as string, process.env.JWT_SECRET as string, (err, decoded) => {
+        const secret = process.env.JWT_SECRET || 'dev_secret_key_123';
+        jwt.verify(token as string, secret, (err, decoded) => {
             if (err) {
                 // Invalid token? Treat as guest.
                 socket.data.isGuest = true;

@@ -46,7 +46,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setUser(JSON.parse(storedUser));
                 }
 
-                if (token) {
+                // Use userId or storedUser as a hint that a cookie MIGHT exist
+                const userIdHint = localStorage.getItem('userId');
+
+                if (userIdHint) {
                     // 2. Fresh Data Fetch
                     try {
                         const freshProfile = await api.profile.getMe();
@@ -79,13 +82,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const login = (userData: User, token: string) => {
-        localStorage.setItem('token', token);
+        // Token is now secured via HttpOnly Cookie. We don't save it to local storage.
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('userId', userData.id);
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await api.auth.logout();
+        } catch (e) {
+            console.error("Logout API call failed", e);
+        }
         localStorage.clear();
         setUser(null);
         router.push('/login');

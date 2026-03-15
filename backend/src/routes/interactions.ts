@@ -430,30 +430,35 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
         const { interactionId } = req.params;
 
         // Update
-        const interaction = await prisma.interactions.update({
-            where: { id: interactionId },
-            data: { status: 'connected' },
-            select: { from_user_id: true, to_user_id: true }
+        const interaction = await prisma.interactions.updateMany({
+            where: { id: interactionId, to_user_id: req.user.userId },
+            data: { status: 'connected' }
         });
 
-        if (interaction) {
-            const { from_user_id, to_user_id } = interaction;
-            if (from_user_id && to_user_id) {
-                try {
-                    const uA = await prisma.users.findUnique({ where: { id: from_user_id } });
-                    const uB = await prisma.users.findUnique({ where: { id: to_user_id } });
+        if (interaction.count > 0) {
+            const updatedInteraction = await prisma.interactions.findUnique({
+                where: { id: interactionId },
+                select: { from_user_id: true, to_user_id: true }
+            });
+            if (updatedInteraction) {
+                const { from_user_id, to_user_id } = updatedInteraction;
+                if (from_user_id && to_user_id) {
+                    try {
+                        const uA = await prisma.users.findUnique({ where: { id: from_user_id } });
+                        const uB = await prisma.users.findUnique({ where: { id: to_user_id } });
 
-                    if (uA && uB) {
-                        await EmailService.sendMatchAcceptedEmail(uA.email, uA.full_name || "User", uB.full_name || "User");
+                        if (uA && uB) {
+                            await EmailService.sendMatchAcceptedEmail(uA.email, uA.full_name || "User", uB.full_name || "User");
 
-                        const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
-                        getIO().to(from_user_id).emit('notification:new', {
-                            type: 'match',
-                            message: msg,
-                            timestamp: new Date()
-                        });
-                    }
-                } catch (notifyErr) { console.error("Notify error", notifyErr); }
+                            const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+                            getIO().to(from_user_id).emit('notification:new', {
+                                type: 'match',
+                                message: msg,
+                                timestamp: new Date()
+                            });
+                        }
+                    } catch (notifyErr) { console.error("Notify error", notifyErr); }
+                }
             }
         }
 
@@ -467,9 +472,10 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
 router.post('/requests/:interactionId/decline', authenticateToken, async (req: any, res) => {
     try {
         const { interactionId } = req.params;
+        const userId = req.user.userId;
 
-        await prisma.interactions.update({
-            where: { id: interactionId },
+        await prisma.interactions.updateMany({
+            where: { id: interactionId, to_user_id: userId },
             data: { status: 'declined' }
         });
 

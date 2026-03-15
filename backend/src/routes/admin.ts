@@ -62,7 +62,9 @@ router.get('/stats', async (req, res) => {
 router.get('/users', async (req, res) => {
     try {
         const { search, page = 1, limit = 20 } = req.query;
-        const skip = (Number(page) - 1) * Number(limit);
+        // Secure against DoS by capping limit to 100
+        const safeLimit = Math.min(Number(limit), 100);
+        const skip = (Number(page) - 1) * safeLimit;
 
         const where: any = {};
 
@@ -82,7 +84,7 @@ router.get('/users', async (req, res) => {
         const users = await prisma.users.findMany({
             where,
             orderBy: { created_at: 'desc' },
-            take: Number(limit),
+            take: safeLimit,
             skip: skip,
             select: {
                 id: true,
@@ -210,7 +212,9 @@ router.post('/resolve-report', async (req, res) => {
 router.get('/transactions', async (req, res) => {
     try {
         const { page = 1, limit = 50, type } = req.query;
-        const skip = (Number(page) - 1) * Number(limit);
+        // Secure against DoS by capping limit to 100
+        const safeLimit = Math.min(Number(limit), 100);
+        const skip = (Number(page) - 1) * safeLimit;
 
         const where: any = {};
         if (type) where.type = type;
@@ -218,7 +222,7 @@ router.get('/transactions', async (req, res) => {
         const transactions = await prisma.transactions.findMany({
             where,
             orderBy: { created_at: 'desc' },
-            take: Number(limit),
+            take: safeLimit,
             skip,
             include: {
                 users: { select: { full_name: true, email: true } }

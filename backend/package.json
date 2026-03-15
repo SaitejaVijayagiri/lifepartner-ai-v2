@@ -40,6 +40,7 @@
         "axios": "^1.13.2",
         "bcrypt": "^5.1.1",
         "cashfree-pg": "^5.1.0",
+        "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "dotenv": "^16.6.1",
         "express": "^4.22.1",
@@ -64,6 +65,7 @@
         "zod": "^3.22.2"
     },
     "devDependencies": {
+        "@types/cookie-parser": "^1.4.10",
         "@types/express-rate-limit": "^6.0.2",
         "@types/fluent-ffmpeg": "^2.1.28",
         "@types/glob": "^9.0.0",

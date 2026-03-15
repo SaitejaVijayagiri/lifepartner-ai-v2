@@ -23,10 +23,18 @@ export const upload = multer({
     storage,
     limits: { fileSize: 500 * 1024 * 1024 }, // 500MB Limit (High Capacity)
     fileFilter: (req, file, cb) => {
+        // Enforce safe file extensions to prevent executing arbitrary uploads
+        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mp3', '.wav'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        
+        if (!allowedExts.includes(ext)) {
+            return cb(new Error(`Invalid file extension. Allowed: ${allowedExts.join(', ')}`));
+        }
+
         if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/')) {
             cb(null, true);
         } else {
-            cb(new Error('Only video, image, and audio files are allowed!'));
+            cb(new Error('Only video, image, and audio mimetypes are allowed!'));
         }
     }
 });

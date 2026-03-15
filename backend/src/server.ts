@@ -8,6 +8,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cron from 'node-cron';
+import cookieParser from 'cookie-parser';
 import { generateBlogPost } from './services/blogGenerator';
 // import { pool, checkDbConnection } from './db'; -> Removed
 
@@ -33,6 +34,7 @@ dotenv.config();
 import rateLimit from 'express-rate-limit';
 
 export const app = express();
+app.use(cookieParser());
 app.set('trust proxy', 1);
 
 const PORT = process.env.PORT || 4000;

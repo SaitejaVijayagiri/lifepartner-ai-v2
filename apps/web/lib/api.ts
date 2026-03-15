@@ -18,6 +18,7 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     const res = await fetch(`${API_URL}${endpoint}`, {
         ...options,
         headers,
+        credentials: 'include',
     });
 
     if (res.status === 413) {
@@ -51,6 +52,7 @@ export const api = {
     auth: {
         register: (data: any) => fetchAPI('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
         login: (data: any) => fetchAPI('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+        logout: () => fetchAPI('/auth/logout', { method: 'POST' }),
         sendOtp: (mobile: string) => fetchAPI('/auth/send-otp', { method: 'POST', body: JSON.stringify({ mobile }) }),
         verifyOtp: (payload: { email: string, otp: string }) => fetchAPI('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
     },

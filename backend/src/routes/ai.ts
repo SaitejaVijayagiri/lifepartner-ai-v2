@@ -5,9 +5,6 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = express.Router();
 
-// Initialize Gemini (Will fail gracefully if key is missing)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock_key');
-
 // Curated Icebreaker Library (Simulating AI for Reliability/Speed)
 const ICEBREAKERS = {
     travel: [
@@ -119,9 +116,16 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Message is required" });
         }
 
-        if (!process.env.GEMINI_API_KEY) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            console.error('[AI Chat] GEMINI_API_KEY is not set in environment variables!');
             return res.status(503).json({ error: "AI Chatbot is currently offline. Please set GEMINI_API_KEY." });
         }
+
+        console.log(`[AI Chat] Key found: ${apiKey.substring(0, 8)}... Connecting to Gemini.`);
+
+        // Instantiate fresh per-request so it always reads live env vars
+        const genAI = new GoogleGenerativeAI(apiKey);
 
         // Fetch user data to make AI personalized
         const user = await prisma.users.findUnique({

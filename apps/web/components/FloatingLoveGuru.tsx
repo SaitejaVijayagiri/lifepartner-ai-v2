@@ -32,12 +32,12 @@ export default function FloatingLoveGuru() {
         setLoading(true);
 
         try {
-            // Drop current message from history being sent to keep context clean
             const res = await api.ai.chat(userMsg, messages);
             setMessages(prev => [...prev, { role: 'assistant', content: res.reply || "Sorry, my meditation was interrupted. Try again!" }]);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Guru Error:", err);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Oops! My connection to the cosmos is weak right now. (Make sure GEMINI_API_KEY is set in your backend)." }]);
+            const detail = err?.message ? ` (${err.message})` : '';
+            setMessages(prev => [...prev, { role: 'assistant', content: `Oops! My connection to the cosmos is weak right now.${detail}` }]);
         } finally {
             setLoading(false);
         }

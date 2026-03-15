@@ -169,8 +169,13 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
         res.json({ reply: responseText });
 
     } catch (error: any) {
-        console.error("AI Chatbot Error:", error);
-        res.status(500).json({ error: "Guru is meditating. Please try again later." });
+        console.error("AI Chatbot Error:", error?.message || error);
+        const errorMsg = error?.message || 'Unknown error';
+        // Return actual error for debugging (will be sanitized once stable)
+        res.status(500).json({
+            error: "Guru is meditating. Please try again later.",
+            debug: errorMsg
+        });
     }
 });
 

@@ -15,8 +15,8 @@ export default function OnboardingPage() {
 
     // Check if user is authenticated
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) {
+        const userId = localStorage.getItem('userId');
+        if (!userId) {
             // Not authenticated, redirect to register
             router.push('/register');
         } else {

@@ -85,8 +85,8 @@ function DashboardContent() {
     useEffect(() => {
         const checkAuth = async () => {
             // Basic Auth Check
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const userId = localStorage.getItem('userId');
+            if (!userId) {
                 router.push('/login');
                 return;
             }

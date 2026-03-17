@@ -17,8 +17,8 @@ export default function LoginPage() {
 
     // Auto-redirect if already logged in
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
+        const userId = localStorage.getItem('userId');
+        if (userId) {
             router.replace('/dashboard');
         }
     }, [router]);

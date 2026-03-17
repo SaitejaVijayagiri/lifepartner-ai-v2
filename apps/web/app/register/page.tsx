@@ -36,8 +36,8 @@ function RegisterForm() {
     // Auto-fill Referral Code and Check Auth
     useEffect(() => {
         // Auth check
-        const token = localStorage.getItem('token');
-        if (token) {
+        const userId = localStorage.getItem('userId');
+        if (userId) {
             router.replace('/dashboard');
             return;
         }

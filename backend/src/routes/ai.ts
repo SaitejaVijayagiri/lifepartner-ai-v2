@@ -1,7 +1,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { guruResponse } from '../services/guruEngine';
 
 const router = express.Router();
 
@@ -106,7 +106,7 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
     }
 });
 
-// POST /ai/chat (The Love Guru Chatbot)
+// POST /ai/chat — The Love Guru Chatbot (Powered by Local Knowledge Engine)
 router.post('/chat', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -116,69 +116,26 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Message is required" });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            console.error('[AI Chat] GEMINI_API_KEY is not set in environment variables!');
-            return res.status(503).json({ error: "AI Chatbot is currently offline. Please set GEMINI_API_KEY." });
-        }
-
-        console.log(`[AI Chat] Key found: ${apiKey.substring(0, 8)}... Connecting to Gemini.`);
-
-        // Instantiate fresh per-request so it always reads live env vars
-        const genAI = new GoogleGenerativeAI(apiKey);
-
-        // Fetch user data to make AI personalized
+        // Fetch user data for personalization
         const user = await prisma.users.findUnique({
             where: { id: userId },
             select: { full_name: true, age: true, gender: true }
         });
 
-        const name = user?.full_name || 'User';
+        const name = user?.full_name?.split(' ')[0] || 'friend';
 
-        const systemInstruction = `
-            You are "LifePartner AI Guru", an expert Indian Matchmaker and Dating Coach. 
-            You are talking to ${name} (${user?.age || 'unknown'} years old, ${user?.gender || 'unknown'}).
-            Be warm, witty, encouraging, and culturally aware of modern Indian dating (respecting traditions while embracing modern romance).
-            Your goal is to give them actionable advice on their dating profile, how to talk to matches, and relationship red/green flags.
-            Keep your answers concise, formatted nicely with emojis, and highly engaging. Do not be overly robotic.
-        `;
+        console.log(`[AI Guru] Responding to "${message.substring(0, 40)}..." for user: ${name}`);
 
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            systemInstruction: systemInstruction,
-        });
+        const reply = guruResponse(message, name, history || []);
 
-        // Format history for Gemini
-        // Gemini expects: { role: "user" | "model", parts: [{ text: "..." }] }
-        const formattedHistory = (history || []).map((msg: any) => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-        }));
-
-        const chat = model.startChat({
-            history: formattedHistory,
-            generationConfig: {
-                maxOutputTokens: 500,
-                temperature: 0.7,
-            },
-        });
-
-        const result = await chat.sendMessage(message);
-        const responseText = result.response.text();
-
-        res.json({ reply: responseText });
+        res.json({ reply });
 
     } catch (error: any) {
-        console.error("AI Chatbot Error:", error?.message || error);
-        const errorMsg = error?.message || 'Unknown error';
-        // Return actual error for debugging (will be sanitized once stable)
+        console.error("AI Guru Error:", error?.message || error);
         res.status(500).json({
-            error: "Guru is meditating. Please try again later.",
-            debug: errorMsg
+            error: "Guru is meditating. Please try again in a moment.",
         });
     }
 });
-
-
 
 export default router;

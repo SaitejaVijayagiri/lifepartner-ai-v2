@@ -8,7 +8,8 @@ import VideoCallModal from '@/components/VideoCallModal';
 import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
 import { useCall } from '@/context/CallContext';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun } from 'lucide-react';
 
 /* Components */
 import MatchCard from '@/components/MatchCard';
@@ -53,6 +54,8 @@ function DashboardContent() {
     const searchParams = useSearchParams();
     const toast = useToast();
     const { socket, onlineUsers } = useSocket() as any;
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [matches, setMatches] = useState<any[]>([]);
     const [mapProfiles, setMapProfiles] = useState<any[]>([]);
     const [mapLoading, setMapLoading] = useState(false);
@@ -81,6 +84,10 @@ function DashboardContent() {
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
     const { startCall } = useCall();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -549,6 +556,15 @@ function DashboardContent() {
                             <Clock size={20} />
                         </button>
                     )}
+                    {/* Theme Toggle - Mobile Only */}
+                    <button
+                        onClick={() => setTheme(mounted && theme === 'dark' ? 'light' : 'dark')}
+                        className="md:hidden w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
+                        title="Toggle theme"
+                        aria-label="Toggle dark mode"
+                    >
+                        {mounted && theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
                     <NotificationBell />
 
 

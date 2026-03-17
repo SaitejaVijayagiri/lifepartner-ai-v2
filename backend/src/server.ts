@@ -99,7 +99,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/uploads', express.static('uploads'));
 
-app.use('/api/ai', aiRoutes);
+app.use('/ai', aiRoutes);
 
 app.get('/', (req, res) => {
     res.send('Life Partner AI Backend is Running (Production Mode)');

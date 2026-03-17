@@ -1,27 +1,13 @@
-import { pipeline, env } from '@xenova/transformers';
-
-// Setup Xenova environments to run locally, avoid remote fetching if downloaded, cache models.
-env.allowLocalModels = true;
-
 export class AIService {
     private extractor: any = null;
 
     constructor() {
-        console.log("🚀 Using Xenova/Transformers (Local AI) for Embeddings and Matchmaking.");
-        this.initModel();
+        console.log("🚀 AIService initialized (Zero-RAM Expert Mode).");
     }
 
     private async initModel() {
-        try {
-            // Lazy load the 384-dimensional embedding model
-            // This runs 100% locally and offline.
-            this.extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-                quantized: true, // Uses compressed 8-bit model for fast CPU execution
-            });
-            console.log("✅ Local AI Embedding Model Loaded successfully.");
-        } catch (e) {
-            console.error("❌ Failed to load local transformer model:", e);
-        }
+        // Removed local transformer model to respect 512MB free tier RAM limit
+        console.log("Local transformer model disabled to save RAM.");
     }
 
     // --- 0. Synonym Dictionary (Advanced Offline AI) ---

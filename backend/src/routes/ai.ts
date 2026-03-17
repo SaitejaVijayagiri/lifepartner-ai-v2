@@ -2,7 +2,6 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { guruResponse, FALLBACK_RESPONSES, personalize, pickRandom } from '../services/guruEngine';
-import { localGenerate } from '../services/localAI';
 
 const router = express.Router();
 
@@ -127,32 +126,15 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
 
         console.log(`[AI Guru] Message: "${message.substring(0, 40)}..." for user: ${name}`);
 
-        // 1. Try the instant Knowledge Engine (guruEngine) first
+        // Try the instant Knowledge Engine (guruEngine)
         let reply = guruResponse(message, name, history || []);
 
-        if (reply) {
-            console.log(`[AI Guru] Answered via Expert System.`);
-            return res.json({ reply });
+        // Absolute Fallback if expert system doesn't know the answer
+        if (!reply) {
+            console.log(`[AI Guru] Answered via absolute fallback.`);
+            reply = personalize(pickRandom(FALLBACK_RESPONSES), name);
         }
 
-        // 2. Fall back to Local LLM (Xenova flan-t5) if expert system returns null
-        console.log(`[AI Guru] Falling back to Local AI Model...`);
-        reply = await localGenerate(
-            message,
-            name,
-            user?.age || null,
-            user?.gender || null,
-            history || []
-        );
-
-        if (reply) {
-            console.log(`[AI Guru] Answered via Local AI Model.`);
-            return res.json({ reply });
-        }
-
-        // 3. Absolute Fallback (if model is still loading or failed)
-        console.log(`[AI Guru] Answered via absolute fallback.`);
-        reply = personalize(pickRandom(FALLBACK_RESPONSES), name);
         res.json({ reply });
 
     } catch (error: any) {

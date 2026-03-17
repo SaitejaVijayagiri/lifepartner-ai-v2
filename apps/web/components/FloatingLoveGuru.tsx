@@ -31,8 +31,9 @@ export default function FloatingLoveGuru() {
         return () => { document.body.style.overflow = ''; };
     }, [isOpen]);
 
-    // Don't render on the landing page
-    if (pathname === '/') return null;
+    // Don't render on landing page or auth/setup pages
+    const hiddenRoutes = ['/', '/login', '/register', '/onboarding', '/forgot-password', '/reset-password'];
+    if (hiddenRoutes.includes(pathname)) return null;
 
     const handleSend = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();

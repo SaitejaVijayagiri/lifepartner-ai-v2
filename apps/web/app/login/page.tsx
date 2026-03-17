@@ -40,8 +40,11 @@ export default function LoginPage() {
 
             setLoading(true);
             const res = await api.auth.login({ email: form.email.trim().toLowerCase(), password: form.password.trim() });
-            // Token is now secured via HttpOnly Cookie. We don't save it to local storage.
+            // Token is now secured via HttpOnly Cookie (for SameSite) and Fallback token (for Third-Party Cookie Blocking).
             localStorage.setItem('userId', res.userId);
+            if (res.token) {
+                localStorage.setItem('token', res.token);
+            }
             if (res.isNewUser) {
                 router.replace('/onboarding');
             } else {

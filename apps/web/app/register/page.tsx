@@ -115,8 +115,9 @@ function RegisterForm() {
                 setShowOtp(true);
             } else if (res.token) {
                 // Fallback for old flow
-                // Token is now secured via HttpOnly Cookie
+                // Token is now secured via HttpOnly Cookie + Fallback localStorage token
                 localStorage.setItem('userId', res.userId);
+                localStorage.setItem('token', res.token);
                 router.replace('/onboarding');
             }
         } catch (err: any) {
@@ -141,8 +142,9 @@ function RegisterForm() {
             const res = await api.auth.verifyOtp({ email: form.email, otp });
             if (res.token) {
                 localStorage.removeItem('pendingVerificationEmail');
-                // Token is now secured via HttpOnly Cookie
+                // Token is now secured via HttpOnly Cookie + Fallback localStorage token
                 localStorage.setItem('userId', res.userId);
+                localStorage.setItem('token', res.token);
                 router.replace('/onboarding');
             }
         } catch (err: any) {

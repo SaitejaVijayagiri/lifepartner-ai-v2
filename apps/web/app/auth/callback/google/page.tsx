@@ -31,8 +31,9 @@ function GoogleCallbackContent() {
                 });
 
                 if (res.data.token) {
-                    // Token is now secured via HttpOnly Cookie
+                    // Token is now secured via HttpOnly Cookie (and localStorage for 3rd party fallback)
                     localStorage.setItem('userId', res.data.userId);
+                    localStorage.setItem('token', res.data.token);
                     if (res.data.requiresOnboarding) {
                         setStatus('Profile incomplete. Redirecting to Onboarding...');
                         setTimeout(() => router.push('/onboarding'), 1000);

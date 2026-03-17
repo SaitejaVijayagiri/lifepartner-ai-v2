@@ -63,7 +63,10 @@ const contactLimiter = rateLimit({
 });
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://www.lifepartnerai.in', 'https://lifepartnerai.in', '*'],
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        return callback(null, true);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,

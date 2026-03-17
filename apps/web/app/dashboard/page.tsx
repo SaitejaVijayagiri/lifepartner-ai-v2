@@ -103,12 +103,15 @@ function DashboardContent() {
                 }
                 setCurrentUser(profile);
             } catch (err: any) {
-                // If profile fetch fails (404 or error), redirect to onboarding
+                // If profile fetch fails (404, 500, or 401), wipe stale state
                 console.error('Profile check failed', err);
-                if (err?.message?.includes('401') || err?.message?.includes('session')) {
+                if (err?.message?.includes('401') || err?.message?.includes('session') || err?.message?.includes('404') || err?.message?.includes('not found')) {
                     localStorage.removeItem('token');
+                    localStorage.removeItem('userId');
+                    localStorage.removeItem('user');
                     router.push('/login');
                 } else {
+                    // It's likely a network error or generic error, allow retry or fallback to onboarding if truly new
                     router.push('/onboarding');
                 }
                 return;

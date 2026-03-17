@@ -2,8 +2,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 export default function FloatingLoveGuru() {
+    const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
         { role: 'assistant', content: "Namaste! 🙏 I'm your LifePartner AI Guru. Looking for advice on your profile, how to talk to a match, or relationship red flags? Ask me anything!" }
@@ -18,6 +20,9 @@ export default function FloatingLoveGuru() {
             endOfMessagesRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [messages, isOpen]);
+
+    // Don't render on the landing page
+    if (pathname === '/') return null;
 
     const handleSend = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();

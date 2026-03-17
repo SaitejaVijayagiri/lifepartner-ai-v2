@@ -1,7 +1,8 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
-import { guruResponse } from '../services/guruEngine';
+import { guruResponse, FALLBACK_RESPONSES, personalize, pickRandom } from '../services/guruEngine';
+import { localGenerate } from '../services/localAI';
 
 const router = express.Router();
 
@@ -106,7 +107,7 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
     }
 });
 
-// POST /ai/chat — The Love Guru Chatbot (Powered by Local Knowledge Engine)
+// POST /ai/chat — The Love Guru Chatbot (Hybrid: Expert System + Local LLM)
 router.post('/chat', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -124,10 +125,34 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
 
         const name = user?.full_name?.split(' ')[0] || 'friend';
 
-        console.log(`[AI Guru] Responding to "${message.substring(0, 40)}..." for user: ${name}`);
+        console.log(`[AI Guru] Message: "${message.substring(0, 40)}..." for user: ${name}`);
 
-        const reply = guruResponse(message, name, history || []);
+        // 1. Try the instant Knowledge Engine (guruEngine) first
+        let reply = guruResponse(message, name, history || []);
 
+        if (reply) {
+            console.log(`[AI Guru] Answered via Expert System.`);
+            return res.json({ reply });
+        }
+
+        // 2. Fall back to Local LLM (Xenova flan-t5) if expert system returns null
+        console.log(`[AI Guru] Falling back to Local AI Model...`);
+        reply = await localGenerate(
+            message,
+            name,
+            user?.age || null,
+            user?.gender || null,
+            history || []
+        );
+
+        if (reply) {
+            console.log(`[AI Guru] Answered via Local AI Model.`);
+            return res.json({ reply });
+        }
+
+        // 3. Absolute Fallback (if model is still loading or failed)
+        console.log(`[AI Guru] Answered via absolute fallback.`);
+        reply = personalize(pickRandom(FALLBACK_RESPONSES), name);
         res.json({ reply });
 
     } catch (error: any) {

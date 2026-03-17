@@ -377,7 +377,7 @@ export function guruResponse(
     message: string,
     name: string,
     history: { role: string; content: string }[]
-): string {
+): string | null {
     const intent = detectIntent(message);
 
     if (intent) {
@@ -395,6 +395,8 @@ export function guruResponse(
         }
     }
 
-    // Absolute fallback
-    return personalize(pickRandom(FALLBACK_RESPONSES), name);
+    // Absolute fallback - return null so the local LLM can take over
+    return null;
 }
+
+export { FALLBACK_RESPONSES, personalize, pickRandom };

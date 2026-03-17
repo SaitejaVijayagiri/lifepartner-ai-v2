@@ -49,7 +49,7 @@ export function ThemeToggle() {
             whileDrag={{ scale: 1.1, cursor: "grabbing" }}
             initial={false}
             animate={isMinimized ? "minimized" : "expanded"}
-            className="fixed z-[9999] hidden md:block bottom-6 left-6 group touch-none"
+            className="fixed z-[9999] hidden md:block bottom-[90px] left-6 group touch-none"
             style={{ touchAction: 'none' }}
         >
             <div className="relative flex items-center justify-center">

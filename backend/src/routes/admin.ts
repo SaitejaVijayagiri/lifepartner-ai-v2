@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
+import { EmailService } from '../services/email';
 
 const router = express.Router();
 
@@ -239,6 +240,49 @@ router.get('/transactions', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+});
+
+// POST /send-campaign - Email all users based on their onboarding status
+router.post('/send-campaign', async (req, res) => {
+    try {
+        const users = await prisma.users.findMany({
+            where: { is_banned: false },
+            select: {
+                id: true,
+                email: true,
+                full_name: true,
+                profiles: { select: { user_id: true } }
+            }
+        });
+
+        const notOnboarded = users.filter(u => !u.profiles);
+        const onboarded    = users.filter(u =>  u.profiles);
+
+        const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+        // Send onboarding nudge
+        for (const user of notOnboarded) {
+            await EmailService.sendOnboardingReminderEmail(user.email, user.full_name || 'there');
+            await sleep(100);
+        }
+
+        // Send find-matches nudge
+        for (const user of onboarded) {
+            await EmailService.sendFindMatchesEmail(user.email, user.full_name || 'there');
+            await sleep(100);
+        }
+
+        res.json({
+            success: true,
+            onboarding_reminders_sent: notOnboarded.length,
+            find_matches_emails_sent: onboarded.length,
+            not_onboarded: notOnboarded.map(u => ({ id: u.id, email: u.email, name: u.full_name })),
+            onboarded: onboarded.map(u => ({ id: u.id, email: u.email, name: u.full_name }))
+        });
+    } catch (err) {
+        console.error('Campaign Error:', err);
+        res.status(500).json({ error: 'Failed to send campaign emails' });
     }
 });
 

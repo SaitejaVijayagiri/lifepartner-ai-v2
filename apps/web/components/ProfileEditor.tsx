@@ -457,27 +457,35 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Religion & Horoscope</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Religion</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Religion</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md"
-                                value={formData.religion?.religion || 'Hindu'}
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500"
+                                value={formData.religion?.religion || ''}
                                 onChange={(e) => handleChange('religion', 'religion', e.target.value)}
                             >
-                                <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Other</option>
+                                <option value="">Select Religion</option>
+                                <option value="Hindu">Hindu</option>
+                                <option value="Muslim">Muslim</option>
+                                <option value="Christian">Christian</option>
+                                <option value="Sikh">Sikh</option>
+                                <option value="Jain">Jain</option>
+                                <option value="Buddhist">Buddhist</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
                         <Input label="Caste" value={formData.religion?.caste || ''} onChange={(e) => handleChange('religion', 'caste', e.target.value)} />
 
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Inter-Caste Marriage</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Inter-Caste Marriage</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800"
-                                value={formData.religion?.interCasteOpen || 'Open Details'}
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500"
+                                value={formData.religion?.interCasteOpen || ''}
                                 onChange={(e) => handleChange('religion', 'interCasteOpen', e.target.value)}
                             >
-                                <option>Yes, open to inter-caste</option>
-                                <option>No, strictly same caste</option>
-                                <option>Open Details</option>
+                                <option value="">Select Preference</option>
+                                <option value="Yes, open to inter-caste">Yes, open to inter-caste</option>
+                                <option value="No, strictly same caste">No, strictly same caste</option>
+                                <option value="Open Details">Open Details</option>
                             </select>
                         </div>
                         <Input label="Gothra" value={formData.religion?.gothra || formData.horoscope?.gothra || ''} onChange={(e) => handleChange('religion', 'gothra', e.target.value)} />
@@ -486,13 +494,16 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <Input label="Nakshatra" value={formData.horoscope?.nakshatra || ''} onChange={(e) => handleChange('horoscope', 'nakshatra', e.target.value)} />
 
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Manglik</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Manglik</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md"
-                                value={formData.horoscope?.manglik || 'No'}
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500"
+                                value={formData.horoscope?.manglik || ''}
                                 onChange={(e) => handleChange('horoscope', 'manglik', e.target.value)}
                             >
-                                <option>No</option><option>Yes</option><option>Don't Know</option>
+                                <option value="">Select</option>
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                                <option value="Don't Know">Don't Know</option>
                             </select>
                         </div>
 

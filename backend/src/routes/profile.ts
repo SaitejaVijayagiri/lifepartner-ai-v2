@@ -287,6 +287,19 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
+        // 0.5. Validation: Phone Uniqueness
+        if (phone && phone.trim() !== '') {
+            const phoneCheck = await prisma.users.findFirst({
+                where: {
+                    phone: phone,
+                    id: { not: userId }
+                }
+            });
+            if (phoneCheck) {
+                return res.status(400).json({ error: "Phone number is already in use by another account" });
+            }
+        }
+
         // 1. Data Integrity: Auto-calculate Age from DOB (Server Side Truth)
         let finalAge = age;
         if (dob) {
@@ -347,6 +360,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         location_name: location?.city ? `${location.city}, ${location.country || ''}`.trim().replace(/,$/, '') : undefined, // Better location string
                         avatar_url: finalPhotoUrl,
                         email,
+                        phone: phone || undefined,
                         city: location?.city,
                         district: location?.district,
                         state: location?.state

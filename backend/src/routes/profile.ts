@@ -191,10 +191,26 @@ router.get('/public/featured', async (req, res) => {
             'g.k.': 'Giridhar Kumar',
         };
 
+        // Country override by first name (for users whose country in DB may be incorrect)
+        const countryOverrideMap: Record<string, string> = {
+            'hamoudi': 'Indonesia',
+        };
+
         const profiles = shuffled.map(user => {
             const meta = (user.profiles?.metadata as any) || {};
             const rawFirstName = (user.full_name?.split(' ')[0] || 'User').toLowerCase();
             const displayName = nameAliasMap[rawFirstName] || (user.full_name?.split(' ')[0] || 'User');
+
+            // Determine country: override map → metadata → fallback to India
+            const country = countryOverrideMap[rawFirstName]
+                || meta.location?.country
+                || user.state  // some intl users may have country in state field
+                || 'India';
+
+            const locationStr = user.city
+                ? `${user.city}, ${country}`
+                : country !== 'India' ? country : 'Hidden';
+
             // Completely mask sensitive info
             return {
                 id: user.id,
@@ -203,7 +219,7 @@ router.get('/public/featured', async (req, res) => {
                 gender: user.gender,
                 photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
                 photos: meta.photos || [sanitizePhotoUrl(user.avatar_url, user.full_name || user.id)],
-                location: user.city ? `${user.city}, ${meta.location?.state || 'India'}` : "Hidden",
+                location: locationStr,
                 profession: meta.career?.profession || "Professional",
                 isVerified: true
             };

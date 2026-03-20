@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { MapPin, LogOut } from 'lucide-react';
+import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
@@ -390,7 +391,10 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium dark:text-gray-200">Religion</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.religion} onChange={e => update('religion', e.target.value)}>
-                                        <option>Hindu</option><option>Muslim</option><option>Christian</option><option>Sikh</option><option>Jain</option><option>Buddhist</option><option>Parsi</option><option>Other</option>
+                                        <option value="">Select Religion</option>
+                                        {RELIGION_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer, BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
@@ -403,7 +407,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
                                 <Input label="Birth Place" placeholder="e.g. Chennai, TN" value={data.birthPlace} onChange={e => update('birthPlace', e.target.value)} />
                                 <Input label="Time of Birth" placeholder="e.g. 10:30 AM" value={data.birthTime} onChange={e => update('birthTime', e.target.value)} />
-                                <Input label="Zodiac Sign" placeholder="e.g. Libra" value={data.zodiacSign} onChange={e => update('zodiacSign', e.target.value)} />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">Zodiac Sign</label>
+                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.zodiacSign} onChange={e => update('zodiacSign', e.target.value)}>
+                                        <option value="">Select Zodiac Sign</option>
+                                        {ZODIAC_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <Input label="Nakshatra" placeholder="e.g. Rohini" value={data.nakshatra} onChange={e => update('nakshatra', e.target.value)} />
                             </div>
                         </div>

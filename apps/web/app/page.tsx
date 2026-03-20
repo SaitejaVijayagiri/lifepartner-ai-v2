@@ -235,8 +235,8 @@ export default function LandingPage() {
 
       {/* --- INFINITE MARQUEE --- */}
       <section className="py-12 border-y border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 relative overflow-hidden z-20">
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute inset-y-0 left-0 w-4 sm:w-16 bg-gradient-to-r from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute inset-y-0 right-0 w-4 sm:w-16 bg-gradient-to-l from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
         
         {/* We have two different scrolling blocks here: One for text tags and the new one for Public Profiles! */}
         

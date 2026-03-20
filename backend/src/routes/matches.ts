@@ -332,21 +332,20 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         // Candidates Fetch
         // 2. Get Candidates (Randomized Strategy)
-        // Step A: Fetch ALL eligible IDs (Lightweight)
-        const allCandidateIds = await prisma.users.findMany({
-            where: {
-                id: { not: userId },
-                is_verified: true, // Only show Verified profiles
-                ...genderFilter
-            },
-            select: { id: true }
-        });
+        // Step A: Fetch up to 50 randomized IDs efficiently via SQL
+        let genderClause = '';
+        if (myGender === 'male') genderClause = `AND LOWER(gender) = 'female'`;
+        else if (myGender === 'female') genderClause = `AND LOWER(gender) = 'male'`;
 
-        // Step B: Shuffle and Slice IDs
-        const shuffledIds = allCandidateIds
-            .map(c => c.id)
-            .sort(() => 0.5 - Math.random())
-            .slice(0, 50);
+        const randomCandidates: { id: string }[] = await prisma.$queryRawUnsafe(`
+            SELECT id FROM users
+            WHERE id != '${userId}' AND is_verified = true ${genderClause}
+            ORDER BY RANDOM()
+            LIMIT 50
+        `);
+
+        // Step B: Extract IDs
+        const shuffledIds = randomCandidates.map(c => c.id);
 
         // Step C: Fetch Full Details for Selected IDs
         const candidates = await prisma.users.findMany({
@@ -447,16 +446,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             let locString = parts.length > 0 ? parts.join(", ") : "India";
 
-            // NEW: Auto-Geocoding for Map Support
-            // If they don't have lat/lng but they have a city string, dynamically geocode it
-            if ((!metaLoc || !metaLoc.lat || !metaLoc.lng) && locString !== "India") {
-                const LocationService = require('../services/location').LocationService;
-                const coords = await LocationService.geocodeCity(locString);
-                if (coords) {
-                    // Inject synthetic GPS coordinates to be consumed by the frontend Live Map
-                    metaLoc = { ...metaLoc, lat: coords.lat, lng: coords.lng, city: city };
-                }
-            }
+            // PERFORMANCE FIX: Synchronous HTTP Geocoding loop removed.
+            // Geocoding happens precisely ONCE during profile save instead of blocking the read API.
 
             // Interaction Status
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
@@ -698,14 +689,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
             let locString = parts.length > 0 ? parts.join(", ") : "India";
 
-            // NEW: Auto-Geocoding for Map Support
-            if ((!metaLoc || !metaLoc.lat || !metaLoc.lng) && locString !== "India") {
-                const LocationService = require('../services/location').LocationService;
-                const coords = await LocationService.geocodeCity(locString);
-                if (coords) {
-                    metaLoc = { ...metaLoc, lat: coords.lat, lng: coords.lng, city: city };
-                }
-            }
+            // PERFORMANCE FIX: Removed synchronous geocoding loop block.
 
             const profileHeight = meta.height || "";
             const heightInches = parseHeightToInches(profileHeight);

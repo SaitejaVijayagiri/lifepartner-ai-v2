@@ -140,7 +140,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 // Get Featured Public Profiles (For Landing Page)
 router.get('/public/featured', async (req, res) => {
     try {
-        const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'vimal', 'gautam', 'sunny dharod', 'hamoudi', 'sunny'];
+        const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'vimal', 'gautam', 'sunny dharod', 'hamoudi', 'sunny', 'giridhar', 'gk'];
         const orConditions = targetNames.map(name => ({
             full_name: { contains: name, mode: 'insensitive' as const }
         }));
@@ -186,12 +186,19 @@ router.get('/public/featured', async (req, res) => {
         // Ensure randomize order so they don't look static
         const shuffled = combinedUsers.sort(() => 0.5 - Math.random());
 
+        const nameAliasMap: Record<string, string> = {
+            'gk': 'Giridhar Kumar',
+            'g.k.': 'Giridhar Kumar',
+        };
+
         const profiles = shuffled.map(user => {
             const meta = (user.profiles?.metadata as any) || {};
+            const rawFirstName = (user.full_name?.split(' ')[0] || 'User').toLowerCase();
+            const displayName = nameAliasMap[rawFirstName] || (user.full_name?.split(' ')[0] || 'User');
             // Completely mask sensitive info
             return {
                 id: user.id,
-                name: user.full_name?.split(' ')[0] || "User", // Only first name
+                name: displayName,
                 age: user.age,
                 gender: user.gender,
                 photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),

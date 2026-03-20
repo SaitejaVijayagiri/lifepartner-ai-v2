@@ -1,4 +1,5 @@
 'use client';
+import { getZodiacSymbol, getReligionSymbol } from '@/lib/religionUtils';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -143,7 +144,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                     <InfoCard label="Inter-Caste" value={profile.religion?.interCasteOpen || "-"} />
                                     <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
                                     <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} />
-                                    <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign || "-"} />
+                                    <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign ? `${getZodiacSymbol(profile.horoscope.zodiacSign)} ${profile.horoscope.zodiacSign}` : "-"} />
                                     <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
                                 </div>
                             </div>

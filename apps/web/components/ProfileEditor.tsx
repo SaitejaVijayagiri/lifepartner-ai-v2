@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { RELIGION_OPTIONS } from '@/lib/religionUtils';
+import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 
 interface ProfileEditorProps {
     initialData: any;
@@ -487,7 +487,19 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
                         <Input label="Gothra" value={formData.religion?.gothra || formData.horoscope?.gothra || ''} onChange={(e) => handleChange('religion', 'gothra', e.target.value)} />
 
-                        <Input label="Zodiac Sign" placeholder="e.g. Libra" value={formData.horoscope?.zodiacSign || ''} onChange={e => handleChange('horoscope', 'zodiacSign', e.target.value)} />
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Zodiac Sign</label>
+                            <select
+                                className="w-full h-10 px-3 border rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500"
+                                value={formData.horoscope?.zodiacSign || ''}
+                                onChange={e => handleChange('horoscope', 'zodiacSign', e.target.value)}
+                            >
+                                <option value="">Select Zodiac Sign</option>
+                                {ZODIAC_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </div>
                         <Input label="Nakshatra" value={formData.horoscope?.nakshatra || ''} onChange={(e) => handleChange('horoscope', 'nakshatra', e.target.value)} />
 
                         <div className="space-y-1">

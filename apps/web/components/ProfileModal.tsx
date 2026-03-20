@@ -1,5 +1,6 @@
 
 'use client';
+import { getZodiacSymbol } from '@/lib/religionUtils';
 
 import { useState, useEffect } from 'react';
 import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play } from 'lucide-react';
@@ -284,7 +285,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
                                         <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
                                         <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} icon="✨" />
-                                        <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign || "-"} />
+                                        <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign ? `${getZodiacSymbol(profile.horoscope.zodiacSign)} ${profile.horoscope.zodiacSign}` : "-"} />
                                         <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
                                         <InfoCard label="Time of Birth" value={profile.horoscope?.birthTime || "-"} />
                                         <InfoCard label="Birth Place" value={profile.horoscope?.birthPlace || "-"} />

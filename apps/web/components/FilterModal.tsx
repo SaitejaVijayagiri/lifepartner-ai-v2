@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Filter, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
+import { RELIGION_SYMBOLS } from '@/lib/religionUtils';
 
 interface FilterModalProps {
     isOpen: boolean;
@@ -300,7 +301,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 dark:bg-gray-700'
                                             }`}
                                     >
-                                        {religion}
+                                        {RELIGION_SYMBOLS[religion] || ''} {religion}
                                     </button>
                                 ))}
                             </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { RELIGION_OPTIONS } from '@/lib/religionUtils';
 
 interface ProfileEditorProps {
     initialData: any;
@@ -464,13 +465,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 onChange={(e) => handleChange('religion', 'religion', e.target.value)}
                             >
                                 <option value="">Select Religion</option>
-                                <option value="Hindu">Hindu</option>
-                                <option value="Muslim">Muslim</option>
-                                <option value="Christian">Christian</option>
-                                <option value="Sikh">Sikh</option>
-                                <option value="Jain">Jain</option>
-                                <option value="Buddhist">Buddhist</option>
-                                <option value="Other">Other</option>
+                                {RELIGION_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
                             </select>
                         </div>
                         <Input label="Caste" value={formData.religion?.caste || ''} onChange={(e) => handleChange('religion', 'caste', e.target.value)} />

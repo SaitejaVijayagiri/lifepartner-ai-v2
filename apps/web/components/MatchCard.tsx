@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
+import { getReligionSymbol } from '@/lib/religionUtils';
 
 interface MatchCardProps {
     match: any;
@@ -254,7 +255,7 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
                         {/* 2. Standard Tags */}
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "-"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.career?.profession || "-"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">🕉️ {match.religion?.religion || match.religion?.faith || "-"}</span>
+                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">{getReligionSymbol(match.religion?.religion || match.religion?.faith)} {match.religion?.religion || match.religion?.faith || "-"}</span>
                         <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
                             📍 {typeof match.location === 'string' ? match.location : ([match.location?.city, match.location?.district, match.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "-")}
                         </span>

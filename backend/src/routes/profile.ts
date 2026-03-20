@@ -140,20 +140,45 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 // Get Featured Public Profiles (For Landing Page)
 router.get('/public/featured', async (req, res) => {
     try {
-        const users = await prisma.users.findMany({
+        const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'sidham bhaskar', 'vimal', 'gautam', 'bhaskar'];
+        const orConditions = targetNames.map(name => ({
+            full_name: { contains: name, mode: 'insensitive' as const }
+        }));
+
+        // 1. Prioritize these specific users
+        const specificUsers = await prisma.users.findMany({
             where: {
-                is_verified: true,
-                gender: { not: null },
-                age: { not: null },
-                avatar_url: { not: null }
+                OR: orConditions,
+                // Ensure Archana is strictly filtered out
+                NOT: { full_name: { contains: 'archana', mode: 'insensitive' } }
             },
-            take: 20,
             include: { profiles: true },
-            orderBy: { created_at: 'desc' }
+            take: 10
         });
 
-        // Shuffle and take 10
-        const shuffled = users.sort(() => 0.5 - Math.random()).slice(0, 10);
+        // 2. Fill the rest with general verified, high-quality users if needed
+        const remainingCount = 10 - specificUsers.length;
+        let randomUsers: any[] = [];
+        if (remainingCount > 0) {
+            randomUsers = await prisma.users.findMany({
+                where: {
+                    is_verified: true,
+                    gender: { not: null },
+                    age: { not: null },
+                    avatar_url: { not: null },
+                    NOT: { full_name: { contains: 'archana', mode: 'insensitive' } },
+                    id: { notIn: specificUsers.map(u => u.id) }
+                },
+                take: remainingCount,
+                include: { profiles: true },
+                orderBy: { created_at: 'desc' }
+            });
+        }
+
+        const combinedUsers = [...specificUsers, ...randomUsers];
+
+        // Ensure randomize order so they don't look static
+        const shuffled = combinedUsers.sort(() => 0.5 - Math.random());
 
         const profiles = shuffled.map(user => {
             const meta = (user.profiles?.metadata as any) || {};
@@ -164,6 +189,7 @@ router.get('/public/featured', async (req, res) => {
                 age: user.age,
                 gender: user.gender,
                 photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
+                photos: meta.photos || [sanitizePhotoUrl(user.avatar_url, user.full_name || user.id)],
                 location: user.city ? `${user.city}, ${meta.location?.state || 'India'}` : "Hidden",
                 profession: meta.career?.profession || "Professional",
                 isVerified: true

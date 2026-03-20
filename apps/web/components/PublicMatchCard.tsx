@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface PublicMatchCardProps {
@@ -7,12 +8,33 @@ interface PublicMatchCardProps {
 }
 
 export default function PublicMatchCard({ match }: PublicMatchCardProps) {
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Photos Array (Fallback to single photo)
+    const photos = match.photos && match.photos.length > 0 ? match.photos : [match.photoUrl];
+
+    // Auto-Slide Effect (3s interval, pause on hover)
+    useEffect(() => {
+        if (photos.length <= 1 || isHovered) return;
+
+        const interval = setInterval(() => {
+            setCurrentPhotoIndex((prev: number) => (prev + 1) % photos.length);
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [photos.length, isHovered]);
+
     return (
-        <div className="group relative w-72 h-96 flex-shrink-0 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950">
+        <div 
+            className="group relative w-72 h-96 flex-shrink-0 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             {/* Background Image (Immersive) */}
             <div className="absolute inset-0">
                 <img
-                    src={match.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`}
+                    src={photos[currentPhotoIndex] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`}
                     alt={match.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="lazy"
@@ -22,6 +44,19 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`;
                     }}
                 />
+
+                {/* Photo Progress Bar (Card Style) */}
+                {photos.length > 1 && (
+                    <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 transition-opacity">
+                        {photos.map((_url: string, idx: number) => (
+                            <div key={idx} className="h-0.5 flex-1 bg-white/30 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full bg-white transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full' : 'w-0'}`}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Gradient Overlays */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />

@@ -311,3 +311,17 @@ html, body {
   0% { transform: translateX(-50%) translateY(0); }
   100% { transform: translateX(-50%) translateY(-3px); }
 }
+
+/* --- Public Match Marquee --- */
+@keyframes scrollCards {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-300px * var(--card-count, 10))); }
+}
+.animate-scroll-cards {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+}
+.animate-scroll-cards:hover {
+  animation-play-state: paused;
+}

@@ -137,6 +137,46 @@ router.get('/me', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Get Featured Public Profiles (For Landing Page)
+router.get('/public/featured', async (req, res) => {
+    try {
+        const users = await prisma.users.findMany({
+            where: {
+                is_verified: true,
+                gender: { not: null },
+                age: { not: null },
+                avatar_url: { not: null }
+            },
+            take: 20,
+            include: { profiles: true },
+            orderBy: { created_at: 'desc' }
+        });
+
+        // Shuffle and take 10
+        const shuffled = users.sort(() => 0.5 - Math.random()).slice(0, 10);
+
+        const profiles = shuffled.map(user => {
+            const meta = (user.profiles?.metadata as any) || {};
+            // Completely mask sensitive info
+            return {
+                id: user.id,
+                name: user.full_name?.split(' ')[0] || "User", // Only first name
+                age: user.age,
+                gender: user.gender,
+                photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
+                location: user.city ? `${user.city}, ${meta.location?.state || 'India'}` : "Hidden",
+                profession: meta.career?.profession || "Professional",
+                isVerified: true
+            };
+        });
+
+        res.json({ success: true, profiles });
+    } catch (e) {
+        console.error("Public Featured Error", e);
+        res.status(500).json({ error: "Failed to fetch public profiles" });
+    }
+});
+
 // Get Public Profile by ID
 router.get('/:id', authenticateOptional, async (req: any, res) => {
     try {

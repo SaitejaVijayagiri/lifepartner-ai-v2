@@ -57,6 +57,7 @@ export const api = {
         verifyOtp: (payload: { email: string, otp: string }) => fetchAPI('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
     },
     profile: {
+        getPublicFeatured: () => fetchAPI('/profile/public/featured'),
         updatePrompt: (payload: any) => fetchAPI('/profile/prompt', { method: 'POST', body: JSON.stringify(payload) }),
         getMe: () => fetchAPI('/profile/me'),
         updateProfile: (data: any) => fetchAPI('/profile/me', { method: 'PUT', body: JSON.stringify(data) }),

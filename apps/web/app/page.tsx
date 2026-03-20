@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, MessageCircle, ShieldCheck, Lock, Award, Gift, MapPin } from 'lucide-react';
@@ -7,8 +8,27 @@ import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 import AnimatedSearchSection from '@/components/AnimatedSearchSection';
+import PublicMatchCard from '@/components/PublicMatchCard';
+import { api } from '@/lib/api';
 
 export default function LandingPage() {
+  const [featuredProfiles, setFeaturedProfiles] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch public featured profiles for the marquee
+    const fetchProfiles = async () => {
+      try {
+        const res = await api.profile.getPublicFeatured();
+        if (res.success && res.profiles) {
+          setFeaturedProfiles(res.profiles);
+        }
+      } catch (err) {
+        console.error("Failed to fetch featured profiles", err);
+      }
+    };
+    fetchProfiles();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-900 relative scroll-smooth">
 
@@ -215,15 +235,39 @@ export default function LandingPage() {
 
       {/* --- INFINITE MARQUEE --- */}
       <section className="py-12 border-y border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 relative overflow-hidden z-20">
-        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-        <div className="flex w-[200%] animate-scroll">
+        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
+        
+        {/* We have two different scrolling blocks here: One for text tags and the new one for Public Profiles! */}
+        
+        {/* Tag Marquee */}
+        <div className="flex w-[200%] animate-scroll mb-10">
           {[...Array(10)].map((_, i) => (
             <div key={i} className="flex-shrink-0 mx-12 flex items-center gap-4 text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] text-sm hover:text-indigo-600 transition-colors cursor-default">
               <ShieldCheck size={18} /> Secure • Verified • Honest •
             </div>
           ))}
         </div>
+
+        {/* Profiles Marquee */}
+        {featuredProfiles.length > 0 && (
+          <div className="w-full relative overflow-hidden py-4">
+
+              
+              <div 
+                className="animate-scroll-cards"
+                style={{ 
+                  '--card-count': featuredProfiles.length,
+                  animation: `scrollCards ${Math.max(20, featuredProfiles.length * 6)}s linear infinite`
+                } as React.CSSProperties}
+              >
+                {/* Duplicate the list for seamless continuous loop */}
+                {[...featuredProfiles, ...featuredProfiles.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
+                  <PublicMatchCard key={`${profile.id}_${i}`} match={profile} />
+                ))}
+              </div>
+          </div>
+        )}
       </section>
 
       {/* --- MEET THE FOUNDER / TRUST SECTION --- */}

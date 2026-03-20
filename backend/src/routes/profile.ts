@@ -140,17 +140,23 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 // Get Featured Public Profiles (For Landing Page)
 router.get('/public/featured', async (req, res) => {
     try {
-        const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'sidham bhaskar', 'vimal', 'gautam', 'bhaskar'];
+        const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'vimal', 'gautam', 'sunny dharod', 'hamoudi', 'sunny'];
         const orConditions = targetNames.map(name => ({
             full_name: { contains: name, mode: 'insensitive' as const }
         }));
+
+        const excludeConditions = [
+            { full_name: { contains: 'archana', mode: 'insensitive' as const } },
+            { full_name: { contains: 'archna', mode: 'insensitive' as const } },
+            { full_name: { equals: 'sb', mode: 'insensitive' as const } },
+            { full_name: { contains: 'sidham', mode: 'insensitive' as const } }
+        ];
 
         // 1. Prioritize these specific users
         const specificUsers = await prisma.users.findMany({
             where: {
                 OR: orConditions,
-                // Ensure Archana is strictly filtered out
-                NOT: { full_name: { contains: 'archana', mode: 'insensitive' } }
+                NOT: { OR: excludeConditions }
             },
             include: { profiles: true },
             take: 10
@@ -166,7 +172,7 @@ router.get('/public/featured', async (req, res) => {
                     gender: { not: null },
                     age: { not: null },
                     avatar_url: { not: null },
-                    NOT: { full_name: { contains: 'archana', mode: 'insensitive' } },
+                    NOT: { OR: excludeConditions },
                     id: { notIn: specificUsers.map(u => u.id) }
                 },
                 take: remainingCount,

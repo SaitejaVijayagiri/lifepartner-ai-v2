@@ -355,7 +355,15 @@ router.post('/login', async (req, res) => {
         console.log(`✅ Login successful: ${email} (Admin: ${user.is_admin})`);
         const token = generateToken(user.id);
         setTokenCookie(res, token);
-        res.json({ token, userId: user.id, user: { id: user.id, name: user.full_name, is_admin: user.is_admin } });
+        
+        const requiresOnboarding = !user.gender || !user.age;
+        
+        res.json({ 
+            token, 
+            userId: user.id, 
+            user: { id: user.id, name: user.full_name, is_admin: user.is_admin },
+            requiresOnboarding 
+        });
 
     } catch (error: any) {
         console.error("❌ Login Error Details:", error);

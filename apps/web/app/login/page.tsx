@@ -45,7 +45,7 @@ export default function LoginPage() {
             if (res.token) {
                 localStorage.setItem('token', res.token);
             }
-            if (res.isNewUser) {
+            if (res.isNewUser || res.requiresOnboarding) {
                 router.replace('/onboarding');
             } else {
                 router.replace('/dashboard');

@@ -11,6 +11,7 @@ import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
 import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun } from 'lucide-react';
 
+import { Notifications } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
 import { NotificationBell } from '@/components/NotificationBell';
 import ProfileView from '@/components/ProfileView';
@@ -144,6 +145,9 @@ function DashboardContent() {
                     return;
                 }
                 setCurrentUser(profile);
+
+                // Initialize Native Push Notifications if on Capacitor Device
+                Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
 
                 // Matches - with stale-while-revalidate cache save
                 if (matchesResult.status === 'fulfilled') {

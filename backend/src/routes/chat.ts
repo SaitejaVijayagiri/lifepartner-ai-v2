@@ -61,29 +61,31 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     const cleanText = sanitizeContent(text);
 
     try {
-        // 1. Check for Block
-        // "SELECT 1 FROM public.blocks WHERE (blocker_id = $1 AND blocked_id = $2) OR (blocker_id = $2 AND blocked_id = $1)"
-        const block = await prisma.blocks.findFirst({
-            where: {
-                OR: [
-                    { blocker_id: senderId, blocked_id: connectionId },
-                    { blocker_id: connectionId, blocked_id: senderId }
-                ]
-            }
-        });
+        // Run Block Check and Message creation in parallel for speed
+        const [block, newMessageRecord] = await Promise.all([
+            prisma.blocks.findFirst({
+                where: {
+                    OR: [
+                        { blocker_id: senderId, blocked_id: connectionId },
+                        { blocker_id: connectionId, blocked_id: senderId }
+                    ]
+                }
+            }),
+            prisma.messages.create({
+                data: {
+                    sender_id: senderId,
+                    receiver_id: connectionId,
+                    content: cleanText,
+                    delivery_status: "sent"
+                }
+            })
+        ]);
 
         if (block) {
+            // Rollback message creation if blocked
+            await prisma.messages.delete({ where: { id: newMessageRecord.id } });
             return res.status(403).json({ error: "You cannot message this user." });
         }
-
-        const newMessageRecord = await prisma.messages.create({
-            data: {
-                sender_id: senderId,
-                receiver_id: connectionId,
-                content: cleanText,
-                delivery_status: "sent"
-            }
-        });
 
         const newMessage = {
             id: newMessageRecord.id,

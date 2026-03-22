@@ -11,24 +11,27 @@ import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
 import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun } from 'lucide-react';
 
-/* Components */
-import MatchCard from '@/components/MatchCard';
-import KundliModal from '@/components/KundliModal';
-
-import StoryModal from '@/components/StoryModal';
+import dynamic from 'next/dynamic';
 import { NotificationBell } from '@/components/NotificationBell';
-import ProfileEditor from '@/components/ProfileEditor';
-import ProfileModal from '@/components/ProfileModal';
 import ProfileView from '@/components/ProfileView';
-import ChatWindow from '@/components/ChatWindow';
-import CoinStoreModal from '@/components/CoinStoreModal';
 import { useToast } from '@/components/ui/Toast';
-import FilterModal, { FilterState } from '@/components/FilterModal';
-import GiftModal from '@/components/GiftModal';
-import CommunityChat from '@/components/CommunityChat';
+import { FilterState } from '@/components/FilterModal';
 import { BottomNav } from '@/components/BottomNav';
 import InteractiveMap from '@/components/InteractiveMap';
 
+// Performance: Lazy-load heavy components that aren't needed on first paint
+const MatchCard = dynamic(() => import('@/components/MatchCard'));
+const KundliModal = dynamic(() => import('@/components/KundliModal'));
+const StoryModal = dynamic(() => import('@/components/StoryModal'));
+const ProfileEditor = dynamic(() => import('@/components/ProfileEditor'));
+const ProfileModal = dynamic(() => import('@/components/ProfileModal'));
+const ChatWindow = dynamic(() => import('@/components/ChatWindow'), { ssr: false });
+const CoinStoreModal = dynamic(() => import('@/components/CoinStoreModal'));
+const FilterModal = dynamic(() => import('@/components/FilterModal'), { ssr: false });
+const GiftModal = dynamic(() => import('@/components/GiftModal'));
+const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
+
+// Duplicate InteractiveMap removed
 /* Mock Data for Stories */
 const STORIES = [
     { id: '1', user: 'Ananya', img: 'https://i.pravatar.cc/150?u=1' },
@@ -97,6 +100,21 @@ function DashboardContent() {
                 return;
             }
 
+            // PERF: Instant paint from localStorage cache before network waterfall
+            try {
+                const cachedMatchesStr = localStorage.getItem('matches_cache_v2');
+                if (cachedMatchesStr) {
+                    const { data, ts } = JSON.parse(cachedMatchesStr);
+                    // 2 minute TTL for client cache, then fallback to loading state
+                    if (Date.now() - ts < 120000) {
+                        setMatches(data);
+                        setLoading(false);
+                    }
+                }
+            } catch (e) {
+                // Ignore parse errors
+            }
+
             // PERF: Fire profile check + matches + counts all in parallel
             try {
                 const [profileResult, matchesResult, countsResult] = await Promise.allSettled([
@@ -127,9 +145,13 @@ function DashboardContent() {
                 }
                 setCurrentUser(profile);
 
-                // Matches
+                // Matches - with stale-while-revalidate cache save
                 if (matchesResult.status === 'fulfilled') {
-                    setMatches(matchesResult.value?.matches || []);
+                    const freshMatches = matchesResult.value?.matches || [];
+                    setMatches(freshMatches);
+                    try {
+                        localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
+                    } catch (e) {}
                 }
                 setLoading(false);
 

@@ -316,6 +316,12 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
+        // Check Cache
+        const cached = matchCache.get(userId);
+        if (cached && cached.expiresAt > Date.now()) {
+            return res.json({ matches: cached.data });
+        }
+
         // 1. Get Me
         const me = await prisma.users.findUnique({
             where: { id: userId },
@@ -506,6 +512,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         }));
 
         matches.sort((a, b) => b.score - a.score);
+
+        // Save to in-memory Cache
+        matchCache.set(userId, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });
 
         res.json({ matches });
 

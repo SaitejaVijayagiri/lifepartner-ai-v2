@@ -52,8 +52,6 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
     const [filters, setFilters] = useState<FilterState>(initialFilters || DEFAULT_FILTERS);
     const [expandedSections, setExpandedSections] = useState<string[]>(['age', 'religion']);
 
-    if (!isOpen) return null;
-
     const toggleSection = (section: string) => {
         setExpandedSections(prev =>
             prev.includes(section)
@@ -105,11 +103,16 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
 
     return (
         <div
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300"
-            onClick={onClose}
+            className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         >
+            {/* Backdrop */}
+            <div 
+                className={`absolute inset-0 bg-black/70 backdrop-blur-md transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0'}`} 
+                onClick={onClose} 
+            />
+
             <div
-                className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300"
+                className={`bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[85vh] transition-all duration-300 z-10 ${isOpen ? 'scale-100 translate-y-0 opacity-100' : 'scale-95 translate-y-4 opacity-0'}`}
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Share2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -20,7 +20,7 @@ interface MatchCardProps {
     currentUserName?: string; // For Kundli
 }
 
-export default function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift }: MatchCardProps) {
+const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift }: MatchCardProps) {
     // Independent States
     const { onlineUsers } = useSocket();
     const isUserOnline = match.isOnline || onlineUsers.includes(match.id);
@@ -353,4 +353,6 @@ export default function MatchCard({ match, onConnect, onViewProfile, onStoryClic
             </div>
         </div>
     );
-}
+});
+
+export default MatchCard;

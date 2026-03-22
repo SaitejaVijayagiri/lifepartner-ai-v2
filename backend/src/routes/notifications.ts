@@ -37,7 +37,31 @@ router.post('/register', authenticateToken, async (req: any, res) => {
     }
 });
 
-// 2. Test Push (Admin Only)
+// 2. Status Check (Admin: Firebase initialization + device token debug)
+router.get('/status', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true } });
+        const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
+        if (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai')) {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+
+        const tokenCount = await prisma.device_tokens.count();
+        const myTokens = await prisma.device_tokens.findMany({ where: { user_id: userId } });
+
+        res.json({
+            firebaseInitialized: notificationService.isReady(),
+            hasFirebaseEnvVar: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+            totalDeviceTokens: tokenCount,
+            myTokens: myTokens.map((t: any) => ({ platform: t.platform, tokenPrefix: t.token.substring(0, 20) + '...' }))
+        });
+    } catch (e) {
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
+// 3. Test Push (Admin Only)
 router.post('/test', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;

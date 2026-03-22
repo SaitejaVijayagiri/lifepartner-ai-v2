@@ -62,6 +62,10 @@ export class NotificationService {
         return NotificationService.instance;
     }
 
+    public isReady(): boolean {
+        return this.initialized;
+    }
+
     public async sendvalidate(token: string): Promise<boolean> {
         if (!this.initialized) return false;
         try {

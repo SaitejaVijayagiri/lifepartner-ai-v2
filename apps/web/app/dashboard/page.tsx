@@ -85,6 +85,47 @@ function DashboardContent() {
     /* Gift State */
     const [giftData, setGiftData] = useState<{ userId: string, userName: string } | null>(null);
 
+    /* Push Notification Toggle State */
+    const [pushEnabled, setPushEnabled] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('push_notifications_enabled') !== 'false';
+        }
+        return true;
+    });
+
+    const togglePushNotifications = async () => {
+        const newState = !pushEnabled;
+        setPushEnabled(newState);
+        localStorage.setItem('push_notifications_enabled', String(newState));
+        if (newState) {
+            // Re-enable: re-initialize and register push notifications
+            try {
+                await Notifications.init();
+                await Notifications.setupListeners();
+                toast.success('Push notifications enabled!');
+            } catch (e) {
+                toast.error('Could not enable notifications.');
+                setPushEnabled(false);
+                localStorage.setItem('push_notifications_enabled', 'false');
+            }
+        } else {
+            // Disable: remove (clear) the device token from the backend
+            try {
+                const token = localStorage.getItem('device_token');
+                if (token) {
+                    await fetch('/api/notifications/unregister', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                        body: JSON.stringify({ token })
+                    });
+                }
+                toast.success('Push notifications disabled.');
+            } catch (e) {
+                console.error('Failed to unregister token', e);
+            }
+        }
+    };
+
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
     const { startCall } = useCall();
@@ -1398,6 +1439,32 @@ function DashboardContent() {
                                         <div className="text-center">
                                             <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Free Coins</div>
                                             <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Refer Friend</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Push Notifications Toggle Card */}
+                                    <div
+                                        onClick={togglePushNotifications}
+                                        className={`p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2 ${
+                                            pushEnabled
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300'
+                                                : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                                        }`}
+                                    >
+                                        <div className={`p-2 rounded-full transition-colors ${
+                                            pushEnabled
+                                                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                                        }`}>
+                                            <Bell size={20} />
+                                        </div>
+                                        <div className="text-center">
+                                            <div className={`font-bold text-sm ${
+                                                pushEnabled ? 'text-blue-900 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                                            }`}>{pushEnabled ? 'Notifs On' : 'Notifs Off'}</div>
+                                            <div className={`text-[10px] ${
+                                                pushEnabled ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
+                                            }`}>{pushEnabled ? 'Tap to disable' : 'Tap to enable'}</div>
                                         </div>
                                     </div>
 

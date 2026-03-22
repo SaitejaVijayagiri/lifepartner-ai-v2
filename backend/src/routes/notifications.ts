@@ -106,7 +106,26 @@ router.put('/:id/read', authenticateToken, async (req: any, res) => {
     }
 });
 
-// 5. Mark All Read
+// 5. Unregister Token (disable push notifications)
+router.delete('/unregister', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { token } = req.body;
+
+        if (!token) return res.status(400).json({ error: "Token required" });
+
+        await prisma.device_tokens.deleteMany({
+            where: { user_id: userId, token }
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Token Unregister Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
+// 6. Mark All Read
 router.put('/read-all', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;

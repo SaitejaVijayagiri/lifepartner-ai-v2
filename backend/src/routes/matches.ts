@@ -347,8 +347,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         else if (myGender === 'female') genderClause = `AND LOWER(gender) = 'male'`;
 
         const randomCandidates: { id: string }[] = await prisma.$queryRawUnsafe(`
-            SELECT id FROM users TABLESAMPLE SYSTEM(30)
+            SELECT id FROM users
             WHERE id != '${userId}' AND is_verified = true ${genderClause}
+            ORDER BY RANDOM()
             LIMIT 50
         `);
 

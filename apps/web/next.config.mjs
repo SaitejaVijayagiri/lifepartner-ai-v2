@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isCapacitor = process.env.CAPACITOR_BUILD === 'true';
+
 const nextConfig = {
     typescript: {
         ignoreBuildErrors: true,
@@ -20,32 +22,35 @@ const nextConfig = {
         ],
         unoptimized: true,
     },
-    output: 'standalone',
-    async headers() {
-        return [
-            {
-                source: '/(.*)',
-                headers: [
-                    {
-                        key: 'Access-Control-Allow-Origin',
-                        value: '*',
-                    },
-                ],
-            },
-        ];
-    },
-    async rewrites() {
-        return [
-            {
-                source: '/api/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
-            },
-            {
-                source: '/socket.io/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/socket.io/:path*`,
-            },
-        ];
-    },
+    output: isCapacitor ? 'export' : 'standalone',
+
+    ...(isCapacitor ? {} : {
+        async headers() {
+            return [
+                {
+                    source: '/(.*)',
+                    headers: [
+                        {
+                            key: 'Access-Control-Allow-Origin',
+                            value: '*',
+                        },
+                    ],
+                },
+            ];
+        },
+        async rewrites() {
+            return [
+                {
+                    source: '/api/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
+                },
+                {
+                    source: '/socket.io/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/socket.io/:path*`,
+                },
+            ];
+        }
+    })
 };
 
 export default nextConfig;

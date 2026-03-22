@@ -6,34 +6,52 @@ export class NotificationService {
     private static instance: NotificationService;
     private initialized = false;
 
+
     private constructor() {
         try {
-            // Check for service account file
-            // User needs to place 'firebase-service-account.json' in backend root
-            const serviceAccountPath = path.resolve(__dirname, '../../firebase-service-account.json');
-
-            // Or use env var
+            // Priority 1: Environment variable (works everywhere)
             if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-                admin.initializeApp({
-                    credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT))
-                });
-                this.initialized = true;
-                console.log("Firebase Admin Initialized (Env Var)");
-            } else {
-                // Try file
-                const fs = require('fs');
-                if (fs.existsSync(serviceAccountPath)) {
+                console.log("Firebase: Found FIREBASE_SERVICE_ACCOUNT env var, initializing...");
+                try {
+                    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
                     admin.initializeApp({
-                        credential: admin.credential.cert(require(serviceAccountPath))
+                        credential: admin.credential.cert(serviceAccount)
                     });
                     this.initialized = true;
-                    console.log("Firebase Admin Initialized (File)");
-                } else {
-                    console.warn("Push Notifications skipped: No firebase-service-account.json found.");
+                    console.log("Firebase Admin Initialized (Env Var) ✓");
+                } catch (parseErr) {
+                    console.error("Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT env var:", parseErr);
+                }
+            } else {
+                // Priority 2: Check multiple file locations
+                const fs = require('fs');
+                const possiblePaths = [
+                    '/etc/secrets/firebase-service-account.json', // Render Secret Files
+                    path.resolve(__dirname, '../../firebase-service-account.json'), // Local dev relative to dist/
+                    path.resolve(process.cwd(), 'firebase-service-account.json'), // CWD (fallback)
+                ];
+
+                console.log("Firebase: No env var found, checking file paths...");
+                let found = false;
+                for (const p of possiblePaths) {
+                    console.log(`Firebase: Checking ${p} ...`);
+                    if (fs.existsSync(p)) {
+                        console.log(`Firebase: Found file at ${p}`);
+                        admin.initializeApp({
+                            credential: admin.credential.cert(JSON.parse(fs.readFileSync(p, 'utf8')))
+                        });
+                        this.initialized = true;
+                        console.log(`Firebase Admin Initialized (File: ${p}) ✓`);
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    console.warn("Push Notifications DISABLED: No firebase-service-account.json found in any path, and no FIREBASE_SERVICE_ACCOUNT env var set.");
                 }
             }
         } catch (e) {
-            console.error("Firebase Init Failed", e);
+            console.error("Firebase Init Failed:", e);
         }
     }
 

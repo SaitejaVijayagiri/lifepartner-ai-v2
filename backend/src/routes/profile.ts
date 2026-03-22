@@ -346,20 +346,23 @@ router.put('/me', authenticateToken, async (req: any, res) => {
 
         let finalPhotos = photos || [];
         if (Array.isArray(finalPhotos)) {
-            // Use sequential loop for moderation stability
-            const processedPhotos = [];
-            for (const p of finalPhotos) {
-                if (ImageOptimizer.isBase64(p)) {
-                    const modResult = await ModerationService.validateProfilePhoto(p);
-                    if (!modResult.isValid) {
-                        return res.status(400).json({ error: modResult.reason });
+            // Cap to 5 photos to prevent payload abuse on onboarding
+            const photosToProcess = finalPhotos.slice(0, 5);
+
+            // Run moderation + upload IN PARALLEL for speed (was sequential)
+            const results = await Promise.all(
+                photosToProcess.map(async (p: string) => {
+                    if (ImageOptimizer.isBase64(p)) {
+                        const modResult = await ModerationService.validateProfilePhoto(p);
+                        if (!modResult.isValid) {
+                            throw Object.assign(new Error(modResult.reason), { status: 400 });
+                        }
+                        return await uploadOptimizedImage(p, userId);
                     }
-                    processedPhotos.push(await uploadOptimizedImage(p, userId));
-                } else {
-                    processedPhotos.push(p);
-                }
-            }
-            finalPhotos = processedPhotos;
+                    return p;
+                })
+            );
+            finalPhotos = results;
         }
 
         // REVENUE PROTECTION: Sanitize Inputs
@@ -409,16 +412,19 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         }
 
         // 1.5 Auto-Geocode city → lat/lng if not already provided via GPS
-        // This ensures every user with a typed city shows up on the Live Map
         if (location && location.city && !location.lat && !location.lng) {
             try {
                 const { LocationService } = require('../services/location');
                 const cityQuery = [location.city, location.district, location.state].filter(Boolean).join(', ');
-                const coords = await LocationService.geocodeCity(cityQuery);
+                // Add 5s timeout to prevent geocode hanging the whole save
+                const coords = await Promise.race([
+                    LocationService.geocodeCity(cityQuery),
+                    new Promise(resolve => setTimeout(() => resolve(null), 5000))
+                ]);
                 if (coords) {
-                    location.lat = coords.lat;
-                    location.lng = coords.lng;
-                    console.log(`🗺️ Auto-geocoded "${cityQuery}" → ${coords.lat}, ${coords.lng}`);
+                    location.lat = (coords as any).lat;
+                    location.lng = (coords as any).lng;
+                    console.log(`🗺️ Auto-geocoded "${cityQuery}" → ${(coords as any).lat}, ${(coords as any).lng}`);
                 }
             } catch (e) {
                 console.error('Auto-geocode failed (non-blocking):', e);
@@ -434,10 +440,15 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             location?.city
         ].filter(Boolean).join(" ");
 
+        // SPEED OPTIMIZATION: Skip embedding if there's no meaningful text
+        // This avoids cold-starting the AI service on every basic profile update
         let bioVector: number[] = [];
-        if (bioTextToEmbed.length > 5) {
+        if (bioTextToEmbed.length > 20) {
             try {
-                bioVector = await aiService.generateEmbedding(bioTextToEmbed);
+                // 8-second timeout so embedding never blocks the save
+                const embeddingPromise = aiService.generateEmbedding(bioTextToEmbed);
+                const timeoutPromise = new Promise<number[]>(resolve => setTimeout(() => resolve([]), 8000));
+                bioVector = await Promise.race([embeddingPromise, timeoutPromise]);
             } catch (e) {
                 console.error("Failed to generate embedding before tx", e);
             }

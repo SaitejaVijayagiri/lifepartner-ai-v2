@@ -90,44 +90,45 @@ function RegisterForm() {
         }
     };
 
+    const [slowRequest, setSlowRequest] = useState(false);
+
     const handleRegister = async () => {
         try {
             if (!form.full_name || !form.email || !form.password) {
                 toast.error('Please fill in all fields.');
                 return;
             }
-            // Client-side email format check
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(form.email.trim())) {
                 toast.error('Please enter a valid email address.');
                 return;
             }
-            // Password strength check
             if (form.password.trim().length < 8) {
                 toast.error('Password must be at least 8 characters.');
                 return;
             }
             setLoading(true);
-            const res = await api.auth.register({ ...form, email: form.email.trim().toLowerCase(), password: form.password.trim() });
-
-            if (res.requiresVerification) {
-                localStorage.setItem('pendingVerificationEmail', form.email);
-                setShowOtp(true);
-            } else if (res.token) {
-                // Fallback for old flow
-                // Token is now secured via HttpOnly Cookie + Fallback localStorage token
-                localStorage.setItem('userId', res.userId);
-                localStorage.setItem('token', res.token);
-                router.replace('/onboarding');
+            // Show 'slow' hint after 6s — common on Render free tier cold starts
+            const slowTimer = setTimeout(() => setSlowRequest(true), 6000);
+            try {
+                const res = await api.auth.register({ ...form, email: form.email.trim().toLowerCase(), password: form.password.trim() });
+                if (res.requiresVerification) {
+                    localStorage.setItem('pendingVerificationEmail', form.email);
+                    setShowOtp(true);
+                } else if (res.token) {
+                    localStorage.setItem('userId', res.userId);
+                    localStorage.setItem('token', res.token);
+                    router.replace('/onboarding');
+                }
+            } finally {
+                clearTimeout(slowTimer);
+                setSlowRequest(false);
             }
         } catch (err: any) {
             console.error("Registration Error", err);
-            // Show more detailed error text
             const errorMsg = err.message || "Registration failed. Please check your network or try again.";
-
-            // Check for specific backend errors (e.g. duplicate user)
             if (errorMsg.includes("User already exists")) {
-                toast.error("An account with this email or phone number already exists.");
+                toast.error("An account with this email already exists.");
             } else {
                 toast.error(errorMsg);
             }
@@ -142,13 +143,19 @@ function RegisterForm() {
             const res = await api.auth.verifyOtp({ email: form.email, otp });
             if (res.token) {
                 localStorage.removeItem('pendingVerificationEmail');
-                // Token is now secured via HttpOnly Cookie + Fallback localStorage token
                 localStorage.setItem('userId', res.userId);
                 localStorage.setItem('token', res.token);
                 router.replace('/onboarding');
             }
         } catch (err: any) {
-            toast.error('Invalid OTP');
+            const msg = err?.message || '';
+            if (msg.toLowerCase().includes('expired')) {
+                toast.error('OTP has expired. Please request a new code.');
+            } else if (msg.toLowerCase().includes('not found')) {
+                toast.error('Email not found. Please go back and register again.');
+            } else {
+                toast.error('Invalid OTP. Please check the code and try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -373,7 +380,12 @@ function RegisterForm() {
                         onClick={handleRegister}
                         disabled={loading}
                     >
-                        {loading ? 'Creating Profile...' : 'Sign Up Free'}
+                        {loading ? (
+                            <span className="flex items-center gap-2 justify-center">
+                                <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+                                {slowRequest ? 'Server waking up… almost there' : 'Creating Profile...'}
+                            </span>
+                        ) : 'Sign Up Free'}
                     </Button>
 
                     <div className="relative flex py-2 items-center">

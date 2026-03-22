@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -91,46 +91,68 @@ function DashboardContent() {
 
     useEffect(() => {
         const checkAuth = async () => {
-            // Basic Auth Check
             const userId = localStorage.getItem('userId');
             if (!userId) {
                 router.push('/login');
                 return;
             }
 
-            // Check if profile is complete (has photos or key data)
+            // PERF: Fire profile check + matches + counts all in parallel
             try {
-                const profile = await api.profile.getMe();
-                // If profile is incomplete, redirect to onboarding
-                // strictly enforce age and gender to catch Google OAuth bypassers
+                const [profileResult, matchesResult, countsResult] = await Promise.allSettled([
+                    api.profile.getMe(),
+                    api.matches.getAll(),
+                    api.interactions.getCounts()
+                ]);
+
+                // Handle profile
+                if (profileResult.status === 'rejected') {
+                    const err = profileResult.reason;
+                    const msg = err?.message || '';
+                    if (msg.includes('401') || msg.includes('session') || msg.includes('404') || msg.includes('not found')) {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('userId');
+                        localStorage.removeItem('user');
+                        router.push('/login');
+                    } else {
+                        router.push('/onboarding');
+                    }
+                    return;
+                }
+
+                const profile = profileResult.value;
                 if (!profile || (!profile.photos?.length && !profile.photoUrl) || !profile.name || !profile.age || !profile.gender) {
-                    console.log("Profile incomplete, redirecting to onboarding...", profile);
                     router.push('/onboarding');
                     return;
                 }
                 setCurrentUser(profile);
-            } catch (err: any) {
-                // If profile fetch fails (404, 500, or 401), wipe stale state
-                console.error('Profile check failed', err);
-                if (err?.message?.includes('401') || err?.message?.includes('session') || err?.message?.includes('404') || err?.message?.includes('not found')) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('userId');
-                    localStorage.removeItem('user');
-                    router.push('/login');
-                } else {
-                    // It's likely a network error or generic error, allow retry or fallback to onboarding if truly new
-                    router.push('/onboarding');
-                }
-                return;
-            }
 
-            fetchMatches();
-            refreshCounts();
-            // Fast count fetch for badge
-            api.interactions.getUnreadCount().then(res => setUnreadMessageCount(res.count)).catch(console.error);
+                // Matches
+                if (matchesResult.status === 'fulfilled') {
+                    setMatches(matchesResult.value?.matches || []);
+                }
+                setLoading(false);
+
+                // Counts (requests badge + unread messages badge)
+                if (countsResult.status === 'fulfilled') {
+                    setRequestsCount(countsResult.value?.requestCount || 0);
+                    setUnreadMessageCount(countsResult.value?.unreadMessages || 0);
+                }
+
+                // Lazy-load secondary data (who liked me, visitors) after render
+                setTimeout(() => {
+                    api.interactions.whoLikedMe().then(setWhoLikedMe).catch(() => {});
+                    api.interactions.getVisitors().then(setVisitorsData).catch(() => {});
+                }, 800);
+
+            } catch (err: any) {
+                console.error('Auth/init error', err);
+                router.push('/login');
+            }
         };
         checkAuth();
     }, [router]);
+
 
     // Check for Payment Return & Actions
     useEffect(() => {
@@ -176,10 +198,19 @@ function DashboardContent() {
         { id: 'profile', label: 'Profile', icon: User },
     ];
 
-    // Fetch data based on active tab
+    // Fetch data based on active tab — guard against repeated re-fetches on tab switch
+    const hasFetchedRequests = useRef(false);
+    const hasFetchedConnections = useRef(false);
+
     useEffect(() => {
-        if (activeTab === 'requests') fetchRequests();
-        if (activeTab === 'connections') fetchConnections();
+        if (activeTab === 'requests' && !hasFetchedRequests.current) {
+            hasFetchedRequests.current = true;
+            fetchRequests();
+        }
+        if (activeTab === 'connections' && !hasFetchedConnections.current) {
+            hasFetchedConnections.current = true;
+            fetchConnections();
+        }
         if (activeTab === 'map' && mapProfiles.length === 0) fetchMapProfiles();
     }, [activeTab]);
 

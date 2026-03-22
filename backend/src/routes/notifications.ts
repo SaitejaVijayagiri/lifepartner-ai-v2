@@ -68,24 +68,16 @@ router.get('/', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
+        // Single query — fetch notifications and derive unread count in one shot
         const notifications = await prisma.notifications.findMany({
             where: { user_id: userId },
             orderBy: { created_at: 'desc' },
             take: 50
         });
 
-        // Count unread
-        const unreadCount = await prisma.notifications.count({
-            where: {
-                user_id: userId,
-                is_read: false // Schema Default false
-            }
-        });
+        const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
-        res.json({
-            notifications,
-            unreadCount
-        });
+        res.json({ notifications, unreadCount });
     } catch (e) {
         console.error("Get Notifications Error", e);
         res.status(500).json({ error: "Failed" });

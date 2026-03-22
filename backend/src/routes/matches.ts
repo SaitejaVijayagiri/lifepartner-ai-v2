@@ -1,6 +1,5 @@
 
 import express from 'express';
-// import { pool } from '../db'; // Removing pool
 import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
@@ -9,6 +8,10 @@ import { isUserOnline } from '../socket';
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
+
+// In-memory match cache: userId -> { data, expiresAt }
+const matchCache = new Map<string, { data: any; expiresAt: number }>();
+const MATCH_CACHE_TTL = 60 * 1000; // 60 seconds
 
 // Helper: Sanitize avatar_url — base64 data URIs fail on mobile; Supabase is DNS-blocked in India.
 // Route all Supabase URLs through our Render-based image proxy to bypass India ISP block.
@@ -340,52 +343,44 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const randomCandidates: { id: string }[] = await prisma.$queryRawUnsafe(`
             SELECT id FROM users
             WHERE id != '${userId}' AND is_verified = true ${genderClause}
-            ORDER BY RANDOM()
+            TABLESAMPLE SYSTEM(30)
             LIMIT 50
         `);
 
         // Step B: Extract IDs
         const shuffledIds = randomCandidates.map(c => c.id);
 
-        // Step C: Fetch Full Details for Selected IDs
-        const candidates = await prisma.users.findMany({
-            where: {
-                id: { in: shuffledIds }
-            },
-            include: {
-                profiles: true,
-                matches_matches_user_b_idTousers: {
-                    where: { user_a_id: userId },
-                    select: { status: true, is_liked: true }
-                },
-                _count: {
-                    select: {
-                        matches_matches_user_b_idTousers: { where: { is_liked: true } }
+        // Parallelise candidates + gift stats fetches
+        const [shuffledCandidates, giftStatsRaw] = await Promise.all([
+            prisma.users.findMany({
+                where: { id: { in: shuffledIds } },
+                include: {
+                    profiles: true,
+                    matches_matches_user_b_idTousers: {
+                        where: { user_a_id: userId },
+                        select: { status: true, is_liked: true }
+                    },
+                    _count: {
+                        select: {
+                            matches_matches_user_b_idTousers: { where: { is_liked: true } }
+                        }
                     }
                 }
-            }
-        });
-
-        // Shuffle in memory for "Random" effect
-        const shuffledCandidates = candidates.sort(() => 0.5 - Math.random());
-        const candidateIds = shuffledCandidates.map(c => c.id);
-
-        let giftMap = new Map<string, number>();
-        if (candidateIds.length > 0) {
-            try {
-                const giftStats: any[] = await prisma.$queryRaw`
-                    SELECT metadata->>'toUserId' as user_id, COUNT(*)::int as count 
-                    FROM transactions 
-                    WHERE type = 'SPEND' 
+            }),
+            shuffledIds.length > 0
+                ? prisma.$queryRaw<any[]>`
+                    SELECT metadata->>'toUserId' as user_id, COUNT(*)::int as count
+                    FROM transactions
+                    WHERE type = 'SPEND'
                     AND description LIKE 'Sent Gift%'
-                    AND metadata->>'toUserId' IN (${Prisma.join(candidateIds)})
+                    AND metadata->>'toUserId' IN (${Prisma.join(shuffledIds)})
                     GROUP BY metadata->>'toUserId'
-                `;
-                giftStats.forEach(g => giftMap.set(g.user_id, Number(g.count)));
-            } catch (e) {
-                console.error("Gift Stats Error", e);
-            }
-        }
+                `.catch(() => [])
+                : Promise.resolve([])
+        ]);
+
+        const giftMap = new Map<string, number>();
+        (giftStatsRaw as any[]).forEach((g: any) => giftMap.set(g.user_id, Number(g.count)));
 
         const userPrompt = (me.profiles?.raw_prompt || "").toLowerCase();
 

@@ -119,6 +119,28 @@ router.get('/unread-count', authenticateToken, async (req: any, res) => {
     }
 });
 
+// GET /counts — single fast endpoint for all badge counts on dashboard load
+// Replaces: getRequests() (just for count) + getUnreadCount() separately
+router.get('/counts', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const [requestCount, unreadMessages] = await Promise.all([
+            prisma.interactions.count({
+                where: { to_user_id: userId, type: 'REQUEST', status: 'pending' }
+            }),
+            prisma.messages.count({
+                where: { receiver_id: userId, NOT: { delivery_status: 'read' } }
+            })
+        ]);
+
+        res.json({ requestCount, unreadMessages });
+    } catch (e) {
+        console.error("Counts Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 // Get Connections (Accepted Interactions)
 router.get('/connections', authenticateToken, async (req: any, res) => {
     try {

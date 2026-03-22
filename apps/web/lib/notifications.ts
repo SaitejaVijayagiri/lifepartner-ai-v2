@@ -17,10 +17,10 @@ export const Notifications = {
                 // 2. Register
                 await PushNotifications.register();
             } else {
-                console.warn("Push Notifications: Permission denied");
+                alert("Push Permissions Denied by User/System.");
             }
-        } catch (e) {
-            console.error("Push Init Error", e);
+        } catch (e: any) {
+            alert("Push Init Error: " + (e.message || String(e)));
         }
     },
 
@@ -29,18 +29,17 @@ export const Notifications = {
 
         // On Registration Success
         PushNotifications.addListener('registration', (token) => {
-            console.log('Push Registration Success:', token.value);
-            // Save token locally for later unregistering
+            // alert('Push Registered! Token: ' + token.value.substring(0, 15) + '...');
+            
             localStorage.setItem('device_token', token.value);
             // Send to Backend
             api.notifications.register(token.value, Capacitor.getPlatform())
-                .then(() => console.log('Device token registered with backend'))
-                .catch((e) => console.error('Failed to register token with backend', e));
+                .catch((e) => alert('Backend Token Save Failed: ' + String(e)));
         });
 
         // On Registration Error
-        PushNotifications.addListener('registrationError', (error) => {
-            console.error('Push Registration Error:', error);
+        PushNotifications.addListener('registrationError', (error: any) => {
+            alert('Push Registration Error (Google Play Services): ' + (error.error || String(error)));
         });
 
         // On Receive (Foreground)

@@ -11,6 +11,10 @@ export const Notifications = {
         }
 
         try {
+            if (!Capacitor.isPluginAvailable('PushNotifications')) {
+                alert(`CRITICAL FATAL: Push Native Bridge is missing! Capacitor sees this as: ${Capacitor.getPlatform()}. Did you sync gradle in Android Studio?`);
+                return;
+            }
             // 1. Request Permissions
             const result = await PushNotifications.requestPermissions();
             if (result.receive === 'granted') {

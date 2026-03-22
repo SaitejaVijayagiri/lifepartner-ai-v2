@@ -29,9 +29,13 @@ export const Notifications = {
 
         // On Registration Success
         PushNotifications.addListener('registration', (token) => {
-            // console.log('Push Registration Success:', token.value);
+            console.log('Push Registration Success:', token.value);
+            // Save token locally for later unregistering
+            localStorage.setItem('device_token', token.value);
             // Send to Backend
-            api.notifications.register(token.value, Capacitor.getPlatform());
+            api.notifications.register(token.value, Capacitor.getPlatform())
+                .then(() => console.log('Device token registered with backend'))
+                .catch((e) => console.error('Failed to register token with backend', e));
         });
 
         // On Registration Error

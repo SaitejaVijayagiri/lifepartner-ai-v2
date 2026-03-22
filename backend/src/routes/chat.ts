@@ -105,6 +105,25 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             // Don't fail the request if socket fails, just log it.
         }
 
+        // Send Push Notification
+        try {
+            const senderProfile = await prisma.users.findUnique({
+                where: { id: senderId },
+                select: { full_name: true }
+            });
+            const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
+
+            const { NotificationService } = require('../services/notification');
+            await NotificationService.getInstance().sendToUser(
+                connectionId,
+                `New message from ${senderName}`,
+                cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
+                { url: `/dashboard?tab=connections&chatId=${senderId}` }
+            );
+        } catch (pushErr) {
+            console.error("Chat Push Notification Error", pushErr);
+        }
+
         res.json({ success: true, message: newMessage });
 
     } catch (e) {

@@ -176,11 +176,16 @@ function DashboardContent() {
     }, [router]);
 
 
-    // Check for Payment Return & Actions
+    // Check for Deep Links, Payment Return & Actions
     useEffect(() => {
         // Use hook for reactivity
         const orderId = searchParams.get('order_id');
         const action = searchParams.get('action');
+        const tab = searchParams.get('tab');
+        const chatId = searchParams.get('chatId');
+
+        if (tab) setActiveTab(tab);
+        if (chatId) setActiveTab('connections');
 
         if (action === 'open_premium') {
             setInitialStoreTab('premium');
@@ -300,6 +305,20 @@ function DashboardContent() {
             // Calculate total unread
             const totalUnread = data.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
             setUnreadMessageCount(totalUnread);
+
+            // Handle Push Notification Deep Link
+            const urlChatId = searchParams.get('chatId');
+            if (urlChatId) {
+                const connToOpen = data.find((c: any) => c.partner?.id === urlChatId);
+                if (connToOpen) {
+                    setSelectedConnection(connToOpen);
+                    // Clean URL
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.delete('chatId');
+                    newUrl.searchParams.delete('tab');
+                    window.history.replaceState({}, '', newUrl.toString());
+                }
+            }
         } catch (e: any) {
             console.error('fetchConnections error:', e);
             toast.error(`Failed to load connections: ${e.message || 'Network error — check if backend is running'}`);

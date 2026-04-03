@@ -20,6 +20,7 @@ import com.google.firebase.messaging.RemoteMessage;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -109,7 +110,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private Bitmap getBitmapFromURL(String src) {
         try {
-            URL url = new URL(src);
+            URL url = new URI(src).toURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setDoInput(true);
             connection.connect();
@@ -215,7 +216,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private void sendTokenToBackend(final String token, final String authToken) {
         new Thread(() -> {
             try {
-                URL url = new URL(API_BASE + "/notifications/register");
+                URL url = new URI(API_BASE + "/notifications/register").toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
@@ -254,7 +255,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     prefs.edit().putString("fcm_token", token).apply();
                     new Thread(() -> {
                         try {
-                            URL url = new URL(API_BASE + "/notifications/register");
+                            URL url = new URI(API_BASE + "/notifications/register").toURL();
                             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                             conn.setRequestMethod("POST");
                             conn.setRequestProperty("Content-Type", "application/json");

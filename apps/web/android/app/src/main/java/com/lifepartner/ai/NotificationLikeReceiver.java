@@ -12,6 +12,7 @@ import android.widget.Toast;
 
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 public class NotificationLikeReceiver extends BroadcastReceiver {
@@ -50,7 +51,7 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
         new Thread(() -> {
             try {
                 String apiUrl = "https://lifepartner-ai.onrender.com/messages/" + messageId + "/like";
-                URL url = new URL(apiUrl);
+                URL url = new URI(apiUrl).toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Authorization", "Bearer " + authToken);

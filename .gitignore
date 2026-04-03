@@ -50,6 +50,7 @@ openai/
 # Secrets & credentials (NEVER commit these)
 **/firebase-service-account.json
 **/*service-account*.json
+**/*firebase-adminsdk*.json
 **/google-services.json
 firebase_env.txt
 

@@ -29,6 +29,10 @@ export class NotificationService {
                     '/etc/secrets/firebase-service-account.json', // Render Secret Files
                     path.resolve(__dirname, '../../firebase-service-account.json'), // Local dev relative to dist/
                     path.resolve(process.cwd(), 'firebase-service-account.json'), // CWD (fallback)
+                    // Also check for any Firebase Admin SDK JSON in CWD (downloaded from Firebase Console)
+                    ...require('fs').readdirSync(process.cwd())
+                        .filter((f: string) => f.endsWith('.json') && f.includes('firebase-adminsdk'))
+                        .map((f: string) => path.resolve(process.cwd(), f)),
                 ];
 
                 console.log("Firebase: No env var found, checking file paths...");

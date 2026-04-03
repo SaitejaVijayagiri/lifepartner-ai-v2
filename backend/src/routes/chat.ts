@@ -28,7 +28,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                 receiver_id: true,
                 content: true,
                 created_at: true,
-                delivery_status: true
+                delivery_status: true,
+                is_liked: true
             }
         });
 
@@ -38,7 +39,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             text: row.content, // Map content -> text
             senderId: row.sender_id,
             timestamp: row.created_at,
-            status: row.delivery_status
+            status: row.delivery_status,
+            is_liked: row.is_liked
         }));
 
         res.json(history);

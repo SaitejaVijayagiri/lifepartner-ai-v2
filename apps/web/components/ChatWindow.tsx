@@ -405,9 +405,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
                                     }} />
                                 )}
-                                <div className={`relative max-w-[75%] px-4 py-3 text-sm shadow-sm ${msg.text.startsWith('[STICKER]')
+                                <div 
+                                    onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && handleLikeMessage(msg.id)}
+                                    className={`relative group max-w-[75%] px-4 py-3 text-sm shadow-sm transition-all ${msg.text.startsWith('[STICKER]')
                                     ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                    : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md')
+                                    : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md cursor-pointer' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md cursor-pointer')
                                     }`}>
                                     {msg.text.startsWith('[STICKER]') ? (
                                         <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
@@ -430,11 +432,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     {/* Like Button & Indicator */}
                                     {msg.id && !msg.id.toString().startsWith('temp-') && (
                                         <button 
-                                            onClick={() => handleLikeMessage(msg.id)}
-                                            className={`absolute ${isMe ? '-left-6' : '-right-6'} bottom-0 p-1 rounded-full bg-white dark:bg-gray-800 shadow-md transform transition-all hover:scale-110 focus:outline-none`}
+                                            onClick={(e) => { e.stopPropagation(); handleLikeMessage(msg.id); }}
+                                            className={`absolute ${isMe ? '-left-6' : '-right-6'} bottom-0 p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm transform transition-all focus:outline-none ${msg.is_liked ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100 hover:scale-110'}`}
                                             title="Like message"
                                         >
-                                            <span className={`text-sm ${msg.is_liked ? 'text-red-500 animate-in zoom-in' : 'text-gray-300 hover:text-red-300'}`}>❤️</span>
+                                            <span className={`text-sm ${msg.is_liked ? 'text-red-500 animate-in zoom-in' : 'text-gray-300 hover:text-red-400'}`}>❤️</span>
                                         </button>
                                     )}
                                 </div>

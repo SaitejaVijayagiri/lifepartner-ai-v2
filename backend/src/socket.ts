@@ -180,6 +180,23 @@ export const initSocket = (httpServer: HttpServer) => {
                     type // Pass the type (audio/video)
                 });
 
+                // Offline Ringing logic: Push notification if target user is disconnected
+                const targetOnlineCount = onlineUsers.get(userToCall) || 0;
+                if (targetOnlineCount === 0) {
+                    const { notificationService } = require('./services/notification');
+                    notificationService.sendToUser(
+                        userToCall,
+                        `Incoming ${type === 'audio' ? 'Audio' : 'Video'} Call 📞`,
+                        `${name || 'Someone'} is calling you. Tap to answer!`,
+                        {
+                            type: 'incoming_call',
+                            callerId: from,
+                            callerName: name || '',
+                        }
+                    ).catch(console.error);
+                }
+
+
             } catch (e) {
                 console.error("Call Gating Error", e);
             }

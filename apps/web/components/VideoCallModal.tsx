@@ -8,6 +8,7 @@ import ChatWindow from './ChatWindow';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 
 // Dynamic Import for SimplePeer to avoid SSR issues
 let SimplePeer: any;
@@ -319,6 +320,17 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             // If we are in a call or rejecting an incoming one
             const targetId = incomingCall ? incomingCall.from : partner.id;
             socket.emit("endCall", { to: targetId });
+            
+            // Log the call to history
+            const durationSecs = callDuration || 0;
+            const finalStatus = callAccepted ? 'COMPLETED' : (durationSecs === 0 ? 'MISSED' : 'COMPLETED');
+            
+            api.calls?.log({
+                receiverId: targetId,
+                type: isVideo ? 'VIDEO' : 'AUDIO',
+                status: finalStatus,
+                duration: durationSecs
+            }).catch(console.error);
         }
 
         onEndCall();

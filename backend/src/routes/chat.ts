@@ -116,7 +116,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             const { NotificationService } = require('../services/notification');
             await NotificationService.getInstance().sendToUser(
                 connectionId,
-                `New message from ${senderName}`,
+                `${senderName}`,
                 cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
                 { 
                     url: `/dashboard?tab=connections&chatId=${senderId}`,

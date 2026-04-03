@@ -64,8 +64,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             // Extract custom payload elements
             senderPhotoUrl = data.get("senderPhoto");
             String extractedSenderName = data.get("senderName");
-            if (extractedSenderName != null) {
-                title = "New message from " + extractedSenderName;
+            if (extractedSenderName != null && dataTitle == null) {
+                // Only fallback to senderName if the backend didn't provide a title
+                title = extractedSenderName;
             }
             connId = data.get("senderId"); // Map the 'senderId' from backend to connId
         }

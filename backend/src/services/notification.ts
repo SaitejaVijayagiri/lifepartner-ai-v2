@@ -123,10 +123,22 @@ export class NotificationService {
 
         // Multicast
         try {
+            const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
             const message = {
                 tokens,
-                notification: { title, body },
-                data: data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {}
+                data: {
+                    title: String(title),
+                    body: String(body),
+                    ...mappedData
+                },
+                apns: {
+                    payload: {
+                        aps: {
+                            alert: { title, body },
+                            sound: 'default'
+                        }
+                    }
+                }
             };
             const batchResponse = await admin.messaging().sendEachForMulticast(message);
             console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);

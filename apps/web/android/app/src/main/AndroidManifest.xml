@@ -33,6 +33,14 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name=".NotificationReplyReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.lifepartner.ai.ACTION_REPLY" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

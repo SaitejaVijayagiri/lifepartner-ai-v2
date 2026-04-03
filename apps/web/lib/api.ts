@@ -135,6 +135,10 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ token, platform })
         }),
+        unregister: (token: string) => fetchAPI('/notifications/unregister', {
+            method: 'DELETE',
+            body: JSON.stringify({ token })
+        }),
         getAll: () => fetchAPI('/notifications'),
         markRead: (id: string) => fetchAPI(`/notifications/${id}/read`, { method: 'PUT' }),
         markAllRead: () => fetchAPI('/notifications/read-all', { method: 'PUT' })

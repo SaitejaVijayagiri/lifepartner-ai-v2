@@ -48,5 +48,18 @@ export const Notifications = {
             return bridge.getFcmToken() || null;
         }
         return null;
+    },
+
+    /**
+     * Unregister notifications.
+     */
+    unregister: async () => {
+        try {
+            const token = Notifications.getToken();
+            if (!token) return;
+            await api.notifications.unregister(token);
+        } catch (e) {
+            console.error("Failed to unregister push natively", e);
+        }
     }
 };

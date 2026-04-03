@@ -109,7 +109,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         try {
             const senderProfile = await prisma.users.findUnique({
                 where: { id: senderId },
-                select: { full_name: true }
+                select: { full_name: true, profile_picture: true }
             });
             const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
 
@@ -118,7 +118,12 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                 connectionId,
                 `New message from ${senderName}`,
                 cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
-                { url: `/dashboard?tab=connections&chatId=${senderId}` }
+                { 
+                    url: `/dashboard?tab=connections&chatId=${senderId}`,
+                    senderId: senderId,
+                    senderName: senderName,
+                    senderPhoto: senderProfile?.profile_picture || "https://lifepartnerai.in/icon-512x512.png" 
+                }
             );
         } catch (pushErr) {
             console.error("Chat Push Notification Error", pushErr);

@@ -111,14 +111,7 @@ function DashboardContent() {
         } else {
             // Disable: remove (clear) the device token from the backend
             try {
-                const token = localStorage.getItem('device_token');
-                if (token) {
-                    await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/notifications/unregister`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-                        body: JSON.stringify({ token })
-                    });
-                }
+                await Notifications.unregister();
                 toast.success('Push notifications disabled.');
             } catch (e) {
                 console.error('Failed to unregister token', e);

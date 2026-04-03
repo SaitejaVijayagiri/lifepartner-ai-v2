@@ -39,6 +39,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const scrollRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
+    const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<string | null>(null);
+
+    const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍', '🔥', '🤩'];
 
     const getStickerAnimation = (url: string) => {
         return '';
@@ -165,16 +168,24 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             }));
         };
 
+        const handleReaction = (data: any) => {
+            setMessages(prev => prev.map(msg =>
+                msg.id === data.messageId ? { ...msg, reactions: data.reactions } : msg
+            ));
+        };
+
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("updateMessageStatus", handleStatus);
         socket.on("messageLiked", handleLiked);
+        socket.on("messageReaction", handleReaction);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
             socket.off("typing", handleTyping);
             socket.off("updateMessageStatus", handleStatus);
             socket.off("messageLiked", handleLiked);
+            socket.off("messageReaction", handleReaction);
         };
     }, [socket, partner.id, user]);
 
@@ -239,20 +250,34 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
-    const handleLikeMessage = async (msgId: string) => {
-        // Optimistic UI update
-        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: !m.is_liked } : m));
+    const handleReact = async (msgId: string, emoji: string) => {
+        setEmojiPickerMsgId(null);
+        const uid = user?.id;
+        if (!uid) return;
+        // Optimistic update
+        setMessages(prev => prev.map(m => {
+            if (m.id !== msgId) return m;
+            const reactions: Record<string, string> = { ...(m.reactions || {}) };
+            if (reactions[uid] === emoji) {
+                delete reactions[uid];
+            } else {
+                reactions[uid] = emoji;
+            }
+            return { ...m, reactions };
+        }));
         try {
-            const result = await api.chat.likeMessage(msgId);
-            // Sync with server's authoritative value (prevents state diverging on retries)
-            if (result && typeof result.is_liked === 'boolean') {
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: result.is_liked } : m));
+            const result = await api.chat.reactToMessage(msgId, emoji);
+            if (result?.reactions) {
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: result.reactions } : m));
             }
         } catch (err) {
-            console.error("Like failed", err);
-            // Revert optimistic update on failure
-            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: !m.is_liked } : m));
+            console.error('React failed', err);
         }
+    };
+
+    // Keep likeMessage for Android native backward compat
+    const handleLikeMessage = async (msgId: string) => {
+        handleReact(msgId, '❤️');
     };
 
     const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -401,7 +426,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </span>
                                 </div>
                             )}
-                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2`}>
+                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1`}>
                                 {!isMe && (
                                     <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
@@ -409,40 +434,91 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
                                     }} />
                                 )}
-                                <div 
-                                    onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && handleLikeMessage(msg.id)}
-                                    className={`relative group max-w-[75%] px-4 py-3 text-sm shadow-sm transition-all ${msg.text.startsWith('[STICKER]')
-                                    ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                    : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md cursor-pointer' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md cursor-pointer')
-                                    }`}>
-                                    {msg.text.startsWith('[STICKER]') ? (
-                                        <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
-                                    ) : (
-                                        msg.text
+                                <div className="flex flex-col relative">
+                                    {/* Emoji picker popup */}
+                                    {emojiPickerMsgId === msg.id && (
+                                        <div
+                                            className={`absolute ${isMe ? 'right-0' : 'left-0'} -top-12 z-50 flex gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-2 py-1.5 shadow-xl animate-in zoom-in-95 duration-150`}
+                                            onMouseLeave={() => setEmojiPickerMsgId(null)}
+                                        >
+                                            {QUICK_EMOJIS.map(e => (
+                                                <button
+                                                    key={e}
+                                                    onClick={() => handleReact(msg.id, e)}
+                                                    className={`text-lg hover:scale-125 transition-transform p-0.5 rounded-lg ${
+                                                        (msg.reactions || {})[user?.id ?? ''] === e
+                                                            ? 'bg-indigo-100 dark:bg-indigo-900'
+                                                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                    }`}
+                                                    title={e}
+                                                >{e}</button>
+                                            ))}
+                                        </div>
                                     )}
-                                    <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') ? 'text-gray-500 font-medium drop-shadow-sm' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
-                                        {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
 
-                                        {isMe && (
-                                            <div className="flex items-center justify-center">
-                                                {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
-                                                {msg.status === 'sent' && <Check size={12} />}
-                                                {msg.status === 'delivered' && <CheckCheck size={12} />}
-                                                {msg.status === 'read' && <CheckCheck size={12} className={msg.text.startsWith('[STICKER]') ? 'text-blue-500' : 'text-blue-300'} />}
-                                            </div>
+                                    {/* Message bubble */}
+                                    <div
+                                        onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
+                                        className={`relative group max-w-[75%] px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
+                                        ? 'bg-transparent shadow-none p-0 max-w-[50%]'
+                                        : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md')
+                                        }`}>
+                                        {msg.text.startsWith('[STICKER]') ? (
+                                            <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
+                                        ) : (
+                                            msg.text
+                                        )}
+                                        <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') ? 'text-gray-500 font-medium drop-shadow-sm' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
+                                            {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                                            {isMe && (
+                                                <div className="flex items-center justify-center">
+                                                    {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
+                                                    {msg.status === 'sent' && <Check size={12} />}
+                                                    {msg.status === 'delivered' && <CheckCheck size={12} />}
+                                                    {msg.status === 'read' && <CheckCheck size={12} className={msg.text.startsWith('[STICKER]') ? 'text-blue-500' : 'text-blue-300'} />}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* React button — shows on hover */}
+                                        {msg.id && !msg.id.toString().startsWith('temp-') && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
+                                                className={`absolute ${isMe ? '-left-7' : '-right-7'} bottom-1 p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm transition-all focus:outline-none opacity-0 group-hover:opacity-100 hover:scale-110`}
+                                                title="React"
+                                            >
+                                                <span className="text-sm">😊</span>
+                                            </button>
                                         )}
                                     </div>
-                                    
-                                    {/* Like Button & Indicator */}
-                                    {msg.id && !msg.id.toString().startsWith('temp-') && (
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); handleLikeMessage(msg.id); }}
-                                            className={`absolute ${isMe ? '-left-6' : '-right-6'} bottom-0 p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm transform transition-all focus:outline-none ${msg.is_liked ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100 hover:scale-110'}`}
-                                            title="Like message"
-                                        >
-                                            <span className={`text-sm ${msg.is_liked ? 'text-red-500 animate-in zoom-in' : 'text-gray-300 hover:text-red-400'}`}>❤️</span>
-                                        </button>
-                                    )}
+
+                                    {/* Reactions strip */}
+                                    {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
+                                        const reactionCounts: Record<string, string[]> = {};
+                                        Object.entries(msg.reactions as Record<string, string>).forEach(([uid, emoji]) => {
+                                            if (!reactionCounts[emoji]) reactionCounts[emoji] = [];
+                                            reactionCounts[emoji].push(uid === user?.id ? 'You' : (uid === partner.id ? partner.name : uid.slice(0, 6)));
+                                        });
+                                        return (
+                                            <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                                {Object.entries(reactionCounts).map(([emoji, users]) => (
+                                                    <button
+                                                        key={emoji}
+                                                        onClick={() => handleReact(msg.id, emoji)}
+                                                        title={users.join(', ')}
+                                                        className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all hover:scale-105 ${
+                                                            (msg.reactions as any)[user?.id ?? ''] === emoji
+                                                                ? 'bg-indigo-100 border-indigo-300 dark:bg-indigo-900 dark:border-indigo-700'
+                                                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm'
+                                                        }`}
+                                                    >
+                                                        <span>{emoji}</span>
+                                                        {users.length > 1 && <span className="text-gray-600 dark:text-gray-300 font-medium">{users.length}</span>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>

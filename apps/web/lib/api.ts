@@ -116,6 +116,10 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ text })
         }),
+        reactToMessage: (messageId: string, emoji: string) => fetchAPI(`/messages/${messageId}/react`, {
+            method: 'POST',
+            body: JSON.stringify({ emoji })
+        }),
         likeMessage: (messageId: string) => fetchAPI(`/messages/${messageId}/like`, { method: 'POST' }),
         markRead: (connectionId: string) => fetchAPI(`/messages/${connectionId}/read`, { method: 'POST' })
     },

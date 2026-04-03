@@ -30,7 +30,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     content: true,
                     created_at: true,
                     delivery_status: true,
-                    is_liked: true
+                    is_liked: true,
+                    reactions: true
                 }
             });
         } catch (dbErr: any) {
@@ -63,7 +64,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             senderId: row.sender_id,
             timestamp: row.created_at,
             status: row.delivery_status,
-            is_liked: row.is_liked ?? false
+            is_liked: row.is_liked ?? false,
+            reactions: row.reactions ?? {}
         }));
 
         res.json(history);
@@ -163,34 +165,97 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     }
 });
 
-// LIKE A MESSAGE
+// REACT TO A MESSAGE (emoji reactions)
+router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
+    const { messageId } = req.params;
+    const { emoji } = req.body; // e.g. '❤️', '😂', '😮', '👍'
+    const userId = req.user.userId;
+
+    if (!emoji) return res.status(400).json({ error: 'Emoji required' });
+
+    try {
+        const msg = await prisma.messages.findUnique({
+            where: { id: messageId },
+            select: { id: true, sender_id: true, receiver_id: true, reactions: true }
+        });
+        if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+        const reactions: Record<string, string> = (msg.reactions as any) || {};
+
+        // Toggle: if user already reacted with same emoji, remove it; otherwise set new emoji
+        if (reactions[userId] === emoji) {
+            delete reactions[userId];
+        } else {
+            reactions[userId] = emoji;
+        }
+
+        await (prisma.messages as any).update({
+            where: { id: messageId },
+            data: { reactions, is_liked: Object.keys(reactions).length > 0 }
+        });
+
+        // Fetch reactor's name for the socket event
+        const reactor = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { full_name: true, avatar_url: true }
+        });
+
+        // Emit real-time update to both sender and receiver
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            const payload = { messageId, reactions, reactorId: userId, reactorName: reactor?.full_name };
+            const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+            io.to(other!).emit('messageReaction', payload);
+            io.to(userId).emit('messageReaction', payload);
+        } catch (socketErr) {
+            // Non-fatal
+        }
+
+        res.json({ success: true, reactions });
+    } catch (e) {
+        console.error('React Error', e);
+        res.status(500).json({ error: 'Failed to react' });
+    }
+});
+
+// LIKE A MESSAGE (kept for backward compat with Android native)
 router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
     const { messageId } = req.params;
     const userId = req.user.userId;
 
     try {
-        const msg = await prisma.messages.findUnique({ where: { id: messageId } });
-        if (!msg) return res.status(404).json({ error: "Message not found" });
-
-        // Toggle like status (or always set to true, depending on requirement)
-        const newStatus = !msg.is_liked;
-
-        const updatedMsg = await prisma.messages.update({
+        const msg = await prisma.messages.findUnique({
             where: { id: messageId },
-            data: { is_liked: newStatus }
+            select: { id: true, sender_id: true, receiver_id: true, reactions: true }
+        });
+        if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+        const reactions: Record<string, string> = (msg.reactions as any) || {};
+        const isLiked = reactions[userId] === '❤️';
+
+        if (isLiked) {
+            delete reactions[userId];
+        } else {
+            reactions[userId] = '❤️';
+        }
+
+        await (prisma.messages as any).update({
+            where: { id: messageId },
+            data: { reactions, is_liked: Object.keys(reactions).length > 0 }
         });
 
-        // Notify the OTHER user (or both) via Socket
-        const { getIO } = require('../socket');
-        const io = getIO();
-        
-        const notifyTarget = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-        io.to(notifyTarget).emit("messageLiked", { messageId, isLiked: newStatus, likedBy: userId });
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+            io.to(other!).emit('messageReaction', { messageId, reactions, reactorId: userId });
+        } catch (_) {}
 
-        res.json({ success: true, is_liked: newStatus });
+        res.json({ success: true, is_liked: !isLiked, reactions });
     } catch (e) {
-        console.error("Like Message Error", e);
-        res.status(500).json({ error: "Failed to like message" });
+        console.error('Like Error', e);
+        res.status(500).json({ error: 'Failed to like' });
     }
 });
 

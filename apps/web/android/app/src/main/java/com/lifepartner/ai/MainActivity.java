@@ -41,6 +41,12 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void fetchAndRegisterToken() {
+        SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+        boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
+        if (isPushDisabled) {
+            return; // Abort registration because the user explicitly toggled notifications Off
+        }
+
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
             if (token != null) {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
@@ -71,6 +77,20 @@ public class MainActivity extends BridgeActivity {
         public String getFcmToken() {
             SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
             return prefs.getString("fcm_token", "");
+        }
+
+        @JavascriptInterface
+        public void disablePush() {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            prefs.edit().putBoolean("push_disabled", true).apply();
+            // Optional: You could proactively call FirebaseMessaging.getInstance().deleteToken() here natively.
+        }
+
+        @JavascriptInterface
+        public void enablePush() {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            prefs.edit().putBoolean("push_disabled", false).apply();
+            fetchAndRegisterToken();
         }
     }
 }

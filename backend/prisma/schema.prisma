@@ -121,6 +121,7 @@ model messages {
   delivery_status                   String?   @default("sent") @db.VarChar(20)
   created_at                        DateTime? @default(now()) @db.Timestamp(6)
   receiver_id                       String?   @db.Uuid
+  is_liked                          Boolean?  @default(false)
   matches                           matches?  @relation(fields: [match_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_messages_receiver_idTousers users?    @relation("messages_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_messages_sender_idTousers   users?    @relation("messages_sender_idTousers", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

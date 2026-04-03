@@ -46,3 +46,18 @@ openai/
 
 # Public Assets (Allow them)
 !apps/web/public/
+
+# Secrets & credentials (NEVER commit these)
+**/firebase-service-account.json
+**/*service-account*.json
+**/google-services.json
+firebase_env.txt
+
+# Temp/debug files
+*.txt
+check-tokens.js
+logcat_output.txt
+apps/web/android/build_output.txt
+apps/web/build_output.txt
+apps/web/nextbuild_out.txt
+apps/web/next.config.mjs.bak

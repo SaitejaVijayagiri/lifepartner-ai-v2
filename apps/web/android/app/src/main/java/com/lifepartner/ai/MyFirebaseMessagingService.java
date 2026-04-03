@@ -69,6 +69,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 title = extractedSenderName;
             }
             connId = data.get("senderId"); // Map the 'senderId' from backend to connId
+            String messageId = data.get("messageId");
         }
 
         if (remoteMessage.getNotification() != null) {
@@ -82,7 +83,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             largeIcon = getBitmapFromURL(senderPhotoUrl);
         }
 
-        showNotification(title, body, largeIcon, connId);
+        showNotification(title, body, largeIcon, connId, data.get("messageId"));
     }
 
     private Bitmap getBitmapFromURL(String src) {
@@ -99,8 +100,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
-    private void showNotification(String title, String body, Bitmap largeIcon, String connId) {
+    private void showNotification(String title, String body, Bitmap largeIcon, String connId, String messageId) {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        String CHANNEL_ID = "lifepartner_chat";
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -159,6 +161,31 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.addAction(action);
         }
 
+        // 3. Setup "Like" Action if messageId exists
+        if (messageId != null && !messageId.isEmpty()) {
+            Intent likeIntent = new Intent(this, NotificationLikeReceiver.class);
+            likeIntent.setAction("com.lifepartner.ai.ACTION_LIKE");
+            likeIntent.putExtra("messageId", messageId);
+            int notificationId = (connId != null) ? connId.hashCode() : (int) System.currentTimeMillis();
+            likeIntent.putExtra("notificationId", notificationId);
+            likeIntent.putExtra("senderId", connId);
+
+            PendingIntent likePendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    messageId.hashCode(),
+                    likeIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+
+            NotificationCompat.Action likeAction = new NotificationCompat.Action.Builder(
+                    0, // No icon
+                    "❤️ Like",
+                    likePendingIntent)
+                    .build();
+
+            builder.addAction(likeAction);
+        }
+
         // Use connId hashcode as notification id, or unique time if missing
         int notificationId = (connId != null) ? connId.hashCode() : (int) System.currentTimeMillis();
         manager.notify(notificationId, builder.build());
@@ -192,6 +219,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     public static void registerTokenWithBackend(Context context, String authToken) {
         SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
+        
+        if (prefs.getBoolean("push_disabled", false)) {
+            return; // Abort, user disabled pushes permanently
+        }
+
         prefs.edit().putString("auth_token", authToken).apply();
 
         String fcmToken = prefs.getString("fcm_token", null);

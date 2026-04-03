@@ -120,6 +120,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                 cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
                 { 
                     url: `/dashboard?tab=connections&chatId=${senderId}`,
+                    messageId: newMessageRecord.id,
                     senderId: senderId,
                     senderName: senderName,
                     senderPhoto: senderProfile?.avatar_url || "https://lifepartnerai.in/icon-512x512.png" 
@@ -134,6 +135,37 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Send Message Error", e);
         res.status(500).json({ error: "Failed to send message" });
+    }
+});
+
+// LIKE A MESSAGE
+router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
+    const { messageId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const msg = await prisma.messages.findUnique({ where: { id: messageId } });
+        if (!msg) return res.status(404).json({ error: "Message not found" });
+
+        // Toggle like status (or always set to true, depending on requirement)
+        const newStatus = !msg.is_liked;
+
+        const updatedMsg = await prisma.messages.update({
+            where: { id: messageId },
+            data: { is_liked: newStatus }
+        });
+
+        // Notify the OTHER user (or both) via Socket
+        const { getIO } = require('../socket');
+        const io = getIO();
+        
+        const notifyTarget = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+        io.to(notifyTarget).emit("messageLiked", { messageId, isLiked: newStatus, likedBy: userId });
+
+        res.json({ success: true, is_liked: newStatus });
+    } catch (e) {
+        console.error("Like Message Error", e);
+        res.status(500).json({ error: "Failed to like message" });
     }
 });
 

@@ -156,14 +156,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             }));
         };
 
+        const handleLiked = (data: any) => {
+            setMessages(prev => prev.map(msg => {
+                if (msg.id === data.messageId) {
+                    return { ...msg, is_liked: data.isLiked };
+                }
+                return msg;
+            }));
+        };
+
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("updateMessageStatus", handleStatus);
+        socket.on("messageLiked", handleLiked);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
             socket.off("typing", handleTyping);
             socket.off("updateMessageStatus", handleStatus);
+            socket.off("messageLiked", handleLiked);
         };
     }, [socket, partner.id, user]);
 
@@ -211,7 +222,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         try {
             // Backend expects User ID (partner.id), not Interaction ID
-            const response = await api.chat.sendMessage(partner.id, textToSend, 'me');
+            const response = await api.chat.sendMessage(partner.id, textToSend);
 
             // Replace temporary message with the real one from DB (which has status: 'sent')
             if (response && response.message) {
@@ -225,6 +236,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             // if (socket) { ... } REMOVED
         } catch (err) {
             console.error("Send failed", err);
+        }
+    };
+
+    const handleLikeMessage = async (msgId: string) => {
+        // Optimistic UI update
+        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: !m.is_liked } : m));
+        try {
+            await api.chat.likeMessage(msgId);
+        } catch (err) {
+            console.error("Like failed", err);
+            // Revert on fail
+            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: !m.is_liked } : m));
         }
     };
 
@@ -382,7 +405,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
                                     }} />
                                 )}
-                                <div className={`max-w-[75%] px-4 py-3 text-sm shadow-sm ${msg.text.startsWith('[STICKER]')
+                                <div className={`relative max-w-[75%] px-4 py-3 text-sm shadow-sm ${msg.text.startsWith('[STICKER]')
                                     ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                     : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md')
                                     }`}>
@@ -403,6 +426,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             </div>
                                         )}
                                     </div>
+                                    
+                                    {/* Like Button & Indicator */}
+                                    {msg.id && !msg.id.toString().startsWith('temp-') && (
+                                        <button 
+                                            onClick={() => handleLikeMessage(msg.id)}
+                                            className={`absolute ${isMe ? '-left-6' : '-right-6'} bottom-0 p-1 rounded-full bg-white dark:bg-gray-800 shadow-md transform transition-all hover:scale-110 focus:outline-none`}
+                                            title="Like message"
+                                        >
+                                            <span className={`text-sm ${msg.is_liked ? 'text-red-500 animate-in zoom-in' : 'text-gray-300 hover:text-red-300'}`}>❤️</span>
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

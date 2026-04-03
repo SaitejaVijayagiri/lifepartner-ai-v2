@@ -24,6 +24,10 @@ export const Notifications = {
                 return;
             }
 
+            if (typeof bridge.enablePush === 'function') {
+                bridge.enablePush();
+            }
+
             // Pass auth token to native so it can register the FCM token with backend
             const authToken = localStorage.getItem('token');
             if (authToken) {
@@ -55,6 +59,11 @@ export const Notifications = {
      */
     unregister: async () => {
         try {
+            const bridge = (window as any).AndroidBridge;
+            if (bridge && typeof bridge.disablePush === 'function') {
+                bridge.disablePush();
+            }
+
             const token = Notifications.getToken();
             if (!token) return;
             await api.notifications.unregister(token);

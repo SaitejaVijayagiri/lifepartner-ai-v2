@@ -41,6 +41,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Native Like Action Receiver -->
+        <receiver
+            android:name=".NotificationLikeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.lifepartner.ai.ACTION_LIKE" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -373,6 +373,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 </div>
 
                 <div className="flex-1 relative overflow-hidden flex items-center justify-center group">
+                    {/* Ringtone Audio */}
+                    {((incomingCall && !callAnswered) || status.includes("Calling")) && !callEnded && (
+                        <audio src="/sounds/ringtone.wav" autoPlay loop className="hidden" />
+                    )}
+                    
                     {/* Incoming Call Screen */}
                     {incomingCall && !callAnswered ? (
                         <div className="flex flex-col items-center justify-center space-y-8 z-50">

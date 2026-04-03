@@ -43,10 +43,13 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
             notificationManager.cancel(notificationId);
         }
 
-        // 3. Send the HTTP POST Request in the background
+        // 3. Keep the BroadcastReceiver alive until the network request finishes
+        final PendingResult pendingResult = goAsync();
+
+        // 4. Send the HTTP POST Request in the background
         new Thread(() -> {
             try {
-                String apiUrl = "https://backend.lifepartnerai.in/messages/" + messageId + "/like";
+                String apiUrl = "https://lifepartner-ai.onrender.com/messages/" + messageId + "/like";
                 URL url = new URL(apiUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
@@ -68,6 +71,9 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
                 conn.disconnect();
             } catch (Exception e) {
                 Log.e(TAG, "Exception liking message via Native HTTP", e);
+            } finally {
+                // Must call finish so the OS knows we are done
+                pendingResult.finish();
             }
         }).start();
     }

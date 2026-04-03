@@ -111,13 +111,13 @@ export const api = {
         }),
     },
     chat: {
-        getHistory: (connectionId: string, page = 1) => fetchAPI(`/chat/${connectionId}?page=${page}`),
-        sendMessage: (connectionId: string, text: string) => fetchAPI(`/chat/${connectionId}`, {
+        getHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`),
+        sendMessage: (connectionId: string, text: string) => fetchAPI(`/messages/${connectionId}/send`, {
             method: 'POST',
             body: JSON.stringify({ text })
         }),
-        likeMessage: (messageId: string) => fetchAPI(`/chat/${messageId}/like`, { method: 'POST' }),
-        markRead: (connectionId: string) => fetchAPI(`/chat/${connectionId}/read`, { method: 'POST' })
+        likeMessage: (messageId: string) => fetchAPI(`/messages/${messageId}/like`, { method: 'POST' }),
+        markRead: (connectionId: string) => fetchAPI(`/messages/${connectionId}/read`, { method: 'POST' })
     },
     games: {
         start: (partnerId: string) => fetchAPI('/games/start', { method: 'POST', body: JSON.stringify({ partnerId }) }),

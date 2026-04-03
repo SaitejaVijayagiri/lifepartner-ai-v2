@@ -33,7 +33,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     is_liked: true,
                     reactions: true
                 }
-            });
+            } as any);
         } catch (dbErr: any) {
             // Fallback: column may not exist yet in DB — query without is_liked
             console.warn("is_liked column not found, falling back:", dbErr?.message);
@@ -174,7 +174,7 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
     if (!emoji) return res.status(400).json({ error: 'Emoji required' });
 
     try {
-        const msg = await prisma.messages.findUnique({
+        const msg: any = await (prisma.messages as any).findUnique({
             where: { id: messageId },
             select: { id: true, sender_id: true, receiver_id: true, reactions: true }
         });
@@ -225,7 +225,7 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
     const userId = req.user.userId;
 
     try {
-        const msg = await prisma.messages.findUnique({
+        const msg: any = await (prisma.messages as any).findUnique({
             where: { id: messageId },
             select: { id: true, sender_id: true, receiver_id: true, reactions: true }
         });

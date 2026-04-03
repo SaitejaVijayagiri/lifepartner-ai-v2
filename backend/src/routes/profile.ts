@@ -126,6 +126,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             phone: meta.phone || "", // Added Phone
             referral_code: user.referral_code || "", // Added Referral Code
             premium_expiry: user.premium_expiry, // Added Premium Expiry
+            is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
             // Stories logic
             stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()) // Only return active stories
         };
@@ -793,6 +794,50 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Delete Story Error", e);
         res.status(500).json({ error: "Failed to delete story" });
+    }
+});
+
+// 7. CLAIM PROFILE COMPLETION REWARD
+router.post('/claim-completion', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            include: { profiles: true }
+        });
+
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const meta: any = user.profiles?.metadata || {};
+
+        if (meta.profile_completed_reward) {
+            return res.status(400).json({ error: "Reward already claimed." });
+        }
+
+        // Basic validation checking if they actually qualify as 'complete' based on what frontend validates
+        if (!user.full_name || !user.gender || !user.age) {
+             return res.status(400).json({ error: "Profile is not fully complete to claim reward." });
+        }
+
+        // Grant 50 coins & update metadata flag
+        meta.profile_completed_reward = true;
+
+        await prisma.$transaction([
+            prisma.users.update({
+                where: { id: userId },
+                data: { coins: (user.coins || 0) + 50 }
+            }),
+            prisma.profiles.update({
+                where: { user_id: userId },
+                data: { metadata: meta }
+            })
+        ]);
+
+        res.json({ success: true, coins: (user.coins || 0) + 50, message: "50 coins claimed successfully!" });
+    } catch (e) {
+        console.error("Claim Completion Error", e);
+        res.status(500).json({ error: "Failed to claim reward" });
     }
 });
 

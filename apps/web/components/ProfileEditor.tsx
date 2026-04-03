@@ -54,6 +54,41 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
         }
     };
 
+    const handleClaimReward = async () => {
+        try {
+            setLoading(true);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/profile/claim-completion`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            }).then(r => r.json());
+            
+            if (res.success) {
+                toast.success(res.message);
+                setFormData((prev: any) => ({ ...prev, is_profile_completed_reward_claimed: true }));
+            } else {
+                toast.error(res.error || "Failed to claim reward");
+            }
+        } catch (e) {
+            toast.error("Network error claiming reward.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const countFields = [
+        formData.photos?.length > 0,
+        formData.aboutMe,
+        formData.name,
+        formData.gender,
+        formData.maritalStatus,
+        formData.motherTongue,
+        formData.dob,
+        formData.location?.city,
+        formData.career?.profession,
+        formData.expectations || formData.prompt
+    ];
+    const completionPercentage = Math.round((countFields.filter(Boolean).length / countFields.length) * 100);
+
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
             <div className="bg-indigo-600 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center text-white sticky top-0 z-10">
@@ -61,6 +96,39 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 <button onClick={onCancel} className="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white transition-colors">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
+            </div>
+
+            {/* GAMIFICATION WIDGET */}
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800/50 p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="w-full flex-1">
+                    <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-bold tracking-wide text-indigo-900 dark:text-indigo-100 text-sm">Profile Completeness</h4>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{completionPercentage}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-indigo-200 dark:bg-indigo-950 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" 
+                            style={{ width: `${completionPercentage}%` }} 
+                        />
+                    </div>
+                    <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2">
+                        {completionPercentage === 100 ? "Your profile is fully complete!" : "Add more details to boost your matching rate completely!"}
+                    </p>
+                </div>
+                
+                {completionPercentage === 100 && !formData.is_profile_completed_reward_claimed ? (
+                    <Button 
+                        onClick={handleClaimReward} 
+                        disabled={loading}
+                        className="w-full md:w-auto bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-bold shadow-lg shadow-amber-500/20 whitespace-nowrap animate-pulse"
+                    >
+                        💰 Claim 50 Coins
+                    </Button>
+                ) : completionPercentage < 100 ? (
+                    <div className="w-full md:w-auto bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-700 text-xs font-bold text-indigo-800 dark:text-indigo-300 whitespace-nowrap text-center opacity-80 cursor-not-allowed">
+                        🔒 Earn 50 Coins at 100%
+                    </div>
+                ) : null}
             </div>
 
             <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto">

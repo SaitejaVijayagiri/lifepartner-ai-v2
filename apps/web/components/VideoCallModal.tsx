@@ -384,6 +384,15 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     ) : (
                         // Active Call or Calling...
                         <>
+                            {callAccepted && !callEnded && (
+                                <div className="absolute top-4 left-0 right-0 flex justify-center z-30 pointer-events-none">
+                                    <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-1.5 shadow-lg">
+                                        <span className="text-[10px] text-green-400">🔒</span>
+                                        <span className="text-[10px] font-medium text-white tracking-widest uppercase opacity-90 drop-shadow-sm">End-to-End Encrypted</span>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Remote View */}
                             {callAccepted && !callEnded ? (
                                 isVideo ? (

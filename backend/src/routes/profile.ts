@@ -115,8 +115,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             // Prisma Schema: does User have reels?
             // Let's assume it's in metadata.reels primarily.
 
-            prompt: user.profiles?.raw_prompt,
-            aboutMe: user.profiles?.raw_prompt, // Map raw_prompt to aboutMe for frontend
+            prompt: meta.expectations || user.profiles?.raw_prompt || "",  // Expectations text (partner preferences text)
+            aboutMe: user.profiles?.raw_prompt || meta.bio || "", // About Me bio — separate from expectations
             photos: meta.photos || [],
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
@@ -324,7 +324,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         const {
             name, age, gender, location,
             religion, horoscope, career, family, lifestyle,
-            prompt, aboutMe, // Accept aboutMe as alias for prompt
+            prompt, aboutMe, expectations, // expectations = partner text; aboutMe = bio
             partnerPreferences,
             motherTongue, dob, height, maritalStatus, // Accept DOB & Height & Marital Status
             photos, photoUrl,
@@ -365,10 +365,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             finalPhotos = results;
         }
 
-        // REVENUE PROTECTION: Sanitize Inputs
-        // Prioritize aboutMe (Frontend Field) over prompt (Legacy/DB Field) if both exist
-        const contentToSave = aboutMe !== undefined ? aboutMe : prompt;
-        const cleanPrompt = sanitizeContent(contentToSave || '');
+        // Separate: aboutMe → raw_prompt (personal bio), expectations/prompt → metadata.expectations
+        const bioToSave = aboutMe !== undefined ? aboutMe : (prompt !== undefined && !expectations ? prompt : undefined);
+        const expectationsToSave = expectations !== undefined ? expectations : (prompt !== undefined && aboutMe !== undefined ? prompt : undefined);
+        const cleanBio = sanitizeContent(bioToSave || '');
+        const cleanExpectations = sanitizeContent(expectationsToSave || '');
+        // Legacy: if only prompt is provided (no aboutMe and no expectations), treat it as bio
+        const cleanPrompt = cleanBio;
         if (career) career.profession = sanitizeContent(career.profession || '');
         if (location) location.city = sanitizeContent(location.city || '');
 
@@ -495,12 +498,14 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     lifestyle,
                     partnerPreferences,
                     motherTongue,
+                    maritalStatus, // Store maritalStatus in metadata too
                     photos: finalPhotos,
                     dob,
                     location, // already sanitized
                     height, // Added Height
                     phone, // Added Phone
-                    bio: cleanPrompt, // Sync aboutMe to bio
+                    bio: cleanBio, // Sync aboutMe to bio
+                    expectations: cleanExpectations || undefined, // Store expectations separately
                     savedStickers
                 };
 
@@ -513,11 +518,11 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     where: { user_id: userId },
                     create: {
                         user_id: userId,
-                        raw_prompt: cleanPrompt,
+                        raw_prompt: cleanBio, // raw_prompt = bio/about me only
                         metadata: metadata // On create use fresh
                     },
                     update: {
-                        raw_prompt: cleanPrompt,
+                        raw_prompt: cleanBio, // raw_prompt = bio/about me only
                         metadata: newMeta // On update use merge
                     }
                 });

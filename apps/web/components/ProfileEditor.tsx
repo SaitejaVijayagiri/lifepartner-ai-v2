@@ -367,8 +367,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             <textarea
                                 className="w-full h-24 p-3 border rounded-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:ring-1 focus:ring-indigo-500 text-sm"
                                 placeholder="e.g. Someone who is ambitious, loves travel..."
-                                value={formData.prompt || ''}
-                                onChange={e => handleChange('root', 'prompt', e.target.value)}
+                                value={formData.expectations || formData.prompt || ''}
+                                onChange={e => handleChange('root', 'expectations', e.target.value)}
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

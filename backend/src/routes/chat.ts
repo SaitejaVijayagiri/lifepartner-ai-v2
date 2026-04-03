@@ -11,36 +11,59 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
     const userId = req.user.userId;
 
     try {
-        const messages = await prisma.messages.findMany({
-            where: {
-                OR: [
-                    { sender_id: userId, receiver_id: connectionId },
-                    { sender_id: connectionId, receiver_id: userId }
-                ]
-            },
-            // Optimize: Use indexed desc sort and take 100, then reverse in memory
-            // This avoids the slow negative take / subquery approach in PostgreSQL
-            orderBy: { created_at: 'desc' },
-            take: 100,
-            select: {
-                id: true,
-                sender_id: true,
-                receiver_id: true,
-                content: true,
-                created_at: true,
-                delivery_status: true,
-                is_liked: true
-            }
-        });
+        let messages: any[] = [];
+        try {
+            // Try with is_liked (works after DB migration)
+            messages = await prisma.messages.findMany({
+                where: {
+                    OR: [
+                        { sender_id: userId, receiver_id: connectionId },
+                        { sender_id: connectionId, receiver_id: userId }
+                    ]
+                },
+                orderBy: { created_at: 'desc' },
+                take: 100,
+                select: {
+                    id: true,
+                    sender_id: true,
+                    receiver_id: true,
+                    content: true,
+                    created_at: true,
+                    delivery_status: true,
+                    is_liked: true
+                }
+            });
+        } catch (dbErr: any) {
+            // Fallback: column may not exist yet in DB — query without is_liked
+            console.warn("is_liked column not found, falling back:", dbErr?.message);
+            messages = await (prisma.messages as any).findMany({
+                where: {
+                    OR: [
+                        { sender_id: userId, receiver_id: connectionId },
+                        { sender_id: connectionId, receiver_id: userId }
+                    ]
+                },
+                orderBy: { created_at: 'desc' },
+                take: 100,
+                select: {
+                    id: true,
+                    sender_id: true,
+                    receiver_id: true,
+                    content: true,
+                    created_at: true,
+                    delivery_status: true
+                }
+            });
+        }
 
         // Format for frontend and restore chronological order
-        const history = messages.reverse().map(row => ({
+        const history = messages.reverse().map((row: any) => ({
             id: row.id,
-            text: row.content, // Map content -> text
+            text: row.content,
             senderId: row.sender_id,
             timestamp: row.created_at,
             status: row.delivery_status,
-            is_liked: row.is_liked
+            is_liked: row.is_liked ?? false
         }));
 
         res.json(history);

@@ -148,6 +148,7 @@ export const api = {
         markRead: (id: string) => fetchAPI(`/notifications/${id}/read`, { method: 'PUT' }),
         markAllRead: () => fetchAPI('/notifications/read-all', { method: 'PUT' })
     },
+
     wallet: {
         getBalance: () => fetchAPI('/wallet/balance'),
         sendGift: (toUserId: string, giftId: string, cost: number) => fetchAPI('/wallet/gift', {

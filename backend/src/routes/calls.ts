@@ -8,7 +8,7 @@ const router = express.Router();
 // GET /calls/history
 router.get('/history', authenticateToken, async (req: any, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.userId;
 
         const logs = await prisma.call_logs.findMany({
             where: {

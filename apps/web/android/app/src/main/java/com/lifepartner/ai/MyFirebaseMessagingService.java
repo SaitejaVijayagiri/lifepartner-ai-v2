@@ -54,27 +54,41 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String connId = null;
 
         Map<String, String> data = remoteMessage.getData();
+        String messageId = null;
         if (data.size() > 0) {
-            String dataTitle = data.get("title");
-            if (dataTitle != null) title = dataTitle;
+            // Always prefer senderName as the notification title for chat messages
+            String extractedSenderName = data.get("senderName");
+            if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                title = extractedSenderName;
+            } else {
+                String dataTitle = data.get("title");
+                if (dataTitle != null) title = dataTitle;
+            }
             
             String dataBody = data.get("body");
             if (dataBody != null) body = dataBody;
 
-            // Extract custom payload elements
-            senderPhotoUrl = data.get("senderPhoto");
-            String extractedSenderName = data.get("senderName");
-            if (extractedSenderName != null && dataTitle == null) {
-                // Only fallback to senderName if the backend didn't provide a title
-                title = extractedSenderName;
+            // Extract sender photo — route through backend proxy to bypass Supabase DNS block in India
+            String rawPhoto = data.get("senderPhoto");
+            if (rawPhoto != null && !rawPhoto.isEmpty()) {
+                if (rawPhoto.contains("supabase")) {
+                    // Proxy through backend to avoid India DNS block
+                    senderPhotoUrl = "https://backend.lifepartnerai.in/photo/proxy?url=" + rawPhoto;
+                } else {
+                    senderPhotoUrl = rawPhoto;
+                }
             }
-            connId = data.get("senderId"); // Map the 'senderId' from backend to connId
-            String messageId = data.get("messageId");
+
+            connId = data.get("senderId");
+            messageId = data.get("messageId");
         }
 
         if (remoteMessage.getNotification() != null) {
-            if (remoteMessage.getNotification().getTitle() != null) title = remoteMessage.getNotification().getTitle();
-            if (remoteMessage.getNotification().getBody() != null) body = remoteMessage.getNotification().getBody();
+            // Only use system notification fields if we didn't get senderName
+            if (title.equals("LifePartner AI") && remoteMessage.getNotification().getTitle() != null)
+                title = remoteMessage.getNotification().getTitle();
+            if (body.equals("You have a new message") && remoteMessage.getNotification().getBody() != null)
+                body = remoteMessage.getNotification().getBody();
         }
 
         // Fetch large icon synchronously since we are already on a background thread
@@ -83,7 +97,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             largeIcon = getBitmapFromURL(senderPhotoUrl);
         }
 
-        showNotification(title, body, largeIcon, connId, data.get("messageId"));
+        showNotification(title, body, largeIcon, connId, messageId);
     }
 
     private Bitmap getBitmapFromURL(String src) {
@@ -103,6 +117,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private void showNotification(String title, String body, Bitmap largeIcon, String connId, String messageId) {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         String CHANNEL_ID = "lifepartner_chat";
+        // Compute notificationId once at method level so all places use the same value
+        int notificationId = (connId != null) ? connId.hashCode() : (int) System.currentTimeMillis();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -166,8 +182,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             Intent likeIntent = new Intent(this, NotificationLikeReceiver.class);
             likeIntent.setAction("com.lifepartner.ai.ACTION_LIKE");
             likeIntent.putExtra("messageId", messageId);
-            int notificationId = (connId != null) ? connId.hashCode() : (int) System.currentTimeMillis();
-            likeIntent.putExtra("notificationId", notificationId);
+            likeIntent.putExtra("notificationId", notificationId); // use method-level var
             likeIntent.putExtra("senderId", connId);
 
             PendingIntent likePendingIntent = PendingIntent.getBroadcast(
@@ -186,8 +201,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.addAction(likeAction);
         }
 
-        // Use connId hashcode as notification id, or unique time if missing
-        int notificationId = (connId != null) ? connId.hashCode() : (int) System.currentTimeMillis();
+        // Use method-level notificationId (same value used in Like intent above)
         manager.notify(notificationId, builder.build());
     }
 

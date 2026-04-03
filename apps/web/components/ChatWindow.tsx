@@ -243,10 +243,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         // Optimistic UI update
         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: !m.is_liked } : m));
         try {
-            await api.chat.likeMessage(msgId);
+            const result = await api.chat.likeMessage(msgId);
+            // Sync with server's authoritative value (prevents state diverging on retries)
+            if (result && typeof result.is_liked === 'boolean') {
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: result.is_liked } : m));
+            }
         } catch (err) {
             console.error("Like failed", err);
-            // Revert on fail
+            // Revert optimistic update on failure
             setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_liked: !m.is_liked } : m));
         }
     };

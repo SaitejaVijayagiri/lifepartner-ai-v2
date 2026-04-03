@@ -49,7 +49,6 @@ public class MainActivity extends BridgeActivity {
 
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
             if (token != null) {
-                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putString("fcm_token", token).apply();
 
                 String authToken = prefs.getString("auth_token", null);

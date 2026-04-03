@@ -109,7 +109,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         try {
             const senderProfile = await prisma.users.findUnique({
                 where: { id: senderId },
-                select: { full_name: true, profile_picture: true }
+                select: { full_name: true, avatar_url: true }
             });
             const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
 
@@ -122,7 +122,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     url: `/dashboard?tab=connections&chatId=${senderId}`,
                     senderId: senderId,
                     senderName: senderName,
-                    senderPhoto: senderProfile?.profile_picture || "https://lifepartnerai.in/icon-512x512.png" 
+                    senderPhoto: senderProfile?.avatar_url || "https://lifepartnerai.in/icon-512x512.png" 
                 }
             );
         } catch (pushErr) {

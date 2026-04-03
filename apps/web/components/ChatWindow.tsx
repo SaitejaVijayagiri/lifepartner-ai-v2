@@ -461,7 +461,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
                                         className={`relative group max-w-[75%] px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                        : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md')
+                                        : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
                                         {msg.text.startsWith('[STICKER]') ? (
                                             <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
@@ -502,19 +502,23 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         return (
                                             <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                                                 {Object.entries(reactionCounts).map(([emoji, users]) => (
-                                                    <button
-                                                        key={emoji}
-                                                        onClick={() => handleReact(msg.id, emoji)}
-                                                        title={users.join(', ')}
-                                                        className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all hover:scale-105 ${
-                                                            (msg.reactions as any)[user?.id ?? ''] === emoji
-                                                                ? 'bg-indigo-100 border-indigo-300 dark:bg-indigo-900 dark:border-indigo-700'
-                                                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm'
-                                                        }`}
-                                                    >
-                                                        <span>{emoji}</span>
-                                                        {users.length > 1 && <span className="text-gray-600 dark:text-gray-300 font-medium">{users.length}</span>}
-                                                    </button>
+                                                    <div key={emoji} className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => handleReact(msg.id, emoji)}
+                                                            title={users.join(', ')}
+                                                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all hover:scale-105 ${
+                                                                (msg.reactions as any)[user?.id ?? ''] === emoji
+                                                                    ? 'bg-indigo-100 border-indigo-300 dark:bg-indigo-900 dark:border-indigo-700'
+                                                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm'
+                                                            }`}
+                                                        >
+                                                            <span>{emoji}</span>
+                                                            {users.length > 1 && <span className="text-gray-600 dark:text-gray-300 font-medium">{users.length}</span>}
+                                                        </button>
+                                                        <span className="text-[10px] text-gray-500 max-w-[60px] truncate opacity-70">
+                                                            {users.join(', ')}
+                                                        </span>
+                                                    </div>
                                                 ))}
                                             </div>
                                         );

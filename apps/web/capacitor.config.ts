@@ -5,8 +5,14 @@ const config: CapacitorConfig = {
   appName: 'LifePartner',
   webDir: 'out',
   server: {
-    url: 'https://lifepartner-ai-web.vercel.app',
-    cleartext: false
+    url: 'https://lifepartnerai.in',
+    cleartext: false,
+    allowNavigation: [
+      'lifepartnerai.in',
+      '*.lifepartnerai.in',
+      '10.0.2.2',
+      'localhost'
+    ]
   }
 };
 

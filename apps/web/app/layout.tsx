@@ -110,6 +110,13 @@ export default function RootLayout({
         <meta name="theme-color" content="#4F46E5" />
         <meta name="google-site-verification" content="h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+        {/* Capacitor bridge: detect native WebView and enable native plugins */}
+        <Script id="capacitor-bridge-detect" strategy="beforeInteractive">{`
+          if (window.webkit || window.androidBridge || navigator.userAgent.includes('CapacitorApp')) {
+            document.documentElement.setAttribute('data-capacitor', 'true');
+          }
+        `}</Script>
+
         {/* Google AdSense - Real ID */}
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355"
           crossOrigin="anonymous"></script>

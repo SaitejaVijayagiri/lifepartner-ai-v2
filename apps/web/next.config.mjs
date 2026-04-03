@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const isCapacitor = process.env.CAPACITOR_BUILD === 'true';
-
 const nextConfig = {
     typescript: {
         ignoreBuildErrors: true,
@@ -22,12 +20,11 @@ const nextConfig = {
         ],
         unoptimized: true,
     },
-    output: isCapacitor ? 'export' : 'standalone',
+    output: 'standalone',
 
-    ...(isCapacitor ? {} : {
-        async headers() {
-            return [
-                {
+    async headers() {
+        return [
+            {
                     source: '/(.*)',
                     headers: [
                         {
@@ -50,7 +47,6 @@ const nextConfig = {
                 },
             ];
         }
-    })
 };
 
 export default nextConfig;

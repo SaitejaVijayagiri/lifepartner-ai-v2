@@ -113,7 +113,7 @@ function DashboardContent() {
             try {
                 const token = localStorage.getItem('device_token');
                 if (token) {
-                    await fetch('/api/notifications/unregister', {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/notifications/unregister`, {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
                         body: JSON.stringify({ token })

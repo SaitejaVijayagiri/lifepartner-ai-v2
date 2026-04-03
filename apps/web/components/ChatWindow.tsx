@@ -250,6 +250,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
+    // Auto-close emoji picker after 3 seconds of inactivity
+    useEffect(() => {
+        if (emojiPickerMsgId) {
+            const timer = setTimeout(() => {
+                setEmojiPickerMsgId(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [emojiPickerMsgId]);
+
     const handleReact = async (msgId: string, emoji: string) => {
         setEmojiPickerMsgId(null);
         const uid = user?.id;
@@ -434,7 +444,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
                                     }} />
                                 )}
-                                <div className="flex flex-col relative">
+                                <div className={`flex flex-col relative max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
                                     {/* Emoji picker popup */}
                                     {emojiPickerMsgId === msg.id && (
                                         <div
@@ -459,7 +469,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     {/* Message bubble */}
                                     <div
                                         onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
-                                        className={`relative group max-w-[75%] px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
+                                        className={`relative group w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>

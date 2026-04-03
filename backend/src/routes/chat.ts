@@ -132,27 +132,30 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             // Don't fail the request if socket fails, just log it.
         }
 
-        // Send Push Notification
+        // Send Push Notification ONLY if user is offline
         try {
-            const senderProfile = await prisma.users.findUnique({
-                where: { id: senderId },
-                select: { full_name: true, avatar_url: true }
-            });
-            const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
+            const { isUserOnline } = require('../socket');
+            if (!isUserOnline(connectionId)) {
+                const senderProfile = await prisma.users.findUnique({
+                    where: { id: senderId },
+                    select: { full_name: true, avatar_url: true }
+                });
+                const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
 
-            const { NotificationService } = require('../services/notification');
-            await NotificationService.getInstance().sendToUser(
-                connectionId,
-                `${senderName}`,
-                cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
-                { 
-                    url: `/dashboard?tab=connections&chatId=${senderId}`,
-                    messageId: newMessageRecord.id,
-                    senderId: senderId,
-                    senderName: senderName,
-                    senderPhoto: senderProfile?.avatar_url || "https://lifepartnerai.in/icon-512x512.png" 
-                }
-            );
+                const { NotificationService } = require('../services/notification');
+                await NotificationService.getInstance().sendToUser(
+                    connectionId,
+                    `${senderName}`,
+                    cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
+                    { 
+                        url: `/dashboard?tab=connections&chatId=${senderId}`,
+                        messageId: newMessageRecord.id,
+                        senderId: senderId,
+                        senderName: senderName,
+                        senderPhoto: senderProfile?.avatar_url || "https://lifepartnerai.in/icon-512x512.png" 
+                    }
+                );
+            }
         } catch (pushErr) {
             console.error("Chat Push Notification Error", pushErr);
         }

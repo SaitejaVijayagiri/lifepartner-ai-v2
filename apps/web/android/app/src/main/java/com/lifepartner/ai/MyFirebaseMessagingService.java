@@ -48,6 +48,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
+        SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+        boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
+        if (isPushDisabled) {
+            Log.i("FCM", "Push notifications are disabled by the user. Ignoring.");
+            return;
+        }
+
         String title = "LifePartner AI";
         String body = "You have a new message";
         String senderPhotoUrl = null;

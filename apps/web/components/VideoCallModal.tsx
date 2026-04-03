@@ -229,40 +229,62 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         if (!stream || !isVideo) return;
         try {
             const nextMode = facingMode === 'user' ? 'environment' : 'user';
+            const currentTrack = stream.getVideoTracks()[0];
 
-            // Try standard facingMode switch (works best on mobile)
             let newStream: MediaStream;
             try {
+                // Attempt 1: Safe request with 'ideal' to prevent OverconstrainedError
                 newStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: nextMode } } // Do NOT request audio here to avoid mic stutter/leaks
+                    video: { facingMode: nextMode } 
                 });
-            } catch (fallbackErr) {
-                // Fallback for desktops / specific browsers missing exact facingMode support
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoInputs = devices.filter(device => device.kind === 'videoinput');
-                if (videoInputs.length < 2) throw new Error("Only 1 camera found");
+            } catch (err) {
+                console.warn("Attempt 1 failed, stopping old track first (Hardware lock workaround)...");
+                // Attempt 2: Stop old track first (Some Androids require this hardware release)
+                currentTrack.enabled = false;
+                currentTrack.stop();
+                
+                try {
+                    newStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: nextMode }
+                    });
+                } catch (fallbackErr) {
+                    // Attempt 3: Manually cycle devices if all else fails
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoInputs = devices.filter(device => device.kind === 'videoinput');
+                    if (videoInputs.length < 2) throw new Error("Only 1 camera found or permission denied");
 
-                const currentTrack = stream.getVideoTracks()[0];
-                const currentDeviceId = currentTrack.getSettings().deviceId;
-                let currentIndex = videoInputs.findIndex(d => d.deviceId === currentDeviceId);
-                const nextIndex = (currentIndex + 1) % videoInputs.length;
-                const nextDevice = videoInputs[nextIndex];
+                    const currentDeviceId = currentTrack.getSettings().deviceId;
+                    let currentIndex = videoInputs.findIndex(d => d.deviceId === currentDeviceId);
+                    const nextIndex = (currentIndex + 1) % videoInputs.length;
+                    const nextDevice = videoInputs[nextIndex];
 
-                newStream = await navigator.mediaDevices.getUserMedia({
-                    video: { deviceId: { exact: nextDevice.deviceId } } // Do NOT request audio here
-                });
+                    newStream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: { exact: nextDevice.deviceId } }
+                    });
+                }
             }
 
             const newVideoTrack = newStream.getVideoTracks()[0];
-            const currentTrack = stream.getVideoTracks()[0];
 
-            if (myVideo.current) myVideo.current.srcObject = newStream;
-            if (connectionRef.current) connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
+            // Local DOM Update
+            if (myVideo.current) {
+                myVideo.current.srcObject = newStream;
+            }
 
+            // WebRTC Peer Update
+            if (connectionRef.current) {
+                connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
+            }
+
+            // State Update
             const newStreamObj = new MediaStream([...stream.getAudioTracks(), newVideoTrack]);
             setStream(newStreamObj);
             setFacingMode(nextMode);
-            currentTrack.stop();
+
+            // Cleanup old track if it wasn't already stopped
+            if (currentTrack.readyState === 'live') {
+                currentTrack.stop();
+            }
 
         } catch (err: any) {
             console.error("Failed to switch camera", err);
@@ -414,7 +436,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                         </div>
                                     ) : (
                                         <>
-                                            <video ref={myVideo} autoPlay muted playsInline className={`w-full h-full object-cover transform scale-x-[-1] pointer-events-none ${isVideoOff ? 'hidden' : ''}`} />
+                                            <video ref={myVideo} autoPlay muted playsInline className={`w-full h-full object-cover transform ${facingMode === 'user' ? 'scale-x-[-1]' : ''} pointer-events-none ${isVideoOff ? 'hidden' : ''}`} />
                                             {isVideoOff && (
                                                 <div className="w-full h-full flex items-center justify-center bg-gray-800 pointer-events-none">
                                                     <VideoOff className="text-white/50" size={20} />

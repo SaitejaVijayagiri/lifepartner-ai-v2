@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Bell, BellOff } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -402,14 +402,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             mode="audio"
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
-                        <button
-                            onClick={handleToggleMute}
-                            disabled={isMuting}
-                            className={`p-2.5 hover:bg-white/10 rounded-xl transition-all ${isMuted ? 'text-gray-300' : 'text-white/80 hover:text-white'}`}
-                            title={isMuted ? "Unmute Notifications" : "Mute Notifications"}
-                        >
-                            {isMuted ? <BellOff size={20} /> : <Bell size={20} />}
-                        </button>
                         <button onClick={onClose} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
                             <X size={20} />
                         </button>

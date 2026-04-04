@@ -9,7 +9,7 @@ import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
 import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
-import { Bell, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun } from 'lucide-react';
+import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun } from 'lucide-react';
 
 import { Notifications } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
@@ -1269,6 +1269,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 size="icon"
                                 className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
+                                title="Remove Connection"
                                 onClick={async (e) => {
                                     e.stopPropagation();
                                     if (!confirm("Are you sure you want to remove this connection?")) return;
@@ -1282,6 +1283,34 @@ function DashboardContent() {
                                 }}
                             >
                                 <Trash2 size={20} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                title={currentUser?.muted_users?.includes(conn.partner.id) ? "Unmute Notifications" : "Mute Notifications"}
+                                className={currentUser?.muted_users?.includes(conn.partner.id)
+                                    ? "text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-full"
+                                    : "text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full"}
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                        const res = await api.profile.toggleMute(conn.partner.id);
+                                        if (res.isMuted !== undefined) {
+                                            const currentMuted: string[] = currentUser?.muted_users || [];
+                                            const newMuted = res.isMuted
+                                                ? [...currentMuted, conn.partner.id]
+                                                : currentMuted.filter((id: string) => id !== conn.partner.id);
+                                            setCurrentUser((prev: any) => ({ ...prev, muted_users: newMuted }));
+                                            toast.success(res.isMuted ? `${conn.partner.name} muted` : `${conn.partner.name} unmuted`);
+                                        }
+                                    } catch (err) {
+                                        toast.error("Failed to update mute");
+                                    }
+                                }}
+                            >
+                                {currentUser?.muted_users?.includes(conn.partner.id)
+                                    ? <BellOff size={18} />
+                                    : <Bell size={18} />}
                             </Button>
                             <Button
                                 variant="ghost"

@@ -19,9 +19,10 @@ interface MatchCardProps {
     onGift?: () => void;
     onChat?: () => void; // Called when clicking "Message" on an already-connected user
     currentUserName?: string; // For Kundli
+    isConnectedProp?: boolean; // Prop to override connection state
 }
 
-const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat }: MatchCardProps) {
+const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat, isConnectedProp }: MatchCardProps) {
     // Independent States
     const { onlineUsers } = useSocket();
     const isUserOnline = match.isOnline || onlineUsers.includes(match.id);
@@ -30,7 +31,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
 
     // Derived states
-    const isConnected = matchStatus === 'accepted';
+    const isConnected = isConnectedProp || matchStatus === 'accepted' || matchStatus === 'connected';
     const isRequestSent = matchStatus === 'pending';
     const hasLiked = isLiked;
 

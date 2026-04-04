@@ -19,9 +19,10 @@ interface ProfileModalProps {
     onConnect?: () => void;
     onChat?: () => void;
     onUpgrade?: () => void;
+    isConnectedProp?: boolean;
 }
 
-export default function ProfileModal({ profile, currentUser, onClose, onConnect, onChat, onUpgrade }: ProfileModalProps) {
+export default function ProfileModal({ profile, currentUser, onClose, onConnect, onChat, onUpgrade, isConnectedProp }: ProfileModalProps) {
     const [activeTab, setActiveTab] = useState('ai insight');
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [lastInteracted, setLastInteracted] = useState(0);
@@ -456,7 +457,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Bottom Action Bar (Fixed on Mobile) */}
                     {(() => {
-                        const isAlreadyConnected = profile.match_status === 'accepted';
+                        const isAlreadyConnected = isConnectedProp || profile.match_status === 'accepted' || profile.match_status === 'connected';
                         const isPendingRequest = profile.match_status === 'pending';
                         return (
                     <div className="absolute bottom-0 inset-x-0 p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210]">

@@ -232,7 +232,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-6">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-32 md:pb-6">
 
                         {activeTab === 'ai insight' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -462,9 +462,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         return (
                     <div className="absolute bottom-0 inset-x-0 p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210]">
                         {isAlreadyConnected && (
-                            <div className="flex items-center justify-center gap-2 mb-2 py-1.5 px-4 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">You are connected</span>
+                            <div className="flex items-center justify-center gap-1.5 mb-1.5 py-0.5 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Connected</span>
                             </div>
                         )}
                         <div className="flex gap-3">

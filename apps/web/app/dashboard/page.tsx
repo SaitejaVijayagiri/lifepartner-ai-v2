@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1147,6 +1147,14 @@ function DashboardContent() {
                                     names: { me: "You", partner: match.name }
                                 })}
                                 onGift={() => setGiftData({ userId: match.id, userName: match.name })}
+                                onChat={() => {
+                                    const conn = connections.find((c: any) => c.partner?.id === match.id);
+                                    if (conn) {
+                                        setSelectedConnection(conn);
+                                    } else {
+                                        setActiveTab('connections');
+                                    }
+                                }}
                             />
                         </div>
                     ))}
@@ -1546,6 +1554,15 @@ function DashboardContent() {
                         setSelectedProfile(null);
                         setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
                         toast.success(`Interest sent to ${selectedProfile.name}!`);
+                    }}
+                    onChat={() => {
+                        const conn = connections.find((c: any) => c.partner?.id === selectedProfile.id);
+                        setSelectedProfile(null);
+                        if (conn) {
+                            setSelectedConnection(conn);
+                        } else {
+                            setActiveTab('connections');
+                        }
                     }}
                     onUpgrade={() => {
                         setSelectedProfile(null);

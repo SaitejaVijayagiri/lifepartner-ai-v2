@@ -17,16 +17,23 @@ interface MatchCardProps {
     onStoryClick?: () => void;
     onShowKundli?: (data: any) => void;
     onGift?: () => void;
+    onChat?: () => void; // Called when clicking "Message" on an already-connected user
     currentUserName?: string; // For Kundli
 }
 
-const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift }: MatchCardProps) {
+const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat }: MatchCardProps) {
     // Independent States
     const { onlineUsers } = useSocket();
     const isUserOnline = match.isOnline || onlineUsers.includes(match.id);
 
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
+
+    // Derived states
+    const isConnected = matchStatus === 'accepted';
+    const isRequestSent = matchStatus === 'pending';
+    const hasLiked = isLiked;
+
     const toast = useToast();
     const [isPlaying, setIsPlaying] = useState(false); // Audio State
     const [showKundli, setShowKundli] = useState(false); // Modal State
@@ -61,7 +68,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         e.stopPropagation();
         e.nativeEvent.stopImmediatePropagation();
 
-        if (loading || matchStatus === 'pending') return;
+        if (loading || isRequestSent || isConnected) return;
 
         setLoading(true);
         const prevStatus = matchStatus;
@@ -80,7 +87,15 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         }
     };
 
-    // 2. Handle "Like/Shortlist" (Secondary Action)
+    // 2. Handle "Message" (for already-connected users)
+    const handleMessage = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+        if (onChat) onChat();
+    };
+
+    // 3. Handle "Like/Shortlist" (Secondary Action)
     // Liking does NOT affect connection status. purely Instagram style.
     const handleLike = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -106,10 +121,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             setLikeCount((prev: number) => !newIsLiked ? prev + 1 : prev - 1);
         }
     };
-
-    const isRequestSent = matchStatus === 'pending';
-    // hasLiked is strict now.
-    const hasLiked = isLiked;
 
     return (
         <div
@@ -151,7 +162,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent opacity-60 pointer-events-none" />
             </div>
 
-            {/* Glowing Match Score (Floating Top Right) - High Contrast Fix */}
             {/* Glowing Match Score (Floating Top Right) - Premium Redesign */}
             <div className="absolute top-4 right-4 z-30">
                 <div className="relative flex items-center justify-center w-16 h-16">
@@ -167,8 +177,17 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 </div>
             </div>
 
+            {/* Connected Badge (Top Left) */}
+            {isConnected && (
+                <div className="absolute top-4 left-4 z-30">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 backdrop-blur-md border border-emerald-400/30 shadow-lg">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">✓ Connected</span>
+                    </div>
+                </div>
+            )}
+
             {/* Status Stack: Stories, Reasons, Voice Bio */}
-            <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none">
+            <div className={`absolute top-4 z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4'}`}>
                 {/* 1. Story Badge */}
                 {match.stories && match.stories.length > 0 && (
                     <div className="pointer-events-auto" onClick={(e) => { e.stopPropagation(); if (onStoryClick) onStoryClick(); }}>
@@ -242,7 +261,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         </h3>
                         {match.isVerified && <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>}
                         {/* Online Indicator */}
-                        {/* Online Indicator */}
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/20 border-green-400/30' : 'bg-gray-500/20 border-gray-400/30'} mb-1.5`}>
                             <div className={`w-2 h-2 rounded-full ${isUserOnline ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-gray-400'}`}></div>
                             <span className={`text-[10px] font-bold uppercase tracking-wider ${isUserOnline ? 'text-green-200' : 'text-gray-300'}`}>
@@ -262,20 +280,31 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     </div>
                 </div>
 
-                {/* Hidden ACTION Buttons (Appears on Hover) - RESTORED */}
+                {/* Hidden ACTION Buttons (Appears on Hover) */}
                 <div className="absolute bottom-4 left-4 right-4 flex gap-2 translate-y-20 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
-                    {/* 1. Send Interest Button (Primary Action) */}
-                    <Button
-                        onClick={handleConnect}
-                        disabled={loading || isRequestSent}
-                        className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            }`}
-                        style={{ opacity: 1 }}
-                    >
-                        {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
-                    </Button>
+
+                    {/* 1. Primary Action: "Message" if connected, "Send Interest" otherwise */}
+                    {isConnected ? (
+                        <Button
+                            onClick={handleMessage}
+                            className="flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700"
+                            style={{ opacity: 1 }}
+                        >
+                            💬 Message
+                        </Button>
+                    ) : (
+                        <Button
+                            onClick={handleConnect}
+                            disabled={loading || isRequestSent}
+                            className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                }`}
+                            style={{ opacity: 1 }}
+                        >
+                            {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
+                        </Button>
+                    )}
 
                     {/* 2. Like/Heart Button (Social Proof Action) */}
                     <button

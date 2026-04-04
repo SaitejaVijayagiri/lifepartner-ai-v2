@@ -48,7 +48,7 @@ export default function LandingPage() {
             "logo": "https://lifepartnerai.in/icons/icon-512x512.png",
             "sameAs": [
               "https://twitter.com/lifepartnerai",
-              "https://instagram.com/lifepartnerai"
+              "https://www.instagram.com/lifepartnerai.in?utm_source=qr&igsh=MXVrdGhpeWd0ZHNkMw=="
             ],
             "description": "The world's first AI-powered offline-first matrimony platform offering semantic search and verified connections.",
             "address": {

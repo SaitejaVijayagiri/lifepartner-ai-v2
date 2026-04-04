@@ -47,7 +47,7 @@ export default function Footer() {
                         <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-800 rounded-full hover:bg-indigo-600 transition-colors group">
                             <Twitter size={20} className="text-gray-300 group-hover:text-white" />
                         </a>
-                        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-800 rounded-full hover:bg-pink-600 transition-colors group">
+                        <a href="https://www.instagram.com/lifepartnerai.in?utm_source=qr&igsh=MXVrdGhpeWd0ZHNkMw==" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-800 rounded-full hover:bg-pink-600 transition-colors group">
                             <Instagram size={20} className="text-gray-300 group-hover:text-white" />
                         </a>
                         <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="p-2 bg-gray-800 rounded-full hover:bg-blue-600 transition-colors group">

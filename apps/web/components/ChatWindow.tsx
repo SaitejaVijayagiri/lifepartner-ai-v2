@@ -380,13 +380,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         >
                             <Gift size={20} />
                         </button>
-                        <button
-                            onClick={() => setShowGame(true)}
-                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all text-lg"
-                            title="Play Game"
-                        >
-                            🎲
-                        </button>
                         <VideoCallButton
                             targetUserId={partner.id}
                             targetUserName={partner.name}

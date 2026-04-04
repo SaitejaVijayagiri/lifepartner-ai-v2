@@ -30,6 +30,7 @@ const ChatWindow = dynamic(() => import('@/components/ChatWindow'), { ssr: false
 const CoinStoreModal = dynamic(() => import('@/components/CoinStoreModal'));
 const FilterModal = dynamic(() => import('@/components/FilterModal'), { ssr: false });
 const GiftModal = dynamic(() => import('@/components/GiftModal'));
+const GameModal = dynamic(() => import('@/components/GameModal'));
 const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
 const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
 import { Capacitor } from '@capacitor/core';
@@ -94,6 +95,9 @@ function DashboardContent() {
         }
         return true;
     });
+
+    /* Game State - for connections list */
+    const [gameTarget, setGameTarget] = useState<{ id: string; name: string } | null>(null);
 
     const togglePushNotifications = async () => {
         const newState = !pushEnabled;
@@ -1315,6 +1319,18 @@ function DashboardContent() {
                             <Button
                                 variant="ghost"
                                 size="icon"
+                                title="Play Compatibility Quiz"
+                                className="text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full text-lg"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setGameTarget({ id: conn.partner.id, name: conn.partner.name });
+                                }}
+                            >
+                                🎲
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full"
                                 onClick={() => setSelectedConnection(conn)}
                             >
@@ -1654,6 +1670,14 @@ function DashboardContent() {
 
             {/* Web Push Prompt (Condition handled inside component) */}
             <WebPushPrompt />
+
+            {/* Game Modal - Launched from Connections List */}
+            {gameTarget && (
+                <GameModal
+                    onClose={() => setGameTarget(null)}
+                    partnerName={gameTarget.name}
+                />
+            )}
 
             {/* Mobile Bottom Navigation - Premium Floating */}
             <div className="lg:hidden block">

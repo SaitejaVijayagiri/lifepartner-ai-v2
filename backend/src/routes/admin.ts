@@ -243,47 +243,71 @@ router.get('/transactions', async (req, res) => {
     }
 });
 
-// POST /send-campaign - Email all users based on their onboarding status
-router.post('/send-campaign', async (req, res) => {
+// POST /send-campaign - Flexible email campaign launcher
+// Body: { type: 'onboarding' | 'reengagement' | 'invite' | 'all', inviteEmails?: string[] }
+router.post('/send-campaign', async (req: any, res) => {
+    const { type = 'all', inviteEmails = [] } = req.body;
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    const result: any = { success: true, type };
+
     try {
-        const users = await prisma.users.findMany({
-            where: { is_banned: false },
-            select: {
-                id: true,
-                email: true,
-                full_name: true,
-                profiles: { select: { user_id: true } }
+        /* ── Onboarding Reminder ── */
+        if (type === 'onboarding' || type === 'all') {
+            const users = await prisma.users.findMany({
+                where: { is_banned: false },
+                select: { id: true, email: true, full_name: true, profiles: { select: { user_id: true } } }
+            });
+            const notOnboarded = users.filter((u: any) => !u.profiles);
+            for (const user of notOnboarded) {
+                await EmailService.sendOnboardingReminderEmail(user.email, user.full_name || 'there');
+                await sleep(120); // Rate-limit: ~8 emails/sec
             }
-        });
-
-        const notOnboarded = users.filter(u => !u.profiles);
-        const onboarded    = users.filter(u =>  u.profiles);
-
-        const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-        // Send onboarding nudge
-        for (const user of notOnboarded) {
-            await EmailService.sendOnboardingReminderEmail(user.email, user.full_name || 'there');
-            await sleep(100);
+            result.onboarding_sent = notOnboarded.length;
         }
 
-        // Send find-matches nudge
-        for (const user of onboarded) {
-            await EmailService.sendFindMatchesEmail(user.email, user.full_name || 'there');
-            await sleep(100);
+        /* ── Re-engagement (inactive 7+ days) ── */
+        if (type === 'reengagement' || type === 'all') {
+            const INACTIVE_DAYS = 7;
+            const cutoff = new Date();
+            cutoff.setDate(cutoff.getDate() - INACTIVE_DAYS);
+
+            const users = await prisma.users.findMany({
+                where: { is_banned: false, profiles: { isNot: null } },
+                select: { id: true, email: true, full_name: true, created_at: true, profiles: { select: { metadata: true } } }
+            });
+
+            const inactive = users.filter((u: any) => {
+                const meta = (u.profiles?.metadata as any) || {};
+                const lastSeen = meta.last_seen_at ? new Date(meta.last_seen_at) : (u.created_at ? new Date(u.created_at) : null);
+                return lastSeen && lastSeen < cutoff;
+            });
+
+            for (const user of inactive) {
+                const meta = (user.profiles?.metadata as any) || {};
+                const lastSeen = meta.last_seen_at ? new Date(meta.last_seen_at) : new Date(user.created_at!);
+                const days = Math.floor((Date.now() - lastSeen.getTime()) / (1000 * 60 * 60 * 24));
+                await EmailService.sendReEngagementEmail(user.email, user.full_name || 'there', days);
+                await sleep(120);
+            }
+            result.reengagement_sent = inactive.length;
         }
 
-        res.json({
-            success: true,
-            onboarding_reminders_sent: notOnboarded.length,
-            find_matches_emails_sent: onboarded.length,
-            not_onboarded: notOnboarded.map(u => ({ id: u.id, email: u.email, name: u.full_name })),
-            onboarded: onboarded.map(u => ({ id: u.id, email: u.email, name: u.full_name }))
-        });
+        /* ── Invite external / non-registered emails ── */
+        if (type === 'invite' || (Array.isArray(inviteEmails) && inviteEmails.length > 0)) {
+            const emails: string[] = Array.isArray(inviteEmails) ? inviteEmails : [];
+            for (const email of emails) {
+                await EmailService.sendInviteEmail(email.trim(), req.user?.name);
+                await sleep(120);
+            }
+            result.invites_sent = emails.length;
+        }
+
+        res.json(result);
     } catch (err) {
         console.error('Campaign Error:', err);
-        res.status(500).json({ error: 'Failed to send campaign emails' });
+        res.status(500).json({ error: 'Campaign failed', details: String(err) });
     }
 });
 
 export default router;
+

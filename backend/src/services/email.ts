@@ -134,4 +134,88 @@ export class EmailService {
             console.error('Email Error:', error);
         }
     }
+    /**
+     * Sent to non-registered people (marketing / invite campaign)
+     * Pass any email address — no user account needed.
+     */
+    static async sendInviteEmail(email: string, invitedByName?: string) {
+        if (!process.env.RESEND_API_KEY) return;
+
+        const referrer = invitedByName ? `<strong>${invitedByName}</strong> thinks` : 'Someone thinks';
+
+        try {
+            await resend.emails.send({
+                from: process.env.EMAIL_FROM || 'LifePartner AI <hello@lifepartnerai.in>',
+                to: email,
+                subject: '💌 You have been invited to find your life partner with AI',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; color: #f5f5f5; border-radius: 16px; overflow: hidden;">
+                        <div style="background: linear-gradient(135deg, #E11D48, #9333EA); padding: 48px 32px; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">💖</div>
+                            <h1 style="margin: 0; font-size: 28px; color: white; line-height: 1.3;">Your Life Partner<br/>Could Be One Click Away</h1>
+                        </div>
+                        <div style="padding: 32px;">
+                            <p style="font-size: 17px; color: #e5e5e5;">Hey there 👋</p>
+                            <p style="font-size: 15px; color: #aaa; line-height: 1.8;">${referrer} you're ready to find someone truly special. LifePartner AI uses advanced AI to match you based on personality, values, and life goals — not just photos.</p>
+                            <ul style="font-size: 14px; color: #ccc; line-height: 2; padding-left: 20px;">
+                                <li>🤖 AI-powered compatibility matching</li>
+                                <li>🎙️ Voice bio & video calling built-in</li>
+                                <li>🔐 Verified profiles & safe community</li>
+                                <li>💬 Chat, gifts, and icebreaker games</li>
+                            </ul>
+                            <div style="text-align: center; margin: 32px 0;">
+                                <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/register" style="display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #E11D48, #9333EA); color: white; text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: bold;">Join Free Today →</a>
+                            </div>
+                            <p style="font-size: 12px; color: #555; text-align: center;">LifePartner AI · Hyderabad, India<br/>If you didn't expect this email, you can safely ignore it.</p>
+                        </div>
+                    </div>
+                `
+            });
+            console.log(`Invite email sent to ${email}`);
+        } catch (error) {
+            console.error('Invite Email Error:', error);
+        }
+    }
+
+    /**
+     * Sent to registered users who haven't used the app in 7+ days
+     */
+    static async sendReEngagementEmail(email: string, name: string, daysSinceLastSeen: number) {
+        if (!process.env.RESEND_API_KEY) return;
+
+        const firstName = name?.split(' ')[0] || 'there';
+        const urgencyLine = daysSinceLastSeen >= 30
+            ? `It's been over a month since we last saw you.`
+            : `It's been ${daysSinceLastSeen} days since your last visit.`;
+
+        try {
+            await resend.emails.send({
+                from: process.env.EMAIL_FROM || 'LifePartner AI <hello@lifepartnerai.in>',
+                to: email,
+                subject: `${firstName}, we miss you 💭 New people are waiting`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; color: #f5f5f5; border-radius: 16px; overflow: hidden;">
+                        <div style="background: linear-gradient(135deg, #1e1b4b, #4c1d95); padding: 48px 32px; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">🌙</div>
+                            <h1 style="margin: 0; font-size: 26px; color: white;">We Miss You, ${firstName}</h1>
+                        </div>
+                        <div style="padding: 32px;">
+                            <p style="font-size: 17px; color: #e5e5e5;">Hey <strong>${firstName}</strong>,</p>
+                            <p style="font-size: 15px; color: #aaa; line-height: 1.8;">${urgencyLine} Since then, our AI has found new people who match your values and personality. Your perfect match might already be looking for someone just like you.</p>
+                            <div style="background: #1a1a2e; border-radius: 12px; padding: 20px; margin: 24px 0; border-left: 4px solid #9333EA;">
+                                <p style="margin: 0; font-size: 14px; color: #c4b5fd;">✨ <strong>New matches this week</strong> · 🎙️ New voice profiles · 📸 New story updates</p>
+                            </div>
+                            <div style="text-align: center; margin: 32px 0;">
+                                <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="display: inline-block; padding: 14px 36px; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: white; text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: bold;">See Who's Waiting →</a>
+                            </div>
+                            <p style="font-size: 12px; color: #555; text-align: center;">LifePartner AI · Hyderabad, India<br/>Unsubscribe anytime from your account settings.</p>
+                        </div>
+                    </div>
+                `
+            });
+            console.log(`Re-engagement email sent to ${email}`);
+        } catch (error) {
+            console.error('Re-engagement Email Error:', error);
+        }
+    }
 }

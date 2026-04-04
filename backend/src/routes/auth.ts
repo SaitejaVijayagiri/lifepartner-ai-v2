@@ -355,6 +355,19 @@ router.post('/login', async (req, res) => {
         console.log(`✅ Login successful: ${email} (Admin: ${user.is_admin})`);
         const token = generateToken(user.id);
         setTokenCookie(res, token);
+
+        // Track last_seen_at in profile metadata for re-engagement campaign accuracy
+        prisma.profiles.findUnique({ where: { user_id: user.id }, select: { metadata: true } })
+            .then(profile => {
+                if (profile) {
+                    const meta = (profile.metadata as any) || {};
+                    return prisma.profiles.update({
+                        where: { user_id: user.id },
+                        data: { metadata: { ...meta, last_seen_at: new Date().toISOString() } }
+                    });
+                }
+            })
+            .catch(e => console.error('last_seen_at update failed (non-blocking):', e));
         
         const requiresOnboarding = !user.gender || !user.age;
         

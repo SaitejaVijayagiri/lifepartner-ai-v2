@@ -188,7 +188,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             )}
 
             {/* Status Stack: Stories, Reasons, Voice Bio */}
-            <div className={`absolute top-4 z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4'}`}>
+            <div className={`absolute z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
                 {/* 1. Story Badge */}
                 {match.stories && match.stories.length > 0 && (
                     <div className="pointer-events-auto" onClick={(e) => { e.stopPropagation(); if (onStoryClick) onStoryClick(); }}>

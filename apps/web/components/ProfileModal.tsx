@@ -32,7 +32,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     if (!profile) return null;
 
-    // ðŸ›¡ï¸ Data Sanitization: Ensure all nested objects exist to prevent crashes
+    // 🛡️ Data Sanitization: Ensure all nested objects exist to prevent crashes
     const safeProfile = {
         ...profile,
         career: profile.career || {},
@@ -126,7 +126,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         <div className="flex items-center gap-2 mb-1">
                             <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-center gap-2">
                                 {profile.name}, {profile.age}
-                                {profile.isPremium && <span className="text-amber-400 text-xl drop-shadow-lg animate-pulse" title="Premium Member">ðŸ‘‘</span>}
+                                {profile.isPremium && <span className="text-amber-400 text-xl drop-shadow-lg animate-pulse" title="Premium Member">👑</span>}
                             </h2>
                             {profile.isVerified !== false && <VerificationBadge size={16} className="bg-blue-900/30 p-0.5 rounded-full" showTooltip />}
                         </div>
@@ -199,10 +199,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     <div className="hidden md:block px-8 pt-8 pb-4">
                         <div className="flex gap-2 mt-2 pl-4">
                             <div className="bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 dark:border-pink-800/50 flex items-center gap-1 w-max">
-                                <span>ðŸŽ</span> {profile.total_gifts || 0} Gifts
+                                <span>🎁</span> {profile.total_gifts || 0} Gifts
                             </div>
                             <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-100 dark:border-red-800/50 flex items-center gap-1 w-max">
-                                <span>â¤ï¸</span> {profile.total_likes || 0} Likes
+                                <span>❤️</span> {profile.total_likes || 0} Likes
                             </div>
                         </div>
                     </div>
@@ -225,7 +225,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-transparent'}
                                     `}
                                 >
-                                    {tab === 'ai insight' ? 'ðŸ¤– AI Insight' : tab}
+                                    {tab === 'ai insight' ? '🤖 AI Insight' : tab}
                                 </button>
                             ))}
                         </div>
@@ -238,7 +238,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 shadow-sm">
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-xl">ðŸ¤–</div>
+                                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-xl">🤖</div>
                                         <h3 className="font-bold text-indigo-900 dark:text-indigo-100">AI Compatibility Analysis</h3>
                                     </div>
                                     <p className="text-indigo-800/80 dark:text-indigo-300 italic text-sm leading-relaxed border-l-4 border-indigo-400 dark:border-indigo-500 pl-4 py-1">
@@ -247,10 +247,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                                     <div className="flex gap-3 mt-6">
                                         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">
-                                            <span>âœ¨</span> {profile.score || 0}% Match Score
+                                            <span>✨</span> {profile.score || 0}% Match Score
                                         </div>
                                         <div className="bg-pink-100/50 dark:bg-pink-900/20 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 dark:text-pink-300 border border-pink-100 dark:border-pink-900/50 shadow-sm flex items-center gap-2">
-                                            <span>ðŸŽ</span> {profile.total_gifts || 0} Gifts
+                                            <span>🎁</span> {profile.total_gifts || 0} Gifts
                                         </div>
                                     </div>
                                 </div>
@@ -286,7 +286,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
                                         <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
-                                        <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} icon="âœ¨" />
+                                        <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} icon="✨" />
                                         <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign ? `${getZodiacSymbol(profile.horoscope.zodiacSign)} ${profile.horoscope.zodiacSign}` : "-"} />
                                         <InfoCard label="Nakshatra" value={profile.horoscope?.nakshatra || "-"} />
                                         <InfoCard label="Time of Birth" value={profile.horoscope?.birthTime || "-"} />
@@ -303,8 +303,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                                     {currentUser?.is_premium ? (
                                         <div className="bg-white/60 dark:bg-gray-800/60 border border-teal-200/50 dark:border-teal-800/50 rounded-2xl p-5 space-y-4">
-                                            <ContactRow icon="ðŸ“ž" label="Phone" value={profile.phone || "Not Available"} />
-                                            <ContactRow icon="âœ‰ï¸" label="Email" value={profile.email || "hidden@email.com"} />
+                                            <ContactRow icon="📞" label="Phone" value={profile.phone || "Not Available"} />
+                                            <ContactRow icon="✉️" label="Email" value={profile.email || "hidden@email.com"} />
                                             <div className="pt-2">
                                                 <VideoCallButton
                                                     targetUserId={profile.id}
@@ -322,22 +322,22 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             </div>
                                             <div className="relative z-10 flex flex-col items-center">
                                                 <div className="w-14 h-14 bg-gradient-to-tr from-amber-400 to-orange-500 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-amber-500/30 text-white text-2xl animate-bounce">
-                                                    ðŸ‘‘
+                                                    👑
                                                 </div>
                                                 <h4 className="font-bold text-teal-950 dark:text-teal-100 text-lg mb-4">Upgrade to Premium</h4>
 
                                                 <div className="space-y-2 text-left mb-6 bg-white/60 dark:bg-gray-800/60 p-4 rounded-xl border border-white/40 dark:border-gray-700/50 shadow-sm w-full max-w-[280px]">
                                                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                        <span className="text-green-600 dark:text-green-400">âœ“</span> Instant Contact Numbers
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Instant Contact Numbers
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                        <span className="text-green-600 dark:text-green-400">âœ“</span> Video & Audio Calls
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Video & Audio Calls
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                        <span className="text-green-600 dark:text-green-400">âœ“</span> See Who Liked You
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> See Who Liked You
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                        <span className="text-green-600 dark:text-green-400">âœ“</span> Unlimited Interest Requests
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Unlimited Interest Requests
                                                     </div>
                                                 </div>
 
@@ -355,7 +355,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-2xl shadow-sm">ðŸ’¼</div>
+                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-2xl shadow-sm">💼</div>
                                         <div>
                                             <div className="font-bold text-gray-900 dark:text-gray-100 text-lg">{profile.career?.profession || "-"}</div>
                                             <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
@@ -364,10 +364,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                     ? (
                                                         <>
                                                             {profile.career?.company || "-"}
-                                                            {currentUser?.is_premium && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">ðŸ’Ž UNLOCKED</span>}
+                                                            {currentUser?.is_premium && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">💎 UNLOCKED</span>}
                                                         </>
                                                     )
-                                                    : "ðŸ”’ Connect to Unlock Company"}
+                                                    : "🔒 Connect to Unlock Company"}
                                             </div>
                                         </div>
                                     </div>
@@ -377,7 +377,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoRow label="College" value={profile.career?.college || "-"} />
                                         <InfoRow
                                             label="Annual Income"
-                                            value={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium) ? (profile.career?.income || "Not Specified") : "ðŸ”’ Connect to Unlock"}
+                                            value={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium) ? (profile.career?.income || "Not Specified") : "🔒 Connect to Unlock"}
                                             highlight={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium)}
                                             premiumUnlocked={currentUser?.is_premium && !(profile.match_status === 'accepted' || currentUser?.id === profile.id)}
                                         />
@@ -408,9 +408,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-2xl border border-green-100 dark:border-green-900/50">
                                     <h3 className="font-bold text-green-900 dark:text-green-100 mb-4">Habits & Lifestyle</h3>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} icon="ðŸ¥—" />
-                                        <InfoCard label="Smoking" value={profile.lifestyle?.smoking || profile.lifestyle?.smoke || "-"} icon="ðŸš¬" />
-                                        <InfoCard label="Drinking" value={profile.lifestyle?.drinking || profile.lifestyle?.drink || "-"} icon="ðŸ·" />
+                                        <InfoCard label="Diet" value={profile.lifestyle?.diet || "-"} icon="🥗" />
+                                        <InfoCard label="Smoking" value={profile.lifestyle?.smoking || profile.lifestyle?.smoke || "-"} icon="🚬" />
+                                        <InfoCard label="Drinking" value={profile.lifestyle?.drinking || profile.lifestyle?.drink || "-"} icon="🍷" />
                                     </div>
                                 </div>
 
@@ -434,7 +434,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 {(profile.expectations || profile.prompt) && (
                                     <div className="bg-indigo-50/50 dark:bg-indigo-900/30 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 mb-4">
                                         <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-2 flex items-center gap-2">
-                                            <span className="text-xl">ðŸ’­</span> Expectations
+                                            <span className="text-xl">💭</span> Expectations
                                         </h3>
                                         <p className="text-indigo-800 dark:text-indigo-300 text-sm italic leading-relaxed">
                                             "{profile.expectations || profile.prompt}"
@@ -481,7 +481,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </Button>
                             ) : (
                                 <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10" onClick={onConnect}>
-                                    Send Interest 💖
+                                    ✨ Send Interest
                                 </Button>
                             )}
                         </div>
@@ -553,7 +553,7 @@ const InfoRow = ({ label, value, highlight, premiumUnlocked }: any) => (
         <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
         <div className="flex items-center gap-2">
             <span className={`font-medium text-sm ${highlight ? 'text-green-700 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>{value}</span>
-            {premiumUnlocked && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">ðŸ’Ž</span>}
+            {premiumUnlocked && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">💎</span>}
         </div>
     </div>
 );

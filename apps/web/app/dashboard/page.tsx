@@ -31,6 +31,8 @@ const CoinStoreModal = dynamic(() => import('@/components/CoinStoreModal'));
 const FilterModal = dynamic(() => import('@/components/FilterModal'), { ssr: false });
 const GiftModal = dynamic(() => import('@/components/GiftModal'));
 const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
+const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
+import { Capacitor } from '@capacitor/core';
 
 // Duplicate InteractiveMap removed
 /* Mock Data for Stories */
@@ -180,8 +182,14 @@ function DashboardContent() {
                 }
                 setCurrentUser(profile);
 
-                // Initialize Native Push Notifications if on Capacitor Device
-                Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
+                // Initialize Push Notifications
+                if (Capacitor.isNativePlatform()) {
+                    Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
+                } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                    // Only automatically initialize on web if they ALREADY granted it.
+                    // Otherwise, WebPushPrompt component will handle asking them.
+                    Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
+                }
 
                 // Matches - with stale-while-revalidate cache save
                 if (matchesResult.status === 'fulfilled') {
@@ -268,13 +276,13 @@ function DashboardContent() {
     const hasFetchedConnections = useRef(false);
 
     useEffect(() => {
+        if (!hasFetchedConnections.current) {
+            hasFetchedConnections.current = true;
+            fetchConnections();
+        }
         if (activeTab === 'requests' && !hasFetchedRequests.current) {
             hasFetchedRequests.current = true;
             fetchRequests();
-        }
-        if (activeTab === 'connections' && !hasFetchedConnections.current) {
-            hasFetchedConnections.current = true;
-            fetchConnections();
         }
         if (activeTab === 'map' && mapProfiles.length === 0) fetchMapProfiles();
     }, [activeTab]);
@@ -1556,6 +1564,7 @@ function DashboardContent() {
                         setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
                         toast.success(`Interest sent to ${selectedProfile.name}!`);
                     }}
+                    isConnectedProp={connections.some((c: any) => c.partner?.id === selectedProfile.id)}
                     onChat={() => {
                         const conn = connections.find((c: any) => c.partner?.id === selectedProfile.id);
                         setSelectedProfile(null);
@@ -1613,6 +1622,9 @@ function DashboardContent() {
                     names={selectedKundli.names}
                 />
             )}
+
+            {/* Web Push Prompt (Condition handled inside component) */}
+            <WebPushPrompt />
 
             {/* Mobile Bottom Navigation - Premium Floating */}
             <div className="lg:hidden block">

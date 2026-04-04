@@ -272,21 +272,7 @@ export default function LandingPage() {
 
       {/* --- MEET THE FOUNDER / TRUST SECTION --- */}
       <section className="py-24 bg-white dark:bg-gray-950 relative overflow-hidden border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-indigo-600 rounded-[2rem] rotate-3 opacity-10"></div>
-            <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
-              <img src="/images/founder.jpg" alt="Saiteja Vijayagiri - Founder" className="w-full h-auto object-cover" />
-            </div>
-            {/* Verification Badge */}
-            <div className="absolute -bottom-6 -right-6 bg-white dark:bg-gray-950 p-4 rounded-xl shadow-xl border border-gray-100 dark:border-gray-800 flex items-center gap-3">
-              <div className="bg-green-100 p-2 rounded-full text-green-600"><ShieldCheck size={24} /></div>
-              <div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Identity Verified</p>
-                <p className="font-bold text-gray-900 dark:text-gray-100">Saiteja Vijayagiri</p>
-              </div>
-            </div>
-          </div>
+        <div className="max-w-4xl mx-auto px-6">
 
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-6">
@@ -310,10 +296,6 @@ export default function LandingPage() {
                   <span className="w-8 h-8 rounded-full bg-white dark:bg-gray-950 flex items-center justify-center shadow-sm">📧</span>
                   <img src="mailto:lifepartnerai.in@gmail.com" className="hidden" /> {/* SEO hidden mailto */}
                   lifepartnerai.in@gmail.com
-                </div>
-                <div className="flex items-center gap-3 text-indigo-900 font-bold">
-                  <span className="w-8 h-8 rounded-full bg-white dark:bg-gray-950 flex items-center justify-center shadow-sm">📱</span>
-                  +91 90148 36399 (WhatsApp Available)
                 </div>
               </div>
               <p className="text-xs text-indigo-500 mt-4 italic">Send me your details directly. I will personally verify and list your profile.</p>

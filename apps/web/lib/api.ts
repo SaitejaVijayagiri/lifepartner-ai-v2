@@ -190,6 +190,10 @@ export const api = {
         resolveReport: (reportId: string, status: string) => fetchAPI('/admin/resolve-report', {
             method: 'POST',
             body: JSON.stringify({ reportId, status })
+        }),
+        sendCampaign: (body: { type: string; inviteEmails?: string[] }) => fetchAPI('/admin/send-campaign', {
+            method: 'POST',
+            body: JSON.stringify(body)
         })
     },
     verification: {

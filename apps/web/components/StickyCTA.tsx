@@ -40,7 +40,7 @@ export default function StickyCTA() {
             <div className="bg-gray-900/90 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl border border-white/10 flex items-center justify-between gap-4">
                 <div className="flex flex-col">
                     <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1">
-                        <Sparkles size={10} /> 50+ Verified Users
+                        <Sparkles size={10} /> 2000+ Verified Users
                     </span>
                     <span className="font-bold text-sm">Find your partner today.</span>
                 </div>

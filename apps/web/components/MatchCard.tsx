@@ -31,7 +31,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
 
     // Derived states
-    const isConnected = isConnectedProp || matchStatus === 'accepted' || matchStatus === 'connected';
+    const isConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (matchStatus === 'accepted' || matchStatus === 'connected');
     const isRequestSent = matchStatus === 'pending';
     const hasLiked = isLiked;
 

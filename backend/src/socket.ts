@@ -182,9 +182,12 @@ export const initSocket = (httpServer: HttpServer) => {
 
                 // Offline Ringing logic: Push notification if target user is disconnected
                 const targetOnlineCount = onlineUsers.get(userToCall) || 0;
-                if (targetOnlineCount === 0) {
-                    const { notificationService } = require('./services/notification');
-                    notificationService.sendToUser(
+                const lastPush = (socket as any).lastPushTime || 0;
+                
+                if (targetOnlineCount === 0 && Date.now() - lastPush > 15000) {
+                    (socket as any).lastPushTime = Date.now();
+                    const { NotificationService } = require('./services/notification');
+                    NotificationService.getInstance().sendToUser(
                         userToCall,
                         `Incoming ${type === 'audio' ? 'Audio' : 'Video'} Call 📞`,
                         `${name || 'Someone'} is calling you. Tap to answer!`,

@@ -155,13 +155,27 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 const myId = user?.id || localStorage.getItem('userId');
                 const myName = user?.name || localStorage.getItem('userName') || "Unknown User";
 
-                socket.emit("callUser", {
+                const callPayload = {
                     userToCall: partner.id,
                     signalData: data,
                     from: myId,
                     name: myName,
                     type: mode
-                });
+                };
+
+                // Emit immediately
+                socket.emit("callUser", callPayload);
+
+                // Re-emit every 3 seconds for offline users who are opening the app via Push Notification
+                const ringInterval = setInterval(() => {
+                    // Stop if we answered, ended, or component unmounted
+                    if ((window as any)._callEnded || connectionRef.current?.connected) {
+                        clearInterval(ringInterval);
+                    } else {
+                        socket.emit("callUser", callPayload);
+                    }
+                }, 3000);
+                (window as any)._ringInterval = ringInterval;
             }
         });
 
@@ -295,6 +309,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     const leaveCall = (emitEvent = true) => {
         setCallEnded(true);
+        (window as any)._callEnded = true;
+        if ((window as any)._ringInterval) clearInterval((window as any)._ringInterval);
         try {
             // Aggressively stop all tracks in state
             stream?.getTracks().forEach(track => track.stop());

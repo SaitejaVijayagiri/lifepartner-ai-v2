@@ -27,7 +27,14 @@ export default function WebPushPrompt({ onDismiss }: WebPushPromptProps) {
                     // Check local storage so we don't annoy them if they dismissed it before
                     const dismissed = localStorage.getItem('web_push_dismissed');
                     if (!dismissed) {
-                        setShow(true);
+                        // Immediately attempt native prompt without user interaction
+                        Notifications.init()
+                            .then(() => Notifications.setupListeners())
+                            .catch(err => {
+                                // If browser blocked it because it required a user gesture, gracefully fallback
+                                console.log("Auto-prompt blocked or failed, showing fallback UI banner", err);
+                                setShow(true);
+                            });
                     }
                 } else if (Notification.permission === 'granted') {
                     // Already granted! Silently initialize for web to update token if needed

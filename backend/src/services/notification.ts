@@ -101,13 +101,24 @@ export class NotificationService {
         }
     }
 
-    // Updated signature: No pool arg
     public async sendToUser(userId: string, title: string, body: string, data?: any) {
-        // 1. Get tokens
-        // Import prisma dynamically or assume global? Better to import. 
-        // Circular dep risk? No, service doesn't import routes/server. 
-        // But importing prisma client is fine.
+        // 1. Get tokens and check mute status
         const { prisma } = require('../prisma');
+
+        // Extract senderId to see if they are muted by the receiver
+        const senderId = data?.from || data?.senderId;
+
+        if (senderId) {
+            const profile = await prisma.profiles.findUnique({
+                where: { user_id: userId },
+                select: { metadata: true }
+            });
+            const mutedUsers = (profile?.metadata as any)?.muted_users || [];
+            if (mutedUsers.includes(senderId)) {
+                console.log(`[Notification Muted] User ${userId} has muted ${senderId}. Skipping push.`);
+                return;
+            }
+        }
 
         const tokensRec = await prisma.device_tokens.findMany({
             where: { user_id: userId },

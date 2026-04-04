@@ -65,6 +65,7 @@ export const api = {
             method: 'POST',
             body: formData instanceof FormData ? formData : JSON.stringify(formData)
         }),
+        toggleMute: (targetId: string) => fetchAPI(`/profile/mute/${targetId}`, { method: 'POST' }),
         getById: (id: string) => fetchAPI(`/profile/${id}`),
         deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
         uploadVoiceBio: (formData: FormData) => fetchAPI('/profile/voice-bio', {

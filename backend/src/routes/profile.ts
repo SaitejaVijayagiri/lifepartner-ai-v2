@@ -127,6 +127,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             referral_code: user.referral_code || "", // Added Referral Code
             premium_expiry: user.premium_expiry, // Added Premium Expiry
             is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
+            muted_users: meta.muted_users || [],
             // Stories logic
             stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()) // Only return active stories
         };
@@ -230,6 +231,45 @@ router.get('/public/featured', async (req, res) => {
     } catch (e) {
         console.error("Public Featured Error", e);
         res.status(500).json({ error: "Failed to fetch public profiles" });
+    }
+});
+
+// Toggle Mute Notifications for a User
+router.post('/mute/:id', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const targetId = req.params.id;
+
+        if (userId === targetId) {
+            return res.status(400).json({ error: "Cannot mute yourself" });
+        }
+
+        const profile = await prisma.profiles.findUnique({ where: { user_id: userId } });
+        if (!profile) return res.status(404).json({ error: "Profile not found" });
+
+        const meta = (profile.metadata as any) || {};
+        let mutedUsers = meta.muted_users || [];
+        
+        let isMuted = false;
+        if (mutedUsers.includes(targetId)) {
+            mutedUsers = mutedUsers.filter((id: string) => id !== targetId);
+            isMuted = false;
+        } else {
+            mutedUsers.push(targetId);
+            isMuted = true;
+        }
+
+        const newMeta = { ...meta, muted_users: mutedUsers };
+
+        await prisma.profiles.update({
+            where: { user_id: userId },
+            data: { metadata: newMeta }
+        });
+
+        res.json({ success: true, isMuted });
+    } catch (e) {
+        console.error("Mute User Error", e);
+        res.status(500).json({ error: "Failed to toggle mute" });
     }
 });
 

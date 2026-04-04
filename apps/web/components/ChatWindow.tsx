@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Bell, BellOff } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -31,8 +31,16 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
-    const { user } = useAuth();
+    const { user, login } = useAuth() as any;
     const toast = useToast();
+    
+    // Mute State
+    const [isMuted, setIsMuted] = useState<boolean>(() => {
+        const mutedUsers = user?.muted_users || [];
+        return mutedUsers.includes(partner.id);
+    });
+    const [isMuting, setIsMuting] = useState(false);
+
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
@@ -81,6 +89,31 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             console.error("AI Error", e);
         } finally {
             setLoadingAi(false);
+        }
+    };
+
+    const handleToggleMute = async () => {
+        if (isMuting) return;
+        setIsMuting(true);
+        try {
+            const res = await api.profile.toggleMute(partner.id);
+            if (res.isMuted !== undefined) {
+                setIsMuted(res.isMuted);
+                
+                // Update local auth context silently to persist state across dashboard views
+                if (user) {
+                    let newMuted = [...(user.muted_users || [])];
+                    if (res.isMuted) newMuted.push(partner.id);
+                    else newMuted = newMuted.filter((id) => id !== partner.id);
+                    login(user.token, { ...user, muted_users: newMuted });
+                }
+
+                toast.success(res.isMuted ? "Notifications muted" : "Notifications unmuted");
+            }
+        } catch (err) {
+            toast.error("Failed to update mute settings");
+        } finally {
+            setIsMuting(false);
         }
     };
 
@@ -369,6 +402,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             mode="audio"
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
+                        <button
+                            onClick={handleToggleMute}
+                            disabled={isMuting}
+                            className={`p-2.5 hover:bg-white/10 rounded-xl transition-all ${isMuted ? 'text-gray-300' : 'text-white/80 hover:text-white'}`}
+                            title={isMuted ? "Unmute Notifications" : "Mute Notifications"}
+                        >
+                            {isMuted ? <BellOff size={20} /> : <Bell size={20} />}
+                        </button>
                         <button onClick={onClose} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
                             <X size={20} />
                         </button>

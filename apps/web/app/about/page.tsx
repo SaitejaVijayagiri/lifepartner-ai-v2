@@ -1,7 +1,7 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
-import { ShieldCheck, Mail, Phone, Users, Heart } from 'lucide-react';
+import { ShieldCheck, Mail, Users, Heart } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -24,14 +24,7 @@ export default function AboutPage() {
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-12 items-start mb-20">
-                        <div className="relative">
-                            <img src="/images/founder.jpg" alt="Saiteja Vijayagiri" className="rounded-3xl shadow-2xl w-full border-4 border-gray-50" />
-                            <div className="mt-6 text-center">
-                                <h3 className="text-2xl font-bold">Saiteja Vijayagiri</h3>
-                                <p className="text-gray-500 font-medium tracking-wide uppercase text-sm">Founder & Developer</p>
-                            </div>
-                        </div>
+                    <div className="mb-20">
                         <div>
                             <h3 className="text-3xl font-bold mb-6 text-indigo-900">Why I Built This</h3>
                             <div className="space-y-6 text-lg text-gray-700 leading-relaxed">
@@ -66,11 +59,7 @@ export default function AboutPage() {
                             <a href="mailto:lifepartnerai.in@gmail.com" className="flex items-center justify-center gap-3 px-8 py-4 bg-white border border-gray-200 rounded-xl font-bold text-gray-800 hover:shadow-lg transition-all hover:bg-gray-50 group">
                                 <Mail className="group-hover:text-indigo-600 transition-colors" /> lifepartnerai.in@gmail.com
                             </a>
-                            <a href="tel:+919014836399" className="flex items-center justify-center gap-3 px-8 py-4 bg-indigo-600 border border-indigo-600 rounded-xl font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                                <Phone size={20} /> +91 90148 36399
-                            </a>
                         </div>
-                        <p className="mt-6 text-sm text-gray-400">Call or WhatsApp anytime.</p>
                     </div>
 
                     <div className="mt-16 text-center">

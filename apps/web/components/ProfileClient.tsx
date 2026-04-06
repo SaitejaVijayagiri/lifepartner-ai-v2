@@ -16,6 +16,28 @@ interface ProfileClientProps {
     profileId: string;
 }
 
+const formatLocationString = (location: any) => {
+    if (typeof location === 'string') return location;
+    if (!location) return "Unknown City";
+    
+    // Extract pieces and split any comma separated lists
+    const parts = [location.city, location.district, location.state]
+        .flatMap(p => p ? String(p).split(',').map(s => s.trim()) : [])
+        .filter(x => x && x !== "Unknown City" && x !== "Unknown State");
+    
+    const seen = new Set<string>();
+    const unique = [];
+    for (const p of parts) {
+        const lower = p.toLowerCase();
+        if (!seen.has(lower)) {
+            seen.add(lower);
+            // Title case the string or just use source
+            unique.push(p);
+        }
+    }
+    return unique.join(', ') || "Unknown City";
+};
+
 export default function ProfileClient({ initialProfile, profileId }: ProfileClientProps) {
     const router = useRouter();
     const [profile, setProfile] = useState<any>(initialProfile);
@@ -138,7 +160,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                     <div className="flex items-center gap-4 text-sm font-medium opacity-90">
                                         <div className="flex items-center gap-1">
                                             <MapPin size={16} />
-                                            {typeof profile.location === 'string' ? profile.location : (Array.from(new Set([profile.location?.city, profile.location?.state])).filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown City")}
+                                            {formatLocationString(profile.location)}
                                         </div>
                                         {/* Online Badge */}
                                         {isUserOnline && (

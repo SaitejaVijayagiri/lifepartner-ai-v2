@@ -115,8 +115,9 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             // Prisma Schema: does User have reels?
             // Let's assume it's in metadata.reels primarily.
 
-            prompt: meta.expectations || user.profiles?.raw_prompt || "",  // Expectations text (partner preferences text)
-            aboutMe: user.profiles?.raw_prompt || meta.bio || "", // About Me bio — separate from expectations
+            prompt: meta.expectations || "",  // Expectations text (partner preferences text)
+            aboutMe: meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
+            height: meta.height || "", // Height
             photos: meta.photos || [],
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
@@ -329,19 +330,33 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             isPremium: user.is_premium,
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             location: {
-                city: user.city || "Unknown",
-                district: user.district,
-                state: user.state,
-                country: meta?.location?.country || "" // Use JSON metadata country
+                city: user.city || "",
+                district: user.district || "",
+                state: user.state || "",
+                country: meta?.location?.country || "India"
             },
             aboutMe: user.profiles?.raw_prompt || meta.bio || "",
+            bio: meta.bio || user.profiles?.raw_prompt || "",
+            expectations: meta.expectations || "",
+            height: meta.height || "",
             photos: meta.photos || [user.avatar_url],
             reels: meta.reels || [],
-            total_gifts: 0, // Migrated: 0 for now
+            total_gifts: 0,
             total_likes: user._count.matches_matches_user_b_idTousers || 0,
-            ...meta,
-            ...contactInfo, // Spread contact info (either real or null)
-            isContactUnlocked: isRequesterPremium // Flag for Frontend to show "Upgrade to View"
+            // Explicit meta fields — NO blind ...meta spread (prevents location/country duplication)
+            career: meta.career || {},
+            religion: meta.religion || {},
+            horoscope: meta.horoscope || {},
+            family: meta.family || {},
+            lifestyle: meta.lifestyle || {},
+            partnerPreferences: meta.partnerPreferences || {},
+            motherTongue: meta.motherTongue || "",
+            maritalStatus: meta.maritalStatus || "",
+            dob: meta.dob || null,
+            interests: meta.interests || [],
+            summary: meta.summary || "",
+            ...contactInfo,
+            isContactUnlocked: isRequesterPremium
         });
 
     } catch (e) {

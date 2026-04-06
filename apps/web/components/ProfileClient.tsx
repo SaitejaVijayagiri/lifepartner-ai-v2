@@ -169,23 +169,32 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><Briefcase size={20} /></div>
                                         <div>
                                             <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Profession</p>
-                                            <p className="font-semibold">{profile.role || profile.jobTitle || profile.profession || "Not specified"}</p>
+                                            <p className="font-semibold">{profile.career?.profession || "Not specified"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600"><GraduationCap size={20} /></div>
                                         <div>
                                             <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Education</p>
-                                            <p className="font-semibold">{profile.education || "Not specified"}</p>
+                                            <p className="font-semibold">{profile.career?.education || "Not specified"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600"><Star size={20} /></div>
                                         <div>
                                             <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Marital Status</p>
-                                            <p className="font-semibold">{(!profile.maritalStatus || profile.maritalStatus === "Never Married") ? "Single" : profile.maritalStatus}</p>
+                                            <p className="font-semibold">{(!profile.maritalStatus || profile.maritalStatus === "Never Married") ? "Single" : (profile.maritalStatus || "Single")}</p>
                                         </div>
                                     </div>
+                                    {profile.height && (
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-600"><CheckCircle size={20} /></div>
+                                            <div>
+                                                <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Height</p>
+                                                <p className="font-semibold">{profile.height}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="pt-8 flex gap-4">
@@ -227,49 +236,145 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     </TabsList>
 
                     {/* Tab: About */}
-                    <TabsContent value="about" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <TabsContent value="about" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Bio */}
                         <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                                 <span className="p-2 bg-indigo-50 rounded-xl text-indigo-600 text-lg">📝</span> About Me
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{profile.bio || profile.aboutMe || "No bio available."}</p>
+                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{profile.bio || profile.aboutMe || "No bio added yet."}</p>
                         </div>
 
-                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-                                <span className="p-2 bg-purple-50 rounded-xl text-purple-600 text-lg">🏡</span> Family Background
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{profile.family?.about || profile.family?.description || "No family details added."}</p>
-                        </div>
+                        {/* Hobbies */}
+                        {profile.lifestyle?.hobbies && (
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                                <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                                    <span className="p-2 bg-green-50 rounded-xl text-green-600 text-lg">🎯</span> Hobbies & Interests
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {profile.lifestyle.hobbies.split(',').map((h: string, i: number) => (
+                                        <span key={i} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100">{h.trim()}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Family Background */}
+                        {profile.family && (profile.family.type || profile.family.fatherOccupation || profile.family.nativePlace) && (
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                                <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                                    <span className="p-2 bg-purple-50 rounded-xl text-purple-600 text-lg">🏡</span> Family Background
+                                </h3>
+                                <div className="grid grid-cols-2 gap-y-3 gap-x-8">
+                                    {profile.family.type && <div><span className="text-gray-400 text-sm">Family Type</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.type}</p></div>}
+                                    {profile.family.values && <div><span className="text-gray-400 text-sm">Family Values</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.values}</p></div>}
+                                    {profile.family.fatherOccupation && <div><span className="text-gray-400 text-sm">Father's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.fatherOccupation}</p></div>}
+                                    {profile.family.motherOccupation && <div><span className="text-gray-400 text-sm">Mother's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.motherOccupation}</p></div>}
+                                    {(profile.family.brothers !== undefined && profile.family.brothers !== '') && <div><span className="text-gray-400 text-sm">Brothers</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.brothers}</p></div>}
+                                    {(profile.family.sisters !== undefined && profile.family.sisters !== '') && <div><span className="text-gray-400 text-sm">Sisters</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.sisters}</p></div>}
+                                    {profile.family.nativePlace && <div><span className="text-gray-400 text-sm">Native Place</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.nativePlace}</p></div>}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Partner Expectations */}
+                        {profile.expectations && (
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                                <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                                    <span className="p-2 bg-pink-50 rounded-xl text-pink-600 text-lg">💞</span> Partner Expectations
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{profile.expectations}</p>
+                                {profile.partnerPreferences && (
+                                    <div className="grid grid-cols-2 gap-3 mt-4">
+                                        {profile.partnerPreferences.ageRange && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Age Range</p><p className="font-semibold text-sm">{profile.partnerPreferences.ageRange}</p></div>}
+                                        {profile.partnerPreferences.heightRange && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Height Range</p><p className="font-semibold text-sm">{profile.partnerPreferences.heightRange}</p></div>}
+                                        {profile.partnerPreferences.income && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Min Income</p><p className="font-semibold text-sm">{profile.partnerPreferences.income}</p></div>}
+                                        {profile.partnerPreferences.location && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Pref Location</p><p className="font-semibold text-sm">{profile.partnerPreferences.location}</p></div>}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </TabsContent>
 
                     {/* Tab: Details */}
-                    <TabsContent value="details" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <TabsContent value="details" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                        {/* Personal */}
                         <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
-                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-6">Personal Information</h3>
-                            <div className="grid md:grid-cols-2 gap-y-4 gap-x-12">
-                                {profile.religion && (
-                                    <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                        <span className="text-gray-500 dark:text-gray-400 font-medium">Religion</span>
-                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.religion.religion}</span>
+                            <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">👤 Personal Details</h3>
+                            <div className="grid md:grid-cols-2 gap-y-1 gap-x-12">
+                                {[  
+                                    { label: 'Height', value: profile.height },
+                                    { label: 'Mother Tongue', value: profile.motherTongue },
+                                    { label: 'Marital Status', value: profile.maritalStatus || 'Single' },
+                                    { label: 'Gender', value: profile.gender },
+                                    { label: 'Religion', value: profile.religion?.religion },
+                                    { label: 'Caste', value: profile.religion?.caste },
+                                    { label: 'Gothra', value: profile.religion?.gothra },
+                                    { label: 'Inter-Caste Open', value: profile.religion?.interCasteOpen ? 'Yes' : (profile.religion?.interCasteOpen === false ? 'No' : undefined) },
+                                ].filter(r => r.value).map(row => (
+                                    <div key={row.label} className="flex justify-between items-center py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                                        <span className="text-gray-500 dark:text-gray-400 font-medium">{row.label}</span>
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100 text-right max-w-[55%]">{String(row.value)}</span>
                                     </div>
-                                )}
-                                {profile.caste && (
-                                    <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                        <span className="text-gray-500 dark:text-gray-400 font-medium">Caste</span>
-                                        <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.caste || profile.religion?.caste}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Height</span>
-                                    <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.height}</span>
-                                </div>
-                                <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Mother Tongue</span>
-                                    <span className="font-semibold text-gray-900 dark:text-gray-100">{profile.motherTongue}</span>
-                                </div>
+                                ))}
                             </div>
                         </div>
+
+                        {/* Career */}
+                        {profile.career && (profile.career.profession || profile.career.education || profile.career.income) && (
+                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                                <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">💼 Career & Education</h3>
+                                <div className="grid md:grid-cols-2 gap-y-1 gap-x-12">
+                                    {[
+                                        { label: 'Profession', value: profile.career.profession },
+                                        { label: 'Company', value: profile.career.company },
+                                        { label: 'Education', value: profile.career.education },
+                                        { label: 'College', value: profile.career.college },
+                                        { label: 'Degree', value: profile.career.degree },
+                                        { label: 'Annual Income', value: profile.career.income },
+                                    ].filter(r => r.value).map(row => (
+                                        <div key={row.label} className="flex justify-between items-center py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                                            <span className="text-gray-500 dark:text-gray-400 font-medium">{row.label}</span>
+                                            <span className="font-semibold text-gray-900 dark:text-gray-100 text-right max-w-[55%]">{row.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Lifestyle */}
+                        {profile.lifestyle && (profile.lifestyle.diet || profile.lifestyle.smoke || profile.lifestyle.drink) && (
+                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                                <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">🌿 Lifestyle</h3>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    {profile.lifestyle.diet && <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-2xl text-center"><p className="text-xs text-gray-400 mb-1">Diet</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.diet}</p></div>}
+                                    {profile.lifestyle.smoke && <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-2xl text-center"><p className="text-xs text-gray-400 mb-1">Smoking</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.smoke}</p></div>}
+                                    {profile.lifestyle.drink && <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-2xl text-center"><p className="text-xs text-gray-400 mb-1">Drinking</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.drink}</p></div>}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Horoscope */}
+                        {profile.horoscope && (profile.horoscope.zodiacSign || profile.horoscope.nakshatra || profile.horoscope.manglik) && (
+                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                                <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">🔮 Horoscope</h3>
+                                <div className="grid md:grid-cols-2 gap-y-1 gap-x-12">
+                                    {[
+                                        { label: 'Zodiac Sign', value: profile.horoscope.zodiacSign },
+                                        { label: 'Nakshatra', value: profile.horoscope.nakshatra },
+                                        { label: 'Manglik', value: profile.horoscope.manglik },
+                                        { label: 'Birth Time', value: profile.horoscope.birthTime },
+                                        { label: 'Birth Place', value: profile.horoscope.birthPlace },
+                                    ].filter(r => r.value).map(row => (
+                                        <div key={row.label} className="flex justify-between items-center py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                                            <span className="text-gray-500 dark:text-gray-400 font-medium">{row.label}</span>
+                                            <span className="font-semibold text-gray-900 dark:text-gray-100">{row.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </TabsContent>
 
                     {/* Tab: AI Insight */}

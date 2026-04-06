@@ -54,7 +54,8 @@ export default function OnboardingPage() {
                     zodiacSign: data.zodiacSign,
                     nakshatra: data.nakshatra,
                     manglik: data.manglik,
-                    birthTime: data.birthTime
+                    birthTime: data.birthTime,
+                    birthPlace: data.birthPlace  // was missing
                 },
 
                 career: {
@@ -70,16 +71,21 @@ export default function OnboardingPage() {
                     type: data.familyType,
                     values: data.familyValues,
                     fatherOccupation: data.fatherOccupation,
+                    motherOccupation: data.motherOccupation,  // was missing
+                    brothers: data.brothers,                   // was missing
+                    sisters: data.sisters,                     // was missing
                     nativePlace: data.nativePlace
                 },
 
                 lifestyle: {
                     diet: data.diet,
                     smoke: data.smoke,
-                    drink: data.drink
+                    drink: data.drink,
+                    hobbies: data.hobbies  // was missing
                 },
 
                 prompt: data.prompt,
+                aboutMe: data.aboutMe || '', // Bio — separate from partner expectations
                 partnerPreferences: {
                     ageRange: data.partnerAgeRange,
                     heightRange: data.partnerHeightRange,

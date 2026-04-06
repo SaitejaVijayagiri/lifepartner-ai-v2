@@ -115,8 +115,9 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             // Prisma Schema: does User have reels?
             // Let's assume it's in metadata.reels primarily.
 
-            prompt: meta.expectations || "",  // Expectations text (partner preferences text)
-            aboutMe: meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
+            expectations: meta.expectations || "",  // Partner preferences text
+            prompt: meta.expectations || "",  // Legacy fallback
+            aboutMe: meta.aboutMe || meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
             height: meta.height || "", // Height
             photos: meta.photos || [],
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),

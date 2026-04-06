@@ -6,23 +6,37 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const formatLocationString = (location: any) => {
-    if (typeof location === 'string') return location;
     if (!location) return "Unknown City";
     
-    // Extract pieces and split any comma separated lists
-    const parts = [location.city, location.district, location.state]
-        .flatMap(p => p ? String(p).split(',').map(s => s.trim()) : [])
-        .filter(x => x && x !== "Unknown City" && x !== "Unknown State");
+    let parts: string[] = [];
+
+    if (typeof location === 'string') {
+        // If it's a string, split it by commas
+        parts = location.split(',').map(s => s.trim());
+    } else {
+        // If it's an object, gather all relevant fields
+        parts = [
+            location.city,
+            location.district,
+            location.state,
+            location.country
+        ].filter(Boolean).flatMap(p => String(p).split(',').map(s => s.trim()));
+    }
     
     const seen = new Set<string>();
-    const unique = [];
+    const unique: string[] = [];
+
     for (const p of parts) {
+        if (!p) continue;
         const lower = p.toLowerCase();
+        // Ignore "Unknown" markers
+        if (lower === "unknown city" || lower === "unknown state" || lower === "unknown country") continue;
+        
         if (!seen.has(lower)) {
             seen.add(lower);
-            // Title case the string or just use source
             unique.push(p);
         }
     }
+    
     return unique.join(', ') || "Unknown City";
 };

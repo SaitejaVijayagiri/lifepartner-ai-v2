@@ -422,12 +422,11 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         }
 
         // Separate: aboutMe → raw_prompt (personal bio), expectations/prompt → metadata.expectations
-        const bioToSave = aboutMe !== undefined ? aboutMe : (prompt !== undefined && !expectations ? prompt : undefined);
-        const expectationsToSave = expectations !== undefined ? expectations : (prompt !== undefined && aboutMe !== undefined ? prompt : undefined);
-        const cleanBio = sanitizeContent(bioToSave || '');
-        const cleanExpectations = sanitizeContent(expectationsToSave || '');
-        // Legacy: if only prompt is provided (no aboutMe and no expectations), treat it as bio
-        const cleanPrompt = cleanBio;
+        const cleanBio = sanitizeContent(aboutMe || '');
+        const cleanExpectations = sanitizeContent(expectations || prompt || '');
+        // Legacy: if only prompt is provided but no bio, fallback for compatibility
+        const finalBio = cleanBio || (aboutMe === undefined ? cleanExpectations : '');
+        const cleanPrompt = finalBio;
         if (career) career.profession = sanitizeContent(career.profession || '');
         if (location) location.city = sanitizeContent(location.city || '');
 
@@ -560,7 +559,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     location, // already sanitized
                     height, // Added Height
                     phone, // Added Phone
-                    bio: cleanBio, // Sync aboutMe to bio
+                    bio: cleanBio || finalBio, // Sync aboutMe to bio
                     expectations: cleanExpectations || undefined, // Store expectations separately
                     savedStickers
                 };
@@ -574,11 +573,11 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     where: { user_id: userId },
                     create: {
                         user_id: userId,
-                        raw_prompt: cleanBio, // raw_prompt = bio/about me only
+                        raw_prompt: cleanBio || finalBio, // raw_prompt = bio/about me only
                         metadata: metadata // On create use fresh
                     },
                     update: {
-                        raw_prompt: cleanBio, // raw_prompt = bio/about me only
+                        raw_prompt: cleanBio || finalBio, // raw_prompt = bio/about me only
                         metadata: newMeta // On update use merge
                     }
                 });

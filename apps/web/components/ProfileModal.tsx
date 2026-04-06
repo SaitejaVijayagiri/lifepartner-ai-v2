@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
 import dynamic from 'next/dynamic';
+import { formatLocationString } from '@/lib/utils';
 
 const KundliModal = dynamic(() => import('./KundliModal'), { ssr: false });
 const CoinStoreModal = dynamic(() => import('./CoinStoreModal'), { ssr: false });
@@ -133,7 +134,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
                             <span>{profile.career?.profession || "-"}</span>
                             <span className="w-1 h-1 bg-gray-400 rounded-full" />
-                            <span>{typeof profile.location === 'string' ? profile.location : ([profile.location?.city, profile.location?.district, profile.location?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown Location")}</span>
+                            <span>{formatLocationString(profile.location)}</span>
                         </p>
                     </div>
 
@@ -272,7 +273,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                                     <InfoCard label="Age / Height" value={`${profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : profile.age} Yrs, ${profile.height || "-"}`} />
                                     <InfoCard label="Marital Status" value={(!profile.maritalStatus) ? "Not Specified" : profile.maritalStatus} />
-                                    <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
+                                    <InfoCard label="Location" value={formatLocationString(profile.location)} />
                                     <InfoCard label="Mother Tongue" value={profile.motherTongue || "-"} />
                                 </div>
                             </div>

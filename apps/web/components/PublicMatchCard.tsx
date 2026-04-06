@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { formatLocationString } from '@/lib/utils';
 
 interface PublicMatchCardProps {
     match: any;
@@ -85,7 +86,7 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                         💼 {match.profession}
                     </span>
                     <span className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/10 uppercase tracking-widest">
-                        📍 {match.location}
+                        📍 {formatLocationString(match.location)}
                     </span>
                 </div>
 

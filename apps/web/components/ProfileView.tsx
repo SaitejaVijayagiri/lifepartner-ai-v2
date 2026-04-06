@@ -1,5 +1,6 @@
 'use client';
 import { getZodiacSymbol, getReligionSymbol } from '@/lib/religionUtils';
+import { formatLocationString } from '@/lib/utils';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-20 pointer-events-none">
                     <h2 className="text-2xl font-bold text-white tracking-tight">{profile.name}, {profile.age}</h2>
                     <p className="text-gray-300 text-sm font-medium">
-                        {profile.career?.profession || "-"} • {typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown Location")}
+                        {profile.career?.profession || "-"} • {formatLocationString(profile.location)}
                     </p>
                 </div>
 
@@ -127,7 +128,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             <div className="grid grid-cols-2 gap-4">
                                 <InfoCard label="Age / Height" value={`${profile.age} Yrs, ${profile.height || "-"}`} />
                                 <InfoCard label="Marital Status" value={(!profile.maritalStatus || profile.maritalStatus === "Never Married" || profile.maritalStatus === "Single / Never Married") ? "Single" : profile.maritalStatus} />
-                                <InfoCard label="Location" value={typeof profile.location === 'string' ? profile.location : (profile.location?.city || "Unknown")} />
+                                <InfoCard label="Location" value={formatLocationString(profile.location)} />
                                 <InfoCard label="Mother Tongue" value={profile.motherTongue || "-"} />
                                 <InfoCard label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : "-"} />
                             </div>

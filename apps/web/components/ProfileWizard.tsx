@@ -52,7 +52,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const [direction, setDirection] = useState('forward');
     const [data, setData] = useState<any>({
         // Basics
-        name: '', age: '', gender: 'Male', height: '', city: '', country: 'India',
+        name: '', age: '', gender: 'Male', height: '', city: '', country: 'India', aboutMe: '',
         // Horoscope
         zodiacSign: '', nakshatra: '', manglik: 'No', birthTime: '',
         // Religion
@@ -174,7 +174,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const isStepValid = () => {
         const stepId = STEPS[currentStep].id;
         if (stepId === 'basics') {
-            return !!(data.name && data.age && data.height && data.city);
+            return !!(data.name && data.age && data.height && data.city && data.aboutMe && data.aboutMe.length >= 20);
         }
         if (stepId === 'career') {
             return !!(data.profession && data.education);
@@ -191,6 +191,10 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         if (stepId === 'basics') {
             if (!(data.name && data.age && data.height && data.city)) {
                 toast.error("Please fill in required fields (*)");
+                return false;
+            }
+            if (!data.aboutMe || data.aboutMe.length < 20) {
+                toast.error("Please write a bit more about yourself (min 20 characters)");
                 return false;
             }
         }
@@ -379,6 +383,16 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <option value="Mexico">Mexico</option>
                                         <option value="Other">Other</option>
                                     </select>
+                                </div>
+                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">About Me (Bio) *</label>
+                                    <textarea
+                                        className="flex min-h-[100px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        placeholder="Tell us about yourself, your personality, and what you're looking for in life..."
+                                        value={data.aboutMe || ''}
+                                        onChange={e => update('aboutMe', e.target.value)}
+                                    />
+                                    <p className="text-xs text-gray-400">Describe yourself in at least 50 characters for better visibility.</p>
                                 </div>
                             </div>
                         </div>

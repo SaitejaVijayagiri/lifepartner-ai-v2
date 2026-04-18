@@ -445,12 +445,12 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
                 <div className="flex-1 relative overflow-hidden flex items-center justify-center group">
                     {/* Ringtone Audio */}
-                    {((incomingCall && !callAnswered) || status.includes("Calling")) && !callEnded && (
+                    {((incomingCall && !callAnswered) || status.includes("Calling")) && !callEnded && !isSpeedDate && (
                         <audio src="/sounds/ringtone.wav" autoPlay loop className="hidden" />
                     )}
                     
-                    {/* Incoming Call Screen */}
-                    {incomingCall && !callAnswered ? (
+                    {/* Incoming Call Screen (Hidden for Speed Dates as they auto-answer) */}
+                    {incomingCall && !callAnswered && !isSpeedDate ? (
                         <div className="flex flex-col items-center justify-center space-y-8 z-50">
                             <div className="relative">
                                 <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>

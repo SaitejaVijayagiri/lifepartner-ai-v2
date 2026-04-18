@@ -635,7 +635,7 @@ router.post('/google', async (req, res) => {
         }
 
         // 4. Generate Token
-        const token = generateToken(user.id);
+        const token = generateToken(user!.id);
 
         // Check if onboarding is needed (missing gender or age)
         const requiresOnboarding = !(user as any).gender || !(user as any).age;

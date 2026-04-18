@@ -130,6 +130,9 @@ export const initSocket = (httpServer: HttpServer) => {
             leaveCommunity();
             // Automatically remove user from speed dating queue/active match
             SpeedDatingManager.getInstance().leaveLobby(socket.id, userId);
+            if (userId) {
+                SpeedDatingManager.getInstance().endActiveMatch(userId);
+            }
         });
 
         // Personal room is already joined above via socket.join(userId) on connection.
@@ -240,6 +243,7 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.on("endCall", ({ to }) => {
             io.to(to).emit("callEnded");
             if (userId) SpeedDatingManager.getInstance().endActiveMatch(userId);
+            if (to) SpeedDatingManager.getInstance().endActiveMatch(to);
         });
 
         /**

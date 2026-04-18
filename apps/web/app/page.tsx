@@ -355,8 +355,8 @@ export default function LandingPage() {
             />
             <FeatureCard
               icon={<Zap size={32} className="text-yellow-500" />}
-              title="Instant Date"
-              desc="Skip the small talk. Propose virtual dates directly from the profile with smart scheduling."
+              title="Live Speed Dating"
+              desc="Drop into anonymous 3-minute virtual dates. If the vibe matches, unlock their profile. If not, instantly skip!"
             />
           </div>
         </div>

@@ -247,7 +247,14 @@ function DashboardContent() {
         if (chatId) {
             setActiveTab('connections');
             // Auto open the chat window! The internal ChatWindow component will fetch the real name/photo
-            setSelectedConnection({ id: chatId, name: 'Partner', photoUrl: '' });
+            setSelectedConnection({
+                interactionId: chatId,
+                partner: {
+                    id: chatId,
+                    name: 'Partner',
+                    photoUrl: ''
+                }
+            });
             
             // Clean URL without refresh
             const newUrl = new URL(window.location.href);

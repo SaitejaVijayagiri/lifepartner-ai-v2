@@ -224,8 +224,14 @@ export const initSocket = (httpServer: HttpServer) => {
          * ANSWER CALL
          */
         socket.on("answerCall", (data) => {
-            // console.log(`Call Answered by ${userId}`);
             io.to(data.to).emit("callAccepted", data.signal);
+        });
+
+        /**
+         * STOP RINGING (called by receiver when they pick up, so caller stops looping ring)
+         */
+        socket.on("answerCall_stop_ringing", ({ to }) => {
+            io.to(to).emit("callAnsweredByPeer");
         });
 
         /**

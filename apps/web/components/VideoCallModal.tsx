@@ -140,10 +140,20 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         });
         socket.on("callError", (data: any) => { toast.error(data.message); leaveCall(); });
 
+        // Receiver answered — stop the ringing sound/loop immediately on caller's side
+        socket.on("callAnsweredByPeer", () => {
+            if ((window as any)._ringInterval) {
+                clearInterval((window as any)._ringInterval);
+                (window as any)._ringInterval = null;
+            }
+            setStatus("Connecting...");
+        });
+
         return () => {
             socket?.off("callError");
             socket?.off("callAccepted");
             socket?.off("callEnded");
+            socket?.off("callAnsweredByPeer");
         }
     }, [socket, isVideo, isSpeedDate]);
 

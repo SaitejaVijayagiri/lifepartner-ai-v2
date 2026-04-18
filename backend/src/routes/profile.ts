@@ -507,7 +507,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         gender,
                         location_name: location?.city ? `${location.city}, ${location.country || ''}`.trim().replace(/,$/, '') : undefined, // Better location string
                         avatar_url: finalPhotoUrl,
-                        email,
+                        email: email?.trim() ? email.trim() : undefined, // FIX: Never allow explicitly saving a blank email
                         phone: phone || undefined,
                         city: location?.city,
                         district: location?.district,

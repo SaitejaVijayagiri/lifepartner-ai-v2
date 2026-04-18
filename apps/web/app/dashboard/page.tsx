@@ -1676,9 +1676,11 @@ function DashboardContent() {
                     onClose={() => setShowSpeedDatingLobby(false)}
                     onMatchFound={(partner, initiator) => {
                         setShowSpeedDatingLobby(false);
-                        if (initiator) {
-                            startCall(partner, 'speed_date');
-                        }
+                        // Both sides open the modal immediately.
+                        // Initiator: no incomingCall → calls callUser() to send WebRTC offer
+                        // Receiver: waits; when offer arrives via socket, CallContext replaces this
+                        //           state with incomingCallData so auto-answer fires correctly
+                        startCall({ ...partner, _speedDateInitiator: initiator }, 'speed_date');
                     }}
                 />
             )}

@@ -30,7 +30,7 @@ interface VideoCallModalProps {
         location?: string;
     };
     onEndCall: () => void;
-    incomingCall?: { signal: any, from: string, name: string, type?: 'audio' | 'video' };
+    incomingCall?: { signal: any, from: string, name: string, type?: 'audio' | 'video' | 'speed_date' };
     mode?: 'audio' | 'video' | 'speed_date';
     isInitiator?: boolean;
 }
@@ -62,12 +62,16 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     // Determine Call Type and Partner
     const isSpeedDate = mode === 'speed_date';
+    const isSpeedDateInitiator = isSpeedDate && !!(initialPartner as any)?._speedDateInitiator;
     const isVideo = (mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate;
     const partner = initialPartner || {
         id: incomingCall?.from || 'unknown',
         name: incomingCall?.name || 'Unknown User',
         photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall?.name || 'U'),
     };
+
+    // For speed dating: show "Mystery Date" instead of real name
+    const displayName = isSpeedDate ? 'Mystery Date' : partner.name;
 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
@@ -107,13 +111,15 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     myVideo.current.srcObject = currentStream;
                 }
 
-                        // Wait! The condition `if (!incomingCall)` made us call immediately if caller.
-                        // For speed_date, initialPartner is present, and we ONLY call if we are the initiator (or have no incomingCall yet)
-                        // But wait, if mode === 'speed_date', the GlobalCallUI for the initiator doesn't have an incomingCall.
-                        if (!incomingCall) {
-                            callUser(currentStream);
-                        }
-                    })
+                // Initiator logic:
+                // - Normal calls: call if no incomingCall (we're the dialer)
+                // - Speed date initiator: call immediately 
+                // - Speed date receiver (_speedDateInitiator=false): do NOT call; wait for offer via socket
+                const shouldCall = isSpeedDate ? isSpeedDateInitiator : !incomingCall;
+                if (shouldCall) {
+                    callUser(currentStream);
+                }
+            })
             .catch(err => {
                 console.error("Failed to get media", err);
                 setStatus("Microphone/Camera Error: " + err.message);

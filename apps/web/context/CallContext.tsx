@@ -38,16 +38,26 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         if (incomingCall) {
             console.log("CallContext: Received Incoming Call", incomingCall);
-            setCallState({
-                isOpen: true,
-                mode: incomingCall.type,
-                partner: {
-                    id: incomingCall.from,
-                    name: incomingCall.name,
-                    photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall.name || 'U'),
-                    location: incomingCall.location || undefined
-                },
-                incomingCallData: incomingCall
+
+            // If a speed_date modal is already open on the receiver side,
+            // just inject the incomingCallData (signal) without rebuilding the whole state.
+            // This lets VideoCallModal's auto-answer fire correctly.
+            setCallState(prev => {
+                if (prev.isOpen && prev.mode === 'speed_date' && incomingCall.type === 'speed_date') {
+                    return { ...prev, incomingCallData: incomingCall };
+                }
+                // Standard incoming call (or speed date opening for first time)
+                return {
+                    isOpen: true,
+                    mode: incomingCall.type,
+                    partner: {
+                        id: incomingCall.from,
+                        name: incomingCall.name,
+                        photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall.name || 'U'),
+                        location: incomingCall.location || undefined
+                    },
+                    incomingCallData: incomingCall
+                };
             });
         }
     }, [incomingCall]);

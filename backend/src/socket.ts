@@ -162,16 +162,17 @@ export const initSocket = (httpServer: HttpServer) => {
             const from = userId; // Secure source
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
-            try {
-                // REVENUE PROTECTION: Check if Caller is Premium
-                // Simple validation to prevent crashes if 'from' is 'me' or invalid
-                if (from) {
-                    const user = await prisma.users.findUnique({
-                        where: { id: from },
-                        select: { is_premium: true }
-                    });
+        try {
+                // Single DB query: get premium status AND location together
+                const callerData = from ? await prisma.users.findUnique({
+                    where: { id: from },
+                    select: { is_premium: true, city: true, location_name: true }
+                }) : null;
 
-                    if (!user || !user.is_premium) {
+                // REVENUE PROTECTION: Check if Caller is Premium
+                // Speed dates are always free (matchmaker already validated both users).
+                if (type !== 'speed_date') {
+                    if (!callerData || !callerData.is_premium) {
                         console.log(`Blocked Call from Free User: ${from}`);
                         io.to(socket.id).emit("callError", {
                             message: "Voice & Video Calls are Premium Features. Upgrade to Plan to Unlock.",
@@ -181,17 +182,13 @@ export const initSocket = (httpServer: HttpServer) => {
                     }
                 }
 
-                const caller = await prisma.users.findUnique({
-                    where: { id: from },
-                    select: { city: true, location_name: true }
-                });
-                const userLocation = caller?.city || caller?.location_name || null;
+                const userLocation = callerData?.city || callerData?.location_name || null;
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
                     from,
                     name,
-                    type, // Pass the type (audio/video)
+                    type,
                     location: userLocation
                 });
 

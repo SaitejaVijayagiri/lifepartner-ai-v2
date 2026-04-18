@@ -14,12 +14,12 @@ const PROMPTS = [
 
 const MOCK_RESULTS = [
     [
-        { name: "Vikram S.", role: "Sr. Software Engineer", loc: "Hyderabad", match: "98%", img: "https://i.pravatar.cc/150?u=vikram" },
-        { name: "Arjun R.", role: "Tech Lead", loc: "Hyderabad", match: "95%", img: "https://i.pravatar.cc/150?u=arjun" }
+        { name: "Vikram S.", role: "Sr. Software Engineer", loc: "Hyderabad", match: "98%", img: "https://randomuser.me/api/portraits/men/32.jpg" },
+        { name: "Arjun R.", role: "Tech Lead", loc: "Hyderabad", match: "95%", img: "https://randomuser.me/api/portraits/men/44.jpg" }
     ],
     [
-        { name: "Dr. Anisha M.", role: "Pediatrician", loc: "Mumbai", match: "99%", img: "https://i.pravatar.cc/150?u=anisha" },
-        { name: "Dr. Rohan K.", role: "Surgeon", loc: "Mumbai", match: "94%", img: "https://i.pravatar.cc/150?u=rohan" }
+        { name: "Dr. Anisha M.", role: "Pediatrician", loc: "Mumbai", match: "99%", img: "https://randomuser.me/api/portraits/women/44.jpg" },
+        { name: "Dr. Rohan K.", role: "Surgeon", loc: "Mumbai", match: "94%", img: "https://randomuser.me/api/portraits/men/22.jpg" }
     ]
 ];
 
@@ -130,7 +130,7 @@ export default function AnimatedSearchSection() {
                                             type="text"
                                             value={userInput}
                                             onChange={(e) => setUserInput(e.target.value)}
-                                            placeholder="e.g. Doctor in Pune who loves music..."
+                                            placeholder="e.g. Doctor in Pune..."
                                             className="w-full text-base md:text-xl font-semibold bg-transparent border-none outline-none text-gray-900 dark:text-gray-100 placeholder:font-normal placeholder:text-gray-400"
                                         />
                                     ) : (

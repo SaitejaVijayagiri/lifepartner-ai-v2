@@ -3,25 +3,8 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { getIO } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
+import { sanitizePhotoUrl } from '../utils/photoUrl';
 
-// Helper: Sanitize avatar_url — base64 data URIs fail on mobile; Supabase is DNS-blocked in India (Feb 2026).
-// Route all Supabase URLs through our Render-based image proxy to bypass India ISP block.
-const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
-
-const toProxyUrl = (url: string): string => {
-    if (!url || !url.includes('supabase.co/storage')) return url;
-    return `${BACKEND_URL}/photo?url=${encodeURIComponent(url)}`;
-};
-
-const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
-    if (url && url.startsWith('data:image')) {
-        return url;
-    }
-    if (!url) {
-        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
-    }
-    return toProxyUrl(url);
-};
 
 const router = express.Router();
 
@@ -788,7 +771,7 @@ router.get('/blocked', authenticateToken, async (req: any, res) => {
         const formatted = blocks.map(b => ({
             blocked_id: b.blocked_id,
             full_name: b.users_blocks_blocked_idTousers.full_name,
-            avatar_url: b.users_blocks_blocked_idTousers.avatar_url,
+            avatar_url: sanitizePhotoUrl(b.users_blocks_blocked_idTousers.avatar_url, b.users_blocks_blocked_idTousers.full_name || 'User'),
             created_at: b.created_at
         }));
 
@@ -869,7 +852,7 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
                 age: isBlurred ? "??" : (u.age || meta.age),
                 photoUrl: isBlurred
                     ? `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`
-                    : (u.avatar_url || meta.photos?.[0]),
+                    : sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: isBlurred ? "Hidden" : getLocationString(u),
                 profession: isBlurred ? "Hidden" : (meta.career?.profession || "Member"),
                 viewedAt: r.created_at,

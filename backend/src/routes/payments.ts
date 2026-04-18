@@ -25,6 +25,12 @@ router.post('/create-order', authenticateToken, async (req: any, res) => {
         const { amount, phone, name } = req.body;
         const userId = req.user.userId; // Secure User ID
 
+        // Fetch real user email for Cashfree order (do not use placeholder)
+        const userRecord = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { email: true, full_name: true }
+        });
+
         const orderId = `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
         const requestData = {
@@ -34,8 +40,8 @@ router.post('/create-order', authenticateToken, async (req: any, res) => {
             customer_details: {
                 customer_id: userId,
                 customer_phone: phone || "9999999999",
-                customer_name: name || "User",
-                customer_email: "user@example.com"
+                customer_name: name || userRecord?.full_name || "User",
+                customer_email: userRecord?.email || "noreply@lifepartnerai.in"
             },
             order_meta: {
                 return_url: `${req.headers.origin || process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard?order_id=${orderId}&type=${req.body.type || 'COINS'}&coins=${req.body.coins || 0}`
@@ -231,10 +237,28 @@ router.post('/webhook', async (req, res) => {
     try {
         console.log("Webhook Received:", JSON.stringify(req.body));
 
-        // 1. Basic Signature/Secret Check (Optional but recommended)
-        // Cashfree usually sends verification headers. For now, we rely on the implementation 
-        // that fetches status DIRECTLY from Cashfree using the ID. 
-        // Faking the ID won't work because we validate against cashfree server.
+        // SECURITY: Verify Cashfree webhook signature (HMAC-SHA256)
+        // Cashfree sends x-webhook-signature header with base64 HMAC of the raw body.
+        const signature = req.headers['x-webhook-signature'] as string;
+        if (signature && SECRET_KEY) {
+            try {
+                const rawBody = JSON.stringify(req.body);
+                const expectedSig = crypto
+                    .createHmac('sha256', SECRET_KEY)
+                    .update(rawBody)
+                    .digest('base64');
+                if (signature !== expectedSig) {
+                    console.warn('[Webhook] Invalid signature — possible spoofing attempt. Rejecting.');
+                    return res.status(403).json({ status: 'Invalid signature' });
+                }
+            } catch (sigErr) {
+                console.error('[Webhook] Signature verification error:', sigErr);
+                // On verification error, reject for safety
+                return res.status(403).json({ status: 'Signature error' });
+            }
+        } else if (!SECRET_KEY) {
+            console.warn('[Webhook] CASHFREE_SECRET_KEY not set — skipping signature verification (unsafe).');
+        }
 
         const data = req.body?.data;
         const orderId = data?.order?.order_id;
@@ -250,8 +274,7 @@ router.post('/webhook', async (req, res) => {
 
     } catch (error) {
         console.error("Webhook Error:", error);
-        // Return 200 to prevent Cashfree retries on logic errors? 
-        // Usually better to return 500 to force retry if DB failed.
+        // Return 500 to force Cashfree retry if DB failed
         res.status(500).json({ status: "Error" });
     }
 });

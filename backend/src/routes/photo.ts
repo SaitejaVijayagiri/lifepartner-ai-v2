@@ -48,12 +48,8 @@ router.get('/', async (req, res) => {
 
 /**
  * Helper: Convert a Supabase storage URL to a proxied Render URL.
- * Call this in routes before returning photoUrl to the client.
+ * Re-exported from utils/photoUrl.ts for backward compatibility with routes that import from here.
  */
-export function toProxyUrl(url: string | null | undefined): string | null | undefined {
-    if (!url || !url.includes('supabase.co/storage')) return url;
-    const backendUrl = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
-    return `${backendUrl}/photo?url=${encodeURIComponent(url)}`;
-}
+export { toProxyUrl } from '../utils/photoUrl';
 
 export default router;

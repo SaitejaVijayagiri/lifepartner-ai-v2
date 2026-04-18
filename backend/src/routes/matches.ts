@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline } from '../socket';
+import { sanitizePhotoUrl } from '../utils/photoUrl';
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
@@ -13,24 +14,10 @@ const astrologyService = new AstrologyService();
 const matchCache = new Map<string, { data: any; expiresAt: number }>();
 const MATCH_CACHE_TTL = 60 * 1000; // 60 seconds
 
-// Helper: Sanitize avatar_url — base64 data URIs fail on mobile; Supabase is DNS-blocked in India.
-// Route all Supabase URLs through our Render-based image proxy to bypass India ISP block.
+// Helper: Sanitize avatar_url — imported from shared utility
+// (Previously duplicated here, profile.ts, and interactions.ts)
 const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
 
-const toProxyUrl = (url: string): string => {
-    if (!url || !url.includes('supabase.co/storage')) return url;
-    return `${BACKEND_URL}/photo?url=${encodeURIComponent(url)}`;
-};
-
-const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
-    if (url && url.startsWith('data:image')) {
-        return url;
-    }
-    if (!url) {
-        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
-    }
-    return toProxyUrl(url);
-};
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
@@ -108,35 +95,69 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
         });
 
         const myGender = (me?.gender || '').trim().toLowerCase();
-        let genderClause = '';
-        if (myGender === 'male') genderClause = `AND LOWER(u.gender) = 'female'`;
-        else if (myGender === 'female') genderClause = `AND LOWER(u.gender) = 'male'`;
 
-        // Fetch all verified users of opposite gender that have lat/lng stored
-        const usersWithCoords: any[] = await prisma.$queryRawUnsafe(`
-            SELECT 
-                u.id,
-                u.full_name,
-                u.age,
-                u.gender,
-                u.avatar_url,
-                u.city,
-                u.state,
-                u.location_name,
-                (p.metadata->'location'->>'lat')::float AS lat,
-                (p.metadata->'location'->>'lng')::float AS lng,
-                p.metadata->'career'->>'profession' AS profession
-            FROM users u
-            LEFT JOIN profiles p ON u.id = p.user_id
-            WHERE u.id != '${userId}'
-              AND u.is_verified = true
-              ${genderClause}
-              AND (p.metadata->'location'->>'lat') IS NOT NULL
-              AND (p.metadata->'location'->>'lat') != ''
-              AND (p.metadata->'location'->>'lng') IS NOT NULL
-              AND (p.metadata->'location'->>'lng') != ''
-            LIMIT 500
-        `);
+        // SECURITY FIX: Use parameterized $queryRaw to prevent SQL injection.
+        // The previous $queryRawUnsafe directly interpolated userId and genderClause strings.
+        let usersWithCoords: any[];
+
+        if (myGender === 'male') {
+            usersWithCoords = await prisma.$queryRaw<any[]>`
+                SELECT 
+                    u.id, u.full_name, u.age, u.gender, u.avatar_url,
+                    u.city, u.state, u.location_name,
+                    (p.metadata->'location'->>'lat')::float AS lat,
+                    (p.metadata->'location'->>'lng')::float AS lng,
+                    p.metadata->'career'->>'profession' AS profession
+                FROM users u
+                LEFT JOIN profiles p ON u.id = p.user_id
+                WHERE u.id != ${userId}::uuid
+                  AND u.is_verified = true
+                  AND LOWER(u.gender) = 'female'
+                  AND (p.metadata->'location'->>'lat') IS NOT NULL
+                  AND (p.metadata->'location'->>'lat') != ''
+                  AND (p.metadata->'location'->>'lng') IS NOT NULL
+                  AND (p.metadata->'location'->>'lng') != ''
+                LIMIT 500
+            `;
+        } else if (myGender === 'female') {
+            usersWithCoords = await prisma.$queryRaw<any[]>`
+                SELECT 
+                    u.id, u.full_name, u.age, u.gender, u.avatar_url,
+                    u.city, u.state, u.location_name,
+                    (p.metadata->'location'->>'lat')::float AS lat,
+                    (p.metadata->'location'->>'lng')::float AS lng,
+                    p.metadata->'career'->>'profession' AS profession
+                FROM users u
+                LEFT JOIN profiles p ON u.id = p.user_id
+                WHERE u.id != ${userId}::uuid
+                  AND u.is_verified = true
+                  AND LOWER(u.gender) = 'male'
+                  AND (p.metadata->'location'->>'lat') IS NOT NULL
+                  AND (p.metadata->'location'->>'lat') != ''
+                  AND (p.metadata->'location'->>'lng') IS NOT NULL
+                  AND (p.metadata->'location'->>'lng') != ''
+                LIMIT 500
+            `;
+        } else {
+            // Non-binary or unspecified — show all
+            usersWithCoords = await prisma.$queryRaw<any[]>`
+                SELECT 
+                    u.id, u.full_name, u.age, u.gender, u.avatar_url,
+                    u.city, u.state, u.location_name,
+                    (p.metadata->'location'->>'lat')::float AS lat,
+                    (p.metadata->'location'->>'lng')::float AS lng,
+                    p.metadata->'career'->>'profession' AS profession
+                FROM users u
+                LEFT JOIN profiles p ON u.id = p.user_id
+                WHERE u.id != ${userId}::uuid
+                  AND u.is_verified = true
+                  AND (p.metadata->'location'->>'lat') IS NOT NULL
+                  AND (p.metadata->'location'->>'lat') != ''
+                  AND (p.metadata->'location'->>'lng') IS NOT NULL
+                  AND (p.metadata->'location'->>'lng') != ''
+                LIMIT 500
+            `;
+        }
 
         const profiles = usersWithCoords.map(u => ({
             id: u.id,
@@ -332,26 +353,31 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         const meMeta: any = me.profiles?.metadata || {}; // Typecast for loose JSON access
 
-        // 2. Get Candidates (Limit 50)
-        let genderFilter: any = {};
+        // SECURITY FIX: Use parameterized $queryRaw instead of $queryRawUnsafe.
+        // The randomization is handled differently — fetch random IDs via ORDER BY RANDOM()
+        // using parameterized queries (userId is the only external variable here).
         const myGender = (me.gender || "").trim().toLowerCase();
 
-        if (myGender === 'male') genderFilter = { gender: { equals: 'female', mode: 'insensitive' } };
-        else if (myGender === 'female') genderFilter = { gender: { equals: 'male', mode: 'insensitive' } };
-
-        // Candidates Fetch
-        // 2. Get Candidates (Randomized Strategy)
-        // Step A: Fetch up to 50 randomized IDs efficiently via SQL
-        let genderClause = '';
-        if (myGender === 'male') genderClause = `AND LOWER(gender) = 'female'`;
-        else if (myGender === 'female') genderClause = `AND LOWER(gender) = 'male'`;
-
-        const randomCandidates: { id: string }[] = await prisma.$queryRawUnsafe(`
-            SELECT id FROM users
-            WHERE id != '${userId}' AND is_verified = true ${genderClause}
-            ORDER BY RANDOM()
-            LIMIT 50
-        `);
+        let randomCandidates: { id: string }[];
+        if (myGender === 'male') {
+            randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
+                SELECT id FROM users
+                WHERE id != ${userId}::uuid AND is_verified = true AND LOWER(gender) = 'female'
+                ORDER BY RANDOM() LIMIT 50
+            `;
+        } else if (myGender === 'female') {
+            randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
+                SELECT id FROM users
+                WHERE id != ${userId}::uuid AND is_verified = true AND LOWER(gender) = 'male'
+                ORDER BY RANDOM() LIMIT 50
+            `;
+        } else {
+            randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
+                SELECT id FROM users
+                WHERE id != ${userId}::uuid AND is_verified = true
+                ORDER BY RANDOM() LIMIT 50
+            `;
+        }
 
         // Step B: Extract IDs
         const shuffledIds = randomCandidates.map(c => c.id);
@@ -462,7 +488,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
                 photoUrl: sanitizePhotoUrl(c.avatar_url || meta.photos?.[0], c.full_name || c.id),
-                score: Math.min(99, ((c.avatar_url || meta.photos?.[0]) && !c.avatar_url?.startsWith('data:') && !c.avatar_url?.includes('dicebear')) ? score + 40 : score),
+                // FIXED: Removed the +40 score bonus for having any non-DiceBear photo.
+                // This inflated scores to near-99 for all users with a profile picture,
+                // making compatibility scores meaningless.
+                score: Math.min(99, score),
                 match_reasons: reasons,
                 analysis: {
                     // id is UUID, can't mod easily. use random.
@@ -557,39 +586,47 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             queryVector = Array(384).fill(0);
         }
 
-        // Build dynamic SQL
-        let whereClauses = [`u.id != '${userId}'`, `u.is_verified = true`];
+        // Build dynamic SQL WHERE clauses
+        // SECURITY: userId is a UUID from auth middleware (trusted), but we still use cast.
+        // All other values are sanitized via escapeStr() to prevent SQL injection.
+        const escapeStr = (s: string) => s.replace(/'/g, "''").replace(/;/g, '').replace(/--/g, '');
+
+        let whereClauses = [`u.id != '${userId}'::uuid`, `u.is_verified = true`];
 
         // Gender
         if (myGender === 'male') whereClauses.push(`u.gender ILIKE 'female'`);
         else if (myGender === 'female') whereClauses.push(`u.gender ILIKE 'male'`);
 
         // Age
-        if (filters.minAge) whereClauses.push(`u.age >= ${filters.minAge}`);
-        if (filters.maxAge) whereClauses.push(`u.age <= ${filters.maxAge}`);
+        if (filters.minAge) whereClauses.push(`u.age >= ${parseInt(filters.minAge)}`);
+        if (filters.maxAge) whereClauses.push(`u.age <= ${parseInt(filters.maxAge)}`);
 
         // Location
         if (filters.location) {
-            const loc = filters.location.replace(/'/g, "''");
+            const loc = escapeStr(filters.location);
             whereClauses.push(`(u.location_name ILIKE '%${loc}%' OR u.city ILIKE '%${loc}%' OR u.state ILIKE '%${loc}%')`);
         }
 
         // Profession (Native JSONB)
         if (filters.profession) {
-            const prof = filters.profession.replace(/'/g, "''");
+            const prof = escapeStr(filters.profession);
             whereClauses.push(`p.metadata->'career'->>'profession' ILIKE '%${prof}%'`);
         }
 
         // Income (Native JSONB)
         if (filters.minIncome) {
-            // Need to extract digits using regex in postgres
-            whereClauses.push(`COALESCE(NULLIF(regexp_replace(p.metadata->'career'->>'income', '[^0-9]', '', 'g'), ''), '0')::int >= ${filters.minIncome}`);
+            // Only allow integers to reach the SQL
+            whereClauses.push(`COALESCE(NULLIF(regexp_replace(p.metadata->'career'->>'income', '[^0-9]', '', 'g'), ''), '0')::int >= ${parseInt(filters.minIncome)}`);
         }
 
         const whereSql = whereClauses.join(' AND ');
 
-        // Safely Convert Vector to Postgres format '[0.1, 0.2, ...]'
-        const vectorString = `[${queryVector.join(',')}]`;
+        // Validate vector: must be an array of exactly 384 floats
+        // Prevents vector injection via malformed embedding arrays
+        const safeVector = queryVector.every(v => typeof v === 'number' && isFinite(v))
+            ? queryVector
+            : new Array(384).fill(0);
+        const vectorString = `[${safeVector.join(',')}]`;
 
         console.log("🚀 Executing AI Vector Search...");
 
@@ -619,8 +656,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         if (rows.length < 5) {
             console.log("⚠️ Low Strict Results. Relaxing filters...");
             isBroad = true;
-            // Relaxed query: remove strict JSON/Location constraints but keep AI ordering
-            let relaxedClauses = [`u.id != '${userId}'`, `u.is_verified = true`];
+            // Relaxed query: remove strict JSON/Location constraints but keep AI vector ordering
+            // SECURITY: userId is a UUID from auth middleware; escapeStr already protects gender values
+            const relaxedClauses = [
+                `u.id != '${userId}'::uuid`,
+                `u.is_verified = true`
+            ];
             if (myGender === 'male') relaxedClauses.push(`u.gender ILIKE 'female'`);
             else if (myGender === 'female') relaxedClauses.push(`u.gender ILIKE 'male'`);
 

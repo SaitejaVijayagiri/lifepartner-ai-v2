@@ -24,7 +24,7 @@ const ICEBREAKERS = {
     ],
     music: [
         "What's the last song you listened to on repeat?",
-        "If they made a movie about your life, who would play you?",
+        "What's your go-to playlist for a long drive or a chill evening?",
         "Concerts or Headphones?"
     ],
     default: [
@@ -106,7 +106,7 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
     }
 });
 
-// POST /ai/chat — The Love Guru Chatbot (Hybrid: Expert System + Local LLM)
+// POST /ai/chat — The Love Guru Chatbot (Tier 1: Expert System → Tier 2: Gemini AI)
 router.post('/chat', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -123,13 +123,53 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
         });
 
         const name = user?.full_name?.split(' ')[0] || 'friend';
-
         console.log(`[AI Guru] Message: "${message.substring(0, 40)}..." for user: ${name}`);
 
-        // Try the instant Knowledge Engine (guruEngine)
+        // TIER 1: Expert system — handles relationship/matrimony queries instantly (free, no API)
         let reply = guruResponse(message, name, history || []);
 
-        // Absolute Fallback if expert system doesn't know the answer
+        // TIER 2: Gemini AI — fires only when the expert system doesn't match
+        if (!reply && process.env.GEMINI_API_KEY) {
+            try {
+                const systemPrompt = `You are "Guru", a warm and wise relationship and matrimony coach on the LifePartner AI platform. Your role is to help Indian users navigate dating, marriage, and relationships with cultural sensitivity. The user's name is ${name}. Keep responses concise (2-3 sentences), conversational, and encouraging. Never give medical/legal advice.`;
+
+                // Build conversation history for Gemini
+                const geminiHistory = (history || []).slice(-6).map((h: any) => ({
+                    role: h.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: h.content }]
+                }));
+
+                const geminiResponse = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            system_instruction: { parts: [{ text: systemPrompt }] },
+                            contents: [
+                                ...geminiHistory,
+                                { role: 'user', parts: [{ text: message }] }
+                            ],
+                            generationConfig: { maxOutputTokens: 200, temperature: 0.8 }
+                        }),
+                        signal: AbortSignal.timeout(8000)
+                    }
+                );
+
+                if (geminiResponse.ok) {
+                    const data: any = await geminiResponse.json();
+                    const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (geminiText) {
+                        reply = geminiText.trim();
+                        console.log(`[AI Guru] Answered via Gemini AI.`);
+                    }
+                }
+            } catch (geminiErr: any) {
+                console.warn(`[AI Guru] Gemini fallback failed: ${geminiErr.message}`);
+            }
+        }
+
+        // TIER 3: Hard-coded fallback (always works, no API needed)
         if (!reply) {
             console.log(`[AI Guru] Answered via absolute fallback.`);
             reply = personalize(pickRandom(FALLBACK_RESPONSES), name);

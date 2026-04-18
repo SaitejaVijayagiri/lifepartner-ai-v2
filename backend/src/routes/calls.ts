@@ -2,6 +2,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
+import { sanitizePhotoUrl } from '../utils/photoUrl';
 
 const router = express.Router();
 
@@ -30,7 +31,7 @@ router.get('/history', authenticateToken, async (req: any, res) => {
             return {
                 id: row.id,
                 otherName: otherUser?.full_name,
-                otherPhoto: otherUser?.avatar_url,
+                otherPhoto: sanitizePhotoUrl(otherUser?.avatar_url ?? null, otherUser?.full_name || 'User'),
                 type: row.type,
                 status: row.status,
                 duration: row.duration_seconds,

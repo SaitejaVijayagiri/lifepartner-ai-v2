@@ -88,31 +88,30 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     const cleanText = sanitizeContent(text);
 
     try {
-        // Run Block Check and Message creation in parallel for speed
-        const [block, newMessageRecord] = await Promise.all([
-            prisma.blocks.findFirst({
-                where: {
-                    OR: [
-                        { blocker_id: senderId, blocked_id: connectionId },
-                        { blocker_id: connectionId, blocked_id: senderId }
-                    ]
-                }
-            }),
-            prisma.messages.create({
-                data: {
-                    sender_id: senderId,
-                    receiver_id: connectionId,
-                    content: cleanText,
-                    delivery_status: "sent"
-                }
-            })
-        ]);
+        // SECURITY FIX: Check block status FIRST before creating any message.
+        // Previous code created the message in parallel with the block check,
+        // causing a race where the socket broadcast would fire even for blocked users.
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: senderId, blocked_id: connectionId },
+                    { blocker_id: connectionId, blocked_id: senderId }
+                ]
+            }
+        });
 
         if (block) {
-            // Rollback message creation if blocked
-            await prisma.messages.delete({ where: { id: newMessageRecord.id } });
             return res.status(403).json({ error: "You cannot message this user." });
         }
+
+        const newMessageRecord = await prisma.messages.create({
+            data: {
+                sender_id: senderId,
+                receiver_id: connectionId,
+                content: cleanText,
+                delivery_status: "sent"
+            }
+        });
 
         const newMessage = {
             id: newMessageRecord.id,
@@ -143,6 +142,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                 const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
 
                 const { NotificationService } = require('../services/notification');
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
                 await NotificationService.getInstance().sendToUser(
                     connectionId,
                     `${senderName}`,
@@ -152,7 +152,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                         messageId: newMessageRecord.id,
                         senderId: senderId,
                         senderName: senderName,
-                        senderPhoto: senderProfile?.avatar_url || "https://lifepartnerai.in/icon-512x512.png" 
+                        senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User')
                     }
                 );
             }

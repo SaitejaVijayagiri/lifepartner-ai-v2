@@ -6,10 +6,10 @@ import { prisma } from '../prisma';
 import { Resend } from 'resend';
 
 const router = express.Router();
-const resend = new Resend(process.env.RESEND_API_KEY || 're_123_mock'); // Fallback for dev if needed, or handle error
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123_mock');
 
-// Secret for JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_key_123';
+// JWT_SECRET is guaranteed to be set — server.ts throws at startup if missing
+const JWT_SECRET = process.env.JWT_SECRET!;
 
 // Helper: Generate Token
 const generateToken = (userId: string) => {
@@ -35,7 +35,6 @@ router.post('/logout', (req, res) => {
     res.json({ success: true, message: "Logged out" });
 });
 
-// 1. Register with OTP
 // 1. Register with OTP
 router.post('/register', async (req, res) => {
     try {
@@ -144,7 +143,9 @@ router.post('/register', async (req, res) => {
         const passwordHash = await bcrypt.hash(password, salt);
 
         // 4. Generate OTP
-        const otp = (email && email.includes('demo')) ? '123456' : Math.floor(100000 + Math.random() * 900000).toString();
+        // SECURITY: Removed demo-email OTP backdoor ('123456' for emails containing 'demo').
+        // All users now receive a real random OTP regardless of email address.
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
         // 5. Transaction: Insert User + Handle Referral
@@ -256,10 +257,6 @@ router.post('/register', async (req, res) => {
 
 
 import { EmailService } from '../services/email';
-
-// ... (existing imports)
-
-// ...
 
 // 2. Verify OTP
 router.post('/verify-otp', async (req, res) => {
@@ -379,12 +376,12 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (error: any) {
-        console.error("❌ Login Error Details:", error);
-        res.status(500).json({ error: "Login failed", details: error.message, stack: error.stack });
+        console.error("Login Error:", error);
+        // SECURITY: Never expose stack traces to clients — they reveal internal paths and logic
+        res.status(500).json({ error: "Login failed. Please try again." });
     }
 });
 
-// 4. Resend OTP Route
 // 4. Resend OTP Route
 router.post('/resend-otp', async (req, res) => {
     try {
@@ -638,15 +635,11 @@ router.post('/google', async (req, res) => {
         }
 
         // 4. Generate Token
-        // @ts-ignore
-        // @ts-ignore
         const token = generateToken(user.id);
 
         // Check if onboarding is needed (missing gender or age)
-        // @ts-ignore
-        const requiresOnboarding = !user.gender || !user.age;
+        const requiresOnboarding = !(user as any).gender || !(user as any).age;
 
-        // @ts-ignore
         setTokenCookie(res, token);
         res.json({ success: true, token, userId: user!.id, requiresOnboarding });
 

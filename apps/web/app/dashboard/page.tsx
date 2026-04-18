@@ -180,7 +180,11 @@ function DashboardContent() {
                 }
 
                 const profile = profileResult.value;
-                if (!profile || (!profile.photos?.length && !profile.photoUrl) || !profile.name || !profile.age || !profile.gender) {
+                // FIX: Only require the essential fields (name, age, gender) to determine onboarding completion.
+                // Previously also checked photos/photoUrl which caused redirect loops when:
+                //   1. Supabase storage URLs are DNS-blocked (India ISPs) and fall back to dicebear
+                //   2. User uploaded via base64 path but server returned proxy URL
+                if (!profile || !profile.name || !profile.age || !profile.gender) {
                     router.push('/onboarding');
                     return;
                 }
@@ -276,6 +280,8 @@ function DashboardContent() {
     ];
 
     // Fetch data based on active tab — guard against repeated re-fetches on tab switch
+    // FIX: These refs prevent double-fetching within a single session, but reset on
+    // component unmount so navigating away and back always loads fresh data.
     const hasFetchedRequests = useRef(false);
     const hasFetchedConnections = useRef(false);
 
@@ -289,6 +295,12 @@ function DashboardContent() {
             fetchRequests();
         }
         if (activeTab === 'map' && mapProfiles.length === 0) fetchMapProfiles();
+
+        // Reset on unmount so next mount re-fetches (avoids stale data on navigation)
+        return () => {
+            hasFetchedConnections.current = false;
+            hasFetchedRequests.current = false;
+        };
     }, [activeTab]);
 
     const fetchMapProfiles = async () => {

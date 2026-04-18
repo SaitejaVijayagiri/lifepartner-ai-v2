@@ -1,8 +1,8 @@
 import express from 'express';
-// import { pool } from '../db';
 import { prisma } from '../prisma';
 import { getIO } from '../socket';
 import { authenticateToken } from '../middleware/auth';
+import { adminAuth } from '../middleware/adminAuth';
 
 const router = express.Router();
 
@@ -50,12 +50,9 @@ router.post('/', authenticateToken, async (req: any, res) => {
     }
 });
 
-// GET /reports - Admin View
-router.get('/', authenticateToken, async (req: any, res) => {
+// GET /reports - Admin View (requires admin access)
+router.get('/', authenticateToken, adminAuth, async (req: any, res) => {
     try {
-        const userId = req.user.userId;
-        // TODO: specific admin check. For now, allow logged in users (MVP Admin URL security)
-
         const reports = await prisma.reports.findMany({
             orderBy: { created_at: 'desc' },
             take: 50,

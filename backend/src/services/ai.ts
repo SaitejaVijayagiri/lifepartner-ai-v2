@@ -163,22 +163,55 @@ export class AIService {
             return new Array(384).fill(0);
         }
 
-        try {
-            if (!this.extractor) {
-                await this.initModel();
-            }
+        // Try Gemini text-embedding-004 API (free tier: 1500 req/day)
+        // This fixes the core issue where all embeddings were zero-vectors,
+        // making pgvector AI search return random/useless ordering.
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (apiKey && !apiKey.includes('your_') && apiKey.length > 10) {
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'models/text-embedding-004',
+                            content: { parts: [{ text: text.substring(0, 2048) }] },
+                            taskType: 'SEMANTIC_SIMILARITY'
+                        }),
+                        signal: AbortSignal.timeout(5000) // 5s timeout — never block profile save
+                    }
+                );
 
-            if (this.extractor) {
-                console.log(`🧠 Generating local embedding for text: "${text.substring(0, 30)}..."`);
-                const output = await this.extractor(text, { pooling: 'mean', normalize: true });
-                // output.data is a Float32Array
-                return Array.from(output.data) as number[];
+                if (response.ok) {
+                    const data: any = await response.json();
+                    const fullVector: number[] = data?.embedding?.values || [];
+
+                    if (fullVector.length > 0) {
+                        // Gemini text-embedding-004 returns 768 dims.
+                        // Our pgvector column is 384 dims — take first 384 and re-normalize.
+                        const truncated = fullVector.slice(0, 384);
+                        const magnitude = Math.sqrt(truncated.reduce((sum, v) => sum + v * v, 0));
+                        const normalized = magnitude > 0 ? truncated.map(v => v / magnitude) : truncated;
+                        console.log(`✅ Gemini embedding generated for: "${text.substring(0, 40)}..."`);
+                        return normalized;
+                    }
+                } else {
+                    const errText = await response.text();
+                    console.warn(`[Gemini Embedding] API error ${response.status}: ${errText.substring(0, 100)}`);
+                }
+            } catch (e: any) {
+                console.warn(`[Gemini Embedding] Request failed: ${e.message}`);
             }
-        } catch (e) {
-            console.error("Local embedding generation failed:", e);
+        } else if (!apiKey) {
+            // Only log once, not every time
+            if (!(this as any)._embeddingWarnLogged) {
+                console.warn('[AIService] GEMINI_API_KEY not set — embeddings will be zero vectors. AI search ordering will be random.');
+                (this as any)._embeddingWarnLogged = true;
+            }
         }
 
-        // Fallback to zeros if model completely fails to load
+        // Fallback: zero vector (search will still work, just won't be semantically ordered)
         return new Array(384).fill(0);
     }
 

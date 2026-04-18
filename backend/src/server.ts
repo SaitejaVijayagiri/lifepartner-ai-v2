@@ -8,6 +8,11 @@ if (process.env.NODE_ENV === 'production') {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
+// SECURITY: Fail fast if critical secrets are missing — prevents running with insecure defaults
+if (!process.env.JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not set. Server cannot start.');
+}
+
 import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
@@ -62,10 +67,23 @@ const contactLimiter = rateLimit({
     message: "Too many contact requests, please try again later."
 });
 
+const ALLOWED_ORIGINS = [
+    'https://lifepartnerai.in',
+    'https://www.lifepartnerai.in',
+    'http://localhost:3005',
+    'http://localhost:3006',
+    'http://localhost:4200',
+    ...(process.env.EXTRA_ALLOWED_ORIGINS ? process.env.EXTRA_ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [])
+];
+
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        return callback(null, true);
+        // Allow server-to-server requests (no origin) and known origins
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            return callback(null, true);
+        }
+        console.warn(`[CORS] Blocked request from origin: ${origin}`);
+        return callback(new Error(`CORS: Origin '${origin}' is not allowed`));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -75,27 +93,30 @@ app.use(cors({
 
 app.use(globalLimiter);
 
-// Global Request Logger
+// Parse request bodies FIRST — logger must come after so req.body is populated
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Global Request Logger (runs after parsers so req.body is available)
 app.use((req, res, next) => {
     console.log(`📨 [${req.method}] ${req.url}`);
     if (req.method === 'POST' || req.method === 'PUT') {
-        // Sanitize body before logging — strip base64 blobs to prevent memory bloat on Render
-        const sanitized = JSON.parse(JSON.stringify(req.body || {}));
-        if (sanitized.photoUrl && typeof sanitized.photoUrl === 'string' && sanitized.photoUrl.startsWith('data:')) {
-            sanitized.photoUrl = `[base64 image, ${Math.round(sanitized.photoUrl.length / 1024)}KB]`;
-        }
-        if (Array.isArray(sanitized.photos)) {
-            sanitized.photos = sanitized.photos.map((p: string) =>
-                typeof p === 'string' && p.startsWith('data:') ? `[base64 image, ${Math.round(p.length / 1024)}KB]` : p
-            );
-        }
-        console.log('📦 Body:', JSON.stringify(sanitized, null, 2));
+        try {
+            // Sanitize body before logging — strip base64 blobs to prevent memory bloat on Render
+            const sanitized = JSON.parse(JSON.stringify(req.body || {}));
+            if (sanitized.photoUrl && typeof sanitized.photoUrl === 'string' && sanitized.photoUrl.startsWith('data:')) {
+                sanitized.photoUrl = `[base64 image, ${Math.round(sanitized.photoUrl.length / 1024)}KB]`;
+            }
+            if (Array.isArray(sanitized.photos)) {
+                sanitized.photos = sanitized.photos.map((p: string) =>
+                    typeof p === 'string' && p.startsWith('data:') ? `[base64 image, ${Math.round(p.length / 1024)}KB]` : p
+                );
+            }
+            console.log('📦 Body:', JSON.stringify(sanitized, null, 2));
+        } catch (_) { /* ignore logging errors */ }
     }
     next();
 });
-
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/uploads', express.static('uploads'));
 
@@ -108,10 +129,8 @@ app.get('/', (req, res) => {
 // Health Check endpoint — tests DB connectivity
 app.get('/health', async (req, res) => {
     try {
-        const { pool } = require('./prisma');
-        const client = await pool.connect();
-        await client.query('SELECT 1');
-        client.release();
+        // Use already-imported prisma client instead of require()
+        await prisma.$queryRaw`SELECT 1`;
         res.json({
             status: 'ok',
             db: 'connected',
@@ -132,6 +151,10 @@ app.use('/auth', authLimiter, authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/matches', matchRoutes);
 app.use('/interactions', interactionRoutes);
+// Apply contact rate limiter specifically to the /contact sub-path.
+// contactLimiter was defined but never applied — this was a medium audit finding.
+// We attach it AFTER the main router so the limiter wraps only this route.
+app.use('/interactions/contact', contactLimiter);
 app.use('/messages', chatRoutes);
 app.use('/games', gameRoutes);
 app.use('/payments', paymentRoutes);
@@ -142,7 +165,12 @@ app.use('/wallet', walletRoutes);
 app.use('/calls', require('./routes/calls').default);
 app.use('/verification', require('./routes/verification').default);
 app.use('/blog', blogRoutes);
-app.use('/migrate', migrateRoutes); // One-time migration route — remove after use
+// SECURITY: /migrate is a one-time route — disabled in production to prevent abuse.
+// Re-enable only locally when running pending migrations.
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/migrate', migrateRoutes);
+    console.log('⚠️  /migrate route enabled (non-production mode)');
+}
 app.use('/photo', photoRoutes);     // Image proxy — bypasses India ISP Supabase DNS block
 
 // Debug Environment on Startup

@@ -72,36 +72,25 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
     // Load saved data and step from localStorage on mount
     useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                // 1. Check for manual saved data in localStorage
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    setData((prev: any) => ({ ...prev, ...parsed }));
-                } else {
-                    // 2. Fallback: Fetch existing live profile data from backend
-                    const res = await api.profile.getMe();
-                    if (res) {
-                        // Backend flattens the response in our standardized /me
-                        setData((prev: any) => ({ ...prev, ...res }));
-                    }
-                }
-                
-                // 3. Restore step position
-                const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
-                if (savedStep) {
-                    const stepIndex = parseInt(savedStep, 10);
-                    if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < STEPS.length) {
-                        setCurrentStep(stepIndex);
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load initial onboarding data', e);
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                setData((prev: any) => ({ ...prev, ...parsed }));
+                // console.log('Restored onboarding progress from localStorage');
             }
-        };
-
-        loadInitialData();
+            // Restore step position
+            const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
+            if (savedStep) {
+                const stepIndex = parseInt(savedStep, 10);
+                if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < STEPS.length) {
+                    setCurrentStep(stepIndex);
+                    // console.log(`Restored to step ${stepIndex}: ${STEPS[stepIndex].title}`);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load saved onboarding data', e);
+        }
     }, []);
 
     // Auto-save data to localStorage whenever it changes

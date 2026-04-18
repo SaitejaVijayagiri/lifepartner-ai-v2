@@ -39,7 +39,8 @@ export const initSocket = (httpServer: HttpServer) => {
             return next();
         }
 
-        const secret = process.env.JWT_SECRET || 'dev_secret_key_123';
+        // JWT_SECRET guaranteed by startup guard in server.ts (throws if missing)
+        const secret = process.env.JWT_SECRET!;
         jwt.verify(token as string, secret, (err, decoded) => {
             if (err) {
                 // Invalid token? Treat as guest.
@@ -103,7 +104,12 @@ export const initSocket = (httpServer: HttpServer) => {
 
         // Disconnect
         socket.on('disconnect', () => {
-            socket.broadcast.emit('callEnded');
+            // Only notify the specific call partner, NOT every connected user.
+            // Broadcasting callEnded to everyone breaks ongoing calls between other users.
+            if (socket.data.callPartnerId) {
+                io.to(socket.data.callPartnerId).emit('callEnded');
+                socket.data.callPartnerId = null;
+            }
 
             if (userId) {
                 const currentCount = onlineUsers.get(userId) || 0;
@@ -120,12 +126,8 @@ export const initSocket = (httpServer: HttpServer) => {
             leaveCommunity();
         });
 
-        // JOIN "Personal Room" (using userId as room name)
-        // Auto-join based on auth, ignore client param if it doesn't match (or just force it)
-        if (userId) {
-            socket.join(userId);
-            console.log(`User ${userId} auto-joined room ${userId}`);
-        }
+        // Personal room is already joined above via socket.join(userId) on connection.
+        // No second join needed here.
 
         // --- MESSAGE STATUS TRACKING ---
         socket.on('messageDelivered', async (data: { messageId: string, senderId: string }) => {
@@ -179,6 +181,9 @@ export const initSocket = (httpServer: HttpServer) => {
                     name,
                     type // Pass the type (audio/video)
                 });
+
+                // Track call partner on this socket so disconnect only notifies them
+                socket.data.callPartnerId = userToCall;
 
                 // Offline Ringing logic: Push notification if target user is disconnected
                 const targetOnlineCount = onlineUsers.get(userToCall) || 0;

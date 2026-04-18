@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
-import { authenticateToken, requireAdmin } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
+import { adminAuth } from '../middleware/adminAuth';
 
 const router = express.Router();
 
@@ -68,7 +69,7 @@ router.get('/status', authenticateToken, async (req: any, res) => {
 // --- ADMIN ROUTES (Protected) ---
 
 // 3. List All Pending Requests
-router.get('/admin/pending', authenticateToken, requireAdmin, async (req, res) => {
+router.get('/admin/pending', authenticateToken, adminAuth, async (req, res) => {
     try {
         const result = await prisma.verification_requests.findMany({
             where: { status: 'PENDING' },
@@ -100,7 +101,7 @@ router.get('/admin/pending', authenticateToken, requireAdmin, async (req, res) =
 });
 
 // 4. Approve/Reject
-router.post('/admin/:id/resolve', authenticateToken, requireAdmin, async (req, res) => {
+router.post('/admin/:id/resolve', authenticateToken, adminAuth, async (req, res) => {
     const { id } = req.params;
     const { status, notes } = req.body;
 

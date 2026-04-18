@@ -15,25 +15,8 @@ import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 
-// Helper: Sanitize avatar_url — base64 data URIs fail on mobile; Supabase is DNS-blocked in India (Feb 2026).
-// Route all Supabase URLs through our Render-based image proxy to bypass India ISP block.
-const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
+import { sanitizePhotoUrl } from '../utils/photoUrl';
 
-const toProxyUrl = (url: string): string => {
-    if (!url || !url.includes('supabase.co/storage')) return url;
-    return `${BACKEND_URL}/photo?url=${encodeURIComponent(url)}`;
-};
-
-const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
-    // Pass base64 data URIs through directly - they are compressed ~200KB images stored in postgres
-    if (url && url.startsWith('data:image')) {
-        return url;
-    }
-    if (!url) {
-        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
-    }
-    return toProxyUrl(url);
-};
 
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {
     if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Return as is if url
@@ -62,14 +45,18 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
 }
 
 // Debug Logger
+// NOTE: Log file is written to process.cwd()/logs/ (project root) rather than __dirname
+// to avoid writing runtime files into the compiled source tree.
+const LOG_DIR = path.join(process.cwd(), 'logs');
 const logDebug = (msg: string, data?: any) => {
     const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] ${msg} ${data ? JSON.stringify(data) : ''}\n`;
     console.log(msg, data || '');
     try {
-        fs.appendFileSync(path.join(__dirname, '../backend_debug.log'), logLine);
+        if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+        fs.appendFileSync(path.join(LOG_DIR, 'backend_debug.log'), logLine);
     } catch (e) {
-        // Ignore logging errors
+        // Ignore logging errors — never block a request due to log failure
     }
 };
 
@@ -222,7 +209,7 @@ router.get('/public/featured', async (req, res) => {
                 age: user.age,
                 gender: user.gender,
                 photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
-                photos: meta.photos || [sanitizePhotoUrl(user.avatar_url, user.full_name || user.id)],
+                photos: (meta.photos || [user.avatar_url]).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
                 location: locationStr,
                 profession: meta.career?.profession || "Professional",
                 isVerified: true
@@ -340,7 +327,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             bio: meta.bio || user.profiles?.raw_prompt || "",
             expectations: meta.expectations || "",
             height: meta.height || "",
-            photos: meta.photos || [user.avatar_url],
+            photos: (meta.photos || [user.avatar_url]).map((url: string) => sanitizePhotoUrl(url, user.full_name || user.id)),
             reels: meta.reels || [],
             total_gifts: 0,
             total_likes: user._count.matches_matches_user_b_idTousers || 0,
@@ -389,38 +376,30 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             savedStickers
         } = req.body;
 
-        // OPTIMIZATION & MODERATION: Handle Base64 Images
-        let finalPhotoUrl = photoUrl;
-        if (ImageOptimizer.isBase64(photoUrl)) {
-            // Check for fake photos locally via AI before accepting
-            const modResult = await ModerationService.validateProfilePhoto(photoUrl);
-            if (!modResult.isValid) {
-                console.log(`🛡️ Blocked fake photo upload for ${userId}: ${modResult.reason}`);
-                return res.status(400).json({ error: modResult.reason });
-            }
-            finalPhotoUrl = await uploadOptimizedImage(photoUrl, userId);
-        }
-
         let finalPhotos = photos || [];
         if (Array.isArray(finalPhotos)) {
             // Cap to 5 photos to prevent payload abuse on onboarding
             const photosToProcess = finalPhotos.slice(0, 5);
 
-            // Run moderation + upload IN PARALLEL for speed (was sequential)
-            const results = await Promise.all(
-                photosToProcess.map(async (p: string) => {
-                    if (ImageOptimizer.isBase64(p)) {
-                        const modResult = await ModerationService.validateProfilePhoto(p);
-                        if (!modResult.isValid) {
-                            throw Object.assign(new Error(modResult.reason), { status: 400 });
-                        }
-                        return await uploadOptimizedImage(p, userId);
+            // Run moderation + upload SEQUENTIALLY to prevent WASM/RAM Out Of Memory crashes
+            const results = [];
+            for (const p of photosToProcess) {
+                if (ImageOptimizer.isBase64(p)) {
+                    const modResult = await ModerationService.validateProfilePhoto(p);
+                    if (!modResult.isValid) {
+                        throw Object.assign(new Error(modResult.reason), { status: 400 });
                     }
-                    return p;
-                })
-            );
+                    const uploaded = await uploadOptimizedImage(p, userId);
+                    results.push(uploaded);
+                } else {
+                    results.push(p);
+                }
+            }
             finalPhotos = results;
         }
+
+        // Derive finalPhotoUrl from the processed photos array to prevent duplicate uploads
+        let finalPhotoUrl = finalPhotos.length > 0 ? finalPhotos[0] : photoUrl;
 
         // Separate: aboutMe → raw_prompt (personal bio), expectations/prompt → metadata.expectations
         const cleanBio = sanitizeContent(aboutMe || '');

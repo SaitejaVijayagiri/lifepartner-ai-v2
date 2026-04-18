@@ -21,7 +21,9 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
     storage,
-    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB Limit (High Capacity)
+    // FIX: 500MB was dangerously high — a single malicious upload could OOM the Render free tier (512MB RAM).
+    // Profile photos are compressed to ~200KB by the frontend canvas. Audio bios are <5MB. 15MB is ample.
+    limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max per file
     fileFilter: (req, file, cb) => {
         // Enforce safe file extensions to prevent executing arbitrary uploads
         const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mp3', '.wav'];

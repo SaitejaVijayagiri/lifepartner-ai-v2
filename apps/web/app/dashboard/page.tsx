@@ -19,6 +19,8 @@ import { useToast } from '@/components/ui/Toast';
 import { FilterState } from '@/components/FilterModal';
 import { BottomNav } from '@/components/BottomNav';
 import InteractiveMap from '@/components/InteractiveMap';
+import SpeedDatingLobby from '@/components/SpeedDatingLobby';
+import SpeedDateFeedbackModal from '@/components/SpeedDateFeedbackModal';
 
 // Performance: Lazy-load heavy components that aren't needed on first paint
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
@@ -87,6 +89,12 @@ function DashboardContent() {
 
     /* Gift State */
     const [giftData, setGiftData] = useState<{ userId: string, userName: string } | null>(null);
+
+    /* Speed Dating State */
+    const [showSpeedDatingLobby, setShowSpeedDatingLobby] = useState(false);
+    const [speedDatePartner, setSpeedDatePartner] = useState<any>(null);
+    const [speedDateFeedbackPartnerId, setSpeedDateFeedbackPartnerId] = useState<string | null>(null);
+    const [isSpeedDateInitiator, setIsSpeedDateInitiator] = useState<boolean>(false);
 
     /* Push Notification Toggle State */
     const [pushEnabled, setPushEnabled] = useState<boolean>(() => {
@@ -1117,6 +1125,31 @@ function DashboardContent() {
                     )
                 }
 
+                {/* Speed Dating Banner */}
+                <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 md:p-8 mb-6 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-4 bg-white/20 backdrop-blur-md rounded-2xl hidden sm:flex items-center justify-center">
+                                <Zap className="w-8 h-8 text-white animate-pulse" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2">
+                                    <Sparkles className="text-yellow-300 w-6 h-6 animate-pulse" />
+                                    Friday Night Speed Dating
+                                </h3>
+                                <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
+                            </div>
+                        </div>
+                        <Button 
+                            onClick={() => setShowSpeedDatingLobby(true)}
+                            className="bg-white text-purple-700 hover:bg-gray-100 font-bold shadow-xl border-0 px-8 py-6 rounded-2xl text-lg hover:scale-105 transition-transform w-full md:w-auto"
+                        >
+                            Enter Lobby
+                        </Button>
+                    </div>
+                </div>
+
                 {/* Header for Feed - Enhanced */}
                 {/* Header for Feed - Enhanced with AI Feedback */}
                 {aiFilters && (
@@ -1639,6 +1672,37 @@ function DashboardContent() {
             )}
 
             {/* Video Call Modal - UPDATED: Handled globally by GlobalCallUI, removed from here */}
+
+            {/* Speed Dating Modals */}
+            {showSpeedDatingLobby && (
+                <SpeedDatingLobby
+                    onClose={() => setShowSpeedDatingLobby(false)}
+                    onMatchFound={(partner, initiator) => {
+                        setShowSpeedDatingLobby(false);
+                        setSpeedDatePartner(partner);
+                        setIsSpeedDateInitiator(initiator);
+                    }}
+                />
+            )}
+
+            {speedDatePartner && (
+                <VideoCallModal
+                    mode="speed_date"
+                    partner={speedDatePartner}
+                    isInitiator={isSpeedDateInitiator}
+                    onEndCall={() => {
+                        setSpeedDateFeedbackPartnerId(speedDatePartner.id);
+                        setSpeedDatePartner(null);
+                    }}
+                />
+            )}
+
+            {speedDateFeedbackPartnerId && (
+                <SpeedDateFeedbackModal
+                    partnerId={speedDateFeedbackPartnerId}
+                    onClose={() => setSpeedDateFeedbackPartnerId(null)}
+                />
+            )}
 
             {/* Call History Modal */}
             {showCallHistory && (

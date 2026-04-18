@@ -871,4 +871,114 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
     }
 });
 
+// POST /speed-date/like
+router.post('/speed-date/like', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { targetId, liked } = req.body;
+
+        if (!targetId || liked === undefined) return res.status(400).json({ error: "Missing fields" });
+
+        if (liked) {
+            // Log interaction
+            await prisma.interactions.upsert({
+                where: {
+                    from_user_id_to_user_id_type: {
+                        from_user_id: userId,
+                        to_user_id: targetId,
+                        type: 'SPEED_DATE_LIKE'
+                    }
+                },
+                update: { status: 'pending', created_at: new Date() },
+                create: {
+                    from_user_id: userId,
+                    to_user_id: targetId,
+                    type: 'SPEED_DATE_LIKE',
+                    status: 'pending'
+                }
+            });
+
+            // Check if reciprocal exists
+            const reciprocal = await prisma.interactions.findUnique({
+                where: {
+                    from_user_id_to_user_id_type: {
+                        from_user_id: targetId,
+                        to_user_id: userId,
+                        type: 'SPEED_DATE_LIKE'
+                    }
+                }
+            });
+
+            if (reciprocal) {
+                // It's a match!
+                // Update both to 'connected'
+                await prisma.interactions.updateMany({
+                    where: {
+                        OR: [
+                            { from_user_id: userId, to_user_id: targetId, type: 'SPEED_DATE_LIKE' },
+                            { from_user_id: targetId, to_user_id: userId, type: 'SPEED_DATE_LIKE' }
+                        ]
+                    },
+                    data: { status: 'connected' }
+                });
+
+                // Also formally create a Request/Connection so they appear in 'Chat' tab
+                await prisma.interactions.upsert({
+                    where: {
+                        from_user_id_to_user_id_type: {
+                            from_user_id: targetId,
+                            to_user_id: userId,
+                            type: 'REQUEST'
+                        }
+                    },
+                    create: { from_user_id: targetId, to_user_id: userId, type: 'REQUEST', status: 'connected', created_at: new Date() },
+                    update: { status: 'connected' }
+                });
+
+                await prisma.interactions.upsert({
+                    where: {
+                        from_user_id_to_user_id_type: {
+                            from_user_id: userId,
+                            to_user_id: targetId,
+                            type: 'REQUEST'
+                        }
+                    },
+                    create: { from_user_id: userId, to_user_id: targetId, type: 'REQUEST', status: 'connected', created_at: new Date() },
+                    update: { status: 'connected' }
+                });
+
+                // Notify both
+                getIO().to(userId).emit('notification:new', { type: 'match', message: "You have a new Speed Match!", data: { targetId } });
+                getIO().to(targetId).emit('notification:new', { type: 'match', message: "You have a new Speed Match!", data: { targetId: userId } });
+
+                return res.json({ success: true, isMatch: true });
+            }
+
+            return res.json({ success: true, isMatch: false });
+        } else {
+            // Create a pass interaction just to avoid re-matching them in random pool
+            await prisma.interactions.upsert({
+                where: {
+                    from_user_id_to_user_id_type: {
+                        from_user_id: userId,
+                        to_user_id: targetId,
+                        type: 'SPEED_DATE_PASS'
+                    }
+                },
+                update: { status: 'declined', created_at: new Date() },
+                create: {
+                    from_user_id: userId,
+                    to_user_id: targetId,
+                    type: 'SPEED_DATE_PASS',
+                    status: 'declined'
+                }
+            });
+            return res.json({ success: true, isMatch: false });
+        }
+    } catch (e) {
+        console.error("Speed Date Like Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 export default router;

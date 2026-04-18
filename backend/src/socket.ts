@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { prisma } from './prisma'; // Use Prisma
 import jwt from 'jsonwebtoken';
+import { SpeedDatingManager } from './services/SpeedDatingManager';
 
 let io: Server;
 // userId -> count of active sockets
@@ -18,6 +19,9 @@ export const initSocket = (httpServer: HttpServer) => {
             methods: ['GET', 'POST']
         }
     });
+
+    // Initialize Speed Dating Matchmaker Loop
+    SpeedDatingManager.getInstance().init(io);
 
     // MIDDLEWARE: Authentication (Relaxed for Guests)
     io.use((socket, next) => {
@@ -124,6 +128,8 @@ export const initSocket = (httpServer: HttpServer) => {
             }
 
             leaveCommunity();
+            // Automatically remove user from speed dating queue/active match
+            SpeedDatingManager.getInstance().leaveLobby(socket.id, userId);
         });
 
         // Personal room is already joined above via socket.join(userId) on connection.
@@ -223,6 +229,7 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("endCall", ({ to }) => {
             io.to(to).emit("callEnded");
+            if (userId) SpeedDatingManager.getInstance().endActiveMatch(userId);
         });
 
         /**
@@ -230,6 +237,18 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("typing", ({ to }) => {
             io.to(to).emit("typing", { from: userId });
+        });
+
+        /**
+         * SPEED DATING LOGIC
+         */
+        socket.on("join_speed_dating_lobby", () => {
+            if (userId) SpeedDatingManager.getInstance().joinLobby(socket, userId);
+        });
+
+        socket.on("leave_speed_dating_lobby", () => {
+            if (userId) SpeedDatingManager.getInstance().leaveLobby(socket.id, userId);
+            socket.leave('speed_dating_lobby');
         });
 
         /**

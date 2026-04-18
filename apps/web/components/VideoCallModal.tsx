@@ -30,10 +30,11 @@ interface VideoCallModalProps {
     };
     onEndCall: () => void;
     incomingCall?: { signal: any, from: string, name: string, type?: 'audio' | 'video' };
-    mode?: 'audio' | 'video';
+    mode?: 'audio' | 'video' | 'speed_date';
+    isInitiator?: boolean;
 }
 
-export default function VideoCallModal({ connectionId, partner: initialPartner, onEndCall, incomingCall, mode = 'video' }: VideoCallModalProps) {
+export default function VideoCallModal({ connectionId, partner: initialPartner, onEndCall, incomingCall, mode = 'video', isInitiator = false }: VideoCallModalProps) {
     const { socket } = useSocket();
     const toast = useToast();
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -59,7 +60,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     }, []);
 
     // Determine Call Type and Partner
-    const isVideo = mode === 'video' || incomingCall?.type === 'video';
+    const isSpeedDate = mode === 'speed_date';
+    const isVideo = (mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate;
     const partner = initialPartner || {
         id: incomingCall?.from || 'unknown',
         name: incomingCall?.name || 'Unknown User',
@@ -75,11 +77,17 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         let interval: NodeJS.Timeout;
         if (callAccepted && !callEnded) {
             interval = setInterval(() => {
-                setCallDuration(prev => prev + 1);
+                setCallDuration(prev => {
+                    const next = prev + 1;
+                    if (isSpeedDate && next >= 180) {
+                        leaveCall(true); // Hard cut-off at 3 minutes
+                    }
+                    return next;
+                });
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [callAccepted, callEnded]);
+    }, [callAccepted, callEnded, isSpeedDate]);
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -99,7 +107,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 }
 
                 // Only call immediately if we are the initiator (NOT incoming call)
-                if (!incomingCall) {
+                if (!incomingCall || isSpeedDate && initialPartner && isInitiator) {
                     callUser(currentStream);
                 }
             })
@@ -203,8 +211,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         const peer = new SimplePeer({ initiator: false, trickle: false, stream: stream });
 
         peer.on("signal", (data: any) => {
-            if (socket && incomingCall) {
-                socket.emit("answerCall", { signal: data, to: incomingCall.from });
+            if (socket && (incomingCall || isSpeedDate)) {
+                socket.emit("answerCall", { signal: data, to: incomingCall ? incomingCall.from : partner.id });
             }
         });
 
@@ -218,6 +226,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
         if (incomingCall) {
             peer.signal(incomingCall.signal);
+        } else if (isSpeedDate && incomingCall === undefined) {
+             // In Speed dating, we don't have an incomingCall object. 
+             // We just wait for the signal from the socket!
+             // That requires the component to listen to 'callUser' event. Wait, the manager says one is initiator.
         }
         connectionRef.current = peer;
     };
@@ -375,10 +387,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                             <img src={partner.photoUrl} className="w-8 h-8 rounded-full border border-white/30" />
                         )}
                         <div className="text-white">
-                            {isMaximized && <h3 className="font-bold">{partner.name}</h3>}
+                            {isMaximized && <h3 className="font-bold">{isSpeedDate ? "Mystery Date" : partner.name}</h3>}
                             <div className="flex items-center gap-2 text-xs text-white/60">
                                 <span className={callAccepted ? "text-green-400" : "text-amber-400"}>
-                                    {callAccepted ? formatDuration(callDuration) : status}
+                                    {callAccepted ? (isSpeedDate ? formatDuration(180 - callDuration) + " remaining" : formatDuration(callDuration)) : status}
                                 </span>
                             </div>
                         </div>
@@ -435,7 +447,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                     <div className="flex flex-col items-center justify-center">
                                         <div className="relative mb-6 transform scale-75 md:scale-100">
                                             <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>
-                                            <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-gray-800 object-cover z-10" alt={partner.name} />
+                                            {isSpeedDate ? (
+                                                <div className="relative w-32 h-32 rounded-full border-4 border-gray-800 object-cover z-10 bg-gray-800 flex items-center justify-center">
+                                                    <span className="text-4xl">🕵️</span>
+                                                </div>
+                                            ) : (
+                                                <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-gray-800 object-cover z-10" alt={partner.name} />
+                                            )}
                                             <div className="absolute -inset-4 rounded-full border border-indigo-500/20 animate-ping"></div>
                                         </div>
                                     </div>
@@ -443,7 +461,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                             ) : (
                                 // Connecting UI (Calling...)
                                 <div className="text-center text-white p-4">
-                                    <img src={partner.photoUrl} className="w-20 h-20 rounded-full border-4 border-gray-800 mx-auto mb-4 animate-pulse opacity-50" />
+                                     {isSpeedDate ? (
+                                        <div className="w-20 h-20 rounded-full border-4 border-gray-800 mx-auto mb-4 animate-pulse opacity-50 bg-gray-800 flex items-center justify-center">
+                                            <span className="text-2xl">🕵️</span>
+                                        </div>
+                                    ) : (
+                                        <img src={partner.photoUrl} className="w-20 h-20 rounded-full border-4 border-gray-800 mx-auto mb-4 animate-pulse opacity-50" />
+                                    )}
                                     <h2 className="text-lg font-bold opacity-80">{status}</h2>
                                 </div>
                             )}

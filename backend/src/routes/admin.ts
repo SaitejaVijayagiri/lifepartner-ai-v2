@@ -307,6 +307,72 @@ router.post('/send-campaign', async (req: any, res) => {
                 console.log(`[Campaign] Re-engagement: sent ${inactive.length} emails`);
             }
 
+            /* ── Somebody Viewed You Teaser (Push Notifications Only) ── */
+            if (type === 'view_teasers' || type === 'all') {
+                const OneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                
+                // Find all users who received views in the last 24h
+                const recentViews = await prisma.interactions.findMany({
+                    where: { 
+                        type: 'VIEW', 
+                        created_at: { gte: OneDayAgo } 
+                    },
+                    include: {
+                        users_interactions_from_user_idTousers: { select: { city: true, location_name: true } }
+                    }
+                });
+
+                // Group views by recipient
+                const viewsByRecipient: Record<string, { count: number, locations: string[] }> = {};
+                for (const view of recentViews) {
+                    const toId = view.to_user_id;
+                    if (!toId) continue;
+                    
+                    if (!viewsByRecipient[toId]) {
+                        viewsByRecipient[toId] = { count: 0, locations: [] };
+                    }
+                    viewsByRecipient[toId].count++;
+                    
+                    const fromUser = view.users_interactions_from_user_idTousers;
+                    const loc = fromUser?.city || (fromUser?.location_name ? fromUser.location_name.split(',')[0] : null);
+                    
+                    if (loc && !viewsByRecipient[toId].locations.includes(loc)) {
+                        viewsByRecipient[toId].locations.push(loc);
+                    }
+                }
+
+                // Send push notification to each recipient
+                const { NotificationService } = await import('../services/notification');
+                
+                let sentTeasers = 0;
+                for (const [userId, stats] of Object.entries(viewsByRecipient)) {
+                    if (stats.count > 0) {
+                        const countStr = stats.count === 1 ? 'Somebody' : `${stats.count} people`;
+                        let message = `${countStr} viewed your profile today! 👀`;
+                        
+                        // Add city personalization if available
+                        if (stats.locations.length > 0) {
+                             message = `${countStr} (including someone from ${stats.locations[0]}) viewed your profile today! 👀`;
+                        }
+                        message += ' Open the app to see who.';
+
+                        // Send push securely
+                        await NotificationService.getInstance().sendToUser(
+                            userId,
+                            'New Profile Views',
+                            message,
+                            { type: 'view_teaser', screen: 'visitors' }
+                        );
+                        
+                        sentTeasers++;
+                        await sleep(100); // Rate-limiting bounds
+                    }
+                }
+                
+                result.view_teasers_sent = sentTeasers;
+                console.log(`[Campaign] View Teasers: sent ${sentTeasers} push notifications`);
+            }
+
             /* ── Invite external / non-registered emails ── */
             if (type === 'invite' || (Array.isArray(inviteEmails) && inviteEmails.length > 0)) {
                 const emails: string[] = Array.isArray(inviteEmails) ? inviteEmails : [];

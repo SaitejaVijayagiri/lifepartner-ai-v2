@@ -3,3 +3,9 @@ node_modules
 .env
 
 /src/generated/prisma
+
+# Temp / scratch scripts - local use only
+src/check_users_temp.ts
+src/scratch_email_campaign.ts
+src/scratch_*.ts
+src/*_temp.ts

@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // ⚙️ RENDER OOM FIXES: Force sequential build and limit CPU to 1 to 
+    // restrict Next.js RAM usage to ~400MB and prevent V8 memory crashes on free tier.
+    experimental: {
+        workerThreads: false,
+        cpus: 1,
+    },
     typescript: {
         ignoreBuildErrors: true,
     },
@@ -20,7 +26,6 @@ const nextConfig = {
         ],
         unoptimized: true,
     },
-    output: 'standalone',
 
     async headers() {
         return [

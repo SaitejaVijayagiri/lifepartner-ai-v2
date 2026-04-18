@@ -221,16 +221,19 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'preferences' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            {(profile.expectations || profile.prompt) && (
+                            {(() => {
+                                const exp = profile.expectations || (profile.prompt && profile.prompt !== profile.aboutMe ? profile.prompt : null);
+                                return exp ? (
                                 <div className="bg-indigo-50/50 dark:bg-indigo-900/30 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50 mb-4">
                                     <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-2 flex items-center gap-2">
                                         <span className="text-xl">💭</span> Expectations
                                     </h3>
                                     <p className="text-indigo-800 dark:text-indigo-300 text-sm italic leading-relaxed">
-                                        "{profile.expectations || profile.prompt}"
+                                        "{exp}"
                                     </p>
                                 </div>
-                            )}
+                                ) : null;
+                            })()}
                             <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
                                 <h3 className="font-bold text-indigo-900 dark:text-indigo-100 mb-4">Basic Preferences</h3>
                                 <div className="grid grid-cols-2 gap-4">

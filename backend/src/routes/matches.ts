@@ -516,6 +516,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 lifestyle: meta.lifestyle || {},
                 partnerPreferences: meta.partnerPreferences || {},
                 aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
 
@@ -851,6 +852,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 lifestyle: meta.lifestyle || {},
                 partnerPreferences: meta.partnerPreferences || {},
                 aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
                 stories: meta.stories || [],

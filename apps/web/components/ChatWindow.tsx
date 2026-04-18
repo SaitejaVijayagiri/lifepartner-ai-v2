@@ -146,8 +146,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 if (data) {
                     setPartnerInfo(prev => ({
                         ...prev,
-                        name: data.full_name || prev.name,
-                        photoUrl: data.avatar_url || prev.photoUrl
+                        name: data.name || data.full_name || prev.name,
+                        photoUrl: data.photoUrl || data.avatar_url || prev.photoUrl
                     }));
                 }
             } catch (err) {

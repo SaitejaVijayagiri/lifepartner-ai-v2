@@ -94,6 +94,143 @@ export class AIService {
         };
     }
 
+    /**
+     * Parses a free-text search query into structured match filters.
+     * Used by the AI Matchmaker search (/matches/search).
+     * 
+     * Examples:
+     *  "Software engineer in Hyderabad who loves hiking"
+     *  → { profession: "Software Engineer", location: "Hyderabad", keywords: ["hiking"] }
+     * 
+     *  "Doctor in Mumbai looking for serious relationship"
+     *  → { profession: "Doctor", location: "Mumbai", keywords: ["serious"] }
+     */
+    async parseSearchQuery(query: string): Promise<{
+        profession?: string;
+        location?: string;
+        minAge?: number;
+        maxAge?: number;
+        minIncome?: number;
+        keywords?: string[];
+        gothra?: string;
+        religion?: string;
+        diet?: string;
+        smoking?: string;
+    }> {
+        const lower = query.toLowerCase().trim();
+        const filters: any = {};
+
+        // --- Profession Detection (keyword → canonical name) ---
+        const professionMap: Record<string, string[]> = {
+            'Software Engineer': ['software', 'developer', 'programmer', 'coder', 'sde', 'frontend', 'backend', 'fullstack', 'tech', 'it professional'],
+            'Doctor': ['doctor', 'physician', 'surgeon', 'medic', 'dr.', 'dentist', 'cardiologist', 'pediatrician'],
+            'Engineer': ['engineer', 'mechanical', 'civil', 'electrical', 'aerospace'],
+            'Teacher': ['teacher', 'professor', 'lecturer', 'educator', 'tutor'],
+            'Business': ['business', 'entrepreneur', 'founder', 'businessman', 'trader'],
+            'Designer': ['designer', 'ui/ux', 'graphic', 'architect', 'creative'],
+            'Lawyer': ['lawyer', 'advocate', 'attorney', 'legal'],
+            'Analyst': ['analyst', 'data analyst', 'business analyst', 'research analyst'],
+            'Accountant': ['accountant', 'ca', 'chartered accountant', 'finance'],
+            'Nurse': ['nurse', 'nursing'],
+        };
+
+        for (const [canonical, keywords] of Object.entries(professionMap)) {
+            if (keywords.some(k => lower.includes(k))) {
+                filters.profession = canonical;
+                break;
+            }
+        }
+
+        // --- Location Detection ---
+        // Common city/state names
+        const locationPatterns = [
+            'hyderabad', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'chennai',
+            'pune', 'kolkata', 'jaipur', 'ahmedabad', 'surat', 'lucknow',
+            'vizag', 'visakhapatnam', 'telangana', 'andhra', 'kerala', 'karnataka',
+            'tamil nadu', 'maharashtra', 'united states', 'usa', 'uk', 'united kingdom',
+            'canada', 'australia', 'singapore', 'dubai', 'usa'
+        ];
+
+        for (const city of locationPatterns) {
+            if (lower.includes(city)) {
+                // Capitalize properly
+                filters.location = city.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                break;
+            }
+        }
+
+        // Generic "in <City>" extraction fallback
+        if (!filters.location) {
+            const inMatch = lower.match(/\bin\s+([a-zA-Z\s]{3,20}?)(?:\s+who|\s+looking|\s+that|\s*$)/);
+            if (inMatch) {
+                const candidate = inMatch[1].trim();
+                if (candidate.length > 2 && !['the', 'a', 'an'].includes(candidate)) {
+                    filters.location = candidate.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                }
+            }
+        }
+
+        // --- Age Range Detection ---
+        const ageMatch = lower.match(/(\d{2})\s*[-–to]+\s*(\d{2})\s*(?:years?)?/);
+        if (ageMatch) {
+            filters.minAge = parseInt(ageMatch[1]);
+            filters.maxAge = parseInt(ageMatch[2]);
+        }
+        const singleAgeMatch = lower.match(/age[d]?\s*(?:around|of|:)?\s*(\d{2})/);
+        if (singleAgeMatch && !filters.minAge) {
+            const age = parseInt(singleAgeMatch[1]);
+            filters.minAge = age - 3;
+            filters.maxAge = age + 3;
+        }
+
+        // --- Income Detection ---
+        const incomeMatch = lower.match(/(\d+)\s*(?:lpa|lakh|l\.?p\.?a)/);
+        if (incomeMatch) {
+            filters.minIncome = parseInt(incomeMatch[1]);
+        }
+
+        // --- Religion Detection ---
+        const religions = ['hindu', 'muslim', 'christian', 'sikh', 'jain', 'buddhist'];
+        for (const r of religions) {
+            if (lower.includes(r)) {
+                filters.religion = r.charAt(0).toUpperCase() + r.slice(1);
+                break;
+            }
+        }
+
+        // --- Gothra Detection ---
+        const gothraMatch = lower.match(/gothr[a]?\s+(?:is\s+)?([a-zA-Z]+)/i);
+        if (gothraMatch) {
+            filters.gothra = gothraMatch[1];
+        }
+
+        // --- Diet Detection ---
+        if (lower.includes('vegetarian') && !lower.includes('non-vegetarian') && !lower.includes('non vegetarian')) {
+            filters.diet = 'Vegetarian';
+        } else if (lower.includes('non-vegetarian') || lower.includes('non vegetarian')) {
+            filters.diet = 'Non-Vegetarian';
+        } else if (lower.includes('vegan')) {
+            filters.diet = 'Vegan';
+        }
+
+        // --- Smoking preference ---
+        if (lower.includes('non-smoker') || lower.includes('non smoker') || lower.includes('no smoking')) {
+            filters.smoking = 'No';
+        }
+
+        // --- Keyword / Hobby Extraction ---
+        const hobbyKeywords = [
+            'hiking', 'travel', 'cooking', 'reading', 'music', 'dance', 'yoga',
+            'cricket', 'sports', 'gym', 'fitness', 'photography', 'art', 'pets',
+            'movies', 'gaming', 'cycling', 'swimming', 'gardening', 'volunteering',
+            'meditation', 'startup', 'entrepreneurship', 'serious', 'family-oriented'
+        ];
+        filters.keywords = hobbyKeywords.filter(k => lower.includes(k));
+
+        console.log(`[AIService.parseSearchQuery] Query: "${query}" → Filters:`, filters);
+        return filters;
+    }
+
     async analyzeImage(imageBuffer: Buffer, promptText: string) {
         // Without an expensive external VLM, we perform heuristic analysis on the prompt text 
         // fallback to "Friendly Vibe" since image processing locally is too CPU intensive

@@ -92,9 +92,6 @@ function DashboardContent() {
 
     /* Speed Dating State */
     const [showSpeedDatingLobby, setShowSpeedDatingLobby] = useState(false);
-    const [speedDatePartner, setSpeedDatePartner] = useState<any>(null);
-    const [speedDateFeedbackPartnerId, setSpeedDateFeedbackPartnerId] = useState<string | null>(null);
-    const [isSpeedDateInitiator, setIsSpeedDateInitiator] = useState<boolean>(false);
 
     /* Push Notification Toggle State */
     const [pushEnabled, setPushEnabled] = useState<boolean>(() => {
@@ -1679,28 +1676,10 @@ function DashboardContent() {
                     onClose={() => setShowSpeedDatingLobby(false)}
                     onMatchFound={(partner, initiator) => {
                         setShowSpeedDatingLobby(false);
-                        setSpeedDatePartner(partner);
-                        setIsSpeedDateInitiator(initiator);
+                        if (initiator) {
+                            startCall(partner, 'speed_date');
+                        }
                     }}
-                />
-            )}
-
-            {speedDatePartner && (
-                <VideoCallModal
-                    mode="speed_date"
-                    partner={speedDatePartner}
-                    isInitiator={isSpeedDateInitiator}
-                    onEndCall={() => {
-                        setSpeedDateFeedbackPartnerId(speedDatePartner.id);
-                        setSpeedDatePartner(null);
-                    }}
-                />
-            )}
-
-            {speedDateFeedbackPartnerId && (
-                <SpeedDateFeedbackModal
-                    partnerId={speedDateFeedbackPartnerId}
-                    onClose={() => setSpeedDateFeedbackPartnerId(null)}
                 />
             )}
 

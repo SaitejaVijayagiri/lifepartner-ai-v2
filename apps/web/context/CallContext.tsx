@@ -4,7 +4,7 @@ import { useSocket } from './SocketContext';
 
 interface CallState {
     isOpen: boolean;
-    mode: 'audio' | 'video';
+    mode: 'audio' | 'video' | 'speed_date';
     partner: any;
     connectionId?: string;
     incomingCallData?: any; // { signal, from, name, type }
@@ -12,7 +12,7 @@ interface CallState {
 
 interface CallContextType {
     callState: CallState;
-    startCall: (partner: any, mode: 'audio' | 'video', connectionId?: string) => void;
+    startCall: (partner: any, mode: 'audio' | 'video' | 'speed_date', connectionId?: string) => void;
     endCall: () => void;
 }
 
@@ -51,7 +51,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [incomingCall]);
 
-    const startCall = useCallback((partner: any, mode: 'audio' | 'video', connectionId?: string) => {
+    const startCall = useCallback((partner: any, mode: 'audio' | 'video' | 'speed_date', connectionId?: string) => {
         console.log("CallContext: Starting Call", partner.name);
         setCallState({
             isOpen: true,

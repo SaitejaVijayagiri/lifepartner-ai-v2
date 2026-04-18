@@ -106,37 +106,39 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     myVideo.current.srcObject = currentStream;
                 }
 
-                // Only call immediately if we are the initiator (NOT incoming call)
-                if (!incomingCall || isSpeedDate && initialPartner && isInitiator) {
-                    callUser(currentStream);
-                }
-            })
+                        // Wait! The condition `if (!incomingCall)` made us call immediately if caller.
+                        // For speed_date, initialPartner is present, and we ONLY call if we are the initiator (or have no incomingCall yet)
+                        // But wait, if mode === 'speed_date', the GlobalCallUI for the initiator doesn't have an incomingCall.
+                        if (!incomingCall) {
+                            callUser(currentStream);
+                        }
+                    })
             .catch(err => {
                 console.error("Failed to get media", err);
                 setStatus("Microphone/Camera Error: " + err.message);
                 toast.error("Camera/Mic access required");
             });
+    }, [isVideo]);
 
-        if (socket) {
-            socket.on("callAccepted", (signal: any) => {
-                setCallAccepted(true);
-                setStatus(isVideo ? "Connected" : "Audio Connected");
-                connectionRef.current?.signal(signal);
-            });
-            socket.on("callEnded", () => {
-                console.log("Peer ended call");
-                leaveCall(false); // Don't emit endCall back
-            });
-            socket.on("callError", (data: any) => { toast.error(data.message); leaveCall(); });
-        }
+    useEffect(() => {
+        if (!socket) return;
+        socket.on("callAccepted", (signal: any) => {
+            setCallAccepted(true);
+            setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
+            connectionRef.current?.signal(signal);
+        });
+        socket.on("callEnded", () => {
+            console.log("Peer ended call");
+            leaveCall(false); // Don't emit endCall back
+        });
+        socket.on("callError", (data: any) => { toast.error(data.message); leaveCall(); });
 
         return () => {
-            leaveCall(); // Cleanup
             socket?.off("callError");
             socket?.off("callAccepted");
             socket?.off("callEnded");
         }
-    }, [isVideo]);
+    }, [socket, isVideo, isSpeedDate]);
 
     // Attach Remote Stream when ref or stream changes
     useEffect(() => {
@@ -176,8 +178,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
                 // Re-emit every 3 seconds for offline users who are opening the app via Push Notification
                 const ringInterval = setInterval(() => {
-                    // Stop if we answered, ended, or component unmounted
-                    if ((window as any)._callEnded || connectionRef.current?.connected) {
+                    // Stop if we answered, ended, or component unmounted. Also stop looping for speed dates.
+                    if ((window as any)._callEnded || connectionRef.current?.connected || isSpeedDate) {
                         clearInterval(ringInterval);
                     } else {
                         socket.emit("callUser", callPayload);
@@ -200,8 +202,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     const answerCall = () => {
         setCallAnswered(true);
-        setCallAccepted(true);
-        setStatus("Connected");
+        setStatus("Connecting...");
+
+        if (socket) {
+            socket.emit("answerCall_stop_ringing", { to: incomingCall?.from });
+        }
 
         if (!stream) {
             console.error("No local stream to answer with");
@@ -226,10 +231,6 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
         if (incomingCall) {
             peer.signal(incomingCall.signal);
-        } else if (isSpeedDate && incomingCall === undefined) {
-             // In Speed dating, we don't have an incomingCall object. 
-             // We just wait for the signal from the socket!
-             // That requires the component to listen to 'callUser' event. Wait, the manager says one is initiator.
         }
         connectionRef.current = peer;
     };
@@ -318,6 +319,14 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             toast.error("Failed to switch camera: " + (err as Error).message);
         }
     };
+
+    // Auto-answer Speed Dates
+    useEffect(() => {
+        if (incomingCall && isSpeedDate && stream && !callAnswered) {
+             console.log("Auto-answering speed date...");
+             answerCall();
+        }
+    }, [incomingCall, isSpeedDate, stream, callAnswered]);
 
     const leaveCall = (emitEvent = true) => {
         setCallEnded(true);

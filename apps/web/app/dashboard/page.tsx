@@ -244,7 +244,16 @@ function DashboardContent() {
         const chatId = searchParams.get('chatId');
 
         if (tab) setActiveTab(tab);
-        if (chatId) setActiveTab('connections');
+        if (chatId) {
+            setActiveTab('connections');
+            // Auto open the chat window! The internal ChatWindow component will fetch the real name/photo
+            setSelectedConnection({ id: chatId, name: 'Partner', photoUrl: '' });
+            
+            // Clean URL without refresh
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('chatId');
+            window.history.replaceState({}, '', newUrl.toString());
+        }
 
         if (action === 'open_premium') {
             setInitialStoreTab('premium');

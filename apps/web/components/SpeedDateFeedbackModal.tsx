@@ -63,7 +63,7 @@ export default function SpeedDateFeedbackModal({ partnerId, onClose }: SpeedDate
                         <button 
                             onClick={() => {
                                 onClose();
-                                router.push(`/chat/${partnerId}`);
+                                router.push(`/dashboard?chatId=${partnerId}`);
                             }}
                             className="w-full bg-white text-purple-700 !text-purple-700 hover:bg-gray-100 rounded-full h-14 font-extrabold text-lg shadow-lg flex items-center justify-center transition-transform hover:scale-105"
                         >

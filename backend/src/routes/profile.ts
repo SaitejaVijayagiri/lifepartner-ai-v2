@@ -383,9 +383,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
 
             // Run moderation + upload SEQUENTIALLY to prevent WASM/RAM Out Of Memory crashes
             const results = [];
-            for (const p of photosToProcess) {
+            for (let i = 0; i < photosToProcess.length; i++) {
+                const p = photosToProcess[i];
                 if (ImageOptimizer.isBase64(p)) {
-                    const modResult = await ModerationService.validateProfilePhoto(p);
+                    // First photo (primary avatar) must have a clear human face.
+                    // Secondary photos are lifestyle-friendly and face check is soft.
+                    const isFirstPhoto = i === 0;
+                    const modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
                     if (!modResult.isValid) {
                         throw Object.assign(new Error(modResult.reason), { status: 400 });
                     }

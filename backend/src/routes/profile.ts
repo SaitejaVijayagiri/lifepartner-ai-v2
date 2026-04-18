@@ -302,7 +302,10 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
 
         // Contact Info Logic: Only show if requester is Premium
         // Mask details for free users AND guests
-        const contactInfo = isRequesterPremium ? {
+        const isProtectedUser = user.email === 'saitejavijayagiri123@gmail.com';
+        const canViewContact = isRequesterPremium && !isProtectedUser && requesterId !== user.id; // Hide if protected (but they can view their own via /me)
+
+        const contactInfo = canViewContact ? {
             email: user.email,
             phone: meta.phone || user.phone
         } : {

@@ -181,11 +181,18 @@ export const initSocket = (httpServer: HttpServer) => {
                     }
                 }
 
+                const caller = await prisma.users.findUnique({
+                    where: { id: from },
+                    select: { city: true, location_name: true }
+                });
+                const userLocation = caller?.city || caller?.location_name || null;
+
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
                     from,
                     name,
-                    type // Pass the type (audio/video)
+                    type, // Pass the type (audio/video)
+                    location: userLocation
                 });
 
                 // Track call partner on this socket so disconnect only notifies them

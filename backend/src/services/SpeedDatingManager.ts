@@ -7,6 +7,7 @@ interface QueuedUser {
     gender: string;
     name: string;
     photoUrl: string;
+    location: string;
     joinedAt: number;
 }
 
@@ -46,7 +47,7 @@ export class SpeedDatingManager {
         // Fetch User Gender and Details
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true, full_name: true, avatar_url: true }
+            select: { gender: true, full_name: true, avatar_url: true, city: true, location_name: true }
         });
 
         if (!user || !user.gender || !user.full_name) {
@@ -61,6 +62,7 @@ export class SpeedDatingManager {
             gender: gender,
             name: user.full_name,
             photoUrl: user.avatar_url || '',
+            location: user.city || user.location_name || 'Unknown Location',
             joinedAt: Date.now()
         };
 
@@ -148,7 +150,8 @@ export class SpeedDatingManager {
                 partner: {
                     id: femaleUser.userId,
                     name: "Mystery Date", // Blind match!
-                    photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + femaleUser.userId 
+                    photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + femaleUser.userId,
+                    location: femaleUser.location
                 },
                 initiator: true // one side must initiate WebRTC
             });
@@ -158,7 +161,8 @@ export class SpeedDatingManager {
                 partner: {
                     id: maleUser.userId,
                     name: "Mystery Date", // Blind match!
-                    photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + maleUser.userId
+                    photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + maleUser.userId,
+                    location: maleUser.location
                 },
                 initiator: false
             });

@@ -27,6 +27,7 @@ interface VideoCallModalProps {
         name: string;
         photoUrl: string;
         role?: string;
+        location?: string;
     };
     onEndCall: () => void;
     incomingCall?: { signal: any, from: string, name: string, type?: 'audio' | 'video' };
@@ -396,7 +397,16 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                             <img src={partner.photoUrl} className="w-8 h-8 rounded-full border border-white/30" />
                         )}
                         <div className="text-white">
-                            {isMaximized && <h3 className="font-bold">{isSpeedDate ? "Mystery Date" : partner.name}</h3>}
+                            {isMaximized && (
+                                <>
+                                    <h3 className="font-bold">{isSpeedDate ? "Mystery Date" : partner.name}</h3>
+                                    {partner.location && (
+                                        <div className="flex items-center gap-1 text-xs text-indigo-400 mt-0.5 mb-1 font-semibold">
+                                            <span>📍</span> {partner.location}
+                                        </div>
+                                    )}
+                                </>
+                            )}
                             <div className="flex items-center gap-2 text-xs text-white/60">
                                 <span className={callAccepted ? "text-green-400" : "text-amber-400"}>
                                     {callAccepted ? (isSpeedDate ? formatDuration(180 - callDuration) + " remaining" : formatDuration(callDuration)) : status}
@@ -424,6 +434,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                             </div>
                             <div className="text-center">
                                 <h2 className="text-2xl font-bold text-white mb-1">{partner.name}</h2>
+                                {partner.location && (
+                                    <p className="text-indigo-200 text-sm mb-2 flex justify-center items-center gap-1 font-medium">
+                                        <span>📍</span> From {partner.location}
+                                    </p>
+                                )}
                                 <p className="text-indigo-300">Incoming {incomingCall.type || 'Video'} Call...</p>
                             </div>
                             <div className="flex gap-6">
@@ -466,6 +481,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                             )}
                                             <div className="absolute -inset-4 rounded-full border border-indigo-500/20 animate-ping"></div>
                                         </div>
+                                        {isSpeedDate && partner.location && (
+                                            <div className="mt-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full text-indigo-200 text-sm font-medium border border-white/10 flex items-center gap-2 animate-fade-in-up">
+                                                <span className="animate-bounce">📍</span> Connecting from {partner.location}
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             ) : (

@@ -879,4 +879,40 @@ router.post('/claim-completion', authenticateToken, async (req: any, res) => {
     }
 });
 
+// 11. GET /referrals (Track invites)
+router.get('/referrals', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { referral_code: true }
+        });
+
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Count how many people used this user's ID as the referrer
+        const referrals = await prisma.users.findMany({
+            where: { referred_by: userId },
+            select: { 
+                id: true, 
+                full_name: true, 
+                created_at: true, 
+                is_verified: true 
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        res.json({
+            referralCode: user.referral_code,
+            totalReferrals: referrals.length,
+            referrals
+        });
+
+    } catch (e) {
+        console.error("Referral Fetch Error", e);
+        res.status(500).json({ error: "Failed to fetch referrals" });
+    }
+});
+
 export default router;

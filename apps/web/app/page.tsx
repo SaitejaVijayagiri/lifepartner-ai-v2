@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'LifePartner AI | Best Free Matrimony Site & Dating App in India',
     description: "Join 10,000+ verified singles finding love on LifePartner AI. The smarter, safer alternative to Shaadi and Jeevansathi.",
-    images: ['/og-image.jpg'],
+    images: ['/api/og?title=Find%20Your%20Forever&subtitle=The%20World\'s%20First%20AI-Powered%20Matchmaking%20Platform'],
   }
 };
 

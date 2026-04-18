@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 import PublicMatchCard from '@/components/PublicMatchCard';
+import SocialProofToasts from '@/components/SocialProofToasts';
 import { api } from '@/lib/api';
 
 export default function LandingPageClient() {
@@ -76,6 +77,7 @@ export default function LandingPageClient() {
 
       <Navbar />
       <WhatsAppFloat />
+      <SocialProofToasts />
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 lg:pt-44 pb-20 lg:pb-32 overflow-hidden min-h-screen flex items-center">

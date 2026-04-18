@@ -445,6 +445,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                 ) : (
                                     // Audio Only UI
                                     <div className="flex flex-col items-center justify-center">
+                                        <video ref={userVideo} playsInline autoPlay className="hidden" />
                                         <div className="relative mb-6 transform scale-75 md:scale-100">
                                             <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>
                                             {isSpeedDate ? (

@@ -1136,14 +1136,14 @@ function DashboardContent() {
                             <div>
                                 <h3 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2">
                                     <Sparkles className="text-yellow-300 w-6 h-6 animate-pulse" />
-                                    Friday Night Speed Dating
+                                    Live Speed Dating
                                 </h3>
                                 <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
                             </div>
                         </div>
                         <Button 
                             onClick={() => setShowSpeedDatingLobby(true)}
-                            className="bg-white text-purple-700 hover:bg-gray-100 font-bold shadow-xl border-0 px-8 py-6 rounded-2xl text-lg hover:scale-105 transition-transform w-full md:w-auto"
+                            className="bg-white !text-purple-700 hover:bg-gray-100 font-bold shadow-xl border-0 px-8 py-6 rounded-2xl text-lg hover:scale-105 transition-transform w-full md:w-auto"
                         >
                             Enter Lobby
                         </Button>

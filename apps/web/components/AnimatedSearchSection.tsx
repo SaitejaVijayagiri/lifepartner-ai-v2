@@ -145,7 +145,7 @@ export default function AnimatedSearchSection() {
                                             </div>
 
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{res.name}</h4>
+                                                <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{res.name}</h3>
                                                 <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1.5 font-medium">
                                                     <Briefcase size={12} className="text-indigo-400" /> {res.role}
                                                 </div>

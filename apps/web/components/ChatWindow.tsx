@@ -34,6 +34,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const { user, login } = useAuth() as any;
     const toast = useToast();
     
+    // Internal state for partner info to handle missing query params
+    const [partnerInfo, setPartnerInfo] = useState(partner);
+
     // Mute State
     const [isMuted, setIsMuted] = useState<boolean>(() => {
         const mutedUsers = user?.muted_users || [];
@@ -117,7 +120,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
-    // Initial Load
     useEffect(() => {
         const loadHistory = async () => {
             try {
@@ -126,7 +128,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 if (Array.isArray(history)) {
                     setMessages(history);
                 } else {
-                    // console.warn("History empty or invalid format, resetting.");
                     setMessages([]);
                 }
                 // Mark messages as read
@@ -135,12 +136,27 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             } catch (e: any) {
                 console.error("Chat history fetch error:", e);
                 setMessages([]);
-                // Only show toast if it's a real api error and not an empty state
                 toast.error(`Failed to load chat: ${e.message || 'Network error'}`);
-                // Suppress for silent/empty states - do not crash
             }
         };
+
+        const loadProfileHeader = async () => {
+            try {
+                const data = await api.profile.getById(partner.id);
+                if (data) {
+                    setPartnerInfo(prev => ({
+                        ...prev,
+                        name: data.full_name || prev.name,
+                        photoUrl: data.avatar_url || prev.photoUrl
+                    }));
+                }
+            } catch (err) {
+                console.error("Failed to load header profile details", err);
+            }
+        };
+
         loadHistory();
+        loadProfileHeader();
     }, [partner.id]);
 
     // Socket Listeners
@@ -343,32 +359,34 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
                     <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
 
-                    <div className="flex items-center gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
-                        <div className="relative flex-shrink-0">
-                            <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
-                                <img src={partner.photoUrl} className="w-12 h-12 rounded-full border-2 border-white object-cover" onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                                    target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
-                                }} />
+                    <div className="flex flex-col gap-1 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
+                        <div className="flex items-center gap-3 w-full">
+                            <div className="relative flex-shrink-0">
+                                <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
+                                    <img src={partnerInfo.photoUrl} className="w-full h-full rounded-full border-2 border-white object-cover" onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
+                                    }} />
+                                </div>
+                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                             </div>
-                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                        </div>
-                        <div className="min-w-0">
-                            <h3 className="font-bold text-lg leading-tight truncate pr-1">{partner.name}</h3>
-                            <p className="text-xs text-white/70 flex items-center gap-1">
-                                {onlineUsers?.includes(partner.id) ? (
-                                    <>
-                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
-                                        <span className="truncate">Online now</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                        <span className="truncate">Offline</span>
-                                    </>
-                                )}
-                            </p>
+                            <div className="min-w-0 flex-1">
+                                <h3 className="font-bold text-lg leading-tight truncate pr-1">{partnerInfo.name}</h3>
+                                <p className="text-xs text-white/70 flex items-center gap-1">
+                                    {onlineUsers?.includes(partner.id) ? (
+                                        <>
+                                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
+                                            <span className="truncate">Online now</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
+                                            <span className="truncate">Offline</span>
+                                        </>
+                                    )}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -382,15 +400,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </button>
                         <VideoCallButton
                             targetUserId={partner.id}
-                            targetUserName={partner.name}
-                            targetUserPhoto={partner.photoUrl}
+                            targetUserName={partnerInfo.name}
+                            targetUserPhoto={partnerInfo.photoUrl}
                             showLabel={false}
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
                         <VideoCallButton
                             targetUserId={partner.id}
-                            targetUserName={partner.name}
-                            targetUserPhoto={partner.photoUrl}
+                            targetUserName={partnerInfo.name}
+                            targetUserPhoto={partnerInfo.photoUrl}
                             showLabel={false}
                             mode="audio"
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
@@ -416,7 +434,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span className="text-3xl">👋</span>
                         </div>
-                        <p className="text-gray-500 dark:text-gray-400 font-medium">Say hello to {partner.name}!</p>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Say hello to {partnerInfo.name}!</p>
                         <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Start a conversation</p>
                     </div>
                 )}
@@ -464,10 +482,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             )}
                             <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1`}>
                                 {!isMe && (
-                                    <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
+                                    <img src={partnerInfo.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
                                     }} />
                                 )}
                                 <div className={`flex flex-col relative max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
@@ -567,12 +585,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 {/* Typing Indicator */}
                 {isTyping && (
                     <div className="flex flex-col items-start mb-2">
-                        <span className="text-[10px] text-gray-400 ml-11 mb-1">{partner.name} is typing...</span>
+                        <span className="text-[10px] text-gray-400 ml-11 mb-1">{partnerInfo.name} is typing...</span>
                         <div className="flex justify-start animate-in fade-in duration-300">
-                            <img src={partner.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
+                            <img src={partnerInfo.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                                target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.name || 'User')}`;
+                                target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
                             }} />
                             <div className="bg-white dark:bg-gray-800 px-4 py-3 rounded-2xl border border-gray-100 dark:border-gray-700 rounded-bl-md shadow-sm">
                                 <div className="flex gap-1.5 h-4 items-center">
@@ -670,10 +688,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {showGame && (
                 <GameModal
                     onClose={() => setShowGame(false)}
-                    partnerName={partner.name}
+                    partnerName={partnerInfo.name}
                 />
             )}
-            <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partner.name} />
+            <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partnerInfo.name} />
 
             {showProfile && fullProfile && (
                 <ProfileModal

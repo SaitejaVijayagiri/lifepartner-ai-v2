@@ -210,6 +210,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             setRemoteStream(currentRemoteStream); // Save to state
         });
 
+        peer.on("connect", () => {
+            setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
+        });
+
         peer.on("error", (err: any) => {
             console.error("Peer Error:", err);
         });
@@ -240,6 +244,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
         peer.on("stream", (currentRemoteStream: MediaStream) => {
             setRemoteStream(currentRemoteStream); // Save to state
+        });
+
+        peer.on("connect", () => {
+            setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
         });
 
         peer.on("error", (err: any) => {

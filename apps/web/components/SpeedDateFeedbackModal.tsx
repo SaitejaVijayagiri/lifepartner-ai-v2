@@ -3,6 +3,7 @@ import { Heart, X, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/Toast';
+import { useRouter } from 'next/navigation';
 
 interface SpeedDateFeedbackModalProps {
     partnerId: string;
@@ -13,6 +14,7 @@ export default function SpeedDateFeedbackModal({ partnerId, onClose }: SpeedDate
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState<'MATCH' | 'NO_MATCH' | null>(null);
     const toast = useToast();
+    const router = useRouter();
 
     const handleChoice = async (liked: boolean) => {
         setSubmitting(true);
@@ -58,12 +60,15 @@ export default function SpeedDateFeedbackModal({ partnerId, onClose }: SpeedDate
                         <p className="text-white/90 text-lg mb-8 font-medium">
                             You both felt the spark! Check your chat list to message them.
                         </p>
-                        <Button 
-                            onClick={onClose}
-                            className="w-full bg-white text-purple-600 hover:bg-gray-100 rounded-full h-14 font-bold text-lg shadow-lg transition-transform hover:scale-105"
+                        <button 
+                            onClick={() => {
+                                onClose();
+                                router.push(`/chat/${partnerId}`);
+                            }}
+                            className="w-full bg-white text-purple-700 !text-purple-700 hover:bg-gray-100 rounded-full h-14 font-extrabold text-lg shadow-lg flex items-center justify-center transition-transform hover:scale-105"
                         >
                             Go to Chat
-                        </Button>
+                        </button>
                     </div>
                 </div>
             </div>

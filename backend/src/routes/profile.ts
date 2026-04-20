@@ -495,6 +495,16 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
+        // Pre-fetch existing profile to merge metadata OUTSIDE transaction
+        // (to prevent 'prisma find unique() transaction api error' locks)
+        let existingMeta: any = {};
+        try {
+            const existingProfile = await prisma.profiles.findUnique({ where: { user_id: userId } });
+            existingMeta = (existingProfile?.metadata as any) || {};
+        } catch (e) {
+            console.warn('[profile] Could not pre-fetch existing profile, proceeding with empty meta', e);
+        }
+
         try {
             await prisma.$transaction(async (tx) => {
                 // 2. Update Core User Info
@@ -535,8 +545,6 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 };
 
                 // Upsert Profile
-                const existingProfile = await tx.profiles.findUnique({ where: { user_id: userId } });
-                const existingMeta = (existingProfile?.metadata as any) || {};
                 const newMeta = { ...existingMeta, ...metadata };
 
                 await tx.profiles.upsert({

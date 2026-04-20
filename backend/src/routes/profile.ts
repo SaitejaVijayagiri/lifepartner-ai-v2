@@ -14,8 +14,8 @@ const aiService = new AIService();
 import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
-
 import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { ModerationService } from '../services/moderation';
 
 
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {
@@ -355,12 +355,6 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
         res.status(500).json({ error: "Failed" });
     }
 });
-import { ModerationService } from '../services/moderation';
-
-// ... (existing imports)
-
-// ...
-
 // 2.5 PUT /me (Update Profile)
 router.put('/me', authenticateToken, async (req: any, res) => {
     try {
@@ -518,19 +512,6 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 });
 
-                // PostGIS Coordinate Synchronization for Live Map
-                if (location?.lat && location?.lng) {
-                    const lat = parseFloat(location.lat);
-                    const lng = parseFloat(location.lng);
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                        await tx.$executeRaw`
-                            UPDATE users 
-                            SET location_coords = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography 
-                            WHERE id = ${userId}::uuid
-                        `;
-                    }
-                }
-
                 // 2. Update Profile Metadata
                 const metadata = {
                     religion,
@@ -639,6 +620,24 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     `;
                 } catch (e) {
                     console.error("Failed to save profile embedding during /me update", e);
+                }
+            }
+
+            // PostGIS Coordinate Sync — OUTSIDE transaction so it never kills the save
+            if (location?.lat && location?.lng) {
+                try {
+                    const lat = parseFloat(location.lat);
+                    const lng = parseFloat(location.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        await prisma.$executeRaw`
+                            UPDATE users 
+                            SET location_coords = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography 
+                            WHERE id = ${userId}::uuid
+                        `;
+                        console.log(`🗺️ PostGIS coords updated: (${lat}, ${lng})`);
+                    }
+                } catch (e: any) {
+                    console.warn('[profile] PostGIS update skipped (non-blocking):', e?.message);
                 }
             }
 

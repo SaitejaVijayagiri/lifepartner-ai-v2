@@ -649,9 +649,11 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             throw e;
         }
 
-    } catch (e) {
-        console.error("Save Profile Error", e);
-        res.status(500).json({ error: "Failed to save profile" });
+    } catch (e: any) {
+        console.error("Save Profile Error:", e?.message || e);
+        const status = e?.status || 500;
+        const message = status === 400 ? (e?.message || 'Invalid request') : 'Failed to save profile';
+        res.status(status).json({ error: message });
     }
 });
 

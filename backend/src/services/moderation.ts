@@ -5,7 +5,7 @@
  * uploaded photos for faces. However, this caused catastrophic Out-Of-Memory crashes
  * on the Render free tier (512MB RAM limit).
  * 
- * CURRENT: Uses Gemini Vision API (gemini-1.5-flash) for face detection via a 
+ * CURRENT: Uses Gemini Vision API (gemini-2.0-flash) for face detection via a 
  * pure HTTP call — zero local RAM overhead. Falls back gracefully if the API
  * is unavailable to avoid blocking legitimate user onboarding.
  */
@@ -91,7 +91,7 @@ export class ModerationService {
     }
 
     /**
-     * Uses Gemini Vision (gemini-1.5-flash) to check whether a human face
+     * Uses Gemini Vision (gemini-2.0-flash) to check whether a human face
      * is clearly visible in the image. This is a pure HTTP call — no local RAM usage.
      */
     private static async detectFaceWithGemini(
@@ -118,7 +118,7 @@ export class ModerationService {
             }
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -126,24 +126,24 @@ export class ModerationService {
                         contents: [{
                             parts: [
                                 {
-                                    text: `Analyze this image strictly. Does it contain a clearly visible human face (a real person, not a cartoon, animal, scenery, object, or blurred/obscured face)?
-                                    
-Reply with a JSON object ONLY in this exact format:
-{"hasFace": true, "confidence": "high"} 
+                                    text: `Look at this image and determine if it contains a real human face. Accept faces that are angled, slightly blurred, or partially lit — reject only if it is clearly a cartoon, animal, scenery, inanimate object, or a face that is completely hidden/masked.
+
+Reply with a JSON object ONLY in this exact format (no extra text):
+{"hasFace": true, "confidence": "high"}
 or
 {"hasFace": false, "reason": "brief reason e.g. landscape photo, cartoon character, no face visible"}`
                                 },
                                 {
                                     inlineData: {
                                         mimeType,
-                                        data: rawB64.substring(0, 800000) // Truncate to ~600KB for API speed
+                                        data: rawB64
                                     }
                                 }
                             ]
                         }],
                         generationConfig: {
                             temperature: 0,
-                            maxOutputTokens: 60
+                            maxOutputTokens: 100
                         }
                     }),
                     signal: AbortSignal.timeout(10000) // 10s timeout

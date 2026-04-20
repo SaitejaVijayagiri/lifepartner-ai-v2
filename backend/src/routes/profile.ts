@@ -438,7 +438,9 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         }
 
         // 1. Data Integrity: Auto-calculate Age from DOB (Server Side Truth)
-        let finalAge = age;
+        let finalAge = parseInt(age as string);
+        if (isNaN(finalAge)) finalAge = undefined as any;
+
         if (dob) {
             const birthDate = new Date(dob);
             const today = new Date();
@@ -570,37 +572,41 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         if (!existingBonus) {
                             console.log(`🎉 Onboarding complete for User ${currentUser.id}. Minting Deferred Referral Coins...`);
 
-                            // 1. Credit Referrer (+50 Coins)
-                            await tx.users.update({
-                                where: { id: currentUser.referred_by },
-                                data: { coins: { increment: 50 } }
-                            });
-                            await tx.transactions.create({
-                                data: {
-                                    user_id: currentUser.referred_by,
-                                    amount: 50,
-                                    type: 'REFERRAL_REWARD',
-                                    status: 'SUCCESS',
-                                    description: 'Referral Bonus',
-                                    metadata: { referredUser: currentUser.id }
-                                }
-                            });
+                            try {
+                                // 1. Credit Referrer (+50 Coins)
+                                await tx.users.update({
+                                    where: { id: currentUser.referred_by },
+                                    data: { coins: { increment: 50 } }
+                                });
+                                await tx.transactions.create({
+                                    data: {
+                                        user_id: currentUser.referred_by,
+                                        amount: 50,
+                                        type: 'REFERRAL_REWARD',
+                                        status: 'SUCCESS',
+                                        description: 'Referral Bonus',
+                                        metadata: { referredUser: currentUser.id }
+                                    }
+                                });
 
-                            // 2. Credit New User (+20 Coins)
-                            await tx.users.update({
-                                where: { id: currentUser.id },
-                                data: { coins: { increment: 20 } }
-                            });
-                            await tx.transactions.create({
-                                data: {
-                                    user_id: currentUser.id,
-                                    amount: 20,
-                                    type: 'REFERRAL_BONUS',
-                                    status: 'SUCCESS',
-                                    description: 'Signup Bonus',
-                                    metadata: { referrer: currentUser.referred_by }
-                                }
-                            });
+                                // 2. Credit New User (+20 Coins)
+                                await tx.users.update({
+                                    where: { id: currentUser.id },
+                                    data: { coins: { increment: 20 } }
+                                });
+                                await tx.transactions.create({
+                                    data: {
+                                        user_id: currentUser.id,
+                                        amount: 20,
+                                        type: 'REFERRAL_BONUS',
+                                        status: 'SUCCESS',
+                                        description: 'Signup Bonus',
+                                        metadata: { referrer: currentUser.referred_by }
+                                    }
+                                });
+                            } catch (bonusErr: any) {
+                                console.warn('[profile] Referral bonus logic failed, but continuing save:', bonusErr?.message);
+                            }
                         }
                     }
                 }
@@ -643,15 +649,20 @@ router.put('/me', authenticateToken, async (req: any, res) => {
 
             res.json({ success: true, message: "Profile saved" });
 
-        } catch (e) {
-            console.error("Tx Error", e);
+        } catch (e: any) {
+            console.error("Tx Error", e?.message || e);
+            // If it's a Prisma error, bubble up the message instead of hiding it
+            if (e?.code && e?.message) {
+                throw Object.assign(new Error(`Database error: ${e.message.substring(0, 100)}...`), { status: 500 });
+            }
             throw e;
         }
 
     } catch (e: any) {
-        console.error("Save Profile Error:", e?.message || e);
+        console.error("Save Profile Error (Outer):", e?.message || e);
         const status = e?.status || 500;
-        const message = status === 400 ? (e?.message || 'Invalid request') : 'Failed to save profile';
+        // Show real reason if it's 400 (Validation) or 500 (DB constraint context added)
+        const message = e?.message && (status === 400 || e.message.includes('Database error')) ? e.message : 'Failed to save profile';
         res.status(status).json({ error: message });
     }
 });

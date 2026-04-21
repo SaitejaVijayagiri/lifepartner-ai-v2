@@ -611,6 +611,11 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     {data.photos.map((p: string, i: number) => (
                                         <div key={i} className="relative aspect-square rounded-lg overflow-hidden shadow-sm border group">
                                             <img src={p} className="w-full h-full object-cover" />
+                                            {i === 0 && (
+                                                <div className="absolute bottom-1 left-1 bg-yellow-400 text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm font-bold z-10">
+                                                    Main
+                                                </div>
+                                            )}
                                             <button
                                                 onClick={() => {
                                                     const newP = data.photos.filter((_: any, idx: number) => idx !== i);

@@ -219,18 +219,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     </div>
 
                     {/* Preview Gallery */}
-                    {formData.photos?.length > 0 && (
+                    {(formData.photos?.length > 0 || formData.photoUrl) && (
                         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
-                            {formData.photos.map((photo: string, idx: number) => (
+                            {(formData.photos?.length > 0 ? formData.photos : [formData.photoUrl]).map((photo: string, idx: number) => {
+                                if (!photo) return null;
+                                return (
                                 <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm group">
                                     <img src={photo} alt="Upload" className="w-full h-full object-cover" />
                                     <button
                                         onClick={() => {
-                                            if (formData.photos.length <= 1) {
+                                            const currentArr = formData.photos?.length > 0 ? formData.photos : [formData.photoUrl];
+                                            if (currentArr.length <= 1) {
                                                 toast.error("You must have at least one photo!");
                                                 return;
                                             }
-                                            const newPhotos = formData.photos.filter((_: any, i: number) => i !== idx);
+                                            const newPhotos = currentArr.filter((_: any, i: number) => i !== idx);
                                             setFormData((prev: any) => ({
                                                 ...prev,
                                                 photos: newPhotos,
@@ -241,14 +244,15 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     >
                                         ✕
                                     </button>
-                                    {/* Star for Primary */}
-                                    {formData.photoUrl === photo && (
+                                    {/* Star for Primary - Fallback to idx === 0 if photoUrl logic is desynced */}
+                                    {(formData.photoUrl === photo || idx === 0) && (
                                         <div className="absolute bottom-1 left-1 bg-yellow-400 text-white text-[10px] px-1 rounded shadow-sm font-bold">
                                             Main
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>

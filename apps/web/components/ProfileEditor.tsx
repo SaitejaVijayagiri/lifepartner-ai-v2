@@ -156,12 +156,19 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 const files = e.target.files;
                                 if (!files || files.length === 0) return;
 
+                                const currentPhotos = formData.photos || [];
+                                if (currentPhotos.length >= 5) {
+                                    toast.error('Maximum 5 photos allowed. Remove one to add more.');
+                                    return;
+                                }
+
+                                const slotsLeft = 5 - currentPhotos.length;
                                 const newPhotos: string[] = [];
-                                // Convert all to Base64
-                                for (let i = 0; i < files.length; i++) {
+
+                                for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
                                     const file = files[i];
                                     if (file.size > 5 * 1024 * 1024) {
-                                        toast.error(`File ${file.name} is too large (>5MB)`);
+                                        toast.error(`"${file.name}" is too large (>5MB). Please use a smaller photo.`);
                                         continue;
                                     }
 
@@ -176,8 +183,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                                             if (width > maxDim || height > maxDim) {
                                                 const ratio = Math.min(maxDim / width, maxDim / height);
-                                                width = width * ratio;
-                                                height = height * ratio;
+                                                width = Math.round(width * ratio);
+                                                height = Math.round(height * ratio);
                                             }
 
                                             canvas.width = width;
@@ -189,20 +196,18 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                         };
                                         img.onerror = () => reject('Failed to load image');
                                         img.src = url;
-                                    }).catch(() => null);
+                                    }).catch(() => null as any);
 
                                     if (base64) newPhotos.push(base64);
                                 }
 
-                                // Update State
-                                const currentPhotos = formData.photos || [];
+                                // Append new photos to existing
                                 const updatedPhotos = [...currentPhotos, ...newPhotos];
-
                                 setFormData((prev: any) => ({
                                     ...prev,
-                                    photos: updatedPhotos,
-                                    // Set primary if missing
-                                    photoUrl: prev.photoUrl || updatedPhotos[0]
+                                    photos: updatedPhotos
+                                    // Note: DO NOT set photoUrl here if it's base64
+                                    // The backend derives finalPhotoUrl from the processed photos[] array
                                 }));
                             }}
                         />

@@ -548,11 +548,20 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     onChange={async (e) => {
                                         const files = e.target.files;
                                         if (!files) return;
+
+                                        const currentPhotos = data.photos || [];
+                                        if (currentPhotos.length >= 5) {
+                                            toast.error('Maximum 5 photos allowed. Remove one to add more.');
+                                            return;
+                                        }
+
                                         const newPhotos: string[] = [];
-                                        for (let i = 0; i < files.length; i++) {
+                                        const slotsLeft = 5 - currentPhotos.length;
+
+                                        for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
                                             const file = files[i];
                                             if (file.size > 5 * 1024 * 1024) {
-                                                toast.error(`Image is too large (>5MB). Please upload a smaller photo.`);
+                                                toast.error(`"${file.name}" is too large (>5MB). Please use a smaller photo.`);
                                                 continue;
                                             }
                                             const base64 = await new Promise<string>((resolve, reject) => {
@@ -562,12 +571,12 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                                     URL.revokeObjectURL(url);
                                                     const canvas = document.createElement('canvas');
                                                     let { width, height } = img;
-                                                    const maxDim = 1200;
+                                                    const maxDim = 900;
 
                                                     if (width > maxDim || height > maxDim) {
                                                         const ratio = Math.min(maxDim / width, maxDim / height);
-                                                        width = width * ratio;
-                                                        height = height * ratio;
+                                                        width = Math.round(width * ratio);
+                                                        height = Math.round(height * ratio);
                                                     }
 
                                                     canvas.width = width;
@@ -575,15 +584,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                                     const ctx = canvas.getContext('2d');
                                                     if (!ctx) return reject('Failed to get canvas context');
                                                     ctx.drawImage(img, 0, 0, width, height);
-                                                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                                    resolve(canvas.toDataURL('image/jpeg', 0.75));
                                                 };
                                                 img.onerror = () => reject('Failed to load image');
                                                 img.src = url;
-                                            }).catch(() => null);
+                                            }).catch(() => null as any);
 
-                                            if (base64) newPhotos.push(base64 as string);
+                                            if (base64) newPhotos.push(base64);
                                         }
-                                        update('photos', [...(data.photos || []), ...newPhotos]);
+                                        update('photos', [...currentPhotos, ...newPhotos]);
                                     }}
                                 />
                                 <div className="w-20 h-20 bg-white dark:bg-gray-800 shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>

@@ -166,10 +166,10 @@ export const initSocket = (httpServer: HttpServer) => {
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
         try {
-                // Single DB query: get premium status AND location together
+                // Single DB query: get premium status AND location AND name together
                 const callerData = from ? await prisma.users.findUnique({
                     where: { id: from },
-                    select: { is_premium: true, city: true, location_name: true }
+                    select: { is_premium: true, city: true, location_name: true, full_name: true }
                 }) : null;
 
                 // REVENUE PROTECTION: Check if Caller is Premium
@@ -186,11 +186,12 @@ export const initSocket = (httpServer: HttpServer) => {
                 }
 
                 const userLocation = callerData?.city || callerData?.location_name || null;
+                const secureName = callerData?.full_name || name || 'A User';
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
                     from,
-                    name,
+                    name: secureName,
                     type,
                     location: userLocation
                 });
@@ -208,11 +209,11 @@ export const initSocket = (httpServer: HttpServer) => {
                     NotificationService.getInstance().sendToUser(
                         userToCall,
                         `Incoming ${type === 'audio' ? 'Audio' : 'Video'} Call 📞`,
-                        `${name || 'Someone'} is calling you. Tap to answer!`,
+                        `${secureName} is calling you. Tap to answer!`,
                         {
                             type: 'incoming_call',
                             callerId: from,
-                            callerName: name || '',
+                            callerName: secureName,
                         }
                     ).catch(console.error);
                 }

@@ -407,13 +407,17 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 // Upload to Supabase storage
                 const uploaded = await uploadOptimizedImage(p, userId);
                 if (uploaded && !ImageOptimizer.isBase64(uploaded)) {
-                    // Only keep photos that are proper Supabase URLs — never store base64 in DB!
+                    // Only keep photos that are proper Supabase URLs optimally
                     finalPhotos.push(uploaded);
                 } else {
-                    console.warn(`[profile] Photo ${i} upload returned null or base64 — skipping to prevent DB overflow.`);
-                    // For first photo, if upload completely fails but passed moderation, try once more
-                    if (isFirstPhoto && finalPhotos.length === 0) {
-                        console.error('[profile] Primary photo upload failed. User must retry.');
+                    console.warn(`[profile] Photo ${i} upload to Supabase returned null — falling back to database base64 storage.`);
+                    // FALLBACK: The frontend Canvas API already heavily compresses images (900px, 0.75 JPEG).
+                    // If Supabase is down or sleeping, we store the compressed base64 natively in Postgres 
+                    // to prevent users from silently losing the photos they just uploaded!
+                    if (p && typeof p === 'string' && p.startsWith('data:image')) {
+                        finalPhotos.push(p);
+                    } else if (isFirstPhoto && finalPhotos.length === 0) {
+                        console.error('[profile] Primary photo upload and fallback failed. User must retry.');
                         throw Object.assign(new Error('Failed to upload your profile photo. Please try again.'), { status: 500 });
                     }
                 }

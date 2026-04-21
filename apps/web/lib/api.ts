@@ -166,7 +166,8 @@ export const api = {
         chat: (message: string, history: any[]) => fetchAPI('/ai/chat', {
             method: 'POST',
             body: JSON.stringify({ message, history })
-        })
+        }),
+        profileRoast: () => fetchAPI('/ai/profile-roast', { method: 'POST' })
     },
     calls: {
         getHistory: () => fetchAPI('/calls/history'),

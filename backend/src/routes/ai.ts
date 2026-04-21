@@ -185,4 +185,91 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
     }
 });
 
+// POST /ai/profile-roast — The Love Guru Roast & Polish
+router.post('/profile-roast', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        // Fetch entire profile
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            include: { profiles: true }
+        });
+
+        if (!user || !user.profiles) {
+            return res.status(404).json({ error: "Profile not found" });
+        }
+
+        const meta = (user.profiles.metadata as any) || {};
+
+        // Extract key elements for Gemini to roast
+        const analysisData = {
+            name: user.full_name,
+            age: user.age,
+            gender: user.gender,
+            bio: user.profiles.raw_prompt || meta.bio,
+            expectations: meta.expectations || meta.partnerPreferences,
+            photos_count: (meta.photos || []).length,
+            career: meta.career,
+            hobbies: meta.interests || []
+        };
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ error: "Guru's crystal ball (AI) is currently unplugged." });
+        }
+
+        const systemPrompt = `You are the "Love Guru" on a matrimonial/dating app. Your job is to analyze the user's profile JSON and provide a humorous, slightly sassy, but highly constructive "Roast and Polish".
+Tone: Funny, sharp, but ultimately helpful and culturally sensitive for Indian users.
+Output strict JSON with exact keys:
+{
+  "roast": "A 2-3 sentence humorous critique of their profile (e.g. lack of photos, boring bio, contradictory expectations).",
+  "score": "A score out of 10 for their current profile.",
+  "tips": [
+    "Tip 1 (Actionable, e.g. 'Add a picture of you smiling, not just with sunglasses.')",
+    "Tip 2",
+    "Tip 3"
+  ]
+}
+
+DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw JSON.`;
+
+        const geminiResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    system_instruction: { parts: [{ text: systemPrompt }] },
+                    contents: [
+                        { role: 'user', parts: [{ text: JSON.stringify(analysisData) }] }
+                    ],
+                    generationConfig: { maxOutputTokens: 500, temperature: 0.9 }
+                }),
+                signal: AbortSignal.timeout(15000)
+            }
+        );
+
+        if (!geminiResponse.ok) {
+            throw new Error(`Gemini Error: ${await geminiResponse.text()}`);
+        }
+
+        const data: any = await geminiResponse.json();
+        const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!geminiText) {
+            throw new Error("Empty response from Guru");
+        }
+
+        // Clean JSON in case it returns markdown
+        const cleanedText = geminiText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const result = JSON.parse(cleanedText);
+
+        res.json(result);
+
+    } catch (error: any) {
+        console.error("AI Roast Error:", error?.message || error);
+        res.status(500).json({ error: "Guru is meditating. Please try again later." });
+    }
+});
+
 export default router;

@@ -24,6 +24,20 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
         return data;
     });
     const [loading, setLoading] = useState(false);
+    const [roasting, setRoasting] = useState(false);
+    const [roastResult, setRoastResult] = useState<{roast: string, score: number, tips: string[]} | null>(null);
+
+    const handleRoast = async () => {
+        setRoasting(true);
+        try {
+            const res = await api.ai.profileRoast();
+            setRoastResult(res);
+        } catch (e: any) {
+            toast.error(e.message || "Failed to summon the Love Guru.");
+        } finally {
+            setRoasting(false);
+        }
+    };
 
     const handleChange = (section: string, field: string, value: any) => {
         setFormData((prev: any) => {
@@ -114,7 +128,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 </button>
             </div>
 
-            {/* GAMIFICATION WIDGET */}
+            {/* GAMIFICATION WIDGET & AI ROAST */}
             <div className="bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800/50 p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="w-full flex-1">
                     <div className="flex justify-between items-center mb-2">
@@ -132,20 +146,59 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     </p>
                 </div>
                 
-                {completionPercentage === 100 && !formData.is_profile_completed_reward_claimed ? (
+                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    {/* The Roast Button */}
                     <Button 
-                        onClick={handleClaimReward} 
-                        disabled={loading}
-                        className="w-full md:w-auto bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-bold shadow-lg shadow-amber-500/20 whitespace-nowrap animate-pulse"
+                        onClick={handleRoast} 
+                        disabled={roasting}
+                        className="w-full sm:w-auto bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold shadow-lg shadow-rose-500/20 whitespace-nowrap"
                     >
-                        💰 Claim 50 Coins
+                        {roasting ? "🔮 Guru Thinking..." : "🔥 Roast My Profile"}
                     </Button>
-                ) : completionPercentage < 100 ? (
-                    <div className="w-full md:w-auto bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-700 text-xs font-bold text-indigo-800 dark:text-indigo-300 whitespace-nowrap text-center opacity-80 cursor-not-allowed">
-                        🔒 Earn 50 Coins at 100%
-                    </div>
-                ) : null}
+
+                    {completionPercentage === 100 && !formData.is_profile_completed_reward_claimed ? (
+                        <Button 
+                            onClick={handleClaimReward} 
+                            disabled={loading}
+                            className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-bold shadow-lg shadow-amber-500/20 whitespace-nowrap animate-pulse"
+                        >
+                            💰 Claim 50 Coins
+                        </Button>
+                    ) : completionPercentage < 100 ? (
+                        <div className="w-full sm:w-auto bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-700 text-xs font-bold text-indigo-800 dark:text-indigo-300 whitespace-nowrap text-center opacity-80 cursor-not-allowed flex items-center justify-center">
+                            🔒 Earn 50 Coins at 100%
+                        </div>
+                    ) : null}
+                </div>
             </div>
+
+            {/* ROAST RESULT DISPLAY */}
+            {roastResult && (
+                <div className="bg-rose-50 dark:bg-rose-950/30 border-b border-rose-100 dark:border-rose-900/50 p-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-start gap-4">
+                        <div className="text-4xl">🔮</div>
+                        <div className="flex-1 space-y-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-rose-900 dark:text-rose-100">Guru's Verdict: {roastResult.score}/10</h3>
+                                <p className="text-rose-800 dark:text-rose-200 mt-1 italic font-medium">"{roastResult.roast}"</p>
+                            </div>
+                            
+                            <div className="bg-white/60 dark:bg-black/20 rounded-lg p-4 border border-rose-200/50 dark:border-rose-800/50">
+                                <h4 className="font-bold text-rose-900 dark:text-rose-100 mb-2 text-sm uppercase tracking-wider">How to Fix It:</h4>
+                                <ul className="space-y-2">
+                                    {roastResult.tips.map((tip, i) => (
+                                        <li key={i} className="flex gap-2 text-sm text-rose-800/90 dark:text-rose-200/90 items-start">
+                                            <span className="text-rose-500 font-bold mt-0.5">·</span> 
+                                            <span>{tip}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                        <button onClick={() => setRoastResult(null)} className="text-rose-400 hover:text-rose-600 transition-colors">✕</button>
+                    </div>
+                </div>
+            )}
 
             <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto">
                 {/* Photo Upload Section */}

@@ -157,10 +157,15 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     }, [socket, isVideo, isSpeedDate]);
 
-    // Attach Remote Stream when ref or stream changes
+    // Attach Remote Stream when ref or stream changes — also force unmute/volume
     useEffect(() => {
         if (userVideo.current && remoteStream) {
             userVideo.current.srcObject = remoteStream;
+            // Critically: force unmute and full volume on remote stream
+            // Some browsers default to muted for autoplay policy compliance
+            userVideo.current.muted = false;
+            userVideo.current.volume = 1.0;
+            userVideo.current.play().catch(e => console.warn('Remote video autoplay blocked:', e));
         }
     }, [remoteStream, isMaximized, callAccepted]);
 
@@ -229,12 +234,28 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             socket.emit("answerCall_stop_ringing", { to: incomingCall?.from });
         }
 
+        // Stream race condition fix: if stream isn't ready yet, wait for it
         if (!stream) {
-            console.error("No local stream to answer with");
+            console.warn("[answerCall] Stream not ready yet, waiting...");
+            let retries = 0;
+            const waitForStream = setInterval(() => {
+                retries++;
+                if (stream) {
+                    clearInterval(waitForStream);
+                    doAnswerCall(stream);
+                } else if (retries > 20) { // 4 second timeout
+                    clearInterval(waitForStream);
+                    console.error("[answerCall] Stream never became available after 4s");
+                    toast.error("Microphone not ready. Please try calling again.");
+                }
+            }, 200);
             return;
         }
+        doAnswerCall(stream);
+    };
 
-        const peer = new SimplePeer({ initiator: false, trickle: false, stream: stream });
+    const doAnswerCall = (localStream: MediaStream) => {
+        const peer = new SimplePeer({ initiator: false, trickle: false, stream: localStream });
 
         peer.on("signal", (data: any) => {
             if (socket && (incomingCall || isSpeedDate)) {
@@ -247,6 +268,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         });
 
         peer.on("connect", () => {
+            setCallAccepted(true);
             setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
         });
 
@@ -493,7 +515,14 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                 ) : (
                                     // Audio Only UI
                                     <div className="flex flex-col items-center justify-center">
-                                        <video ref={userVideo} playsInline autoPlay className="hidden" />
+                                    <video
+                                        ref={userVideo}
+                                        playsInline
+                                        autoPlay
+                                        // Use offscreen positioning instead of display:none/hidden
+                                        // Browsers block autoplay audio on hidden/display:none elements!
+                                        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                                    />
                                         <div className="relative mb-6 transform scale-75 md:scale-100">
                                             <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse blur-xl"></div>
                                             {isSpeedDate ? (

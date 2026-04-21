@@ -18,16 +18,14 @@ import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 
 
-async function uploadOptimizedImage(base64: string, userId: string): Promise<string> {
-    if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Return as is if url
+async function uploadOptimizedImage(base64: string, userId: string): Promise<string | null> {
+    if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Return as-is if it's already a URL
 
     try {
         const buffer = await ImageOptimizer.optimize(base64);
         const filename = `profiles/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
 
         const { data, error } = await supabase.storage
-            // Using dedicated 'profiles' bucket for user profile photos (public bucket)
-            // Create this in: Supabase Dashboard > Storage > New Bucket > name: profiles > Enable Public
             .from('profiles')
             .upload(filename, buffer, {
                 contentType: 'image/webp',
@@ -37,10 +35,11 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         if (error) throw error;
 
         const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
+        console.log(`✅ Uploaded photo to Supabase: ${filename}`);
         return publicUrl;
     } catch (e) {
-        console.error("Supabase storage upload failed. Falling back to base64 for display.", e);
-        return base64; // Return compressed base64 (~200KB after frontend canvas resize) - safe to store in postgres
+        console.error("Supabase storage upload failed — photo skipped.", e);
+        return null; // Return null so caller can skip this photo — never store base64 in Postgres!
     }
 }
 
@@ -373,30 +372,52 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             savedStickers
         } = req.body;
 
-        let finalPhotos = photos || [];
-        if (Array.isArray(finalPhotos)) {
+        let finalPhotos: string[] = [];
+        const rawPhotos = photos || [];
+        if (Array.isArray(rawPhotos)) {
             // Cap to 5 photos to prevent payload abuse on onboarding
-            const photosToProcess = finalPhotos.slice(0, 5);
+            const photosToProcess = rawPhotos.slice(0, 5);
 
             // Run moderation + upload SEQUENTIALLY to prevent WASM/RAM Out Of Memory crashes
-            const results = [];
             for (let i = 0; i < photosToProcess.length; i++) {
                 const p = photosToProcess[i];
-                if (ImageOptimizer.isBase64(p)) {
-                    // First photo (primary avatar) must have a clear human face.
-                    // Secondary photos are lifestyle-friendly and face check is soft.
-                    const isFirstPhoto = i === 0;
-                    const modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
-                    if (!modResult.isValid) {
+
+                // Skip photos that are already stored URLs (not base64) - no processing needed
+                if (!ImageOptimizer.isBase64(p)) {
+                    finalPhotos.push(p);
+                    continue;
+                }
+
+                // Run moderation check — first photo must have a clear face (hard check)
+                // Secondary photos are lifestyle-friendly (soft check: skip on fail, don't abort)
+                const isFirstPhoto = i === 0;
+                const modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
+
+                if (!modResult.isValid) {
+                    if (isFirstPhoto) {
+                        // Hard reject for primary avatar — show error to user
                         throw Object.assign(new Error(modResult.reason), { status: 400 });
+                    } else {
+                        // Soft skip for secondary photos — don't block the save
+                        console.warn(`[profile] Secondary photo ${i} failed moderation (skipped): ${modResult.reason}`);
+                        continue;
                     }
-                    const uploaded = await uploadOptimizedImage(p, userId);
-                    results.push(uploaded);
+                }
+
+                // Upload to Supabase storage
+                const uploaded = await uploadOptimizedImage(p, userId);
+                if (uploaded && !ImageOptimizer.isBase64(uploaded)) {
+                    // Only keep photos that are proper Supabase URLs — never store base64 in DB!
+                    finalPhotos.push(uploaded);
                 } else {
-                    results.push(p);
+                    console.warn(`[profile] Photo ${i} upload returned null or base64 — skipping to prevent DB overflow.`);
+                    // For first photo, if upload completely fails but passed moderation, try once more
+                    if (isFirstPhoto && finalPhotos.length === 0) {
+                        console.error('[profile] Primary photo upload failed. User must retry.');
+                        throw Object.assign(new Error('Failed to upload your profile photo. Please try again.'), { status: 500 });
+                    }
                 }
             }
-            finalPhotos = results;
         }
 
         // Derive finalPhotoUrl from the processed photos array to prevent duplicate uploads

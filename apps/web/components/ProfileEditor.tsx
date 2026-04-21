@@ -15,7 +15,14 @@ interface ProfileEditorProps {
 
 export default function ProfileEditor({ initialData, onSave, onCancel }: ProfileEditorProps) {
     const toast = useToast();
-    const [formData, setFormData] = useState(initialData || {});
+    const [formData, setFormData] = useState(() => {
+        const data = { ...(initialData || {}) };
+        // Self-heal: If user has a main photo but empty photos array, seed the array so it's not lost on new uploads
+        if (!data.photos || data.photos.length === 0) {
+            data.photos = data.photoUrl ? [data.photoUrl] : [];
+        }
+        return data;
+    });
     const [loading, setLoading] = useState(false);
 
     const handleChange = (section: string, field: string, value: any) => {

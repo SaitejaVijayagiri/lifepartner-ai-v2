@@ -43,7 +43,16 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
         setLoading(true);
         try {
-            const res = await api.profile.updateProfile(formData);
+            // Build clean payload — strip base64 from photoUrl to avoid bypassing backend upload
+            const payload = { ...formData };
+
+            // If the primary photoUrl is base64, don't send it separately — the backend will
+            // derive it from the photos[] array after uploading to Supabase
+            if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('data:')) {
+                delete payload.photoUrl;
+            }
+
+            const res = await api.profile.updateProfile(payload);
             if (res.success) {
                 onSave(formData);
             }
@@ -163,7 +172,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                             URL.revokeObjectURL(url);
                                             const canvas = document.createElement('canvas');
                                             let { width, height } = img;
-                                            const maxDim = 1200;
+                                            const maxDim = 900;
 
                                             if (width > maxDim || height > maxDim) {
                                                 const ratio = Math.min(maxDim / width, maxDim / height);
@@ -176,7 +185,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                             const ctx = canvas.getContext('2d');
                                             if (!ctx) return reject('Failed to get context');
                                             ctx.drawImage(img, 0, 0, width, height);
-                                            resolve(canvas.toDataURL('image/jpeg', 0.85));
+                                            resolve(canvas.toDataURL('image/jpeg', 0.75));
                                         };
                                         img.onerror = () => reject('Failed to load image');
                                         img.src = url;

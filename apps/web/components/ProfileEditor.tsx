@@ -31,7 +31,11 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
         setRoasting(true);
         try {
             const res = await api.ai.profileRoast();
-            setRoastResult(res);
+            if (res.error) {
+                toast.error(res.error);
+            } else {
+                setRoastResult(res);
+            }
         } catch (e: any) {
             toast.error(e.message || "Failed to summon the Love Guru.");
         } finally {

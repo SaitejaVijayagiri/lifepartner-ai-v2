@@ -220,17 +220,18 @@ router.post('/profile-roast', authenticateToken, async (req: any, res) => {
 
         const systemPrompt = `You are the "Love Guru" on a matrimonial/dating app. Your job is to analyze the user's profile JSON and provide a humorous, slightly sassy, but highly constructive "Roast and Polish".
 Tone: Funny, sharp, but ultimately helpful and culturally sensitive for Indian users.
-Output strict JSON with exact keys:
+Output strict JSON with EXACTLY these keys and types — no deviations:
 {
-  "roast": "A 2-3 sentence humorous critique of their profile (e.g. lack of photos, boring bio, contradictory expectations).",
-  "score": "A score out of 10 for their current profile.",
+  "roast": "string — A 2-3 sentence humorous critique of their profile (e.g. lack of photos, boring bio, contradictory expectations).",
+  "score": 7,
   "tips": [
-    "Tip 1 (Actionable, e.g. 'Add a picture of you smiling, not just with sunglasses.')",
-    "Tip 2",
-    "Tip 3"
+    "string — Tip 1 (Actionable, e.g. Add a picture of you smiling, not just with sunglasses.)",
+    "string — Tip 2",
+    "string — Tip 3"
   ]
 }
 
+IMPORTANT: 'score' MUST be a plain integer (e.g. 6), NOT a string. Do NOT wrap in quotes.
 DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw JSON.`;
 
         const geminiResponse = await fetch(
@@ -249,8 +250,15 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
             }
         );
 
+        // Handle 429 quota exhaustion specifically — friendly message instead of generic error
+        if (geminiResponse.status === 429) {
+            return res.status(429).json({ error: "The Guru is very popular right now! Our AI is at capacity. Please try again in 1-2 minutes." });
+        }
+
         if (!geminiResponse.ok) {
-            throw new Error(`Gemini Error: ${await geminiResponse.text()}`);
+            const errText = await geminiResponse.text();
+            console.error('[profile-roast] Gemini non-OK response:', errText);
+            throw new Error(`Gemini API Error: ${geminiResponse.status}`);
         }
 
         const data: any = await geminiResponse.json();
@@ -260,9 +268,15 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
             throw new Error("Empty response from Guru");
         }
 
-        // Clean JSON in case it returns markdown
+        // Clean JSON in case Gemini still wraps in markdown despite instructions
         const cleanedText = geminiText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const result = JSON.parse(cleanedText);
+        const parsed = JSON.parse(cleanedText);
+
+        // Normalize: ensure score is always a number, never a string
+        const result = {
+            ...parsed,
+            score: typeof parsed.score === 'string' ? parseInt(parsed.score, 10) || 5 : (parsed.score || 5)
+        };
 
         res.json(result);
 

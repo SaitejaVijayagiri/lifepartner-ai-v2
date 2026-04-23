@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
+import axios from 'axios';
 import { guruResponse, FALLBACK_RESPONSES, personalize, pickRandom } from '../services/guruEngine';
 
 const router = express.Router();
@@ -272,43 +273,42 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
         let nvidiaDebugInfo = '';
         if (!roastText && process.env.NVIDIA_API_KEY) {
             try {
-                console.log('[profile-roast] Trying NVIDIA Gemma-4-31B fallback...');
-                const nvidiaResponse = await fetch(
+                console.log('[profile-roast] Trying NVIDIA Gemma-4-31B fallback via Axios...');
+                const nvidiaResponse = await axios.post(
                     'https://integrate.api.nvidia.com/v1/chat/completions',
                     {
-                        method: 'POST',
+                        model: 'google/gemma-4-31b-it',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: JSON.stringify(analysisData) }
+                        ],
+                        max_tokens: 600,
+                        temperature: 0.9,
+                        stream: false
+                    },
+                    {
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`
                         },
-                        body: JSON.stringify({
-                            model: 'google/gemma-4-31b-it',
-                            messages: [
-                                { role: 'system', content: systemPrompt },
-                                { role: 'user', content: JSON.stringify(analysisData) }
-                            ],
-                            max_tokens: 600,
-                            temperature: 0.9,
-                            stream: false
-                        }),
-                        signal: AbortSignal.timeout(20000)
+                        timeout: 20000 // 20 seconds timeout
                     }
                 );
 
-                if (nvidiaResponse.ok) {
-                    const nvidiaData: any = await nvidiaResponse.json();
-                    const text = nvidiaData?.choices?.[0]?.message?.content;
-                    if (text) {
-                        roastText = text;
-                        console.log('[profile-roast] Answered via NVIDIA Gemma-4 ✅');
-                    }
+                const text = nvidiaResponse.data?.choices?.[0]?.message?.content;
+                if (text) {
+                    roastText = text;
+                    console.log('[profile-roast] Answered via NVIDIA Gemma-4 ✅');
                 } else {
-                    const errorText = await nvidiaResponse.text();
-                    nvidiaDebugInfo = `NVIDIA API returned ${nvidiaResponse.status}: ${errorText.substring(0, 100)}`;
+                    nvidiaDebugInfo = 'NVIDIA API returned OK but no text in choices';
                     console.error('[profile-roast]', nvidiaDebugInfo);
                 }
             } catch (nvidiaErr: any) {
-                nvidiaDebugInfo = `NVIDIA Network Error: ${nvidiaErr.message}`;
+                if (nvidiaErr.response) {
+                    nvidiaDebugInfo = `NVIDIA API returned ${nvidiaErr.response.status}: ${JSON.stringify(nvidiaErr.response.data).substring(0, 100)}`;
+                } else {
+                    nvidiaDebugInfo = `NVIDIA Network Error (Axios): ${nvidiaErr.message}`;
+                }
                 console.error('[profile-roast]', nvidiaDebugInfo);
             }
         } else if (!roastText && !process.env.NVIDIA_API_KEY) {

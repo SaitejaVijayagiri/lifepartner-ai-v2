@@ -214,7 +214,7 @@ router.post('/profile-roast', authenticateToken, async (req: any, res) => {
             hobbies: meta.interests || []
         };
 
-        if (!process.env.GEMINI_API_KEY) {
+        if (!process.env.GEMINI_API_KEY && !process.env.NVIDIA_API_KEY) {
             return res.status(500).json({ error: "Guru's crystal ball (AI) is currently unplugged." });
         }
 
@@ -234,42 +234,87 @@ Output strict JSON with EXACTLY these keys and types — no deviations:
 IMPORTANT: 'score' MUST be a plain integer (e.g. 6), NOT a string. Do NOT wrap in quotes.
 DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw JSON.`;
 
-        const geminiResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    system_instruction: { parts: [{ text: systemPrompt }] },
-                    contents: [
-                        { role: 'user', parts: [{ text: JSON.stringify(analysisData) }] }
-                    ],
-                    generationConfig: { maxOutputTokens: 500, temperature: 0.9 }
-                }),
-                signal: AbortSignal.timeout(15000)
+        // ─── TIER 1: Try Gemini Flash ────────────────────────────────────────
+        let roastText: string | null = null;
+
+        try {
+            const geminiResponse = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: { parts: [{ text: systemPrompt }] },
+                        contents: [
+                            { role: 'user', parts: [{ text: JSON.stringify(analysisData) }] }
+                        ],
+                        generationConfig: { maxOutputTokens: 500, temperature: 0.9 }
+                    }),
+                    signal: AbortSignal.timeout(12000)
+                }
+            );
+
+            if (geminiResponse.ok) {
+                const data: any = await geminiResponse.json();
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                    roastText = text;
+                    console.log('[profile-roast] Answered via Gemini Flash ✅');
+                }
+            } else {
+                console.warn(`[profile-roast] Gemini returned ${geminiResponse.status} — falling back to NVIDIA Gemma`);
             }
-        );
-
-        // Handle 429 quota exhaustion specifically — friendly message instead of generic error
-        if (geminiResponse.status === 429) {
-            return res.status(429).json({ error: "The Guru is very popular right now! Our AI is at capacity. Please try again in 1-2 minutes." });
+        } catch (geminiErr: any) {
+            console.warn(`[profile-roast] Gemini failed: ${geminiErr.message} — falling back to NVIDIA Gemma`);
         }
 
-        if (!geminiResponse.ok) {
-            const errText = await geminiResponse.text();
-            console.error('[profile-roast] Gemini non-OK response:', errText);
-            throw new Error(`Gemini API Error: ${geminiResponse.status}`);
+        // ─── TIER 2: NVIDIA Gemma-4-31B Fallback ─────────────────────────────
+        if (!roastText && process.env.NVIDIA_API_KEY) {
+            try {
+                console.log('[profile-roast] Trying NVIDIA Gemma-4-31B fallback...');
+                const nvidiaResponse = await fetch(
+                    'https://integrate.api.nvidia.com/v1/chat/completions',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: 'google/gemma-4-31b-it',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: JSON.stringify(analysisData) }
+                            ],
+                            max_tokens: 600,
+                            temperature: 0.9,
+                            stream: false
+                        }),
+                        signal: AbortSignal.timeout(20000)
+                    }
+                );
+
+                if (nvidiaResponse.ok) {
+                    const nvidiaData: any = await nvidiaResponse.json();
+                    const text = nvidiaData?.choices?.[0]?.message?.content;
+                    if (text) {
+                        roastText = text;
+                        console.log('[profile-roast] Answered via NVIDIA Gemma-4 ✅');
+                    }
+                } else {
+                    console.error('[profile-roast] NVIDIA also failed:', nvidiaResponse.status);
+                }
+            } catch (nvidiaErr: any) {
+                console.error('[profile-roast] NVIDIA fallback failed:', nvidiaErr.message);
+            }
         }
 
-        const data: any = await geminiResponse.json();
-        const geminiText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (!geminiText) {
-            throw new Error("Empty response from Guru");
+        if (!roastText) {
+            return res.status(503).json({ error: "Both AI systems are at capacity. Please try again in a minute!" });
         }
 
-        // Clean JSON in case Gemini still wraps in markdown despite instructions
-        const cleanedText = geminiText.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Parse and normalize the result from whichever AI responded
+        const cleanedText = roastText.replace(/```json/g, '').replace(/```/g, '').trim();
         const parsed = JSON.parse(cleanedText);
 
         // Normalize: ensure score is always a number, never a string

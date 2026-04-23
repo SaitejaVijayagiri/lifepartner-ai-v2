@@ -269,6 +269,7 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
         }
 
         // ─── TIER 2: NVIDIA Gemma-4-31B Fallback ─────────────────────────────
+        let nvidiaDebugInfo = '';
         if (!roastText && process.env.NVIDIA_API_KEY) {
             try {
                 console.log('[profile-roast] Trying NVIDIA Gemma-4-31B fallback...');
@@ -302,15 +303,20 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
                         console.log('[profile-roast] Answered via NVIDIA Gemma-4 ✅');
                     }
                 } else {
-                    console.error('[profile-roast] NVIDIA also failed:', nvidiaResponse.status);
+                    const errorText = await nvidiaResponse.text();
+                    nvidiaDebugInfo = `NVIDIA API returned ${nvidiaResponse.status}: ${errorText.substring(0, 100)}`;
+                    console.error('[profile-roast]', nvidiaDebugInfo);
                 }
             } catch (nvidiaErr: any) {
-                console.error('[profile-roast] NVIDIA fallback failed:', nvidiaErr.message);
+                nvidiaDebugInfo = `NVIDIA Network Error: ${nvidiaErr.message}`;
+                console.error('[profile-roast]', nvidiaDebugInfo);
             }
+        } else if (!roastText && !process.env.NVIDIA_API_KEY) {
+             nvidiaDebugInfo = 'NVIDIA_API_KEY is missing from environment variables';
         }
 
         if (!roastText) {
-            return res.status(503).json({ error: "Both AI systems are at capacity. Please try again in a minute!" });
+            return res.status(503).json({ error: `Both AI systems failed. Debug Info: ${nvidiaDebugInfo}` });
         }
 
         // Parse and normalize the result from whichever AI responded

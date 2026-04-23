@@ -372,16 +372,39 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 onChange={e => handleChange('root', 'motherTongue', e.target.value)}
                             >
                                 <option value="">Select Language</option>
-                                <option value="Hindi">Hindi</option>
-                                <option value="English">English</option>
-                                <option value="Telugu">Telugu</option>
-                                <option value="Tamil">Tamil</option>
-                                <option value="Marathi">Marathi</option>
+                                <option value="Assamese">Assamese</option>
                                 <option value="Bengali">Bengali</option>
-                                <option value="Kannada">Kannada</option>
+                                <option value="Bhojpuri">Bhojpuri</option>
+                                <option value="Bodo">Bodo</option>
+                                <option value="Chhattisgarhi">Chhattisgarhi</option>
+                                <option value="Dogri">Dogri</option>
+                                <option value="English">English</option>
                                 <option value="Gujarati">Gujarati</option>
+                                <option value="Haryanvi">Haryanvi</option>
+                                <option value="Hindi">Hindi</option>
+                                <option value="Kannada">Kannada</option>
+                                <option value="Kashmiri">Kashmiri</option>
+                                <option value="Khasi">Khasi</option>
+                                <option value="Konkani">Konkani</option>
+                                <option value="Kumaoni">Kumaoni</option>
+                                <option value="Ladakhi">Ladakhi</option>
+                                <option value="Maithili">Maithili</option>
                                 <option value="Malayalam">Malayalam</option>
+                                <option value="Manipuri (Meitei)">Manipuri (Meitei)</option>
+                                <option value="Marathi">Marathi</option>
+                                <option value="Mizo">Mizo</option>
+                                <option value="Nagamese">Nagamese</option>
+                                <option value="Nepali">Nepali</option>
+                                <option value="Odia">Odia</option>
                                 <option value="Punjabi">Punjabi</option>
+                                <option value="Rajasthani">Rajasthani</option>
+                                <option value="Sanskrit">Sanskrit</option>
+                                <option value="Santali">Santali</option>
+                                <option value="Sindhi">Sindhi</option>
+                                <option value="Tamil">Tamil</option>
+                                <option value="Telugu">Telugu</option>
+                                <option value="Tulu">Tulu</option>
+                                <option value="Urdu">Urdu</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>

@@ -471,7 +471,41 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium dark:text-gray-200">Mother Tongue</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
-                                        <option>Hindi</option><option>English</option><option>Telugu</option><option>Tamil</option><option>Marathi</option><option>Bengali</option><option>Kannada</option><option>Gujarati</option><option>Malayalam</option><option>Punjabi</option><option>Other</option>
+                                        <option value="">Select Language</option>
+                                        <option>Assamese</option>
+                                        <option>Bengali</option>
+                                        <option>Bhojpuri</option>
+                                        <option>Bodo</option>
+                                        <option>Chhattisgarhi</option>
+                                        <option>Dogri</option>
+                                        <option>English</option>
+                                        <option>Gujarati</option>
+                                        <option>Haryanvi</option>
+                                        <option>Hindi</option>
+                                        <option>Kannada</option>
+                                        <option>Kashmiri</option>
+                                        <option>Khasi</option>
+                                        <option>Konkani</option>
+                                        <option>Kumaoni</option>
+                                        <option>Ladakhi</option>
+                                        <option>Maithili</option>
+                                        <option>Malayalam</option>
+                                        <option>Manipuri (Meitei)</option>
+                                        <option>Marathi</option>
+                                        <option>Mizo</option>
+                                        <option>Nagamese</option>
+                                        <option>Nepali</option>
+                                        <option>Odia</option>
+                                        <option>Punjabi</option>
+                                        <option>Rajasthani</option>
+                                        <option>Sanskrit</option>
+                                        <option>Santali</option>
+                                        <option>Sindhi</option>
+                                        <option>Tamil</option>
+                                        <option>Telugu</option>
+                                        <option>Tulu</option>
+                                        <option>Urdu</option>
+                                        <option>Other</option>
                                     </select>
                                 </div>
                                 <Input label="Native Place / Ancestral Origin" placeholder="e.g. Kanchipuram" value={data.nativePlace} onChange={e => update('nativePlace', e.target.value)} />

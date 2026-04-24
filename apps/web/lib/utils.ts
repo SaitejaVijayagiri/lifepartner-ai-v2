@@ -15,12 +15,16 @@ export const formatLocationString = (location: any) => {
         parts = location.split(',').map(s => s.trim());
     } else {
         // If it's an object, gather all relevant fields
+        const c = location.city;
+        const d = location.district;
+        const s = location.state;
+        const ctr = location.country;
+        
         parts = [
-            location.city,
-            location.district,
-            location.state,
-            location.country
-        ].filter(Boolean).flatMap(p => String(p).split(',').map(s => s.trim()));
+            c || d, // Prefer city. If city is missing, fallback to district.
+            s,
+            ctr
+        ].filter(Boolean).flatMap(p => String(p).split(',').map(str => str.trim()));
     }
     
     const seen = new Set<string>();

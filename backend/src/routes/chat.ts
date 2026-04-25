@@ -14,6 +14,18 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KE
 
 const router = express.Router();
 
+// TEMPORARY: Database fix endpoint
+router.get('/fix-db', async (req, res) => {
+    try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_liked BOOLEAN DEFAULT false;`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reactions JSON DEFAULT '{}';`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS cleared_by JSON DEFAULT '[]';`);
+        res.json({ success: true, message: "Database columns added successfully" });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // GET Chat History
 router.get('/:connectionId/history', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params;

@@ -40,7 +40,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     created_at: true,
                     delivery_status: true,
                     is_liked: true,
-                    reactions: true
+                    reactions: true,
+                    cleared_by: true
                 }
             } as any);
         } catch (dbErr: any) {
@@ -61,7 +62,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     receiver_id: true,
                     content: true,
                     created_at: true,
-                    delivery_status: true
+                    delivery_status: true,
+                    cleared_by: true
                 }
             });
         }

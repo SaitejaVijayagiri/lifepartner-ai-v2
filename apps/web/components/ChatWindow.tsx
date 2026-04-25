@@ -545,7 +545,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             )}
 
             {/* Messages - Premium Design */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900 space-y-3" ref={scrollRef}>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900 space-y-3" ref={scrollRef}>
                 {messages.length === 0 && (
                     <div className="text-center py-16">
                         <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -657,7 +657,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                         {/* React & Delete buttons — shows on hover */}
                                         {msg.id && !msg.id.toString().startsWith('temp-') && (
-                                            <div className={`absolute ${isMe ? '-left-16' : '-right-16'} bottom-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-all`}>
+                                            <div className={`absolute ${isMe ? '-left-16' : '-right-16'} bottom-1 flex gap-1 transition-all ${deleteMenuMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
                                                     className="p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:scale-110"
@@ -877,7 +877,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <button className="absolute top-6 right-6 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all" onClick={() => setFullscreenImage(null)}>
                         <X size={24} />
                     </button>
-                    <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" onClick={e => e.stopPropagation()} />
+                    <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
                 </div>
             )}
 

@@ -48,14 +48,29 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
     const lat = currentUser?.location?.lat;
     const lng = currentUser?.location?.lng;
 
+    // Use device GPS for distance calculation (falls back to profile location)
+    const [deviceLat, setDeviceLat] = useState<number | undefined>(lat);
+    const [deviceLng, setDeviceLng] = useState<number | undefined>(lng);
+
     useEffect(() => {
+        // Try to get device GPS for better distance results
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    setDeviceLat(pos.coords.latitude);
+                    setDeviceLng(pos.coords.longitude);
+                },
+                () => {} // silent fallback to profile location
+            );
+        }
         api.events.fixDb().catch(() => {}).finally(() => fetchEvents());
     }, [myFilter]);
 
     const fetchEvents = async () => {
         try {
             setLoading(true);
-            const res = await api.events.getAll(lat, lng, myFilter || undefined);
+            // Use real device GPS if available, else profile location
+            const res = await api.events.getAll(deviceLat ?? lat, deviceLng ?? lng, myFilter || undefined);
             if (res.success) setEvents(res.events || []);
         } catch { setEvents([]); } finally { setLoading(false); }
     };
@@ -64,13 +79,35 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
         if (!navigator.geolocation) return toast.error('GPS not available on this device');
         setGpsLoading(true);
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                setFormLat(pos.coords.latitude);
-                setFormLng(pos.coords.longitude);
+            async (pos) => {
+                const { latitude, longitude } = pos.coords;
+                setFormLat(latitude);
+                setFormLng(longitude);
+
+                // Reverse geocode via OpenStreetMap Nominatim (free, no key needed)
+                try {
+                    const r = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+                        { headers: { 'Accept-Language': 'en' } }
+                    );
+                    const data = await r.json();
+                    const addr = data.address || {};
+                    // Build human-friendly venue string
+                    const parts = [
+                        addr.amenity || addr.shop || addr.building,
+                        addr.road || addr.pedestrian,
+                        addr.suburb || addr.neighbourhood,
+                        addr.city || addr.town || addr.village
+                    ].filter(Boolean);
+                    const venueName = parts.slice(0, 3).join(', ');
+                    if (venueName) {
+                        setForm(f => ({ ...f, location_name: venueName }));
+                    }
+                } catch { /* ignore geocoding error, coords still saved */ }
+
                 setGpsLoading(false);
-                toast.success('📍 Exact location captured!');
             },
-            () => { setGpsLoading(false); toast.error('Could not get location. Please allow access.'); },
+            () => { setGpsLoading(false); toast.error('Could not get location. Please allow location access.'); },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     };
@@ -308,11 +345,21 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                                 <div>
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Venue / Location</label>
                                     <Input placeholder="e.g. Starbucks, Connaught Place" value={form.location_name} onChange={e => setForm(f => ({ ...f, location_name: e.target.value }))} required />
-                                    <button type="button" onClick={grabGPS} disabled={gpsLoading}
-                                        className="mt-2 flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline disabled:opacity-60">
-                                        {gpsLoading ? <Loader2 size={12} className="animate-spin" /> : <LocateFixed size={12} />}
-                                        {formLat ? '📍 GPS location captured' : 'Use my exact GPS location (more accurate)'}
-                                    </button>
+                                    {/* GPS Button */}
+                                    {!formLat ? (
+                                        <button type="button" onClick={grabGPS} disabled={gpsLoading}
+                                            className="mt-2 flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline disabled:opacity-60">
+                                            {gpsLoading ? <><Loader2 size={12} className="animate-spin" /> Detecting your location...</> : <><LocateFixed size={12} /> 📍 Auto-detect my exact location</>}
+                                        </button>
+                                    ) : (
+                                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                            <span className="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                                                <LocateFixed size={11} /> GPS Active: {formLat.toFixed(5)}, {formLng?.toFixed(5)}
+                                            </span>
+                                            <button type="button" onClick={() => { setFormLat(null); setFormLng(null); }}
+                                                className="text-xs text-gray-400 hover:text-red-500 underline">clear</button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-1.5">Max Attendees <span className="font-normal text-gray-400">(optional)</span></label>

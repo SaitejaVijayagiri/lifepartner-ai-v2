@@ -356,9 +356,18 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
 
     try {
         const ext = file.mimetype.startsWith('audio') ? 'webm' : 'jpg';
-        const filename = `profiles/${userId}/chat_media_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        // Match exact profile structure: profiles/userId/filename
+        const filename = `profiles/${userId}/${Date.now()}_chat_${Math.random().toString(36).substring(7)}.${ext}`;
 
-        const { data, error } = await supabase.storage
+        // Create a Supabase client WITH the user's JWT token to bypass RLS errors
+        const authHeader = req.headers.authorization;
+        const userSupabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!, {
+            global: {
+                headers: { Authorization: authHeader || '' }
+            }
+        });
+
+        const { data, error } = await userSupabase.storage
             .from('profiles')
             .upload(filename, file.buffer, {
                 contentType: file.mimetype,
@@ -370,7 +379,7 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
             throw error;
         }
 
-        const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
+        const { data: { publicUrl } } = userSupabase.storage.from('profiles').getPublicUrl(filename);
         res.json({ success: true, url: publicUrl });
     } catch (e: any) {
         console.error("Media Upload Error", e);

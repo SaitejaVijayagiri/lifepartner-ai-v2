@@ -347,7 +347,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 <Button
                                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
                                     className="h-12 w-12 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
-                                    title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages || 0) + ' Left'})`}
+                                    title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages ?? 3) + ' Left'})`}
                                 >
                                     <Mail size={20} />
                                 </Button>
@@ -440,7 +440,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         {!currentUser?.is_premium && (
                             <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 p-3 rounded-xl flex items-center gap-2 text-sm text-purple-800 dark:text-purple-300">
                                 <Sparkles size={16} />
-                                You have <strong>{currentUser?.free_direct_messages || 0}</strong> free messages left.
+                                You have <strong>{currentUser?.free_direct_messages ?? 3}</strong> free messages left.
                             </div>
                         )}
 
@@ -454,7 +454,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             />
                             <Button 
                                 type="submit" 
-                                disabled={sendingDM || !dmText.trim() || (!currentUser?.is_premium && (currentUser?.free_direct_messages || 0) <= 0)}
+                                disabled={sendingDM || !dmText.trim() || (!currentUser?.is_premium && (currentUser?.free_direct_messages ?? 3) <= 0)}
                                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12 shadow-lg"
                             >
                                 {sendingDM ? 'Sending...' : 'Send Direct Message'}

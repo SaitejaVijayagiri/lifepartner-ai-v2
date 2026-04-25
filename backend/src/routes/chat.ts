@@ -20,8 +20,23 @@ router.get('/fix-db', async (req, res) => {
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_liked BOOLEAN DEFAULT false;`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reactions JSON DEFAULT '{}';`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS cleared_by JSON DEFAULT '[]';`);
-        res.json({ success: true, message: "Database columns added successfully" });
+        
+        // New columns for Direct Messages
+        await prisma.$executeRawUnsafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS free_direct_messages INT DEFAULT 3;`);
+        
+        // New table for Lounge Messages
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS lounge_messages (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                text TEXT NOT NULL,
+                created_at TIMESTAMP(6) DEFAULT now()
+            );
+        `);
+        
+        res.json({ success: true, message: "Database schema patched successfully" });
     } catch (e: any) {
+        console.error("DB Patch Error", e);
         res.status(500).json({ error: e.message });
     }
 });

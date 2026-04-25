@@ -7,7 +7,7 @@
         "test": "jest",
         "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
         "prebuild": "npm run clean",
-        "build": "npx prisma generate && npx prisma db push --accept-data-loss && tsc",
+        "build": "npx prisma generate && tsc",
         "start": "node dist/server.js",
         "start:cluster": "pm2 start ecosystem.config.js --env production",
         "studio": "npx prisma studio"

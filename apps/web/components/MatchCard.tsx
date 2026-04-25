@@ -127,7 +127,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             setIsLiked(!newIsLiked);
             setLikeCount((prev: number) => !newIsLiked ? prev + 1 : prev - 1);
         }
-        }
     };
 
     // 4. Handle Direct Message

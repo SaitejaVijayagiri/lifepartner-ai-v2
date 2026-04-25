@@ -11,6 +11,7 @@ interface User {
     photoUrl?: string;
     is_premium?: boolean;
     is_admin?: boolean;
+    free_direct_messages?: number;
 }
 
 interface AuthContextType {
@@ -60,7 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             email: freshProfile.email,
                             photoUrl: freshProfile.photoUrl,
                             is_premium: freshProfile.is_premium,
-                            is_admin: freshProfile.is_admin
+                            is_admin: freshProfile.is_admin,
+                            free_direct_messages: freshProfile.free_direct_messages
                         };
                         setUser(updatedUser);
                         try {

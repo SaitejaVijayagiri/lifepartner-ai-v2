@@ -34,9 +34,12 @@ export function Modal({ isOpen, onClose, title, description, children, footer, c
     if (!isOpen || !mounted) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={(e) => { e.stopPropagation(); }} // Stop all bubbling
+        >
             {/* Backdrop click handler */}
-            <div className="absolute inset-0" onClick={onClose} />
+            <div className="absolute inset-0" onClick={(e) => { e.stopPropagation(); onClose(); }} />
 
             <div
                 className={cn(
@@ -52,7 +55,8 @@ export function Modal({ isOpen, onClose, title, description, children, footer, c
                         {description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>}
                     </div>
                     <button
-                        onClick={onClose}
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
                         className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
                     >
                         <X size={20} />

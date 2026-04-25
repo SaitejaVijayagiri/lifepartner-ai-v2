@@ -2,6 +2,7 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
@@ -146,7 +147,7 @@ model notifications {
 
   @@index([created_at(sort: Desc)], map: "idx_notifications_created_at")
   @@index([user_id], map: "idx_notifications_user_id")
-} 
+}
 
 // Performance Optimization: Compound Index for Chats
 // Adding this manually to schema model messages:
@@ -271,6 +272,7 @@ model users {
   state                                         String?                   @db.VarChar(100)
   is_admin                                      Boolean?                  @default(false)
   is_banned                                     Boolean?                  @default(false)
+  free_direct_messages                          Int?                      @default(3)
   blocks_blocks_blocked_idTousers               blocks[]                  @relation("blocks_blocked_idTousers")
   blocks_blocks_blocker_idTousers               blocks[]                  @relation("blocks_blocker_idTousers")
   call_logs_call_logs_caller_idTousers          call_logs[]               @relation("call_logs_caller_idTousers")
@@ -278,6 +280,7 @@ model users {
   device_tokens                                 device_tokens[]
   game_moves                                    game_moves[]
   games_games_player_a_idTousers                games[]                   @relation("games_player_a_idTousers")
+  lounge_messages                               lounge_messages[]         @relation("lounge_messagesTousers")
   games_games_player_b_idTousers                games[]                   @relation("games_player_b_idTousers")
   games_games_winner_idTousers                  games[]                   @relation("games_winner_idTousers")
   interactions_interactions_from_user_idTousers interactions[]            @relation("interactions_from_user_idTousers")
@@ -324,4 +327,12 @@ model verification_requests {
   admin_notes  String?
   created_at   DateTime? @default(now()) @db.Timestamp(6)
   users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model lounge_messages {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sender_id  String   @db.Uuid
+  text       String
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  users      users    @relation("lounge_messagesTousers", fields: [sender_id], references: [id], onDelete: Cascade)
 }

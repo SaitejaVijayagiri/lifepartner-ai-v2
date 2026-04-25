@@ -11,6 +11,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
     const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [status, setStatus] = useState<'connecting' | 'connected' | 'denied'>('connecting');
+    const [showMobileUsersModal, setShowMobileUsersModal] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -21,8 +22,11 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
         socket.emit('join_community');
 
         // Listeners
-        socket.on('joined_community', () => {
+        socket.on('joined_community', (data: any) => {
             setStatus('connected');
+            if (data?.history && Array.isArray(data.history)) {
+                setMessages(data.history);
+            }
         });
 
         socket.on('community_error', () => {
@@ -113,9 +117,13 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                         </p>
                     </div>
                 </div>
-                <div className="bg-white/10 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                    <Users size={12} /> {onlineMembers.length} Online
-                </div>
+                <button 
+                    onClick={() => setShowMobileUsersModal(true)}
+                    className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 hover:bg-white/20 transition-colors"
+                >
+                    <Users size={14} /> 
+                    <span>{onlineMembers.length} <span className="hidden sm:inline">Online</span></span>
+                </button>
             </div>
 
             <div className="flex flex-1 overflow-hidden">
@@ -208,6 +216,52 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                     </div>
                 </div>
             </div>
+
+            {/* Mobile Users Modal */}
+            {showMobileUsersModal && (
+                <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 md:hidden animate-in slide-in-from-bottom-full duration-300">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-gray-900 dark:text-white">Online Members</h3>
+                            <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full text-xs font-bold">{onlineMembers.length}</span>
+                        </div>
+                        <button onClick={() => setShowMobileUsersModal(false)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full">
+                            <svg className="w-5 h-5 text-gray-500" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                                <path d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        {onlineMembers.map((u, i) => (
+                            <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0">
+                                    {u.photo ? (
+                                        <img src={u.photo} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold">
+                                            {u.name[0]}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                                        {u.name}
+                                        {u.isVerified && <VerificationBadge size={12} />}
+                                    </p>
+                                    <p className="text-xs text-green-500 flex items-center gap-1 mt-0.5 font-medium">
+                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_4px_rgba(34,197,94,0.5)]"></span> Online
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                        {onlineMembers.length === 0 && (
+                            <div className="text-center py-10 text-gray-500 text-sm">
+                                No one else is here right now.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

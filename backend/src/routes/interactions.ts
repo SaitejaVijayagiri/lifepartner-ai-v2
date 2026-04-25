@@ -439,6 +439,127 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Send Direct Message (Bypass Match)
+router.post('/direct', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { toUserId, text } = req.body;
+
+        if (!toUserId || !text || !text.trim()) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
+        // Get user details & check quota
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { full_name: true, is_premium: true, free_direct_messages: true }
+        });
+
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Quota check
+        if (!user.is_premium && (user.free_direct_messages || 0) <= 0) {
+            return res.status(403).json({ 
+                error: "Limit Reached", 
+                message: "You have run out of free Direct Messages. Upgrade to Premium for unlimited!" 
+            });
+        }
+
+        // Decrement quota if not premium
+        if (!user.is_premium) {
+            await prisma.users.update({
+                where: { id: userId },
+                data: { free_direct_messages: { decrement: 1 } }
+            });
+        }
+
+        // 1. Create a Connected Interaction to make them appear in Connections list instantly
+        await prisma.interactions.upsert({
+            where: {
+                from_user_id_to_user_id_type: {
+                    from_user_id: userId,
+                    to_user_id: toUserId,
+                    type: 'REQUEST'
+                }
+            },
+            update: {
+                status: 'connected', // Auto-connect for DM
+                created_at: new Date()
+            },
+            create: {
+                from_user_id: userId,
+                to_user_id: toUserId,
+                type: 'REQUEST',
+                status: 'connected'
+            }
+        });
+
+        // 2. Insert the actual message into the chat history
+        const cleanText = text.trim();
+        await prisma.messages.create({
+            data: {
+                sender_id: userId,
+                receiver_id: toUserId,
+                content: cleanText,
+                delivery_status: "sent"
+            }
+        });
+
+        // 3. Notify receiver
+        try {
+            const myName = user.full_name || "Someone";
+            const msg = `${myName} sent you a Direct Message: "${cleanText.substring(0, 30)}${cleanText.length > 30 ? '...' : ''}"`;
+
+            // Persist
+            await prisma.notifications.create({
+                data: {
+                    user_id: toUserId,
+                    type: 'direct_message',
+                    message: msg,
+                    data: { fromUserId: userId }
+                }
+            });
+
+            // Realtime Notification
+            getIO().to(toUserId).emit('notification:new', {
+                type: 'direct_message',
+                message: msg,
+                timestamp: new Date()
+            });
+
+            // Realtime Message Broadcast
+            const newMessage = {
+                id: Math.random().toString(36).substr(2, 9), // Temporary ID for realtime
+                text: cleanText,
+                senderId: userId,
+                timestamp: new Date(),
+                status: "sent"
+            };
+            getIO().to(toUserId).emit("receiveMessage", newMessage);
+
+            // Realtime Push via Service Worker / FCM
+            const pushData = { type: 'chat', from: userId, screen: 'connections' };
+            const { NotificationService } = await import('../services/notification');
+            NotificationService.getInstance().sendToUser(
+                toUserId, 
+                "New Direct Message! 💌", 
+                msg,
+                pushData
+            ).catch(e => console.warn("Push failed in direct msg", e));
+
+        } catch (err) {
+            console.warn("Notification failed for direct message:", err);
+        }
+
+        const remaining = user.is_premium ? "Unlimited" : Math.max(0, (user.free_direct_messages || 0) - 1);
+        res.json({ success: true, remaining });
+
+    } catch (e) {
+        console.error("Direct Message Error", e);
+        res.status(500).json({ error: "Failed to send direct message" });
+    }
+});
+
 // ...
 
 // Accept Request

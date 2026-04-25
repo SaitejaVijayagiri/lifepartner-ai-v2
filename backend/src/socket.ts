@@ -317,7 +317,43 @@ export const initSocket = (httpServer: HttpServer) => {
             // Broadcast Count to Public
             io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
 
-            socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });
+            // Lounge History Fetch & Cleanup
+            const fiveDaysAgo = new Date();
+            fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+
+            try {
+                // Auto-cleanup old messages asynchronously
+                prisma.lounge_messages.deleteMany({
+                    where: { created_at: { lt: fiveDaysAgo } }
+                }).catch(console.error);
+
+                // Fetch recent messages
+                const historyRaw = await prisma.lounge_messages.findMany({
+                    where: { created_at: { gte: fiveDaysAgo } },
+                    orderBy: { created_at: 'asc' },
+                    include: {
+                        users: {
+                            select: { id: true, full_name: true, avatar_url: true }
+                        }
+                    }
+                });
+
+                const history = historyRaw.map(msg => ({
+                    text: msg.text,
+                    sender: {
+                        id: msg.users.id,
+                        name: msg.users.full_name || 'Member',
+                        photo: msg.users.avatar_url,
+                        isVerified: true
+                    },
+                    timestamp: msg.created_at
+                }));
+
+                socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎", history });
+            } catch (err) {
+                console.error("Failed to fetch lounge history:", err);
+                socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });
+            }
 
             console.log(`User ${userId} joined verified_lounge`);
         });
@@ -347,6 +383,14 @@ export const initSocket = (httpServer: HttpServer) => {
                 },
                 timestamp: new Date()
             };
+
+            // Save to DB asynchronously
+            prisma.lounge_messages.create({
+                data: {
+                    sender_id: from,
+                    text: text
+                }
+            }).catch(console.error);
 
             // Emit to everyone in the 'verified_lounge' room
             io.to('verified_lounge').emit('receive_community_message', msgPayload);

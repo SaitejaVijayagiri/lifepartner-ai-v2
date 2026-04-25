@@ -6,6 +6,7 @@ import { ArrowLeft, Mail, Share2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
+import { useAuth } from '@/context/AuthContext';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
@@ -26,6 +27,7 @@ interface MatchCardProps {
 const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat, isConnectedProp }: MatchCardProps) {
     // Independent States
     const { onlineUsers } = useSocket();
+    const { user: currentUser, setUser } = useAuth() as any;
     const isUserOnline = match.isOnline || onlineUsers.includes(match.id);
 
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
@@ -40,6 +42,9 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [isPlaying, setIsPlaying] = useState(false); // Audio State
     const [showKundli, setShowKundli] = useState(false); // Modal State
     const [showReport, setShowReport] = useState(false); // Report Modal State
+    const [showDMModal, setShowDMModal] = useState(false);
+    const [dmText, setDmText] = useState("");
+    const [sendingDM, setSendingDM] = useState(false);
 
     // Counts
     const [likeCount, setLikeCount] = useState(match.total_likes || 0);
@@ -121,6 +126,37 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             // Revert
             setIsLiked(!newIsLiked);
             setLikeCount((prev: number) => !newIsLiked ? prev + 1 : prev - 1);
+        }
+        }
+    };
+
+    // 4. Handle Direct Message
+    const handleSendDM = async (e: React.FormEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dmText.trim() || sendingDM) return;
+
+        setSendingDM(true);
+        try {
+            const res = await api.client.post('/interactions/direct', {
+                toUserId: match.id,
+                text: dmText
+            });
+
+            toast.success("Direct Message sent!");
+            setShowDMModal(false);
+            setMatchStatus('connected'); // Immediately mark as connected in UI
+            
+            // Update local quota if needed
+            if (res.data && res.data.remaining !== undefined && res.data.remaining !== 'Unlimited') {
+                setUser({ ...currentUser, free_direct_messages: res.data.remaining });
+            }
+            
+            if (onConnect) onConnect(); // Trigger refresh if parent cares
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || err.message || "Failed to send Direct Message");
+        } finally {
+            setSendingDM(false);
         }
     };
 
@@ -295,17 +331,28 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             💬 Message
                         </Button>
                     ) : (
-                        <Button
-                            onClick={handleConnect}
-                            disabled={loading || isRequestSent}
-                            className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                }`}
-                            style={{ opacity: 1 }}
-                        >
-                            {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
-                        </Button>
+                        <div className="flex-1 flex gap-2">
+                            <Button
+                                onClick={handleConnect}
+                                disabled={loading || isRequestSent}
+                                className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                    }`}
+                                style={{ opacity: 1 }}
+                            >
+                                {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
+                            </Button>
+                            {!isRequestSent && (
+                                <Button
+                                    onClick={(e) => { e.stopPropagation(); setShowDMModal(true); }}
+                                    className="h-12 w-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
+                                    title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages || 0) + ' Left'})`}
+                                >
+                                    <Mail size={18} />
+                                </Button>
+                            )}
+                        </div>
                     )}
 
                     {/* 2. Like/Heart Button (Social Proof Action) */}
@@ -381,6 +428,50 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     targetUserId={match.id}
                     targetUserName={match.name}
                 />
+
+                {/* Direct Message Modal */}
+                {showDMModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.stopPropagation(); setShowDMModal(false); }}>
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200 cursor-default" onClick={e => e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-lg flex items-center gap-2 text-gray-900 dark:text-white">
+                                    <Mail className="text-purple-500" />
+                                    Direct Message
+                                </h3>
+                                <button onClick={() => setShowDMModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                                    <svg className="w-5 h-5 text-gray-500" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Send a direct message to <span className="font-bold text-gray-800 dark:text-gray-200">{match.name}</span> instantly, bypassing the match process.
+                            </p>
+                            
+                            {!currentUser?.is_premium && (
+                                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 p-3 rounded-xl mb-4 flex items-center gap-2 text-sm text-purple-800 dark:text-purple-300">
+                                    <Sparkles size={16} />
+                                    You have <strong>{currentUser?.free_direct_messages || 0}</strong> free messages left.
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSendDM}>
+                                <textarea
+                                    value={dmText}
+                                    onChange={e => setDmText(e.target.value)}
+                                    placeholder="Type something nice to start the conversation..."
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4 min-h-[100px] resize-none text-gray-900 dark:text-white"
+                                    autoFocus
+                                />
+                                <Button 
+                                    type="submit" 
+                                    disabled={sendingDM || !dmText.trim() || (!currentUser?.is_premium && (currentUser?.free_direct_messages || 0) <= 0)}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold h-12 shadow-lg"
+                                >
+                                    {sendingDM ? 'Sending...' : 'Send Direct Message'}
+                                </Button>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Share2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-import { api } from '@/lib/api';
+import { api, fetchAPI } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { Modal } from '@/components/ui/modal';
@@ -138,9 +138,12 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
         setSendingDM(true);
         try {
-            const res = await api.client.post('/interactions/direct', {
-                toUserId: match.id,
-                text: dmText
+            const res = await fetchAPI('/interactions/direct', {
+                method: 'POST',
+                body: JSON.stringify({
+                    toUserId: match.id,
+                    text: dmText
+                })
             });
 
             toast.success("Direct Message sent!");
@@ -148,13 +151,13 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             setMatchStatus('connected'); // Immediately mark as connected in UI
             
             // Update local quota if needed
-            if (res.data && res.data.remaining !== undefined && res.data.remaining !== 'Unlimited') {
-                setUser({ ...currentUser, free_direct_messages: res.data.remaining });
+            if (res.remaining !== undefined && res.remaining !== 'Unlimited') {
+                setUser({ ...currentUser, free_direct_messages: res.remaining });
             }
             
             if (onConnect) onConnect(); // Trigger refresh if parent cares
         } catch (err: any) {
-            toast.error(err.response?.data?.message || err.message || "Failed to send Direct Message");
+            toast.error(err.message || "Failed to send Direct Message");
         } finally {
             setSendingDM(false);
         }

@@ -179,7 +179,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                                     
                                     <Button 
                                         onClick={() => handleRSVP(event.id)}
-                                        variant={event.is_attending ? "outline" : "default"}
+                                        variant={event.is_attending ? "outline" : "primary"}
                                         className={`rounded-full h-8 px-4 text-xs font-bold transition-all ${event.is_attending ? 'border-green-200 text-green-700 hover:bg-green-50' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
                                     >
                                         {event.is_attending ? '✓ Joined' : 'RSVP Now'}

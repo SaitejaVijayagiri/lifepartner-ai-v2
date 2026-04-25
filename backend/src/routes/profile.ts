@@ -370,7 +370,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             motherTongue, dob, height, maritalStatus, // Accept DOB & Height & Marital Status
             photos, photoUrl,
             email, phone, // Added email and phone
-            savedStickers
+            savedStickers,
+            interests // Added interests/hobbies
         } = req.body;
 
         let finalPhotos: string[] = [];
@@ -567,7 +568,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     phone, // Added Phone
                     bio: cleanBio || finalBio, // Sync aboutMe to bio
                     expectations: cleanExpectations || undefined, // Store expectations separately
-                    savedStickers
+                    savedStickers,
+                    interests
                 };
 
                 // Upsert Profile

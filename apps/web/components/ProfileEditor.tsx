@@ -367,48 +367,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 <option value="Awaiting Divorce">Awaiting Divorce</option>
                             </select>
                         </div>
-                        {/* Mother Tongue - Added */}
+                        {/* Mother Tongue */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mother Tongue</label>
-                            <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
-                                value={formData.motherTongue || ''}
-                                onChange={e => handleChange('root', 'motherTongue', e.target.value)}
-                            >
+                            <select className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500" value={formData.motherTongue || ''} onChange={e => handleChange('root', 'motherTongue', e.target.value)}>
                                 <option value="">Select Language</option>
-                                <option value="Assamese">Assamese</option>
-                                <option value="Bengali">Bengali</option>
-                                <option value="Bhojpuri">Bhojpuri</option>
-                                <option value="Bodo">Bodo</option>
-                                <option value="Chhattisgarhi">Chhattisgarhi</option>
-                                <option value="Dogri">Dogri</option>
-                                <option value="English">English</option>
-                                <option value="Gujarati">Gujarati</option>
-                                <option value="Haryanvi">Haryanvi</option>
                                 <option value="Hindi">Hindi</option>
-                                <option value="Kannada">Kannada</option>
-                                <option value="Kashmiri">Kashmiri</option>
-                                <option value="Khasi">Khasi</option>
-                                <option value="Konkani">Konkani</option>
-                                <option value="Kumaoni">Kumaoni</option>
-                                <option value="Ladakhi">Ladakhi</option>
-                                <option value="Maithili">Maithili</option>
-                                <option value="Malayalam">Malayalam</option>
-                                <option value="Manipuri (Meitei)">Manipuri (Meitei)</option>
-                                <option value="Marathi">Marathi</option>
-                                <option value="Mizo">Mizo</option>
-                                <option value="Nagamese">Nagamese</option>
-                                <option value="Nepali">Nepali</option>
-                                <option value="Odia">Odia</option>
-                                <option value="Punjabi">Punjabi</option>
-                                <option value="Rajasthani">Rajasthani</option>
-                                <option value="Sanskrit">Sanskrit</option>
-                                <option value="Santali">Santali</option>
-                                <option value="Sindhi">Sindhi</option>
-                                <option value="Tamil">Tamil</option>
                                 <option value="Telugu">Telugu</option>
-                                <option value="Tulu">Tulu</option>
-                                <option value="Urdu">Urdu</option>
+                                <option value="Tamil">Tamil</option>
+                                <option value="Malayalam">Malayalam</option>
+                                <option value="Kannada">Kannada</option>
+                                <option value="Bengali">Bengali</option>
+                                <option value="Marathi">Marathi</option>
+                                <option value="Gujarati">Gujarati</option>
+                                <option value="Punjabi">Punjabi</option>
+                                <option value="English">English</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
@@ -736,9 +709,12 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Hobbies (Comma separated)</label>
                         <textarea
-                            className="w-full h-20 p-3 border rounded-md"
-                            value={formData.lifestyle?.hobbies || ''}
-                            onChange={(e) => handleChange('lifestyle', 'hobbies', e.target.value)}
+                            className="w-full h-20 p-3 border rounded-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                            value={Array.isArray(formData.interests) ? formData.interests.join(', ') : (formData.interests || '')}
+                            onChange={(e) => {
+                                const arr = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                handleChange('root', 'interests', arr);
+                            }}
                         />
                     </div>
                 </div>

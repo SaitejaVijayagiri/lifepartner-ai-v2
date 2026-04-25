@@ -220,14 +220,17 @@ export const api = {
         })
     },
     events: {
-        getAll: (lat?: number, lng?: number) => {
+        getAll: (lat?: number, lng?: number, filter?: string) => {
             const params = new URLSearchParams();
             if (lat !== undefined) params.append('lat', lat.toString());
             if (lng !== undefined) params.append('lng', lng.toString());
+            if (filter) params.append('filter', filter);
             return fetchAPI(`/events?${params.toString()}`);
         },
         create: (data: any) => fetchAPI('/events', { method: 'POST', body: JSON.stringify(data) }),
         rsvp: (id: string) => fetchAPI(`/events/${id}/rsvp`, { method: 'POST' }),
+        deleteEvent: (id: string) => fetchAPI(`/events/${id}`, { method: 'DELETE' }),
+        getAttendees: (id: string) => fetchAPI(`/events/${id}/attendees`),
         fixDb: () => fetchAPI('/events/fix-db')
     },
     verification: {

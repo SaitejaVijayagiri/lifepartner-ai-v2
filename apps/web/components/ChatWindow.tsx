@@ -742,7 +742,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     e.preventDefault();
                     handleSend(e);
                 }}
-                className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-2 items-center pb-[max(1rem,env(safe-area-inset-bottom))] relative"
+                className="p-2 sm:p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-1.5 sm:gap-2 items-center pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] relative"
             >
                 {showStickers && (
                     <StickerPicker
@@ -758,31 +758,31 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingMedia || isRecording}
-                    className="p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-all disabled:opacity-50"
+                    className="p-2 sm:p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-all disabled:opacity-50"
                     title="Send Photo"
                 >
-                    <Camera size={20} />
+                    <Camera className="w-5 h-5 sm:w-5 sm:h-5" />
                 </button>
 
                 {isRecording ? (
                     <button
                         type="button"
                         onClick={stopRecording}
-                        className="p-3 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition-all flex items-center gap-1 animate-pulse"
+                        className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 animate-pulse"
                         title="Stop Recording"
                     >
-                        <Square size={16} fill="currentColor" />
-                        <span className="text-xs font-bold">{recordingTime}s</span>
+                        <Square className="w-4 h-4" fill="currentColor" />
+                        <span className="text-[10px] sm:text-xs font-bold">{recordingTime}s</span>
                     </button>
                 ) : (
                     <button
                         type="button"
                         onClick={startRecording}
                         disabled={isUploadingMedia}
-                        className="p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-all disabled:opacity-50"
+                        className="p-2 sm:p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-all disabled:opacity-50"
                         title="Record Audio"
                     >
-                        <Mic size={20} />
+                        <Mic className="w-5 h-5" />
                     </button>
                 )}
 
@@ -790,10 +790,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     type="button"
                     onClick={() => setShowStickers(!showStickers)}
                     disabled={isUploadingMedia || isRecording}
-                    className={`p-3 rounded-xl transition-all disabled:opacity-50 ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    className={`hidden sm:block p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all disabled:opacity-50 ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                     title="Send Sticker"
                 >
-                    <SmilePlus size={20} />
+                    <SmilePlus className="w-5 h-5" />
                 </button>
                 <button
                     type="button"
@@ -809,16 +809,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     type="text"
                     value={inputText}
                     onChange={handleInput}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500 dark:text-white"
+                    placeholder="Type..."
+                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500 dark:text-white"
                 />
 
                 <button
                     type="submit"
                     disabled={!inputText.trim()}
-                    className="p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none transition-all"
+                    className="p-2 sm:p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full sm:rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none transition-all flex-shrink-0"
                 >
-                    <Send size={18} />
+                    <Send className="w-4 h-4 sm:w-5 sm:h-5 relative -ml-0.5 sm:ml-0" />
                 </button>
             </form>
 

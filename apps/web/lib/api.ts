@@ -133,8 +133,12 @@ export const api = {
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             });
-            if (!res.ok) throw new Error('Upload failed');
-            return res.json();
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                console.error("Upload API Error:", data);
+                throw new Error(data.error || data.details || 'Upload failed');
+            }
+            return data;
         }
     },
     games: {

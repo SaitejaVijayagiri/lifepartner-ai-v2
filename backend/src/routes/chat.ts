@@ -3,7 +3,12 @@ import { sanitizeContent } from '../utils/contentFilter';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
-import { upload } from '../middleware/upload';
+import multer from 'multer';
+
+const memoryUpload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
 
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
@@ -341,7 +346,7 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
 });
 
 // UPLOAD Chat Media (Photos/Audio)
-router.post('/upload-media', authenticateToken, upload.single('file'), async (req: any, res) => {
+router.post('/upload-media', authenticateToken, memoryUpload.single('file'), async (req: any, res) => {
     const userId = req.user.userId;
     const file = req.file;
 
@@ -353,26 +358,23 @@ router.post('/upload-media', authenticateToken, upload.single('file'), async (re
         const ext = file.mimetype.startsWith('audio') ? 'webm' : 'jpg';
         const filename = `chat_media/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
-        const fs = require('fs');
-        const fileBuffer = fs.readFileSync(file.path);
-
         const { data, error } = await supabase.storage
             .from('profiles')
-            .upload(filename, fileBuffer, {
+            .upload(filename, file.buffer, {
                 contentType: file.mimetype,
                 upsert: true
             });
 
-        // Cleanup temp file
-        try { fs.unlinkSync(file.path); } catch (e) {}
-
-        if (error) throw error;
+        if (error) {
+            console.error("Supabase Storage Error:", error);
+            throw error;
+        }
 
         const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
         res.json({ success: true, url: publicUrl });
     } catch (e: any) {
         console.error("Media Upload Error", e);
-        res.status(500).json({ error: "Failed to upload media" });
+        res.status(500).json({ error: "Failed to upload media", details: e.message || String(e) });
     }
 });
 

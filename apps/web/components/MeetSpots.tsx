@@ -22,7 +22,8 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
     const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
-        fetchEvents();
+        // Silently ensure the meet_events table exists before fetching
+        api.events.fixDb().catch(() => {}).finally(() => fetchEvents());
     }, []);
 
     const fetchEvents = async () => {
@@ -38,7 +39,9 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                 setEvents(res.events || []);
             }
         } catch (err: any) {
-            toast.error("Failed to load meet spots");
+            // If table still missing, show empty state rather than error toast
+            setEvents([]);
+            console.warn('MeetSpots fetch error:', err.message);
         } finally {
             setLoading(false);
         }

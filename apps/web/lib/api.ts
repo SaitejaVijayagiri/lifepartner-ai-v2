@@ -136,7 +136,8 @@ export const api = {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 console.error("Upload API Error:", data);
-                throw new Error(data.error || data.details || 'Upload failed');
+                const errorMsg = data.details ? `${data.error}: ${data.details}` : (data.error || 'Upload failed');
+                throw new Error(errorMsg);
             }
             return data;
         }

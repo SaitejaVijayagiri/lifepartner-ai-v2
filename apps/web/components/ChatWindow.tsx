@@ -862,8 +862,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {/* Fullscreen Image Overlay */}
             {fullscreenImage && (
                 <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
-                    <button className="absolute top-4 right-4 p-1.5 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all" onClick={() => setFullscreenImage(null)}>
-                        <X size={20} />
+                    <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[110] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}>
+                        <X size={20} strokeWidth={3} />
                     </button>
                     <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
                 </div>

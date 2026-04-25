@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { MapPin, Calendar, Users, Plus, Loader2, Navigation, X, Zap, Sparkles, Trash2, LocateFixed, Pencil } from 'lucide-react';
+import { MapPin, Calendar, Users, Plus, Loader2, Navigation, X, Zap, Sparkles, Trash2, LocateFixed, Pencil, Search, Share2, CalendarPlus, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -199,14 +199,133 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
         } catch { setAttendees([]); } finally { setLoadingAttendees(false); }
     };
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortBy, setSortBy] = useState<'date' | 'distance'>('date');
+
     const formatDate = (s: string) => new Date(s).toLocaleString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
     const timeUntil = (s: string) => {
         const h = Math.floor((new Date(s).getTime() - Date.now()) / 3600000);
         return h < 1 ? 'Starting soon!' : h < 24 ? `${h}h away` : `${Math.floor(h/24)}d away`;
     };
+    const isToday = (s: string) => {
+        const d = new Date(s);
+        const now = new Date();
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    };
 
-    const filtered = events.filter(e => activeCategory === 'All' || e.category === activeCategory);
+    const addToCalendar = (event: any) => {
+        const start = new Date(event.event_date);
+        const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+        const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        const ics = [
+            'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MeetSpots//EN',
+            'BEGIN:VEVENT',
+            `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
+            `SUMMARY:${event.title}`,
+            `DESCRIPTION:${(event.description || '').replace(/\n/g, '\\n')}`,
+            `LOCATION:${event.location_name}`,
+            'END:VEVENT', 'END:VCALENDAR'
+        ].join('\r\n');
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `${event.title.replace(/[^a-z0-9]/gi, '_')}.ics`;
+        a.click(); URL.revokeObjectURL(url);
+    };
+
+    const shareEvent = async (event: any) => {
+        const text = `Join me at "${event.title}" on ${formatDate(event.event_date)} at ${event.location_name} 📍\n\nFind it on LifePartner AI`;
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try { await navigator.share({ title: event.title, text }); return; } catch {}
+        }
+        try {
+            await navigator.clipboard.writeText(text);
+            toast.success('📋 Event details copied!');
+        } catch { toast.error('Could not copy'); }
+    };
+
+    const filtered = events
+        .filter(e => activeCategory === 'All' || e.category === activeCategory)
+        .filter(e => !searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase()) || e.location_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => {
+            if (sortBy === 'distance' && a.distance != null && b.distance != null)
+                return parseFloat(a.distance) - parseFloat(b.distance);
+            return new Date(a.event_date).getTime() - new Date(b.event_date).getTime();
+        });
+
+    const todayEvents = filtered.filter(e => isToday(e.event_date));
+    const upcomingEvents = filtered.filter(e => !isToday(e.event_date));
     const isFull = (e: any) => e.max_attendees && e.attendee_count >= e.max_attendees;
+
+    const renderCard = (event: any) => {
+        const grad = CATEGORY_COLORS[event.category] || 'from-indigo-500 to-blue-500';
+        const full = isFull(event);
+        return (
+            <div key={event.id} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all flex flex-col">
+                <div className={`h-24 bg-gradient-to-br ${grad} relative overflow-hidden`}>
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.4) 1px,transparent 0)', backgroundSize: '14px 14px' }} />
+                    <div className="absolute top-3 left-3 bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1">
+                        <Zap size={9} className="fill-yellow-300 text-yellow-300" /> {timeUntil(event.event_date)}
+                    </div>
+                    {full && <div className="absolute top-3 right-14 bg-red-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-white">FULL</div>}
+                    <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white">
+                        {CATEGORIES.find(c => c.id === event.category)?.emoji}
+                    </div>
+                    <div className="absolute -bottom-5 left-4">
+                        <img src={event.creator_photo || '/avatar-fallback.svg'} alt={event.creator_name}
+                            className="w-11 h-11 rounded-full border-2 border-white dark:border-gray-800 object-cover shadow bg-gray-100"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
+                    </div>
+                    {event.is_creator && (
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                            <button onClick={() => openEdit(event)} className="p-1.5 bg-black/30 hover:bg-indigo-500/80 rounded-full text-white transition-colors" title="Edit"><Pencil size={12} /></button>
+                            <button onClick={() => handleDelete(event.id)} className="p-1.5 bg-black/30 hover:bg-red-500/80 rounded-full text-white transition-colors" title="Cancel"><Trash2 size={12} /></button>
+                        </div>
+                    )}
+                </div>
+                <div className="pt-7 p-4 flex-1 flex flex-col gap-1">
+                    <div className="flex items-start justify-between gap-1">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 flex-1">{event.title}</h3>
+                        {event.is_creator && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">HOST</span>}
+                    </div>
+                    <p className="text-[10px] text-gray-400">by {event.creator_name}</p>
+                    <div className="space-y-1 mt-1 mb-2 flex-1">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"><Calendar size={12} className="text-indigo-500" /><span className="font-medium">{formatDate(event.event_date)}</span></div>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"><MapPin size={12} className="text-rose-500" /><span className="line-clamp-1">{event.location_name}</span></div>
+                        {event.distance != null && <div className="flex items-center gap-1.5 text-xs text-gray-400"><Navigation size={12} className="text-blue-400" /><span>{parseFloat(event.distance).toFixed(1)} km away</span></div>}
+                        {event.description && <p className="text-[11px] text-gray-400 italic line-clamp-2 pl-2 border-l-2 border-gray-200 dark:border-gray-700 mt-1">{event.description}</p>}
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <button onClick={() => openAttendees(event.id, event.title)} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-indigo-600 transition-colors">
+                            <Users size={13} className={event.is_attending ? 'text-green-500' : 'text-gray-400'} />
+                            <span>{event.attendee_count}{event.max_attendees ? `/${event.max_attendees}` : ''} going</span>
+                        </button>
+                        {event.is_creator ? (
+                            <span className="text-[10px] text-gray-400 italic">Your event</span>
+                        ) : (
+                            <button onClick={() => handleRSVP(event.id)} disabled={full && !event.is_attending}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    event.is_attending ? 'bg-green-50 dark:bg-green-900/30 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                                    : full ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                                    : `bg-gradient-to-r ${grad} text-white shadow-sm hover:shadow-md`}`}>
+                                {event.is_attending ? '✓ Joined' : full ? 'Full' : '+ RSVP'}
+                            </button>
+                        )}
+                    </div>
+                    {/* Share & Calendar */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-gray-50 dark:border-gray-700/50 mt-1">
+                        <button onClick={() => shareEvent(event)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                            <Share2 size={12} /> Share
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+                        <button onClick={() => addToCalendar(event)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                            <CalendarPlus size={12} /> Add to Calendar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="space-y-5 pb-4">
@@ -241,6 +360,27 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                 ))}
             </div>
 
+            {/* Search + Sort row */}
+            <div className="flex gap-2">
+                <div className="relative flex-1">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search events or venues..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 text-sm border rounded-full bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <button
+                    onClick={() => setSortBy(s => s === 'date' ? 'distance' : 'date')}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-indigo-300 transition-all flex-shrink-0"
+                >
+                    <ArrowUpDown size={13} />
+                    {sortBy === 'date' ? 'By Date' : 'By Distance'}
+                </button>
+            </div>
+
             {/* Category chips */}
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                 {CATEGORIES.map(cat => (
@@ -256,81 +396,44 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                 <div className="flex flex-col items-center py-16 gap-3"><Loader2 className="w-7 h-7 animate-spin text-indigo-500" /><p className="text-sm text-gray-400">Finding meetups near you...</p></div>
             ) : filtered.length === 0 ? (
                 <div className="bg-white dark:bg-gray-800 p-10 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
-                    <div className="text-4xl mb-3">📍</div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No meetups found</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">Be the first to host one in your area!</p>
-                    <Button onClick={() => setShowCreate(true)} variant="outline" className="rounded-full">+ Host a Meetup</Button>
+                    <div className="text-4xl mb-3">{searchQuery ? '🔍' : '📍'}</div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{searchQuery ? 'No results found' : 'No meetups found'}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">{searchQuery ? `Try a different search term` : 'Be the first to host one in your area!'}</p>
+                    {!searchQuery && <Button onClick={() => setShowCreate(true)} variant="outline" className="rounded-full">+ Host a Meetup</Button>}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filtered.map(event => {
-                        const grad = CATEGORY_COLORS[event.category] || 'from-indigo-500 to-blue-500';
-                        const full = isFull(event);
-                        return (
-                            <div key={event.id} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all flex flex-col">
-                                <div className={`h-24 bg-gradient-to-br ${grad} relative overflow-hidden`}>
-                                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.4) 1px,transparent 0)', backgroundSize: '14px 14px' }} />
-                                    <div className="absolute top-3 left-3 bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1">
-                                        <Zap size={9} className="fill-yellow-300 text-yellow-300" /> {timeUntil(event.event_date)}
-                                    </div>
-                                    {full && <div className="absolute top-3 right-14 bg-red-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-white">FULL</div>}
-                                    <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white">
-                                        {CATEGORIES.find(c => c.id === event.category)?.emoji}
-                                    </div>
-                                    <div className="absolute -bottom-5 left-4">
-                                        <img src={event.creator_photo || '/avatar-fallback.svg'} alt={event.creator_name}
-                                            className="w-11 h-11 rounded-full border-2 border-white dark:border-gray-800 object-cover shadow bg-gray-100"
-                                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
-                                    </div>
-                                    {event.is_creator && (
-                                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                                            <button onClick={() => openEdit(event)}
-                                                className="p-1.5 bg-black/30 hover:bg-indigo-500/80 rounded-full text-white transition-colors" title="Edit event">
-                                                <Pencil size={12} />
-                                            </button>
-                                            <button onClick={() => handleDelete(event.id)}
-                                                className="p-1.5 bg-black/30 hover:bg-red-500/80 rounded-full text-white transition-colors" title="Cancel event">
-                                                <Trash2 size={12} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="pt-7 p-4 flex-1 flex flex-col gap-1">
-                                    <div className="flex items-start justify-between gap-1">
-                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 flex-1">{event.title}</h3>
-                                        {event.is_creator && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">HOST</span>}
-                                    </div>
-                                    <p className="text-[10px] text-gray-400">by {event.creator_name}</p>
-
-                                    <div className="space-y-1 mt-1 mb-3 flex-1">
-                                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"><Calendar size={12} className="text-indigo-500" /><span className="font-medium">{formatDate(event.event_date)}</span></div>
-                                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"><MapPin size={12} className="text-rose-500" /><span className="line-clamp-1">{event.location_name}</span></div>
-                                        {event.distance != null && <div className="flex items-center gap-1.5 text-xs text-gray-400"><Navigation size={12} className="text-blue-400" /><span>{parseFloat(event.distance).toFixed(1)} km away</span></div>}
-                                        {event.description && <p className="text-[11px] text-gray-400 italic line-clamp-2 pl-2 border-l-2 border-gray-200 dark:border-gray-700 mt-1">{event.description}</p>}
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                                        <button onClick={() => openAttendees(event.id, event.title)} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-indigo-600 transition-colors">
-                                            <Users size={13} className={event.is_attending ? 'text-green-500' : 'text-gray-400'} />
-                                            <span>{event.attendee_count}{event.max_attendees ? `/${event.max_attendees}` : ''} going</span>
-                                        </button>
-                                        {event.is_creator ? (
-                                            <span className="text-[10px] text-gray-400 italic">Your event</span>
-                                        ) : (
-                                            <button onClick={() => handleRSVP(event.id)} disabled={full && !event.is_attending}
-                                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                    event.is_attending ? 'bg-green-50 dark:bg-green-900/30 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
-                                                    : full ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
-                                                    : `bg-gradient-to-r ${grad} text-white shadow-sm hover:shadow-md`}`}>
-                                                {event.is_attending ? '✓ Joined' : full ? 'Full' : '+ RSVP'}
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                <div className="space-y-6">
+                    {/* TODAY section */}
+                    {todayEvents.length > 0 && (
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-sm font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+                                    <Zap size={14} className="fill-orange-400" /> Happening Today
+                                </span>
+                                <div className="flex-1 h-px bg-orange-100 dark:bg-orange-900/30" />
+                                <span className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400 px-2 py-0.5 rounded-full font-semibold">{todayEvents.length}</span>
                             </div>
-                        );
-                    })}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {todayEvents.map(event => renderCard(event))}
+                            </div>
+                        </div>
+                    )}
+                    {/* UPCOMING section */}
+                    {upcomingEvents.length > 0 && (
+                        <div>
+                            {todayEvents.length > 0 && (
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                                        <Calendar size={14} /> Upcoming
+                                    </span>
+                                    <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                                </div>
+                            )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {upcomingEvents.map(event => renderCard(event))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

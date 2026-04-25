@@ -421,8 +421,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const handleReact = async (msgId: string, emoji: string) => {
         setEmojiPickerMsgId(null);
-        const uid = user?.id;
-        if (!uid) return;
+        // Fallback checks for legacy authentication states
+        const uid = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
+        if (!uid) {
+            console.error("No user ID found for reaction");
+            return;
+        }
         // Optimistic update
         setMessages(prev => prev.map(m => {
             if (m.id !== msgId) return m;
@@ -610,14 +614,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     {emojiPickerMsgId === msg.id && (
                                         <div
                                             className={`absolute ${isMe ? 'right-0' : 'left-0'} -top-12 z-50 flex gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-2 py-1.5 shadow-xl animate-in zoom-in-95 duration-150`}
-                                            onMouseLeave={() => setEmojiPickerMsgId(null)}
                                         >
                                             {QUICK_EMOJIS.map(e => (
                                                 <button
                                                     key={e}
                                                     onClick={() => handleReact(msg.id, e)}
                                                     className={`text-lg hover:scale-125 transition-transform p-0.5 rounded-lg ${
-                                                        (msg.reactions || {})[user?.id ?? ''] === e
+                                                        (msg.reactions || {})[user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '') || ''] === e
                                                             ? 'bg-indigo-100 dark:bg-indigo-900'
                                                             : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                                     }`}
@@ -693,7 +696,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                             onClick={() => handleReact(msg.id, emoji)}
                                                             title={users.join(', ')}
                                                             className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-all hover:scale-105 ${
-                                                                (msg.reactions as any)[user?.id ?? ''] === emoji
+                                                                (msg.reactions as any)[user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : '') || ''] === emoji
                                                                     ? 'bg-indigo-100 border-indigo-300 dark:bg-indigo-900 dark:border-indigo-700'
                                                                     : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm'
                                                             }`}

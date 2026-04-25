@@ -295,10 +295,10 @@ function DashboardContent() {
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
         { id: 'map', label: 'Live Map', icon: MapPin },
-        { id: 'events', label: 'Meet Spots', icon: Calendar },
-        { id: 'community', label: 'Lounge', icon: Coffee },
-        { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
+        { id: 'events', label: 'Meet Spots', icon: Calendar, highlight: true },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
+        { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
+        { id: 'community', label: 'Lounge', icon: Coffee },
         { id: 'profile', label: 'Profile', icon: User },
     ];
 
@@ -656,13 +656,20 @@ function DashboardContent() {
                                 onClick={() => setActiveTab(item.id)}
                                 className={`
                                     px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all
-                                    ${activeTab === item.id
-                                        ? 'bg-primary/10 text-primary dark:text-indigo-400'
-                                        : 'text-muted-foreground hover:bg-secondary/50 dark:hover:bg-gray-700 hover:text-foreground md:dark:hover:text-gray-200'}
+                                    ${'highlight' in item && item.highlight
+                                        ? activeTab === item.id
+                                            ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                                            : 'bg-gradient-to-r from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/40 text-violet-700 dark:text-violet-300 hover:from-violet-200 hover:to-indigo-200'
+                                        : activeTab === item.id
+                                            ? 'bg-primary/10 text-primary dark:text-indigo-400'
+                                            : 'text-muted-foreground hover:bg-secondary/50 dark:hover:bg-gray-700 hover:text-foreground md:dark:hover:text-gray-200'}
                                 `}
                             >
                                 <item.icon size={18} />
                                 {item.label}
+                                {'highlight' in item && item.highlight && activeTab !== item.id && (
+                                    <span className="inline-flex w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+                                )}
                                 {item.badge ? (
                                     <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{item.badge}</span>
                                 ) : null}

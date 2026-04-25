@@ -344,11 +344,11 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             </Button>
                             {!isRequestSent && (
                                 <Button
-                                    onClick={(e) => { e.stopPropagation(); setShowDMModal(true); }}
-                                    className="h-12 w-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
+                                    className="h-12 w-12 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
                                     title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages || 0) + ' Left'})`}
                                 >
-                                    <Mail size={18} />
+                                    <Mail size={20} />
                                 </Button>
                             )}
                         </div>
@@ -430,14 +430,14 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
                 {/* Direct Message Modal */}
                 {showDMModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.stopPropagation(); setShowDMModal(false); }}>
-                        <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200 cursor-default" onClick={e => e.stopPropagation()}>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(false); }}>
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl max-w-sm w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200 cursor-default" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-lg flex items-center gap-2 text-gray-900 dark:text-white">
                                     <Mail className="text-purple-500" />
                                     Direct Message
                                 </h3>
-                                <button onClick={() => setShowDMModal(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(false); }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
                                     <svg className="w-5 h-5 text-gray-500" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </button>
                             </div>

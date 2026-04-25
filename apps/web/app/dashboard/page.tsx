@@ -9,7 +9,7 @@ import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
 import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
-import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun } from 'lucide-react';
+import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar } from 'lucide-react';
 
 import { Notifications } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
@@ -35,6 +35,7 @@ const GiftModal = dynamic(() => import('@/components/GiftModal'));
 const GameModal = dynamic(() => import('@/components/GameModal'));
 const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
 const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
+const MeetSpots = dynamic(() => import('@/components/MeetSpots'));
 import { Capacitor } from '@capacitor/core';
 
 // Duplicate InteractiveMap removed
@@ -294,6 +295,7 @@ function DashboardContent() {
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
         { id: 'map', label: 'Live Map', icon: MapPin },
+        { id: 'events', label: 'Meet Spots', icon: Calendar },
         { id: 'community', label: 'Lounge', icon: Coffee },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
@@ -1417,6 +1419,7 @@ function DashboardContent() {
 
                     {activeTab === 'requests' && renderRequests()}
                     {activeTab === 'connections' && renderConnections()}
+                    {activeTab === 'events' && <MeetSpots currentUser={currentUser} />}
 
                     {activeTab === 'community' && (
                         <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">

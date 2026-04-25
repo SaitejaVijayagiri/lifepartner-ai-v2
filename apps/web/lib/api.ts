@@ -219,6 +219,17 @@ export const api = {
             body: JSON.stringify(body)
         })
     },
+    events: {
+        getAll: (lat?: number, lng?: number) => {
+            const params = new URLSearchParams();
+            if (lat !== undefined) params.append('lat', lat.toString());
+            if (lng !== undefined) params.append('lng', lng.toString());
+            return fetchAPI(`/events?${params.toString()}`);
+        },
+        create: (data: any) => fetchAPI('/events', { method: 'POST', body: JSON.stringify(data) }),
+        rsvp: (id: string) => fetchAPI(`/events/${id}/rsvp`, { method: 'POST' }),
+        fixDb: () => fetchAPI('/events/fix-db')
+    },
     verification: {
         request: (documentUrl?: string) => fetchAPI('/verification/request', {
             method: 'POST',

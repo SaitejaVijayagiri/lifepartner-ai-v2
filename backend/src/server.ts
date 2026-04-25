@@ -35,6 +35,7 @@ import adminRoutes from './routes/admin';
 import blogRoutes from './routes/blog';
 import migrateRoutes from './routes/migrate';
 import photoRoutes from './routes/photo';
+import eventRoutes from './routes/events';
 import path from 'path';
 
 
@@ -172,6 +173,7 @@ if (process.env.NODE_ENV !== 'production') {
     console.log('⚠️  /migrate route enabled (non-production mode)');
 }
 app.use('/photo', photoRoutes);     // Image proxy — bypasses India ISP Supabase DNS block
+app.use('/events', eventRoutes);    // Meet Spots feature
 
 // Debug Environment on Startup
 console.log("------------------------------------------------");

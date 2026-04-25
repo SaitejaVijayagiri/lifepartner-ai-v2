@@ -49,7 +49,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
+        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-safe">
             <div className="relative flex justify-center pb-3 px-3">
 
                 {/* ─── More Popup (renders ABOVE the nav bar) ─── */}
@@ -57,7 +57,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                     <div
                         ref={moreRef}
                         className="absolute bottom-full mb-3 right-3 w-52 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200"
-                        style={{ zIndex: 9999 }}
+                        style={{ zIndex: 1001 }}
                     >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                             <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">More</span>

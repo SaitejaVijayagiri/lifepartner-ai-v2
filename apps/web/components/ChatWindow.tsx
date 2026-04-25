@@ -686,7 +686,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         const reactionCounts: Record<string, string[]> = {};
                                         Object.entries(msg.reactions as Record<string, string>).forEach(([uid, emoji]) => {
                                             if (!reactionCounts[emoji]) reactionCounts[emoji] = [];
-                                            reactionCounts[emoji].push(uid === user?.id ? 'You' : (uid === partner.id ? partner.name : uid.slice(0, 6)));
+                                            const currentUserId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
+                                            reactionCounts[emoji].push(uid === currentUserId ? 'You' : (uid === partner.id ? partner.name : uid.slice(0, 6)));
                                         });
                                         return (
                                             <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -704,9 +705,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                             <span>{emoji}</span>
                                                             {users.length > 1 && <span className="text-gray-600 dark:text-gray-300 font-medium">{users.length}</span>}
                                                         </button>
-                                                        <span className="text-[10px] text-gray-500 max-w-[60px] truncate opacity-70">
-                                                            {users.join(', ')}
-                                                        </span>
                                                     </div>
                                                 ))}
                                             </div>

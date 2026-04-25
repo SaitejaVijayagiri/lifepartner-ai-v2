@@ -21,6 +21,14 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
         if (!data.photos || data.photos.length === 0) {
             data.photos = data.photoUrl ? [data.photoUrl] : [];
         }
+        
+        // Initialize a raw string for editing interests so commas don't get filtered out while typing
+        if (Array.isArray(data.interests)) {
+            data.interests_raw = data.interests.join(', ');
+        } else if (typeof data.interests === 'string') {
+            data.interests_raw = data.interests;
+        }
+
         return data;
     });
     const [loading, setLoading] = useState(false);
@@ -75,6 +83,11 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
             // derive it from the photos[] array after uploading to Supabase
             if (payload.photoUrl && typeof payload.photoUrl === 'string' && payload.photoUrl.startsWith('data:')) {
                 delete payload.photoUrl;
+            }
+
+            // Convert raw comma separated interests back into an array before saving
+            if (payload.interests_raw !== undefined) {
+                payload.interests = payload.interests_raw.split(',').map((s: string) => s.trim()).filter(Boolean);
             }
 
             const res = await api.profile.updateProfile(payload);
@@ -710,11 +723,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <label className="text-sm font-medium">Hobbies (Comma separated)</label>
                         <textarea
                             className="w-full h-20 p-3 border rounded-md bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100"
-                            value={Array.isArray(formData.interests) ? formData.interests.join(', ') : (formData.interests || '')}
-                            onChange={(e) => {
-                                const arr = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                                handleChange('root', 'interests', arr);
-                            }}
+                            value={formData.interests_raw ?? (Array.isArray(formData.interests) ? formData.interests.join(', ') : (formData.interests || ''))}
+                            onChange={(e) => handleChange('root', 'interests_raw', e.target.value)}
                         />
                     </div>
                 </div>

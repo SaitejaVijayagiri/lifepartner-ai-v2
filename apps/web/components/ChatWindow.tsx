@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -33,6 +33,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const { socket, onlineUsers } = useSocket() as any;
     const { user, login } = useAuth() as any;
     const toast = useToast();
+    
+    // Media & Recording State
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<BlobPart[]>([]);
+    const recordingTimerRef = useRef<NodeJS.Timeout>();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isUploadingMedia, setIsUploadingMedia] = useState(false);
     
     // Internal state for partner info to handle missing query params
     const [partnerInfo, setPartnerInfo] = useState(partner);
@@ -69,6 +78,89 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     // AI Wingman State
     const [loadingAi, setLoadingAi] = useState(false);
     const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+
+    const handleClearChat = async () => {
+        if (!confirm("Are you sure you want to clear this chat history? This cannot be undone.")) return;
+        try {
+            await api.chat.clearHistory(partner.id);
+            setMessages([]);
+            toast.success("Chat history cleared");
+        } catch (e) {
+            toast.error("Failed to clear chat history");
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) audioChunksRef.current.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                stream.getTracks().forEach(track => track.stop());
+                
+                setIsUploadingMedia(true);
+                try {
+                    const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
+                    const res = await api.chat.uploadMedia(audioFile);
+                    if (res.url) handleSend(undefined, `[AUDIO]${res.url}`);
+                } catch (e) {
+                    toast.error("Failed to upload audio message");
+                } finally {
+                    setIsUploadingMedia(false);
+                }
+                
+                setIsRecording(false);
+                setRecordingTime(0);
+                clearInterval(recordingTimerRef.current);
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+            setRecordingTime(0);
+            
+            recordingTimerRef.current = setInterval(() => {
+                setRecordingTime(prev => {
+                    if (prev >= 59) {
+                        stopRecording();
+                        return 60;
+                    }
+                    return prev + 1;
+                });
+            }, 1000);
+        } catch (e) {
+            console.error("Microphone access denied", e);
+            toast.error("Microphone access denied");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setIsUploadingMedia(true);
+        try {
+            const res = await api.chat.uploadMedia(file);
+            if (res.url) handleSend(undefined, `[IMAGE]${res.url}`);
+        } catch (err) {
+            toast.error("Failed to upload image");
+        } finally {
+            setIsUploadingMedia(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
 
     const handleViewProfile = async () => {
         try {
@@ -392,6 +484,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                     <div className="flex gap-1 relative z-10 flex-shrink-0">
                         <button
+                            onClick={handleClearChat}
+                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                            title="Clear Chat"
+                        >
+                            <Trash2 size={20} />
+                        </button>
+                        <button
                             onClick={() => setShowGiftModal(true)}
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                             title="Send Gift"
@@ -519,6 +618,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         }`}>
                                         {msg.text.startsWith('[STICKER]') ? (
                                             <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
+                                        ) : msg.text.startsWith('[IMAGE]') ? (
+                                            <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => window.open(msg.text.replace('[IMAGE]', ''), '_blank')} />
+                                        ) : msg.text.startsWith('[AUDIO]') ? (
+                                            <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
                                         ) : (
                                             msg.text
                                         )}
@@ -650,10 +753,44 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         }}
                     />
                 )}
+                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingMedia || isRecording}
+                    className="p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-all disabled:opacity-50"
+                    title="Send Photo"
+                >
+                    <Camera size={20} />
+                </button>
+
+                {isRecording ? (
+                    <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="p-3 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition-all flex items-center gap-1 animate-pulse"
+                        title="Stop Recording"
+                    >
+                        <Square size={16} fill="currentColor" />
+                        <span className="text-xs font-bold">{recordingTime}s</span>
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={startRecording}
+                        disabled={isUploadingMedia}
+                        className="p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-all disabled:opacity-50"
+                        title="Record Audio"
+                    >
+                        <Mic size={20} />
+                    </button>
+                )}
+
                 <button
                     type="button"
                     onClick={() => setShowStickers(!showStickers)}
-                    className={`p-3 rounded-xl transition-all ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    disabled={isUploadingMedia || isRecording}
+                    className={`p-3 rounded-xl transition-all disabled:opacity-50 ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                     title="Send Sticker"
                 >
                     <SmilePlus size={20} />
@@ -661,8 +798,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <button
                     type="button"
                     onClick={handleIcebreaker}
-                    disabled={loadingAi}
-                    className="p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50"
+                    disabled={loadingAi || isRecording || isUploadingMedia}
+                    className="hidden sm:block p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50"
                     title="AI Wingman"
                 >
                     <Sparkles size={18} className={loadingAi ? 'animate-spin' : ''} />

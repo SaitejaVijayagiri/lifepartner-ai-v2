@@ -2,6 +2,10 @@ import express from 'express';
 import { sanitizeContent } from '../utils/contentFilter';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
+import { createClient } from '@supabase/supabase-js';
+import { upload } from '../middleware/upload';
+
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
 const router = express.Router();
 
@@ -57,16 +61,22 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             });
         }
 
-        // Format for frontend and restore chronological order
-        const history = messages.reverse().map((row: any) => ({
-            id: row.id,
-            text: row.content,
-            senderId: row.sender_id,
-            timestamp: row.created_at,
-            status: row.delivery_status,
-            is_liked: row.is_liked ?? false,
-            reactions: row.reactions ?? {}
-        }));
+        // Format for frontend and restore chronological order, filtering out cleared messages
+        const history = messages
+            .filter((row: any) => {
+                const clearedBy = Array.isArray(row.cleared_by) ? row.cleared_by : [];
+                return !clearedBy.includes(userId);
+            })
+            .reverse()
+            .map((row: any) => ({
+                id: row.id,
+                text: row.content,
+                senderId: row.sender_id,
+                timestamp: row.created_at,
+                status: row.delivery_status,
+                is_liked: row.is_liked ?? false,
+                reactions: row.reactions ?? {}
+            }));
 
         res.json(history);
     } catch (e) {
@@ -293,6 +303,70 @@ router.post('/:connectionId/read', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Mark Read Error", e);
         res.status(500).json({ error: "Failed" });
+    }
+});
+
+// DELETE Chat History (Soft Delete)
+router.delete('/:connectionId/history', authenticateToken, async (req: any, res) => {
+    const { connectionId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const msgs = await prisma.messages.findMany({
+            where: {
+                OR: [
+                    { sender_id: userId, receiver_id: connectionId },
+                    { sender_id: connectionId, receiver_id: userId }
+                ]
+            }
+        });
+
+        const updatePromises = msgs.map(async (msg) => {
+            const clearedBy: string[] = Array.isArray((msg as any).cleared_by) ? (msg as any).cleared_by : [];
+            if (!clearedBy.includes(userId)) {
+                clearedBy.push(userId);
+                return (prisma.messages as any).update({
+                    where: { id: msg.id },
+                    data: { cleared_by: clearedBy }
+                });
+            }
+        });
+
+        await Promise.all(updatePromises);
+        res.json({ success: true, message: "Chat cleared successfully" });
+    } catch (e) {
+        console.error("Clear Chat Error", e);
+        res.status(500).json({ error: "Failed to clear chat" });
+    }
+});
+
+// UPLOAD Chat Media (Photos/Audio)
+router.post('/upload-media', authenticateToken, upload.single('file'), async (req: any, res) => {
+    const userId = req.user.userId;
+    const file = req.file;
+
+    if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    try {
+        const ext = file.mimetype.startsWith('audio') ? 'webm' : 'jpg';
+        const filename = `chat_media/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+
+        const { data, error } = await supabase.storage
+            .from('profiles')
+            .upload(filename, file.buffer, {
+                contentType: file.mimetype,
+                upsert: true
+            });
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
+        res.json({ success: true, url: publicUrl });
+    } catch (e: any) {
+        console.error("Media Upload Error", e);
+        res.status(500).json({ error: "Failed to upload media" });
     }
 });
 

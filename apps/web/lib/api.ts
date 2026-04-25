@@ -113,6 +113,7 @@ export const api = {
     },
     chat: {
         getHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`),
+        clearHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`, { method: 'DELETE' }),
         sendMessage: (connectionId: string, text: string) => fetchAPI(`/messages/${connectionId}/send`, {
             method: 'POST',
             body: JSON.stringify({ text })
@@ -122,7 +123,19 @@ export const api = {
             body: JSON.stringify({ emoji })
         }),
         likeMessage: (messageId: string) => fetchAPI(`/messages/${messageId}/like`, { method: 'POST' }),
-        markRead: (connectionId: string) => fetchAPI(`/messages/${connectionId}/read`, { method: 'POST' })
+        markRead: (connectionId: string) => fetchAPI(`/messages/${connectionId}/read`, { method: 'POST' }),
+        uploadMedia: async (file: File) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/messages/upload-media`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (!res.ok) throw new Error('Upload failed');
+            return res.json();
+        }
     },
     games: {
         start: (partnerId: string) => fetchAPI('/games/start', { method: 'POST', body: JSON.stringify({ partnerId }) }),

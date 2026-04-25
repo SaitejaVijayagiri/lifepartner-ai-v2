@@ -356,7 +356,7 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
 
     try {
         const ext = file.mimetype.startsWith('audio') ? 'webm' : 'jpg';
-        const filename = `chat_media/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+        const filename = `profiles/${userId}/chat_media_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
         const { data, error } = await supabase.storage
             .from('profiles')

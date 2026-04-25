@@ -110,8 +110,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
                     const res = await api.chat.uploadMedia(audioFile);
                     if (res.url) handleSend(undefined, `[AUDIO]${res.url}`);
-                } catch (e) {
-                    toast.error("Failed to upload audio message");
+                } catch (e: any) {
+                    toast.error(`Audio upload failed: ${e.message || 'Unknown error'}`);
                 } finally {
                     setIsUploadingMedia(false);
                 }
@@ -154,8 +154,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         try {
             const res = await api.chat.uploadMedia(file);
             if (res.url) handleSend(undefined, `[IMAGE]${res.url}`);
-        } catch (err) {
-            toast.error("Failed to upload image");
+        } catch (err: any) {
+            toast.error(`Image upload failed: ${err.message || 'Unknown error'}`);
         } finally {
             setIsUploadingMedia(false);
             if (fileInputRef.current) fileInputRef.current.value = '';

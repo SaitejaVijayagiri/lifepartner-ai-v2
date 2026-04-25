@@ -26,7 +26,7 @@ export const upload = multer({
     limits: { fileSize: 15 * 1024 * 1024 }, // 15MB max per file
     fileFilter: (req, file, cb) => {
         // Enforce safe file extensions to prevent executing arbitrary uploads
-        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mp3', '.wav'];
+        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.mp3', '.wav', '.webm'];
         const ext = path.extname(file.originalname).toLowerCase();
         
         if (!allowedExts.includes(ext)) {

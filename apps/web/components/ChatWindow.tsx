@@ -790,7 +790,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     type="button"
                     onClick={() => setShowStickers(!showStickers)}
                     disabled={isUploadingMedia || isRecording}
-                    className={`hidden sm:block p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all disabled:opacity-50 ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all disabled:opacity-50 ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                     title="Send Sticker"
                 >
                     <SmilePlus className="w-5 h-5" />

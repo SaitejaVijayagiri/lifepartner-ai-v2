@@ -353,12 +353,18 @@ router.post('/upload-media', authenticateToken, upload.single('file'), async (re
         const ext = file.mimetype.startsWith('audio') ? 'webm' : 'jpg';
         const filename = `chat_media/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
+        const fs = require('fs');
+        const fileBuffer = fs.readFileSync(file.path);
+
         const { data, error } = await supabase.storage
             .from('profiles')
-            .upload(filename, file.buffer, {
+            .upload(filename, fileBuffer, {
                 contentType: file.mimetype,
                 upsert: true
             });
+
+        // Cleanup temp file
+        try { fs.unlinkSync(file.path); } catch (e) {}
 
         if (error) throw error;
 

@@ -277,6 +277,54 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
     }
 });
 
+// DELETE MESSAGE (For Me / For Everyone)
+router.delete('/:messageId', authenticateToken, async (req: any, res) => {
+    const { messageId } = req.params;
+    const { mode } = req.body; // 'me' | 'everyone'
+    const userId = req.user.userId;
+
+    try {
+        const msg: any = await prisma.messages.findUnique({
+            where: { id: messageId },
+            select: { id: true, sender_id: true, receiver_id: true, cleared_by: true }
+        });
+        if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+        let clearedBy = (msg.cleared_by as any[]) || [];
+
+        if (mode === 'everyone') {
+            // Only the sender can delete for everyone
+            if (msg.sender_id !== userId) {
+                return res.status(403).json({ error: 'Only the sender can delete for everyone' });
+            }
+            // Add both users to cleared_by
+            if (!clearedBy.includes(msg.sender_id)) clearedBy.push(msg.sender_id);
+            if (!clearedBy.includes(msg.receiver_id)) clearedBy.push(msg.receiver_id);
+        } else {
+            // Delete for me
+            if (!clearedBy.includes(userId)) clearedBy.push(userId);
+        }
+
+        await prisma.messages.update({
+            where: { id: messageId },
+            data: { cleared_by: clearedBy }
+        });
+
+        // Broadcast deletion event
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+            io.to(other!).emit('messageDeleted', { messageId, mode, deletedBy: userId });
+        } catch (_) {}
+
+        res.json({ success: true, message: 'Message deleted' });
+    } catch (e) {
+        console.error('Delete Message Error', e);
+        res.status(500).json({ error: 'Failed to delete message' });
+    }
+});
+
 // MARK AS READ
 router.post('/:connectionId/read', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params;

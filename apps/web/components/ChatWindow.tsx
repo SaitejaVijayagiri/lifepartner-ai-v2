@@ -56,6 +56,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
@@ -212,6 +214,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
+    const handleDeleteMessage = async (msgId: string, mode: 'me' | 'everyone') => {
+        try {
+            await api.chat.deleteMessage(msgId, mode);
+            setMessages(prev => prev.filter(m => m.id !== msgId));
+        } catch (e) {
+            toast.error("Failed to delete message");
+        }
+        setDeleteMenuMsgId(null);
+    };
+
     useEffect(() => {
         const loadHistory = async () => {
             try {
@@ -315,11 +327,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             ));
         };
 
+        const handleDeleted = (data: any) => {
+            setMessages(prev => prev.filter(msg => msg.id !== data.messageId));
+        };
+
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("updateMessageStatus", handleStatus);
         socket.on("messageLiked", handleLiked);
         socket.on("messageReaction", handleReaction);
+        socket.on("messageDeleted", handleDeleted);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
@@ -327,6 +344,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("updateMessageStatus", handleStatus);
             socket.off("messageLiked", handleLiked);
             socket.off("messageReaction", handleReaction);
+            socket.off("messageDeleted", handleDeleted);
         };
     }, [socket, partner.id, user]);
 
@@ -619,7 +637,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         {msg.text.startsWith('[STICKER]') ? (
                                             <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
                                         ) : msg.text.startsWith('[IMAGE]') ? (
-                                            <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => window.open(msg.text.replace('[IMAGE]', ''), '_blank')} />
+                                            <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenImage(msg.text.replace('[IMAGE]', ''))} />
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
                                         ) : (
@@ -637,15 +655,38 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             )}
                                         </div>
 
-                                        {/* React button — shows on hover */}
+                                        {/* React & Delete buttons — shows on hover */}
                                         {msg.id && !msg.id.toString().startsWith('temp-') && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                                className={`absolute ${isMe ? '-left-7' : '-right-7'} bottom-1 p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm transition-all focus:outline-none opacity-0 group-hover:opacity-100 hover:scale-110`}
-                                                title="React"
-                                            >
-                                                <span className="text-sm">😊</span>
-                                            </button>
+                                            <div className={`absolute ${isMe ? '-left-16' : '-right-16'} bottom-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-all`}>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
+                                                    className="p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:scale-110"
+                                                    title="React"
+                                                >
+                                                    <span className="text-sm">😊</span>
+                                                </button>
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
+                                                        className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110"
+                                                        title="Delete Message"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                    {deleteMenuMsgId === msg.id && (
+                                                        <div className={`absolute bottom-full mb-2 ${isMe ? 'right-0' : 'left-0'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-36 z-50 overflow-hidden animate-in fade-in zoom-in-95`}>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id, 'me'); }} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200">
+                                                                Delete for me
+                                                            </button>
+                                                            {isMe && (
+                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id, 'everyone'); }} className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 border-t border-gray-100 dark:border-gray-700">
+                                                                    Delete for everyone
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
 
@@ -829,6 +870,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 />
             )}
             <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partnerInfo.name} />
+            
+            {/* Fullscreen Image Overlay */}
+            {fullscreenImage && (
+                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
+                    <button className="absolute top-6 right-6 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all" onClick={() => setFullscreenImage(null)}>
+                        <X size={24} />
+                    </button>
+                    <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" onClick={e => e.stopPropagation()} />
+                </div>
+            )}
 
             {showProfile && fullProfile && (
                 <ProfileModal

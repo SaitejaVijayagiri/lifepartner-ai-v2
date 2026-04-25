@@ -140,7 +140,11 @@ export const api = {
                 throw new Error(errorMsg);
             }
             return data;
-        }
+        },
+        deleteMessage: (messageId: string, mode: 'me' | 'everyone') => fetchAPI(`/messages/${messageId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ mode })
+        })
     },
     games: {
         start: (partnerId: string) => fetchAPI('/games/start', { method: 'POST', body: JSON.stringify({ partnerId }) }),

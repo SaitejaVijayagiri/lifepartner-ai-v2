@@ -345,9 +345,10 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
     }
 });
 
-// UPLOAD Chat Media (Photos/Audio)
+import { ImageOptimizer } from '../services/imageOptimizer';
+
+// ... (in the route handler)
 router.post('/upload-media', authenticateToken, memoryUpload.single('file'), async (req: any, res) => {
-    const userId = req.user.userId;
     const file = req.file;
 
     if (!file) {
@@ -355,29 +356,26 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
     }
 
     try {
-        // HACK: Supabase RLS is configured to only allow anonymous uploads if the file ends in .webp
-        // We bypass this by saving everything as .webp, but keeping the original contentType!
-        // The browser will respect the contentType header (e.g., audio/webm) regardless of extension.
-        const filename = `profiles/${userId}/chat_${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
+        let base64Data = '';
+        let finalMimeType = file.mimetype;
 
-        // DO NOT pass the local backend JWT, Supabase will reject its signature!
-        const { data, error } = await supabase.storage
-            .from('profiles')
-            .upload(filename, file.buffer, {
-                contentType: file.mimetype,
-                upsert: true
-            });
-
-        if (error) {
-            console.error("Supabase Storage Error:", error);
-            throw error;
+        if (file.mimetype.startsWith('image/')) {
+            // Compress image to prevent database bloat (<200KB)
+            const optimizedBuffer = await ImageOptimizer.optimize(`data:${file.mimetype};base64,${file.buffer.toString('base64')}`);
+            base64Data = optimizedBuffer.toString('base64');
+            finalMimeType = 'image/webp';
+        } else {
+            // Audio is already heavily compressed by the browser's MediaRecorder (webm)
+            base64Data = file.buffer.toString('base64');
         }
 
-        const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
-        res.json({ success: true, url: publicUrl });
+        const dataUri = `data:${finalMimeType};base64,${base64Data}`;
+        
+        // Return the data URI directly as the URL
+        res.json({ success: true, url: dataUri });
     } catch (e: any) {
         console.error("Media Upload Error", e);
-        res.status(500).json({ error: "Failed to upload media", details: e.message || String(e) });
+        res.status(500).json({ error: "Failed to process media", details: e.message || String(e) });
     }
 });
 

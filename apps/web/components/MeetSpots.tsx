@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { MapPin, Calendar, Users, Plus, Loader2, Navigation, X, Zap, Sparkles, Trash2, LocateFixed } from 'lucide-react';
+import { MapPin, Calendar, Users, Plus, Loader2, Navigation, X, Zap, Sparkles, Trash2, LocateFixed, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -40,6 +40,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
     // Form state
     const [form, setForm] = useState({ title: '', description: '', location_name: '', event_date: '', category: 'Coffee Meetup', max_attendees: '' });
+    const [editingEvent, setEditingEvent] = useState<any | null>(null); // null = create mode, object = edit mode
     const [gpsLoading, setGpsLoading] = useState(false);
     const [formLat, setFormLat] = useState<number | null>(null);
     const [formLng, setFormLng] = useState<number | null>(null);
@@ -116,21 +117,56 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
         e.preventDefault();
         try {
             setIsCreating(true);
-            const res = await api.events.create({
+            const payload = {
                 ...form,
                 event_date: new Date(form.event_date).toISOString(),
                 lat: formLat ?? lat,
                 lng: formLng ?? lng,
                 max_attendees: form.max_attendees ? parseInt(form.max_attendees) : null,
-            });
+            };
+
+            let res;
+            if (editingEvent) {
+                // Edit mode
+                res = await api.events.editEvent(editingEvent.id, payload);
+            } else {
+                // Create mode
+                res = await api.events.create(payload);
+            }
+
             if (res.success) {
-                toast.success('Meet Spot created! 🎉');
-                setShowCreate(false);
-                setForm({ title: '', description: '', location_name: '', event_date: '', category: 'Coffee Meetup', max_attendees: '' });
-                setFormLat(null); setFormLng(null);
+                toast.success(editingEvent ? 'Event updated! ✅' : 'Meet Spot created! 🎉');
+                closeModal();
                 fetchEvents();
             }
-        } catch (err: any) { toast.error(err.message || 'Failed to create'); } finally { setIsCreating(false); }
+        } catch (err: any) { toast.error(err.message || 'Failed to save'); } finally { setIsCreating(false); }
+    };
+
+    const closeModal = () => {
+        setShowCreate(false);
+        setEditingEvent(null);
+        setForm({ title: '', description: '', location_name: '', event_date: '', category: 'Coffee Meetup', max_attendees: '' });
+        setFormLat(null); setFormLng(null);
+    };
+
+    const openEdit = (event: any) => {
+        // Convert stored UTC ISO date to datetime-local format (browser local time)
+        const localDate = new Date(event.event_date);
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const localStr = `${localDate.getFullYear()}-${pad(localDate.getMonth()+1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+
+        setForm({
+            title: event.title || '',
+            description: event.description || '',
+            location_name: event.location_name || '',
+            event_date: localStr,
+            category: event.category || 'Coffee Meetup',
+            max_attendees: event.max_attendees ? String(event.max_attendees) : '',
+        });
+        if (event.lat) setFormLat(event.lat);
+        if (event.lng) setFormLng(event.lng);
+        setEditingEvent(event);
+        setShowCreate(true);
     };
 
     const handleRSVP = async (eventId: string) => {
@@ -247,9 +283,16 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                                             onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
                                     </div>
                                     {event.is_creator && (
-                                        <button onClick={() => handleDelete(event.id)} className="absolute bottom-2 right-3 p-1.5 bg-black/30 hover:bg-red-500/80 rounded-full text-white transition-colors" title="Cancel event">
-                                            <Trash2 size={13} />
-                                        </button>
+                                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                                            <button onClick={() => openEdit(event)}
+                                                className="p-1.5 bg-black/30 hover:bg-indigo-500/80 rounded-full text-white transition-colors" title="Edit event">
+                                                <Pencil size={12} />
+                                            </button>
+                                            <button onClick={() => handleDelete(event.id)}
+                                                className="p-1.5 bg-black/30 hover:bg-red-500/80 rounded-full text-white transition-colors" title="Cancel event">
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
 
@@ -319,8 +362,15 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                     <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-2xl flex flex-col" style={{ maxHeight: 'calc(100dvh - 72px)' }}>
                         <div className="flex justify-center pt-3 sm:hidden"><div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" /></div>
                         <div className="px-6 py-4 flex justify-between items-center border-b border-gray-100 dark:border-gray-800">
-                            <div><h3 className="text-lg font-bold text-gray-900 dark:text-white">Host a Meet Spot</h3><p className="text-xs text-gray-400">Create a local gathering</p></div>
-                            <button onClick={() => setShowCreate(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"><X size={18} /></button>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                    {editingEvent ? 'Edit Meet Spot' : 'Host a Meet Spot'}
+                                </h3>
+                                <p className="text-xs text-gray-400">
+                                    {editingEvent ? 'Update your event details' : 'Create a local gathering'}
+                                </p>
+                            </div>
+                            <button onClick={closeModal} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"><X size={18} /></button>
                         </div>
                         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                             <form id="create-form" onSubmit={handleCreate} className="space-y-4">
@@ -375,10 +425,10 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                             </form>
                         </div>
                         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
-                            <Button variant="outline" onClick={() => setShowCreate(false)} className="flex-1 rounded-xl">Cancel</Button>
+                            <Button variant="outline" onClick={closeModal} className="flex-1 rounded-xl">Cancel</Button>
                             <Button type="submit" form="create-form" disabled={isCreating} className="flex-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white">
                                 {isCreating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                                {isCreating ? 'Creating...' : 'Create 🎉'}
+                                {isCreating ? 'Saving...' : editingEvent ? 'Save Changes ✅' : 'Create 🎉'}
                             </Button>
                         </div>
                     </div>

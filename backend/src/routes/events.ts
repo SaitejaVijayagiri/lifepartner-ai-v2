@@ -199,6 +199,54 @@ router.post('/:id/rsvp', authenticateToken, async (req: any, res) => {
     }
 });
 
+// 5. Edit event (creator only)
+router.patch('/:id', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const eventId = req.params.id;
+        const { title, description, location_name, lat, lng, event_date, category, max_attendees } = req.body;
+
+        const eventRows: any[] = await prisma.$queryRawUnsafe(`
+            SELECT creator_id FROM meet_events WHERE id = $1::uuid;
+        `, eventId);
+
+        if (!eventRows.length) return res.status(404).json({ error: 'Event not found' });
+        if (eventRows[0].creator_id !== userId) {
+            return res.status(403).json({ error: 'Only the creator can edit this event' });
+        }
+
+        if (!title || !location_name || !event_date) {
+            return res.status(400).json({ error: 'Title, location, and date are required' });
+        }
+
+        const dateObj = new Date(event_date);
+        if (isNaN(dateObj.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+
+        const maxAtt = max_attendees ? parseInt(max_attendees) : null;
+
+        const updated: any[] = await prisma.$queryRawUnsafe(`
+            UPDATE meet_events
+            SET title = $2,
+                description = $3,
+                location_name = $4,
+                lat = $5,
+                lng = $6,
+                event_date = $7,
+                category = $8,
+                max_attendees = $9
+            WHERE id = $1::uuid
+            RETURNING *;
+        `, eventId, title, description || '', location_name, lat || null, lng || null, dateObj, category || 'Other', maxAtt);
+
+        res.json({ success: true, event: updated[0] });
+    } catch (e: any) {
+        console.error(e);
+        res.status(500).json({ error: 'Failed to update event' });
+    }
+});
+
 // 5. Delete event (creator only)
 router.delete('/:id', authenticateToken, async (req: any, res) => {
     try {

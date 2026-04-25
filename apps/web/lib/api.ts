@@ -230,6 +230,7 @@ export const api = {
         create: (data: any) => fetchAPI('/events', { method: 'POST', body: JSON.stringify(data) }),
         rsvp: (id: string) => fetchAPI(`/events/${id}/rsvp`, { method: 'POST' }),
         deleteEvent: (id: string) => fetchAPI(`/events/${id}`, { method: 'DELETE' }),
+        editEvent: (id: string, data: any) => fetchAPI(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
         getAttendees: (id: string) => fetchAPI(`/events/${id}/attendees`),
         fixDb: () => fetchAPI('/events/fix-db')
     },

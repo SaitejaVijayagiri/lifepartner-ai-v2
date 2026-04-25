@@ -673,18 +673,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>
-                                                    {deleteMenuMsgId === msg.id && (
-                                                        <div className={`absolute bottom-full mb-2 ${isMe ? 'right-0' : 'left-0'} bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl w-36 z-50 overflow-hidden animate-in fade-in zoom-in-95`}>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id, 'me'); }} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200">
-                                                                Delete for me
-                                                            </button>
-                                                            {isMe && (
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg.id, 'everyone'); }} className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 border-t border-gray-100 dark:border-gray-700">
-                                                                    Delete for everyone
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -874,12 +862,47 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {/* Fullscreen Image Overlay */}
             {fullscreenImage && (
                 <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
-                    <button className="absolute top-6 right-6 p-2 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all" onClick={() => setFullscreenImage(null)}>
-                        <X size={24} />
+                    <button className="absolute top-4 right-4 p-1.5 bg-black/50 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all" onClick={() => setFullscreenImage(null)}>
+                        <X size={20} />
                     </button>
                     <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
                 </div>
             )}
+
+            {/* Delete Message Modal */}
+            {deleteMenuMsgId && (() => {
+                const msgToDelete = messages.find(m => m.id === deleteMenuMsgId);
+                if (!msgToDelete) return null;
+                const isMyMsg = msgToDelete.senderId !== partner.id;
+                
+                return (
+                    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setDeleteMenuMsgId(null)}>
+                        <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 text-center border-b border-gray-100 dark:border-gray-800">
+                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <Trash2 size={24} />
+                                </div>
+                                <h3 className="font-bold text-lg text-gray-900 dark:text-white">Delete Message</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">What would you like to do with this message?</p>
+                            </div>
+                            <div className="p-2 flex flex-col gap-1">
+                                <button onClick={() => handleDeleteMessage(msgToDelete.id, 'me')} className="w-full text-center p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-800 dark:text-gray-200 font-medium transition-all">
+                                    Delete for me
+                                </button>
+                                {isMyMsg && (
+                                    <button onClick={() => handleDeleteMessage(msgToDelete.id, 'everyone')} className="w-full text-center p-4 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 font-bold transition-all">
+                                        Delete for everyone
+                                    </button>
+                                )}
+                                <div className="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
+                                <button onClick={() => setDeleteMenuMsgId(null)} className="w-full text-center p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 font-medium transition-all">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {showProfile && fullProfile && (
                 <ProfileModal

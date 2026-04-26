@@ -261,65 +261,110 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
         const grad = CATEGORY_COLORS[event.category] || 'from-indigo-500 to-blue-500';
         const full = isFull(event);
         return (
-            <div key={event.id} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg transition-all flex flex-col">
-                <div className={`h-24 bg-gradient-to-br ${grad} relative overflow-hidden`}>
-                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.4) 1px,transparent 0)', backgroundSize: '14px 14px' }} />
-                    <div className="absolute top-3 left-3 bg-black/30 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1">
-                        <Zap size={9} className="fill-yellow-300 text-yellow-300" /> {timeUntil(event.event_date)}
+            <div key={event.id} className="bg-white dark:bg-gray-900 rounded-[2rem] overflow-hidden border border-gray-100 dark:border-gray-800/50 shadow-md hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative">
+                
+                {/* Banner Section */}
+                <div className={`h-32 bg-gradient-to-br ${grad} relative overflow-hidden`}>
+                    {/* Abstract Texture Overlay */}
+                    <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.8) 1px,transparent 0)', backgroundSize: '16px 16px' }} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    
+                    {/* Top Badges */}
+                    <div className="absolute top-4 left-4 flex gap-2">
+                        <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider shadow-sm border border-white/20">
+                            {CATEGORIES.find(c => c.id === event.category)?.emoji} {event.category}
+                        </div>
                     </div>
-                    {full && <div className="absolute top-3 right-14 bg-red-500/90 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-bold text-white">FULL</div>}
-                    <div className="absolute top-3 right-3 bg-white/20 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-bold text-white">
-                        {CATEGORIES.find(c => c.id === event.category)?.emoji}
+
+                    <div className="absolute top-4 right-4 flex gap-2">
+                        {full && <div className="bg-red-500/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wider shadow-sm border border-red-400/50 animate-pulse">FULL</div>}
+                        <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 shadow-sm border border-white/10">
+                            <Zap size={10} className="fill-yellow-400 text-yellow-400" /> {timeUntil(event.event_date)}
+                        </div>
                     </div>
-                    <div className="absolute -bottom-5 left-4">
-                        <img src={event.creator_photo || '/avatar-fallback.svg'} alt={event.creator_name}
-                            className="w-11 h-11 rounded-full border-2 border-white dark:border-gray-800 object-cover shadow bg-gray-100"
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
-                    </div>
+
+                    {/* Creator Actions */}
                     {event.is_creator && (
-                        <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                            <button onClick={() => openEdit(event)} className="p-1.5 bg-black/30 hover:bg-indigo-500/80 rounded-full text-white transition-colors" title="Edit"><Pencil size={12} /></button>
-                            <button onClick={() => handleDelete(event.id)} className="p-1.5 bg-black/30 hover:bg-red-500/80 rounded-full text-white transition-colors" title="Cancel"><Trash2 size={12} /></button>
+                        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                            <button onClick={() => openEdit(event)} className="p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white transition-colors shadow-sm border border-white/20" title="Edit"><Pencil size={14} /></button>
+                            <button onClick={() => handleDelete(event.id)} className="p-2 bg-red-500/80 hover:bg-red-500 backdrop-blur-md rounded-full text-white transition-colors shadow-sm border border-red-400/50" title="Cancel"><Trash2 size={14} /></button>
                         </div>
                     )}
                 </div>
-                <div className="pt-7 p-4 flex-1 flex flex-col gap-1">
-                    <div className="flex items-start justify-between gap-1">
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1 flex-1">{event.title}</h3>
-                        {event.is_creator && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">HOST</span>}
+
+                {/* Overlapping Avatar */}
+                <div className="absolute top-[5.5rem] left-5 z-10">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm"></div>
+                        <img src={event.creator_photo || '/avatar-fallback.svg'} alt={event.creator_name}
+                            className="relative w-14 h-14 rounded-full border-2 border-white dark:border-gray-900 object-cover shadow-md bg-gray-100"
+                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
                     </div>
-                    <p className="text-[10px] text-gray-400">by {event.creator_name}</p>
-                    <div className="space-y-1 mt-1 mb-2 flex-1">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"><Calendar size={12} className="text-indigo-500" /><span className="font-medium">{formatDate(event.event_date)}</span></div>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300"><MapPin size={12} className="text-rose-500" /><span className="line-clamp-1">{event.location_name}</span></div>
-                        {event.distance != null && <div className="flex items-center gap-1.5 text-xs text-gray-400"><Navigation size={12} className="text-blue-400" /><span>{parseFloat(event.distance).toFixed(1)} km away</span></div>}
-                        {event.description && <p className="text-[11px] text-gray-400 italic line-clamp-2 pl-2 border-l-2 border-gray-200 dark:border-gray-700 mt-1">{event.description}</p>}
+                </div>
+
+                {/* Content Section */}
+                <div className="pt-10 p-5 flex-1 flex flex-col">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="text-lg font-black text-gray-900 dark:text-white line-clamp-1 flex-1 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{event.title}</h3>
+                        {event.is_creator && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-md font-black tracking-widest flex-shrink-0 border border-indigo-200 dark:border-indigo-800">HOST</span>}
                     </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <button onClick={() => openAttendees(event.id, event.title)} className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-indigo-600 transition-colors">
-                            <Users size={13} className={event.is_attending ? 'text-green-500' : 'text-gray-400'} />
-                            <span>{event.attendee_count}{event.max_attendees ? `/${event.max_attendees}` : ''} going</span>
+                    
+                    <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-4">Hosted by <span className="font-bold text-gray-700 dark:text-gray-300">{event.creator_name}</span></p>
+                    
+                    {/* Event Details Box */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 mb-4 space-y-2 border border-gray-100 dark:border-gray-800/50 flex-1">
+                        <div className="flex items-center gap-2.5 text-[13px] text-gray-700 dark:text-gray-300">
+                            <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shrink-0"><Calendar size={12} className="text-indigo-600 dark:text-indigo-400" /></div>
+                            <span className="font-semibold">{formatDate(event.event_date)}</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-[13px] text-gray-700 dark:text-gray-300">
+                            <div className="w-6 h-6 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0"><MapPin size={12} className="text-rose-600 dark:text-rose-400" /></div>
+                            <span className="line-clamp-1 font-medium">{event.location_name}</span>
+                        </div>
+                        {event.distance != null && (
+                            <div className="flex items-center gap-2.5 text-[13px] text-gray-500">
+                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0"><Navigation size={12} className="text-blue-600 dark:text-blue-400" /></div>
+                                <span>{parseFloat(event.distance).toFixed(1)} km away</span>
+                            </div>
+                        )}
+                        {event.description && (
+                            <div className="mt-2 pt-2 border-t border-gray-200/60 dark:border-gray-700/60">
+                                <p className="text-[12px] text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">{event.description}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* RSVP & Action Area */}
+                    <div className="flex items-center justify-between pt-2">
+                        <button onClick={() => openAttendees(event.id, event.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[11px] font-bold text-gray-600 dark:text-gray-300 transition-colors">
+                            <Users size={12} className={event.is_attending ? 'text-green-500' : 'text-indigo-500'} />
+                            {event.attendee_count}{event.max_attendees ? `/${event.max_attendees}` : ''} Attending
                         </button>
+                        
                         {event.is_creator ? (
-                            <span className="text-[10px] text-gray-400 italic">Your event</span>
+                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2">Your Event</span>
                         ) : (
                             <button onClick={() => handleRSVP(event.id)} disabled={full && !event.is_attending}
-                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                    event.is_attending ? 'bg-green-50 dark:bg-green-900/30 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
-                                    : full ? 'bg-gray-100 dark:bg-gray-700 text-gray-400'
-                                    : `bg-gradient-to-r ${grad} text-white shadow-sm hover:shadow-md`}`}>
-                                {event.is_attending ? '✓ Joined' : full ? 'Full' : '+ RSVP'}
+                                className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    event.is_attending 
+                                    ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
+                                    : full 
+                                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 shadow-none'
+                                    : `bg-gradient-to-r ${grad} text-white hover:shadow-lg hover:brightness-110`
+                                }`}>
+                                {event.is_attending ? '✓ Joined' : full ? 'Full' : 'Join Now'}
                             </button>
                         )}
                     </div>
-                    {/* Share & Calendar */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-gray-50 dark:border-gray-700/50 mt-1">
-                        <button onClick={() => shareEvent(event)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                            <Share2 size={12} /> Share
+                    
+                    {/* Share & Calendar Footer */}
+                    <div className="flex items-center gap-2 pt-4 mt-4 border-t border-gray-100 dark:border-gray-800/60">
+                        <button onClick={() => shareEvent(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                            <Share2 size={14} /> Share
                         </button>
-                        <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
-                        <button onClick={() => addToCalendar(event)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-semibold text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
-                            <CalendarPlus size={12} /> Add to Calendar
+                        <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+                        <button onClick={() => addToCalendar(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                            <CalendarPlus size={14} /> Calendar
                         </button>
                     </div>
                 </div>

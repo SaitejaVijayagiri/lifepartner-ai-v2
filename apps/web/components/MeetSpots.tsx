@@ -45,6 +45,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
     const [formLat, setFormLat] = useState<number | null>(null);
     const [formLng, setFormLng] = useState<number | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [gpsReady, setGpsReady] = useState(false);
 
     const lat = currentUser?.location?.lat;
     const lng = currentUser?.location?.lng;
@@ -53,25 +54,52 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
     const [deviceLat, setDeviceLat] = useState<number | undefined>(lat);
     const [deviceLng, setDeviceLng] = useState<number | undefined>(lng);
 
+    // On mount: try GPS first, then fetch. Falls back immediately if GPS denied.
     useEffect(() => {
-        // Try to get device GPS for better distance results
+        const loadWithBestLocation = () => {
+            api.events.fixDb().catch(() => {}).finally(() => {
+                const latToUse = deviceLat ?? lat;
+                const lngToUse = deviceLng ?? lng;
+                fetchEvents(latToUse, lngToUse);
+            });
+        };
+
         if (navigator.geolocation) {
+            // Give GPS 3 seconds, then fallback
+            const timer = setTimeout(() => {
+                setGpsReady(true);
+                loadWithBestLocation();
+            }, 3000);
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
+                    clearTimeout(timer);
                     setDeviceLat(pos.coords.latitude);
                     setDeviceLng(pos.coords.longitude);
+                    setGpsReady(true);
+                    api.events.fixDb().catch(() => {}).finally(() => {
+                        fetchEvents(pos.coords.latitude, pos.coords.longitude);
+                    });
                 },
-                () => {} // silent fallback to profile location
+                () => {
+                    clearTimeout(timer);
+                    setGpsReady(false);
+                    loadWithBestLocation();
+                },
+                { enableHighAccuracy: true, timeout: 5000 }
             );
+        } else {
+            loadWithBestLocation();
         }
-        api.events.fixDb().catch(() => {}).finally(() => fetchEvents());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [myFilter]);
 
-    const fetchEvents = async () => {
+    const fetchEvents = async (useLat?: number, useLng?: number) => {
         try {
             setLoading(true);
-            // Use real device GPS if available, else profile location
-            const res = await api.events.getAll(deviceLat ?? lat, deviceLng ?? lng, myFilter || undefined);
+            const latToUse = useLat ?? deviceLat ?? lat;
+            const lngToUse = useLng ?? deviceLng ?? lng;
+            const res = await api.events.getAll(latToUse, lngToUse, myFilter || undefined);
             if (res.success) setEvents(res.events || []);
         } catch { setEvents([]); } finally { setLoading(false); }
     };
@@ -358,7 +386,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                     </div>
                     
                     {/* Share & Calendar Footer */}
-                    <div className="flex items-center gap-2 pt-4 mt-4 border-t border-gray-100 dark:border-gray-800/60">
+                    <div className="flex items-center gap-1 pt-4 mt-4 border-t border-gray-100 dark:border-gray-800/60">
                         <button onClick={() => shareEvent(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
                             <Share2 size={14} /> Share
                         </button>
@@ -366,6 +394,17 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                         <button onClick={() => addToCalendar(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                             <CalendarPlus size={14} /> Calendar
                         </button>
+                        {event.lat && event.lng && (
+                            <>
+                                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
+                                <button 
+                                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`, '_blank')}
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                >
+                                    <LocateFixed size={14} /> Directions
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -374,25 +413,44 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
     return (
         <div className="space-y-5 pb-4">
-            {/* Header */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-6 rounded-2xl text-white">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="relative z-10 flex justify-between items-center">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1"><Sparkles size={16} className="text-yellow-300" /><span className="text-xs font-bold uppercase tracking-widest text-indigo-200">Community</span></div>
-                        <h2 className="text-2xl font-bold">Meet Spots</h2>
-                        <p className="text-sm text-indigo-200 mt-0.5">Discover &amp; host real-world meetups nearby</p>
+            {/* Header — premium glassmorphism banner */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-6 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20">
+                {/* Decorative blobs */}
+                <div className="absolute top-0 right-0 w-56 h-56 bg-purple-400/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-pink-500/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+                <div className="relative z-10">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <Sparkles size={16} className="text-yellow-300" />
+                                <span className="text-xs font-black uppercase tracking-widest text-indigo-200">Community</span>
+                            </div>
+                            <h2 className="text-3xl font-black tracking-tight">Meet Spots</h2>
+                            <p className="text-sm text-indigo-200/80 mt-1 font-light">Discover &amp; host real-world meetups nearby</p>
+                        </div>
+                        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-white text-indigo-700 font-bold text-sm px-5 py-2.5 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all active:scale-95 shrink-0">
+                            <Plus size={16} /> Host Event
+                        </button>
                     </div>
-                    <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-white text-indigo-700 font-bold text-sm px-5 py-2.5 rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95">
-                        <Plus size={16} /> Host
-                    </button>
+
+                    {/* Stats row */}
+                    <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-4 flex-wrap">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-indigo-200">
+                            <Calendar size={13} className="text-yellow-300" /> {events.length} Events
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-indigo-200">
+                            <Users size={13} className="text-green-300" /> {events.filter(e => e.is_attending).length} RSVPs by you
+                        </span>
+                        {/* GPS Status */}
+                        <span className={`flex items-center gap-1.5 text-xs font-semibold ml-auto ${
+                            (deviceLat && deviceLat !== lat) ? 'text-green-300' : 'text-indigo-300/60'
+                        }`}>
+                            <LocateFixed size={13} />
+                            {(deviceLat && deviceLat !== lat) ? 'GPS Active' : 'No GPS'}
+                        </span>
+                    </div>
                 </div>
-                {events.length > 0 && (
-                    <div className="mt-3 flex gap-4 text-xs text-indigo-200 relative z-10">
-                        <span className="flex items-center gap-1"><Calendar size={12} /> {events.length} upcoming</span>
-                        <span className="flex items-center gap-1"><Users size={12} /> {events.filter(e => e.is_attending).length} joined by you</span>
-                    </div>
-                )}
             </div>
 
             {/* My Events filter */}
@@ -440,11 +498,13 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
             {loading ? (
                 <div className="flex flex-col items-center py-16 gap-3"><Loader2 className="w-7 h-7 animate-spin text-indigo-500" /><p className="text-sm text-gray-400">Finding meetups near you...</p></div>
             ) : filtered.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 p-10 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-center">
-                    <div className="text-4xl mb-3">{searchQuery ? '🔍' : '📍'}</div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">{searchQuery ? 'No results found' : 'No meetups found'}</h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">{searchQuery ? `Try a different search term` : 'Be the first to host one in your area!'}</p>
-                    {!searchQuery && <Button onClick={() => setShowCreate(true)} variant="outline" className="rounded-full">+ Host a Meetup</Button>}
+                <div className="bg-white dark:bg-gray-900 p-10 rounded-[2rem] border border-dashed border-gray-200 dark:border-gray-800 text-center">
+                    <div className="w-20 h-20 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-5">
+                        <span className="text-4xl">{searchQuery ? '🔍' : '📍'}</span>
+                    </div>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2">{searchQuery ? 'No events found' : 'No meetups near you yet'}</h3>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm mb-6 max-w-xs mx-auto leading-relaxed">{searchQuery ? `Try different keywords or clear the filter.` : 'Be the first to host a gathering in your city!'}</p>
+                    {!searchQuery && <Button onClick={() => setShowCreate(true)} className="rounded-full bg-indigo-600 text-white hover:bg-indigo-700 px-8">🎉 Host the First Meetup</Button>}
                 </div>
             ) : (
                 <div className="space-y-6">

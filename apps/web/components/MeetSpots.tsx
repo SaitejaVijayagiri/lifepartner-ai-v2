@@ -396,11 +396,11 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                         <button onClick={() => addToCalendar(event)} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                             <CalendarPlus size={14} /> Calendar
                         </button>
-                        {event.lat && event.lng && (
+                        {event.location_name && (
                             <>
                                 <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
                                 <button 
-                                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`, '_blank')}
+                                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.location_name)}`, '_blank')}
                                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                                 >
                                     <LocateFixed size={14} /> Directions

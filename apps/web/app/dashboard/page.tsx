@@ -1430,7 +1430,7 @@ function DashboardContent() {
 
                     {activeTab === 'community' && (
                         <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
-                            <CommunityChat currentUser={currentUser} onOpenStore={() => {
+                            <CommunityChat currentUser={currentUser} onClose={() => setActiveTab('matches')} onOpenStore={() => {
                                 // Force Guest Flow for upgrading users per recent request?
                                 // Actually, if they are here, they are logged in.
                                 // But the prompt said "open premium store modal".

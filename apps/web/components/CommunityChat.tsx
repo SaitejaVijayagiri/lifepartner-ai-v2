@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
-import { Send, Users, ShieldCheck, Lock } from 'lucide-react';
+import { Send, Users, ShieldCheck, Lock, X } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
 
-export default function CommunityChat({ currentUser, onOpenStore }: { currentUser: any, onOpenStore?: () => void }) {
+export default function CommunityChat({ currentUser, onOpenStore, onClose }: { currentUser: any, onOpenStore?: () => void, onClose?: () => void }) {
     const { socket } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
     const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
@@ -68,7 +68,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
 
     if (!currentUser) {
         return (
-            <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
+            <div className="fixed inset-0 z-[2000] h-[100dvh] flex items-center justify-center bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 md:rounded-2xl">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
         );
@@ -76,7 +76,12 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
 
     if (status === 'denied') {
         return (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+            <div className="fixed inset-0 z-[2000] h-[100dvh] md:inset-auto md:h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900 md:rounded-2xl border border-gray-200 dark:border-gray-800">
+                {onClose && (
+                    <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-800 dark:hover:text-white bg-gray-200 dark:bg-gray-800 rounded-full">
+                        <X size={20} />
+                    </button>
+                )}
                 <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
                     <ShieldCheck className="text-blue-500 dark:text-blue-400" size={32} />
                 </div>
@@ -85,13 +90,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                     The Community Lounge is a safe space for genuine singles. <br />
                     <b>Verify your profile for FREE to join!</b>
                 </p>
-                {/* 
-                  NOTE: onOpenStore currently opens Coin/Premium store. 
-                  Ideally, this should link to Profile -> Verify. 
-                  For now, we keep the button but change text to "Go to Profile" if possible, 
-                  or just keep it generic. "Get Verified" implies action. 
-                */}
-                <button onClick={() => window.location.href = '/dashboard?tab=profile'} className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                <button onClick={() => { if(onClose) onClose(); window.location.href = '/dashboard?tab=profile'; }} className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
                     Go to Profile to Verify
                 </button>
             </div>
@@ -99,7 +98,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
     }
 
     return (
-        <div className="flex flex-col h-full bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800">
+        <div className="fixed inset-0 w-full h-[100dvh] md:relative md:h-full bg-white dark:bg-gray-900 md:rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 flex flex-col z-[2000] md:z-auto animate-in slide-in-from-bottom duration-300">
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
@@ -117,13 +116,20 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                         </p>
                     </div>
                 </div>
-                <button 
-                    onClick={() => setShowMobileUsersModal(true)}
-                    className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 hover:bg-white/20 transition-colors"
-                >
-                    <Users size={14} /> 
-                    <span>{onlineMembers.length} <span className="hidden sm:inline">Online</span></span>
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setShowMobileUsersModal(true)}
+                        className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 hover:bg-white/20 transition-colors"
+                    >
+                        <Users size={14} /> 
+                        <span>{onlineMembers.length} <span className="hidden sm:inline">Online</span></span>
+                    </button>
+                    {onClose && (
+                        <button onClick={onClose} className="p-1.5 ml-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                            <X size={18} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden">
@@ -166,7 +172,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={handleSend} className="p-3 pb-24 lg:pb-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10">
+                    <form onSubmit={handleSend} className="p-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:pb-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10">
                         <input
                             type="text"
                             value={inputText}

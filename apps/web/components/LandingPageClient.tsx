@@ -324,6 +324,117 @@ export default function LandingPageClient() {
         </div>
       </section>
 
+      {/* --- MEET SPOTS SECTION --- */}
+      <section id="meet-spots" className="py-24 bg-indigo-900 relative overflow-hidden">
+        {/* Background Accents */}
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-600/20 rounded-full filter blur-[120px] mix-blend-screen pointer-events-none"></div>
+        <div className="absolute bottom-0 left-[-100px] w-[500px] h-[500px] bg-indigo-500/20 rounded-full filter blur-[100px] mix-blend-screen pointer-events-none"></div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="text-left text-white">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-indigo-200 text-xs font-bold uppercase tracking-widest mb-6 backdrop-blur-md">
+                <MapPin size={14} className="text-pink-400" /> In Real Life
+              </span>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-black mb-6 leading-tight">
+                Take it offline with <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">Meet Spots</span>
+              </h2>
+              <p className="text-lg text-indigo-100/80 mb-8 leading-relaxed font-light">
+                Tired of endless chatting? Skip the small talk and connect organically at curated local events. From pottery classes to group hikes, discover safe, verified meetups happening near you.
+              </p>
+              
+              <div className="space-y-6 mb-10">
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                    <MapPin className="text-pink-400" size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xl mb-1">Discover Local Events</h4>
+                    <p className="text-sm text-indigo-200/70">Find events sorted by distance or date. See exactly what's happening in your city today.</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                    <Users className="text-blue-400" size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xl mb-1">See Who's Going</h4>
+                    <p className="text-sm text-indigo-200/70">Check the RSVP list before you go. Match with attendees before the event even starts.</p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
+                    <ShieldCheck className="text-green-400" size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xl mb-1">Safe & Verified</h4>
+                    <p className="text-sm text-indigo-200/70">Host or attend events with peace of mind. Only verified profiles can RSVP to exclusive spots.</p>
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/register">
+                <button className="px-8 py-4 rounded-full bg-white text-indigo-900 font-bold hover:bg-gray-100 transition-all shadow-xl hover:scale-105">
+                  Explore Events Near You
+                </button>
+              </Link>
+            </div>
+            
+            {/* Interactive/Mockup Element */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-pink-500 to-purple-500 rounded-3xl transform rotate-3 scale-105 opacity-50 blur-lg"></div>
+              <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-gray-100 dark:border-gray-800">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-950">
+                  <h3 className="font-bold text-gray-900 dark:text-white">Happening Today</h3>
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">3 Events Near You</span>
+                </div>
+                <div className="p-4 space-y-4 bg-slate-50 dark:bg-gray-950">
+                  {/* Mock Event 1 */}
+                  <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="text-[10px] font-bold text-pink-600 uppercase tracking-wider mb-1 block">Art & Culture</span>
+                        <h4 className="font-bold text-gray-900 dark:text-white">Sip & Paint Mixer</h4>
+                      </div>
+                      <div className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold text-center">
+                        <div className="text-[10px] uppercase">OCT</div>
+                        <div>14</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-3"><MapPin size={12}/> The Canvas Lounge, Downtown • 2.4 km</p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex -space-x-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-100 border border-white"></div>
+                        <div className="w-6 h-6 rounded-full bg-pink-100 border border-white"></div>
+                        <div className="w-6 h-6 rounded-full bg-blue-100 border border-white"></div>
+                        <div className="w-6 h-6 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] font-bold">+12</div>
+                      </div>
+                      <button className="text-xs font-bold text-white bg-indigo-600 px-4 py-1.5 rounded-full">RSVP</button>
+                    </div>
+                  </div>
+                  {/* Mock Event 2 */}
+                  <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 opacity-80">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1 block">Outdoors</span>
+                        <h4 className="font-bold text-gray-900 dark:text-white">Sunrise Group Hike</h4>
+                      </div>
+                      <div className="bg-gray-50 text-gray-700 px-2 py-1 rounded text-xs font-bold text-center">
+                        <div className="text-[10px] uppercase">OCT</div>
+                        <div>15</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-3"><MapPin size={12}/> Blue Ridge Trail • 5.1 km</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* --- SUCCESS STORIES --- */}
       <section id="success-stories" className="py-24 bg-white dark:bg-gray-950 relative border-t border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-6">

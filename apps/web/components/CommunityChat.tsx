@@ -166,7 +166,7 @@ export default function CommunityChat({ currentUser, onOpenStore }: { currentUse
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={handleSend} className="p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10">
+                    <form onSubmit={handleSend} className="p-3 pb-24 lg:pb-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10">
                         <input
                             type="text"
                             value={inputText}

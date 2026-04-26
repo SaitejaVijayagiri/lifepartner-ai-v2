@@ -145,11 +145,28 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
         e.preventDefault();
         try {
             setIsCreating(true);
+            
+            // If the user manually typed a location but didn't click GPS, forward-geocode it!
+            let finalLat = formLat;
+            let finalLng = formLng;
+            
+            if (!finalLat || !finalLng) {
+                try {
+                    const query = encodeURIComponent(form.location_name);
+                    const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } });
+                    const data = await r.json();
+                    if (data && data.length > 0) {
+                        finalLat = parseFloat(data[0].lat);
+                        finalLng = parseFloat(data[0].lon);
+                    }
+                } catch { /* Silent fail, will fallback below */ }
+            }
+
             const payload = {
                 ...form,
                 event_date: new Date(form.event_date).toISOString(),
-                lat: formLat ?? lat,
-                lng: formLng ?? lng,
+                lat: finalLat ?? lat,
+                lng: finalLng ?? lng,
                 max_attendees: form.max_attendees ? parseInt(form.max_attendees) : null,
             };
 

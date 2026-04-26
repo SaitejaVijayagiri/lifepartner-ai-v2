@@ -465,7 +465,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     return (
-        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[100] animate-in slide-in-from-bottom duration-300"}>
+        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in slide-in-from-bottom duration-300"}>
             {/* Premium Header */}
             {!isCallMode && (
                 <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">
@@ -862,8 +862,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             
             {/* Fullscreen Image Overlay */}
             {fullscreenImage && (
-                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
-                    <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[110] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}>
+                <div className="fixed inset-0 z-[2010] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
+                    <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}>
                         <X size={20} strokeWidth={3} />
                     </button>
                     <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
@@ -877,7 +877,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 const isMyMsg = msgToDelete.senderId !== partner.id;
                 
                 return (
-                    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setDeleteMenuMsgId(null)}>
+                    <div className="fixed inset-0 z-[2010] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setDeleteMenuMsgId(null)}>
                         <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                             <div className="p-6 text-center border-b border-gray-100 dark:border-gray-800">
                                 <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">

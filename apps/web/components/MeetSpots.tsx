@@ -298,16 +298,18 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     
                     {/* Top Badges */}
-                    <div className="absolute top-4 left-4 flex gap-2">
-                        <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider shadow-sm border border-white/20">
-                            {CATEGORIES.find(c => c.id === event.category)?.emoji} {event.category}
+                    <div className="absolute top-3 left-3 right-3 flex justify-between items-start gap-2 pointer-events-none">
+                        <div className="flex-1 min-w-0">
+                            <div className="inline-block max-w-full bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider shadow-sm border border-white/20 truncate pointer-events-auto">
+                                {CATEGORIES.find(c => c.id === event.category)?.emoji} {event.category}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="absolute top-4 right-4 flex gap-2">
-                        {full && <div className="bg-red-500/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wider shadow-sm border border-red-400/50 animate-pulse">FULL</div>}
-                        <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 shadow-sm border border-white/10">
-                            <Zap size={10} className="fill-yellow-400 text-yellow-400" /> {timeUntil(event.event_date)}
+                        <div className="flex flex-col items-end gap-1.5 shrink-0 pointer-events-auto">
+                            {full && <div className="bg-red-500/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black text-white uppercase tracking-wider shadow-sm border border-red-400/50 animate-pulse">FULL</div>}
+                            <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 shadow-sm border border-white/10">
+                                <Zap size={10} className="fill-yellow-400 text-yellow-400 shrink-0" /> <span className="whitespace-nowrap">{timeUntil(event.event_date)}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -363,8 +365,8 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                     </div>
 
                     {/* RSVP & Action Area */}
-                    <div className="flex items-center justify-between pt-2">
-                        <button onClick={() => openAttendees(event.id, event.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[11px] font-bold text-gray-600 dark:text-gray-300 transition-colors">
+                    <div className="flex items-center justify-between gap-2 pt-2 flex-wrap">
+                        <button onClick={() => openAttendees(event.id, event.title)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-[11px] font-bold text-gray-600 dark:text-gray-300 transition-colors shrink-0">
                             <Users size={12} className={event.is_attending ? 'text-green-500' : 'text-indigo-500'} />
                             {event.attendee_count}{event.max_attendees ? `/${event.max_attendees}` : ''} Attending
                         </button>
@@ -373,7 +375,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2">Your Event</span>
                         ) : (
                             <button onClick={() => handleRSVP(event.id)} disabled={full && !event.is_attending}
-                                className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                className={`px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 flex-1 sm:flex-none text-center ${
                                     event.is_attending 
                                     ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-red-50 hover:text-red-600 hover:border-red-200'
                                     : full 

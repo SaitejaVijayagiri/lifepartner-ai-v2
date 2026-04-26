@@ -137,8 +137,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     const completionPercentage = Math.round((countFields.filter(Boolean).length / countFields.length) * 100);
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
-            <div className="bg-indigo-600 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center text-white sticky top-0 z-10">
+        <div className="fixed inset-0 w-full h-[100dvh] md:relative md:h-auto bg-white dark:bg-gray-800 md:rounded-xl shadow-lg border-x-0 border-y md:border border-gray-100 dark:border-gray-800 overflow-y-auto z-[2000] md:z-auto animate-in slide-in-from-bottom md:slide-in-from-bottom-0 duration-300">
+            <div className="bg-indigo-600 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center text-white sticky top-0 z-20">
                 <h3 className="text-base md:text-lg font-bold">Edit Profile</h3>
                 <button onClick={onCancel} className="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white transition-colors">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -728,7 +728,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                     </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-900 px-6 py-4 flex justify-end gap-3 border-t">
+                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-end gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
                     <Button variant="outline" onClick={onCancel}>Cancel</Button>
                     <Button onClick={handleSave} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700">
                         {loading ? 'Saving...' : 'Save Changes'}

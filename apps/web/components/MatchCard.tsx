@@ -12,6 +12,9 @@ import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
 import { formatLocationString } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const CompatibilityModal = dynamic(() => import('./CompatibilityModal'), { ssr: false });
 
 interface MatchCardProps {
     match: any;
@@ -46,6 +49,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [showDMModal, setShowDMModal] = useState(false);
     const [dmText, setDmText] = useState("");
     const [sendingDM, setSendingDM] = useState(false);
+    const [showCosmicReport, setShowCosmicReport] = useState(false);
 
     // Counts
     const [likeCount, setLikeCount] = useState(match.total_likes || 0);
@@ -321,8 +325,8 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     </div>
                 </div>
 
-                {/* Hidden ACTION Buttons (Appears on Hover) */}
-                <div className="absolute bottom-4 left-4 right-4 flex gap-2 translate-y-20 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
+                {/* Hidden ACTION Buttons — visible on hover on desktop, always visible on mobile tap */}
+                <div className="absolute bottom-4 left-4 right-4 flex gap-2 translate-y-20 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
 
                     {/* 1. Primary Action: "Message" if connected, "Send Interest" otherwise */}
                     {isConnected ? (
@@ -411,6 +415,15 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         <Share2 className="w-5 h-5" />
                     </button>
 
+                    {/* Cosmic Compatibility Button */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setShowCosmicReport(true); }}
+                        className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-purple-400/40 bg-gradient-to-br from-pink-500/70 to-purple-600/70 shadow-xl transition-all duration-300 active:scale-95 hover:from-pink-500 hover:to-purple-600 hover:shadow-purple-500/40 hover:shadow-lg relative overflow-hidden"
+                        title="Cosmic Compatibility Report"
+                    >
+                        <span className="text-lg filter drop-shadow-md relative z-10">✨</span>
+                    </button>
+
                     {/* 4. Report Button (Safety) */}
                     <button
                         onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
@@ -466,6 +479,16 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     </div>
                 </Modal>
             </div>
+
+            {/* Cosmic Compatibility Modal */}
+            {showCosmicReport && (
+                <CompatibilityModal
+                    isOpen={showCosmicReport}
+                    onClose={() => setShowCosmicReport(false)}
+                    targetUserId={match.id}
+                    targetName={match.name}
+                />
+            )}
         </div>
     );
 });

@@ -20,6 +20,7 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
     const [loading, setLoading] = useState(true);
     const [report, setReport] = useState<ReportData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [displayScore, setDisplayScore] = useState(0);
 
     useEffect(() => {
         if (!isOpen) {
@@ -60,6 +61,30 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
         fetchCompatibility();
     }, [isOpen, targetUserId]);
 
+    // Animate score from 0 to target score
+    useEffect(() => {
+        if (report && report.score > 0) {
+            let startTimestamp: number;
+            const duration = 1000; // 1 second
+            
+            const step = (timestamp: number) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // easeOutQuart
+                const easeProgress = 1 - Math.pow(1 - progress, 4);
+                
+                setDisplayScore(Math.floor(easeProgress * report.score));
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        } else {
+            setDisplayScore(0);
+        }
+    }, [report]);
+
     if (!isOpen) return null;
 
     return (
@@ -71,10 +96,10 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
             ></div>
 
             {/* Modal Content */}
-            <div className="relative w-full max-w-lg bg-white dark:bg-gray-950 rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
+            <div className="relative w-full max-w-lg max-h-[90dvh] flex flex-col bg-white dark:bg-gray-950 rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
-                <div className="p-6 pb-0 flex justify-between items-center relative z-10">
+                <div className="p-6 pb-4 flex justify-between items-center relative z-10 shrink-0 border-b border-gray-100 dark:border-gray-800/50">
                     <div className="flex items-center gap-2">
                         <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
                             <Sparkles size={20} />
@@ -83,13 +108,13 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                     </div>
                     <button 
                         onClick={onClose}
-                        className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors shrink-0"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto flex-1">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-12">
                             <div className="relative w-32 h-32 flex items-center justify-center mb-6">
@@ -123,7 +148,7 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                                         />
                                     </svg>
                                     <div className="absolute flex flex-col items-center justify-center">
-                                        <span className="text-4xl font-black text-gray-900 dark:text-white">{report.score}%</span>
+                                        <span className="text-4xl font-black text-gray-900 dark:text-white drop-shadow-sm">{displayScore}%</span>
                                         <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Match</span>
                                     </div>
                                 </div>
@@ -162,9 +187,25 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                                 </ul>
                             </div>
 
-                            <button onClick={onClose} className="w-full py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:scale-[1.02] transition-transform">
-                                Got It
-                            </button>
+                            <div className="flex gap-3">
+                                <button onClick={onClose} className="flex-[2] py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold rounded-xl hover:scale-[1.02] transition-transform">
+                                    Got It
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (navigator.share) {
+                                            navigator.share({
+                                                title: 'Cosmic Match on LifePartner AI',
+                                                text: `I just got an ${report.score}% cosmic match with ${targetName.split(' ')[0]} on LifePartner AI! ✨`,
+                                                url: window.location.href,
+                                            }).catch(console.error);
+                                        }
+                                    }}
+                                    className="flex-1 py-4 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-bold rounded-xl hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    Share
+                                </button>
+                            </div>
 
                         </div>
                     ) : null}

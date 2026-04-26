@@ -3,7 +3,7 @@
 import { getZodiacSymbol } from '@/lib/religionUtils';
 
 import { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play } from 'lucide-react';
+import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
@@ -12,6 +12,7 @@ import { formatLocationString } from '@/lib/utils';
 
 const KundliModal = dynamic(() => import('./KundliModal'), { ssr: false });
 const CoinStoreModal = dynamic(() => import('./CoinStoreModal'), { ssr: false });
+const CompatibilityModal = dynamic(() => import('./CompatibilityModal'), { ssr: false });
 
 interface ProfileModalProps {
     profile: any;
@@ -29,6 +30,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [lastInteracted, setLastInteracted] = useState(0);
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [showKundli, setShowKundli] = useState(false);
+    const [showCosmicReport, setShowCosmicReport] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     if (!profile) return null;
@@ -257,8 +259,16 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    {/* Placeholder for future detailed AI breakdown */}
+                                    {/* Detailed AI breakdown */}
                                 </div>
+
+                                <Button 
+                                    onClick={() => setShowCosmicReport(true)}
+                                    className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold h-14 rounded-2xl shadow-xl shadow-purple-500/30 flex items-center justify-center gap-2"
+                                >
+                                    <Sparkles size={20} />
+                                    Generate Cosmic Compatibility Report
+                                </Button>
                             </div>
                         )}
 
@@ -504,6 +514,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         onClose={() => setShowKundli(false)}
                         data={profile.kundli || { score: 18, total: 36, details: [] }}
                         names={{ me: currentUser?.full_name || 'You', partner: profile.name }}
+                    />
+                )
+            }
+
+            {
+                showCosmicReport && (
+                    <CompatibilityModal 
+                        isOpen={showCosmicReport}
+                        onClose={() => setShowCosmicReport(false)}
+                        targetUserId={profile.id}
+                        targetName={profile.name}
                     />
                 )
             }

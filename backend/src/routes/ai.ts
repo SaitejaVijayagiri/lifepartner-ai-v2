@@ -337,4 +337,139 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
     }
 });
 
+// POST /ai/compatibility — Cosmic Compatibility Report
+router.post('/compatibility', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { targetUserId } = req.body;
+
+        if (!targetUserId) {
+            return res.status(400).json({ error: "Missing targetUserId" });
+        }
+
+        // Fetch both users
+        const [userA, userB] = await Promise.all([
+            prisma.users.findUnique({ where: { id: userId }, include: { profiles: true } }),
+            prisma.users.findUnique({ where: { id: targetUserId }, include: { profiles: true } })
+        ]);
+
+        if (!userA || !userB || !userA.profiles || !userB.profiles) {
+            return res.status(404).json({ error: "User or profile not found" });
+        }
+
+        const metaA = (userA.profiles.metadata as any) || {};
+        const metaB = (userB.profiles.metadata as any) || {};
+
+        const dataA = {
+            name: userA.full_name,
+            gender: userA.gender,
+            zodiac: metaA.horoscope?.zodiacSign || 'Unknown',
+            nakshatra: metaA.horoscope?.nakshatra || 'Unknown',
+            hobbies: metaA.interests || []
+        };
+
+        const dataB = {
+            name: userB.full_name,
+            gender: userB.gender,
+            zodiac: metaB.horoscope?.zodiacSign || 'Unknown',
+            nakshatra: metaB.horoscope?.nakshatra || 'Unknown',
+            hobbies: metaB.interests || []
+        };
+
+        const systemPrompt = `You are a premium Vedic Astrologer and Matchmaker on LifePartner AI.
+Analyze the compatibility between these two people based on their Zodiac signs, Nakshatras, and hobbies.
+If Zodiac is unknown, focus heavily on their shared or opposing hobbies/traits.
+Output STRICT JSON exactly like this:
+{
+  "score": 85,
+  "strengths": ["string - A cosmic or personality strength", "string - Another strength"],
+  "challenges": ["string - A potential friction point", "string - How they can overcome it"],
+  "verdict": "string - A fun, engaging 2-sentence summary of their potential as a couple."
+}
+IMPORTANT: 'score' MUST be an integer between 0 and 100. DO NOT use markdown wrappers like \`\`\`json.`;
+
+        let compatibilityText: string | null = null;
+
+        // ─── TIER 1: Gemini ────────────────────────────────────────
+        if (process.env.GEMINI_API_KEY) {
+            try {
+                const geminiResponse = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            system_instruction: { parts: [{ text: systemPrompt }] },
+                            contents: [
+                                { role: 'user', parts: [{ text: JSON.stringify({ Person1: dataA, Person2: dataB }) }] }
+                            ],
+                            generationConfig: { maxOutputTokens: 500, temperature: 0.8 }
+                        }),
+                        signal: AbortSignal.timeout(10000)
+                    }
+                );
+                if (geminiResponse.ok) {
+                    const data: any = await geminiResponse.json();
+                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        compatibilityText = text;
+                        console.log('[compatibility] Answered via Gemini ✅');
+                    }
+                }
+            } catch (err: any) {
+                console.warn(`[compatibility] Gemini failed: ${err.message}`);
+            }
+        }
+
+        // ─── TIER 2: NVIDIA Gemma Fallback ─────────────────────────────
+        if (!compatibilityText && process.env.NVIDIA_API_KEY) {
+            try {
+                const nvidiaResponse = await axios.post(
+                    'https://integrate.api.nvidia.com/v1/chat/completions',
+                    {
+                        model: 'google/gemma-4-31b-it',
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: JSON.stringify({ Person1: dataA, Person2: dataB }) }
+                        ],
+                        max_tokens: 600,
+                        temperature: 0.8,
+                        stream: false
+                    },
+                    { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NVIDIA_API_KEY}` }, timeout: 15000 }
+                );
+                const text = nvidiaResponse.data?.choices?.[0]?.message?.content;
+                if (text) {
+                    compatibilityText = text;
+                    console.log('[compatibility] Answered via NVIDIA ✅');
+                }
+            } catch (err: any) {
+                console.warn(`[compatibility] NVIDIA failed: ${err.message}`);
+            }
+        }
+
+        if (!compatibilityText) {
+             // Hardcoded fallback if AI completely fails
+             return res.json({
+                 score: 75,
+                 strengths: ["Great foundation of shared values.", "Both are looking for a serious commitment."],
+                 challenges: ["Communication styles might differ slightly.", "Patience will be key early on."],
+                 verdict: "The stars see potential, but true connection is built through conversation. Send them a message!"
+             });
+        }
+
+        const cleanedText = compatibilityText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleanedText);
+        
+        res.json({
+            ...parsed,
+            score: typeof parsed.score === 'string' ? parseInt(parsed.score, 10) || 50 : (parsed.score || 50)
+        });
+
+    } catch (error: any) {
+        console.error("AI Compatibility Error:", error);
+        res.status(500).json({ error: "Stars are currently misaligned. Try again later." });
+    }
+});
+
 export default router;

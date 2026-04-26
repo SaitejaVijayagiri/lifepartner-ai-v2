@@ -2,8 +2,9 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: "Login | LifePartner AI",
-    description: "Access your account to view matches, messages, and your AI compatibility reports.",
+    title: "Member Login | LifePartner AI",
+    description: "Access your LifePartner AI account to view curated matches, reply to messages, and manage your profile securely.",
+    keywords: ["matrimony login", "sign in lifepartner", "access matchmaking account"]
 };
 
 export default function LoginLayout({

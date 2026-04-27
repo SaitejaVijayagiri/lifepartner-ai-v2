@@ -124,7 +124,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-screen h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
                 {/* Close button REMOVED from fixed — now lives inside the content panel header */}
 
@@ -218,7 +218,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                 {/* RIGHT: Content & Details — expands to fill when sheet is dragged up */}
                 <div
-                    className={`w-full md:w-[55%] flex flex-col bg-white dark:bg-gray-900 md:h-full relative rounded-t-3xl md:rounded-none z-30 md:z-auto transition-all duration-300 ease-in-out ${
+                    className={`w-full md:w-[55%] flex flex-col bg-white dark:bg-gray-900 md:h-full relative rounded-t-3xl md:rounded-none z-30 md:z-auto transition-all duration-300 ease-in-out min-h-0 ${
                         sheetExpanded ? 'flex-1' : 'h-[55%]'
                     }`}
                     onTouchStart={handleDragStart}
@@ -295,7 +295,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Scrollable Content — extra bottom padding for breathing room */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10 min-h-0">
 
                         {activeTab === 'ai insight' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

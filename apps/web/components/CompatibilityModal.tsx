@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Sparkles, X, CheckCircle2, AlertTriangle, Star } from 'lucide-react';
 import { api } from '@/lib/api';
 
@@ -87,7 +88,10 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
 
     if (!isOpen) return null;
 
-    return (
+    // Render via portal to escape parent overflow:hidden / transform contexts
+    if (typeof window === 'undefined') return null;
+
+    return createPortal((
         <div className="fixed inset-0 z-[10000] flex items-center justify-center overflow-hidden">
             {/* Backdrop */}
             <div 
@@ -230,5 +234,5 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                 </div>
             </div>
         </div>
-    );
+    ), document.body);
 }

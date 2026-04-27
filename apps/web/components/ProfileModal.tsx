@@ -597,28 +597,81 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     // Trigger refresh in parent if needed
                 }}
             />
-            {/* Fullscreen Image Overlay (Zoom) */}
-            {isFullscreen && (
-                <div
-                    className="fixed inset-0 z-[20000] bg-black flex items-center justify-center animate-in fade-in zoom-in duration-200"
-                    onClick={() => setIsFullscreen(false)}
-                >
-                    <button
-                        className="absolute top-4 right-4 z-50 text-white p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsFullscreen(false);
+            {/* Fullscreen Image Gallery — swipe left/right to browse */}
+            {isFullscreen && (() => {
+                let fsSwipeStartX = 0;
+                return (
+                    <div
+                        className="fixed inset-0 z-[20000] bg-black flex items-center justify-center animate-in fade-in duration-200 select-none"
+                        onClick={() => setIsFullscreen(false)}
+                        onTouchStart={(e) => { fsSwipeStartX = e.touches[0].clientX; }}
+                        onTouchEnd={(e) => {
+                            const delta = fsSwipeStartX - e.changedTouches[0].clientX;
+                            if (Math.abs(delta) > 50) {
+                                e.stopPropagation();
+                                if (delta > 0) setCurrentPhotoIndex(p => p < photos.length - 1 ? p + 1 : p);
+                                else setCurrentPhotoIndex(p => p > 0 ? p - 1 : p);
+                            }
                         }}
                     >
-                        <X size={24} />
-                    </button>
-                    <img
-                        src={photos[currentPhotoIndex]}
-                        alt="Zoomed Profile"
-                        className="w-full h-full object-contain cursor-zoom-out"
-                    />
-                </div>
-            )}
+                        {/* Close */}
+                        <button
+                            className="absolute top-4 right-4 z-50 text-white p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
+                            onClick={(e) => { e.stopPropagation(); setIsFullscreen(false); }}
+                        >
+                            <X size={24} />
+                        </button>
+
+                        {/* Photo counter */}
+                        {photos.length > 1 && (
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                                {currentPhotoIndex + 1} / {photos.length}
+                            </div>
+                        )}
+
+                        {/* Prev Arrow */}
+                        {photos.length > 1 && currentPhotoIndex > 0 && (
+                            <button
+                                className="absolute left-3 top-1/2 -translate-y-1/2 z-50 text-white p-3 bg-white/10 hover:bg-white/25 backdrop-blur-md rounded-full transition-all active:scale-95"
+                                onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(p => p - 1); }}
+                            >
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                        )}
+
+                        {/* Main Image */}
+                        <img
+                            src={photos[currentPhotoIndex]}
+                            alt={`Photo ${currentPhotoIndex + 1}`}
+                            className="w-full h-full object-contain cursor-zoom-out"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+
+                        {/* Next Arrow */}
+                        {photos.length > 1 && currentPhotoIndex < photos.length - 1 && (
+                            <button
+                                className="absolute right-3 top-1/2 -translate-y-1/2 z-50 text-white p-3 bg-white/10 hover:bg-white/25 backdrop-blur-md rounded-full transition-all active:scale-95"
+                                onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(p => p + 1); }}
+                            >
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        )}
+
+                        {/* Dot indicators */}
+                        {photos.length > 1 && (
+                            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-50">
+                                {photos.map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(idx); }}
+                                        className={`rounded-full transition-all ${idx === currentPhotoIndex ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/70'}`}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
         </div >
     );
 }

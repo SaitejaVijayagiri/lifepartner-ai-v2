@@ -326,117 +326,115 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 </div>
 
                 {/* Hidden ACTION Buttons — visible on hover on desktop, always visible on mobile tap */}
-                <div className="absolute bottom-4 left-4 right-4 flex gap-2 translate-y-20 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
+                <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2 translate-y-24 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
 
-                    {/* 1. Primary Action: "Message" if connected, "Send Interest" otherwise */}
-                    {isConnected ? (
-                        <Button
-                            onClick={handleMessage}
-                            className="flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700"
-                            style={{ opacity: 1 }}
-                        >
-                            💬 Message
-                        </Button>
-                    ) : (
-                        <div className="flex-1 flex gap-2">
+                    {/* ROW 1 — Primary CTA */}
+                    <div className="flex gap-2">
+                        {isConnected ? (
                             <Button
-                                onClick={handleConnect}
-                                disabled={loading || isRequestSent}
-                                className={`flex-1 h-12 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                    }`}
+                                onClick={handleMessage}
+                                className="flex-1 h-11 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700"
                                 style={{ opacity: 1 }}
                             >
-                                {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
+                                💬 Message
                             </Button>
-                            {!isRequestSent && (
+                        ) : (
+                            <>
                                 <Button
-                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
-                                    className="h-12 w-12 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
-                                    title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages ?? 3) + ' Left'})`}
+                                    onClick={handleConnect}
+                                    disabled={loading || isRequestSent}
+                                    className={`flex-1 h-11 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
+                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                        }`}
+                                    style={{ opacity: 1 }}
                                 >
-                                    <Mail size={20} />
+                                    {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
                                 </Button>
-                            )}
-                        </div>
-                    )}
+                                {!isRequestSent && (
+                                    <Button
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
+                                        className="h-11 w-11 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
+                                        title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages ?? 3) + ' Left'})`}
+                                    >
+                                        <Mail size={18} />
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                    </div>
 
-                    {/* 2. Like/Heart Button (Social Proof Action) */}
-                    <button
-                        onClick={handleLike}
-                        disabled={loading}
-                        className={`h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border shadow-xl transition-all duration-300 active:scale-95 hover:bg-black/80 ${hasLiked
-                            ? 'bg-pink-500/20 border-pink-500/50'
-                            : 'bg-black/60 border-white/10'
-                            }`}
-                        title={hasLiked ? "You liked this profile" : "Like this profile"}
-                    >
-                        <span className={`text-xs transition-transform duration-300 ${hasLiked ? 'scale-125 text-pink-500' : 'text-gray-300 group-hover:text-pink-400'}`}>
-                            {hasLiked ? '❤️' : '🤍'}
-                        </span>
-                        <span className="text-[10px] font-bold text-white mt-0.5">{likeCount}</span>
-                    </button>
+                    {/* ROW 2 — Icon Actions: Like | Gift | Share | Cosmic | Report */}
+                    <div className="flex gap-1.5">
+                        {/* Like */}
+                        <button
+                            onClick={handleLike}
+                            disabled={loading}
+                            className={`flex-1 h-10 flex flex-col items-center justify-center rounded-xl backdrop-blur-md border shadow-lg transition-all duration-300 active:scale-95 ${hasLiked
+                                ? 'bg-pink-500/30 border-pink-500/60'
+                                : 'bg-black/60 border-white/10 hover:bg-black/80'
+                                }`}
+                            title={hasLiked ? "You liked this profile" : "Like"}
+                        >
+                            <span className={`text-base leading-none ${hasLiked ? 'scale-110' : ''} transition-transform`}>{hasLiked ? '❤️' : '🤍'}</span>
+                            <span className="text-[9px] font-bold text-white/80 mt-0.5">{likeCount}</span>
+                        </button>
 
-                    {/* 2.5 Gift Count (Passive Badge) -> Active Button */}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
-                        className="h-12 w-16 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 hover:bg-black/80 active:scale-95"
-                        title="Send a Gift"
-                    >
-                        <span className="text-xl filter drop-shadow-md transform group-hover:scale-110 transition-transform">🎁</span>
-                        <span className="text-[10px] font-bold text-white mt-0.5">{match.total_gifts || 0}</span>
-                    </button>
+                        {/* Gift */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
+                            className="flex-1 h-10 flex flex-col items-center justify-center rounded-xl backdrop-blur-md border border-white/10 bg-black/60 shadow-lg transition-all duration-300 hover:bg-black/80 active:scale-95"
+                            title="Send a Gift"
+                        >
+                            <span className="text-base leading-none">🎁</span>
+                            <span className="text-[9px] font-bold text-white/80 mt-0.5">{match.total_gifts || 0}</span>
+                        </button>
 
-                    {/* 3. Share Button (New) */}
-                    <button
-                        onClick={async (e) => {
-                            e.stopPropagation();
-                            const shareData = {
-                                title: `Match: ${match.name}`,
-                                text: `Check out ${match.name} on LifePartner AI!`,
-                                url: `https://lifepartnerai.in/profile/${match.id}`
-                            };
-                            try {
-                                if (navigator.share) {
-                                    await navigator.share(shareData);
-                                } else {
-                                    await navigator.clipboard.writeText(shareData.url);
-                                    toast.success("Link copied to clipboard!");
-                                }
-                            } catch (err) {
-                                console.error("Share failed:", err);
-                                toast.error("Sharing unsupported or cancelled");
-                            }
-                        }}
-                        className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 hover:text-blue-400 text-gray-400"
-                        title="Share Profile"
-                    >
-                        <Share2 className="w-5 h-5" />
-                    </button>
+                        {/* Share */}
+                        <button
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                const shareData = {
+                                    title: `Match: ${match.name}`,
+                                    text: `Check out ${match.name} on LifePartner AI!`,
+                                    url: `https://lifepartnerai.in/profile/${match.id}`
+                                };
+                                try {
+                                    if (navigator.share) {
+                                        await navigator.share(shareData);
+                                    } else {
+                                        await navigator.clipboard.writeText(shareData.url);
+                                        toast.success("Link copied!");
+                                    }
+                                } catch { /* cancelled */ }
+                            }}
+                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border border-white/10 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 text-gray-300"
+                            title="Share Profile"
+                        >
+                            <Share2 className="w-4 h-4" />
+                        </button>
 
-                    {/* Cosmic Compatibility Button */}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setShowCosmicReport(true); }}
-                        className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-purple-400/40 bg-gradient-to-br from-pink-500/70 to-purple-600/70 shadow-xl transition-all duration-300 active:scale-95 hover:from-pink-500 hover:to-purple-600 hover:shadow-purple-500/40 hover:shadow-lg relative overflow-hidden"
-                        title="Cosmic Compatibility Report"
-                    >
-                        <span className="text-lg filter drop-shadow-md relative z-10">✨</span>
-                    </button>
+                        {/* Cosmic Compatibility */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setShowCosmicReport(true); }}
+                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border border-purple-400/40 bg-gradient-to-br from-pink-500/70 to-purple-600/70 shadow-lg transition-all duration-300 active:scale-95 hover:from-pink-500 hover:to-purple-600"
+                            title="Cosmic Compatibility"
+                        >
+                            <span className="text-base">✨</span>
+                        </button>
 
-                    {/* 4. Report Button (Safety) */}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
-                        className="h-12 w-12 flex flex-col items-center justify-center rounded-lg backdrop-blur-md border border-white/10 bg-black/60 shadow-xl transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-400 text-gray-400"
-                        title="Report User"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                    </button>
+                        {/* Report */}
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
+                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border border-white/10 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 text-gray-400 hover:text-red-400"
+                            title="Report User"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-
-                {/* Kundli Modal removed from here, handled by parent via onShowKundli */}
 
                 <ReportModal
                     isOpen={showReport}

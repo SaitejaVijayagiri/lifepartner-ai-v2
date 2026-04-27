@@ -34,14 +34,34 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [sheetExpanded, setSheetExpanded] = useState(false);
     const dragStartY = useState(0);
+    const swipeStartX = useState(0);
+
+    const TABS = ['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'];
     
     const handleDragStart = (e: React.TouchEvent) => {
         dragStartY[1](e.touches[0].clientY);
+        swipeStartX[1](e.touches[0].clientX);
     };
     const handleDragEnd = (e: React.TouchEvent) => {
-        const delta = dragStartY[0] - e.changedTouches[0].clientY;
-        if (delta > 40) setSheetExpanded(true);   // swipe up → expand
-        if (delta < -40) setSheetExpanded(false);  // swipe down → collapse
+        const deltaY = dragStartY[0] - e.changedTouches[0].clientY;
+        const deltaX = swipeStartX[0] - e.changedTouches[0].clientX;
+
+        // Horizontal swipe → change tab (must be more horizontal than vertical)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+            const currentIndex = TABS.indexOf(activeTab);
+            if (deltaX > 0 && currentIndex < TABS.length - 1) {
+                setActiveTab(TABS[currentIndex + 1]); // swipe left → next tab
+            } else if (deltaX < 0 && currentIndex > 0) {
+                setActiveTab(TABS[currentIndex - 1]); // swipe right → prev tab
+            }
+            return;
+        }
+
+        // Vertical swipe → expand/collapse sheet
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            if (deltaY > 40) setSheetExpanded(true);
+            if (deltaY < -40) setSheetExpanded(false);
+        }
     };
 
     if (!profile) return null;
@@ -106,17 +126,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
             <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
-                {/* Enhanced Close Button (Floating & Glassy) - Fixed Position for Mobile Reliability */}
-                <button
-                    onClick={onClose}
-                    className="fixed top-4 right-4 z-[10000] bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-3 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-xl border border-white/20"
-                    style={{ position: 'fixed', top: 'max(16px, env(safe-area-inset-top))', right: '16px' }}
-                >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
+                {/* Close button REMOVED from fixed — now lives inside the content panel header */}
 
                 {/* LEFT: Photo — hidden when sheet is expanded on mobile */}
                 <div className={`w-full md:w-[45%] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center transition-all duration-300 ease-in-out ${
@@ -246,28 +256,46 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
 
 
-                    {/* Sticky Tabs */}
-                    <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-40 border-b border-gray-100 dark:border-gray-800 px-4 md:px-6">
-                        <div className="flex space-x-6 overflow-x-auto no-scrollbar py-2 md:py-3">
-                            {['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'].map(tab => (
-                                <button
-                                    key={tab}
-                                    onClick={() => setActiveTab(tab)}
-                                    className={`
-                                        pb-2 text-xs md:text-sm font-semibold capitalize whitespace-nowrap transition-all
-                                        ${activeTab === tab
-                                            ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
-                                            : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-transparent'}
-                                    `}
-                                >
-                                    {tab === 'ai insight' ? '🤖 AI Insight' : tab}
-                                </button>
-                            ))}
+                    {/* Sticky Tabs — with inline close button so X never overlaps */}
+                    <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-40 border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-0">
+                            {/* Tab scroll area */}
+                            <div className="flex-1 flex space-x-5 overflow-x-auto no-scrollbar py-2.5 px-4 md:px-6">
+                                {TABS.map(tab => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`
+                                            pb-1.5 text-xs md:text-sm font-semibold capitalize whitespace-nowrap transition-all
+                                            ${activeTab === tab
+                                                ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+                                                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-transparent'}
+                                        `}
+                                    >
+                                        {tab === 'ai insight' ? '🤖 AI' : tab}
+                                    </button>
+                                ))}
+                            </div>
+                            {/* Close Button lives here — always visible, never overlaps tabs */}
+                            <button
+                                onClick={onClose}
+                                className="shrink-0 mr-3 p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-all active:scale-95"
+                                aria-label="Close"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        {/* Swipe hint on mobile */}
+                        <div className="flex md:hidden justify-center pb-1">
+                            <span className="text-[9px] text-gray-300 dark:text-gray-600">← swipe to browse tabs →</span>
                         </div>
                     </div>
 
-                    {/* Scrollable Content */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-32 md:pb-6">
+                    {/* Scrollable Content — extra bottom padding so last items are never clipped */}
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-40 md:pb-10">
 
                         {activeTab === 'ai insight' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

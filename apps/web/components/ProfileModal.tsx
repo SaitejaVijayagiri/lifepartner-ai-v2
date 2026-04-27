@@ -32,6 +32,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [showKundli, setShowKundli] = useState(false);
     const [showCosmicReport, setShowCosmicReport] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [sheetExpanded, setSheetExpanded] = useState(false);
+    const dragStartY = useState(0);
+    
+    const handleDragStart = (e: React.TouchEvent) => {
+        dragStartY[1](e.touches[0].clientY);
+    };
+    const handleDragEnd = (e: React.TouchEvent) => {
+        const delta = dragStartY[0] - e.changedTouches[0].clientY;
+        if (delta > 40) setSheetExpanded(true);   // swipe up → expand
+        if (delta < -40) setSheetExpanded(false);  // swipe down → collapse
+    };
 
     if (!profile) return null;
 
@@ -107,8 +118,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </svg>
                 </button>
 
-                {/* LEFT: Immersive Image Section - Fixed Height on Mobile to Stop Jumps */}
-                <div className="w-full md:w-[45%] h-[50%] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
+                {/* LEFT: Photo — hidden when sheet is expanded on mobile */}
+                <div className={`w-full md:w-[45%] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center transition-all duration-300 ease-in-out ${
+                    sheetExpanded ? 'h-0 overflow-hidden' : 'h-[45%]'
+                }`}>
 
                     {/* Main Image */}
                     <img
@@ -193,8 +206,27 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
                 </div>
 
-                {/* RIGHT: Content & Details */}
-                <div className="w-full md:w-[55%] flex flex-col bg-white dark:bg-gray-900 h-[50%] md:h-full relative rounded-none z-30 md:z-auto">
+                {/* RIGHT: Content & Details — expands to fill when sheet is dragged up */}
+                <div
+                    className={`w-full md:w-[55%] flex flex-col bg-white dark:bg-gray-900 md:h-full relative rounded-t-3xl md:rounded-none z-30 md:z-auto transition-all duration-300 ease-in-out ${
+                        sheetExpanded ? 'flex-1' : 'h-[55%]'
+                    }`}
+                    onTouchStart={handleDragStart}
+                    onTouchEnd={handleDragEnd}
+                >
+
+                    {/* Drag Handle — mobile only */}
+                    <div
+                        className="flex md:hidden flex-col items-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none"
+                        onTouchStart={handleDragStart}
+                        onTouchEnd={handleDragEnd}
+                        onClick={() => setSheetExpanded(v => !v)}
+                    >
+                        <div className="w-10 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
+                        <span className="text-[10px] text-gray-400 mt-1 font-medium">
+                            {sheetExpanded ? '↓ Swipe down for photo' : '↑ Swipe up for full details'}
+                        </span>
+                    </div>
 
 
 

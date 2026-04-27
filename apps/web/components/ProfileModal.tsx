@@ -294,8 +294,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         </div>
                     </div>
 
-                    {/* Scrollable Content — extra bottom padding so last items are never clipped */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-40 md:pb-10">
+                    {/* Scrollable Content — extra bottom padding for breathing room */}
+                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10">
 
                         {activeTab === 'ai insight' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -534,32 +534,32 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         const isAlreadyConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (profile.match_status === 'accepted' || profile.match_status === 'connected');
                         const isPendingRequest = profile.match_status === 'pending';
                         return (
-                    <div className="absolute bottom-0 inset-x-0 p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210]">
-                        {isAlreadyConnected && (
-                            <div className="flex items-center justify-center gap-1.5 mb-1.5 py-0.5 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Connected</span>
+                            <div className="w-full p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210] pb-safe">
+                                {isAlreadyConnected && (
+                                    <div className="flex items-center justify-center gap-1.5 mb-1.5 py-0.5 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Connected</span>
+                                    </div>
+                                )}
+                                <div className="flex gap-3">
+                                    <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800" onClick={onClose}>
+                                        {isAlreadyConnected ? 'Close' : 'Skip'}
+                                    </Button>
+                                    {isAlreadyConnected ? (
+                                        <Button className="flex-[2] h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold shadow-lg shadow-emerald-500/30" onClick={() => { onClose(); onChat?.(); }}>
+                                            💬 Chat Now
+                                        </Button>
+                                    ) : isPendingRequest ? (
+                                        <Button disabled className="flex-[2] h-12 rounded-xl bg-emerald-600 text-white font-bold shadow-lg opacity-80 cursor-not-allowed">
+                                            ✓ Request Sent
+                                        </Button>
+                                    ) : (
+                                        <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10" onClick={onConnect}>
+                                            ✨ Send Interest
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                        <div className="flex gap-3">
-                            <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800" onClick={onClose}>
-                                {isAlreadyConnected ? 'Close' : 'Skip'}
-                            </Button>
-                            {isAlreadyConnected ? (
-                                <Button className="flex-[2] h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold shadow-lg shadow-emerald-500/30" onClick={() => { onClose(); onChat?.(); }}>
-                                    💬 Chat Now
-                                </Button>
-                            ) : isPendingRequest ? (
-                                <Button disabled className="flex-[2] h-12 rounded-xl bg-emerald-600 text-white font-bold shadow-lg opacity-80 cursor-not-allowed">
-                                    ✓ Request Sent
-                                </Button>
-                            ) : (
-                                <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10" onClick={onConnect}>
-                                    ✨ Send Interest
-                                </Button>
-                            )}
-                        </div>
-                    </div>
                         );
                     })()}
 

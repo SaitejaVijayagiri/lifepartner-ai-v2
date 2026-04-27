@@ -325,3 +325,10 @@ html, body {
 .animate-scroll-cards:hover {
   animation-play-state: paused;
 }
+
+/* Fullscreen photo swipe hint fade-out */
+@keyframes fadeOutDelay {
+  0%   { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { opacity: 0; }
+}

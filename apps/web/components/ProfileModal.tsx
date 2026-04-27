@@ -597,7 +597,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     // Trigger refresh in parent if needed
                 }}
             />
-            {/* Fullscreen Image Gallery — swipe left/right to browse */}
+            {/* Fullscreen Image Gallery — swipe only, no arrows */}
             {isFullscreen && (() => {
                 let fsSwipeStartX = 0;
                 return (
@@ -614,7 +614,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             }
                         }}
                     >
-                        {/* Close */}
+                        {/* Close button */}
                         <button
                             className="absolute top-4 right-4 z-50 text-white p-3 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
                             onClick={(e) => { e.stopPropagation(); setIsFullscreen(false); }}
@@ -622,49 +622,40 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             <X size={24} />
                         </button>
 
-                        {/* Photo counter */}
+                        {/* Photo counter top-left */}
                         {photos.length > 1 && (
-                            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                            <div className="absolute top-4 left-4 z-50 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full">
                                 {currentPhotoIndex + 1} / {photos.length}
                             </div>
                         )}
 
-                        {/* Prev Arrow */}
-                        {photos.length > 1 && currentPhotoIndex > 0 && (
-                            <button
-                                className="absolute left-3 top-1/2 -translate-y-1/2 z-50 text-white p-3 bg-white/10 hover:bg-white/25 backdrop-blur-md rounded-full transition-all active:scale-95"
-                                onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(p => p - 1); }}
-                            >
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                            </button>
-                        )}
-
-                        {/* Main Image */}
+                        {/* Main image — tap doesn't close, swipe navigates */}
                         <img
                             src={photos[currentPhotoIndex]}
                             alt={`Photo ${currentPhotoIndex + 1}`}
-                            className="w-full h-full object-contain cursor-zoom-out"
+                            className="w-full h-full object-contain"
                             onClick={(e) => e.stopPropagation()}
                         />
 
-                        {/* Next Arrow */}
-                        {photos.length > 1 && currentPhotoIndex < photos.length - 1 && (
-                            <button
-                                className="absolute right-3 top-1/2 -translate-y-1/2 z-50 text-white p-3 bg-white/10 hover:bg-white/25 backdrop-blur-md rounded-full transition-all active:scale-95"
-                                onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(p => p + 1); }}
+                        {/* Swipe hint — shows only if multiple photos, fades after 2s via CSS animation */}
+                        {photos.length > 1 && (
+                            <div
+                                className="absolute bottom-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-black/60 backdrop-blur-md text-white text-xs font-semibold px-4 py-2 rounded-full pointer-events-none"
+                                style={{ animation: 'fadeOutDelay 2.5s ease-in-out forwards' }}
                             >
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                            </button>
+                                <span>←</span>
+                                <span>Swipe to browse photos</span>
+                                <span>→</span>
+                            </div>
                         )}
 
                         {/* Dot indicators */}
                         {photos.length > 1 && (
                             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-50">
                                 {photos.map((_, idx) => (
-                                    <button
+                                    <div
                                         key={idx}
-                                        onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(idx); }}
-                                        className={`rounded-full transition-all ${idx === currentPhotoIndex ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/70'}`}
+                                        className={`rounded-full transition-all duration-300 ${idx === currentPhotoIndex ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/40'}`}
                                     />
                                 ))}
                             </div>

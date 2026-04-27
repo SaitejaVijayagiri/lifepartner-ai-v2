@@ -169,7 +169,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
     return (
         <div
-            className="group relative h-[500px] w-full rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+            className="group relative h-[560px] sm:h-[500px] w-full rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={onViewProfile}
@@ -277,8 +277,8 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
             {/* Bottom Info Section */}
             <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
-                {/* Info that moves up on hover - includes Kundli badge now */}
-                <div className="transform transition-transform duration-300 group-hover:-translate-y-20">
+                {/* Info pushed up to clear the 2-row action buttons */}
+                <div className="transform transition-transform duration-300 group-hover:-translate-y-28 [@media(hover:none)]:-translate-y-28">
                     {/* Kundli Badge - Now inside the animated container */}
                     {match.kundli && match.kundli.details?.[0]?.name !== "Data Missing" && (
                         <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
@@ -314,14 +314,12 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-gray-100 text-xs font-medium mb-3 opacity-95">
-                        {/* 2. Standard Tags */}
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "-"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.career?.profession || "-"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">{getReligionSymbol(match.religion?.religion || match.religion?.faith)} {match.religion?.religion || match.religion?.faith || "-"}</span>
-                        <span className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10">
-                            📍 {formatLocationString(match.location)}
-                        </span>
+                    <div className="flex flex-wrap gap-1.5 text-gray-100 text-xs font-medium mb-3 opacity-95">
+                        {/* Standard Tags */}
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "-"}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.career?.profession || "-"}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">{getReligionSymbol(match.religion?.religion || match.religion?.faith)} {match.religion?.religion || match.religion?.faith || "-"}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📍 {formatLocationString(match.location)}</span>
                     </div>
                 </div>
 

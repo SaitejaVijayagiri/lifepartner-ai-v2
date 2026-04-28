@@ -304,7 +304,21 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <option value="Awaiting Divorce">Awaiting Divorce</option>
                                     </select>
                                 </div>
-                                <Input label="Height (e.g. 5'9) *" value={data.height} onChange={e => update('height', e.target.value)} />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">Height *</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        value={data.height}
+                                        onChange={e => update('height', e.target.value)}
+                                    >
+                                        <option value="">Select Height</option>
+                                        {["4'6\"","4'7\"","4'8\"","4'9\"","4'10\"","4'11\"",
+                                          "5'0\"","5'1\"","5'2\"","5'3\"","5'4\"","5'5\"","5'6\"","5'7\"","5'8\"","5'9\"","5'10\"","5'11\"",
+                                          "6'0\"","6'1\"","6'2\"","6'3\"","6'4\"","6'5\"","6'6\""].map(h => (
+                                            <option key={h} value={h}>{h}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
                                     <label className="text-sm font-medium dark:text-gray-200">Location *</label>
                                     <div className="flex gap-2 w-full">

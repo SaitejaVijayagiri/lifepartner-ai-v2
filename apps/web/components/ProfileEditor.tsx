@@ -382,20 +382,43 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
                         {/* Mother Tongue */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mother Tongue</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mother Tongue / Language</label>
                             <select className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500" value={formData.motherTongue || ''} onChange={e => handleChange('root', 'motherTongue', e.target.value)}>
                                 <option value="">Select Language</option>
-                                <option value="Hindi">Hindi</option>
-                                <option value="Telugu">Telugu</option>
-                                <option value="Tamil">Tamil</option>
-                                <option value="Malayalam">Malayalam</option>
-                                <option value="Kannada">Kannada</option>
-                                <option value="Bengali">Bengali</option>
-                                <option value="Marathi">Marathi</option>
-                                <option value="Gujarati">Gujarati</option>
-                                <option value="Punjabi">Punjabi</option>
-                                <option value="English">English</option>
-                                <option value="Other">Other</option>
+                                <option>Assamese</option>
+                                <option>Bengali</option>
+                                <option>Bhojpuri</option>
+                                <option>Bodo</option>
+                                <option>Chhattisgarhi</option>
+                                <option>Dogri</option>
+                                <option>English</option>
+                                <option>Gujarati</option>
+                                <option>Haryanvi</option>
+                                <option>Hindi</option>
+                                <option>Kannada</option>
+                                <option>Kashmiri</option>
+                                <option>Khasi</option>
+                                <option>Konkani</option>
+                                <option>Kumaoni</option>
+                                <option>Ladakhi</option>
+                                <option>Maithili</option>
+                                <option>Malayalam</option>
+                                <option>Manipuri (Meitei)</option>
+                                <option>Marathi</option>
+                                <option>Mizo</option>
+                                <option>Nagamese</option>
+                                <option>Nepali</option>
+                                <option>Odia</option>
+                                <option>Punjabi</option>
+                                <option>Rajasthani</option>
+                                <option>Sanskrit</option>
+                                <option>Santali</option>
+                                <option>Sindhi</option>
+                                <option>Tamil</option>
+                                <option>Telugu</option>
+                                <option>Tulu</option>
+                                <option>Urdu</option>
+                                <option>Other</option>
                             </select>
                         </div>
                         {/* Date of Birth (Calculates Age) */}

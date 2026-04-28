@@ -341,7 +341,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3 md:gap-4">
-                                    <InfoCard label="Age / Height" value={`${profile.dob ? new Date().getFullYear() - new Date(profile.dob).getFullYear() : profile.age} Yrs, ${profile.height || "-"}`} />
+                                    <InfoCard label="Age / Height" value={`${profile.dob ? (() => { const b = new Date(profile.dob); const t = new Date(); let a = t.getFullYear() - b.getFullYear(); const m = t.getMonth() - b.getMonth(); if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--; return a; })() : profile.age} Yrs, ${profile.height || "-"}`} />
                                     <InfoCard label="Marital Status" value={(!profile.maritalStatus) ? "Not Specified" : profile.maritalStatus} />
                                     <InfoCard label="Location" value={formatLocationString(profile.location)} />
                                     <InfoCard label="Mother Tongue" value={profile.motherTongue || "-"} />

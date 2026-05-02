@@ -91,7 +91,7 @@ router.post('/register', async (req, res) => {
                     try {
                         const apiKey = process.env.RESEND_API_KEY;
                         if (apiKey && !apiKey.toLowerCase().includes('mock')) {
-                            await resend.emails.send({
+                            const { data, error } = await resend.emails.send({
                                 from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
                                 to: email,
                                 subject: 'Your Verification Code (Resend)',
@@ -119,10 +119,16 @@ router.post('/register', async (req, res) => {
                                 </div>
                                 `
                             });
+
+                            if (error) {
+                                console.error("❌ Self-Heal Email Rejected by Resend:", error);
+                                return res.status(400).json({ error: "Invalid email address. Unable to send verification code." });
+                            }
                             console.log(`✅ Self-Heal OTP sent to ${email}`);
                         }
                     } catch (e) {
                         console.error("Self-Heal Email Error", e);
+                        return res.status(500).json({ error: "Failed to send verification email." });
                     }
                 }
 
@@ -200,9 +206,9 @@ router.post('/register', async (req, res) => {
                 const apiKey = process.env.RESEND_API_KEY;
                 console.log(`📧 Sending OTP with Key: ${apiKey?.substring(0, 5)}... From: ${process.env.EMAIL_FROM}`);
                 if (apiKey && !apiKey.toLowerCase().includes('mock')) {
-                    // Non-blocking: background send
-                    resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>', // Standardized default
+                    // Synchronous send to catch invalid emails immediately
+                    const { data, error } = await resend.emails.send({
+                        from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
                         to: targetEmail,
                         subject: 'Your Verification Code',
                         text: `Your verification code is: ${otp}\n\nThis code expires in 10 minutes.\n\nSent from LifePartner AI.`,
@@ -229,16 +235,24 @@ router.post('/register', async (req, res) => {
                             </div>
                         </div>
                         `
-                    }).then(({ data, error }) => {
-                        if (error) console.error("❌ Register Email Error:", error);
-                        else console.log(`✅ Register OTP sent (Background): ${data?.id}`);
-                    }).catch(e => console.error(e));
+                    });
+
+                    if (error) {
+                        console.error("❌ Register Email Rejected by Resend:", error);
+                        // Rollback User Creation!
+                        await prisma.users.delete({ where: { id: newUser.id } });
+                        return res.status(400).json({ error: "Invalid email address. We could not deliver a verification code to this address." });
+                    }
+                    console.log(`✅ Register OTP sent: ${data?.id}`);
 
                 } else {
                     console.warn(`⚠️ Email skipped: RESEND_API_KEY is missing or mock. OTP: ${otp}`);
                 }
             } catch (emailError) {
                 console.error("Email sending setup exception:", emailError);
+                // Rollback User Creation on critical failure
+                await prisma.users.delete({ where: { id: newUser.id } });
+                return res.status(500).json({ error: "Failed to send verification email. Please try again later." });
             }
         }
 

@@ -29,8 +29,17 @@ export class EmailService {
         }
     }
 
-    static async sendInterestReceivedEmail(email: string, name: string, senderName: string) {
+    static async sendInterestReceivedEmail(email: string, name: string, senderDetails: { name: string, age?: number | string, location?: string, job?: string, photoUrl?: string }) {
         if (!process.env.RESEND_API_KEY) return;
+
+        const senderName = senderDetails.name || "Someone";
+        const photoUrl = senderDetails.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(senderName)}&background=random`;
+        
+        const detailsList = [];
+        if (senderDetails.age) detailsList.push(`${senderDetails.age} yrs`);
+        if (senderDetails.job) detailsList.push(senderDetails.job);
+        if (senderDetails.location) detailsList.push(senderDetails.location);
+        const detailsString = detailsList.join(' • ');
 
         try {
             await resend.emails.send({
@@ -38,11 +47,25 @@ export class EmailService {
                 to: email,
                 subject: `✨ ${senderName} is interested in you!`,
                 html: `
-                    <h2>You have a new admirer!</h2>
-                    <p><strong>${senderName}</strong> just sent you an interest request.</p>
-                    <p>Log in now to view their profile and respond.</p>
-                    <br/>
-                    <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="padding: 10px 20px; background: #4F46E5; color: white; text-decoration: none; border-radius: 5px;">View Profile</a>
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0f0f0f; color: #f5f5f5; border-radius: 16px; overflow: hidden; border: 1px solid #333;">
+                        <div style="background: linear-gradient(135deg, #E11D48, #9333EA); padding: 30px 20px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 24px; color: white;">You have a new admirer! 💖</h1>
+                        </div>
+                        <div style="padding: 40px 30px; text-align: center;">
+                            <img src="${photoUrl}" alt="${senderName}" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #4F46E5; margin-bottom: 20px;" />
+                            <h2 style="margin: 0 0 10px 0; color: #fff; font-size: 22px;">${senderName}</h2>
+                            <p style="margin: 0 0 20px 0; color: #aaa; font-size: 16px;">${detailsString}</p>
+                            
+                            <p style="font-size: 15px; color: #ccc; line-height: 1.6; margin-bottom: 30px;">
+                                <strong>${senderName}</strong> saw your profile and sent you an interest request. Don't keep them waiting!
+                            </p>
+                            
+                            <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #4F46E5, #3B82F6); color: white; text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: bold;">View Profile & Respond</a>
+                        </div>
+                        <div style="background-color: #1a1a1a; padding: 20px; text-align: center; border-top: 1px solid #333;">
+                            <p style="color: #666; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LifePartner AI. All rights reserved.</p>
+                        </div>
+                    </div>
                 `
             });
         } catch (error) {

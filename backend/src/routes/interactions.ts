@@ -315,6 +315,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 age: true,
                 city: true,
                 location_name: true,
+                avatar_url: true,
                 profiles: { select: { metadata: true } }
             }
         });
@@ -426,7 +427,14 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 ).catch(e => console.warn("Push failed in interactions", e));
 
                 // Email
-                await EmailService.sendInterestReceivedEmail(targetEmail, targetName, myName);
+                const senderDetails = {
+                    name: myName,
+                    age: user.age || meta.age,
+                    location: locStr,
+                    job: profStr,
+                    photoUrl: user.avatar_url || meta.photos?.[0]
+                };
+                await EmailService.sendInterestReceivedEmail(targetEmail, targetName, senderDetails);
             } catch (err) {
                 console.warn("Notification/Email failed:", err);
             }

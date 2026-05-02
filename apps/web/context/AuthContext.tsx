@@ -54,6 +54,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     // 2. Fresh Data Fetch
                     try {
                         const freshProfile = await api.profile.getMe();
+                        
+                        // 3. Attempt to fetch a token for Socket.io if missing from localStorage
+                        if (!localStorage.getItem('token')) {
+                            try {
+                                const { token } = await api.auth.getToken();
+                                if (token) {
+                                    localStorage.setItem('token', token);
+                                }
+                            } catch (tokenErr) {
+                                console.warn("Could not silently recover socket token", tokenErr);
+                            }
+                        }
+
                         // Transform profile to User object (adapter)
                         const updatedUser = {
                             id: freshProfile.userId || freshProfile.id,

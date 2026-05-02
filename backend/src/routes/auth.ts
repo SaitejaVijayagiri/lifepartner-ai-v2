@@ -610,6 +610,14 @@ router.post('/send-otp', async (req, res) => {
     res.json({ success: true, message: "Use /register for new accounts" });
 });
 
+// GET /token - Allows the frontend to recover the raw token from the HttpOnly cookie for WebSocket auth
+router.get('/token', authenticateToken, (req: any, res) => {
+    // If authenticateToken passes, the cookie is valid.
+    // We return a fresh token to be saved in localStorage purely for Socket.io.
+    const token = generateToken(req.user.userId);
+    res.json({ token });
+});
+
 // 7. Google Auth Code Exchange
 router.post('/google', async (req, res) => {
     try {

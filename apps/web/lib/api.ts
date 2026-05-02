@@ -55,6 +55,7 @@ export const api = {
         logout: () => fetchAPI('/auth/logout', { method: 'POST' }),
         sendOtp: (mobile: string) => fetchAPI('/auth/send-otp', { method: 'POST', body: JSON.stringify({ mobile }) }),
         verifyOtp: (payload: { email: string, otp: string }) => fetchAPI('/auth/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
+        getToken: () => fetchAPI('/auth/token'),
     },
     profile: {
         getPublicFeatured: () => fetchAPI('/profile/public/featured'),

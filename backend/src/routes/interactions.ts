@@ -300,11 +300,21 @@ import { EmailService } from '../services/email';
 
 // ...
 
+// Simple memory cache to debounce rapid double-clicks (race condition prevention)
+const interestDebounceCache = new Set<string>();
+
 // Send Interest (Connect Request)
 router.post('/interest', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
         const { toUserId } = req.body;
+
+        // Prevent rapid double-clicks causing duplicate emails
+        const debounceKey = `${userId}-${toUserId}`;
+        if (interestDebounceCache.has(debounceKey)) {
+            return res.json({ success: true, message: "Request processing" });
+        }
+        interestDebounceCache.add(debounceKey);
 
         // Fetch Names, Premium & Details for Notification
         const user = await prisma.users.findUnique({
@@ -331,7 +341,8 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const targetEmail = target.email;
         const isPremium = user.is_premium;
 
-        // Rate Limit (Free: 5/day)
+        try {
+            // Rate Limit (Free: 5/day)
         if (!isPremium) {
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
@@ -427,12 +438,19 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 ).catch(e => console.warn("Push failed in interactions", e));
 
                 // Email
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
+                // Most email clients (Gmail, Apple Mail) BLOCK base64 data URIs. 
+                // We MUST fall back to a standard http/https avatar image if it's base64.
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
                 const senderDetails = {
                     name: myName,
                     age: user.age || meta.age,
                     location: locStr,
                     job: profStr,
-                    photoUrl: user.avatar_url || meta.photos?.[0]
+                    photoUrl: sanitizePhotoUrl(rawPhotoUrl, myName)
                 };
                 await EmailService.sendInterestReceivedEmail(targetEmail, targetName, senderDetails);
             } catch (err) {
@@ -441,6 +459,10 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         }
 
         res.json({ success: true });
+        } finally {
+            // Clear debounce lock after 2 seconds
+            setTimeout(() => interestDebounceCache.delete(debounceKey), 2000);
+        }
     } catch (e) {
         console.error("Send Interest Error", e);
         res.status(500).json({ error: "Failed" });

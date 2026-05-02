@@ -607,14 +607,40 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </span>
                                 </div>
                             )}
-                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1 group/row`}>
+                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1 group/row items-end gap-1`}>
                                 {!isMe && (
-                                    <img src={partnerInfo.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
+                                    <img src={partnerInfo.photoUrl} className="w-8 h-8 rounded-full mr-1 self-end mb-1 shadow-sm flex-shrink-0" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
                                         target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
                                     }} />
                                 )}
+
+                                {/* For "my" messages: action buttons go LEFT of bubble */}
+                                {isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
+                                    <div className={`flex items-center gap-0.5 mb-1 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150`}>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: 'You' }); inputRef.current?.focus(); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                                            title="Reply"
+                                        >
+                                            <Reply size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm"
+                                            title="React"
+                                        >😊</button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div className={`flex flex-col relative max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
                                     {/* Emoji picker popup */}
                                     {emojiPickerMsgId === msg.id && (
@@ -639,7 +665,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     {/* Message bubble */}
                                     <div
                                         onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
-                                        className={`relative group w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
+                                        className={`relative w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
@@ -675,35 +701,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 </div>
                                             )}
                                         </div>
-
-                                        {/* React & Delete buttons — visible on mobile, hover on desktop */}
-                                        {msg.id && !msg.id.toString().startsWith('temp-') && (
-                                            <div className={`absolute ${isMe ? '-left-24' : '-right-24'} bottom-1 flex gap-1 transition-all ${deleteMenuMsgId === msg.id ? 'opacity-100' : 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100'}`}>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); const sName = isMe ? 'You' : partnerInfo.name; setReplyTo({ id: msg.id, text: msg.text, senderName: sName }); inputRef.current?.focus(); }}
-                                                    className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:scale-110"
-                                                    title="Reply"
-                                                >
-                                                    <Reply size={14} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                                    className="p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:scale-110"
-                                                    title="React"
-                                                >
-                                                    <span className="text-sm">😊</span>
-                                                </button>
-                                                <div className="relative">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
-                                                        className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110"
-                                                        title="Delete Message"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Reactions strip */}
@@ -736,6 +733,31 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         );
                                     })()}
                                 </div>
+
+                                {/* For partner messages: action buttons go RIGHT of bubble */}
+                                {!isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
+                                    <div className={`flex items-center gap-0.5 mb-1 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150`}>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: partnerInfo.name }); inputRef.current?.focus(); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                                            title="Reply"
+                                        >
+                                            <Reply size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm"
+                                            title="React"
+                                        >😊</button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );

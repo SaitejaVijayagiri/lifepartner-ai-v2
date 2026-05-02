@@ -91,8 +91,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     receiver_id: true,
                     content: true,
                     created_at: true,
-                    delivery_status: true,
-                    cleared_by: true
+                    delivery_status: true
                 }
             });
         }
@@ -116,9 +115,12 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             }));
 
         res.json(history);
-    } catch (e) {
-        console.error("Fetch History Error", e);
-        res.status(500).json({ error: "Failed to fetch chat history" });
+    } catch (e: any) {
+        console.error("History Error", e);
+        try {
+            require('fs').appendFileSync('chat_error_log.txt', new Date().toISOString() + ' ' + e.stack + '\n\n');
+        } catch (err) {}
+        res.status(500).json({ error: "Failed to load chat history", details: e.message });
     }
 });
 

@@ -165,14 +165,22 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             status: "sent"
         };
 
-        // Broadcast via Socket.IO
+        // Broadcast via Socket.IO (include sender details for in-app toast)
         try {
             const { getIO } = require('../socket');
             const io = getIO();
-            io.to(connectionId).emit("receiveMessage", newMessage);
+            const senderProfile = await prisma.users.findUnique({
+                where: { id: senderId },
+                select: { full_name: true, avatar_url: true }
+            });
+            const { sanitizePhotoUrl } = require('../utils/photoUrl');
+            io.to(connectionId).emit("receiveMessage", {
+                ...newMessage,
+                senderName: senderProfile?.full_name || 'Someone',
+                senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User')
+            });
         } catch (socketError) {
             console.error("Socket broadcast failed", socketError);
-            // Don't fail the request if socket fails, just log it.
         }
 
         // Send Push Notification ONLY if user is offline

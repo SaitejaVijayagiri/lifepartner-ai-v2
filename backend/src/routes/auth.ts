@@ -55,7 +55,7 @@ router.post('/register', async (req, res) => {
                     validateMx: true,
                     validateTypo: true,
                     validateDisposable: true,
-                    validateSMTP: true,
+                    validateSMTP: false, // Turned off to prevent false positives for real users
                 });
 
                 if (!emailValidation.valid) {

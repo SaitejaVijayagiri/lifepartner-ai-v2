@@ -644,12 +644,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
                                         {/* Reply preview inside bubble */}
-                                        {msg.replyTo && (
-                                            <div className={`mb-2 px-3 py-1.5 rounded-xl text-xs border-l-4 ${isMe ? 'bg-white/20 border-white/60 text-white/90' : 'bg-gray-100 dark:bg-gray-700 border-indigo-400 text-gray-600 dark:text-gray-300'}`}>
-                                                <p className="font-bold truncate">{msg.replyTo.senderName}</p>
-                                                <p className="truncate opacity-80">{msg.replyTo.text?.startsWith('[IMAGE]') ? '📷 Photo' : msg.replyTo.text?.startsWith('[AUDIO]') ? '🎤 Voice' : msg.replyTo.text?.startsWith('[STICKER]') ? '🎭 Sticker' : msg.replyTo.text}</p>
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const replyMsg = msg.replyTo || (msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null);
+                                            if (!replyMsg) return null;
+                                            const rName = replyMsg.senderName || (replyMsg.senderId === 'me' || replyMsg.senderId === user?.id ? 'You' : partnerInfo.name);
+                                            return (
+                                                <div className={`mb-2 px-3 py-1.5 rounded-xl text-xs border-l-4 ${isMe ? 'bg-white/20 border-white/60 text-white/90' : 'bg-gray-100 dark:bg-gray-700 border-indigo-400 text-gray-600 dark:text-gray-300'}`}>
+                                                    <p className="font-bold truncate">{rName}</p>
+                                                    <p className="truncate opacity-80">{replyMsg.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyMsg.text?.startsWith('[AUDIO]') ? '🎤 Voice' : replyMsg.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyMsg.text}</p>
+                                                </div>
+                                            );
+                                        })()}
                                         {msg.text.startsWith('[STICKER]') ? (
                                             <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
                                         ) : msg.text.startsWith('[IMAGE]') ? (

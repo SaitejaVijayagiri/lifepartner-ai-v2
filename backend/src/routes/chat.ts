@@ -20,6 +20,7 @@ router.get('/fix-db', async (req, res) => {
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_liked BOOLEAN DEFAULT false;`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reactions JSON DEFAULT '{}';`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS cleared_by JSON DEFAULT '[]';`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id UUID;`);
         
         // New columns for Direct Messages
         await prisma.$executeRawUnsafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS free_direct_messages INT DEFAULT 3;`);
@@ -68,7 +69,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     delivery_status: true,
                     is_liked: true,
                     reactions: true,
-                    cleared_by: true
+                    cleared_by: true,
+                    reply_to_id: true
                 }
             } as any);
         } catch (dbErr: any) {
@@ -90,7 +92,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     content: true,
                     created_at: true,
                     delivery_status: true,
-                    cleared_by: true
+                    cleared_by: true,
+                    reply_to_id: true
                 }
             });
         }
@@ -109,7 +112,8 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                 timestamp: row.created_at,
                 status: row.delivery_status,
                 is_liked: row.is_liked ?? false,
-                reactions: row.reactions ?? {}
+                reactions: row.reactions ?? {},
+                replyToId: row.reply_to_id
             }));
 
         res.json(history);
@@ -122,7 +126,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
 // SEND Message
 router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params; // receiverId
-    const { text } = req.body;
+    const { text, replyToId } = req.body;
     const senderId = req.user.userId;
 
     if (!text) {
@@ -148,12 +152,13 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "You cannot message this user." });
         }
 
-        const newMessageRecord = await prisma.messages.create({
+        const newMessageRecord = await (prisma.messages as any).create({
             data: {
                 sender_id: senderId,
                 receiver_id: connectionId,
                 content: cleanText,
-                delivery_status: "sent"
+                delivery_status: "sent",
+                reply_to_id: replyToId || null
             }
         });
 
@@ -162,7 +167,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             text: cleanText,
             senderId,
             timestamp: newMessageRecord.created_at,
-            status: "sent"
+            status: "sent",
+            replyToId: replyToId || null
         };
 
         // Broadcast via Socket.IO (include sender details for in-app toast)

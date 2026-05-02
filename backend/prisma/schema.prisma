@@ -125,6 +125,7 @@ model messages {
   is_liked                          Boolean?  @default(false)
   reactions                         Json?     @default("{}")
   cleared_by                        Json?     @default("[]")
+  reply_to_id                       String?   @db.Uuid
   matches                           matches?  @relation(fields: [match_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_messages_receiver_idTousers users?    @relation("messages_receiver_idTousers", fields: [receiver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users_messages_sender_idTousers   users?    @relation("messages_sender_idTousers", fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)

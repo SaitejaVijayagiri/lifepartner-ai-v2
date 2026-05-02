@@ -198,7 +198,7 @@ export default function LoginPage() {
                     </div>
 
                     <p className="text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 pt-2">
-                        Don't have an account? <Link href="/register" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Create one for free</Link>
+                        Don't have an account? <Link href="/register?new=true" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Create one for free</Link>
                     </p>
                 </div>
             </div>

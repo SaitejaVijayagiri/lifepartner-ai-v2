@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 // import { pool } from '../db';
 import { prisma } from '../prisma';
 import { Resend } from 'resend';
+import validateEmail from 'deep-email-validator';
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY || 're_123_mock');
@@ -43,6 +44,37 @@ router.post('/register', async (req, res) => {
         // 1. Validation
         if ((!email && !phone) || !password) {
             return res.status(400).json({ error: "Email/Phone and Password required" });
+        }
+
+        // 1.5 Deep Email Validation (SMTP/MX check)
+        if (email) {
+            try {
+                const emailValidation = await validateEmail({
+                    email: email,
+                    validateRegex: true,
+                    validateMx: true,
+                    validateTypo: true,
+                    validateDisposable: true,
+                    validateSMTP: true,
+                });
+
+                if (!emailValidation.valid) {
+                    // Check if it failed SMTP (mailbox doesn't exist) or something else
+                    const isTypoOrDisposable = emailValidation.validators.typo?.valid === false || emailValidation.validators.disposable?.valid === false;
+                    const reason = emailValidation.reason;
+                    
+                    console.log(`❌ Email Validation Failed: ${email} -> ${reason}`);
+                    
+                    if (isTypoOrDisposable) {
+                        return res.status(400).json({ error: "Please use a valid, non-disposable email address." });
+                    } else {
+                        return res.status(400).json({ error: "This email address does not appear to exist. Please check for typos." });
+                    }
+                }
+            } catch (validationErr) {
+                console.error("Deep Email Validation Error:", validationErr);
+                // Continue if the validation service itself errors out, to not block signups
+            }
         }
 
         const identifier = email || phone;

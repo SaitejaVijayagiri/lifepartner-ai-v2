@@ -1,27 +1,29 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import ChatWindow from '@/components/ChatWindow';
 import { useToast } from '@/components/ui/Toast';
-
 import { Suspense } from 'react';
 
-function ChatContent({ params }: { params: { id: string } }) {
+function ChatContent() {
     const searchParams = useSearchParams();
+    const params = useParams();
     const router = useRouter();
     const toast = useToast();
 
+    const connectionId = params?.id as string;
     const partnerName = searchParams.get('name') || 'Partner';
-    const partnerPhoto = searchParams.get('photo') || 'https://i.pravatar.cc/150?u=' + params.id;
+    const partnerPhoto = searchParams.get('photo') || 'https://i.pravatar.cc/150?u=' + connectionId;
     const partnerRole = searchParams.get('role') || 'Online';
+
+    if (!connectionId) return <div className="h-screen flex items-center justify-center">Invalid Chat</div>;
 
     return (
         <div className="h-screen w-full bg-slate-100 flex items-center justify-center p-0 md:p-4">
             <ChatWindow
-                connectionId={params.id}
+                connectionId={connectionId}
                 partner={{
-                    id: params.id,
+                    id: connectionId,
                     name: partnerName,
                     photoUrl: partnerPhoto,
                     role: partnerRole
@@ -35,10 +37,10 @@ function ChatContent({ params }: { params: { id: string } }) {
     );
 }
 
-export default function ChatPage({ params }: { params: { id: string } }) {
+export default function ChatPage() {
     return (
         <Suspense fallback={<div className="h-screen flex items-center justify-center">Loading Chat...</div>}>
-            <ChatContent params={params} />
+            <ChatContent />
         </Suspense>
     );
 }

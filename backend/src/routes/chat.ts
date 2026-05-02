@@ -92,8 +92,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     content: true,
                     created_at: true,
                     delivery_status: true,
-                    cleared_by: true,
-                    reply_to_id: true
+                    cleared_by: true
                 }
             });
         }
@@ -152,15 +151,28 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "You cannot message this user." });
         }
 
-        const newMessageRecord = await (prisma.messages as any).create({
-            data: {
-                sender_id: senderId,
-                receiver_id: connectionId,
-                content: cleanText,
-                delivery_status: "sent",
-                reply_to_id: replyToId || null
-            }
-        });
+        let newMessageRecord;
+        try {
+            newMessageRecord = await (prisma.messages as any).create({
+                data: {
+                    sender_id: senderId,
+                    receiver_id: connectionId,
+                    content: cleanText,
+                    delivery_status: "sent",
+                    reply_to_id: replyToId || null
+                }
+            });
+        } catch (dbErr) {
+            console.warn("reply_to_id might not exist, falling back to legacy create");
+            newMessageRecord = await prisma.messages.create({
+                data: {
+                    sender_id: senderId,
+                    receiver_id: connectionId,
+                    content: cleanText,
+                    delivery_status: "sent"
+                }
+            });
+        }
 
         const newMessage = {
             id: newMessageRecord.id,

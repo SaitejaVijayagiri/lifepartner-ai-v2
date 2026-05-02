@@ -671,9 +671,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             )}
                                         </div>
 
-                                        {/* React & Delete buttons — shows on hover */}
+                                        {/* React & Delete buttons — visible on mobile, hover on desktop */}
                                         {msg.id && !msg.id.toString().startsWith('temp-') && (
-                                            <div className={`absolute ${isMe ? '-left-24' : '-right-24'} bottom-1 flex gap-1 transition-all ${deleteMenuMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                            <div className={`absolute ${isMe ? '-left-24' : '-right-24'} bottom-1 flex gap-1 transition-all ${deleteMenuMsgId === msg.id ? 'opacity-100' : 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100'}`}>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); const sName = isMe ? 'You' : partnerInfo.name; setReplyTo({ id: msg.id, text: msg.text, senderName: sName }); inputRef.current?.focus(); }}
                                                     className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:scale-110"

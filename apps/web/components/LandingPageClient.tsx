@@ -382,53 +382,119 @@ export default function LandingPageClient() {
               </Link>
             </div>
             
-            {/* Interactive/Mockup Element */}
+            {/* Real-design Event Cards Preview */}
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-pink-500 to-purple-500 rounded-3xl transform rotate-3 scale-105 opacity-50 blur-lg"></div>
-              <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-gray-100 dark:border-gray-800">
-                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-950">
-                  <h3 className="font-bold text-gray-900 dark:text-white">Happening Today</h3>
-                  <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">3 Events Near You</span>
+              <div className="absolute inset-0 bg-gradient-to-tr from-pink-500 to-purple-500 rounded-3xl transform rotate-3 scale-105 opacity-30 blur-lg"></div>
+              <div className="relative z-10 space-y-4">
+
+                {/* Header */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 px-4 py-3 flex justify-between items-center">
+                  <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Sparkles size={15} className="text-indigo-500" /> Happening Near You
+                  </h3>
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2.5 py-1 rounded-full">3 Events</span>
                 </div>
-                <div className="p-4 space-y-4 bg-slate-50 dark:bg-gray-950">
-                  {/* Mock Event 1 */}
-                  <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className="text-[10px] font-bold text-pink-600 uppercase tracking-wider mb-1 block">Art & Culture</span>
-                        <h4 className="font-bold text-gray-900 dark:text-white">Sip & Paint Mixer</h4>
+
+                {/* Card 1 — Coffee Meetup */}
+                <div className="bg-white dark:bg-gray-900 rounded-[2rem] overflow-hidden border border-gray-100 dark:border-gray-800 shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col relative">
+                  {/* Gradient Banner */}
+                  <div className="h-28 bg-gradient-to-br from-amber-400 to-orange-400 relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.8) 1px,transparent 0)', backgroundSize: '16px 16px' }} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+                      <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider border border-white/20">
+                        ☕ Coffee Meetup
                       </div>
-                      <div className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold text-center">
-                        <div className="text-[10px] uppercase">OCT</div>
-                        <div>14</div>
+                      <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                        <Zap size={10} className="fill-yellow-400 text-yellow-400" /> 2h away
                       </div>
-                    </div>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-3"><MapPin size={12}/> The Canvas Lounge, Downtown • 2.4 km</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex -space-x-2">
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 border border-white"></div>
-                        <div className="w-6 h-6 rounded-full bg-pink-100 border border-white"></div>
-                        <div className="w-6 h-6 rounded-full bg-blue-100 border border-white"></div>
-                        <div className="w-6 h-6 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[8px] font-bold">+12</div>
-                      </div>
-                      <button className="text-xs font-bold text-white bg-indigo-600 px-4 py-1.5 rounded-full">RSVP</button>
                     </div>
                   </div>
-                  {/* Mock Event 2 */}
-                  <div className="bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 opacity-80">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1 block">Outdoors</span>
-                        <h4 className="font-bold text-gray-900 dark:text-white">Sunrise Group Hike</h4>
+                  {/* Overlapping Avatar */}
+                  <div className="absolute top-[4.5rem] left-5 z-10">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm" />
+                      <img src="/images/avatars/user-1.jpg" alt="Host"
+                        className="relative w-14 h-14 rounded-full border-2 border-white dark:border-gray-900 object-cover shadow-md bg-gray-100"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
+                    </div>
+                  </div>
+                  {/* Content */}
+                  <div className="pt-10 p-5 flex-1 flex flex-col">
+                    <h3 className="text-base font-black text-gray-900 dark:text-white tracking-tight">Weekend Coffee Mingle</h3>
+                    <p className="text-[11px] font-medium text-gray-500 mb-3">Hosted by <span className="font-bold text-gray-700 dark:text-gray-300">Priya S.</span></p>
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 mb-3 space-y-2 border border-gray-100 dark:border-gray-800">
+                      <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
+                        <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center shrink-0"><Calendar size={10} className="text-indigo-600" /></div>
+                        <span className="font-semibold">Sat, May 3 • 11:00 AM</span>
                       </div>
-                      <div className="bg-gray-50 text-gray-700 px-2 py-1 rounded text-xs font-bold text-center">
-                        <div className="text-[10px] uppercase">OCT</div>
-                        <div>15</div>
+                      <div className="flex items-center gap-2 text-[12px] text-gray-700 dark:text-gray-300">
+                        <div className="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center shrink-0"><MapPin size={10} className="text-rose-600" /></div>
+                        <span className="font-medium">Starbucks, Banjara Hills</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                        <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center shrink-0"><Users size={10} className="text-blue-600" /></div>
+                        <span>1.2 km away</span>
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-3"><MapPin size={12}/> Blue Ridge Trail • 5.1 km</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-100 text-[11px] font-bold text-gray-600">
+                        <Users size={11} className="text-indigo-500" /> 8/15 Attending
+                      </span>
+                      <button className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow-md hover:brightness-110 transition-all">
+                        Join Now
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1 pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
+                      <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        Share
+                      </button>
+                      <div className="w-px h-5 bg-gray-200" />
+                      <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors">
+                        <Calendar size={13} /> Calendar
+                      </button>
+                      <div className="w-px h-5 bg-gray-200" />
+                      <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-[11px] font-bold text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                        <MapPin size={13} /> Directions
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Card 2 — Speed Dating (smaller/preview) */}
+                <div className="bg-white dark:bg-gray-900 rounded-[2rem] overflow-hidden border border-gray-100 dark:border-gray-800 shadow-md opacity-90 flex flex-col relative">
+                  <div className="h-20 bg-gradient-to-br from-rose-500 to-pink-500 relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px,rgba(255,255,255,.8) 1px,transparent 0)', backgroundSize: '16px 16px' }} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+                      <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold text-white uppercase tracking-wider border border-white/20">
+                        ⚡ Speed Dating
+                      </div>
+                      <div className="bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                        <Zap size={10} className="fill-yellow-400 text-yellow-400" /> Tomorrow
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute top-[3.5rem] left-5 z-10">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm" />
+                      <img src="/images/avatars/user-3.jpg" alt="Host"
+                        className="relative w-12 h-12 rounded-full border-2 border-white object-cover shadow-md bg-gray-100"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
+                    </div>
+                  </div>
+                  <div className="pt-8 px-5 pb-4 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-black text-gray-900 dark:text-white">Singles Speed Date Night</h3>
+                      <p className="text-[10px] text-gray-500 flex items-center gap-1 mt-1"><MapPin size={10} /> The Skybar, Jubilee Hills • 3.8 km</p>
+                    </div>
+                    <button className="shrink-0 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md">
+                      Join
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>

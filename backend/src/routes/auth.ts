@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
 import { Resend } from 'resend';
 import validateEmail from 'deep-email-validator';
+import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY || 're_123_mock');

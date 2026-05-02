@@ -172,6 +172,14 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     receiver_id: connectionId,
                     content: cleanText,
                     delivery_status: "sent"
+                },
+                select: {
+                    id: true,
+                    sender_id: true,
+                    receiver_id: true,
+                    content: true,
+                    created_at: true,
+                    delivery_status: true
                 }
             });
         }

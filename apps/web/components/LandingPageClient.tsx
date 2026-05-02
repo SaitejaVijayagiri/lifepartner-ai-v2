@@ -14,8 +14,14 @@ import { api } from '@/lib/api';
 
 export default function LandingPageClient() {
   const [featuredProfiles, setFeaturedProfiles] = useState<any[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Check if user is already logged in
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('userId');
+    setIsLoggedIn(!!(token && userId));
+
     // Fetch public featured profiles for the marquee
     const fetchProfiles = async () => {
       try {
@@ -375,9 +381,10 @@ export default function LandingPageClient() {
                 </div>
               </div>
 
-              <Link href="/register">
-                <button className="px-8 py-4 rounded-full bg-white text-indigo-900 font-bold hover:bg-gray-100 transition-all shadow-xl hover:scale-105">
-                  Explore Events Near You
+              <Link href={isLoggedIn ? '/dashboard?tab=events' : '/register'}>
+                <button className="px-8 py-4 rounded-full bg-white text-indigo-900 font-bold hover:bg-gray-100 transition-all shadow-xl hover:scale-105 flex items-center gap-2">
+                  <MapPin size={18} />
+                  {isLoggedIn ? 'View Events Near You' : 'Explore Events Near You'}
                 </button>
               </Link>
             </div>

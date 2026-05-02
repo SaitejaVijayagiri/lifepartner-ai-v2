@@ -57,14 +57,20 @@ function RegisterForm() {
     const [resendCooldown, setResendCooldown] = useState(0);
     const [resendLoading, setResendLoading] = useState(false);
 
-    // Restore pending OTP state
+    // Restore pending OTP state — but NOT if coming from a fresh "Create Account" CTA (?new=true)
     useEffect(() => {
+        const isNewSignup = searchParams.get('new') === 'true';
+        if (isNewSignup) {
+            // Clear stale pending state so fresh register form is shown
+            localStorage.removeItem('pendingVerificationEmail');
+            return;
+        }
         const pendingEmail = localStorage.getItem('pendingVerificationEmail');
         if (pendingEmail) {
             setForm(prev => ({ ...prev, email: pendingEmail }));
             setShowOtp(true);
         }
-    }, []);
+    }, [searchParams]);
 
     // Countdown timer for Resend OTP
     useEffect(() => {

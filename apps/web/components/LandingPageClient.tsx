@@ -117,7 +117,7 @@ export default function LandingPageClient() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-5">
-              <Link href="/register">
+              <Link href="/register?new=true">
                 <button className="relative h-14 px-10 rounded-full bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-200 overflow-hidden group">
                   <span className="relative flex items-center gap-2">Join the Future <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></span>
                 </button>
@@ -565,7 +565,7 @@ export default function LandingPageClient() {
             <h2 className="text-5xl md:text-7xl font-bold text-white mb-8 tracking-tight">Ready to find <br />the one?</h2>
             <p className="text-indigo-200 text-xl mb-12 max-w-2xl mx-auto">Join the exclusive community of singles who value meaningful connections over mindless swiping.</p>
 
-            <Link href="/register">
+            <Link href="/register?new=true">
               <button className="group relative px-12 py-6 rounded-full bg-white dark:bg-gray-950 text-indigo-900 font-bold text-xl overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
                 <span className="relative z-10">Create Free Account</span>
               </button>

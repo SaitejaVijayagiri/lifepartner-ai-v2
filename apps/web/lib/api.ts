@@ -114,9 +114,9 @@ export const api = {
     chat: {
         getHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`),
         clearHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`, { method: 'DELETE' }),
-        sendMessage: (connectionId: string, text: string) => fetchAPI(`/messages/${connectionId}/send`, {
+        sendMessage: (connectionId: string, text: string, replyToId?: string) => fetchAPI(`/messages/${connectionId}/send`, {
             method: 'POST',
-            body: JSON.stringify({ text })
+            body: JSON.stringify({ text, replyToId })
         }),
         reactToMessage: (messageId: string, emoji: string) => fetchAPI(`/messages/${messageId}/react`, {
             method: 'POST',

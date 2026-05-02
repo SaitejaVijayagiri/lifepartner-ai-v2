@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -58,6 +58,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [isTyping, setIsTyping] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
+    const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
@@ -349,28 +351,34 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     }, [socket, partner.id, user]);
 
     const prevMsgCountRef = useRef(0);
+    const isUserScrollingRef = useRef(false);
+
+    // Track manual scroll
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        const onScroll = () => {
+            const { scrollTop, scrollHeight, clientHeight } = el;
+            isUserScrollingRef.current = scrollHeight - scrollTop - clientHeight > 150;
+        };
+        el.addEventListener('scroll', onScroll, { passive: true });
+        return () => el.removeEventListener('scroll', onScroll);
+    }, []);
 
     // Smart auto-scroll to bottom
     useEffect(() => {
-        if (scrollRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-
-            // Allow a 150px threshold to be considered "at the bottom" so we don't yank users viewing history
-            const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
-            const isInitialLoad = prevMsgCountRef.current === 0 && messages.length > 0;
-
-            const lastMsg = messages[messages.length - 1];
-            const isMyLatest = lastMsg?.senderId === 'me' || lastMsg?.senderId === user?.id;
-
-            if (isNearBottom || isInitialLoad || isMyLatest) {
-                scrollRef.current.scrollTo({
-                    top: scrollRef.current.scrollHeight,
-                    // Use instant jump for initial load so users don't see the long scroll animation
-                    behavior: isInitialLoad ? 'instant' : 'smooth'
-                });
-            }
-            prevMsgCountRef.current = messages.length;
+        if (!scrollRef.current) return;
+        const isInitialLoad = prevMsgCountRef.current === 0 && messages.length > 0;
+        const lastMsg = messages[messages.length - 1];
+        const isMyLatest = lastMsg?.senderId === 'me' || lastMsg?.senderId === user?.id;
+        // Scroll if: first load, I sent a message, or user is already near the bottom
+        if (isInitialLoad || isMyLatest || !isUserScrollingRef.current) {
+            scrollRef.current.scrollTo({
+                top: scrollRef.current.scrollHeight,
+                behavior: isInitialLoad ? 'instant' : 'smooth'
+            });
         }
+        prevMsgCountRef.current = messages.length;
     }, [messages, isTyping]);
 
     const handleSend = async (e?: React.FormEvent, forcedText?: string) => {
@@ -381,29 +389,27 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         if (!forcedText) setInputText("");
 
+        const currentReply = replyTo;
+        setReplyTo(null);
+
         const tempMsg = {
             id: 'temp-' + Date.now(),
             text: textToSend,
             senderId: 'me',
             timestamp: new Date(),
-            status: 'sending'
+            status: 'sending',
+            replyTo: currentReply || undefined
         };
         setMessages(prev => [...prev, tempMsg]);
+        // Force scroll to bottom on send
+        isUserScrollingRef.current = false;
 
         try {
-            // Backend expects User ID (partner.id), not Interaction ID
-            const response = await api.chat.sendMessage(partner.id, textToSend);
-
-            // Replace temporary message with the real one from DB (which has status: 'sent')
+            const response = await api.chat.sendMessage(partner.id, textToSend, currentReply?.id);
             if (response && response.message) {
-                setMessages(prev => prev.map(m => m.id === tempMsg.id ? response.message : m));
+                setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...response.message, replyTo: currentReply || undefined } : m));
             }
-
-            // Trigger re-order in parent connection list
             if (onMessageSent) onMessageSent();
-
-            // Socket emit is now handled by the Backend API to prevent double-writes.
-            // if (socket) { ... } REMOVED
         } catch (err) {
             console.error("Send failed", err);
         }
@@ -601,7 +607,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </span>
                                 </div>
                             )}
-                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1`}>
+                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1 group/row`}>
                                 {!isMe && (
                                     <img src={partnerInfo.photoUrl} className="w-8 h-8 rounded-full mr-2 self-end mb-1 shadow-sm" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
@@ -637,6 +643,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
+                                        {/* Reply preview inside bubble */}
+                                        {msg.replyTo && (
+                                            <div className={`mb-2 px-3 py-1.5 rounded-xl text-xs border-l-4 ${isMe ? 'bg-white/20 border-white/60 text-white/90' : 'bg-gray-100 dark:bg-gray-700 border-indigo-400 text-gray-600 dark:text-gray-300'}`}>
+                                                <p className="font-bold truncate">{msg.replyTo.senderName}</p>
+                                                <p className="truncate opacity-80">{msg.replyTo.text?.startsWith('[IMAGE]') ? '📷 Photo' : msg.replyTo.text?.startsWith('[AUDIO]') ? '🎤 Voice' : msg.replyTo.text?.startsWith('[STICKER]') ? '🎭 Sticker' : msg.replyTo.text}</p>
+                                            </div>
+                                        )}
                                         {msg.text.startsWith('[STICKER]') ? (
                                             <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
                                         ) : msg.text.startsWith('[IMAGE]') ? (
@@ -660,7 +673,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                         {/* React & Delete buttons — shows on hover */}
                                         {msg.id && !msg.id.toString().startsWith('temp-') && (
-                                            <div className={`absolute ${isMe ? '-left-16' : '-right-16'} bottom-1 flex gap-1 transition-all ${deleteMenuMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                            <div className={`absolute ${isMe ? '-left-24' : '-right-24'} bottom-1 flex gap-1 transition-all ${deleteMenuMsgId === msg.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); const sName = isMe ? 'You' : partnerInfo.name; setReplyTo({ id: msg.id, text: msg.text, senderName: sName }); inputRef.current?.focus(); }}
+                                                    className="p-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:scale-110"
+                                                    title="Reply"
+                                                >
+                                                    <Reply size={14} />
+                                                </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
                                                     className="p-1 rounded-full bg-white dark:bg-gray-800 shadow-sm hover:scale-110"
@@ -766,6 +786,19 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </div>
             )}
 
+            {/* Reply Preview Bar */}
+            {replyTo && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
+                    <div className="flex-1 border-l-4 border-indigo-500 pl-2">
+                        <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{replyTo.senderName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{replyTo.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyTo.text?.startsWith('[AUDIO]') ? '🎤 Voice' : replyTo.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyTo.text}</p>
+                    </div>
+                    <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                        <X size={16} />
+                    </button>
+                </div>
+            )}
+
             {/* Premium Message Input */}
             <form
                 onSubmit={e => {
@@ -836,10 +869,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </button>
 
                 <input
+                    ref={inputRef}
                     type="text"
                     value={inputText}
                     onChange={handleInput}
-                    placeholder="Type..."
+                    placeholder={replyTo ? `Reply to ${replyTo.senderName}...` : "Type..."}
                     className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500 dark:text-white"
                 />
 

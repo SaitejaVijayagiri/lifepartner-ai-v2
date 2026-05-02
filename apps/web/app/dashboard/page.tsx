@@ -135,6 +135,18 @@ function DashboardContent() {
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
     const { startCall } = useCall();
 
+    // Sync active chat partner to window global so MessageToastBanner can suppress notifications
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            (window as any).__activeChatPartnerId = selectedConnection?.partner?.id || null;
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                (window as any).__activeChatPartnerId = null;
+            }
+        };
+    }, [selectedConnection]);
+
     useEffect(() => {
         setMounted(true);
     }, []);

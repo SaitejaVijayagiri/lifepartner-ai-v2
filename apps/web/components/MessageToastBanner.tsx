@@ -30,11 +30,19 @@ export default function MessageToastBanner() {
         if (!socket) return;
 
         const handleNewMessage = (msg: any) => {
-            // Don't show if already in the chat with this person
-            if (pathname?.includes(msg.senderId)) return;
-            // Don't show my own messages
+            // 1. Don't show my own messages
             const myId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
             if (!myId || msg.senderId === myId || msg.senderId === 'me') return;
+
+            // 2. Don't show if on the dedicated /chat/[id] page for this sender
+            if (pathname?.includes(msg.senderId)) return;
+
+            // 3. Don't show if the chat window is open in dashboard for this sender
+            //    (Dashboard sets window.__activeChatPartnerId when a chat is open)
+            if (typeof window !== 'undefined' && (window as any).__activeChatPartnerId === msg.senderId) return;
+
+            // 4. Don't show if on a call page or call is active
+            if (pathname?.includes('/call') || pathname?.includes('/video')) return;
 
             const toastId = `msg-${Date.now()}`;
             const preview = msg.text?.startsWith('[IMAGE]') ? '📷 Sent a photo'
@@ -51,7 +59,7 @@ export default function MessageToastBanner() {
             };
 
             setToasts(prev => {
-                // Max 3 toasts at once
+                // Max 3 toasts at once, replace existing toast from same sender
                 const updated = [...prev.filter(t => t.senderId !== msg.senderId), newToast];
                 return updated.slice(-3);
             });

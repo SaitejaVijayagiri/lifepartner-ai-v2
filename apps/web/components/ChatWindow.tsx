@@ -278,7 +278,30 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             if (newMsg.senderId === partner.id) {
                 setMessages(prev => {
                     if (prev.some(m => m.id === newMsg.id)) return prev;
-                    return [...prev, newMsg];
+                    // Resolve replyToId -> replyTo object so the receiver sees the reply preview
+                    let enrichedMsg = { ...newMsg };
+                    if (newMsg.replyToId && !newMsg.replyTo) {
+                        // Prefer the replyToPreview sent directly from the backend (works even if message not yet in local state)
+                        if (newMsg.replyToPreview) {
+                            const myId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
+                            enrichedMsg.replyTo = {
+                                id: newMsg.replyToPreview.id,
+                                text: newMsg.replyToPreview.text,
+                                senderName: newMsg.replyToPreview.senderId === partner.id ? partnerInfo.name : 'You'
+                            };
+                        } else {
+                            // Fallback: search local messages
+                            const original = prev.find(m => m.id === newMsg.replyToId);
+                            if (original) {
+                                enrichedMsg.replyTo = {
+                                    id: original.id,
+                                    text: original.text,
+                                    senderName: original.senderId === partner.id ? partnerInfo.name : 'You'
+                                };
+                            }
+                        }
+                    }
+                    return [...prev, enrichedMsg];
                 });
                 setIsTyping(false);
 
@@ -669,15 +692,26 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
-                                        {/* Reply preview inside bubble */}
+                                        {/* Reply preview inside bubble — polished UI */}
                                         {(() => {
                                             const replyMsg = msg.replyTo || (msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null);
                                             if (!replyMsg) return null;
                                             const rName = replyMsg.senderName || (replyMsg.senderId === 'me' || replyMsg.senderId === user?.id ? 'You' : partnerInfo.name);
+                                            const rText = replyMsg.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyMsg.text?.startsWith('[AUDIO]') ? '🎤 Voice message' : replyMsg.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyMsg.text;
                                             return (
-                                                <div className={`mb-2 px-3 py-1.5 rounded-xl text-xs border-l-4 ${isMe ? 'bg-white/20 border-white/60 text-white/90' : 'bg-gray-100 dark:bg-gray-700 border-indigo-400 text-gray-600 dark:text-gray-300'}`}>
-                                                    <p className="font-bold truncate">{rName}</p>
-                                                    <p className="truncate opacity-80">{replyMsg.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyMsg.text?.startsWith('[AUDIO]') ? '🎤 Voice' : replyMsg.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyMsg.text}</p>
+                                                <div className={`mb-2 rounded-xl overflow-hidden border-l-[3px] ${
+                                                    isMe
+                                                        ? 'bg-white/15 border-white/80'
+                                                        : 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500'
+                                                }`}>
+                                                    <div className="px-2.5 py-1.5">
+                                                        <p className={`text-[11px] font-semibold mb-0.5 ${
+                                                            isMe ? 'text-white/90' : 'text-indigo-600 dark:text-indigo-400'
+                                                        }`}>{rName}</p>
+                                                        <p className={`text-[11px] truncate max-w-[200px] ${
+                                                            isMe ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'
+                                                        }`}>{rText}</p>
+                                                    </div>
                                                 </div>
                                             );
                                         })()}

@@ -194,10 +194,30 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                 select: { full_name: true, avatar_url: true }
             });
             const { sanitizePhotoUrl } = require('../utils/photoUrl');
+
+            // If replying, fetch the original message so the receiver can show the preview
+            let replyToPreview: any = null;
+            if (replyToId) {
+                try {
+                    const originalMsg = await (prisma.messages as any).findUnique({
+                        where: { id: replyToId },
+                        select: { content: true, sender_id: true }
+                    });
+                    if (originalMsg) {
+                        replyToPreview = {
+                            id: replyToId,
+                            text: originalMsg.content,
+                            senderId: originalMsg.sender_id
+                        };
+                    }
+                } catch (err) { /* reply preview is non-critical */ }
+            }
+
             io.to(connectionId).emit("receiveMessage", {
                 ...newMessage,
                 senderName: senderProfile?.full_name || 'Someone',
-                senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User')
+                senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User'),
+                replyToPreview
             });
         } catch (socketError) {
             console.error("Socket broadcast failed", socketError);

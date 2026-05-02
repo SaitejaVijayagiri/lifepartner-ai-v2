@@ -134,6 +134,20 @@ function DashboardContent() {
     /* Chat State */
     const [selectedConnection, setSelectedConnection] = useState<any>(null);
     const { startCall } = useCall();
+    const savedScrollRef = useRef<number>(0);
+
+    // Save scroll before opening chat, restore after closing
+    const openChat = (conn: any) => {
+        savedScrollRef.current = window.scrollY;
+        setSelectedConnection(conn);
+    };
+    const closeChat = () => {
+        setSelectedConnection(null);
+        // Restore scroll on next frame after DOM update
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: savedScrollRef.current, behavior: 'instant' });
+        });
+    };
 
     // Sync active chat partner to window global so MessageToastBanner can suppress notifications
     useEffect(() => {
@@ -1242,7 +1256,7 @@ function DashboardContent() {
                                 onChat={() => {
                                     const conn = connections.find((c: any) => c.partner?.id === match.id);
                                     if (conn) {
-                                        setSelectedConnection(conn);
+                                        openChat(conn);
                                     } else {
                                         setActiveTab('connections');
                                     }
@@ -1362,7 +1376,7 @@ function DashboardContent() {
                     >
                         <div
                             className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
-                            onClick={() => setSelectedConnection(conn)}
+                            onClick={() => openChat(conn)}
                         >
                             <div className="relative">
                                 <img src={conn.partner.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(conn.partner.name || 'User')}`; }} />
@@ -1449,7 +1463,7 @@ function DashboardContent() {
                                 variant="ghost"
                                 size="icon"
                                 className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full"
-                                onClick={() => setSelectedConnection(conn)}
+                                onClick={() => openChat(conn)}
                             >
                                 <MessageCircle size={20} />
                             </Button>
@@ -1707,7 +1721,7 @@ function DashboardContent() {
                 <ChatWindow
                     connectionId={selectedConnection.interactionId}
                     partner={selectedConnection.partner}
-                    onClose={() => setSelectedConnection(null)}
+                    onClose={() => closeChat()}
                     onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
                     onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
                     onMessagesRead={() => handleMarkRead(selectedConnection.partner.id)}
@@ -1732,7 +1746,7 @@ function DashboardContent() {
                         const conn = connections.find((c: any) => c.partner?.id === selectedProfile.id);
                         setSelectedProfile(null);
                         if (conn) {
-                            setSelectedConnection(conn);
+                            openChat(conn);
                         } else {
                             setActiveTab('connections');
                         }

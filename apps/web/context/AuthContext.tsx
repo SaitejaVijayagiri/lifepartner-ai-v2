@@ -84,7 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const login = (userData: User, token: string) => {
-        // Token is now secured via HttpOnly Cookie. We don't save it to local storage.
+        // We still save it to local storage because React Native and Socket.IO 
+        // require it when third-party cookies or cross-origin requests block the HttpOnly cookie.
+        localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('userId', userData.id);
         setUser(userData);

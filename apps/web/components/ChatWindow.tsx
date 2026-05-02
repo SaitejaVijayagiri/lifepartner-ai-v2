@@ -57,6 +57,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -641,7 +642,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For "my" messages: action buttons go LEFT of bubble */}
                                 {isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`flex items-center gap-0.5 mb-1 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150`}>
+                                    <div className={`flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: 'You' }); inputRef.current?.focus(); }}
                                             className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
@@ -687,6 +688,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                     {/* Message bubble */}
                                     <div
+                                        onClick={() => msg.id && setActiveMsgId(activeMsgId === msg.id ? null : msg.id)}
                                         onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
                                         className={`relative w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
@@ -770,7 +772,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For partner messages: action buttons go RIGHT of bubble */}
                                 {!isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`flex items-center gap-0.5 mb-1 opacity-0 group-hover/row:opacity-100 transition-opacity duration-150`}>
+                                    <div className={`flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: partnerInfo.name }); inputRef.current?.focus(); }}
                                             className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"

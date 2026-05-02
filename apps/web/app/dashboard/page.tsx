@@ -143,10 +143,10 @@ function DashboardContent() {
     };
     const closeChat = () => {
         setSelectedConnection(null);
-        // Restore scroll on next frame after DOM update
-        requestAnimationFrame(() => {
+        // Restore scroll on next frame after DOM updates layout
+        setTimeout(() => {
             window.scrollTo({ top: savedScrollRef.current, behavior: 'instant' });
-        });
+        }, 50);
     };
 
     // Sync active chat partner to window global so MessageToastBanner can suppress notifications

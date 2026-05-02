@@ -36,6 +36,7 @@ import blogRoutes from './routes/blog';
 import migrateRoutes from './routes/migrate';
 import photoRoutes from './routes/photo';
 import eventRoutes from './routes/events';
+import webhookRoutes from './routes/webhooks';
 import path from 'path';
 
 
@@ -174,6 +175,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 app.use('/photo', photoRoutes);     // Image proxy — bypasses India ISP Supabase DNS block
 app.use('/events', eventRoutes);    // Meet Spots feature
+app.use('/webhooks', webhookRoutes); // Webhook receiver for Resend
 
 // Debug Environment on Startup
 console.log("------------------------------------------------");

@@ -1,9 +1,11 @@
 'use client';
 
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import ChatWindow from '@/components/ChatWindow';
+import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ui/Toast';
 import { Suspense } from 'react';
+
+const ChatWindow = dynamic(() => import('@/components/ChatWindow'), { ssr: false });
 
 function ChatContent() {
     const searchParams = useSearchParams();

@@ -1734,13 +1734,17 @@ function DashboardContent() {
 
             {selectedConnection && (
                 <ChatWindow
-                    connectionId={selectedConnection.interactionId}
-                    partner={selectedConnection.partner}
-                    onClose={() => closeChat()}
-                    onVideoCall={() => startCall(selectedConnection.partner, 'video', selectedConnection.interactionId)}
-                    onAudioCall={() => startCall(selectedConnection.partner, 'audio', selectedConnection.interactionId)}
-                    onMessagesRead={() => handleMarkRead(selectedConnection.partner.id)}
-                    onMessageSent={() => handleMessageSentAction(selectedConnection.partner.id)}
+                    connectionId={selectedConnection.interactionId || selectedConnection.id}
+                    partner={selectedConnection.partner || {
+                        id: selectedConnection.id,
+                        name: selectedConnection.name || 'User',
+                        photoUrl: selectedConnection.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedConnection.id}`,
+                    }}
+                    onClose={closeChat}
+                    onVideoCall={() => startCall(selectedConnection.partner || selectedConnection, 'video', selectedConnection.interactionId)}
+                    onAudioCall={() => startCall(selectedConnection.partner || selectedConnection, 'audio', selectedConnection.interactionId)}
+                    onMessagesRead={() => handleMarkRead(selectedConnection.partner?.id || selectedConnection.id)}
+                    onMessageSent={() => handleMessageSentAction(selectedConnection.partner?.id || selectedConnection.id)}
                 />
             )}
 

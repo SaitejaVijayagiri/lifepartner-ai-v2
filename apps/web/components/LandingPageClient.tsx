@@ -13,7 +13,8 @@ import SocialProofToasts from '@/components/SocialProofToasts';
 import { api } from '@/lib/api';
 
 export default function LandingPageClient() {
-  const [featuredProfiles, setFeaturedProfiles] = useState<any[]>([]);
+  const [topRow, setTopRow] = useState<any[]>([]);
+  const [bottomRow, setBottomRow] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
@@ -26,8 +27,9 @@ export default function LandingPageClient() {
     const fetchProfiles = async () => {
       try {
         const res = await api.profile.getPublicFeatured();
-        if (res.success && res.profiles) {
-          setFeaturedProfiles(res.profiles);
+        if (res.success) {
+          setTopRow(res.topRow || []);
+          setBottomRow(res.bottomRow || []);
         }
       } catch (err) {
         console.error("Failed to fetch featured profiles", err);
@@ -216,41 +218,37 @@ export default function LandingPageClient() {
             </div>
           ))}
               {/* Profiles Marquee */}
-        {featuredProfiles.length > 0 && (
+        {(topRow.length > 0 || bottomRow.length > 0) && (
           <div className="w-full relative overflow-hidden py-4">
-              {/* First Row: Scrolls Left - Shows first half of profiles */}
-              <div 
-                className="animate-scroll-cards"
-                style={{ 
-                  '--card-count': Math.ceil(featuredProfiles.length / 2),
-                  animation: `scrollCards ${Math.max(20, Math.ceil(featuredProfiles.length / 2) * 8)}s linear infinite`
-                } as React.CSSProperties}
-              >
-                {/* First half of profiles */}
-                {(() => {
-                  const firstHalf = featuredProfiles.slice(0, Math.ceil(featuredProfiles.length / 2));
-                  return [...firstHalf, ...firstHalf.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
+              {/* First Row: Scrolls Left */}
+              {topRow.length > 0 && (
+                <div 
+                  className="animate-scroll-cards"
+                  style={{ 
+                    '--card-count': topRow.length,
+                    animation: `scrollCards ${Math.max(20, topRow.length * 8)}s linear infinite`
+                  } as React.CSSProperties}
+                >
+                  {[...topRow, ...topRow.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
                     <PublicMatchCard key={`row1_${profile.id}_${i}`} match={profile} />
-                  ));
-                })()}
-              </div>
+                  ))}
+                </div>
+              )}
 
-              {/* Second Row: Scrolls Right (Opposite Direction) - Shows second half of profiles */}
-              <div 
-                className="animate-scroll-cards-reverse mt-6"
-                style={{ 
-                  '--card-count': featuredProfiles.length - Math.ceil(featuredProfiles.length / 2),
-                  animation: `scrollCardsReverse ${Math.max(20, (featuredProfiles.length - Math.ceil(featuredProfiles.length / 2)) * 8)}s linear infinite`
-                } as React.CSSProperties}
-              >
-                {/* Second half of profiles, reversed for variety */}
-                {(() => {
-                  const secondHalf = [...featuredProfiles.slice(Math.ceil(featuredProfiles.length / 2))].reverse();
-                  return [...secondHalf, ...secondHalf.map(p => ({...p, id: p.id+"_dup_rev"}))].map((profile, i) => (
+              {/* Second Row: Scrolls Right (Opposite Direction) */}
+              {bottomRow.length > 0 && (
+                <div 
+                  className="animate-scroll-cards-reverse mt-6"
+                  style={{ 
+                    '--card-count': bottomRow.length,
+                    animation: `scrollCardsReverse ${Math.max(20, bottomRow.length * 8)}s linear infinite`
+                  } as React.CSSProperties}
+                >
+                  {[...bottomRow, ...bottomRow.map(p => ({...p, id: p.id+"_dup_rev"}))].map((profile, i) => (
                     <PublicMatchCard key={`row2_${profile.id}_${i}`} match={profile} />
-                  ));
-                })()}
-              </div>
+                  ))}
+                </div>
+              )}
           </div>
         )}
       </section>

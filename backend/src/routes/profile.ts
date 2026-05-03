@@ -154,7 +154,7 @@ router.get('/public/featured', async (req, res) => {
         });
 
         // 2. Fill the rest with general verified, high-quality users if needed
-        const remainingCount = 30 - specificUsers.length;
+        const remainingCount = 40 - specificUsers.length;
         let randomUsers: any[] = [];
         if (remainingCount > 0) {
             randomUsers = await prisma.users.findMany({
@@ -173,36 +173,25 @@ router.get('/public/featured', async (req, res) => {
         }
 
         const combinedUsers = [...specificUsers, ...randomUsers];
-
-        // Ensure randomize order so they don't look static
+        // Ensure randomize order
         const shuffled = combinedUsers.sort(() => 0.5 - Math.random());
 
+        // Map to public profile format
         const nameAliasMap: Record<string, string> = {
             'gk': 'Giridhar Kumar',
             'g.k.': 'Giridhar Kumar',
         };
-
-        // Country override by first name (for users whose country in DB may be incorrect)
         const countryOverrideMap: Record<string, string> = {
             'hamoudi': 'Indonesia',
         };
 
-        const profiles = shuffled.map(user => {
+        const allProfiles = shuffled.map(user => {
             const meta = (user.profiles?.metadata as any) || {};
             const rawFirstName = (user.full_name?.split(' ')[0] || 'User').toLowerCase();
             const displayName = nameAliasMap[rawFirstName] || (user.full_name?.split(' ')[0] || 'User');
+            const country = countryOverrideMap[rawFirstName] || meta.location?.country || user.state || 'India';
+            const locationStr = user.city ? `${user.city}, ${country}` : country !== 'India' ? country : 'Hidden';
 
-            // Determine country: override map → metadata → fallback to India
-            const country = countryOverrideMap[rawFirstName]
-                || meta.location?.country
-                || user.state  // some intl users may have country in state field
-                || 'India';
-
-            const locationStr = user.city
-                ? `${user.city}, ${country}`
-                : country !== 'India' ? country : 'Hidden';
-
-            // Completely mask sensitive info
             return {
                 id: user.id,
                 name: displayName,
@@ -216,7 +205,14 @@ router.get('/public/featured', async (req, res) => {
             };
         });
 
-        res.json({ success: true, profiles });
+        // Split into two distinct rows
+        const mid = Math.ceil(allProfiles.length / 2);
+        const topRow = allProfiles.slice(0, mid);
+        const bottomRow = allProfiles.slice(mid);
+
+        res.json({ success: true, topRow, bottomRow });
+
+
     } catch (e) {
         console.error("Public Featured Error", e);
         res.status(500).json({ error: "Failed to fetch public profiles" });

@@ -60,6 +60,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
+    const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -67,6 +68,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<string | null>(null);
 
     const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍', '🔥', '🤩'];
+
+    // Scroll to a message and blink-highlight it
+    const scrollToMessage = (msgId: string) => {
+        const el = document.querySelector(`[data-msg-id="${msgId}"]`) as HTMLElement | null;
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedMsgId(msgId);
+        // Remove the highlight after animation completes
+        setTimeout(() => setHighlightedMsgId(null), 1500);
+    };
 
     const getStickerAnimation = (url: string) => {
         return '';
@@ -797,24 +808,33 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                     {/* Message bubble */}
                                     <div
+                                        data-msg-id={msg.id}
                                         onClick={() => msg.id && setActiveMsgId(activeMsgId === msg.id ? null : msg.id)}
                                         onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
-                                        className={`relative w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${msg.text.startsWith('[STICKER]')
+                                        className={`relative w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
-                                        {/* Reply preview inside bubble — polished UI */}
+                                        {/* Reply preview inside bubble — polished UI, clickable to scroll to original */}
                                         {(() => {
                                             const replyMsg = msg.replyTo || (msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null);
                                             if (!replyMsg) return null;
+                                            const targetId = replyMsg.id || msg.replyToId;
                                             const rName = replyMsg.senderName || (replyMsg.senderId === 'me' || replyMsg.senderId === user?.id ? 'You' : partnerInfo.name);
                                             const rText = replyMsg.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyMsg.text?.startsWith('[AUDIO]') ? '🎤 Voice message' : replyMsg.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyMsg.text;
                                             return (
-                                                <div className={`mb-2 rounded-xl overflow-hidden border-l-[3px] ${
-                                                    isMe
-                                                        ? 'bg-white/15 border-white/80'
-                                                        : 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500'
-                                                }`}>
+                                                <div
+                                                    className={`mb-2 rounded-xl overflow-hidden border-l-[3px] cursor-pointer hover:opacity-80 active:scale-95 transition-all ${
+                                                        isMe
+                                                            ? 'bg-white/15 border-white/80'
+                                                            : 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500'
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (targetId) scrollToMessage(targetId);
+                                                    }}
+                                                    title="Jump to original message"
+                                                >
                                                     <div className="px-2.5 py-1.5">
                                                         <p className={`text-[11px] font-semibold mb-0.5 ${
                                                             isMe ? 'text-white/90' : 'text-indigo-600 dark:text-indigo-400'

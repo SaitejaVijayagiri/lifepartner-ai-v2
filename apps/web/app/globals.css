@@ -332,3 +332,17 @@ html, body {
   60%  { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* Chat Reply: Scroll-to-and-Highlight Blink */
+@keyframes msg-blink {
+  0%   { background-color: rgba(251, 191, 36, 0.0);  box-shadow: none; }
+  20%  { background-color: rgba(251, 191, 36, 0.35); box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.25); }
+  50%  { background-color: rgba(251, 191, 36, 0.20); box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15); }
+  75%  { background-color: rgba(251, 191, 36, 0.30); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.20); }
+  100% { background-color: rgba(251, 191, 36, 0.0);  box-shadow: none; }
+}
+
+.msg-highlight-blink {
+  animation: msg-blink 1.5s ease-in-out;
+  border-radius: 1rem; /* match bubble rounding */
+}

@@ -11,7 +11,7 @@ const router = express.Router();
 const astrologyService = new AstrologyService();
 
 // In-memory match cache: userId -> { data, expiresAt }
-const matchCache = new Map<string, { data: any; expiresAt: number }>();
+export const matchCache = new Map<string, { data: any; expiresAt: number }>();
 const MATCH_CACHE_TTL = 60 * 1000; // 60 seconds
 
 // Helper: Sanitize avatar_url — imported from shared utility

@@ -4,6 +4,7 @@ import { prisma } from '../prisma';
 import { getIO } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { matchCache } from './matches'; // Import to invalidate match cache on interest send
 
 
 const router = express.Router();
@@ -459,6 +460,10 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         }
 
         res.json({ success: true });
+
+        // Bust the match cache for THIS user so next fetch returns updated status
+        matchCache.delete(userId);
+
         } finally {
             // Clear debounce lock after 2 seconds
             setTimeout(() => interestDebounceCache.delete(debounceKey), 2000);

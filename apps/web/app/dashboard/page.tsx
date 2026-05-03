@@ -146,10 +146,17 @@ function DashboardContent() {
     useEffect(() => {
         const handleOpenChatEvent = (e: any) => {
             if (e.detail && e.detail.partnerId) {
+                // Structure matches what ChatWindow expects:
+                // interactionId = the partner's userId (chat API uses userId as connectionId)
+                // partner = the nested object ChatWindow reads
                 openChat({
-                    id: e.detail.partnerId,
-                    name: e.detail.partnerName,
-                    photoUrl: e.detail.partnerPhoto
+                    interactionId: e.detail.partnerId,
+                    partner: {
+                        id: e.detail.partnerId,
+                        name: e.detail.partnerName || 'User',
+                        photoUrl: e.detail.partnerPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${e.detail.partnerId}`,
+                        role: 'Online'
+                    }
                 });
             }
         };
@@ -167,7 +174,9 @@ function DashboardContent() {
     // Sync active chat partner to window global so MessageToastBanner can suppress notifications
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            (window as any).__activeChatPartnerId = selectedConnection?.partner?.id || null;
+            // Handle both nested { partner: { id } } and flat { id } connection structures
+            const partnerId = selectedConnection?.partner?.id || selectedConnection?.id || null;
+            (window as any).__activeChatPartnerId = partnerId;
         }
         return () => {
             if (typeof window !== 'undefined') {
@@ -1258,8 +1267,12 @@ function DashboardContent() {
                             <MatchCard
                                 match={match}
                                 onConnect={() => {
-                                    // Optimistically remove
-                                    setMatches(prev => prev.filter(m => m.id !== match.id));
+                                    // Optimistically mark as pending so "✓ Request Sent" badge shows
+                                    setMatches(prev => prev.map(m =>
+                                        m.id === match.id ? { ...m, match_status: 'pending' } : m
+                                    ));
+                                    // Bust cache so next page load fetches real status
+                                    try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
                                 }}
                                 onViewProfile={() => setSelectedProfile(match)}
                                 onShowKundli={(data: any) => setSelectedKundli({
@@ -1757,7 +1770,12 @@ function DashboardContent() {
                     onConnect={() => {
                         api.interactions.sendInterest(selectedProfile.id);
                         setSelectedProfile(null);
-                        setMatches(prev => prev.filter(m => m.id !== selectedProfile.id));
+                        // Mark this match as pending in-state so "Request Sent" shows immediately
+                        setMatches(prev => prev.map(m =>
+                            m.id === selectedProfile.id ? { ...m, match_status: 'pending' } : m
+                        ));
+                        // Invalidate localStorage cache so next fetch returns fresh pending status
+                        try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
                         toast.success(`Interest sent to ${selectedProfile.name}!`);
                     }}
                     isConnectedProp={connections.some((c: any) => c.partner?.id === selectedProfile.id)}

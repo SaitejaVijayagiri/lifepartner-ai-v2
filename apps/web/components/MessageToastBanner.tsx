@@ -87,7 +87,17 @@ export default function MessageToastBanner() {
                     className="pointer-events-auto flex items-center gap-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl px-4 py-3 w-[300px] max-w-[90vw] animate-in slide-in-from-right-8 fade-in duration-300 cursor-pointer hover:shadow-indigo-200 dark:hover:shadow-indigo-900 hover:scale-[1.02] transition-all"
                     onClick={() => {
                         dismiss(toast.id);
-                        router.push(`/chat/${toast.senderId}?name=${encodeURIComponent(toast.senderName)}&photo=${encodeURIComponent(toast.senderPhoto)}`);
+                        if (pathname === '/dashboard') {
+                            window.dispatchEvent(new CustomEvent('openChat', { 
+                                detail: { 
+                                    partnerId: toast.senderId, 
+                                    partnerName: toast.senderName, 
+                                    partnerPhoto: toast.senderPhoto 
+                                } 
+                            }));
+                        } else {
+                            router.push(`/chat/${toast.senderId}?name=${encodeURIComponent(toast.senderName)}&photo=${encodeURIComponent(toast.senderPhoto)}`);
+                        }
                     }}
                 >
                     {/* Avatar */}

@@ -141,6 +141,21 @@ function DashboardContent() {
         savedScrollRef.current = window.scrollY;
         setSelectedConnection(conn);
     };
+
+    // Global listener for toast clicks
+    useEffect(() => {
+        const handleOpenChatEvent = (e: any) => {
+            if (e.detail && e.detail.partnerId) {
+                openChat({
+                    id: e.detail.partnerId,
+                    name: e.detail.partnerName,
+                    photoUrl: e.detail.partnerPhoto
+                });
+            }
+        };
+        window.addEventListener('openChat', handleOpenChatEvent);
+        return () => window.removeEventListener('openChat', handleOpenChatEvent);
+    }, []);
     const closeChat = () => {
         setSelectedConnection(null);
         // Restore scroll on next frame after DOM updates layout

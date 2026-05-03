@@ -221,7 +221,7 @@ export default function LandingPageClient() {
         {featuredProfiles.length > 0 && (
           <div className="w-full relative overflow-hidden py-4">
 
-              
+              {/* First Row: Scrolls Left */}
               <div 
                 className="animate-scroll-cards"
                 style={{ 
@@ -231,7 +231,21 @@ export default function LandingPageClient() {
               >
                 {/* Duplicate the list for seamless continuous loop */}
                 {[...featuredProfiles, ...featuredProfiles.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
-                  <PublicMatchCard key={`${profile.id}_${i}`} match={profile} />
+                  <PublicMatchCard key={`row1_${profile.id}_${i}`} match={profile} />
+                ))}
+              </div>
+
+              {/* Second Row: Scrolls Right (Opposite Direction) */}
+              <div 
+                className="animate-scroll-cards-reverse mt-6"
+                style={{ 
+                  '--card-count': featuredProfiles.length,
+                  animation: `scrollCardsReverse ${Math.max(20, featuredProfiles.length * 6)}s linear infinite`
+                } as React.CSSProperties}
+              >
+                {/* Reverse the array to make the two rows look different */}
+                {[...featuredProfiles].reverse().concat([...featuredProfiles].reverse().map(p => ({...p, id: p.id+"_dup_rev"}))).map((profile, i) => (
+                  <PublicMatchCard key={`row2_${profile.id}_${i}`} match={profile} />
                 ))}
               </div>
           </div>

@@ -317,12 +317,22 @@ html, body {
   0% { transform: translateX(0); }
   100% { transform: translateX(calc(-300px * var(--card-count, 10))); }
 }
+@keyframes scrollCardsReverse {
+  0% { transform: translateX(calc(-300px * var(--card-count, 10))); }
+  100% { transform: translateX(0); }
+}
 .animate-scroll-cards {
   display: flex;
   gap: 1rem;
   width: max-content;
 }
-.animate-scroll-cards:hover {
+.animate-scroll-cards-reverse {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+}
+.animate-scroll-cards:hover,
+.animate-scroll-cards-reverse:hover {
   animation-play-state: paused;
 }
 

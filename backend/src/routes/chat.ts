@@ -109,7 +109,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
 
                 // Check for embedded reply ID in legacy schema mode
                 if (!replyToId && text) {
-                    const replyMatch = text.match(/^\[REPLY:([a-f0-9-]+)\](.*)$/is);
+                    const replyMatch = text.match(/^\[REPLY:([a-zA-Z0-9-]+)\](.*)$/is);
                     if (replyMatch) {
                         replyToId = replyMatch[1];
                         text = replyMatch[2];
@@ -230,9 +230,15 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                         select: { content: true, sender_id: true }
                     });
                     if (originalMsg) {
+                        let previewText = originalMsg.content || "";
+                        const replyMatch = previewText.match(/^\[REPLY:([a-zA-Z0-9-]+)\](.*)$/is);
+                        if (replyMatch) {
+                            previewText = replyMatch[2];
+                        }
+                        
                         replyToPreview = {
                             id: replyToId,
-                            text: originalMsg.content,
+                            text: previewText,
                             senderId: originalMsg.sender_id
                         };
                     }
@@ -310,10 +316,20 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
             reactions[userId] = emoji;
         }
 
-        await (prisma.messages as any).update({
-            where: { id: messageId },
-            data: { reactions, is_liked: Object.keys(reactions).length > 0 }
-        });
+        try {
+            await (prisma.messages as any).update({
+                where: { id: messageId },
+                data: { reactions, is_liked: Object.keys(reactions).length > 0 },
+                select: { id: true, reactions: true, is_liked: true }
+            });
+        } catch (dbErr) {
+            console.warn("is_liked column might not exist, falling back to legacy react update");
+            await (prisma.messages as any).update({
+                where: { id: messageId },
+                data: { reactions },
+                select: { id: true, reactions: true }
+            });
+        }
 
         // Fetch reactor's name for the socket event
         const reactor = await prisma.users.findUnique({
@@ -361,10 +377,20 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
             reactions[userId] = '❤️';
         }
 
-        await (prisma.messages as any).update({
-            where: { id: messageId },
-            data: { reactions, is_liked: Object.keys(reactions).length > 0 }
-        });
+        try {
+            await (prisma.messages as any).update({
+                where: { id: messageId },
+                data: { reactions, is_liked: Object.keys(reactions).length > 0 },
+                select: { id: true, reactions: true, is_liked: true }
+            });
+        } catch (dbErr) {
+            console.warn("is_liked column might not exist, falling back to legacy like update");
+            await (prisma.messages as any).update({
+                where: { id: messageId },
+                data: { reactions },
+                select: { id: true, reactions: true }
+            });
+        }
 
         try {
             const { getIO } = require('../socket');
@@ -408,9 +434,10 @@ router.delete('/:messageId', authenticateToken, async (req: any, res) => {
             if (!clearedBy.includes(userId)) clearedBy.push(userId);
         }
 
-        await prisma.messages.update({
+        await (prisma.messages as any).update({
             where: { id: messageId },
-            data: { cleared_by: clearedBy }
+            data: { cleared_by: clearedBy },
+            select: { id: true, cleared_by: true }
         });
 
         // Broadcast deletion event

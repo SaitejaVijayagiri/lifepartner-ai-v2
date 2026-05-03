@@ -559,10 +559,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in slide-in-from-bottom duration-300"}>
             {/* Premium Header */}
             {!isCallMode && (
-                <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative overflow-hidden">
+                <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative">
                     {/* Decorative elements */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+                    </div>
 
                     <div className="flex flex-col gap-1 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
                         <div className="flex items-center gap-3 w-full">

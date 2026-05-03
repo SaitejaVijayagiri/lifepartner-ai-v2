@@ -446,12 +446,17 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }
+                // Provide a PNG fallback for emails, because email clients do not render SVGs
+                const emailPhotoUrl = rawPhotoUrl 
+                    ? sanitizePhotoUrl(rawPhotoUrl, myName) 
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+
                 const senderDetails = {
                     name: myName,
                     age: user.age || meta.age,
                     location: locStr,
                     job: profStr,
-                    photoUrl: sanitizePhotoUrl(rawPhotoUrl, myName)
+                    photoUrl: emailPhotoUrl
                 };
                 await EmailService.sendInterestReceivedEmail(targetEmail, targetName, senderDetails);
             } catch (err) {

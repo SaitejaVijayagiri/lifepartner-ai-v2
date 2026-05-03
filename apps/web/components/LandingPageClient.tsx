@@ -215,38 +215,41 @@ export default function LandingPageClient() {
               <ShieldCheck size={18} /> Secure • Verified • Honest •
             </div>
           ))}
-        </div>
-
-        {/* Profiles Marquee */}
+              {/* Profiles Marquee */}
         {featuredProfiles.length > 0 && (
           <div className="w-full relative overflow-hidden py-4">
-
-              {/* First Row: Scrolls Left */}
+              {/* First Row: Scrolls Left - Shows first half of profiles */}
               <div 
                 className="animate-scroll-cards"
                 style={{ 
-                  '--card-count': featuredProfiles.length,
-                  animation: `scrollCards ${Math.max(20, featuredProfiles.length * 6)}s linear infinite`
+                  '--card-count': Math.ceil(featuredProfiles.length / 2),
+                  animation: `scrollCards ${Math.max(20, Math.ceil(featuredProfiles.length / 2) * 8)}s linear infinite`
                 } as React.CSSProperties}
               >
-                {/* Duplicate the list for seamless continuous loop */}
-                {[...featuredProfiles, ...featuredProfiles.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
-                  <PublicMatchCard key={`row1_${profile.id}_${i}`} match={profile} />
-                ))}
+                {/* First half of profiles */}
+                {(() => {
+                  const firstHalf = featuredProfiles.slice(0, Math.ceil(featuredProfiles.length / 2));
+                  return [...firstHalf, ...firstHalf.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
+                    <PublicMatchCard key={`row1_${profile.id}_${i}`} match={profile} />
+                  ));
+                })()}
               </div>
 
-              {/* Second Row: Scrolls Right (Opposite Direction) */}
+              {/* Second Row: Scrolls Right (Opposite Direction) - Shows second half of profiles */}
               <div 
                 className="animate-scroll-cards-reverse mt-6"
                 style={{ 
-                  '--card-count': featuredProfiles.length,
-                  animation: `scrollCardsReverse ${Math.max(20, featuredProfiles.length * 6)}s linear infinite`
+                  '--card-count': featuredProfiles.length - Math.ceil(featuredProfiles.length / 2),
+                  animation: `scrollCardsReverse ${Math.max(20, (featuredProfiles.length - Math.ceil(featuredProfiles.length / 2)) * 8)}s linear infinite`
                 } as React.CSSProperties}
               >
-                {/* Reverse the array to make the two rows look different */}
-                {[...featuredProfiles].reverse().concat([...featuredProfiles].reverse().map(p => ({...p, id: p.id+"_dup_rev"}))).map((profile, i) => (
-                  <PublicMatchCard key={`row2_${profile.id}_${i}`} match={profile} />
-                ))}
+                {/* Second half of profiles, reversed for variety */}
+                {(() => {
+                  const secondHalf = [...featuredProfiles.slice(Math.ceil(featuredProfiles.length / 2))].reverse();
+                  return [...secondHalf, ...secondHalf.map(p => ({...p, id: p.id+"_dup_rev"}))].map((profile, i) => (
+                    <PublicMatchCard key={`row2_${profile.id}_${i}`} match={profile} />
+                  ));
+                })()}
               </div>
           </div>
         )}

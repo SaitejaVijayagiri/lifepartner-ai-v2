@@ -150,11 +150,11 @@ router.get('/public/featured', async (req, res) => {
                 NOT: { OR: excludeConditions }
             },
             include: { profiles: true },
-            take: 10
+            take: 15
         });
 
         // 2. Fill the rest with general verified, high-quality users if needed
-        const remainingCount = 10 - specificUsers.length;
+        const remainingCount = 30 - specificUsers.length;
         let randomUsers: any[] = [];
         if (remainingCount > 0) {
             randomUsers = await prisma.users.findMany({

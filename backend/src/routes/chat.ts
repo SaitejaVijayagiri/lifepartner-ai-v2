@@ -103,15 +103,29 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                 return !clearedBy.includes(userId);
             })
             .reverse()
-            .map((row: any) => ({
-                id: row.id,
-                text: row.content,
-                senderId: row.sender_id,
-                timestamp: row.created_at,
-                status: row.delivery_status,
-                is_liked: row.is_liked ?? false,
-                reactions: row.reactions ?? {},
-                replyToId: row.reply_to_id
+            .map((row: any) => {
+                let text = row.content || "";
+                let replyToId = row.reply_to_id || null;
+
+                // Check for embedded reply ID in legacy schema mode
+                if (!replyToId && text) {
+                    const replyMatch = text.match(/^\[REPLY:([a-f0-9-]+)\](.*)$/is);
+                    if (replyMatch) {
+                        replyToId = replyMatch[1];
+                        text = replyMatch[2];
+                    }
+                }
+
+                return {
+                    id: row.id,
+                    text: text,
+                    senderId: row.sender_id,
+                    timestamp: row.created_at,
+                    status: row.delivery_status,
+                    is_liked: row.is_liked ?? false,
+                    reactions: row.reactions ?? {},
+                    replyToId: replyToId
+                };
             }));
 
         res.json(history);
@@ -153,6 +167,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "You cannot message this user." });
         }
 
+        let finalContent = cleanText;
         let newMessageRecord;
         try {
             newMessageRecord = await (prisma.messages as any).create({
@@ -166,11 +181,14 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             });
         } catch (dbErr) {
             console.warn("reply_to_id might not exist, falling back to legacy create");
+            if (replyToId) {
+                finalContent = `[REPLY:${replyToId}]${cleanText}`;
+            }
             newMessageRecord = await prisma.messages.create({
                 data: {
                     sender_id: senderId,
                     receiver_id: connectionId,
-                    content: cleanText,
+                    content: finalContent,
                     delivery_status: "sent"
                 },
                 select: {
@@ -456,6 +474,10 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
                     { sender_id: userId, receiver_id: connectionId },
                     { sender_id: connectionId, receiver_id: userId }
                 ]
+            },
+            select: {
+                id: true,
+                cleared_by: true
             }
         });
 
@@ -465,7 +487,8 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
                 clearedBy.push(userId);
                 return (prisma.messages as any).update({
                     where: { id: msg.id },
-                    data: { cleared_by: clearedBy }
+                    data: { cleared_by: clearedBy },
+                    select: { id: true, cleared_by: true }
                 });
             }
         });

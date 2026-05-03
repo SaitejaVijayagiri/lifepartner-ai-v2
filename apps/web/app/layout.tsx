@@ -9,6 +9,7 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import FloatingLoveGuru from '@/components/FloatingLoveGuru';
 import MessageToastBanner from '@/components/MessageToastBanner';
+import DateSafetyOverlay from '@/components/DateSafetyOverlay';
 
 const fontSans = DM_Sans({
   variable: "--font-sans",
@@ -193,6 +194,7 @@ export default function RootLayout({
             <ThemeToggle />
             <FloatingLoveGuru />
             <MessageToastBanner />
+            <DateSafetyOverlay />
           </ClientProviders>
         </ThemeProvider>
       </body>

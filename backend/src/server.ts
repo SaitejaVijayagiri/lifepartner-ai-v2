@@ -37,6 +37,8 @@ import migrateRoutes from './routes/migrate';
 import photoRoutes from './routes/photo';
 import eventRoutes from './routes/events';
 import webhookRoutes from './routes/webhooks';
+import dateRoutes from './routes/dates';
+import { initAngelTimer } from './services/angelTimer';
 import path from 'path';
 
 
@@ -175,6 +177,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 app.use('/photo', photoRoutes);     // Image proxy — bypasses India ISP Supabase DNS block
 app.use('/events', eventRoutes);    // Meet Spots feature
+app.use('/dates', dateRoutes);      // 1-on-1 Meet Dates feature
 app.use('/webhooks', webhookRoutes); // Webhook receiver for Resend
 
 // Debug Environment on Startup
@@ -198,6 +201,9 @@ if (require.main === module) {
         try {
             await prisma.$connect();
             console.log("✅ Prisma Connected (Schema Verified)");
+
+            // Start Angel Timer
+            initAngelTimer();
 
             // ⏰ Start Daily SEO Blog Generation
             cron.schedule('0 12 * * *', async () => {

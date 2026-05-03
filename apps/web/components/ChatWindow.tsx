@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -83,6 +83,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     // AI Wingman State
     const [loadingAi, setLoadingAi] = useState(false);
     const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+    
+    // Safety & Date Mode
+    const [showDateModal, setShowDateModal] = useState(false);
+    const [dateForm, setDateForm] = useState({ location: '', date: '' });
+    const [dateLoading, setDateLoading] = useState(false);
 
     const handleClearChat = async () => {
         if (!confirm("Are you sure you want to clear this chat history? This cannot be undone.")) return;
@@ -478,6 +483,60 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
+    const handleProposeDate = async () => {
+        if (!dateForm.location || !dateForm.date) {
+            return toast.error("Please provide both location and date time");
+        }
+        setDateLoading(true);
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/propose`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    receiver_id: partner.id,
+                    location_name: dateForm.location,
+                    date_time: dateForm.date
+                })
+            }).then(r => r.json());
+            
+            if (res.success) {
+                toast.success("Date proposed safely!");
+                setShowDateModal(false);
+                setDateForm({ location: '', date: '' });
+            } else {
+                toast.error(res.error || "Failed to propose date");
+            }
+        } catch (e) {
+            toast.error("Network error");
+        } finally {
+            setDateLoading(false);
+        }
+    };
+
+    const handleRespondDate = async (dateId: string, status: string) => {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${dateId}/respond`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status })
+            }).then(r => r.json());
+            
+            if (res.success) {
+                toast.success(`Date ${status}!`);
+            } else {
+                toast.error(res.error || "Failed to respond");
+            }
+        } catch (e) {
+            toast.error("Network error");
+        }
+    };
+
     // Keep likeMessage for Android native backward compat
     const handleLikeMessage = async (msgId: string) => {
         handleReact(msgId, '❤️');
@@ -536,8 +595,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                     <div className="flex gap-1 relative z-10 flex-shrink-0">
                         <button
-                            onClick={handleClearChat}
+                            onClick={() => setShowDateModal(true)}
                             className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                            title="Schedule Date"
+                        >
+                            <CalendarClock size={20} />
+                        </button>
+                        <button
+                            onClick={handleClearChat}
+                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all hidden md:block"
                             title="Clear Chat"
                         >
                             <Trash2 size={20} />
@@ -723,7 +789,39 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenImage(msg.text.replace('[IMAGE]', ''))} />
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
-                                        ) : (
+                                        ) : msg.text.startsWith('[DATE_INVITE:') ? (() => {
+                                            const dateId = msg.text.replace('[DATE_INVITE:', '').replace(']', '');
+                                            return (
+                                                <div className="bg-white/10 dark:bg-black/20 p-4 rounded-xl border border-white/20 dark:border-gray-700 min-w-[200px] flex flex-col items-center">
+                                                    <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 text-rose-500 rounded-full flex items-center justify-center mb-2">
+                                                        <CalendarClock size={24} />
+                                                    </div>
+                                                    <p className="font-bold mb-1">Date Invitation</p>
+                                                    <p className="text-xs opacity-80 text-center mb-3">Let's meet up!</p>
+                                                    {!isMe && (
+                                                        <div className="flex gap-2 w-full">
+                                                            <button onClick={() => handleRespondDate(dateId, 'declined')} className="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors">Decline</button>
+                                                            <button onClick={() => handleRespondDate(dateId, 'accepted')} className="flex-1 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors">Accept</button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })() : msg.text.startsWith('[DATE_RESPONSE:') ? (() => {
+                                            const parts = msg.text.replace('[DATE_RESPONSE:', '').replace(']', '').split(':');
+                                            const status = parts[1];
+                                            const accepted = status === 'accepted';
+                                            return (
+                                                <div className={`p-3 rounded-xl border flex items-center gap-3 ${accepted ? 'bg-green-50/10 border-green-200/50 text-green-700 dark:text-green-300' : 'bg-red-50/10 border-red-200/50 text-red-700 dark:text-red-300'}`}>
+                                                    <div className={`p-2 rounded-full ${accepted ? 'bg-green-500' : 'bg-red-500'} text-white`}>
+                                                        {accepted ? <Check size={16} /> : <X size={16} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-sm">Date {status.charAt(0).toUpperCase() + status.slice(1)}</p>
+                                                        {accepted && <p className="text-xs opacity-80">Safety features are now active for this date.</p>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })() : (
                                             msg.text
                                         )}
                                         <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') ? 'text-gray-500 font-medium drop-shadow-sm' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
@@ -1008,6 +1106,54 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     onClose={() => setShowProfile(false)}
                     onConnect={() => { }}
                 />
+            )}
+
+            {showDateModal && (
+                <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in p-4" onClick={() => setShowDateModal(false)}>
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-rose-50 dark:bg-rose-950/20">
+                            <h3 className="font-bold text-xl text-rose-900 dark:text-rose-100 flex items-center gap-2">
+                                🛡️ Schedule a Safe Date
+                            </h3>
+                            <button onClick={() => setShowDateModal(false)} className="p-2 bg-white/50 hover:bg-white dark:bg-gray-800/50 dark:hover:bg-gray-700 rounded-full transition-all text-gray-500 hover:text-rose-500">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="bg-rose-50/50 dark:bg-rose-900/10 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/50">
+                                <p className="text-sm text-rose-800 dark:text-rose-200 font-medium">
+                                    For your safety, all dates scheduled through the app activate the <strong>Women's Safety Kit</strong> automatically.
+                                </p>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">Where are you meeting?</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g. Starbucks, MG Road (Public Place)"
+                                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-rose-500 focus:outline-none transition-all"
+                                    value={dateForm.location}
+                                    onChange={(e) => setDateForm({ ...dateForm, location: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">When?</label>
+                                <input 
+                                    type="datetime-local" 
+                                    className="w-full p-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-rose-500 text-gray-900 dark:text-gray-100 focus:outline-none transition-all"
+                                    value={dateForm.date}
+                                    onChange={(e) => setDateForm({ ...dateForm, date: e.target.value })}
+                                />
+                            </div>
+                            <button 
+                                onClick={handleProposeDate}
+                                disabled={dateLoading || !dateForm.location || !dateForm.date}
+                                className="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/20 disabled:opacity-50 transition-all mt-6 active:scale-[0.98]"
+                            >
+                                {dateLoading ? "Sending Invite..." : "Send Date Invitation"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

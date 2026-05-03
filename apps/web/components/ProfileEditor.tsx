@@ -551,6 +551,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     </div>
                 </div>
 
+                {/* Emergency Contact */}
+                <div>
+                    <h4 className="text-sm font-bold text-rose-600 dark:text-rose-400 border-b pb-2 mb-4 uppercase tracking-wide flex items-center gap-2">
+                        🛡️ Emergency Contact (Safety)
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                        This person will be automatically notified if you go on a Date via the app and fail to respond to the automated Safety Check-in.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Contact Name" value={formData.metadata?.emergency_contact?.name || ''} onChange={e => handleChange('metadata', 'emergency_contact', { ...formData.metadata?.emergency_contact, name: e.target.value })} />
+                        <Input label="Contact Phone" value={formData.metadata?.emergency_contact?.phone || ''} onChange={e => handleChange('metadata', 'emergency_contact', { ...formData.metadata?.emergency_contact, phone: e.target.value })} />
+                        <Input label="Contact Email" value={formData.metadata?.emergency_contact?.email || ''} onChange={e => handleChange('metadata', 'emergency_contact', { ...formData.metadata?.emergency_contact, email: e.target.value })} className="md:col-span-2" />
+                    </div>
+                </div>
+
                 {/* Horoscope (New) */}
 
 

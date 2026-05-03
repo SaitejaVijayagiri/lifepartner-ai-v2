@@ -518,7 +518,26 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
+    const verifySafetyContact = async () => {
+        try {
+            const me = await api.profile.getMe();
+            const md = typeof me.metadata === 'string' ? JSON.parse(me.metadata) : (me.metadata || {});
+            if (!md?.emergency_contact?.email || !md?.emergency_contact?.phone) {
+                toast.error("Safety First! Please add an Emergency Contact (Email & Phone) in your Profile Settings before you can schedule or accept dates.", { duration: 6000 });
+                return false;
+            }
+            return true;
+        } catch (e) {
+            toast.error("Failed to verify safety settings");
+            return false;
+        }
+    };
+
     const handleRespondDate = async (dateId: string, status: string) => {
+        if (status === 'accepted') {
+            const isSafe = await verifySafetyContact();
+            if (!isSafe) return;
+        }
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${dateId}/respond`, {
                 method: 'POST',
@@ -625,7 +644,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             {showHeaderMenu && (
                                 <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
                                     <button
-                                        onClick={() => { setShowDateModal(true); setShowHeaderMenu(false); }}
+                                        onClick={async () => { 
+                                            setShowHeaderMenu(false); 
+                                            if (await verifySafetyContact()) {
+                                                setShowDateModal(true); 
+                                            }
+                                        }}
                                         className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-3 transition-colors"
                                     >
                                         <CalendarClock size={16} className="text-indigo-500" />

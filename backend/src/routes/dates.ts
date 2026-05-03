@@ -158,9 +158,11 @@ router.get('/active', authenticateToken, async (req: any, res) => {
             SELECT d.*, 
                    u.full_name as partner_name, 
                    u.avatar_url as partner_photo,
-                   u.gender as partner_gender
+                   u.gender as partner_gender,
+                   p.metadata as my_metadata
             FROM meet_dates d
             JOIN users u ON (d.sender_id = u.id OR d.receiver_id = u.id) AND u.id != $1::uuid
+            LEFT JOIN profiles p ON p.user_id = $1::uuid
             WHERE (d.sender_id = $1::uuid OR d.receiver_id = $1::uuid)
               AND d.status = 'accepted'
               AND d.date_time > NOW() - INTERVAL '4 hours' -- Keep active during date window

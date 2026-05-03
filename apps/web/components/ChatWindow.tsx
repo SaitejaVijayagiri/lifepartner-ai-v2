@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -88,6 +88,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [showDateModal, setShowDateModal] = useState(false);
     const [dateForm, setDateForm] = useState({ location: '', date: '' });
     const [dateLoading, setDateLoading] = useState(false);
+
+    const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
     const handleClearChat = async () => {
         if (!confirm("Are you sure you want to clear this chat history? This cannot be undone.")) return;
@@ -593,34 +595,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
                     </div>
 
-                    <div className="flex gap-1 relative z-10 flex-shrink-0">
-                        <button
-                            onClick={() => setShowDateModal(true)}
-                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                            title="Schedule Date"
-                        >
-                            <CalendarClock size={20} />
-                        </button>
-                        <button
-                            onClick={handleClearChat}
-                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all hidden md:block"
-                            title="Clear Chat"
-                        >
-                            <Trash2 size={20} />
-                        </button>
-                        <button
-                            onClick={() => setShowGiftModal(true)}
-                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                            title="Send Gift"
-                        >
-                            <Gift size={20} />
-                        </button>
+                    <div className="flex gap-1 relative z-10 flex-shrink-0 items-center">
                         <VideoCallButton
                             targetUserId={partner.id}
                             targetUserName={partnerInfo.name}
                             targetUserPhoto={partnerInfo.photoUrl}
                             showLabel={false}
-                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                            className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
                         <VideoCallButton
                             targetUserId={partner.id}
@@ -628,9 +609,45 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             targetUserPhoto={partnerInfo.photoUrl}
                             showLabel={false}
                             mode="audio"
-                            className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                            className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
-                        <button onClick={onClose} className="p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
+                        
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowHeaderMenu(!showHeaderMenu)}
+                                className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                            >
+                                <MoreVertical size={20} />
+                            </button>
+
+                            {showHeaderMenu && (
+                                <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
+                                    <button
+                                        onClick={() => { setShowDateModal(true); setShowHeaderMenu(false); }}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 flex items-center gap-3 transition-colors"
+                                    >
+                                        <CalendarClock size={16} className="text-indigo-500" />
+                                        Schedule Date
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowGiftModal(true); setShowHeaderMenu(false); }}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-pink-900/30 flex items-center gap-3 transition-colors"
+                                    >
+                                        <Gift size={16} className="text-pink-500" />
+                                        Send Gift
+                                    </button>
+                                    <button
+                                        onClick={() => { handleClearChat(); setShowHeaderMenu(false); }}
+                                        className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                        Clear Chat
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <button onClick={onClose} className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
                             <X size={20} />
                         </button>
                     </div>

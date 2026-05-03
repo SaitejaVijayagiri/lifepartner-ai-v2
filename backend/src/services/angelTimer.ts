@@ -88,17 +88,17 @@ export function initAngelTimer() {
                         from: 'LifePartner Safety <safety@lifepartner.in>',
                         to: emergencyContact.email,
                         subject: `🚨 URGENT: Safety Alert for ${date.receiver_name}`,
-                        html: \`
+                        html: `
                             <h2>Safety Check Missed</h2>
-                            <p><strong>\${date.receiver_name}</strong> went on a date 1 hour ago and missed their automated safety check-in.</p>
+                            <p><strong>${date.receiver_name}</strong> went on a date 1 hour ago and missed their automated safety check-in.</p>
                             <h3>Date Details:</h3>
                             <ul>
-                                <li><strong>Partner Name:</strong> \${date.partner_name}</li>
-                                <li><strong>Location:</strong> \${date.location_name}</li>
-                                <li><strong>Started At:</strong> \${new Date(date.date_time).toLocaleString()}</li>
+                                <li><strong>Partner Name:</strong> ${date.partner_name}</li>
+                                <li><strong>Location:</strong> ${date.location_name}</li>
+                                <li><strong>Started At:</strong> ${new Date(date.date_time).toLocaleString()}</li>
                             </ul>
                             <p>Please try reaching out to them immediately. If you cannot reach them and are concerned, consider contacting local authorities.</p>
-                        \`
+                        `
                     });
                 }
             }

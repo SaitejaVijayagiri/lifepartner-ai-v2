@@ -51,7 +51,7 @@ router.post('/propose', authenticateToken, async (req: any, res) => {
         `, senderId, receiver_id, location_name, lat || null, lng || null, dateObj);
 
         // Send a custom chat message so the UI renders the invitation
-        const invitePayload = \`[DATE_INVITE:\${newDate[0].id}]\`;
+        const invitePayload = `[DATE_INVITE:${newDate[0].id}]`;
         const newMsg = await (prisma.messages as any).create({
             data: {
                 sender_id: senderId,
@@ -122,7 +122,7 @@ router.post('/:id/respond', authenticateToken, async (req: any, res) => {
             const { getIO } = require('../socket');
             const io = getIO();
             
-            const payload = \`[DATE_RESPONSE:\${dateId}:\${status}]\`;
+            const payload = `[DATE_RESPONSE:${dateId}:${status}]`;
             const newMsg = await (prisma.messages as any).create({
                 data: {
                     sender_id: userId,

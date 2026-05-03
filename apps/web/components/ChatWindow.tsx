@@ -1139,10 +1139,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             </button>
                         </div>
                         <div className="p-6 space-y-5">
-                            <div className="bg-rose-50/50 dark:bg-rose-900/10 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/50">
+                            <div className="bg-rose-50/50 dark:bg-rose-900/10 p-4 rounded-2xl border border-rose-100 dark:border-rose-900/50 space-y-3">
                                 <p className="text-sm text-rose-800 dark:text-rose-200 font-medium">
                                     For your safety, all dates scheduled through the app activate the <strong>Women's Safety Kit</strong> automatically.
                                 </p>
+                                <details className="group cursor-pointer">
+                                    <summary className="text-xs font-bold text-rose-600 dark:text-rose-400 select-none flex items-center gap-1">
+                                        How it works
+                                        <span className="transition group-open:rotate-180">▼</span>
+                                    </summary>
+                                    <ul className="mt-2 space-y-2 text-xs text-rose-700/80 dark:text-rose-300/80 list-disc pl-4">
+                                        <li><strong>Date Mode:</strong> A safety overlay appears during your date, giving you one-tap access to a "Fake Call" to escape awkward situations.</li>
+                                        <li><strong>Angel Check-in:</strong> 45 minutes into your date, we automatically send you a push notification asking if you're safe.</li>
+                                        <li><strong>SOS Escalation:</strong> If you ignore the check-in for 15 minutes, we instantly email your exact GPS location to your Emergency Contact.</li>
+                                    </ul>
+                                </details>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">Where are you meeting?</label>

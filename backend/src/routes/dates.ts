@@ -198,4 +198,89 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
     }
 });
 
+// 6. Mark Date as Safe (Acknowledge Angel Check-in)
+router.post('/:id/safe', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const dateId = req.params.id;
+
+        const updated: any[] = await prisma.$queryRawUnsafe(`
+            UPDATE meet_dates 
+            SET status = 'completed', updated_at = now() 
+            WHERE id = $1::uuid AND (sender_id = $2::uuid OR receiver_id = $2::uuid)
+            RETURNING *;
+        `, dateId, userId);
+
+        if (!updated.length) return res.status(404).json({ error: 'Date not found or unauthorized' });
+        
+        res.json({ success: true, message: 'Marked as safe' });
+    } catch (e: any) {
+        console.error('Mark Safe Error', e);
+        res.status(500).json({ error: 'Failed to mark safe' });
+    }
+});
+
+// 7. Trigger Manual SOS
+router.post('/:id/sos', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const dateId = req.params.id;
+        const { lat, lng, reason } = req.body;
+
+        const dates: any[] = await prisma.$queryRawUnsafe(`
+            SELECT d.*, 
+                   u.full_name as user_name,
+                   p.metadata as profile_metadata,
+                   partner.full_name as partner_name
+            FROM meet_dates d
+            JOIN users u ON u.id = $2::uuid
+            JOIN profiles p ON p.user_id = u.id
+            JOIN users partner ON partner.id = CASE WHEN d.sender_id = $2::uuid THEN d.receiver_id ELSE d.sender_id END
+            WHERE d.id = $1::uuid AND (d.sender_id = $2::uuid OR d.receiver_id = $2::uuid);
+        `, dateId, userId);
+
+        if (!dates.length) return res.status(404).json({ error: 'Date not found' });
+        
+        const date = dates[0];
+        const metadata = typeof date.profile_metadata === 'string' ? JSON.parse(date.profile_metadata) : (date.profile_metadata || {});
+        const emergencyContact = metadata.emergency_contact;
+
+        if (emergencyContact && emergencyContact.email) {
+            const { Resend } = require('resend');
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            
+            let mapsLink = '';
+            if (lat && lng) mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+            await resend.emails.send({
+                from: 'LifePartner Safety <safety@lifepartner.in>',
+                to: emergencyContact.email,
+                subject: `🚨 SOS ALERT: ${date.user_name} Needs Help`,
+                html: `
+                    <h2 style="color: red;">SOS Alert Triggered</h2>
+                    <p><strong>${date.user_name}</strong> just triggered an SOS alert during their date.</p>
+                    <h3>Details:</h3>
+                    <ul>
+                        <li><strong>Partner Name:</strong> ${date.partner_name}</li>
+                        <li><strong>Location:</strong> ${date.location_name}</li>
+                        <li><strong>Reason:</strong> ${reason || 'Manual SOS Triggered'}</li>
+                    </ul>
+                    ${mapsLink ? `<p><a href="${mapsLink}" style="padding: 10px 15px; background: red; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View Live GPS Location</a></p>` : ''}
+                    <p>Please contact them immediately. If you cannot reach them, consider contacting local authorities.</p>
+                `
+            });
+            
+            // Mark the date status as 'sos' so the cron timer doesn't fire again
+            await prisma.$queryRawUnsafe(`
+                UPDATE meet_dates SET status = 'sos', updated_at = now() WHERE id = $1::uuid;
+            `, dateId);
+        }
+
+        res.json({ success: true, message: 'SOS triggered successfully' });
+    } catch (e: any) {
+        console.error('SOS Trigger Error', e);
+        res.status(500).json({ error: 'Failed to trigger SOS' });
+    }
+});
+
 export default router;

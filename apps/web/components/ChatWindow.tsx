@@ -575,7 +575,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     return (
-        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in slide-in-from-bottom duration-300"}>
+        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in fade-in zoom-in-95 duration-200"}>
             {/* Premium Header */}
             {!isCallMode && (
                 <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative">
@@ -1062,12 +1062,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 >
                     <SmilePlus className="w-5 h-5" />
                 </button>
+                
                 <button
                     type="button"
                     onClick={handleIcebreaker}
                     disabled={loadingAi || isRecording || isUploadingMedia}
-                    className="hidden sm:block p-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 transition-all disabled:opacity-50"
-                    title="AI Wingman"
+                    className="hidden sm:block p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800 rounded-2xl transition-all"
                 >
                     <Sparkles size={18} className={loadingAi ? 'animate-spin' : ''} />
                 </button>

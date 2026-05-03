@@ -126,7 +126,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     reactions: row.reactions ?? {},
                     replyToId: replyToId
                 };
-            }));
+            });
 
         res.json(history);
     } catch (e: any) {

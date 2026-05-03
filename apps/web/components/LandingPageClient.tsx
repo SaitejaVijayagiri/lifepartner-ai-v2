@@ -217,7 +217,9 @@ export default function LandingPageClient() {
               <ShieldCheck size={18} /> Secure • Verified • Honest •
             </div>
           ))}
-              {/* Profiles Marquee */}
+        </div>
+
+        {/* Profiles Marquee */}
         {(topRow.length > 0 || bottomRow.length > 0) && (
           <div className="w-full relative overflow-hidden py-4">
               {/* First Row: Scrolls Left */}

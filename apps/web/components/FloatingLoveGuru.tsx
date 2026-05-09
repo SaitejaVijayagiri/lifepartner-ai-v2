@@ -165,23 +165,37 @@ export default function FloatingLoveGuru() {
 
                 {/* Desktop FAB */}
                 {!isOpen && (
-                    <button
-                        onClick={() => setIsOpen(true)}
-                        className="group animate-bounce flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-rose-500/30 transition-all hover:scale-110 active:scale-95 hover:shadow-xl hover:shadow-rose-500/40"
+                    <motion.div
+                        className="relative group"
+                        animate={{ y: [0, -8, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                     >
-                        <span className="text-2xl drop-shadow-md group-hover:animate-none">🔮</span>
-                    </button>
+                        <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-pink-500 via-rose-400 to-purple-500 opacity-50 blur-lg group-hover:opacity-100 transition duration-1000 animate-pulse"></div>
+                        <button
+                            onClick={() => setIsOpen(true)}
+                            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 text-white shadow-xl shadow-rose-500/40 transition-transform duration-300 hover:scale-110 active:scale-95 border border-white/20"
+                        >
+                            <span className="text-2xl drop-shadow-md">🔮</span>
+                        </button>
+                    </motion.div>
                 )}
             </div>
 
             {/* ── MOBILE: FAB button (shown when closed) ───────────────────── */}
             {!isOpen && (
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="md:hidden animate-bounce fixed bottom-28 right-4 z-[1005] group flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-rose-500/30 transition-all active:scale-95 hover:shadow-xl"
+                <motion.div
+                    className="md:hidden fixed bottom-28 right-4 z-[1005] group"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    <span className="text-2xl drop-shadow-md">🔮</span>
-                </button>
+                    <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-pink-500 via-rose-400 to-purple-500 opacity-60 blur-md transition duration-1000 animate-pulse"></div>
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 text-white shadow-xl shadow-rose-500/40 transition-transform duration-300 active:scale-95 border border-white/20"
+                    >
+                        <span className="text-2xl drop-shadow-md">🔮</span>
+                    </button>
+                </motion.div>
             )}
         </>
     );

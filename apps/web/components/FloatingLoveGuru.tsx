@@ -138,7 +138,7 @@ export default function FloatingLoveGuru() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: '100%' }}
                         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                        className="md:hidden fixed inset-0 z-[200]"
+                        className="md:hidden fixed inset-0 z-[1010]"
                     >
                         {chatPanel('h-full')}
                     </motion.div>
@@ -146,7 +146,7 @@ export default function FloatingLoveGuru() {
             </AnimatePresence>
 
             {/* ── DESKTOP: Floating bottom-right panel ─────────────────────── */}
-            <div className="hidden md:block fixed bottom-6 right-6 z-[60]">
+            <div className="hidden md:block fixed bottom-6 right-6 z-[1005]">
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
@@ -167,9 +167,9 @@ export default function FloatingLoveGuru() {
                 {!isOpen && (
                     <button
                         onClick={() => setIsOpen(true)}
-                        className="group flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-rose-500/30 transition-all hover:scale-110 active:scale-95 hover:shadow-xl hover:shadow-rose-500/40"
+                        className="group animate-bounce flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-rose-500/30 transition-all hover:scale-110 active:scale-95 hover:shadow-xl hover:shadow-rose-500/40"
                     >
-                        <span className="text-2xl drop-shadow-md group-hover:animate-pulse">🔮</span>
+                        <span className="text-2xl drop-shadow-md group-hover:animate-none">🔮</span>
                     </button>
                 )}
             </div>
@@ -178,7 +178,7 @@ export default function FloatingLoveGuru() {
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="md:hidden fixed bottom-24 right-4 z-[60] group flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-rose-500/30 transition-all active:scale-95 hover:shadow-xl"
+                    className="md:hidden animate-bounce fixed bottom-28 right-4 z-[1005] group flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-rose-500/30 transition-all active:scale-95 hover:shadow-xl"
                 >
                     <span className="text-2xl drop-shadow-md">🔮</span>
                 </button>

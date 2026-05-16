@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Users } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 
@@ -20,6 +20,15 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [astrologyMode, setAstrologyMode] = useState(false);
     const { publicStats, onlineUsers } = useSocket() as any;
+
+    // Hide the floating Love Guru button while map is open
+    useEffect(() => {
+        const guru = document.getElementById('love-guru-wrapper');
+        if (guru) guru.style.display = 'none';
+        return () => {
+            if (guru) guru.style.display = '';
+        };
+    }, []);
 
     // Apply Live Map Filters
     const filteredProfiles = profiles.filter((p) => {

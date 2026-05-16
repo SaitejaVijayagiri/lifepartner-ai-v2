@@ -128,7 +128,7 @@ export default function FloatingLoveGuru() {
     );
 
     return (
-        <>
+        <div id="love-guru-wrapper">
             {/* ── MOBILE: Full-screen slide-up overlay ─────────────────────── */}
             <AnimatePresence>
                 {isOpen && (
@@ -197,6 +197,6 @@ export default function FloatingLoveGuru() {
                     </button>
                 </motion.div>
             )}
-        </>
+        </div>
     );
 }

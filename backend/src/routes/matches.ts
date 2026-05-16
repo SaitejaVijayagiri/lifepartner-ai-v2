@@ -10,9 +10,38 @@ import { sanitizePhotoUrl } from '../utils/photoUrl';
 const router = express.Router();
 const astrologyService = new AstrologyService();
 
-// In-memory match cache: userId -> { data, expiresAt }
-export const matchCache = new Map<string, { data: any; expiresAt: number }>();
-const MATCH_CACHE_TTL = 60 * 1000; // 60 seconds
+// Simple LRU Cache to prevent memory leaks under high concurrent load
+class LRUCache<K, V> {
+    private max: number;
+    private cache: Map<K, V>;
+
+    constructor(max = 500) {
+        this.max = max;
+        this.cache = new Map();
+    }
+
+    get(key: K): V | undefined {
+        const item = this.cache.get(key);
+        if (item) {
+            this.cache.delete(key);
+            this.cache.set(key, item); // Move to newest
+        }
+        return item;
+    }
+
+    set(key: K, val: V) {
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        } else if (this.cache.size >= this.max) {
+            this.cache.delete(this.cache.keys().next().value!); // Evict oldest
+        }
+        this.cache.set(key, val);
+    }
+}
+
+// In-memory match cache: userId -> { data, expiresAt } (Max 1000 users)
+export const matchCache = new LRUCache<string, { data: any; expiresAt: number }>(1000);
+const MATCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased for better scaling)
 
 // Helper: Sanitize avatar_url — imported from shared utility
 // (Previously duplicated here, profile.ts, and interactions.ts)

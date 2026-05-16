@@ -4,7 +4,7 @@ dotenv.config();
 import { EmailService } from './services/email';
 
 async function main() {
-    console.log('Sending sample interest email...');
+    console.log('Sending sample interest email without photo (testing PNG fallback)...');
     await EmailService.sendInterestReceivedEmail(
         'saitejavijayagiri123@gmail.com',
         'Saiteja',
@@ -13,7 +13,7 @@ async function main() {
             age: 26,
             location: 'Hyderabad, Telangana',
             job: 'Software Engineer',
-            photoUrl: 'https://randomuser.me/api/portraits/women/44.jpg'
+            photoUrl: undefined // Force fallback!
         }
     );
     console.log('✅ Sample email sent!');

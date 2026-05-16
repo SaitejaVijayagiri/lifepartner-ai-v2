@@ -49,19 +49,18 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void fetchAndRegisterToken() {
-        SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+        final SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
         boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
         if (isPushDisabled) {
             return; // Abort registration because the user explicitly toggled notifications Off
         }
 
         FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
-            if (token != null) {
+            if (token != null && !token.isEmpty()) {
                 prefs.edit().putString("fcm_token", token).apply();
-
                 String authToken = prefs.getString("auth_token", null);
                 if (authToken != null) {
-                    MyFirebaseMessagingService.registerTokenWithBackend(this, authToken);
+                    MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
                 }
             }
         });

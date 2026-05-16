@@ -534,7 +534,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             const me = await api.profile.getMe();
             const md = typeof me.metadata === 'string' ? JSON.parse(me.metadata) : (me.metadata || {});
             if (!md?.emergency_contact?.email || !md?.emergency_contact?.phone) {
-                toast.error("Safety First! Please add an Emergency Contact (Email & Phone) in your Profile Settings before you can schedule or accept dates.", { duration: 6000 });
+                toast.error("Safety First! Please add an Emergency Contact (Email & Phone) in your Profile Settings before you can schedule or accept dates.");
                 return false;
             }
             return true;

@@ -62,7 +62,7 @@ export default function DateSafetyOverlay() {
             const audio = new Audio('/fake_ringtone.mp3');
             audio.loop = true;
             audio.play().catch(() => {
-                toast.success("🚨 FAKE CALL INCOMING 🚨", { duration: 10000 });
+                toast.success("🚨 FAKE CALL INCOMING 🚨");
             });
             setTimeout(() => {
                 audio.pause();

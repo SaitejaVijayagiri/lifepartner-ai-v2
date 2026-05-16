@@ -29,7 +29,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "FCMService";
     private static final String CHANNEL_ID = "lifepartner_notifications";
-    private static final String API_BASE = "https://lifepartner-ai.onrender.com";
+    private static final String API_BASE = BuildConfig.API_BASE_URL;
 
     @Override
     public void onNewToken(String token) {
@@ -147,7 +147,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(R.drawable.ic_stat_notification)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setAutoCancel(true)
@@ -225,8 +225,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 conn.setConnectTimeout(10000);
                 conn.setReadTimeout(10000);
 
-                String payload = "{\"token\":\"" + token + "\",\"platform\":\"android\"}";
-                byte[] input = payload.getBytes(StandardCharsets.UTF_8);
+                org.json.JSONObject payloadObj = new org.json.JSONObject();
+                payloadObj.put("token", token);
+                payloadObj.put("platform", "android");
+                byte[] input = payloadObj.toString().getBytes(StandardCharsets.UTF_8);
                 try (OutputStream os = conn.getOutputStream()) {
                     os.write(input, 0, input.length);
                 }
@@ -262,7 +264,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                             conn.setRequestProperty("Authorization", "Bearer " + authToken);
                             conn.setDoOutput(true);
                             conn.setConnectTimeout(10000);
-                            String payload = "{\"token\":\"" + token + "\",\"platform\":\"android\"}";
+                            org.json.JSONObject payloadObj2 = new org.json.JSONObject();
+                            payloadObj2.put("token", token);
+                            payloadObj2.put("platform", "android");
+                            String payload = payloadObj2.toString();
                             byte[] input = payload.getBytes(StandardCharsets.UTF_8);
                             try (OutputStream os = conn.getOutputStream()) {
                                 os.write(input, 0, input.length);

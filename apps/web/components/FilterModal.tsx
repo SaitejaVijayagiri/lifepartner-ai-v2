@@ -103,7 +103,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
 
     return (
         <div
-            className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            className={`fixed inset-0 z-[1100] flex items-center justify-center p-4 transition-all duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         >
             {/* Backdrop */}
             <div 

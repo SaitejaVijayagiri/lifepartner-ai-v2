@@ -86,7 +86,7 @@ export const NotificationBell = () => {
             </button>
 
             {isOpen && (
-                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:mt-2 md:w-96 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[1100] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                         <h3 className="font-bold text-gray-900 dark:text-gray-100">Notifications</h3>
                         {unreadCount > 0 && (

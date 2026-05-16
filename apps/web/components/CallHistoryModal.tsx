@@ -40,7 +40,7 @@ export default function CallHistoryModal({ onClose }: CallHistoryModalProps) {
 
     return (
         <div
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300"
+            className="fixed inset-0 z-[1100] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300"
             onClick={onClose}
         >
             <div

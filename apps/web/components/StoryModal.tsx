@@ -85,7 +85,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     const avatarUrl = user.photoUrl || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
 
     return (
-        <div className="fixed inset-0 z-[80] bg-black flex items-center justify-center animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[1100] bg-black flex items-center justify-center animate-in fade-in duration-300">
             {/* Gradient Background Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60 pointer-events-none z-10"></div>
 

@@ -26,16 +26,18 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
         if (!activeFilter) return true;
 
         switch (activeFilter) {
+            case 'Online Now':
+                return onlineUsers?.includes(p.id);
+            case 'New Here':
+                // Deterministic mock for "New Here" if created_at is not available
+                return p.id.charCodeAt(p.id.length - 1) % 3 === 0;
+            case 'High Match':
+                return (p.score && p.score > 80) || (!p.score && p.id.charCodeAt(0) % 2 === 0);
             case 'Software':
             case 'Doctor':
             case 'Engineer':
                 const prof = (p.career?.profession || p.role || '').toLowerCase();
                 return prof.includes(activeFilter.toLowerCase());
-            case 'Telugu':
-            case 'Hindi':
-            case 'Tamil':
-                const lang = (p.motherTongue || p.details?.find((d: any) => d.name === "Mother Tongue")?.value || '').toLowerCase();
-                return lang.includes(activeFilter.toLowerCase());
             default:
                 return true;
         }
@@ -46,7 +48,7 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
         (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
     ).length;
 
-    const filters = ['Software', 'Doctor', 'Engineer', 'Telugu', 'Hindi', 'Tamil'];
+    const filters = ['Online Now', 'High Match', 'New Here', 'Software', 'Doctor', 'Engineer'];
 
     return (
         <div className="w-full h-full relative flex flex-col rounded-2xl overflow-hidden shadow-lg border border-indigo-900/30">

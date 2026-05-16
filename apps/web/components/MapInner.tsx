@@ -126,9 +126,19 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     const exactLat = Number(profile.location_data.lat);
                     const exactLng = Number(profile.location_data.lng);
                     
-                    // Calculate precise distance
+                    // PRIVACY UPGRADE: Fuzz the location by ~500m (0.005 degrees)
+                    // Use the user's ID string to generate a deterministic random offset 
+                    // so the marker doesn't jump around on every re-render.
+                    const idSum = profile.id.split('').reduce((a: number, b: string) => a + b.charCodeAt(0), 0);
+                    const latOffset = ((idSum % 100) - 50) * 0.0001; // Between -0.005 and +0.005
+                    const lngOffset = (((idSum * 2) % 100) - 50) * 0.0001;
+                    
+                    const fuzzyLat = exactLat + latOffset;
+                    const fuzzyLng = exactLng + lngOffset;
+
+                    // Calculate precise distance using the fuzzed location
                     const distanceKm = currentUser?.location?.lat 
-                        ? getDistance(myLat, myLng, exactLat, exactLng)
+                        ? getDistance(myLat, myLng, fuzzyLat, fuzzyLng)
                         : null;
 
                     // Decide if high match based on score
@@ -176,7 +186,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     return (
                         <Marker
                             key={profile.id}
-                            position={[exactLat, exactLng]}
+                            position={[fuzzyLat, fuzzyLng]}
                             icon={fuzzyIcon}
                             zIndexOffset={isHighMatch ? 900 : 100}
                         >

@@ -111,11 +111,11 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     <Marker position={[myLat, myLng]} icon={myIcon} zIndexOffset={2000}>
                         <Popup className="premium-popup">
                             <div className="text-center p-2 min-w-[140px]">
-                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">Your Live Location</p>
-                                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium flex items-center justify-center gap-1">
+                                <p className="text-sm font-bold text-gray-900 mb-1">Your Live Location</p>
+                                <p className="text-xs text-indigo-600 font-medium flex items-center justify-center gap-1">
                                     <MapPin size={12} /> {currentUser.location?.city || 'Scanning...'}
                                 </p>
-                                <p className="text-[10px] text-gray-400 mt-2">Discovering nearby singles</p>
+                                <p className="text-[10px] text-gray-500 mt-2">Discovering nearby singles</p>
                             </div>
                         </Popup>
                     </Marker>

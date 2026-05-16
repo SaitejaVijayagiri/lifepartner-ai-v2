@@ -52,53 +52,54 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
         <div className="w-full h-full relative flex flex-col rounded-2xl overflow-hidden shadow-lg border border-indigo-900/30">
 
             {/* Unified Top Overlay */}
-            <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-3 pointer-events-none">
+            <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
 
-                {/* Row 1: Back Button & Stats */}
-                <div className="flex justify-between items-start pointer-events-auto">
-                    <div className="flex flex-col gap-2 relative">
-                        {onBack && (
-                            <button
-                                onClick={onBack}
-                                className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-full border border-gray-200 shadow-md transition-colors w-max"
-                            >
-                                <ChevronLeft size={14} /> Back to Dashboard
-                            </button>
-                        )}
-                        <div className="flex flex-col gap-1.5 mt-1">
-                            <div className="bg-gray-900/80 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full border border-indigo-500/30 shadow w-max flex items-center gap-1.5">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                <span className="font-bold">{publicStats?.onlineCount || onlineUsers?.length || 1}</span> users online
-                            </div>
-                            <div className="bg-gray-900/80 backdrop-blur-md text-white text-[10px] px-3 py-1 rounded-full border border-gray-700 shadow w-max">
-                                <span className="text-gray-300 font-bold">{mapProfilesCount}</span> nearby matches
-                            </div>
-                        </div>
+                {/* Row 1: Back Button & Stats (Horizontal to save space) */}
+                <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
+                    {onBack && (
+                        <button
+                            onClick={onBack}
+                            className="flex items-center gap-1 bg-white/90 hover:bg-white text-gray-900 text-[10px] sm:text-xs font-bold px-2.5 py-1.5 rounded-full border border-gray-200 shadow-sm transition-colors w-max"
+                        >
+                            <ChevronLeft size={14} /> Back
+                        </button>
+                    )}
+                    <div className="bg-gray-900/80 backdrop-blur-md text-white text-[10px] sm:text-xs px-2.5 py-1.5 rounded-full border border-indigo-500/30 shadow-sm w-max flex items-center gap-1.5">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span className="font-bold">{publicStats?.onlineCount || onlineUsers?.length || 1}</span> online
+                    </div>
+                    <div className="bg-gray-900/80 backdrop-blur-md text-white text-[10px] sm:text-xs px-2.5 py-1.5 rounded-full border border-gray-700 shadow-sm w-max">
+                        <span className="text-gray-300 font-bold">{mapProfilesCount}</span> nearby
                     </div>
                 </div>
 
-                {/* Row 2: Filters */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none pointer-events-auto">
+                {/* Row 2: Filters (Hidden Scrollbar) */}
+                <div 
+                    className="flex items-center gap-1.5 overflow-x-auto pb-1 pointer-events-auto"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    <style dangerouslySetInnerHTML={{__html: `div::-webkit-scrollbar { display: none; }`}} />
+                    
                     <button
                         onClick={() => setAstrologyMode(!astrologyMode)}
-                        className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1 shadow-md
+                        className={`shrink-0 px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shadow-sm
                             ${astrologyMode
                                 ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white border-none'
                                 : 'bg-white/90 text-gray-700 hover:bg-white border border-gray-200'}`}
                     >
-                        🕉️ Astrology Mode
+                        🕉️ Astrology
                     </button>
 
-                    <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
+                    <div className="w-px h-4 bg-gray-300 mx-0.5 shrink-0"></div>
 
                     {filters.map(filter => (
                         <button
                             key={filter}
                             onClick={() => setActiveFilter(activeFilter === filter ? null : filter)}
-                            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition shadow-md border
+                            className={`shrink-0 px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold transition shadow-sm border
                                 ${activeFilter === filter
                                     ? 'bg-indigo-600 text-white border-indigo-600'
                                     : 'bg-white/90 text-gray-700 hover:bg-white border-gray-200'}`}

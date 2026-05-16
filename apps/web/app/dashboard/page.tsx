@@ -1007,41 +1007,30 @@ function DashboardContent() {
 
         return (
             <div className="w-full space-y-8 pb-32">
-                {/* AI Search Bar - Premium Glass Design */}
-                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
-                    {/* Decorative gradient orbs */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
-                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
-
-                    <div className="relative z-10">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-1">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
-                                <Sparkles className="text-white" size={20} />
+                {/* Speed Dating Banner */}
+                <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 md:p-8 mb-6 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-4 bg-white/20 backdrop-blur-md rounded-2xl hidden sm:flex items-center justify-center">
+                                <Zap className="w-8 h-8 text-white animate-pulse" />
                             </div>
-                            <span className="text-gradient">AI Matchmaker</span>
-                        </h2>
-                        <p className="text-sm text-gray-500 ml-12">Describe your ideal partner and let AI find the perfect match</p>
-                    </div>
-
-                    <div className="flex gap-3 relative z-10">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="e.g., 'Architect in Mumbai who loves hiking and reading'..."
-                            className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
-                        />
-                        <button
-                            onClick={handleSearch}
-                            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
+                            <div>
+                                <h3 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2">
+                                    <Sparkles className="text-yellow-300 w-6 h-6 animate-pulse" />
+                                    Live Speed Dating
+                                </h3>
+                                <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
+                            </div>
+                        </div>
+                        <Button 
+                            onClick={() => setShowSpeedDatingLobby(true)}
+                            className="bg-white !text-purple-700 hover:bg-gray-100 font-bold shadow-xl border-0 px-8 py-6 rounded-2xl text-lg hover:scale-105 transition-transform w-full md:w-auto"
                         >
-                            <Search size={18} />
-                            <span className="hidden sm:inline">Search</span>
-                        </button>
+                            Enter Lobby
+                        </Button>
                     </div>
                 </div>
-
 
                 {/* Recent Visitors Section */}
                 {
@@ -1197,30 +1186,41 @@ function DashboardContent() {
                     )
                 }
 
-                {/* Speed Dating Banner */}
-                <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 md:p-8 mb-6 text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-4 bg-white/20 backdrop-blur-md rounded-2xl hidden sm:flex items-center justify-center">
-                                <Zap className="w-8 h-8 text-white animate-pulse" />
+                {/* AI Search Bar - Premium Glass Design */}
+                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
+                    {/* Decorative gradient orbs */}
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
+
+                    <div className="relative z-10">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-1">
+                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
+                                <Sparkles className="text-white" size={20} />
                             </div>
-                            <div>
-                                <h3 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2">
-                                    <Sparkles className="text-yellow-300 w-6 h-6 animate-pulse" />
-                                    Live Speed Dating
-                                </h3>
-                                <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
-                            </div>
-                        </div>
-                        <Button 
-                            onClick={() => setShowSpeedDatingLobby(true)}
-                            className="bg-white !text-purple-700 hover:bg-gray-100 font-bold shadow-xl border-0 px-8 py-6 rounded-2xl text-lg hover:scale-105 transition-transform w-full md:w-auto"
+                            <span className="text-gradient">AI Matchmaker</span>
+                        </h2>
+                        <p className="text-sm text-gray-500 ml-12">Describe your ideal partner and let AI find the perfect match</p>
+                    </div>
+
+                    <div className="flex gap-3 relative z-10">
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            placeholder="e.g., 'Architect in Mumbai who loves hiking and reading'..."
+                            className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
+                        />
+                        <button
+                            onClick={handleSearch}
+                            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
                         >
-                            Enter Lobby
-                        </Button>
+                            <Search size={18} />
+                            <span className="hidden sm:inline">Search</span>
+                        </button>
                     </div>
                 </div>
+
 
                 {/* Header for Feed - Enhanced */}
                 {/* Header for Feed - Enhanced with AI Feedback */}

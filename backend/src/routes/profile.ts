@@ -17,6 +17,18 @@ import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 import { uploadToCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
+import { exec } from 'child_process';
+
+router.get('/trigger-migration', (req, res) => {
+    const scriptPath = path.join(__dirname, '../../scripts/migrate_base64_photos.js');
+    exec(`node ${scriptPath}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Migration error: ${error.message}`);
+            return res.status(500).json({ error: error.message, stderr });
+        }
+        res.json({ success: true, stdout, stderr });
+    });
+});
 
 
 /**

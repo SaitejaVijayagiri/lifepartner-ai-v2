@@ -1023,12 +1023,12 @@ function DashboardContent() {
                                 <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
                             </div>
                         </div>
-                        <Button 
+                        <button
                             onClick={() => setShowSpeedDatingLobby(true)}
-                            className="bg-white !text-purple-700 hover:bg-gray-100 font-bold shadow-xl border-0 px-8 py-6 rounded-2xl text-lg hover:scale-105 transition-transform w-full md:w-auto"
+                            className="bg-white text-purple-700 hover:bg-purple-50 active:bg-purple-100 font-bold shadow-xl border-0 px-8 py-4 rounded-2xl text-lg hover:scale-105 active:scale-100 transition-all w-full md:w-auto focus:outline-none focus:ring-4 focus:ring-purple-300 cursor-pointer"
                         >
-                            Enter Lobby
-                        </Button>
+                            ⚡ Enter Lobby
+                        </button>
                     </div>
                 </div>
 

@@ -32,14 +32,14 @@ cloudinary.config({
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
-// ─── Upload a base64 string to Cloudinary and return the public URL ───────────
-async function uploadBase64ToCloudinary(base64, userId, index = 0) {
+// ─── Upload a base64 or HTTP URL to Cloudinary and return the public URL ──────
+async function uploadToCloudinary(sourceUrl, userId, index = 0) {
     if (!process.env.CLOUDINARY_CLOUD_NAME) {
         console.error("❌ CLOUDINARY_CLOUD_NAME is missing in .env");
         process.exit(1);
     }
     try {
-        const result = await cloudinary.uploader.upload(base64, {
+        const result = await cloudinary.uploader.upload(sourceUrl, {
             folder: `lifepartner/profiles/${userId}`,
             public_id: `photo_${index}_${Date.now()}`,
             resource_type: 'image',
@@ -82,31 +82,28 @@ async function main() {
         const meta = (user.profiles?.metadata) || {};
         const metaPhotos = meta.photos || [];
 
-        const avatarIsBase64 = user.avatar_url && user.avatar_url.startsWith('data:image');
-        const metaBase64Photos = metaPhotos.filter(p => p && p.startsWith('data:image'));
+        const avatarNeedsMigration = user.avatar_url && (user.avatar_url.startsWith('data:image') || user.avatar_url.includes('supabase.co'));
+        const metaNeedsMigration = metaPhotos.filter(p => p && (p.startsWith('data:image') || p.includes('supabase.co')));
 
-        if (!avatarIsBase64 && metaBase64Photos.length === 0) {
+        if (!avatarNeedsMigration && metaNeedsMigration.length === 0) {
             totalSkipped++;
             continue; // Nothing to migrate for this user
         }
 
-        const avatarKB = avatarIsBase64 ? Math.round(user.avatar_url.length / 1024) : 0;
-        const metaKBs = metaBase64Photos.map(p => Math.round(p.length / 1024));
-
         console.log(`\n👤 ${user.full_name} <${user.email}>`);
-        if (avatarIsBase64) console.log(`   avatar_url: base64 [${avatarKB} KB]`);
-        if (metaBase64Photos.length > 0) console.log(`   meta.photos: ${metaBase64Photos.length} base64 [${metaKBs.join(', ')} KB]`);
+        if (avatarNeedsMigration) console.log(`   avatar_url: needs migration`);
+        if (metaNeedsMigration.length > 0) console.log(`   meta.photos: ${metaNeedsMigration.length} need migration`);
 
         if (DRY_RUN) {
-            console.log(`   → Would upload ${(avatarIsBase64 ? 1 : 0) + metaBase64Photos.length} photo(s) to Cloudinary`);
+            console.log(`   → Would upload ${(avatarNeedsMigration ? 1 : 0) + metaNeedsMigration.length} photo(s) to Cloudinary`);
             continue;
         }
 
         // ── 1. Upload avatar_url ─────────────────────────────────────────────
         let newAvatarUrl = user.avatar_url;
-        if (avatarIsBase64) {
+        if (avatarNeedsMigration) {
             process.stdout.write(`   Uploading avatar... `);
-            const uploaded = await uploadBase64ToCloudinary(user.avatar_url, user.id, 0);
+            const uploaded = await uploadToCloudinary(user.avatar_url, user.id, 0);
             if (uploaded) {
                 newAvatarUrl = uploaded;
                 console.log(`✅ ${uploaded.substring(0, 70)}...`);
@@ -122,9 +119,9 @@ async function main() {
         const newMetaPhotos = [];
         for (let i = 0; i < metaPhotos.length; i++) {
             const p = metaPhotos[i];
-            if (p && p.startsWith('data:image')) {
+            if (p && (p.startsWith('data:image') || p.includes('supabase.co'))) {
                 process.stdout.write(`   Uploading meta photo[${i}]... `);
-                const uploaded = await uploadBase64ToCloudinary(p, user.id, i + 1);
+                const uploaded = await uploadToCloudinary(p, user.id, i + 1);
                 if (uploaded) {
                     newMetaPhotos.push(uploaded);
                     console.log(`✅`);
@@ -165,16 +162,16 @@ async function main() {
     console.log(`\n${'═'.repeat(55)}`);
     if (DRY_RUN) {
         const toMigrate = users.filter(u =>
-            (u.avatar_url && u.avatar_url.startsWith('data:image')) ||
-            ((u.profiles?.metadata?.photos || []).some(p => p && p.startsWith('data:image')))
+            (u.avatar_url && (u.avatar_url.startsWith('data:image') || u.avatar_url.includes('supabase.co'))) ||
+            ((u.profiles?.metadata?.photos || []).some(p => p && (p.startsWith('data:image') || p.includes('supabase.co'))))
         );
         console.log(`  DRY-RUN complete.`);
-        console.log(`  Users with base64 to migrate: ${toMigrate.length}`);
+        console.log(`  Users needing migration: ${toMigrate.length}`);
     } else {
         console.log(`  Migration complete.`);
         console.log(`  ✅ Uploaded to Cloudinary : ${totalMigrated}`);
         console.log(`  ❌ Failed uploads          : ${totalFailed}`);
-        console.log(`  ⏭️  Skipped (no base64)     : ${totalSkipped}`);
+        console.log(`  ⏭️  Skipped (no action req): ${totalSkipped}`);
     }
     console.log(`${'═'.repeat(55)}\n`);
 }

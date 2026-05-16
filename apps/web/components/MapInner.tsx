@@ -1,10 +1,41 @@
 'use client';
 
 import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, ChevronLeft } from 'lucide-react';
+import { MapPin, Navigation, Navigation2 } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
+
+// Haversine formula to calculate distance in km
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return (R * c).toFixed(1);
+}
+
+// Map Controls component
+function MapControls({ center }: { center: [number, number] }) {
+    const map = useMap();
+    return (
+        <button 
+            onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                map.flyTo(center, 13, { duration: 1.5 });
+            }}
+            className="absolute bottom-24 right-4 z-[1000] p-3.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-full shadow-2xl hover:scale-110 hover:shadow-indigo-500/30 transition-all text-indigo-600 dark:text-indigo-400 group"
+            title="Recenter to my location"
+        >
+            <Navigation2 className="w-5 h-5 group-hover:fill-indigo-600 transition-all" />
+        </button>
+    );
+}
 
 export default function MapInner({ profiles, currentUser, onViewProfile, onBack, astrologyMode = false }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void, astrologyMode?: boolean }) {
     useEffect(() => {
@@ -35,14 +66,31 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
     const L = typeof window !== 'undefined' ? require('leaflet') : null;
     if (!L) return null;
 
+    // Custom Icon for Current User (Radar Pulse)
+    const myIconHtml = `
+        <div style="position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center;">
+            <div style="position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle,rgba(79,70,229,0.4),transparent);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+            <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(79,70,229,0.6),transparent);animation:ping 3s cubic-bezier(0,0,0.2,1) infinite reverse;"></div>
+            <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:3px solid #6366f1;background:#1f2937;display:flex;align-items:center;justify-content:center;color:white;position:relative;z-index:10;box-shadow:0 0 15px rgba(99,102,241,0.8);">
+                ${currentUser?.photoUrl 
+                    ? `<img src="${currentUser.photoUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';" />`
+                    : `<span style="font-weight:bold;font-size:16px;">${(currentUser?.name || 'Y')[0]}</span>`
+                }
+            </div>
+            <div style="position:absolute;bottom:-6px;background:#4f46e5;color:white;font-size:10px;font-weight:bold;padding:2px 8px;border-radius:999px;white-space:nowrap;z-index:20;border:2px solid white;">You</div>
+        </div>
+    `;
+
+    const myIcon = L.divIcon({
+        className: 'bg-transparent border-0',
+        html: myIconHtml,
+        iconSize: [60, 60],
+        iconAnchor: [30, 30],
+        popupAnchor: [0, -30]
+    });
+
     return (
         <div className="w-full h-full relative">
-
-            {/* Radar Animation Overlay */}
-            <div className="radar-overlay">
-                <div className="radar-sweep"></div>
-            </div>
-
             <MapContainer
                 center={[myLat, myLng]}
                 zoom={defaultZoom}
@@ -55,19 +103,19 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
 
+                {/* Map Controls */}
+                {currentUser?.location?.lat && <MapControls center={[myLat, myLng]} />}
+
                 {/* Current User Marker */}
                 {currentUser?.location?.lat && (
-                    <Marker position={[myLat, myLng]} zIndexOffset={1000}>
+                    <Marker position={[myLat, myLng]} icon={myIcon} zIndexOffset={2000}>
                         <Popup className="premium-popup">
-                            <div className="text-center p-1">
-                                <div className="w-12 h-12 mx-auto rounded-full overflow-hidden border-2 border-indigo-500 mb-2">
-                                    {currentUser.photoUrl
-                                        ? <img src={currentUser.photoUrl} alt="You" className="w-full h-full object-cover" onError={(e) => { const target = e.target as HTMLImageElement; target.onerror = null; target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.name || 'User')}`; }} />
-                                        : <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-lg font-bold">{(currentUser.name || 'Y')[0]}</div>
-                                    }
-                                </div>
-                                <p className="text-sm font-bold text-gray-900">You</p>
-                                <p className="text-xs text-indigo-600">{currentUser.location?.city || 'Your Location'}</p>
+                            <div className="text-center p-2 min-w-[140px]">
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">Your Live Location</p>
+                                <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium flex items-center justify-center gap-1">
+                                    <MapPin size={12} /> {currentUser.location?.city || 'Scanning...'}
+                                </p>
+                                <p className="text-[10px] text-gray-400 mt-2">Discovering nearby singles</p>
                             </div>
                         </Popup>
                     </Marker>
@@ -75,16 +123,22 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
 
                 {/* Nearby Match Markers */}
                 {mapProfiles.map((profile: any) => {
-                    // Decide if high match based on score (mocked randomly for visual demo here if missing)
+                    const exactLat = Number(profile.location_data.lat);
+                    const exactLng = Number(profile.location_data.lng);
+                    
+                    // Calculate precise distance
+                    const distanceKm = currentUser?.location?.lat 
+                        ? getDistance(myLat, myLng, exactLat, exactLng)
+                        : null;
+
+                    // Decide if high match based on score
                     const isHighMatch = (profile.score && profile.score > 80) || (!profile.score && Math.random() > 0.7);
 
                     // Generate Mock Guna Score and Icebreakers for Demo
-                    const gunaScore = 18 + (profile.id.charCodeAt(0) % 18); // Generates 18 to 35
+                    const gunaScore = 18 + (profile.id.charCodeAt(0) % 18);
                     const icebreakers = ["☕ Craving filter coffee", "💻 Working late", "🎬 Watching a movie", "🍕 Pizza time", "🎵 Listening to AR Rahman"];
                     const showIcebreaker = !astrologyMode && profile.id.charCodeAt(profile.id.length - 1) % 4 === 0;
                     const icebreakerText = icebreakers[profile.id.charCodeAt(0) % icebreakers.length];
-
-                    let markerHtml = '';
 
                     const isOnline = onlineUsers?.includes(profile.id);
 
@@ -98,13 +152,14 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
 
                     const borderColor = astrologyMode ? '#f97316' : (isHighMatch ? '#f59e0b' : '#ec4899');
 
-                    markerHtml = `
-                        <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
+                    const markerHtml = `
+                        <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center;transition:transform 0.2s;">
                             ${astrologyMode ? `<div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(249,115,22,0.3),transparent);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>` : `<div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,0.2),transparent);"></div>`}
                             <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2.5px solid ${borderColor};background:#1f2937;display:flex;align-items:center;justify-content:center;color:white;position:relative;z-index:10;box-shadow:0 0 8px ${borderColor}66;">
                                 ${photoHtml}
                             </div>
                             ${onlineIndicatorHtml}
+                            ${distanceKm && parseFloat(distanceKm) < 5 ? `<div style="position:absolute;bottom:-10px;background:rgba(17,24,39,0.9);color:white;font-size:9px;font-weight:bold;padding:2px 6px;border-radius:999px;white-space:nowrap;z-index:20;border:1px solid rgba(255,255,255,0.2);">📍 ${distanceKm} km</div>` : ''}
                             ${astrologyMode ? `<div style="position:absolute;bottom:-8px;right:-10px;background:linear-gradient(to right,#ea580c,#f59e0b);color:white;font-size:9px;font-weight:bold;padding:2px 5px;border-radius:999px;white-space:nowrap;z-index:20;">🕉️ ${gunaScore}/36</div>` : ''}
                             ${showIcebreaker && !astrologyMode ? `<div style="position:absolute;top:-24px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,0.9);color:white;font-size:9px;padding:3px 6px;border-radius:999px;white-space:nowrap;border:1px solid rgba(99,102,241,0.5);">${icebreakerText}</div>` : ''}
                         </div>
@@ -118,10 +173,6 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                         popupAnchor: [0, -24]
                     });
 
-                    // Use explicit exact GPS location as requested by the user
-                    const exactLat = Number(profile.location_data.lat);
-                    const exactLng = Number(profile.location_data.lng);
-
                     return (
                         <Marker
                             key={profile.id}
@@ -130,20 +181,30 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                             zIndexOffset={isHighMatch ? 900 : 100}
                         >
                             <Popup className="premium-popup">
-                                <div className="text-center p-1 min-w-[120px] cursor-pointer hover:opacity-90 transition-opacity">
+                                <div className="text-center p-2 min-w-[140px]">
                                     <h3 className="text-sm font-bold text-gray-900 mb-0.5">{profile.name}, {profile.age}</h3>
                                     {astrologyMode && <p className="text-xs font-bold text-orange-600 mb-1">🕉️ Guna: {gunaScore}/36</p>}
                                     {!astrologyMode && isHighMatch && <p className="text-xs font-bold text-amber-600 mb-1">✨ Strong Match ✨</p>}
-                                    <p className="text-xs text-indigo-600 font-medium mb-1 line-clamp-1">{profile.career?.profession || profile.role || 'Professional'}</p>
-                                    <div className="flex items-center justify-center gap-1 text-[10px] text-gray-500">
-                                        <MapPin size={10} /> {typeof profile.location === 'string' ? profile.location : ([profile.location_data?.city, profile.location_data?.district, profile.location_data?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown Location")}
+                                    <p className="text-xs text-indigo-600 font-medium mb-2 line-clamp-1">{profile.career?.profession || profile.role || 'Professional'}</p>
+                                    
+                                    <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-gray-50 rounded-lg mb-2">
+                                        <div className="flex items-center gap-1 text-[10px] text-gray-600 font-semibold truncate flex-1">
+                                            <MapPin size={10} className="text-indigo-500 shrink-0" />
+                                            <span className="truncate">{typeof profile.location === 'string' ? profile.location : ([profile.location_data?.city, profile.location_data?.state].filter((x) => x && x !== "Unknown City" && x !== "Unknown State").join(", ") || "Unknown Location")}</span>
+                                        </div>
+                                        {distanceKm && (
+                                            <div className="text-[10px] font-bold text-indigo-600 shrink-0 bg-indigo-100 px-1.5 py-0.5 rounded">
+                                                {distanceKm} km
+                                            </div>
+                                        )}
                                     </div>
+
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (onViewProfile) onViewProfile(profile);
                                         }}
-                                        className="mt-2 w-full py-1.5 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition"
+                                        className="w-full py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg hover:scale-105 transition-all"
                                     >
                                         View Profile
                                     </button>

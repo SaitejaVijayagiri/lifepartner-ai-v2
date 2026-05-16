@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check } from 'lucide-react';
+import { Bell, Check, Trash2 } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -63,6 +63,15 @@ export const NotificationBell = () => {
         } catch (e) { }
     };
 
+    const deleteNotif = async (id: string) => {
+        try {
+            await api.notifications.remove(id);
+            const wasUnread = notifications.find((n: any) => n.id === id && !n.is_read);
+            setNotifications((prev: any[]) => prev.filter(n => n.id !== id));
+            if (wasUnread) setUnreadCount((prev: number) => Math.max(0, prev - 1));
+        } catch (e) { console.error('Delete failed', e); }
+    };
+
     const markAllRead = async () => {
         try {
             await api.notifications.markAllRead();
@@ -115,14 +124,10 @@ export const NotificationBell = () => {
                                     return (
                                         <div
                                             key={n.id || i}
-                                            className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex gap-3 ${!n.is_read ? 'bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}
-                                            onClick={() => n.id && !n.is_read && markRead(n.id)}
+                                            className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${!n.is_read ? 'bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}
                                         >
-                                            <div className={`
-                                                mt-1 w-2 h-2 rounded-full flex-shrink-0
-                                                ${!n.is_read ? 'bg-indigo-500' : 'bg-transparent'}
-                                            `} />
-                                            <div className="flex-1">
+                                            <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${!n.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
+                                            <div className="flex-1 min-w-0" onClick={() => n.id && !n.is_read && markRead(n.id)}>
                                                 <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
                                                     {n.message}
                                                 </p>
@@ -132,6 +137,16 @@ export const NotificationBell = () => {
                                                     {isValidDate ? dateObj.toLocaleDateString() : ''}
                                                 </p>
                                             </div>
+                                            {/* Delete button */}
+                                            {n.id && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); deleteNotif(n.id); }}
+                                                    className="shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            )}
                                         </div>
                                     );
                                 })}

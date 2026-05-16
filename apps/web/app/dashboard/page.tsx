@@ -680,7 +680,7 @@ function DashboardContent() {
 
     const renderHeader = () => (
         <header className={`sticky top-0 z-40 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-b border-gray-100/50 dark:border-gray-800/50 shadow-sm transition-all duration-300 ${activeTab === 'map' ? 'hidden sm:block' : ''}`}>
-            <div className="max-w-7xl mx-auto px-4 h-18 py-3 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 h-16 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Premium Logo */}
                     <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setActiveTab('matches')}>

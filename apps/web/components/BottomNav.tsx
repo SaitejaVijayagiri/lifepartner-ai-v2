@@ -49,8 +49,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-safe">
-            <div className="relative flex justify-center pb-3 px-3">
+        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-6 px-4 md:hidden">
+            <div className="relative flex justify-center">
 
                 {/* ─── More Popup (renders ABOVE the nav bar) ─── */}
                 {showMore && (

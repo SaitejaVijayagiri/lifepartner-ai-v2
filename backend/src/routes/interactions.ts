@@ -838,11 +838,23 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 id: u.id,
                 name: u.full_name || "User",
                 age: u.age || meta.age,
+                height: meta.height || "Not Specified",
                 photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: getLocationString(u),
                 profession: meta.career?.profession || "Member",
                 isBlurred: false,
-                likedAt: r.created_at
+                likedAt: r.created_at,
+                career: meta.career || {},
+                family: meta.family || {},
+                religion: meta.religion || {},
+                horoscope: meta.horoscope || {},
+                lifestyle: meta.lifestyle || {},
+                partnerPreferences: meta.partnerPreferences || {},
+                aboutMe: u.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                expectations: meta.expectations || "",
+                prompt: u.profiles?.raw_prompt || "",
+                dob: meta.dob || null,
+                photos: (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, u.full_name || u.id))
             };
         }).filter(Boolean);
 
@@ -1023,13 +1035,25 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
                 id: u.id,
                 name: isBlurred ? "Verify to Unlock" : (u.full_name || "User"),
                 age: isBlurred ? "??" : (u.age || meta.age),
+                height: meta.height || "Not Specified",
                 photoUrl: isBlurred
                     ? `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`
                     : sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: isBlurred ? "Hidden" : getLocationString(u),
                 profession: isBlurred ? "Hidden" : (meta.career?.profession || "Member"),
                 viewedAt: r.created_at,
-                isBlurred
+                isBlurred,
+                career: meta.career || {},
+                family: meta.family || {},
+                religion: meta.religion || {},
+                horoscope: meta.horoscope || {},
+                lifestyle: meta.lifestyle || {},
+                partnerPreferences: meta.partnerPreferences || {},
+                aboutMe: u.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                expectations: meta.expectations || "",
+                prompt: u.profiles?.raw_prompt || "",
+                dob: meta.dob || null,
+                photos: (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, u.full_name || u.id))
             };
         }).filter(Boolean);
 

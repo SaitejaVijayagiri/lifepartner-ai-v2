@@ -1,0 +1,21 @@
+name: Keep Render Backend Awake
+
+on:
+  schedule:
+    # Run every 10 minutes to prevent Render free tier from spinning down (15 min sleep threshold)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend Health Check
+        run: |
+          echo "Pinging backend to prevent sleep..."
+          curl -s -o /dev/null -w "%{http_code}" https://lifepartner-ai.onrender.com/health
+      
+      - name: Ping Frontend (Optional, keeps Vercel edge warm)
+        run: |
+          echo "Pinging frontend..."
+          curl -s -o /dev/null -w "%{http_code}" https://lifepartnerai.in

@@ -8,10 +8,9 @@ import { api } from '@/lib/api';
 function SwipeableNotif({ notif, onDelete }: { notif: any; onDelete: (id: string) => void }) {
     const startXRef = useRef<number | null>(null);
     const [translateX, setTranslateX] = useState(0);
-    const [swiped, setSwiped] = useState(false); // fully swiped out
-    const [deleting, setDeleting] = useState(false);
+    const [swiped, setSwiped] = useState(false);
 
-    const SWIPE_THRESHOLD = 120; // px to trigger delete
+    const SWIPE_THRESHOLD = 100; // px to trigger delete
 
     const handleTouchStart = (e: React.TouchEvent) => {
         startXRef.current = e.touches[0].clientX;
@@ -20,50 +19,44 @@ function SwipeableNotif({ notif, onDelete }: { notif: any; onDelete: (id: string
     const handleTouchMove = (e: React.TouchEvent) => {
         if (startXRef.current === null) return;
         const diff = e.touches[0].clientX - startXRef.current;
-        // Only allow left swipe
-        if (diff < 0) setTranslateX(diff);
+        if (diff < 0) setTranslateX(Math.max(diff, -200)); // cap at -200px
     };
 
     const handleTouchEnd = async () => {
         if (translateX < -SWIPE_THRESHOLD) {
-            // Animate fully out then delete
             setSwiped(true);
-            setDeleting(true);
-            try {
-                await api.notifications.delete(notif.id);
-            } catch {}
-            setTimeout(() => onDelete(notif.id), 350);
+            try { await api.notifications.remove(notif.id); } catch {}
+            setTimeout(() => onDelete(notif.id), 300);
         } else {
-            // Snap back
-            setTranslateX(0);
+            setTranslateX(0); // snap back
         }
         startXRef.current = null;
     };
 
-    // Show red background proportionally
     const deleteOpacity = Math.min(1, Math.abs(translateX) / SWIPE_THRESHOLD);
+
+    if (swiped) return null;
 
     return (
         <div className="relative overflow-hidden">
             {/* Red delete background */}
             <div
-                className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 transition-opacity"
+                className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5"
                 style={{ opacity: deleteOpacity }}
             >
-                <Trash2 size={20} className="text-white" />
-                <span className="text-white text-xs font-bold ml-2">Delete</span>
+                <Trash2 size={18} className="text-white" />
+                <span className="text-white text-xs font-bold ml-1.5">Delete</span>
             </div>
 
-            {/* Notification content */}
+            {/* Notification row */}
             <div
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`relative border-b border-gray-50 dark:border-gray-800 transition-all duration-300 ease-out
-                    ${!notif.is_read ? 'bg-indigo-50/50 dark:bg-indigo-900/30' : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'}
-                    ${swiped ? 'opacity-0 max-h-0 py-0' : 'max-h-40 opacity-100'}
+                className={`relative border-b border-gray-50 dark:border-gray-800 transition-transform duration-200
+                    ${!notif.is_read ? 'bg-indigo-50/50 dark:bg-indigo-900/20' : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800'}
                 `}
-                style={{ transform: swiped ? 'translateX(-100%)' : `translateX(${translateX}px)` }}
+                style={{ transform: `translateX(${translateX}px)` }}
             >
                 <div className="flex items-start gap-3 p-4">
                     <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!notif.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
@@ -75,27 +68,20 @@ function SwipeableNotif({ notif, onDelete }: { notif: any; onDelete: (id: string
                             {new Date(notif.created_at).toLocaleString()}
                         </p>
                     </div>
-                    {/* Tap-to-delete button (desktop fallback) */}
+                    {/* Desktop delete button */}
                     <button
                         onClick={async (e) => {
                             e.stopPropagation();
                             setSwiped(true);
-                            setDeleting(true);
-                            try { await api.notifications.delete(notif.id); } catch {}
-                            setTimeout(() => onDelete(notif.id), 350);
+                            try { await api.notifications.remove(notif.id); } catch {}
+                            setTimeout(() => onDelete(notif.id), 300);
                         }}
-                        className="shrink-0 text-gray-300 hover:text-red-500 transition-colors p-1 rounded opacity-0 group-hover:opacity-100 hidden sm:block"
+                        className="shrink-0 text-gray-300 hover:text-red-500 transition-colors p-1 rounded sm:block hidden"
                         title="Delete"
                     >
                         <Trash2 size={14} />
                     </button>
                 </div>
-                {/* Swipe hint — shown on first render briefly */}
-                {Math.abs(translateX) > 10 && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400 opacity-60">
-                        <Trash2 size={16} />
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -129,7 +115,10 @@ export default function NotificationDropdown() {
 
     const handleDelete = (id: string) => {
         setNotifications(prev => prev.filter(n => n.id !== id));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        setUnreadCount(prev => {
+            const wasUnread = notifications.find(n => n.id === id && !n.is_read);
+            return wasUnread ? Math.max(0, prev - 1) : prev;
+        });
     };
 
     return (
@@ -142,13 +131,13 @@ export default function NotificationDropdown() {
                 <Bell size={24} className="text-gray-600 dark:text-gray-300" />
                 {unreadCount > 0 && (
                     <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
-                        {unreadCount}
+                        {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 overflow-hidden z-[1100] animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
                         <h3 className="font-bold text-gray-800 dark:text-gray-100">Notifications</h3>
                         {unreadCount > 0 && (
@@ -158,9 +147,8 @@ export default function NotificationDropdown() {
                         )}
                     </div>
 
-                    {/* Swipe hint */}
                     {notifications.length > 0 && (
-                        <p className="text-[10px] text-gray-400 dark:text-gray-600 text-center py-1.5 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-100 dark:border-gray-800 sm:hidden">
+                        <p className="text-[10px] text-gray-400 text-center py-1.5 bg-gray-50/50 dark:bg-gray-800/30 border-b border-gray-100 dark:border-gray-800 sm:hidden">
                             ← Swipe left to delete
                         </p>
                     )}
@@ -172,22 +160,15 @@ export default function NotificationDropdown() {
                                 No notifications yet
                             </div>
                         ) : (
-                            <div>
-                                {notifications.map((notif: any) => (
-                                    <div key={notif.id} className="group">
-                                        <SwipeableNotif notif={notif} onDelete={handleDelete} />
-                                    </div>
-                                ))}
-                            </div>
+                            notifications.map((notif: any) => (
+                                <SwipeableNotif key={notif.id} notif={notif} onDelete={handleDelete} />
+                            ))
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Backdrop to close */}
-            {isOpen && (
-                <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-            )}
+            {isOpen && <div className="fixed inset-0 z-[1050]" onClick={() => setIsOpen(false)} />}
         </div>
     );
 }

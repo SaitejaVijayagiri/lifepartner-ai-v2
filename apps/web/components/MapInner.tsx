@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Navigation, Navigation2 } from 'lucide-react';
+import { MapPin, Navigation2 } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
+import { Map as LeafletMap } from 'leaflet';
 
 // Haversine formula to calculate distance in km
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -19,25 +20,15 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
     return (R * c).toFixed(1);
 }
 
-// Map Controls component
-function MapControls({ center }: { center: [number, number] }) {
+// Map Controls — only captures the map instance into the external ref
+function MapCaptureRef({ mapRef }: { mapRef: React.MutableRefObject<LeafletMap | null> }) {
     const map = useMap();
-    return (
-        <button 
-            onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                map.flyTo(center, 13, { duration: 1.5 });
-            }}
-            className="absolute bottom-24 right-4 z-[1000] p-3.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-full shadow-2xl hover:scale-110 hover:shadow-indigo-500/30 transition-all text-indigo-600 dark:text-indigo-400 group"
-            title="Recenter to my location"
-        >
-            <Navigation2 className="w-5 h-5 group-hover:fill-indigo-600 transition-all" />
-        </button>
-    );
+    useEffect(() => { mapRef.current = map; }, [map, mapRef]);
+    return null;
 }
 
 export default function MapInner({ profiles, currentUser, onViewProfile, onBack, astrologyMode = false }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void, astrologyMode?: boolean }) {
+    const mapRef = useRef<LeafletMap | null>(null);
     useEffect(() => {
         // Fix Leaflet default icon URLs broken by webpack
         import('leaflet').then((L) => {
@@ -103,8 +94,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 />
 
-                {/* Map Controls */}
-                {currentUser?.location?.lat && <MapControls center={[myLat, myLng]} />}
+                {/* Capture map ref */}
+                {currentUser?.location?.lat && <MapCaptureRef mapRef={mapRef} />}
 
                 {/* Current User Marker */}
                 {currentUser?.location?.lat && (
@@ -224,6 +215,21 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     );
                 })}
             </MapContainer>
+
+            {/* Recenter Button — rendered OUTSIDE MapContainer to respect BottomNav z-index and height */}
+            {currentUser?.location?.lat && (
+                <button
+                    onClick={() => {
+                        if (mapRef.current) {
+                            mapRef.current.flyTo([myLat, myLng], 13, { duration: 1.5 });
+                        }
+                    }}
+                    className="absolute bottom-32 sm:bottom-8 right-4 z-[900] p-3.5 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-full shadow-2xl hover:scale-110 hover:shadow-indigo-500/30 transition-all text-indigo-600 group"
+                    title="Recenter to my location"
+                >
+                    <Navigation2 className="w-5 h-5 group-hover:fill-indigo-600 transition-all" />
+                </button>
+            )}
         </div>
     );
 }

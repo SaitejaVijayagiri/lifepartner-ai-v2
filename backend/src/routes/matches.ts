@@ -37,6 +37,10 @@ class LRUCache<K, V> {
         }
         this.cache.set(key, val);
     }
+
+    delete(key: K) {
+        return this.cache.delete(key);
+    }
 }
 
 // In-memory match cache: userId -> { data, expiresAt } (Max 1000 users)

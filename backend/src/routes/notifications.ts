@@ -165,4 +165,21 @@ router.put('/read-all', authenticateToken, async (req: any, res) => {
     }
 });
 
+// 7. Delete a single notification
+router.delete('/:id', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+
+        await prisma.notifications.deleteMany({
+            where: { id, user_id: userId }
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Delete Notification Error", e);
+        res.status(500).json({ error: "Failed" });
+    }
+});
+
 export default router;

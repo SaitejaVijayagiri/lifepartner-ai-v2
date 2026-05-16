@@ -170,7 +170,8 @@ export const api = {
         }),
         getAll: () => fetchAPI('/notifications'),
         markRead: (id: string) => fetchAPI(`/notifications/${id}/read`, { method: 'PUT' }),
-        markAllRead: () => fetchAPI('/notifications/read-all', { method: 'PUT' })
+        markAllRead: () => fetchAPI('/notifications/read-all', { method: 'PUT' }),
+        delete: (id: string) => fetchAPI(`/notifications/${id}`, { method: 'DELETE' })
     },
 
     wallet: {

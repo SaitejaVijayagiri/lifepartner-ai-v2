@@ -16,16 +16,34 @@ import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
+import { uploadToCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
 
 
+/**
+ * Upload a profile image with fallback chain:
+ *   1. Cloudinary (free 25 GB, no egress fees, global CDN) — primary
+ *   2. Supabase storage (legacy, ISP-blocked via proxy)    — secondary
+ *   3. Return null so caller stores base64 as last resort
+ *
+ * If the input is already an https URL (not base64), it is returned as-is.
+ */
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string | null> {
-    if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Return as-is if it's already a URL
+    if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Already a URL
 
+    const buffer = await ImageOptimizer.optimize(base64);
+
+    // ── 1. Try Cloudinary ──────────────────────────────────────────────────────
+    if (cloudinaryConfigured()) {
+        const cloudinaryUrl = await uploadToCloudinary(base64, userId);
+        if (cloudinaryUrl) return cloudinaryUrl;
+        console.warn('[profile] Cloudinary upload failed — trying Supabase...');
+    }
+
+    // ── 2. Try Supabase ────────────────────────────────────────────────────────
     try {
-        const buffer = await ImageOptimizer.optimize(base64);
         const filename = `profiles/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
             .from('profiles')
             .upload(filename, buffer, {
                 contentType: 'image/webp',
@@ -35,11 +53,11 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         if (error) throw error;
 
         const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
-        console.log(`✅ Uploaded photo to Supabase: ${filename}`);
+        console.log(`✅ [Supabase] Uploaded photo: ${filename}`);
         return publicUrl;
     } catch (e) {
-        console.error("Supabase storage upload failed — photo skipped.", e);
-        return null; // Return null so caller can skip this photo — never store base64 in Postgres!
+        console.warn('[profile] Supabase upload also failed — falling back to base64.');
+        return null; // Caller stores base64 as last resort
     }
 }
 

@@ -18,6 +18,21 @@ const MATCH_CACHE_TTL = 60 * 1000; // 60 seconds
 // (Previously duplicated here, profile.ts, and interactions.ts)
 const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
 
+/**
+ * Returns true only when a user has a proper, face-validated profile photo:
+ *   - A real https URL (Supabase storage, proxied or direct)
+ * Returns false for:
+ *   - null / undefined (never uploaded)
+ *   - DiceBear avatar (auto-generated placeholder)
+ *   - base64 data URI (Supabase upload failed — photo stored as fallback, no face guarantee)
+ */
+const hasValidPhoto = (avatarUrl: string | null | undefined): boolean => {
+    if (!avatarUrl) return false;
+    if (avatarUrl.includes('dicebear')) return false;
+    if (avatarUrl.startsWith('data:image')) return false;
+    return avatarUrl.startsWith('http');
+};
+
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
@@ -321,7 +336,7 @@ router.get('/public-preview', async (req: any, res) => {
                 })(),
                 location_data: meta.location || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: row.avatar_url,
+                photoUrl: sanitizePhotoUrl(row.avatar_url, row.full_name || row.id),
                 blur: true
             };
         });
@@ -448,6 +463,13 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 reasons.push("Career Match");
             }
 
+            // Photo quality penalty — users with NO photo at all (null or DiceBear placeholder)
+            // are ranked last. base64 users are NOT penalized: their photos render fine in the
+            // browser (data URIs are inline) and passed face moderation when uploaded.
+            if (!c.avatar_url || c.avatar_url.includes('dicebear')) {
+                score -= 20;
+            }
+
             // Cap
             if (score > 99) score = 99;
 
@@ -488,10 +510,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
                 photoUrl: sanitizePhotoUrl(c.avatar_url || meta.photos?.[0], c.full_name || c.id),
-                // FIXED: Removed the +40 score bonus for having any non-DiceBear photo.
-                // This inflated scores to near-99 for all users with a profile picture,
-                // making compatibility scores meaningless.
-                score: Math.min(99, score),
+                hasValidPhoto: hasValidPhoto(c.avatar_url || meta.photos?.[0]),
+                score: Math.max(1, Math.min(99, score)), // floor at 1 so they still appear
                 match_reasons: reasons,
                 analysis: {
                     // id is UUID, can't mod easily. use random.
@@ -507,7 +527,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: meta.photos || [],
+                photos: (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
 
                 career: meta.career || {},
                 family: meta.family || {},
@@ -822,6 +842,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 }
             }
 
+            // Photo quality penalty — only null/DiceBear users (no photo at all).
+            // base64 photos render fine in browser — no penalty.
+            if (!c.avatar_url || c.avatar_url.includes('dicebear')) {
+                score -= 20;
+            }
+
             return {
                 id: c.id,
                 name: c.full_name,
@@ -831,7 +857,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
                 photoUrl: sanitizePhotoUrl(c.avatar_url || meta.photos?.[0], c.full_name || c.id),
-                score: Math.max(0, Math.min(score, 99)),
+                hasValidPhoto: hasValidPhoto(c.avatar_url || meta.photos?.[0]),
+                score: Math.max(1, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },
                 isOnline: isUserOnline(c.id), // Fixed ID issue
@@ -844,7 +871,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: meta.photos || [],
+                photos: (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},

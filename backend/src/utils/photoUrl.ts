@@ -1,19 +1,19 @@
 /**
  * Shared photo URL utilities
  *
- * Background: Supabase storage URLs are DNS-blocked by some Indian ISPs (as of Feb 2026).
- * We route all Supabase storage URLs through our Render-hosted image proxy (/photo?url=...)
- * to ensure images load reliably for all users.
+ * Storage backends (in priority order):
+ *  1. Cloudinary (primary) — free 25 GB, global CDN, no egress fees, no ISP block
+ *  2. Supabase storage (legacy) — DNS-blocked by some Indian ISPs, routed via backend proxy
+ *  3. base64 data URIs — stored directly in Postgres as last-resort fallback
  *
- * base64 data URIs (~200KB compressed) are stored directly in Postgres as a fallback
- * when Supabase storage is unavailable. They are passed through as-is.
+ * Rule: Only Supabase URLs need proxying. Cloudinary + base64 pass through as-is.
  */
 
 const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
 
 /**
  * Converts a Supabase storage URL to our proxy URL.
- * Other URLs (absolute HTTP, data URIs) are passed through unchanged.
+ * Cloudinary, base64, and other URLs pass through unchanged.
  */
 export const toProxyUrl = (url: string): string => {
     if (!url || !url.includes('supabase.co/storage')) return url;
@@ -22,16 +22,19 @@ export const toProxyUrl = (url: string): string => {
 
 /**
  * Returns a safe, always-renderable photo URL:
- * - base64 data URIs → returned as-is (already safe)
- * - Supabase storage URLs → proxied through backend
- * - null / undefined → DiceBear initials avatar using the provided seed
+ * - Cloudinary URLs       → returned as-is (global CDN, no ISP block)
+ * - base64 data URIs      → returned as-is (inline, no network request)
+ * - Supabase storage URLs → proxied through backend (bypasses ISP block)
+ * - null / undefined      → DiceBear initials avatar using the provided seed
  */
 export const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
-    if (url && url.startsWith('data:image')) {
-        return url;
-    }
     if (!url) {
         return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
     }
+    // base64: inline — browser renders directly, no network request
+    if (url.startsWith('data:image')) return url;
+    // Cloudinary: own CDN, globally accessible, no proxy needed
+    if (url.includes('res.cloudinary.com')) return url;
+    // Supabase: ISP-blocked in India → route through backend proxy
     return toProxyUrl(url);
 };

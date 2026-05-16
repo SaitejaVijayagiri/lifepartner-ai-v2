@@ -40,6 +40,7 @@
         "axios": "^1.13.2",
         "bcrypt": "^5.1.1",
         "cashfree-pg": "^5.1.0",
+        "cloudinary": "^2.10.0",
         "cookie-parser": "^1.4.7",
         "cors": "^2.8.5",
         "deep-email-validator": "^0.1.27",

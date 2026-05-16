@@ -13,11 +13,14 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, requestsCount, unreadCount }) => {
     const [showMore, setShowMore] = useState(false);
     const moreRef = useRef<HTMLDivElement>(null);
+    const moreButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Close drawer when clicking outside
+    // Close drawer when clicking outside (but NOT when clicking the More button itself — that uses its own toggle)
     useEffect(() => {
         const handler = (e: MouseEvent) => {
-            if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+            const clickedOutsidePopup = moreRef.current && !moreRef.current.contains(e.target as Node);
+            const clickedMoreButton = moreButtonRef.current && moreButtonRef.current.contains(e.target as Node);
+            if (clickedOutsidePopup && !clickedMoreButton) {
                 setShowMore(false);
             }
         };
@@ -141,6 +144,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
 
                     {/* ─── More Button ─── */}
                     <button
+                        ref={moreButtonRef}
                         onClick={() => setShowMore(prev => !prev)}
                         className="relative flex-1 flex flex-col items-center justify-center py-1.5 group"
                     >

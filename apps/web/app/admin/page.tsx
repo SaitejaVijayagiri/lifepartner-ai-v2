@@ -8,15 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus } from 'lucide-react';
+import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
     const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [users, setUsers] = useState<any[]>([]);
     const [transactions, setTransactions] = useState<any[]>([]);
+    const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
@@ -46,14 +48,16 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [statsRes, usersRes, txRes] = await Promise.all([
+            const [statsRes, usersRes, txRes, photosRes] = await Promise.all([
                 api.admin.getStats(),
                 api.admin.getUsers({ search, limit: 20 }),
-                api.admin.getTransactions({ limit: 50 })
+                api.admin.getTransactions({ limit: 50 }),
+                api.admin.getPhotosPending()
             ]);
             setStats(statsRes);
             setUsers(usersRes);
             setTransactions(txRes);
+            setPendingPhotos(photosRes);
         } catch (e) {
             console.error("Admin Load Error", e);
         } finally {
@@ -82,7 +86,23 @@ export default function AdminDashboard() {
         }
     };
 
-    if (loading && !stats) return <div className="p-20 text-center">Loading Admin Panel...</div>;
+    const handleModerate = async (userId: string, action: 'approve' | 'reject') => {
+        if (action === 'reject' && !confirm('Are you sure you want to reject this photo? It will be deleted and the user will be emailed.')) return;
+        
+        try {
+            await api.admin.moderatePhoto(userId, action);
+            // Remove from local state
+            setPendingPhotos(prev => prev.filter(p => p.id !== userId));
+        } catch (e) {
+            console.error("Moderation error", e);
+            alert("Failed to moderate photo");
+        }
+    };
+
+    if (loading && !stats) return <div className="p-20 text-center flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <p className="text-gray-500 font-medium">Loading Admin Panel...</p>
+    </div>;
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -142,14 +162,92 @@ export default function AdminDashboard() {
                     </Card>
                 </div>
 
+                {/* Analytics Chart */}
+                {stats?.chartData && (
+                    <Card className="col-span-4">
+                        <CardHeader>
+                            <CardTitle>User Growth (Last 30 Days)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-[300px] w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
+                                        <YAxis tick={{fontSize: 12}} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <Tooltip labelFormatter={(val) => format(new Date(val), 'dd MMM yyyy')} />
+                                        <Area type="monotone" dataKey="users" stroke="#8884d8" fillOpacity={1} fill="url(#colorUsers)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Main Content Tabs */}
                 <Tabs defaultValue="users" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="users">User Management</TabsTrigger>
+                        <TabsTrigger value="moderation">Photo Moderation</TabsTrigger>
                         <TabsTrigger value="transactions">Financials</TabsTrigger>
                         <TabsTrigger value="referrals">Referral Tracking</TabsTrigger>
                         <TabsTrigger value="campaigns">📧 Campaigns</TabsTrigger>
                     </TabsList>
+
+                    {/* MODERATION TAB */}
+                    <TabsContent value="moderation" className="space-y-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ImageIcon className="w-5 h-5 text-indigo-600" /> 
+                                    Recent Photos for Moderation
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {pendingPhotos.length === 0 ? (
+                                    <div className="text-center p-10 text-gray-500">No photos to moderate.</div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                        {pendingPhotos.map(photo => (
+                                            <div key={photo.id} className="border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition">
+                                                <div className="aspect-square bg-gray-100 relative">
+                                                    <img src={photo.avatar_url} alt={photo.full_name} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="p-3">
+                                                    <p className="font-semibold text-sm truncate">{photo.full_name}</p>
+                                                    <p className="text-xs text-gray-500 truncate mb-3">{photo.email}</p>
+                                                    <div className="flex gap-2">
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="outline" 
+                                                            className="w-full text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={() => handleModerate(photo.id, 'approve')}
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-1" /> OK
+                                                        </Button>
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="destructive" 
+                                                            className="w-full bg-red-500 hover:bg-red-600"
+                                                            onClick={() => handleModerate(photo.id, 'reject')}
+                                                        >
+                                                            <XCircle className="w-4 h-4 mr-1" /> Reject
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
 
                     {/* USERS TAB */}
                     <TabsContent value="users" className="space-y-4">

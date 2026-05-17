@@ -10,16 +10,13 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(adminAuth);
 
-// GET /stats - Dashboard Overview
+// GET /stats - Dashboard Overview & Analytics
 router.get('/stats', async (req, res) => {
     try {
         const totalUsers = await prisma.users.count();
         const premiumUsers = await prisma.users.count({ where: { is_premium: true } });
 
         // Revenue Breakdown
-        // Prisma aggregate returns { _sum: { amount: number } }
-        // Status check: DB default for transactions is 'SUCCESS', but code used ILIKE 'success'.
-        // Assuming status is stored consistently as 'SUCCESS'.
         const totalRevenue = await prisma.transactions.aggregate({
             _sum: { amount: true },
             where: {
@@ -30,14 +27,14 @@ router.get('/stats', async (req, res) => {
 
         const premiumRevenue = await prisma.transactions.aggregate({
             _sum: { amount: true },
-            where: { status: 'SUCCESS', type: 'SUBSCRIPTION' } // Code used 'PREMIUM' but payment.ts writes 'SUBSCRIPTION'
+            where: { status: 'SUCCESS', type: 'SUBSCRIPTION' }
         });
 
         const coinRevenue = await prisma.transactions.aggregate({
             _sum: { amount: true },
             where: {
                 status: 'SUCCESS',
-                OR: [{ type: 'COINS' }, { type: 'DEPOSIT' }] // payment.ts writes 'DEPOSIT' for coins
+                OR: [{ type: 'COINS' }, { type: 'DEPOSIT' }]
             }
         });
 
@@ -45,17 +42,115 @@ router.get('/stats', async (req, res) => {
             where: { status: { equals: 'pending', mode: 'insensitive' } }
         });
 
+        // ── Analytics Data for Charts (Last 30 Days) ──
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // We'll fetch the last 30 days of users and group them in JS to avoid complex cross-database raw queries
+        const recentUsers = await prisma.users.findMany({
+            where: { created_at: { gte: thirtyDaysAgo } },
+            select: { created_at: true, gender: true }
+        });
+
+        const chartDataMap: Record<string, { date: string, users: number, male: number, female: number }> = {};
+        
+        // Initialize map with last 30 days
+        for(let i=30; i>=0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            chartDataMap[dateStr] = { date: dateStr, users: 0, male: 0, female: 0 };
+        }
+
+        recentUsers.forEach(u => {
+            if (!u.created_at) return;
+            const dateStr = new Date(u.created_at).toISOString().split('T')[0];
+            if (chartDataMap[dateStr]) {
+                chartDataMap[dateStr].users++;
+                if (u.gender?.toLowerCase() === 'male') chartDataMap[dateStr].male++;
+                if (u.gender?.toLowerCase() === 'female') chartDataMap[dateStr].female++;
+            }
+        });
+
+        const chartData = Object.values(chartDataMap);
+
         res.json({
             totalUsers,
             premiumUsers,
             totalRevenue: totalRevenue._sum.amount || 0,
             premiumRevenue: premiumRevenue._sum.amount || 0,
             coinRevenue: coinRevenue._sum.amount || 0,
-            pendingReports
+            pendingReports,
+            chartData
         });
     } catch (err) {
         console.error("Stats Error:", err);
         res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+});
+
+// GET /photos-pending - Fetch users for moderation
+router.get('/photos-pending', async (req, res) => {
+    try {
+        const users = await prisma.users.findMany({
+            where: { avatar_url: { not: null } },
+            orderBy: { created_at: 'desc' },
+            take: 40,
+            select: { id: true, full_name: true, email: true, avatar_url: true, created_at: true }
+        });
+        res.json(users);
+    } catch (err) {
+        console.error("Photos Error:", err);
+        res.status(500).json({ error: 'Failed to fetch photos' });
+    }
+});
+
+// POST /moderate-photo - Approve or Reject a photo
+router.post('/moderate-photo', async (req, res) => {
+    try {
+        const { userId, action } = req.body; // action: 'approve' | 'reject'
+        
+        if (action === 'reject') {
+            const user = await prisma.users.findUnique({ where: { id: userId }, include: { profiles: true } });
+            if (!user) return res.status(404).json({ error: 'User not found' });
+
+            let metadata: any = user.profiles?.metadata || {};
+            if (typeof metadata === 'string') {
+                try { metadata = JSON.parse(metadata); } catch(e) { metadata = {}; }
+            }
+            metadata.photos = []; // Clear gallery too just to be safe
+
+            await prisma.users.update({ where: { id: userId }, data: { avatar_url: null } });
+            if (user.profiles) {
+                await prisma.profiles.update({ where: { user_id: userId }, data: { photos: [], metadata } });
+            }
+
+            // Send polite rejection email
+            if (process.env.RESEND_API_KEY) {
+                const { Resend } = require('resend');
+                const resend = new Resend(process.env.RESEND_API_KEY);
+                const firstName = user.full_name ? user.full_name.split(' ')[0] : 'there';
+                
+                await resend.emails.send({
+                    from: process.env.EMAIL_FROM || 'LifePartner AI <hello@lifepartnerai.in>',
+                    to: user.email,
+                    subject: 'Action Required: Profile Photo Update',
+                    html: \`
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                            <h2 style="color: #E11D48;">Hi \${firstName},</h2>
+                            <p>We're dedicated to keeping LifePartner AI a safe and authentic community.</p>
+                            <p>Your recent profile photo was flagged by our moderation team because it does not clearly show your face, or it contains prohibited content (like scenery, text, or celebrities).</p>
+                            <p><strong>To continue using the platform and getting matches, please upload a clear, authentic photo of yourself.</strong></p>
+                            <a href="\${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="display:inline-block; padding:10px 20px; background:#E11D48; color:white; text-decoration:none; border-radius:5px; margin-top:20px;">Update My Photo</a>
+                        </div>
+                    \`
+                });
+            }
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Moderate Photo Error:", err);
+        res.status(500).json({ error: 'Failed to moderate photo' });
     }
 });
 

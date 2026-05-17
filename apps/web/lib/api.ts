@@ -219,6 +219,11 @@ export const api = {
         sendCampaign: (body: { type: string; inviteEmails?: string[] }) => fetchAPI('/admin/send-campaign', {
             method: 'POST',
             body: JSON.stringify(body)
+        }),
+        getPhotosPending: () => fetchAPI('/admin/photos-pending'),
+        moderatePhoto: (userId: string, action: 'approve' | 'reject') => fetchAPI('/admin/moderate-photo', {
+            method: 'POST',
+            body: JSON.stringify({ userId, action })
         })
     },
     events: {

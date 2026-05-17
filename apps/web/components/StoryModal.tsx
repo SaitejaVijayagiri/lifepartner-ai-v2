@@ -45,9 +45,12 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
     const MUSIC_TRACKS: Record<string, { name: string, url: string }> = {
         'lofi': { name: 'Chill Lo-Fi ☕', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
-        'romantic': { name: 'Romantic Piano 💖', url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_4f0f089602.mp3' },
+        'romantic': { name: 'Romantic Piano 💖', url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3' },
         'upbeat': { name: 'Upbeat Pop 🕺', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3' },
-        'cinematic': { name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' }
+        'cinematic': { name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
+        'acoustic': { name: 'Acoustic Guitar 🎸', url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3' },
+        'electronic': { name: 'Electronic 🎧', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
+        'bollywood': { name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' }
     };
 
     // Handle Music Playback

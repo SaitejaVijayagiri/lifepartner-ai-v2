@@ -48,8 +48,9 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     // isOwner = true when this story belongs to the logged-in user
     const isOwner = !!currentUserId && (user.id === currentUserId);
     
-    // Audio Player Ref
+    // Audio and Video Refs
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
 
     const MUSIC_TRACKS: Record<string, { name: string, url: string }> = {
         'lofi': { name: 'Chill Lo-Fi ☕', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
@@ -87,7 +88,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         };
     }, [story?.id, story?.music]);
 
-    // Handle Pause Toggle for Music
+    // Handle Pause Toggle for Music and Video
     useEffect(() => {
         if (audioRef.current) {
             if (isPaused) {
@@ -96,11 +97,19 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                 audioRef.current.play().catch(e => console.log('Audio play prevented:', e));
             }
         }
+        
+        if (videoRef.current) {
+            if (isPaused) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play().catch(e => console.log('Video play prevented:', e));
+            }
+        }
     }, [isPaused]);
 
-    // Auto-advance Timer
+    // Auto-advance Timer (Only for Images)
     useEffect(() => {
-        if (isPaused) return;
+        if (isPaused || story?.type === 'video') return;
 
         const timer = setInterval(() => {
             setProgress((prev) => {
@@ -110,7 +119,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         }, 40);
 
         return () => clearInterval(timer);
-    }, [currentIndex, isPaused]);
+    }, [currentIndex, isPaused, story?.type]);
 
     // Track View when Story Changes
     useEffect(() => {
@@ -232,11 +241,20 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                 <div className="flex-1 flex items-center justify-center">
                     {story.type === 'video' ? (
                         <video
+                            ref={videoRef}
                             src={story.url}
                             className="w-full h-full object-contain"
                             autoPlay
                             playsInline
                             muted={false}
+                            onTimeUpdate={(e) => {
+                                const t = e.currentTarget.currentTime;
+                                const d = e.currentTarget.duration;
+                                if (d > 0) setProgress((t / d) * 100);
+                            }}
+                            onEnded={() => {
+                                setProgress(100);
+                            }}
                         />
                     ) : (
                         <img

@@ -395,7 +395,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             </button>
                             
                             {/* Trimming UI for Video */}
-                            {videoDuration > 0 && (
+                            {!isAddingText && videoDuration > 0 && (
                                 <div className="absolute bottom-24 left-4 right-4 bg-black/50 backdrop-blur-md p-4 rounded-2xl z-[100] border border-white/20 animate-in fade-in slide-in-from-bottom-4 shadow-xl">
                                     <div className="flex justify-between text-white text-xs mb-3 font-bold uppercase tracking-wider">
                                         <span className="bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md">Start: {startTime.toFixed(1)}s</span>

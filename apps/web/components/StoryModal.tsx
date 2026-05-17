@@ -222,7 +222,11 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                     <div className="flex gap-2">
                         {isOwner && (
                             <button
-                                onClick={() => onDelete(story.id)}
+                                onClick={() => {
+                                    if (window.confirm('Are you sure you want to delete this story?')) {
+                                        onDelete(story.id);
+                                    }
+                                }}
                                 className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors"
                             >
                                 <Trash2 size={18} />
@@ -461,29 +465,27 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         </div>
     );
 
-    // Handler functions
     async function handleSendReply() {
         if (!replyText.trim() || isSending) return;
 
         setIsSending(true);
         try {
-            // Send as a direct message via socket
             const storyContext = `📸 Replying to your story: "${replyText}"`;
-
-            if (socket) {
-                socket.emit('directMessage', {
-                    to: user.id,
-                    message: storyContext,
-                    from: currentUser?.id || currentUser?.userId
-                });
-            }
+            
+            // Use Direct Message API (handles 3-message limit for unconnected users)
+            await api.interactions.sendDirectMessage(user.id, storyContext);
 
             setReplyText('');
             // Show brief success feedback
             setTimeout(() => setIsSending(false), 500);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to send reply:', error);
             setIsSending(false);
+            if (error.message) {
+                alert(error.message); // Show the "Limit Reached" message
+            } else {
+                alert('Failed to send reply. Please try again.');
+            }
         }
     }
 

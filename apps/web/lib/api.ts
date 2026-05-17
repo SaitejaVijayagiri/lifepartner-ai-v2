@@ -113,6 +113,10 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ reportedId, reason, details })
         }),
+        sendDirectMessage: (toUserId: string, text: string) => fetchAPI('/interactions/direct', {
+            method: 'POST',
+            body: JSON.stringify({ toUserId, text })
+        }),
     },
     chat: {
         getHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`),

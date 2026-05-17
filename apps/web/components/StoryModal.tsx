@@ -353,21 +353,71 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                             <X size={18} />
                         </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
                         {(!story.views || story.views.length === 0) ? (
-                            <div className="text-center text-white/50 mt-10 text-sm">
-                                No one has seen your story yet.
+                            <div className="flex flex-col items-center justify-center mt-16 gap-4 text-center">
+                                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                                    <Eye size={28} className="text-white/40" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-semibold">No views yet</p>
+                                    <p className="text-white/40 text-sm mt-1">Be patient — people are watching! 👀</p>
+                                </div>
                             </div>
                         ) : (
-                            [...story.views].reverse().map((viewer, idx) => (
-                                <div key={idx} className="flex items-center gap-3">
-                                    <img src={viewer.photoUrl} alt={viewer.name} className="w-12 h-12 rounded-full object-cover border border-white/20 bg-gray-800" />
-                                    <div className="flex-1 text-white">
-                                        <div className="font-bold text-[15px]">{viewer.name}</div>
-                                        <div className="text-xs text-white/50">{new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            [...story.views].reverse().map((viewer: any, idx: number) => {
+                                // Relative time helper
+                                const relTime = (() => {
+                                    const ms = Date.now() - new Date(viewer.viewedAt).getTime();
+                                    const m = Math.floor(ms / 60000);
+                                    const h = Math.floor(m / 60);
+                                    const d = Math.floor(h / 24);
+                                    if (d > 0) return `${d}d ago`;
+                                    if (h > 0) return `${h}h ago`;
+                                    if (m > 0) return `${m}m ago`;
+                                    return 'Just now';
+                                })();
+                                const exactTime = new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                                return (
+                                    <div key={idx} className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-colors group">
+                                        {/* Avatar */}
+                                        <div className="relative flex-shrink-0">
+                                            <img
+                                                src={viewer.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'User')}`}
+                                                alt={viewer.name}
+                                                className="w-14 h-14 rounded-full object-cover border-2 border-white/20 bg-gray-800"
+                                                onError={(e) => { const t = e.target as HTMLImageElement; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'U')}`; }}
+                                            />
+                                            {/* Online indicator dot */}
+                                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-black"></div>
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-white text-sm truncate">{viewer.name}</div>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <span className="text-white/60 text-xs font-medium">{relTime}</span>
+                                                <span className="text-white/30 text-xs">·</span>
+                                                <span className="text-white/40 text-xs">{exactTime}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* View Profile Button */}
+                                        {viewer.userId && (
+                                            <a
+                                                href={`/profile/${viewer.userId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex-shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/20 hover:bg-indigo-500/30 px-3 py-1.5 rounded-full transition-all border border-indigo-500/30"
+                                            >
+                                                View
+                                            </a>
+                                        )}
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                 </div>

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { Trash2 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { api } from '@/lib/api';
@@ -42,15 +43,25 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
         color: string;
         x: number;
         y: number;
+        fontFamily: string;
+        bgStyle: 'plain' | 'highlight' | 'neon';
+        scale: number;
     }
     const [texts, setTexts] = useState<TextOverlay[]>([]);
     const [isAddingText, setIsAddingText] = useState(false);
     const [currentText, setCurrentText] = useState('');
     const [currentColor, setCurrentColor] = useState('white');
+    const [currentFont, setCurrentFont] = useState('sans-serif');
+    const [currentBgStyle, setCurrentBgStyle] = useState<'plain' | 'highlight' | 'neon'>('plain');
+    const [currentScale, setCurrentScale] = useState(1);
+    
+    // Drag State for Trash Zone
+    const [isDraggingText, setIsDraggingText] = useState(false);
     
     // Crop State
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
     const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
         setCroppedAreaPixels(croppedAreaPixels);
@@ -125,8 +136,6 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                 // Draw Text Overlays
                 if (texts.length > 0 && previewContainerRef.current) {
                     const containerRect = previewContainerRef.current.getBoundingClientRect();
-                    // Aspect ratio is 9:16, so the actual visible area might be smaller than container
-                    // Find actual 9:16 area inside containerRect
                     let viewWidth = containerRect.width;
                     let viewHeight = containerRect.height;
                     
@@ -141,25 +150,63 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
 
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    const fontSize = Math.floor(canvas.width * 0.08); // Base font size
-                    ctx.font = `bold ${fontSize}px sans-serif`;
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-                    ctx.shadowBlur = 15;
-                    ctx.shadowOffsetX = 2;
-                    ctx.shadowOffsetY = 2;
 
                     texts.forEach(t => {
-                        ctx.fillStyle = t.color;
                         const canvasX = (canvas.width / 2) + (t.x * scaleX);
                         const canvasY = (canvas.height / 2) + (t.y * scaleY);
                         
                         const lines = t.text.split('\\n');
+                        const baseFontSize = Math.floor(canvas.width * 0.08); // Base font size
+                        const fontSize = baseFontSize * t.scale;
+                        ctx.font = `bold ${fontSize}px ${t.fontFamily}`;
                         const lineHeight = fontSize * 1.2;
                         const startY = canvasY - ((lines.length - 1) * lineHeight) / 2;
-                        
-                        lines.forEach((line, index) => {
-                            ctx.fillText(line, canvasX, startY + (index * lineHeight));
-                        });
+
+                        if (t.bgStyle === 'neon') {
+                            ctx.fillStyle = t.color;
+                            ctx.shadowColor = t.color;
+                            ctx.shadowBlur = 20;
+                            ctx.shadowOffsetX = 0;
+                            ctx.shadowOffsetY = 0;
+                            
+                            // Draw multiple times to intensify neon glow
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, canvasX, startY + (index * lineHeight));
+                                ctx.fillText(line, canvasX, startY + (index * lineHeight));
+                            });
+                        } else if (t.bgStyle === 'highlight') {
+                            ctx.shadowColor = 'transparent';
+                            ctx.shadowBlur = 0;
+                            
+                            // Draw background rectangles
+                            ctx.fillStyle = t.color;
+                            lines.forEach((line, index) => {
+                                const metrics = ctx.measureText(line);
+                                const paddingX = fontSize * 0.5;
+                                const paddingY = fontSize * 0.2;
+                                ctx.fillRect(
+                                    canvasX - (metrics.width / 2) - paddingX,
+                                    startY + (index * lineHeight) - (fontSize / 2) - paddingY,
+                                    metrics.width + (paddingX * 2),
+                                    fontSize + (paddingY * 2)
+                                );
+                            });
+
+                            // Draw text on top
+                            ctx.fillStyle = t.color === 'white' ? 'black' : 'white';
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, canvasX, startY + (index * lineHeight));
+                            });
+                        } else {
+                            ctx.fillStyle = t.color;
+                            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                            ctx.shadowBlur = 15;
+                            ctx.shadowOffsetX = 2;
+                            ctx.shadowOffsetY = 2;
+                            lines.forEach((line, index) => {
+                                ctx.fillText(line, canvasX, startY + (index * lineHeight));
+                            });
+                        }
                     });
                 }
                 
@@ -241,10 +288,12 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                     image={storyPreviewUrl}
                                     crop={crop}
                                     zoom={zoom}
+                                    rotation={rotation}
                                     aspect={9 / 16}
                                     onCropChange={setCrop}
                                     onCropComplete={onCropComplete}
                                     onZoomChange={setZoom}
+                                    onRotationChange={setRotation}
                                     showGrid={false}
                                     style={{
                                         containerStyle: { background: '#111' },
@@ -258,19 +307,20 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                 <Draggable
                                     key={t.id}
                                     defaultPosition={{ x: t.x, y: t.y }}
+                                    onStart={() => setIsDraggingText(true)}
                                     onStop={(e, data) => {
+                                        setIsDraggingText(false);
                                         // Update position in array
                                         const newTexts = [...texts];
                                         newTexts[i] = { ...newTexts[i], x: data.x, y: data.y };
                                         
-                                        // Delete logic: if dragged to bottom 100px
+                                        // Delete logic: if dragged to bottom zone
                                         if (previewContainerRef.current) {
                                             const containerRect = previewContainerRef.current.getBoundingClientRect();
-                                            // simple math: if data.y > containerRect.height - 150
-                                            // we will just delete it if y > 300 for mobile
-                                            if (data.y > (containerRect.height / 2) - 100) {
-                                                // Actually it's better to calculate relative to window
-                                                // We'll leave it as simple drag for now, exact trash zone is tricky across screens
+                                            // Delete if in the bottom 20%
+                                            if (data.y > (containerRect.height / 2) - (containerRect.height * 0.2)) {
+                                                setTexts(texts.filter(text => text.id !== t.id));
+                                                return;
                                             }
                                         }
                                         setTexts(newTexts);
@@ -279,11 +329,15 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                     <div 
                                         className="absolute cursor-move inline-block"
                                         style={{ 
-                                            color: t.color, 
-                                            textShadow: '0px 2px 15px rgba(0,0,0,0.8)',
-                                            fontSize: 'clamp(1.5rem, 6vw, 3rem)',
+                                            color: t.bgStyle === 'highlight' ? (t.color === 'white' ? 'black' : 'white') : t.color,
+                                            backgroundColor: t.bgStyle === 'highlight' ? t.color : 'transparent',
+                                            textShadow: t.bgStyle === 'neon' ? `0 0 10px ${t.color}, 0 0 20px ${t.color}, 0 0 30px ${t.color}` : (t.bgStyle === 'plain' ? '0px 2px 15px rgba(0,0,0,0.8)' : 'none'),
+                                            fontSize: `clamp(${1.5 * t.scale}rem, ${6 * t.scale}vw, ${3 * t.scale}rem)`,
+                                            fontFamily: t.fontFamily,
                                             fontWeight: 'bold',
                                             whiteSpace: 'pre-wrap',
+                                            padding: t.bgStyle === 'highlight' ? '10px 20px' : '0',
+                                            borderRadius: t.bgStyle === 'highlight' ? '12px' : '0',
                                             zIndex: 20
                                         }}
                                     >
@@ -292,28 +346,66 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                 </Draggable>
                             ))}
 
+                            {/* Trash Zone */}
+                            {isDraggingText && (
+                                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-red-500/90 backdrop-blur-md text-white p-4 rounded-full shadow-[0_0_30px_rgba(239,68,68,0.8)] z-50 animate-in fade-in slide-in-from-bottom-10 pointer-events-none">
+                                    <Trash2 size={32} />
+                                </div>
+                            )}
+
                             {/* Text Editing Mode */}
                             {isAddingText && (
                                 <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
+                                    
+                                    {/* Style & Font Toggles */}
+                                    <div className="absolute top-20 left-6 flex flex-col gap-4">
+                                        <button 
+                                            onClick={() => setCurrentBgStyle(prev => prev === 'plain' ? 'highlight' : (prev === 'highlight' ? 'neon' : 'plain'))}
+                                            className="text-white bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-bold border border-white/20 transition-all flex items-center justify-center"
+                                        >
+                                            {currentBgStyle === 'plain' ? 'Aa Plain' : (currentBgStyle === 'highlight' ? 'Aa Highlight' : 'Aa Neon')}
+                                        </button>
+                                        <button 
+                                            onClick={() => setCurrentFont(prev => prev === 'sans-serif' ? 'serif' : (prev === 'serif' ? 'monospace' : 'sans-serif'))}
+                                            className="text-white bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-xl text-sm border border-white/20 transition-all"
+                                            style={{ fontFamily: currentFont }}
+                                        >
+                                            Font Style
+                                        </button>
+                                    </div>
+
+                                    {/* Size Slider */}
+                                    <div className="absolute top-20 right-1/2 translate-x-1/2 flex items-center gap-3 bg-black/50 p-2 rounded-xl backdrop-blur-md">
+                                        <span className="text-white/70 text-xs font-bold">SIZE</span>
+                                        <input 
+                                            type="range" min="0.5" max="2.5" step="0.1" 
+                                            value={currentScale} onChange={(e) => setCurrentScale(parseFloat(e.target.value))}
+                                            className="w-32 accent-white"
+                                        />
+                                    </div>
+
                                     <textarea
                                         autoFocus
                                         value={currentText}
                                         onChange={(e) => setCurrentText(e.target.value)}
                                         className="bg-transparent border-none outline-none text-center font-bold resize-none w-full px-4"
                                         style={{ 
-                                            color: currentColor, 
-                                            textShadow: '0px 2px 15px rgba(0,0,0,0.8)',
-                                            fontSize: 'clamp(2rem, 8vw, 4rem)',
-                                            minHeight: '200px'
+                                            color: currentBgStyle === 'highlight' ? (currentColor === 'white' ? 'black' : 'white') : currentColor,
+                                            backgroundColor: currentBgStyle === 'highlight' ? currentColor : 'transparent',
+                                            textShadow: currentBgStyle === 'neon' ? `0 0 10px ${currentColor}, 0 0 20px ${currentColor}, 0 0 30px ${currentColor}` : (currentBgStyle === 'plain' ? '0px 2px 15px rgba(0,0,0,0.8)' : 'none'),
+                                            fontSize: `clamp(${1.5 * currentScale}rem, ${6 * currentScale}vw, ${3 * currentScale}rem)`,
+                                            fontFamily: currentFont,
+                                            minHeight: '150px',
+                                            borderRadius: currentBgStyle === 'highlight' ? '12px' : '0',
                                         }}
                                         placeholder="Type something..."
                                     />
-                                    <div className="absolute bottom-32 flex gap-4 bg-black/50 p-3 rounded-full backdrop-blur-md">
-                                        {['white', 'black', '#ff3b30', '#ff2d55', '#34c759', '#007aff', '#ffcc00'].map(color => (
+                                    <div className="absolute bottom-32 flex gap-4 bg-black/50 p-3 rounded-full backdrop-blur-md overflow-x-auto max-w-[90%] no-scrollbar">
+                                        {['white', 'black', '#ff3b30', '#ff2d55', '#34c759', '#007aff', '#ffcc00', '#ff9500', '#af52de'].map(color => (
                                             <button
                                                 key={color}
                                                 onClick={() => setCurrentColor(color)}
-                                                className={`w-8 h-8 rounded-full border-2 ${currentColor === color ? 'border-white scale-125' : 'border-transparent'}`}
+                                                className={`w-8 h-8 rounded-full border-2 flex-shrink-0 transition-transform ${currentColor === color ? 'border-white scale-125' : 'border-transparent'}`}
                                                 style={{ backgroundColor: color }}
                                             />
                                         ))}
@@ -325,6 +417,9 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                                     id: Date.now().toString(), 
                                                     text: currentText, 
                                                     color: currentColor, 
+                                                    fontFamily: currentFont,
+                                                    bgStyle: currentBgStyle,
+                                                    scale: currentScale,
                                                     x: 0, 
                                                     y: 0 
                                                 }]);
@@ -332,7 +427,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                             setCurrentText('');
                                             setIsAddingText(false);
                                         }}
-                                        className="absolute top-20 right-6 text-white font-bold bg-white/20 px-4 py-2 rounded-full hover:bg-white/30 transition-all"
+                                        className="absolute top-6 right-6 text-white font-bold bg-white/20 px-5 py-2 rounded-full hover:bg-white/30 transition-all"
                                     >
                                         Done
                                     </button>
@@ -383,7 +478,21 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                 <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-20 z-10 pointer-events-none">
                     <div className="pointer-events-auto">
                         {!storyFile?.type.startsWith('video') && !isAddingText && (
-                            <div className="mb-6">
+                            <div className="mb-6 flex flex-col gap-4">
+                                
+                                {/* Advanced Crop Controls */}
+                                <div className="flex flex-col gap-2 px-2 bg-black/40 p-3 rounded-2xl backdrop-blur-md border border-white/10">
+                                    <div className="flex gap-4 items-center">
+                                        <span className="text-white/70 text-[10px] font-bold w-12 tracking-wider">ZOOM</span>
+                                        <input type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 accent-white" />
+                                    </div>
+                                    <div className="flex gap-4 items-center">
+                                        <span className="text-white/70 text-[10px] font-bold w-12 tracking-wider">ROTATE</span>
+                                        <input type="range" min={0} max={360} step={1} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} className="flex-1 accent-white" />
+                                    </div>
+                                </div>
+
+                                {/* Filters Carousel */}
                                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
                                     {STORY_FILTERS.map(f => (
                                         <div 

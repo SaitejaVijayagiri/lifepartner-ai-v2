@@ -834,26 +834,26 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
 
 // 5b. POST /stories (Upload Story)
 router.post('/stories', authenticateToken, (req, res, next) => {
-    upload.single('media')(req, res, (err) => {
+    upload.array('media', 10)(req, res, (err) => {
         if (err) {
             return res.status(400).json({ error: err.message });
         }
         next();
     });
 }, async (req: any, res) => {
-    let filePath = '';
+    let filePaths: string[] = [];
     try {
         const userId = req.user.userId;
         logDebug(`[POST /stories] User: ${userId} Requesting Upload`);
 
-        if (!req.file) {
+        if (!req.files || req.files.length === 0) {
             return res.status(400).json({ error: "No media file" });
         }
 
-        filePath = req.file.path;
+        const files = req.files as Express.Multer.File[];
+        filePaths = files.map(f => f.path);
 
         // Premium Restriction for Stories
-        // Fetch User + Profile
         const user = await prisma.users.findUnique({
             where: { id: userId },
             include: { profiles: true }
@@ -870,31 +870,58 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         const now = new Date();
         const validStories = currentStories.filter((s: any) => new Date(s.expiresAt) > now);
 
-        const type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+        let publicUrl = '';
+        let publicId = '';
+        let type = files[0].mimetype.startsWith('video') ? 'video' : 'image';
 
         logDebug(`Starting upload to Cloudinary...`);
 
-        // 1. Upload to Cloudinary Storage
-        const uploadResult = await uploadFileToCloudinary(filePath, userId);
-        
-        let publicUrl = '';
-        let publicId = '';
+        if (files.length > 1) {
+            // MULTI-IMAGE SLIDESHOW
+            type = 'video'; // The final output is a video
+            const publicIds: string[] = [];
+            
+            for (const file of files) {
+                const uploadResult = await uploadFileToCloudinary(file.path, userId);
+                if (uploadResult) {
+                    publicIds.push(uploadResult.publicId);
+                }
+            }
 
-        if (uploadResult) {
-            publicUrl = uploadResult.url;
-            publicId = uploadResult.publicId;
-            logDebug(`Upload Success: ${publicUrl}`);
+            if (publicIds.length > 0) {
+                // Generate the slideshow URL
+                const { generateSlideshowUrl } = require('../services/cloudinaryStorage');
+                publicUrl = generateSlideshowUrl(publicIds) || '';
+                publicId = publicIds[0]; // Track the first one for deletion (though we'd need to delete all ideally)
+                logDebug(`Generated Slideshow URL: ${publicUrl}`);
+            } else {
+                throw new Error("Failed to upload images to Cloudinary");
+            }
         } else {
-            // Fallback to Supabase if Cloudinary is not configured or fails
-            const filename = `stories/${userId}/${Date.now()}-${path.basename(req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_'))}`;
-            const fileContent = fs.readFileSync(filePath);
-            const { error } = await supabase.storage.from('stories').upload(filename, fileContent, {
-                contentType: req.file.mimetype,
-                upsert: true
-            });
-            if (error) throw error;
-            const { data } = supabase.storage.from('stories').getPublicUrl(filename);
-            publicUrl = data.publicUrl;
+            // SINGLE FILE UPLOAD
+            const file = files[0];
+            const uploadOptions: any = {};
+            if (req.body.startTime !== undefined) uploadOptions.startOffset = parseFloat(req.body.startTime);
+            if (req.body.endTime !== undefined) uploadOptions.endOffset = parseFloat(req.body.endTime);
+            
+            const uploadResult = await uploadFileToCloudinary(file.path, userId, uploadOptions);
+            
+            if (uploadResult) {
+                publicUrl = uploadResult.url;
+                publicId = uploadResult.publicId;
+                logDebug(`Upload Success: ${publicUrl}`);
+            } else {
+                // Fallback to Supabase if Cloudinary is not configured or fails
+                const filename = `stories/${userId}/${Date.now()}-${path.basename(file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_'))}`;
+                const fileContent = fs.readFileSync(file.path);
+                const { error } = await supabase.storage.from('stories').upload(filename, fileContent, {
+                    contentType: file.mimetype,
+                    upsert: true
+                });
+                if (error) throw error;
+                const { data } = supabase.storage.from('stories').getPublicUrl(filename);
+                publicUrl = data.publicUrl;
+            }
         }
 
         const newStory: any = {
@@ -931,11 +958,13 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         logDebug("Story Upload Error", e);
         res.status(500).json({ error: "Upload failed", details: e.message });
     } finally {
-        if (filePath && fs.existsSync(filePath)) {
-            try {
-                fs.unlinkSync(filePath);
-            } catch (cleanupErr) {
-                console.error("Cleanup error", cleanupErr);
+        for (const filePath of filePaths) {
+            if (filePath && fs.existsSync(filePath)) {
+                try {
+                    fs.unlinkSync(filePath);
+                } catch (cleanupErr) {
+                    console.error("Cleanup error", cleanupErr);
+                }
             }
         }
     }

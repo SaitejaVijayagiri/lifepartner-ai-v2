@@ -89,7 +89,8 @@ export const isCloudinaryUrl = (url: string): boolean => {
  */
 export const uploadFileToCloudinary = async (
     filePath: string,
-    userId: string
+    userId: string,
+    options?: { startOffset?: number, endOffset?: number }
 ): Promise<{ url: string, publicId: string } | null> => {
     if (!isConfigured()) {
         console.warn('[Cloudinary] Not configured — skipping upload.');
@@ -97,12 +98,23 @@ export const uploadFileToCloudinary = async (
     }
 
     try {
-        const result = await cloudinary.uploader.upload(filePath, {
+        const uploadOptions: any = {
             folder: `lifepartner/stories/${userId}`,
             public_id: `story_${Date.now()}`,
             resource_type: 'auto', // auto detects video or image
             overwrite: false
-        });
+        };
+
+        if (options?.startOffset !== undefined || options?.endOffset !== undefined) {
+            uploadOptions.transformation = [
+                {
+                    ...(options.startOffset !== undefined && { start_offset: options.startOffset }),
+                    ...(options.endOffset !== undefined && { end_offset: options.endOffset })
+                }
+            ];
+        }
+
+        const result = await cloudinary.uploader.upload(filePath, uploadOptions);
 
         console.log(`✅ [Cloudinary] Uploaded file for user ${userId}: ${result.secure_url}`);
         return { url: result.secure_url, publicId: result.public_id };
@@ -126,4 +138,36 @@ export const deleteFromCloudinary = async (publicId: string): Promise<boolean> =
         console.error(`[Cloudinary] Delete failed for ${publicId}:`, e?.message || e);
         return false;
     }
+};
+
+/**
+ * Generates a video slideshow URL from multiple image public_ids.
+ * @param publicIds Array of Cloudinary image public IDs
+ */
+export const generateSlideshowUrl = (publicIds: string[]): string | null => {
+    if (!isConfigured() || publicIds.length === 0) return null;
+    
+    // We use the first image as the base video (Cloudinary allows generating a video from a single image)
+    const baseId = publicIds[0];
+    const transformation: any[] = [
+        { width: 720, height: 1280, crop: 'fill', background: 'black' },
+        { duration: 3 } // Duration per slide
+    ];
+
+    // For every subsequent image, splice it with a transition
+    for (let i = 1; i < publicIds.length; i++) {
+        transformation.push(
+            { overlay: publicIds[i].replace(/\//g, ':') }, // Cloudinary overlay syntax requires colons for folders
+            { flags: 'splice', effect: 'transition:name_fade;du_1' },
+            { flags: 'layer_apply' }
+        );
+    }
+
+    // Force output to mp4
+    return cloudinary.url(baseId, {
+        resource_type: 'video',
+        format: 'mp4',
+        transformation: transformation,
+        secure: true
+    });
 };

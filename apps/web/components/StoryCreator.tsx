@@ -6,8 +6,8 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 interface StoryCreatorProps {
-    storyFile: File;
-    storyPreviewUrl: string;
+    storyFiles: File[];
+    storyPreviewUrls: string[];
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -37,10 +37,20 @@ const MUSIC_TRACKS = [
     { id: 'bollywood', name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' }
 ];
 
-export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSuccess }: StoryCreatorProps) {
+export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, onSuccess }: StoryCreatorProps) {
     const toast = useToast();
     const [activeFilter, setActiveFilter] = useState<string>('none');
     const [isUploadingStory, setIsUploadingStory] = useState(false);
+    
+    // Multiple files (Slideshow) State
+    const isSlideshow = storyFiles.length > 1;
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+    
+    // Video Trimming State
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const [videoDuration, setVideoDuration] = useState<number>(0);
+    const [startTime, setStartTime] = useState<number>(0);
+    const [endTime, setEndTime] = useState<number>(60);
     
     // Text Overlay State
     interface TextOverlay {
@@ -93,25 +103,39 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
     };
 
     const applyFilterAndUpload = async () => {
-        if (!storyFile || !storyPreviewUrl) return;
+        if (!storyFiles || storyFiles.length === 0) return;
         setIsUploadingStory(true);
 
         try {
             let finalData: FormData | string;
 
-            if (storyFile.type.startsWith('video')) {
+            if (isSlideshow) {
+                // For Slideshows, we send all files to the backend
                 const formData = new FormData();
-                formData.append('media', storyFile);
+                storyFiles.forEach(file => {
+                    formData.append('media', file);
+                });
                 if (selectedMusic !== 'none') formData.append('music', selectedMusic);
                 finalData = formData;
+            } else if (storyFiles[0].type.startsWith('video')) {
+                const formData = new FormData();
+                formData.append('media', storyFiles[0]);
+                if (selectedMusic !== 'none') formData.append('music', selectedMusic);
+                
+                if (videoDuration > 0) {
+                    formData.append('startTime', startTime.toString());
+                    formData.append('endTime', endTime.toString());
+                }
+                
+                finalData = formData;
             } else {
-                // Apply Canvas Filter & Text
+                // Apply Canvas Filter & Text (Single Image)
                 const img = new Image();
                 img.crossOrigin = "anonymous";
                 await new Promise((resolve, reject) => {
                     img.onload = resolve;
                     img.onerror = reject;
-                    img.src = storyPreviewUrl;
+                    img.src = storyPreviewUrls[0];
                 });
 
                 const canvas = document.createElement('canvas');
@@ -217,11 +241,11 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                 }
                 
                 // Extract blob
-                const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, storyFile.type, 0.9));
+                const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, storyFiles[0].type, 0.9));
                 if (!blob) throw new Error("Failed to process image");
 
                 const formData = new FormData();
-                formData.append('media', blob, storyFile.name);
+                formData.append('media', blob, storyFiles[0].name);
                 if (selectedMusic !== 'none') formData.append('music', selectedMusic);
                 finalData = formData;
             }
@@ -266,7 +290,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                         </button>
-                        {!storyFile.type.startsWith('video') && (
+                        {!isSlideshow && !storyFiles[0].type.startsWith('video') && (
                             <button 
                                 onClick={() => setIsAddingText(!isAddingText)}
                                 className={`text-white p-2 rounded-full transition-all font-serif font-bold text-xl leading-none w-10 h-10 flex items-center justify-center ${isAddingText || texts.length > 0 ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
@@ -282,8 +306,108 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                     className="relative flex-1 flex items-center justify-center overflow-hidden w-full h-full bg-[#111]"
                     ref={previewContainerRef}
                 >
-                    {storyFile.type.startsWith('video') ? (
-                        <video src={storyPreviewUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
+                    {isSlideshow ? (
+                        <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
+                            {/* Slideshow Preview Animation */}
+                            {storyPreviewUrls.map((url, index) => (
+                                <img
+                                    key={index}
+                                    src={url}
+                                    className="absolute w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
+                                    style={{ 
+                                        opacity: currentSlideIndex === index ? 1 : 0,
+                                        zIndex: currentSlideIndex === index ? 10 : 1
+                                    }}
+                                    alt={`Slide ${index}`}
+                                />
+                            ))}
+                            {/* Slideshow Indicator */}
+                            <div className="absolute top-24 left-0 right-0 flex justify-center gap-1.5 z-[100] px-4">
+                                {storyPreviewUrls.map((_, i) => (
+                                    <div 
+                                        key={i} 
+                                        className={`h-1.5 rounded-full transition-all duration-300 ${i === currentSlideIndex ? 'bg-white flex-1' : 'bg-white/30 w-3'}`} 
+                                    />
+                                ))}
+                            </div>
+                            {/* Slideshow Logic */}
+                            <img src={storyPreviewUrls[0]} className="hidden" onLoad={() => {
+                                // Simple interval to cycle through images
+                                const interval = setInterval(() => {
+                                    setCurrentSlideIndex(prev => (prev + 1) % storyPreviewUrls.length);
+                                }, 3000);
+                                return () => clearInterval(interval);
+                            }} />
+                        </div>
+                    ) : storyFiles[0].type.startsWith('video') ? (
+                        <div className="w-full h-full flex flex-col relative">
+                            <video 
+                                ref={videoRef}
+                                src={storyPreviewUrls[0]} 
+                                autoPlay 
+                                muted 
+                                playsInline
+                                className="w-full h-full object-cover" 
+                                onLoadedMetadata={(e) => {
+                                    const duration = e.currentTarget.duration;
+                                    setVideoDuration(duration);
+                                    setEndTime(Math.min(duration, 60));
+                                }}
+                                onTimeUpdate={() => {
+                                    if (videoRef.current && videoRef.current.currentTime >= endTime) {
+                                        videoRef.current.currentTime = startTime;
+                                    }
+                                }}
+                            />
+                            
+                            {/* Trimming UI for Video */}
+                            {videoDuration > 0 && (
+                                <div className="absolute bottom-32 left-4 right-4 bg-black/70 backdrop-blur-md p-4 rounded-2xl z-[100] border border-white/20 animate-in fade-in slide-in-from-bottom-4 shadow-xl">
+                                    <div className="flex justify-between text-white text-xs mb-3 font-bold uppercase tracking-wider">
+                                        <span className="bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-md">Start: {startTime.toFixed(1)}s</span>
+                                        <span className="bg-pink-500/20 text-pink-300 px-2 py-1 rounded-md">End: {endTime.toFixed(1)}s (Max 60s)</span>
+                                    </div>
+                                    <div className="flex flex-col gap-4">
+                                        <div className="relative">
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max={videoDuration} 
+                                                step="0.1" 
+                                                value={startTime} 
+                                                onChange={(e) => {
+                                                    const newStart = parseFloat(e.target.value);
+                                                    setStartTime(newStart);
+                                                    if (endTime - newStart > 60) setEndTime(newStart + 60);
+                                                    else if (newStart >= endTime) setEndTime(Math.min(newStart + 1, videoDuration));
+                                                    if (videoRef.current) videoRef.current.currentTime = newStart;
+                                                }} 
+                                                className="w-full accent-indigo-500 bg-white/10 h-2 rounded-lg appearance-none cursor-pointer"
+                                                style={{ WebkitAppearance: 'none' }}
+                                            />
+                                        </div>
+                                        <div className="relative">
+                                            <input 
+                                                type="range" 
+                                                min="0" 
+                                                max={videoDuration} 
+                                                step="0.1" 
+                                                value={endTime} 
+                                                onChange={(e) => {
+                                                    const newEnd = parseFloat(e.target.value);
+                                                    setEndTime(newEnd);
+                                                    if (newEnd - startTime > 60) setStartTime(newEnd - 60);
+                                                    else if (newEnd <= startTime) setStartTime(Math.max(newEnd - 1, 0));
+                                                    if (videoRef.current) videoRef.current.currentTime = newEnd;
+                                                }} 
+                                                className="w-full accent-pink-500 bg-white/10 h-2 rounded-lg appearance-none cursor-pointer"
+                                                style={{ WebkitAppearance: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <div className="relative w-full h-full" style={{ aspectRatio: '9/16', margin: '0 auto', maxWidth: '100%', maxHeight: '100%' }}>
                             
@@ -291,7 +415,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                             <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
                                 {/* @ts-ignore */}
                                 <Cropper
-                                    image={storyPreviewUrl}
+                                    image={storyPreviewUrls[0]}
                                     crop={crop}
                                     zoom={zoom}
                                     rotation={rotation}
@@ -490,7 +614,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                 {/* Filters & Actions Overlay */}
                 <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-20 z-10 pointer-events-none">
                     <div className="pointer-events-auto">
-                        {!storyFile?.type.startsWith('video') && !isAddingText && (
+                        {!isSlideshow && !storyFiles[0]?.type.startsWith('video') && !isAddingText && (
                             <div className="mb-6 flex flex-col gap-4">
                                 {/* Filters Carousel */}
                                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
@@ -502,7 +626,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                         >
                                             <div className={`w-[60px] h-[60px] rounded-full overflow-hidden border-[3px] transition-all duration-300 ${activeFilter === f.filter ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-transparent ring-1 ring-white/30 opacity-70 group-hover:opacity-100'}`}>
                                                 <img 
-                                                    src={storyPreviewUrl} 
+                                                    src={storyPreviewUrls[0]} 
                                                     className="w-full h-full object-cover"
                                                     style={{ filter: f.filter !== 'none' ? f.filter : 'none' }}
                                                 />

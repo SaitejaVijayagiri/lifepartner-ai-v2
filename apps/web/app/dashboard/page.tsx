@@ -824,22 +824,42 @@ function DashboardContent() {
     );
 
     const [activeStorySet, setActiveStorySet] = useState<any>(null);
-    const [storyFile, setStoryFile] = useState<File | null>(null);
-    const [storyPreviewUrl, setStoryPreviewUrl] = useState<string | null>(null);
+    const [storyFiles, setStoryFiles] = useState<File[] | null>(null);
+    const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
 
-        // Validation
-        if (file.size > 50 * 1024 * 1024) {
-            toast.error("File too large (Max 50MB)");
+        // Prevent mixing videos and images
+        const hasVideo = files.some(f => f.type.startsWith('video'));
+        if (hasVideo && files.length > 1) {
+            toast.error("Please select only 1 video or multiple images.");
             return;
         }
 
-        const previewUrl = URL.createObjectURL(file);
-        setStoryFile(file);
-        setStoryPreviewUrl(previewUrl);
+        // Limit to 10 images
+        if (files.length > 10) {
+            toast.error("You can select up to 10 images maximum.");
+            return;
+        }
+
+        const validFiles: File[] = [];
+        const previewUrls: string[] = [];
+        
+        for (const file of files) {
+            if (file.size > 50 * 1024 * 1024) {
+                toast.error(`File ${file.name} is too large (Max 50MB)`);
+                continue;
+            }
+            validFiles.push(file);
+            previewUrls.push(URL.createObjectURL(file));
+        }
+
+        if (validFiles.length > 0) {
+            setStoryFiles(validFiles);
+            setStoryPreviewUrls(previewUrls);
+        }
     };
 
     const handleViewStory = (user: any) => {
@@ -870,7 +890,7 @@ function DashboardContent() {
                             {/* Hover glow effect */}
                             <div className="absolute inset-0 rounded-full bg-indigo-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity"></div>
                         </div>
-                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleStoryFileSelect} />
+                        <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleStoryFileSelect} />
                     </label>
                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
                 </div>
@@ -1860,14 +1880,14 @@ function DashboardContent() {
             )}
 
             {/* Story Creator Modal */}
-            {storyPreviewUrl && storyFile && (
+            {storyPreviewUrls && storyFiles && (
                 <StoryCreator 
-                    storyFile={storyFile}
-                    storyPreviewUrl={storyPreviewUrl}
-                    onClose={() => { setStoryPreviewUrl(null); setStoryFile(null); }}
+                    storyFiles={storyFiles}
+                    storyPreviewUrls={storyPreviewUrls}
+                    onClose={() => { setStoryPreviewUrls(null); setStoryFiles(null); }}
                     onSuccess={async () => {
-                        setStoryFile(null);
-                        setStoryPreviewUrl(null);
+                        setStoryFiles(null);
+                        setStoryPreviewUrls(null);
                         const me = await api.profile.getMe();
                         setCurrentUser(me);
                     }}

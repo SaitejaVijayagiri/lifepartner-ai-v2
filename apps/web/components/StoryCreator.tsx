@@ -20,7 +20,10 @@ const STORY_FILTERS = [
     { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.95) saturate(1.1) hue-rotate(10deg)' },
     { name: 'Cinematic 🎬', filter: 'brightness(0.9) contrast(1.2) saturate(1.3) sepia(0.2) hue-rotate(15deg)' },
     { name: 'Retro 90s 📼', filter: 'contrast(1.3) saturate(0.8) sepia(0.4) brightness(0.9)' },
-    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2)' }
+    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2)' },
+    { name: 'Dreamy ☁️', filter: 'blur(0.5px) brightness(1.1) contrast(0.9) saturate(1.2)' },
+    { name: 'Cyberpunk 🌆', filter: 'contrast(1.4) saturate(1.5) hue-rotate(30deg) brightness(0.9)' },
+    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(1.1) brightness(0.9) saturate(1.2)' }
 ];
 
 const MUSIC_TRACKS = [
@@ -28,7 +31,10 @@ const MUSIC_TRACKS = [
     { id: 'lofi', name: 'Chill Lo-Fi ☕', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
     { id: 'romantic', name: 'Romantic Piano 💖', url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_4f0f089602.mp3' },
     { id: 'upbeat', name: 'Upbeat Pop 🕺', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3' },
-    { id: 'cinematic', name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' }
+    { id: 'cinematic', name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
+    { id: 'acoustic', name: 'Acoustic Guitar 🎸', url: 'https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b3cb3922.mp3' },
+    { id: 'electronic', name: 'Electronic 🎧', url: 'https://cdn.pixabay.com/download/audio/2021/11/17/audio_4a9616ec1a.mp3' },
+    { id: 'bollywood', name: 'Desi Beats 🥁', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_a8a81639d6.mp3' }
 ];
 
 export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSuccess }: StoryCreatorProps) {
@@ -375,6 +381,9 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                             <option value="sans-serif" className="text-black font-sans">Classic</option>
                                             <option value="serif" className="text-black font-serif">Serif</option>
                                             <option value="monospace" className="text-black font-mono">Typewriter</option>
+                                            <option value="'Comic Sans MS', cursive, sans-serif" className="text-black" style={{fontFamily: "'Comic Sans MS', cursive"}}>Playful</option>
+                                            <option value="'Impact', sans-serif" className="text-black" style={{fontFamily: "'Impact', sans-serif"}}>Bold</option>
+                                            <option value="'Brush Script MT', cursive, serif" className="text-black" style={{fontFamily: "'Brush Script MT', cursive"}}>Elegant</option>
                                         </select>
                                     </div>
 

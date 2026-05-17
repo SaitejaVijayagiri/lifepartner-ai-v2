@@ -497,42 +497,57 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        // Quota check
-        if (!user.is_premium && (user.free_direct_messages || 0) <= 0) {
-            return res.status(403).json({ 
-                error: "Limit Reached", 
-                message: "You have run out of free Direct Messages. Upgrade to Premium for unlimited!" 
-            });
-        }
-
-        // Decrement quota if not premium
-        if (!user.is_premium) {
-            await prisma.users.update({
-                where: { id: userId },
-                data: { free_direct_messages: { decrement: 1 } }
-            });
-        }
-
-        // 1. Create a Connected Interaction to make them appear in Connections list instantly
-        await prisma.interactions.upsert({
+        // Check if already connected
+        const existingConnection = await prisma.interactions.findFirst({
             where: {
-                from_user_id_to_user_id_type: {
-                    from_user_id: userId,
-                    to_user_id: toUserId,
-                    type: 'REQUEST'
-                }
-            },
-            update: {
-                status: 'connected', // Auto-connect for DM
-                created_at: new Date()
-            },
-            create: {
-                from_user_id: userId,
-                to_user_id: toUserId,
-                type: 'REQUEST',
+                OR: [
+                    { from_user_id: userId, to_user_id: toUserId },
+                    { from_user_id: toUserId, to_user_id: userId }
+                ],
                 status: 'connected'
             }
         });
+
+        const isAlreadyConnected = !!existingConnection;
+
+        // Quota check only if NOT already connected
+        if (!isAlreadyConnected) {
+            if (!user.is_premium && (user.free_direct_messages || 0) <= 0) {
+                return res.status(403).json({ 
+                    error: "Limit Reached", 
+                    message: "You have run out of free Direct Messages. Upgrade to Premium for unlimited!" 
+                });
+            }
+
+            // Decrement quota if not premium
+            if (!user.is_premium) {
+                await prisma.users.update({
+                    where: { id: userId },
+                    data: { free_direct_messages: { decrement: 1 } }
+                });
+            }
+
+            // Create a Connected Interaction to make them appear in Connections list instantly
+            await prisma.interactions.upsert({
+                where: {
+                    from_user_id_to_user_id_type: {
+                        from_user_id: userId,
+                        to_user_id: toUserId,
+                        type: 'REQUEST'
+                    }
+                },
+                update: {
+                    status: 'connected', // Auto-connect for DM
+                    created_at: new Date()
+                },
+                create: {
+                    from_user_id: userId,
+                    to_user_id: toUserId,
+                    type: 'REQUEST',
+                    status: 'connected'
+                }
+            });
+        }
 
         // 2. Insert the actual message into the chat history
         const cleanText = text.trim();

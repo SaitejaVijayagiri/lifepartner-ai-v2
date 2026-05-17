@@ -306,6 +306,8 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                 onChange={(e) => setReplyText(e.target.value)}
                                 className="flex-1 bg-white/10 backdrop-blur-md text-white placeholder-white/50 px-4 py-3 rounded-full border border-white/20 focus:outline-none focus:border-white/40 text-sm"
                                 onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
                                 onFocus={() => setIsPaused(true)}
                                 onBlur={() => setIsPaused(false)}
                                 onKeyDown={(e) => {

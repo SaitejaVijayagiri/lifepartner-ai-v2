@@ -76,7 +76,7 @@ export const api = {
         }),
     },
     matches: {
-        getAll: () => fetchAPI('/matches/recommendations'),
+        getAll: (page: number = 1) => fetchAPI(`/matches/recommendations?page=${page}`),
         getMapUsers: () => fetchAPI('/matches/map-users'),
         search: (query: string) => fetchAPI('/matches/search', {
             method: 'POST',

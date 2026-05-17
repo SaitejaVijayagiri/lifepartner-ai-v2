@@ -385,8 +385,13 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        // Check Cache
-        const cached = matchCache.get(userId);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = 50;
+        const offset = (page - 1) * limit;
+
+        // Check Cache per page
+        const cacheKey = `${userId}_page_${page}`;
+        const cached = matchCache.get(cacheKey);
         if (cached && cached.expiresAt > Date.now()) {
             return res.json({ matches: cached.data });
         }
@@ -402,8 +407,6 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const meMeta: any = me.profiles?.metadata || {}; // Typecast for loose JSON access
 
         // SECURITY FIX: Use parameterized $queryRaw instead of $queryRawUnsafe.
-        // The randomization is handled differently — fetch random IDs via ORDER BY RANDOM()
-        // using parameterized queries (userId is the only external variable here).
         const myGender = (me.gender || "").trim().toLowerCase();
 
         let randomCandidates: { id: string }[];
@@ -411,19 +414,19 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
                 SELECT id FROM users
                 WHERE id != ${userId}::uuid AND is_verified = true AND LOWER(gender) = 'female'
-                ORDER BY RANDOM() LIMIT 50
+                ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else if (myGender === 'female') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
                 SELECT id FROM users
                 WHERE id != ${userId}::uuid AND is_verified = true AND LOWER(gender) = 'male'
-                ORDER BY RANDOM() LIMIT 50
+                ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
                 SELECT id FROM users
                 WHERE id != ${userId}::uuid AND is_verified = true
-                ORDER BY RANDOM() LIMIT 50
+                ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         }
 
@@ -597,7 +600,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         matches.sort((a, b) => b.score - a.score);
 
         // Save to in-memory Cache
-        matchCache.set(userId, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });
+        matchCache.set(cacheKey, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });
 
         res.json({ matches });
 

@@ -67,6 +67,9 @@ function DashboardContent() {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [matches, setMatches] = useState<any[]>([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [mapProfiles, setMapProfiles] = useState<any[]>([]);
     const [mapLoading, setMapLoading] = useState(false);
     const [requests, setRequests] = useState<any[]>([]);
@@ -259,6 +262,7 @@ function DashboardContent() {
                 if (matchesResult.status === 'fulfilled') {
                     const freshMatches = matchesResult.value?.matches || [];
                     setMatches(freshMatches);
+                    if (freshMatches.length < 50) setHasMore(false);
                     try {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
                     } catch (e) {}
@@ -406,14 +410,29 @@ function DashboardContent() {
         } catch (e) { console.error('Visitors error:', e); }
     };
 
-    const fetchMatches = async () => {
+    const fetchMatches = async (pageNum = 1) => {
         try {
-            const data = await api.matches.getAll();
-            setMatches(data.matches || []);
+            if (pageNum > 1) setLoadingMore(true);
+            const data = await api.matches.getAll(pageNum);
+            const newMatches = data.matches || [];
+            
+            if (newMatches.length < 50) {
+                setHasMore(false);
+            } else {
+                setHasMore(true);
+            }
+
+            if (pageNum === 1) {
+                setMatches(newMatches);
+            } else {
+                setMatches(prev => [...prev, ...newMatches]);
+            }
+            setPage(pageNum);
         } catch (err) {
             console.error('Failed to load matches', err);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
 
@@ -1293,6 +1312,25 @@ function DashboardContent() {
                         </div>
                     ))}
                 </div>
+
+                {hasMore && displayMatches.length > 0 && (
+                    <div className="flex justify-center mt-10">
+                        <button
+                            onClick={() => fetchMatches(page + 1)}
+                            disabled={loadingMore}
+                            className="bg-white border-2 border-indigo-100 text-indigo-600 px-8 py-3 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-indigo-50 transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {loadingMore ? (
+                                <>
+                                    <div className="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
+                                    Loading...
+                                </>
+                            ) : (
+                                'Load More Matches'
+                            )}
+                        </button>
+                    </div>
+                )}
 
                 {
                     displayMatches.length === 0 && (

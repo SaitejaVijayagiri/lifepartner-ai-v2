@@ -464,8 +464,10 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     }}
                                 />
                             </div>
+                        </div>
+                    )}
 
-                            {/* Draggable Texts Layer */}
+                    {/* Draggable Texts Layer */}
                             {!isAddingText && texts.map((t, i) => (
                                 /* @ts-ignore */
                                 <Draggable
@@ -604,8 +606,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     </button>
                                 </div>
                             )}
-                        </div>
-                    )}
+                            )}
                 </div>
 
                 {/* Music Selector Panel */}

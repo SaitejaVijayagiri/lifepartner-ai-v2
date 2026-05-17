@@ -69,6 +69,7 @@ export const api = {
         toggleMute: (targetId: string) => fetchAPI(`/profile/mute/${targetId}`, { method: 'POST' }),
         getById: (id: string) => fetchAPI(`/profile/${id}`),
         deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
+        trackStoryView: (targetUserId: string, storyId: string) => fetchAPI(`/profile/stories/${targetUserId}/${storyId}/view`, { method: 'POST' }),
         uploadVoiceBio: (formData: FormData) => fetchAPI('/profile/voice-bio', {
             method: 'POST',
             body: formData,
@@ -103,7 +104,6 @@ export const api = {
         }),
         revokeLike: (toUserId: string) => fetchAPI(`/interactions/like/${toUserId}`, { method: 'DELETE' }),
         deleteConnection: (id: string) => fetchAPI(`/interactions/connections/${id}`, { method: 'DELETE' }),
-        deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
         contact: (data: any) => fetchAPI('/interactions/contact', { method: 'POST', body: JSON.stringify(data) }),
         whoLikedMe: () => fetchAPI('/interactions/who-liked-me'),
         getVisitors: () => fetchAPI('/interactions/visitors'),

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle } from 'lucide-react';
+import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 
@@ -9,6 +9,7 @@ interface Story {
     type: 'image' | 'video';
     createdAt: string;
     music?: string;
+    views?: { userId: string, name: string, photoUrl: string, viewedAt: string }[];
 }
 
 interface User {
@@ -36,6 +37,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     const [replyText, setReplyText] = useState('');
     const [isLiked, setIsLiked] = useState(false);
     const [isSending, setIsSending] = useState(false);
+    const [isViewsOpen, setIsViewsOpen] = useState(false);
     const story = stories[currentIndex];
     
     // Audio Player Ref
@@ -98,6 +100,15 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
         return () => clearInterval(timer);
     }, [currentIndex, isPaused]);
+
+    // Track View when Story Changes
+    useEffect(() => {
+        if (!story) return;
+        setIsViewsOpen(false); // Close views panel if story changes
+        if (currentUser && user.id !== currentUser.id) {
+            api.profile.trackStoryView(user.id, story.id).catch(console.error);
+        }
+    }, [story?.id, user.id, currentUser?.id]);
 
     // Handle Story Completion
     useEffect(() => {
@@ -290,7 +301,57 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                         )}
                     </div>
                 )}
+
+                {/* Bottom Actions (for own stories) */}
+                {user.id === currentUser?.id && (
+                    <div className="absolute bottom-6 left-4 right-4 z-30 flex justify-center">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setIsViewsOpen(true); }}
+                            className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-5 py-2.5 rounded-full hover:bg-black/70 transition-all border border-white/10 shadow-lg"
+                        >
+                            <Eye size={18} />
+                            <span className="font-bold text-sm">{story.views?.length || 0}</span>
+                        </button>
+                    </div>
+                )}
             </div>
+
+            {/* Viewers Panel Overlay */}
+            {isViewsOpen && (
+                <div 
+                    className="absolute inset-x-0 bottom-0 h-[60%] bg-black/95 backdrop-blur-xl rounded-t-3xl z-[1200] flex flex-col animate-in slide-in-from-bottom-full border-t border-white/10"
+                    onMouseDown={(e) => e.stopPropagation()} // Prevent story pausing
+                    onTouchStart={(e) => e.stopPropagation()}
+                >
+                    <div className="flex justify-between items-center p-5 border-b border-white/10">
+                        <div className="flex items-center gap-2 text-white">
+                            <Eye size={20} />
+                            <h3 className="font-bold">Viewers</h3>
+                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{story.views?.length || 0}</span>
+                        </div>
+                        <button onClick={() => setIsViewsOpen(false)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
+                            <X size={18} />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar">
+                        {(!story.views || story.views.length === 0) ? (
+                            <div className="text-center text-white/50 mt-10 text-sm">
+                                No one has seen your story yet.
+                            </div>
+                        ) : (
+                            [...story.views].reverse().map((viewer, idx) => (
+                                <div key={idx} className="flex items-center gap-3">
+                                    <img src={viewer.photoUrl} alt={viewer.name} className="w-12 h-12 rounded-full object-cover border border-white/20 bg-gray-800" />
+                                    <div className="flex-1 text-white">
+                                        <div className="font-bold text-[15px]">{viewer.name}</div>
+                                        <div className="text-xs text-white/50">{new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Hidden helper functions */}
             {null}

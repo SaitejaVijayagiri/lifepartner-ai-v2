@@ -361,6 +361,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             dob: meta.dob || null,
             interests: meta.interests || [],
             summary: meta.summary || "",
+            stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()),
             ...contactInfo,
             isContactUnlocked: isRequesterPremium
         });
@@ -837,13 +838,13 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filename);
         logDebug(`Upload Success: ${publicUrl}`);
 
-        // 2. Add to DB
         const newStory: any = {
             id: Date.now().toString(),
             url: publicUrl,
             type,
             createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            views: [] // Initialize views array
         };
         
         if (req.body.music) {
@@ -889,6 +890,19 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
         // Fetch user profile
         const profile = await prisma.profiles.findUnique({ where: { user_id: userId } });
         const currentStories = (profile?.stories as any[]) || [];
+        
+        const storyToDelete = currentStories.find((s: any) => s.id === storyId);
+        if (!storyToDelete) {
+            return res.status(404).json({ error: "Story not found" });
+        }
+
+        // Delete from Supabase Storage to save space
+        if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
+            const oldPath = storyToDelete.url.split('stories/')[1];
+            if (oldPath) {
+                supabase.storage.from('stories').remove([oldPath]).catch(e => console.error("Storage delete error", e));
+            }
+        }
 
         const updatedStories = currentStories.filter((s: any) => s.id !== storyId);
 
@@ -902,6 +916,59 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Delete Story Error", e);
         res.status(500).json({ error: "Failed to delete story" });
+    }
+});
+
+// 6.5 POST /stories/:targetUserId/:storyId/view
+router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (req: any, res) => {
+    try {
+        const viewerId = req.user.userId;
+        const { targetUserId, storyId } = req.params;
+
+        // Skip tracking if the user is viewing their own story
+        if (viewerId === targetUserId) {
+            return res.json({ success: true, ignored: true });
+        }
+
+        // Fetch viewer details to store in the view array
+        const viewer = await prisma.users.findUnique({ where: { id: viewerId } });
+        if (!viewer) return res.status(404).json({ error: "Viewer not found" });
+
+        const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
+        if (!targetProfile) return res.status(404).json({ error: "Target profile not found" });
+
+        const stories = (targetProfile.stories as any[]) || [];
+        const storyIndex = stories.findIndex(s => s.id === storyId);
+
+        if (storyIndex === -1) {
+            return res.status(404).json({ error: "Story not found" });
+        }
+
+        const story = stories[storyIndex];
+        const views = story.views || [];
+
+        // Check if already viewed
+        if (!views.some((v: any) => v.userId === viewerId)) {
+            views.push({
+                userId: viewerId,
+                name: viewer.full_name,
+                photoUrl: sanitizePhotoUrl(viewer.avatar_url, viewer.full_name || viewer.id),
+                viewedAt: new Date().toISOString()
+            });
+
+            stories[storyIndex].views = views;
+
+            // Update in DB
+            await prisma.profiles.update({
+                where: { user_id: targetUserId },
+                data: { stories }
+            });
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Track Story View Error", e);
+        res.status(500).json({ error: "Failed to track view" });
     }
 });
 

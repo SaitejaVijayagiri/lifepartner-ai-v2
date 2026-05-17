@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
-import toast from 'react-hot-toast';
+import { useToast } from '@/components/ui/Toast';
 
 interface StoryCreatorProps {
     storyFile: File;
@@ -29,6 +29,7 @@ const MUSIC_TRACKS = [
 ];
 
 export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSuccess }: StoryCreatorProps) {
+    const { toast } = useToast();
     const [activeFilter, setActiveFilter] = useState<string>('none');
     const [isUploadingStory, setIsUploadingStory] = useState(false);
     

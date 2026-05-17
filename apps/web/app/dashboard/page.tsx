@@ -819,19 +819,6 @@ function DashboardContent() {
     const [activeStorySet, setActiveStorySet] = useState<any>(null);
     const [storyFile, setStoryFile] = useState<File | null>(null);
     const [storyPreviewUrl, setStoryPreviewUrl] = useState<string | null>(null);
-    const [activeFilter, setActiveFilter] = useState<string>('none');
-    const [isUploadingStory, setIsUploadingStory] = useState(false);
-
-    const STORY_FILTERS = [
-        { name: 'Normal', filter: 'none' },
-        { name: 'Golden Hour 🌅', filter: 'sepia(0.3) brightness(1.1) contrast(1.1) saturate(1.4) hue-rotate(-5deg)' },
-        { name: 'Soft Glam 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
-        { name: 'Paris ✨', filter: 'sepia(0.2) contrast(1.1) brightness(1.1) hue-rotate(-10deg) saturate(1.2)' },
-        { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.95) saturate(1.1) hue-rotate(10deg)' },
-        { name: 'Cinematic 🎬', filter: 'brightness(0.9) contrast(1.2) saturate(1.3) sepia(0.2) hue-rotate(15deg)' },
-        { name: 'Retro 90s 📼', filter: 'contrast(1.3) saturate(0.8) sepia(0.4) brightness(0.9)' },
-        { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2)' }
-    ];
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -846,65 +833,6 @@ function DashboardContent() {
         const previewUrl = URL.createObjectURL(file);
         setStoryFile(file);
         setStoryPreviewUrl(previewUrl);
-        setActiveFilter('none'); // Reset filter
-    };
-
-    const applyFilterAndUpload = async () => {
-        if (!storyFile || !storyPreviewUrl) return;
-        setIsUploadingStory(true);
-
-        try {
-            let finalData: FormData | string;
-
-            if (storyFile.type.startsWith('video')) {
-                // Cannot easily apply local CSS filters to video uploads yet, upload as is
-                const formData = new FormData();
-                formData.append('media', storyFile);
-                finalData = formData;
-            } else {
-                // Apply Canvas Filter for Images
-                const img = new Image();
-                img.crossOrigin = "anonymous";
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    img.src = storyPreviewUrl;
-                });
-
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) throw new Error("Canvas not supported");
-
-                if (activeFilter !== 'none') {
-                    ctx.filter = activeFilter;
-                }
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Extract blob
-                const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, storyFile.type, 0.9));
-                if (!blob) throw new Error("Failed to process image");
-
-                const formData = new FormData();
-                formData.append('media', blob, storyFile.name);
-                finalData = formData;
-            }
-
-            await api.profile.uploadStory(finalData as FormData);
-            toast.success("Story uploaded successfully!");
-            
-            // Cleanup & Refresh
-            setStoryFile(null);
-            setStoryPreviewUrl(null);
-            const me = await api.profile.getMe();
-            setCurrentUser(me);
-        } catch (err: any) {
-            console.error(err);
-            toast.error(err.message || "Failed to upload story");
-        } finally {
-            setIsUploadingStory(false);
-        }
     };
 
     const handleViewStory = (user: any) => {
@@ -1917,81 +1845,19 @@ function DashboardContent() {
                 />
             )}
 
-            {/* Story Filter Studio Modal */}
-            {storyPreviewUrl && (
-                <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black backdrop-blur-sm">
-                    <div className="bg-black w-full h-full md:max-w-lg md:h-[90vh] md:rounded-3xl overflow-hidden flex flex-col relative">
-                        
-                        {/* Header */}
-                        <div className="flex justify-between items-center p-4 border-b border-white/5 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/60 to-transparent">
-                            <h3 className="font-bold text-lg text-white drop-shadow-md">New Story ✨</h3>
-                            <button 
-                                onClick={() => { setStoryPreviewUrl(null); setStoryFile(null); }}
-                                className="text-white bg-black/40 hover:bg-black/60 rounded-full p-2 backdrop-blur-md transition-all"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
-                        </div>
-
-                        {/* Image Preview Area */}
-                        <div className="bg-black relative flex-1 flex items-center justify-center overflow-hidden w-full h-full">
-                            {storyFile?.type.startsWith('video') ? (
-                                <video src={storyPreviewUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
-                            ) : (
-                                <img 
-                                    src={storyPreviewUrl} 
-                                    alt="Preview" 
-                                    className="w-full h-full object-cover transition-all duration-300 ease-out"
-                                    style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}
-                                />
-                            )}
-                        </div>
-
-                        {/* Filters & Actions Overlay (Instagram Style) */}
-                        <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-20">
-                            {!storyFile?.type.startsWith('video') && (
-                                <div className="mb-6">
-                                    <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
-                                        {STORY_FILTERS.map(f => (
-                                            <div 
-                                                key={f.name}
-                                                onClick={() => setActiveFilter(f.filter)}
-                                                className={`flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 group`}
-                                            >
-                                                <div className={`w-[60px] h-[60px] rounded-full overflow-hidden border-[3px] transition-all duration-300 ${activeFilter === f.filter ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-transparent ring-1 ring-white/30 opacity-70 group-hover:opacity-100'}`}>
-                                                    <img 
-                                                        src={storyPreviewUrl} 
-                                                        className="w-full h-full object-cover"
-                                                        style={{ filter: f.filter !== 'none' ? f.filter : 'none' }}
-                                                    />
-                                                </div>
-                                                <span className={`text-[11px] font-medium transition-colors ${activeFilter === f.filter ? 'text-white font-bold' : 'text-white/60'}`}>
-                                                    {f.name}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <button 
-                                onClick={applyFilterAndUpload}
-                                disabled={isUploadingStory}
-                                className="w-full py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                            >
-                                {isUploadingStory ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>Add to Story {'>'}</>
-                                )}
-                            </button>
-                        </div>
-
-                    </div>
-                </div>
+            {/* Story Creator Modal */}
+            {storyPreviewUrl && storyFile && (
+                <StoryCreator 
+                    storyFile={storyFile}
+                    storyPreviewUrl={storyPreviewUrl}
+                    onClose={() => { setStoryPreviewUrl(null); setStoryFile(null); }}
+                    onSuccess={async () => {
+                        setStoryFile(null);
+                        setStoryPreviewUrl(null);
+                        const me = await api.profile.getMe();
+                        setCurrentUser(me);
+                    }}
+                />
             )}
 
             {/* Filter Modal */}

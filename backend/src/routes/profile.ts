@@ -838,13 +838,17 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         logDebug(`Upload Success: ${publicUrl}`);
 
         // 2. Add to DB
-        const newStory = {
+        const newStory: any = {
             id: Date.now().toString(),
             url: publicUrl,
             type,
             createdAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         };
+        
+        if (req.body.music) {
+            newStory.music = req.body.music;
+        }
 
         const finalStories = [...validStories, newStory];
 

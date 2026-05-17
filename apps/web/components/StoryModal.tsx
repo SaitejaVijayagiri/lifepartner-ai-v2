@@ -8,6 +8,7 @@ interface Story {
     url: string;
     type: 'image' | 'video';
     createdAt: string;
+    music?: string;
 }
 
 interface User {
@@ -36,6 +37,53 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     const [isLiked, setIsLiked] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const story = stories[currentIndex];
+    
+    // Audio Player Ref
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const MUSIC_TRACKS: Record<string, { name: string, url: string }> = {
+        'lofi': { name: 'Chill Lo-Fi ☕', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+        'romantic': { name: 'Romantic Piano 💖', url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_4f0f089602.mp3' },
+        'upbeat': { name: 'Upbeat Pop 🕺', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3' },
+        'cinematic': { name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' }
+    };
+
+    // Handle Music Playback
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
+
+        if (story?.music && MUSIC_TRACKS[story.music]) {
+            const track = MUSIC_TRACKS[story.music];
+            audioRef.current = new Audio(track.url);
+            audioRef.current.volume = 0.5;
+            audioRef.current.loop = true;
+            
+            if (!isPaused) {
+                audioRef.current.play().catch(e => console.log('Audio autoplay prevented:', e));
+            }
+        }
+
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+        };
+    }, [story?.id, story?.music]);
+
+    // Handle Pause Toggle for Music
+    useEffect(() => {
+        if (audioRef.current) {
+            if (isPaused) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(e => console.log('Audio play prevented:', e));
+            }
+        }
+    }, [isPaused]);
 
     // Auto-advance Timer
     useEffect(() => {
@@ -130,6 +178,14 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                 <span>•</span>
                                 <span>{currentIndex + 1}/{stories.length}</span>
                             </div>
+                            {story.music && MUSIC_TRACKS[story.music] && (
+                                <div className="flex items-center gap-1 text-[10px] text-white mt-0.5 overflow-hidden w-32">
+                                    <span className="animate-pulse">🎵</span>
+                                    <div className="whitespace-nowrap animate-[marquee_5s_linear_infinite]">
+                                        {MUSIC_TRACKS[story.music].name}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex gap-2">

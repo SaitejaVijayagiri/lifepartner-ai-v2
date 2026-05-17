@@ -373,7 +373,8 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             
                             {/* Play/Pause Overlay Button */}
                             <button 
-                                onClick={() => {
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     if (videoRef.current) {
                                         if (isPlaying) {
                                             videoRef.current.pause();
@@ -382,7 +383,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                         }
                                     }
                                 }}
-                                className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors z-[50]"
+                                className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors z-[5]"
                             >
                                 {!isPlaying && (
                                     <div className="w-16 h-16 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">

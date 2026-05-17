@@ -135,15 +135,15 @@ router.post('/moderate-photo', async (req, res) => {
                     from: process.env.EMAIL_FROM || 'LifePartner AI <hello@lifepartnerai.in>',
                     to: user.email,
                     subject: 'Action Required: Profile Photo Update',
-                    html: \`
+                    html: `
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                            <h2 style="color: #E11D48;">Hi \${firstName},</h2>
+                            <h2 style="color: #E11D48;">Hi ${firstName},</h2>
                             <p>We're dedicated to keeping LifePartner AI a safe and authentic community.</p>
                             <p>Your recent profile photo was flagged by our moderation team because it does not clearly show your face, or it contains prohibited content (like scenery, text, or celebrities).</p>
                             <p><strong>To continue using the platform and getting matches, please upload a clear, authentic photo of yourself.</strong></p>
-                            <a href="\${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="display:inline-block; padding:10px 20px; background:#E11D48; color:white; text-decoration:none; border-radius:5px; margin-top:20px;">Update My Photo</a>
+                            <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="display:inline-block; padding:10px 20px; background:#E11D48; color:white; text-decoration:none; border-radius:5px; margin-top:20px;">Update My Photo</a>
                         </div>
-                    \`
+                    `
                 });
             }
         }

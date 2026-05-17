@@ -838,12 +838,7 @@ function DashboardContent() {
             setCurrentUser(me);
         } catch (err: any) {
             console.error(err);
-            if (err.message && err.message.includes("Premium")) {
-                toast.error("Stories are a Premium feature! Please upgrade.");
-                setShowCoinStore(true);
-            } else {
-                toast.error("Failed to upload story");
-            }
+            toast.error(err.message || "Failed to upload story");
         }
     };
 

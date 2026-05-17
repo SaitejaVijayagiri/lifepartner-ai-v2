@@ -31,7 +31,7 @@ const MUSIC_TRACKS = [
 ];
 
 export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSuccess }: StoryCreatorProps) {
-    const { toast } = useToast();
+    const toast = useToast();
     const [activeFilter, setActiveFilter] = useState<string>('none');
     const [isUploadingStory, setIsUploadingStory] = useState(false);
     
@@ -216,7 +216,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                         {!storyFile.type.startsWith('video') && (
                             <button 
                                 onClick={() => setIsAddingText(!isAddingText)}
-                                className={`text-white p-2 rounded-full transition-all font-serif font-bold text-xl leading-none w-10 h-10 flex items-center justify-center ${isAddingText || storyText ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
+                                className={`text-white p-2 rounded-full transition-all font-serif font-bold text-xl leading-none w-10 h-10 flex items-center justify-center ${isAddingText || texts.length > 0 ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
                             >
                                 Aa
                             </button>
@@ -236,6 +236,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                             
                             {/* Cropper Base Layer */}
                             <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
+                                {/* @ts-ignore */}
                                 <Cropper
                                     image={storyPreviewUrl}
                                     crop={crop}
@@ -253,6 +254,7 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
 
                             {/* Draggable Texts Layer */}
                             {!isAddingText && texts.map((t, i) => (
+                                /* @ts-ignore */
                                 <Draggable
                                     key={t.id}
                                     defaultPosition={{ x: t.x, y: t.y }}

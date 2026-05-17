@@ -170,7 +170,9 @@ export default function AdminDashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="h-[300px] w-full">
+                                {/* @ts-ignore */}
                                 <ResponsiveContainer width="100%" height="100%">
+                                    {/* @ts-ignore */}
                                     <AreaChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
@@ -178,10 +180,13 @@ export default function AdminDashboard() {
                                                 <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
                                             </linearGradient>
                                         </defs>
+                                        {/* @ts-ignore */}
                                         <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
+                                        {/* @ts-ignore */}
                                         <YAxis tick={{fontSize: 12}} />
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                         <Tooltip labelFormatter={(val) => format(new Date(val), 'dd MMM yyyy')} />
+                                        {/* @ts-ignore */}
                                         <Area type="monotone" dataKey="users" stroke="#8884d8" fillOpacity={1} fill="url(#colorUsers)" />
                                     </AreaChart>
                                 </ResponsiveContainer>

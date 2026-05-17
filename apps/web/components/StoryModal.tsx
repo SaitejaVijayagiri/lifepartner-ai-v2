@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
@@ -32,6 +33,7 @@ interface StoryModalProps {
 }
 
 const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete }: StoryModalProps) => {
+    const router = useRouter();
     const { socket } = useSocket() as any;
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
@@ -419,7 +421,16 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                 const exactTime = new Date(viewer.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                                 return (
-                                    <div key={idx} className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-colors group">
+                                    <div 
+                                        key={idx} 
+                                        className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-colors group cursor-pointer"
+                                        onClick={() => {
+                                            if (viewer.userId) {
+                                                onClose();
+                                                router.push(`/profile/${viewer.userId}`);
+                                            }
+                                        }}
+                                    >
                                         {/* Avatar */}
                                         <div className="relative flex-shrink-0">
                                             <img
@@ -444,15 +455,9 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
                                         {/* View Profile Button */}
                                         {viewer.userId && (
-                                            <a
-                                                href={`/profile/${viewer.userId}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="flex-shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/20 hover:bg-indigo-500/30 px-3 py-1.5 rounded-full transition-all border border-indigo-500/30"
-                                            >
+                                            <span className="flex-shrink-0 text-xs font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/20 hover:bg-indigo-500/30 px-3 py-1.5 rounded-full transition-all border border-indigo-500/30">
                                                 View
-                                            </a>
+                                            </span>
                                         )}
                                     </div>
                                 );

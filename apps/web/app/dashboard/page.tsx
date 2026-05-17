@@ -1916,11 +1916,11 @@ function DashboardContent() {
 
             {/* Story Filter Studio Modal */}
             {storyPreviewUrl && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-                    <div className="bg-background w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col m-4 border border-white/10 relative">
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black backdrop-blur-sm">
+                    <div className="bg-black w-full h-full md:max-w-lg md:h-[90vh] md:rounded-3xl overflow-hidden flex flex-col relative">
                         
                         {/* Header */}
-                        <div className="flex justify-between items-center p-4 border-b border-white/5 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent">
+                        <div className="flex justify-between items-center p-4 border-b border-white/5 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/60 to-transparent">
                             <h3 className="font-bold text-lg text-white drop-shadow-md">New Story ✨</h3>
                             <button 
                                 onClick={() => { setStoryPreviewUrl(null); setStoryFile(null); }}
@@ -1931,7 +1931,7 @@ function DashboardContent() {
                         </div>
 
                         {/* Image Preview Area */}
-                        <div className="bg-[#0a0a0a] relative flex-1 min-h-[400px] flex items-center justify-center overflow-hidden">
+                        <div className="bg-black relative flex-1 flex items-center justify-center overflow-hidden w-full h-full">
                             {storyFile?.type.startsWith('video') ? (
                                 <video src={storyPreviewUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
                             ) : (
@@ -1944,14 +1944,10 @@ function DashboardContent() {
                             )}
                         </div>
 
-                        {/* Filters & Actions */}
-                        <div className="p-5 bg-background rounded-t-3xl -mt-6 relative z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+                        {/* Filters & Actions Overlay (Instagram Style) */}
+                        <div className="absolute bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-20">
                             {!storyFile?.type.startsWith('video') && (
                                 <div className="mb-6">
-                                    <div className="flex justify-between items-center mb-3">
-                                        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Aesthetic Filters</p>
-                                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">Premium Feel</span>
-                                    </div>
                                     <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
                                         {STORY_FILTERS.map(f => (
                                             <div 
@@ -1959,14 +1955,14 @@ function DashboardContent() {
                                                 onClick={() => setActiveFilter(f.filter)}
                                                 className={`flex flex-col items-center gap-2 cursor-pointer flex-shrink-0 group`}
                                             >
-                                                <div className={`w-16 h-16 rounded-2xl overflow-hidden border-[3px] transition-all duration-300 ${activeFilter === f.filter ? 'border-indigo-500 scale-110 shadow-lg shadow-indigo-500/20' : 'border-transparent ring-1 ring-gray-200 dark:ring-gray-800 opacity-80 group-hover:opacity-100'}`}>
+                                                <div className={`w-[60px] h-[60px] rounded-full overflow-hidden border-[3px] transition-all duration-300 ${activeFilter === f.filter ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-transparent ring-1 ring-white/30 opacity-70 group-hover:opacity-100'}`}>
                                                     <img 
                                                         src={storyPreviewUrl} 
                                                         className="w-full h-full object-cover"
                                                         style={{ filter: f.filter !== 'none' ? f.filter : 'none' }}
                                                     />
                                                 </div>
-                                                <span className={`text-[11px] font-medium transition-colors ${activeFilter === f.filter ? 'text-indigo-600 font-bold' : 'text-gray-500'}`}>
+                                                <span className={`text-[11px] font-medium transition-colors ${activeFilter === f.filter ? 'text-white font-bold' : 'text-white/60'}`}>
                                                     {f.name}
                                                 </span>
                                             </div>
@@ -1978,15 +1974,15 @@ function DashboardContent() {
                             <button 
                                 onClick={applyFilterAndUpload}
                                 disabled={isUploadingStory}
-                                className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-lg shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+                                className="w-full py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {isUploadingStory ? (
                                     <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                                         Processing...
                                     </>
                                 ) : (
-                                    <>Add to Story 🚀</>
+                                    <>Add to Story {'>'}</>
                                 )}
                             </button>
                         </div>

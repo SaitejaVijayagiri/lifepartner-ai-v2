@@ -326,22 +326,23 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                         setTexts(newTexts);
                                     }}
                                 >
-                                    <div 
-                                        className="absolute cursor-move inline-block"
-                                        style={{ 
-                                            color: t.bgStyle === 'highlight' ? (t.color === 'white' ? 'black' : 'white') : t.color,
-                                            backgroundColor: t.bgStyle === 'highlight' ? t.color : 'transparent',
-                                            textShadow: t.bgStyle === 'neon' ? `0 0 10px ${t.color}, 0 0 20px ${t.color}, 0 0 30px ${t.color}` : (t.bgStyle === 'plain' ? '0px 2px 15px rgba(0,0,0,0.8)' : 'none'),
-                                            fontSize: `clamp(${1.5 * t.scale}rem, ${6 * t.scale}vw, ${3 * t.scale}rem)`,
-                                            fontFamily: t.fontFamily,
-                                            fontWeight: 'bold',
-                                            whiteSpace: 'pre-wrap',
-                                            padding: t.bgStyle === 'highlight' ? '10px 20px' : '0',
-                                            borderRadius: t.bgStyle === 'highlight' ? '12px' : '0',
-                                            zIndex: 20
-                                        }}
-                                    >
-                                        {t.text}
+                                    <div className="absolute top-1/2 left-1/2 cursor-move inline-block" style={{ zIndex: 20 }}>
+                                        <div 
+                                            style={{ 
+                                                transform: 'translate(-50%, -50%)',
+                                                color: t.bgStyle === 'highlight' ? (t.color === 'white' ? 'black' : 'white') : t.color,
+                                                backgroundColor: t.bgStyle === 'highlight' ? t.color : 'transparent',
+                                                textShadow: t.bgStyle === 'neon' ? `0 0 10px ${t.color}, 0 0 20px ${t.color}, 0 0 30px ${t.color}` : (t.bgStyle === 'plain' ? '0px 2px 15px rgba(0,0,0,0.8)' : 'none'),
+                                                fontSize: `clamp(${1.5 * t.scale}rem, ${6 * t.scale}vw, ${3 * t.scale}rem)`,
+                                                fontFamily: t.fontFamily,
+                                                fontWeight: 'bold',
+                                                whiteSpace: 'pre-wrap',
+                                                padding: t.bgStyle === 'highlight' ? '10px 20px' : '0',
+                                                borderRadius: t.bgStyle === 'highlight' ? '12px' : '0',
+                                            }}
+                                        >
+                                            {t.text}
+                                        </div>
                                     </div>
                                 </Draggable>
                             ))}
@@ -358,29 +359,32 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                 <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
                                     
                                     {/* Style & Font Toggles */}
-                                    <div className="absolute top-20 left-6 flex flex-col gap-4">
+                                    <div className="absolute top-20 left-0 right-0 flex justify-center gap-4 px-4 pointer-events-auto">
                                         <button 
                                             onClick={() => setCurrentBgStyle(prev => prev === 'plain' ? 'highlight' : (prev === 'highlight' ? 'neon' : 'plain'))}
                                             className="text-white bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-bold border border-white/20 transition-all flex items-center justify-center"
                                         >
                                             {currentBgStyle === 'plain' ? 'Aa Plain' : (currentBgStyle === 'highlight' ? 'Aa Highlight' : 'Aa Neon')}
                                         </button>
-                                        <button 
-                                            onClick={() => setCurrentFont(prev => prev === 'sans-serif' ? 'serif' : (prev === 'serif' ? 'monospace' : 'sans-serif'))}
-                                            className="text-white bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-xl text-sm border border-white/20 transition-all"
+                                        <select 
+                                            value={currentFont}
+                                            onChange={(e) => setCurrentFont(e.target.value)}
+                                            className="text-white bg-white/20 hover:bg-white/30 backdrop-blur-md px-4 py-2 rounded-xl text-sm font-bold border border-white/20 transition-all outline-none appearance-none cursor-pointer"
                                             style={{ fontFamily: currentFont }}
                                         >
-                                            Font Style
-                                        </button>
+                                            <option value="sans-serif" className="text-black font-sans">Classic</option>
+                                            <option value="serif" className="text-black font-serif">Serif</option>
+                                            <option value="monospace" className="text-black font-mono">Typewriter</option>
+                                        </select>
                                     </div>
 
                                     {/* Size Slider */}
-                                    <div className="absolute top-20 right-1/2 translate-x-1/2 flex items-center gap-3 bg-black/50 p-2 rounded-xl backdrop-blur-md">
-                                        <span className="text-white/70 text-xs font-bold">SIZE</span>
+                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center h-48 w-10 bg-black/50 rounded-full backdrop-blur-md pointer-events-auto">
+                                        <span className="text-white/70 text-[10px] font-bold mb-16">SIZE</span>
                                         <input 
                                             type="range" min="0.5" max="2.5" step="0.1" 
                                             value={currentScale} onChange={(e) => setCurrentScale(parseFloat(e.target.value))}
-                                            className="w-32 accent-white"
+                                            className="w-32 h-1 accent-white origin-center -rotate-90"
                                         />
                                     </div>
 
@@ -479,19 +483,6 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                     <div className="pointer-events-auto">
                         {!storyFile?.type.startsWith('video') && !isAddingText && (
                             <div className="mb-6 flex flex-col gap-4">
-                                
-                                {/* Advanced Crop Controls */}
-                                <div className="flex flex-col gap-2 px-2 bg-black/40 p-3 rounded-2xl backdrop-blur-md border border-white/10">
-                                    <div className="flex gap-4 items-center">
-                                        <span className="text-white/70 text-[10px] font-bold w-12 tracking-wider">ZOOM</span>
-                                        <input type="range" min={1} max={3} step={0.05} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="flex-1 accent-white" />
-                                    </div>
-                                    <div className="flex gap-4 items-center">
-                                        <span className="text-white/70 text-[10px] font-bold w-12 tracking-wider">ROTATE</span>
-                                        <input type="range" min={0} max={360} step={1} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} className="flex-1 accent-white" />
-                                    </div>
-                                </div>
-
                                 {/* Filters Carousel */}
                                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
                                     {STORY_FILTERS.map(f => (

@@ -307,13 +307,30 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
                 {/* Bottom Actions (for own stories) */}
                 {user.id === currentUser?.id && (
-                    <div className="absolute bottom-6 left-4 right-4 z-30 flex justify-center">
+                    <div className="absolute bottom-6 left-4 right-4 z-30 flex justify-between items-center gap-3">
+                        {/* Expiry Badge */}
+                        <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md text-white/80 px-4 py-2.5 rounded-full border border-white/10 text-xs font-semibold shadow-lg">
+                            <span>⏳</span>
+                            <span>
+                                {(() => {
+                                    const exp = (story as any).expiresAt;
+                                    if (!exp) return 'Expires in 24h';
+                                    const ms = new Date(exp).getTime() - Date.now();
+                                    if (ms <= 0) return 'Expired';
+                                    const h = Math.floor(ms / 3600000);
+                                    const m = Math.floor((ms % 3600000) / 60000);
+                                    return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+                                })()}
+                            </span>
+                        </div>
+
+                        {/* Views Button */}
                         <button 
                             onClick={(e) => { e.stopPropagation(); setIsViewsOpen(true); }}
                             className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-5 py-2.5 rounded-full hover:bg-black/70 transition-all border border-white/10 shadow-lg"
                         >
                             <Eye size={18} />
-                            <span className="font-bold text-sm">{story.views?.length || 0}</span>
+                            <span className="font-bold text-sm">{story.views?.length || 0} views</span>
                         </button>
                     </div>
                 )}

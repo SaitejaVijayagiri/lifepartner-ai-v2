@@ -128,6 +128,8 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                     formData.append('endTime', endTime.toString());
                 }
                 
+                if (texts.length > 0) formData.append('texts', JSON.stringify(texts));
+                
                 finalData = formData;
             } else {
                 // Apply Canvas Filter & Text (Single Image)
@@ -291,7 +293,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                         </button>
-                        {!isSlideshow && !storyFiles[0].type.startsWith('video') && (
+                        {!isSlideshow && (
                             <button 
                                 onClick={() => setIsAddingText(!isAddingText)}
                                 className={`text-white p-2 rounded-full transition-all font-serif font-bold text-xl leading-none w-10 h-10 flex items-center justify-center ${isAddingText || texts.length > 0 ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}

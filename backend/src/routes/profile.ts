@@ -937,6 +937,13 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         if (req.body.music) {
             newStory.music = req.body.music;
         }
+        if (req.body.texts) {
+            try {
+                newStory.texts = JSON.parse(req.body.texts);
+            } catch(e) {
+                console.error("Failed to parse story texts", e);
+            }
+        }
 
         const finalStories = [...validStories, newStory];
 

@@ -269,6 +269,29 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                             alt="Story"
                         />
                     )}
+                    
+                    {/* Dynamic Text Overlays for Video Stories (Images have text burned in) */}
+                    {story.texts && Array.isArray(story.texts) && story.texts.map((t: any, i: number) => (
+                        <div key={i} className="absolute top-1/2 left-1/2 pointer-events-none" style={{ zIndex: 20, transform: `translate(${t.x}px, ${t.y}px)` }}>
+                            <div 
+                                style={{ 
+                                    transform: 'translate(-50%, -50%)',
+                                    color: t.bgStyle === 'highlight' ? (t.color === 'white' ? 'black' : 'white') : t.color,
+                                    backgroundColor: t.bgStyle === 'highlight' ? t.color : 'transparent',
+                                    textShadow: t.bgStyle === 'neon' ? `0 0 10px ${t.color}, 0 0 20px ${t.color}, 0 0 30px ${t.color}` : (t.bgStyle === 'plain' ? '0px 2px 15px rgba(0,0,0,0.8)' : 'none'),
+                                    fontSize: `clamp(${1.5 * t.scale}rem, ${6 * t.scale}vw, ${3 * t.scale}rem)`,
+                                    fontFamily: t.fontFamily,
+                                    fontWeight: 'bold',
+                                    whiteSpace: 'pre-wrap',
+                                    padding: t.bgStyle === 'highlight' ? '10px 20px' : '0',
+                                    borderRadius: t.bgStyle === 'highlight' ? '12px' : '0',
+                                    textAlign: 'center'
+                                }}
+                            >
+                                {t.text}
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 {/* Navigation Tap Zones */}

@@ -42,6 +42,11 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
     const story = stories[currentIndex] as any;
+
+    // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
+    const currentUserId = currentUser?.id || currentUser?.userId;
+    // isOwner = true when this story belongs to the logged-in user
+    const isOwner = !!currentUserId && (user.id === currentUserId);
     
     // Audio Player Ref
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -111,10 +116,10 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     useEffect(() => {
         if (!story) return;
         setIsViewsOpen(false); // Close views panel if story changes
-        if (currentUser && user.id !== currentUser.id) {
+        if (currentUser && !isOwner) {
             api.profile.trackStoryView(user.id, story.id).catch(console.error);
         }
-    }, [story?.id, user.id, currentUser?.id]);
+    }, [story?.id, user.id, currentUserId]);
 
     // Handle Story Completion
     useEffect(() => {
@@ -206,7 +211,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        {user.id === currentUser?.id && (
+                        {isOwner && (
                             <button
                                 onClick={() => onDelete(story.id)}
                                 className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors"
@@ -269,7 +274,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                 </div>
 
                 {/* Bottom Actions (for other users' stories) */}
-                {user.id !== currentUser?.id && (
+                {!isOwner && (
                     <div className="absolute bottom-6 left-4 right-4 z-30">
                         <div className="flex items-center gap-3">
                             <input
@@ -311,7 +316,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                 )}
 
                 {/* Bottom Actions (for own stories) */}
-                {user.id === currentUser?.id && (
+                {isOwner && (
                     <div className="absolute bottom-6 left-4 right-4 z-30 flex justify-between items-center gap-3">
                         {/* Expiry Badge */}
                         <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md text-white/80 px-4 py-2.5 rounded-full border border-white/10 text-xs font-semibold shadow-lg">
@@ -451,7 +456,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                 socket.emit('directMessage', {
                     to: user.id,
                     message: storyContext,
-                    from: currentUser?.id
+                    from: currentUser?.id || currentUser?.userId
                 });
             }
 
@@ -484,7 +489,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         if (socket && newLiked) {
             socket.emit('storyLike', {
                 to: user.id,
-                from: currentUser?.id,
+                from: currentUser?.id || currentUser?.userId,
                 storyId: story?.id
             });
         }

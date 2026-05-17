@@ -16,11 +16,57 @@ export class EmailService {
                 to: email,
                 subject: 'Welcome to LifePartner AI 💖',
                 html: `
-                    <h1>Welcome, ${name}!</h1>
-                    <p>We are thrilled to have you on board.</p>
-                    <p>Complete your profile to start finding your perfect match today.</p>
-                    <br/>
-                    <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="padding: 10px 20px; background: #E11D48; color: white; text-decoration: none; border-radius: 5px;">Go to Dashboard</a>
+                    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; color: #333333; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08); border: 1px solid #f0f0f0;">
+                        <!-- Hero Header -->
+                        <div style="background: linear-gradient(135deg, #E11D48 0%, #9333EA 100%); padding: 50px 30px; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">✨💍✨</div>
+                            <h1 style="margin: 0; font-size: 28px; color: #ffffff; font-weight: 800; letter-spacing: -0.5px;">
+                                Welcome to LifePartner AI!
+                            </h1>
+                            <p style="color: #fde68a; font-size: 16px; margin-top: 10px; font-weight: 500;">
+                                Your journey to finding true love starts here.
+                            </p>
+                        </div>
+
+                        <!-- Body Content -->
+                        <div style="padding: 40px 32px;">
+                            <p style="font-size: 18px; color: #1e293b; font-weight: 600;">Hi ${name},</p>
+                            
+                            <p style="font-size: 16px; color: #475569; line-height: 1.6;">
+                                We are absolutely thrilled to have you join our community! You've just taken the first and most important step toward meeting highly compatible, genuine matches.
+                            </p>
+
+                            <div style="background: #f8fafc; border-radius: 16px; padding: 24px; margin: 30px 0; border: 1px solid #e2e8f0;">
+                                <h3 style="margin: 0 0 16px 0; font-size: 15px; color: #E11D48; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Next Steps 🚀</h3>
+                                
+                                <ul style="margin: 0; padding-left: 20px; font-size: 15px; color: #334155; line-height: 1.8;">
+                                    <li style="margin-bottom: 8px;"><strong>Complete your profile:</strong> Add your hobbies, interests, and bio.</li>
+                                    <li style="margin-bottom: 8px;"><strong>Upload a clear photo:</strong> Profiles with a face photo get 8x more matches!</li>
+                                    <li style="margin-bottom: 0;"><strong>Start connecting:</strong> Browse your AI-curated matches today.</li>
+                                </ul>
+                            </div>
+
+                            <p style="font-size: 16px; color: #475569; line-height: 1.6; text-align: center; margin-bottom: 30px;">
+                                Don't keep your future partner waiting. Let's get your profile set up!
+                            </p>
+
+                            <!-- CTA Button -->
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" 
+                                   style="display: inline-block; padding: 16px 48px; background: linear-gradient(135deg, #E11D48, #9333EA); color: #ffffff; text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: 700; box-shadow: 0 4px 15px rgba(225, 29, 72, 0.3);">
+                                    Go to Dashboard ✨
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div style="background: #f8fafc; padding: 24px 32px; text-align: center; border-top: 1px solid #e2e8f0;">
+                            <p style="font-size: 13px; color: #64748b; margin: 0;">
+                                <strong>LifePartner AI</strong> · Hyderabad, India<br/>
+                                <span style="font-size: 12px; margin-top: 8px; display: inline-block;">Connecting hearts, safely and smartly.</span>
+                            </p>
+                        </div>
+                    </div>
                 `
             });
             console.log(`Welcome email sent to ${email}`);

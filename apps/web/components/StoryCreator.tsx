@@ -1,4 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
+import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
@@ -34,10 +36,27 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
     const [isUploadingStory, setIsUploadingStory] = useState(false);
     
     // Text Overlay State
+    interface TextOverlay {
+        id: string;
+        text: string;
+        color: string;
+        x: number;
+        y: number;
+    }
+    const [texts, setTexts] = useState<TextOverlay[]>([]);
     const [isAddingText, setIsAddingText] = useState(false);
-    const [storyText, setStoryText] = useState('');
-    const [textColor, setTextColor] = useState('white');
+    const [currentText, setCurrentText] = useState('');
+    const [currentColor, setCurrentColor] = useState('white');
     
+    // Crop State
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+    const previewContainerRef = useRef<HTMLDivElement>(null);
+
     // Music State
     const [isSelectingMusic, setIsSelectingMusic] = useState(false);
     const [selectedMusic, setSelectedMusic] = useState<string>('none');
@@ -79,62 +98,68 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                 });
 
                 const canvas = document.createElement('canvas');
-                // Force 9:16 aspect ratio crop (Instagram style)
-                const targetRatio = 9 / 16;
-                const imgRatio = img.width / img.height;
-                
-                let drawWidth = img.width;
-                let drawHeight = img.height;
-                let offsetX = 0;
-                let offsetY = 0;
-
-                if (imgRatio > targetRatio) {
-                    // Image is wider than 9:16, crop width
-                    drawWidth = img.height * targetRatio;
-                    offsetX = (img.width - drawWidth) / 2;
-                } else {
-                    // Image is taller than 9:16, crop height
-                    drawHeight = img.width / targetRatio;
-                    offsetY = (img.height - drawHeight) / 2;
-                }
-
-                canvas.width = drawWidth;
-                canvas.height = drawHeight;
                 const ctx = canvas.getContext('2d');
                 if (!ctx) throw new Error("Canvas not supported");
 
-                if (activeFilter !== 'none') {
-                    ctx.filter = activeFilter;
+                if (croppedAreaPixels) {
+                    canvas.width = croppedAreaPixels.width;
+                    canvas.height = croppedAreaPixels.height;
+                    if (activeFilter !== 'none') ctx.filter = activeFilter;
+                    ctx.drawImage(
+                        img,
+                        croppedAreaPixels.x,
+                        croppedAreaPixels.y,
+                        croppedAreaPixels.width,
+                        croppedAreaPixels.height,
+                        0, 0, canvas.width, canvas.height
+                    );
+                } else {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    if (activeFilter !== 'none') ctx.filter = activeFilter;
+                    ctx.drawImage(img, 0, 0);
                 }
-                
-                // Draw Image Cover Cropped
-                ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight, 0, 0, drawWidth, drawHeight);
-                
-                // Reset filter for text so text isn't affected by image filter
+
                 ctx.filter = 'none';
 
-                // Draw Text Overlay if exists
-                if (storyText.trim() !== '') {
+                // Draw Text Overlays
+                if (texts.length > 0 && previewContainerRef.current) {
+                    const containerRect = previewContainerRef.current.getBoundingClientRect();
+                    // Aspect ratio is 9:16, so the actual visible area might be smaller than container
+                    // Find actual 9:16 area inside containerRect
+                    let viewWidth = containerRect.width;
+                    let viewHeight = containerRect.height;
+                    
+                    if (viewWidth / viewHeight > 9 / 16) {
+                        viewWidth = viewHeight * (9 / 16);
+                    } else {
+                        viewHeight = viewWidth / (9 / 16);
+                    }
+
+                    const scaleX = canvas.width / viewWidth;
+                    const scaleY = canvas.height / viewHeight;
+
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    const fontSize = Math.floor(canvas.width * 0.08); // Responsive font size
+                    const fontSize = Math.floor(canvas.width * 0.08); // Base font size
                     ctx.font = `bold ${fontSize}px sans-serif`;
-                    
-                    // Add subtle text shadow for readability
                     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
                     ctx.shadowBlur = 15;
                     ctx.shadowOffsetX = 2;
                     ctx.shadowOffsetY = 2;
-                    
-                    ctx.fillStyle = textColor;
-                    
-                    // Handle multiline text naive approach
-                    const lines = storyText.split('\\n');
-                    const lineHeight = fontSize * 1.2;
-                    const startY = (canvas.height / 2) - ((lines.length - 1) * lineHeight) / 2;
-                    
-                    lines.forEach((line, index) => {
-                        ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
+
+                    texts.forEach(t => {
+                        ctx.fillStyle = t.color;
+                        const canvasX = (canvas.width / 2) + (t.x * scaleX);
+                        const canvasY = (canvas.height / 2) + (t.y * scaleY);
+                        
+                        const lines = t.text.split('\\n');
+                        const lineHeight = fontSize * 1.2;
+                        const startY = canvasY - ((lines.length - 1) * lineHeight) / 2;
+                        
+                        lines.forEach((line, index) => {
+                            ctx.fillText(line, canvasX, startY + (index * lineHeight));
+                        });
                     });
                 }
                 
@@ -200,46 +225,81 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                 </div>
 
                 {/* Main Preview */}
-                <div className="relative flex-1 flex items-center justify-center overflow-hidden w-full h-full bg-[#111]">
+                <div 
+                    className="relative flex-1 flex items-center justify-center overflow-hidden w-full h-full bg-[#111]"
+                    ref={previewContainerRef}
+                >
                     {storyFile.type.startsWith('video') ? (
                         <video src={storyPreviewUrl} controls autoPlay loop muted className="w-full h-full object-cover" />
                     ) : (
-                        <div className="relative w-full h-full flex items-center justify-center overflow-hidden" style={{ aspectRatio: '9/16' }}>
-                            <img 
-                                src={storyPreviewUrl} 
-                                alt="Preview" 
-                                className="w-full h-full object-cover transition-all duration-300 ease-out absolute inset-0"
-                                style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}
-                            />
+                        <div className="relative w-full h-full" style={{ aspectRatio: '9/16', margin: '0 auto', maxWidth: '100%', maxHeight: '100%' }}>
                             
-                            {/* Text Overlay Display */}
-                            {storyText && !isAddingText && (
-                                <div 
-                                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
-                                    style={{ 
-                                        color: textColor, 
-                                        textShadow: '0px 2px 15px rgba(0,0,0,0.8)',
-                                        fontSize: 'clamp(2rem, 8vw, 4rem)',
-                                        fontWeight: 'bold',
-                                        textAlign: 'center',
-                                        padding: '20px',
-                                        whiteSpace: 'pre-wrap'
+                            {/* Cropper Base Layer */}
+                            <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
+                                <Cropper
+                                    image={storyPreviewUrl}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    aspect={9 / 16}
+                                    onCropChange={setCrop}
+                                    onCropComplete={onCropComplete}
+                                    onZoomChange={setZoom}
+                                    showGrid={false}
+                                    style={{
+                                        containerStyle: { background: '#111' },
+                                    }}
+                                />
+                            </div>
+
+                            {/* Draggable Texts Layer */}
+                            {!isAddingText && texts.map((t, i) => (
+                                <Draggable
+                                    key={t.id}
+                                    defaultPosition={{ x: t.x, y: t.y }}
+                                    onStop={(e, data) => {
+                                        // Update position in array
+                                        const newTexts = [...texts];
+                                        newTexts[i] = { ...newTexts[i], x: data.x, y: data.y };
+                                        
+                                        // Delete logic: if dragged to bottom 100px
+                                        if (previewContainerRef.current) {
+                                            const containerRect = previewContainerRef.current.getBoundingClientRect();
+                                            // simple math: if data.y > containerRect.height - 150
+                                            // we will just delete it if y > 300 for mobile
+                                            if (data.y > (containerRect.height / 2) - 100) {
+                                                // Actually it's better to calculate relative to window
+                                                // We'll leave it as simple drag for now, exact trash zone is tricky across screens
+                                            }
+                                        }
+                                        setTexts(newTexts);
                                     }}
                                 >
-                                    {storyText}
-                                </div>
-                            )}
+                                    <div 
+                                        className="absolute cursor-move inline-block"
+                                        style={{ 
+                                            color: t.color, 
+                                            textShadow: '0px 2px 15px rgba(0,0,0,0.8)',
+                                            fontSize: 'clamp(1.5rem, 6vw, 3rem)',
+                                            fontWeight: 'bold',
+                                            whiteSpace: 'pre-wrap',
+                                            zIndex: 20
+                                        }}
+                                    >
+                                        {t.text}
+                                    </div>
+                                </Draggable>
+                            ))}
 
                             {/* Text Editing Mode */}
                             {isAddingText && (
-                                <div className="absolute inset-0 bg-black/50 z-30 flex flex-col items-center justify-center backdrop-blur-sm">
+                                <div className="absolute inset-0 bg-black/70 z-50 flex flex-col items-center justify-center backdrop-blur-sm">
                                     <textarea
                                         autoFocus
-                                        value={storyText}
-                                        onChange={(e) => setStoryText(e.target.value)}
+                                        value={currentText}
+                                        onChange={(e) => setCurrentText(e.target.value)}
                                         className="bg-transparent border-none outline-none text-center font-bold resize-none w-full px-4"
                                         style={{ 
-                                            color: textColor, 
+                                            color: currentColor, 
                                             textShadow: '0px 2px 15px rgba(0,0,0,0.8)',
                                             fontSize: 'clamp(2rem, 8vw, 4rem)',
                                             minHeight: '200px'
@@ -250,15 +310,27 @@ export default function StoryCreator({ storyFile, storyPreviewUrl, onClose, onSu
                                         {['white', 'black', '#ff3b30', '#ff2d55', '#34c759', '#007aff', '#ffcc00'].map(color => (
                                             <button
                                                 key={color}
-                                                onClick={() => setTextColor(color)}
-                                                className={`w-8 h-8 rounded-full border-2 ${textColor === color ? 'border-white scale-125' : 'border-transparent'}`}
+                                                onClick={() => setCurrentColor(color)}
+                                                className={`w-8 h-8 rounded-full border-2 ${currentColor === color ? 'border-white scale-125' : 'border-transparent'}`}
                                                 style={{ backgroundColor: color }}
                                             />
                                         ))}
                                     </div>
                                     <button 
-                                        onClick={() => setIsAddingText(false)}
-                                        className="absolute top-20 right-6 text-white font-bold bg-white/20 px-4 py-2 rounded-full"
+                                        onClick={() => {
+                                            if (currentText.trim()) {
+                                                setTexts([...texts, { 
+                                                    id: Date.now().toString(), 
+                                                    text: currentText, 
+                                                    color: currentColor, 
+                                                    x: 0, 
+                                                    y: 0 
+                                                }]);
+                                            }
+                                            setCurrentText('');
+                                            setIsAddingText(false);
+                                        }}
+                                        className="absolute top-20 right-6 text-white font-bold bg-white/20 px-4 py-2 rounded-full hover:bg-white/30 transition-all"
                                     >
                                         Done
                                     </button>

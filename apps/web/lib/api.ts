@@ -68,6 +68,7 @@ export const api = {
         }),
         toggleMute: (targetId: string) => fetchAPI(`/profile/mute/${targetId}`, { method: 'POST' }),
         getById: (id: string) => fetchAPI(`/profile/${id}`),
+        getStoryFeed: () => fetchAPI('/profile/stories/feed'),
         deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
         trackStoryView: (targetUserId: string, storyId: string) => fetchAPI(`/profile/stories/${targetUserId}/${storyId}/view`, { method: 'POST' }),
         uploadVoiceBio: (formData: FormData) => fetchAPI('/profile/voice-bio', {

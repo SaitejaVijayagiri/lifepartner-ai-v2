@@ -90,6 +90,7 @@ function DashboardContent() {
 
     /* Story State */
     const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
+    const [storyFeed, setStoryFeed] = useState<any[]>([]);
     const [selectedKundli, setSelectedKundli] = useState<{ data: any, names: { me: string, partner: string } } | null>(null);
 
     /* Gift State */
@@ -218,10 +219,11 @@ function DashboardContent() {
 
             // PERF: Fire profile check + matches + counts all in parallel
             try {
-                const [profileResult, matchesResult, countsResult] = await Promise.allSettled([
+                const [profileResult, matchesResult, countsResult, storyFeedResult] = await Promise.allSettled([
                     api.profile.getMe(),
                     api.matches.getAll(),
-                    api.interactions.getCounts()
+                    api.interactions.getCounts(),
+                    api.profile.getStoryFeed()
                 ]);
 
                 // Handle profile
@@ -268,6 +270,10 @@ function DashboardContent() {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
                     } catch (e) {}
                 }
+                if (storyFeedResult.status === 'fulfilled') {
+                    setStoryFeed(storyFeedResult.value?.feed || []);
+                }
+
                 setLoading(false);
 
                 // Counts (requests badge + unread messages badge)
@@ -869,9 +875,14 @@ function DashboardContent() {
                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
                 </div>
 
-                {/* My Active Story (if any) */}
-                {currentUser?.stories?.map((story: any, i: number) => (
-                    <div key={'me' + i} className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group" onClick={() => setCurrentStoryIndex(i)}>
+                {/* My Active Story (if any) - click to open full viewer */}
+                {currentUser?.stories?.filter((s: any) => new Date(s.expiresAt) > new Date()).map((story: any, i: number) => (
+                    <div key={'me' + i} className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group" onClick={() => {
+                        setActiveStorySet({
+                            stories: currentUser.stories.filter((s: any) => new Date(s.expiresAt) > new Date()),
+                            user: { ...currentUser, id: currentUser.id || currentUser.userId, name: currentUser.full_name || currentUser.name }
+                        });
+                    }}>
                         <div className="relative">
                             <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
                                 <div className="w-full h-full rounded-full p-[2px] bg-background">
@@ -887,24 +898,24 @@ function DashboardContent() {
                     </div>
                 ))}
 
-                {/* Matches Stories */}
-                {matches.filter(m => m.stories?.length > 0).map((match, idx) => (
+                {/* Other Users' Stories (opposite gender via feed API) */}
+                {storyFeed.map((feedUser, idx) => (
                     <div
-                        key={match.id}
+                        key={feedUser.id}
                         className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
                         style={{ animationDelay: `${idx * 50}ms` }}
-                        onClick={() => handleViewStory(match)}
+                        onClick={() => handleViewStory(feedUser)}
                     >
                         <div className="relative">
                             <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
                                 <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                    <img src={match.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt={match.name} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || 'User')}`; }} />
+                                    <img src={feedUser.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt={feedUser.name} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(feedUser.name || 'User')}`; }} />
                                 </div>
                             </div>
                             {/* Unread indicator */}
                             <div className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
                         </div>
-                        <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{match.name}</span>
+                        <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{feedUser.name}</span>
                     </div>
                 ))}
             </div>

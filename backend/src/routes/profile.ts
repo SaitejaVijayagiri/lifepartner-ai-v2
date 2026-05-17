@@ -769,7 +769,65 @@ router.post('/prompt', authenticateToken, async (req: any, res) => {
 
 
 
-// 5. POST /stories (Upload Story)
+// 5a. GET /stories/feed (Get active stories from opposite-gender users only)
+router.get('/stories/feed', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const me = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { gender: true }
+        });
+
+        if (!me) return res.status(404).json({ error: 'User not found' });
+
+        // Determine opposite gender for cross-gender story feed
+        let oppositeGender: string | undefined;
+        if (me.gender === 'Male') oppositeGender = 'Female';
+        else if (me.gender === 'Female') oppositeGender = 'Male';
+        // If gender is unset/other, show all
+
+        const whereClause: any = {
+            id: { not: userId }, // Exclude self
+        };
+        if (oppositeGender) {
+            whereClause.gender = oppositeGender;
+        }
+
+        const usersWithStories = await prisma.users.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                full_name: true,
+                avatar_url: true,
+                profiles: { select: { metadata: true } }
+            },
+        });
+
+        const now = new Date();
+        const feed: any[] = [];
+
+        for (const user of usersWithStories) {
+            const meta: any = user.profiles?.metadata || {};
+            const stories: any[] = meta.stories || [];
+            const activeStories = stories.filter((s: any) => new Date(s.expiresAt) > now);
+            if (activeStories.length > 0) {
+                feed.push({
+                    id: user.id,
+                    name: user.full_name,
+                    photoUrl: user.avatar_url,
+                    stories: activeStories
+                });
+            }
+        }
+
+        res.json({ feed });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to fetch story feed', details: e.message });
+    }
+});
+
+// 5b. POST /stories (Upload Story)
 router.post('/stories', authenticateToken, (req, res, next) => {
     upload.single('media')(req, res, (err) => {
         if (err) {

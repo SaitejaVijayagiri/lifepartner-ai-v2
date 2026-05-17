@@ -101,7 +101,7 @@ export class ModerationService {
 
         if (!apiKey || apiKey.includes('your_') || apiKey.length < 10) {
             console.warn('[ModerationService] GEMINI_API_KEY not configured — skipping face detection.');
-            return { hasFace: true }; // Soft pass
+            return { hasFace: true }; // Soft pass if API key is not set
         }
 
         try {
@@ -117,6 +117,20 @@ export class ModerationService {
                 }
             }
 
+            const promptText = `Analyze this image strictly as a moderator for a dating platform. 
+Is there a real, clear human face visible as the primary subject?
+
+You MUST REJECT (return hasFace: false) if the image contains:
+- Gods, deities, idols, or religious statues.
+- Cartoons, anime, illustrations, AI-generated art, or drawings.
+- Animals, pets, scenery, landscapes, memes, text, or inanimate objects.
+- A human face that is completely obscured by a mask, helmet, or heavy sunglasses.
+- Only children without an adult present.
+
+You MUST ACCEPT (return hasFace: true) ONLY if there is at least one clear, real human face visible.
+
+If you reject it, provide a short, polite reason (e.g., "The photo appears to be a scenery.", "The photo contains a deity/idol.", "No clear human face is visible.").`;
+
             const response = await fetch(
                 `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
                 {
@@ -125,62 +139,68 @@ export class ModerationService {
                     body: JSON.stringify({
                         contents: [{
                             parts: [
-                                {
-                                    text: `Look at this image and determine if it contains a real human face. Accept faces that are angled, slightly blurred, or partially lit — reject only if it is clearly a cartoon, animal, scenery, inanimate object, or a face that is completely hidden/masked.
-
-Reply with a JSON object ONLY in this exact format (no extra text):
-{"hasFace": true, "confidence": "high"}
-or
-{"hasFace": false, "reason": "brief reason e.g. landscape photo, cartoon character, no face visible"}`
-                                },
-                                {
-                                    inlineData: {
-                                        mimeType,
-                                        data: rawB64
-                                    }
-                                }
+                                { text: promptText },
+                                { inlineData: { mimeType, data: rawB64 } }
                             ]
                         }],
                         generationConfig: {
                             temperature: 0,
-                            maxOutputTokens: 100
+                            maxOutputTokens: 100,
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    hasFace: { 
+                                        type: "BOOLEAN", 
+                                        description: "True if a real human face is clearly visible, False otherwise." 
+                                    },
+                                    reason: { 
+                                        type: "STRING", 
+                                        description: "If hasFace is false, a polite 1-sentence reason why it was rejected." 
+                                    }
+                                },
+                                required: ["hasFace"]
+                            }
                         }
                     }),
-                    signal: AbortSignal.timeout(10000) // 10s timeout
+                    signal: AbortSignal.timeout(15000) // 15s timeout
                 }
             );
 
             if (!response.ok) {
                 const errText = await response.text();
-                console.warn(`[ModerationService] Gemini Vision API error ${response.status}: ${errText.substring(0, 100)}`);
-                return { hasFace: true }; // Soft pass on API error
+                console.error(`[ModerationService] Gemini API error ${response.status}: ${errText.substring(0, 200)}`);
+                // Hard fail on API error instead of soft passing fake photos
+                return { hasFace: false, reason: "Our AI verification system is currently busy. Please try again in a few moments." };
             }
 
             const data: any = await response.json();
-            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             
-            // Parse the JSON response
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
-                console.warn('[ModerationService] Could not parse Gemini response:', rawText.substring(0, 100));
-                return { hasFace: true }; // Soft pass on parse failure
+            if (!rawText) {
+                console.error('[ModerationService] Empty response from Gemini.');
+                return { hasFace: false, reason: "Our verification system could not process this image. Please try a different photo." };
             }
 
-            const result = JSON.parse(jsonMatch[0]);
+            let result;
+            try {
+                result = JSON.parse(rawText);
+            } catch (err) {
+                console.error('[ModerationService] Failed to parse Gemini structured JSON:', rawText);
+                return { hasFace: false, reason: "Failed to verify the image format. Please try another photo." };
+            }
+
             console.log(`[ModerationService] Gemini face check result:`, result);
             
             return {
                 hasFace: result.hasFace === true,
-                reason: result.reason ? `Photo rejected: ${result.reason}. Please upload a clear photo of your face.` : undefined
+                reason: result.reason ? `Photo rejected: ${result.reason} Please upload a clear photo of your face.` : undefined
             };
 
         } catch (e: any) {
-            if (e.name === 'TimeoutError') {
-                console.warn('[ModerationService] Gemini Vision API timed out — soft passing photo.');
-            } else {
-                console.error('[ModerationService] Gemini Vision call failed:', e.message);
-            }
-            return { hasFace: true }; // Always soft pass on network/timeout errors
+            console.error('[ModerationService] Gemini Vision call failed or timed out:', e.message);
+            // Hard fail on timeout or network error
+            return { hasFace: false, reason: "Verification took too long or the network failed. Please check your connection and try again." };
         }
     }
 }

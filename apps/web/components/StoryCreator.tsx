@@ -51,6 +51,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     const [videoDuration, setVideoDuration] = useState<number>(0);
     const [startTime, setStartTime] = useState<number>(0);
     const [endTime, setEndTime] = useState<number>(60);
+    const [isPlaying, setIsPlaying] = useState<boolean>(true);
     
     // Text Overlay State
     interface TextOverlay {
@@ -351,6 +352,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     const duration = e.currentTarget.duration;
                                     setVideoDuration(duration);
                                     setEndTime(Math.min(duration, 60));
+                                    e.currentTarget.play().catch(() => setIsPlaying(false));
                                 }}
                                 onCanPlay={(e) => {
                                     if (videoDuration === 0) {
@@ -362,9 +364,32 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                 onTimeUpdate={() => {
                                     if (videoRef.current && videoRef.current.currentTime >= endTime) {
                                         videoRef.current.currentTime = startTime;
+                                        if (isPlaying) videoRef.current.play().catch(() => setIsPlaying(false));
                                     }
                                 }}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
                             />
+                            
+                            {/* Play/Pause Overlay Button */}
+                            <button 
+                                onClick={() => {
+                                    if (videoRef.current) {
+                                        if (isPlaying) {
+                                            videoRef.current.pause();
+                                        } else {
+                                            videoRef.current.play().catch(() => setIsPlaying(false));
+                                        }
+                                    }
+                                }}
+                                className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/20 transition-colors z-[50]"
+                            >
+                                {!isPlaying && (
+                                    <div className="w-16 h-16 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
+                                )}
+                            </button>
                             
                             {/* Trimming UI for Video */}
                             {videoDuration > 0 && (

@@ -16,7 +16,7 @@ import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
-import { uploadToCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
+import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
 
 
 
@@ -807,40 +807,37 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         const now = new Date();
         const validStories = currentStories.filter((s: any) => new Date(s.expiresAt) > now);
 
-        if (validStories.length >= 5) {
-            // FIFO STRATEGY: Remove oldest
-            const removed = validStories.shift();
-            logDebug(`Limit reached. Auto-deleted story: ${removed?.id}`);
-            if (removed?.url) {
-                const oldPath = removed.url.split('stories/')[1];
-                if (oldPath) supabase.storage.from('stories').remove([`stories/${oldPath}`]);
-            }
-        }
-
-        const filename = `stories/${userId}/${Date.now()}-${path.basename(req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_'))}`;
         const type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
 
-        logDebug(`Starting upload to Supabase: ${filename}`);
+        logDebug(`Starting upload to Cloudinary...`);
 
-        // 1. Upload to Supabase Storage
-        const fileContent = fs.readFileSync(filePath);
-        const { data, error } = await supabase.storage
-            // Using dedicated 'stories' bucket for user story media (public bucket)
-            // Create this in: Supabase Dashboard > Storage > New Bucket > name: stories > Enable Public
-            .from('stories')
-            .upload(filename, fileContent, {
+        // 1. Upload to Cloudinary Storage
+        const uploadResult = await uploadFileToCloudinary(filePath, userId);
+        
+        let publicUrl = '';
+        let publicId = '';
+
+        if (uploadResult) {
+            publicUrl = uploadResult.url;
+            publicId = uploadResult.publicId;
+            logDebug(`Upload Success: ${publicUrl}`);
+        } else {
+            // Fallback to Supabase if Cloudinary is not configured or fails
+            const filename = `stories/${userId}/${Date.now()}-${path.basename(req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_'))}`;
+            const fileContent = fs.readFileSync(filePath);
+            const { error } = await supabase.storage.from('stories').upload(filename, fileContent, {
                 contentType: req.file.mimetype,
                 upsert: true
             });
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage.from('stories').getPublicUrl(filename);
-        logDebug(`Upload Success: ${publicUrl}`);
+            if (error) throw error;
+            const { data } = supabase.storage.from('stories').getPublicUrl(filename);
+            publicUrl = data.publicUrl;
+        }
 
         const newStory: any = {
             id: Date.now().toString(),
             url: publicUrl,
+            publicId: publicId,
             type,
             createdAt: new Date().toISOString(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -896,8 +893,10 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
             return res.status(404).json({ error: "Story not found" });
         }
 
-        // Delete from Supabase Storage to save space
-        if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
+        // Delete from Storage to save space
+        if (storyToDelete.publicId) {
+            await deleteFromCloudinary(storyToDelete.publicId);
+        } else if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
             const oldPath = storyToDelete.url.split('stories/')[1];
             if (oldPath) {
                 supabase.storage.from('stories').remove([oldPath]).catch(e => console.error("Storage delete error", e));

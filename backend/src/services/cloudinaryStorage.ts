@@ -76,9 +76,54 @@ export const uploadToCloudinary = async (
 };
 
 /**
- * Returns true if the URL is a Cloudinary-hosted image.
- * These URLs don't need proxying — they're on Cloudinary's own CDN.
- */
 export const isCloudinaryUrl = (url: string): boolean => {
     return typeof url === 'string' && url.includes('res.cloudinary.com');
+};
+
+/**
+ * Uploads a local file to Cloudinary and returns the secure URL and public_id.
+ * Supports both images and videos.
+ *
+ * @param filePath  local path to the file
+ * @param userId    used as the folder path for organisation
+ */
+export const uploadFileToCloudinary = async (
+    filePath: string,
+    userId: string
+): Promise<{ url: string, publicId: string } | null> => {
+    if (!isConfigured()) {
+        console.warn('[Cloudinary] Not configured — skipping upload.');
+        return null;
+    }
+
+    try {
+        const result = await cloudinary.uploader.upload(filePath, {
+            folder: `lifepartner/stories/${userId}`,
+            public_id: `story_${Date.now()}`,
+            resource_type: 'auto', // auto detects video or image
+            overwrite: false
+        });
+
+        console.log(`✅ [Cloudinary] Uploaded file for user ${userId}: ${result.secure_url}`);
+        return { url: result.secure_url, publicId: result.public_id };
+    } catch (e: any) {
+        console.error(`[Cloudinary] File upload failed for user ${userId}:`, e?.message || e);
+        return null;
+    }
+};
+
+/**
+ * Deletes a file from Cloudinary by its public_id.
+ */
+export const deleteFromCloudinary = async (publicId: string): Promise<boolean> => {
+    if (!isConfigured() || !publicId) return false;
+
+    try {
+        const result = await cloudinary.uploader.destroy(publicId);
+        console.log(`🗑️ [Cloudinary] Deleted file ${publicId}:`, result);
+        return result.result === 'ok';
+    } catch (e: any) {
+        console.error(`[Cloudinary] Delete failed for ${publicId}:`, e?.message || e);
+        return false;
+    }
 };

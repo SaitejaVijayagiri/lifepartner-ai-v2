@@ -801,7 +801,7 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
                 id: true,
                 full_name: true,
                 avatar_url: true,
-                profiles: { select: { metadata: true } }
+                profiles: { select: { stories: true, metadata: true } }
             },
         });
 
@@ -809,8 +809,12 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
         const feed: any[] = [];
 
         for (const user of usersWithStories) {
-            const meta: any = user.profiles?.metadata || {};
-            const stories: any[] = meta.stories || [];
+            // Stories can be in profiles.stories column OR profiles.metadata.stories (legacy)
+            const directStories: any[] = (user.profiles?.stories as any[]) || [];
+            const metaStories: any[] = (user.profiles as any)?.metadata?.stories || [];
+            // Merge and deduplicate by id, prefer directStories
+            const allIds = new Set(directStories.map((s: any) => s.id));
+            const stories = [...directStories, ...metaStories.filter((s: any) => !allIds.has(s.id))];
             const activeStories = stories.filter((s: any) => new Date(s.expiresAt) > now);
             if (activeStories.length > 0) {
                 feed.push({

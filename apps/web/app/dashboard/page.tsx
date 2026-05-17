@@ -1774,11 +1774,13 @@ function DashboardContent() {
                     currentUser={currentUser}
                     onClose={() => setActiveStorySet(null)}
                     onDelete={async (deletedId) => {
-                        await api.interactions.deleteStory(deletedId);
+                        await api.profile.deleteStory(deletedId);
                         // Optimistically remove from view or refresh
                         setActiveStorySet(null);
                         // Refresh full feed
                         api.profile.getMe().then(setCurrentUser);
+                        // Also refresh story feed
+                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
                     }}
                 />
             )}

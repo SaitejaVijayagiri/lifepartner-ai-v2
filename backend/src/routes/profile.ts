@@ -781,17 +781,18 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
 
         if (!me) return res.status(404).json({ error: 'User not found' });
 
-        // Determine opposite gender for cross-gender story feed
-        let oppositeGender: string | undefined;
-        if (me.gender === 'Male') oppositeGender = 'Female';
-        else if (me.gender === 'Female') oppositeGender = 'Male';
+        // Determine opposite gender for cross-gender story feed (case-insensitive)
+        const myGender = (me.gender || '').toLowerCase();
+        let oppositeGenders: string[] = [];
+        if (myGender === 'male') oppositeGenders = ['Female', 'female', 'FEMALE'];
+        else if (myGender === 'female') oppositeGenders = ['Male', 'male', 'MALE'];
         // If gender is unset/other, show all
 
         const whereClause: any = {
             id: { not: userId }, // Exclude self
         };
-        if (oppositeGender) {
-            whereClause.gender = oppositeGender;
+        if (oppositeGenders.length > 0) {
+            whereClause.gender = { in: oppositeGenders };
         }
 
         const usersWithStories = await prisma.users.findMany({
@@ -973,6 +974,49 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Delete Story Error", e);
         res.status(500).json({ error: "Failed to delete story" });
+    }
+});
+
+// 6.4 POST /stories/:targetUserId/:storyId/like
+router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (req: any, res) => {
+    try {
+        const likerId = req.user.userId;
+        const { targetUserId, storyId } = req.params;
+        const { liked } = req.body;
+
+        if (likerId === targetUserId) return res.json({ success: true, ignored: true });
+
+        const liker = await prisma.users.findUnique({ where: { id: likerId } });
+        if (!liker) return res.status(404).json({ error: 'Liker not found' });
+
+        const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
+        if (!targetProfile) return res.status(404).json({ error: 'Target profile not found' });
+
+        const stories = (targetProfile.stories as any[]) || [];
+        const storyIndex = stories.findIndex(s => s.id === storyId);
+        if (storyIndex === -1) return res.status(404).json({ error: 'Story not found' });
+
+        const story = stories[storyIndex];
+        let likes: any[] = story.likes || [];
+
+        if (liked) {
+            if (!likes.some((l: any) => l.userId === likerId)) {
+                likes.push({ userId: likerId, name: liker.full_name, likedAt: new Date().toISOString() });
+            }
+        } else {
+            likes = likes.filter((l: any) => l.userId !== likerId);
+        }
+
+        stories[storyIndex].likes = likes;
+
+        await prisma.profiles.update({
+            where: { user_id: targetUserId },
+            data: { stories: stories as any }
+        });
+
+        res.json({ success: true, likes: likes.length });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to track like', details: e.message });
     }
 });
 

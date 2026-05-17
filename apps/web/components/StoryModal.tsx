@@ -8,8 +8,10 @@ interface Story {
     url: string;
     type: 'image' | 'video';
     createdAt: string;
+    expiresAt?: string;
     music?: string;
     views?: { userId: string, name: string, photoUrl: string, viewedAt: string }[];
+    likes?: { userId: string, name: string, likedAt: string }[];
 }
 
 interface User {
@@ -38,7 +40,8 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     const [isLiked, setIsLiked] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
-    const story = stories[currentIndex];
+    const [localLikes, setLocalLikes] = useState(0);
+    const story = stories[currentIndex] as any;
     
     // Audio Player Ref
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -276,6 +279,8 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                 onChange={(e) => setReplyText(e.target.value)}
                                 className="flex-1 bg-white/10 backdrop-blur-md text-white placeholder-white/50 px-4 py-3 rounded-full border border-white/20 focus:outline-none focus:border-white/40 text-sm"
                                 onClick={(e) => e.stopPropagation()}
+                                onFocus={() => setIsPaused(true)}
+                                onBlur={() => setIsPaused(false)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && replyText.trim()) {
                                         handleSendReply();
@@ -344,10 +349,15 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                     onTouchStart={(e) => e.stopPropagation()}
                 >
                     <div className="flex justify-between items-center p-5 border-b border-white/10">
-                        <div className="flex items-center gap-2 text-white">
+                        <div className="flex items-center gap-3 text-white">
                             <Eye size={20} />
                             <h3 className="font-bold">Viewers</h3>
-                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{story.views?.length || 0}</span>
+                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{story.views?.length || 0} 👁️</span>
+                            {(story.likes?.length > 0 || localLikes > 0) && (
+                                <span className="bg-pink-500/30 px-2 py-0.5 rounded-full text-xs font-bold text-pink-300">
+                                    {story.likes?.length || localLikes} ❤️
+                                </span>
+                            )}
                         </div>
                         <button onClick={() => setIsViewsOpen(false)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
                             <X size={18} />
@@ -454,11 +464,24 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         }
     }
 
-    function handleLikeStory() {
-        setIsLiked(!isLiked);
+    async function handleLikeStory() {
+        const newLiked = !isLiked;
+        setIsLiked(newLiked);
 
-        // Send like notification via socket
-        if (socket && !isLiked) {
+        // Track likes count locally for optimistic UI
+        setLocalLikes(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
+
+        // Persist to backend
+        try {
+            await api.profile.likeStory(user.id, story?.id, newLiked);
+        } catch (e) {
+            // Revert on error
+            setIsLiked(!newLiked);
+            setLocalLikes(prev => newLiked ? Math.max(0, prev - 1) : prev + 1);
+        }
+
+        // Also send real-time socket notification
+        if (socket && newLiked) {
             socket.emit('storyLike', {
                 to: user.id,
                 from: currentUser?.id,

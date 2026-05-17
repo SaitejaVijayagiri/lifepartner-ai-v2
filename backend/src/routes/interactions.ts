@@ -551,14 +551,27 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
         // 2. Insert the actual message into the chat history
         const cleanText = text.trim();
-        await prisma.messages.create({
-            data: {
-                sender_id: userId,
-                receiver_id: toUserId,
-                content: cleanText,
-                delivery_status: "sent"
-            }
-        });
+        let newMessageRecord;
+        try {
+            newMessageRecord = await (prisma.messages as any).create({
+                data: {
+                    sender_id: userId,
+                    receiver_id: toUserId,
+                    content: cleanText,
+                    delivery_status: "sent"
+                }
+            });
+        } catch (dbErr) {
+            console.warn("Falling back to legacy message create in direct message");
+            newMessageRecord = await prisma.messages.create({
+                data: {
+                    sender_id: userId,
+                    receiver_id: toUserId,
+                    content: cleanText,
+                    delivery_status: "sent"
+                }
+            });
+        }
 
         // 3. Notify receiver
         try {

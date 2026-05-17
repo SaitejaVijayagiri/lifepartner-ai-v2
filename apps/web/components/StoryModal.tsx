@@ -299,7 +299,16 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
                 {/* Bottom Actions (for other users' stories) */}
                 {!isOwner && (
-                    <div className="absolute bottom-6 left-4 right-4 z-30">
+                    <div 
+                        className="absolute bottom-6 left-4 right-4 z-30"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onPointerUp={(e) => e.stopPropagation()}
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onTouchEnd={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onMouseUp={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center gap-3">
                             <input
                                 type="text"

@@ -824,10 +824,13 @@ function DashboardContent() {
 
     const STORY_FILTERS = [
         { name: 'Normal', filter: 'none' },
+        { name: 'Golden Hour 🌅', filter: 'sepia(0.3) brightness(1.1) contrast(1.1) saturate(1.4) hue-rotate(-5deg)' },
+        { name: 'Soft Glam 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
         { name: 'Paris ✨', filter: 'sepia(0.2) contrast(1.1) brightness(1.1) hue-rotate(-10deg) saturate(1.2)' },
-        { name: 'Vivid', filter: 'contrast(1.2) saturate(1.5)' },
-        { name: 'Vintage', filter: 'sepia(0.5) contrast(1.1)' },
-        { name: 'Noir', filter: 'grayscale(1) contrast(1.2)' }
+        { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.95) saturate(1.1) hue-rotate(10deg)' },
+        { name: 'Cinematic 🎬', filter: 'brightness(0.9) contrast(1.2) saturate(1.3) sepia(0.2) hue-rotate(15deg)' },
+        { name: 'Retro 90s 📼', filter: 'contrast(1.3) saturate(0.8) sepia(0.4) brightness(0.9)' },
+        { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2)' }
     ];
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

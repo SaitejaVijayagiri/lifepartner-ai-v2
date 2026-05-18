@@ -1802,6 +1802,21 @@ function DashboardContent() {
                         // Also refresh story feed
                         api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
                     }}
+                    onViewProfile={async (userId: string) => {
+                        // First check if viewer is already in the matches list
+                        const existingMatch = matches.find((m: any) => m.id === userId);
+                        if (existingMatch) {
+                            setSelectedProfile(existingMatch);
+                        } else {
+                            // Fetch profile from API and open ProfileModal
+                            try {
+                                const data = await api.profile.getById(userId);
+                                if (data) setSelectedProfile(data);
+                            } catch (e) {
+                                console.error('Failed to load viewer profile', e);
+                            }
+                        }
+                    }}
                 />
             )}
 

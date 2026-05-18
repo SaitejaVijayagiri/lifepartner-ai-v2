@@ -30,9 +30,10 @@ interface StoryModalProps {
     currentUser: any;
     onClose: () => void;
     onDelete: (storyId: string) => void;
+    onViewProfile?: (userId: string) => void;
 }
 
-const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete }: StoryModalProps) => {
+const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete, onViewProfile }: StoryModalProps) => {
     const router = useRouter();
     const { socket } = useSocket() as any;
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -458,8 +459,13 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                         className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/5 transition-colors group cursor-pointer"
                                         onClick={() => {
                                             if (viewer.userId) {
-                                                onClose();
-                                                router.push(`/profile/${viewer.userId}`);
+                                                setIsViewsOpen(false);
+                                                if (onViewProfile) {
+                                                    onViewProfile(viewer.userId);
+                                                } else {
+                                                    onClose();
+                                                    router.push(`/profile/${viewer.userId}`);
+                                                }
                                             }
                                         }}
                                     >

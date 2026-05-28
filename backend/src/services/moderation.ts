@@ -5,7 +5,7 @@
  * uploaded photos for faces. However, this caused catastrophic Out-Of-Memory crashes
  * on the Render free tier (512MB RAM limit).
  * 
- * CURRENT: Uses Gemini Vision API (gemini-2.0-flash) for face detection via a 
+ * CURRENT: Uses Gemini Vision API (gemini-2.5-flash) for face detection via a 
  * pure HTTP call — zero local RAM overhead. Falls back gracefully if the API
  * is unavailable to avoid blocking legitimate user onboarding.
  */
@@ -91,7 +91,7 @@ export class ModerationService {
     }
 
     /**
-     * Uses Gemini Vision (gemini-2.0-flash) to check whether a human face
+     * Uses Gemini Vision (gemini-2.5-flash) to check whether a human face
      * is clearly visible in the image. This is a pure HTTP call — no local RAM usage.
      */
     private static async detectFaceWithGemini(
@@ -132,7 +132,7 @@ You MUST ACCEPT (return hasFace: true) ONLY if there is at least one clear, real
 If you reject it, provide a short, polite reason (e.g., "The photo appears to be a scenery.", "The photo contains a deity/idol.", "No clear human face is visible.").`;
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -170,8 +170,9 @@ If you reject it, provide a short, polite reason (e.g., "The photo appears to be
             if (!response.ok) {
                 const errText = await response.text();
                 console.error(`[ModerationService] Gemini API error ${response.status}: ${errText.substring(0, 200)}`);
-                // Hard fail on API error instead of soft passing fake photos
-                return { hasFace: false, reason: "Our AI verification system is currently busy. Please try again in a few moments." };
+                // Soft pass on API error to avoid blocking onboarding flow if quota/key issues happen
+                console.warn('[ModerationService] Gemini API error — soft-passing photo to prevent onboarding block.');
+                return { hasFace: true };
             }
 
             const data: any = await response.json();
@@ -179,7 +180,8 @@ If you reject it, provide a short, polite reason (e.g., "The photo appears to be
             
             if (!rawText) {
                 console.error('[ModerationService] Empty response from Gemini.');
-                return { hasFace: false, reason: "Our verification system could not process this image. Please try a different photo." };
+                console.warn('[ModerationService] Soft-passing on empty Gemini response.');
+                return { hasFace: true };
             }
 
             let result;
@@ -187,7 +189,8 @@ If you reject it, provide a short, polite reason (e.g., "The photo appears to be
                 result = JSON.parse(rawText);
             } catch (err) {
                 console.error('[ModerationService] Failed to parse Gemini structured JSON:', rawText);
-                return { hasFace: false, reason: "Failed to verify the image format. Please try another photo." };
+                console.warn('[ModerationService] Soft-passing on failed JSON parse.');
+                return { hasFace: true };
             }
 
             console.log(`[ModerationService] Gemini face check result:`, result);
@@ -199,8 +202,9 @@ If you reject it, provide a short, polite reason (e.g., "The photo appears to be
 
         } catch (e: any) {
             console.error('[ModerationService] Gemini Vision call failed or timed out:', e.message);
-            // Hard fail on timeout or network error
-            return { hasFace: false, reason: "Verification took too long or the network failed. Please check your connection and try again." };
+            // Soft pass on timeout or network error to avoid blocking onboarding
+            console.warn('[ModerationService] Gemini Vision call failed or timed out — soft-passing photo.');
+            return { hasFace: true };
         }
     }
 }

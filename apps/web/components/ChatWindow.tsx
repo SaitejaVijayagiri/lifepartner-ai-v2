@@ -1597,8 +1597,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                 <button
                     type="submit"
-                    disabled={!inputText.trim()}
-                    className="p-2 sm:p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full sm:rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none transition-all flex-shrink-0"
+                    disabled={!inputText.trim() && !stagedFile}
+                    className="p-2 sm:p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full sm:rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none transition-all flex-shrink-0 cursor-pointer"
                 >
                     <Send className="w-4 h-4 sm:w-5 sm:h-5 relative -ml-0.5 sm:ml-0" />
                 </button>

@@ -146,44 +146,44 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
             </div>
 
             {/* GAMIFICATION WIDGET & AI ROAST */}
-            <div className="bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800/50 p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800/50 p-3 md:p-6 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
                 <div className="w-full flex-1">
-                    <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-bold tracking-wide text-indigo-900 dark:text-indigo-100 text-sm">Profile Completeness</h4>
-                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{completionPercentage}%</span>
+                    <div className="flex justify-between items-center mb-1.5">
+                        <h4 className="font-bold tracking-wide text-indigo-900 dark:text-indigo-100 text-xs sm:text-sm">Profile Completeness</h4>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm">{completionPercentage}%</span>
                     </div>
-                    <div className="h-2 w-full bg-indigo-200 dark:bg-indigo-950 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-indigo-200 dark:bg-indigo-950 rounded-full overflow-hidden">
                         <div 
                             className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" 
                             style={{ width: `${completionPercentage}%` }} 
                         />
                     </div>
-                    <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2">
+                    <p className="hidden sm:block text-xs text-indigo-700 dark:text-indigo-300 mt-2">
                         {completionPercentage === 100 ? "Your profile is fully complete!" : "Add more details to boost your matching rate completely!"}
                     </p>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <div className="flex flex-row gap-2 w-full md:w-auto">
                     {/* The Roast Button */}
                     <Button 
                         onClick={handleRoast} 
                         disabled={roasting}
-                        className="w-full sm:w-auto bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold shadow-lg shadow-rose-500/20 whitespace-nowrap"
+                        className="flex-1 sm:flex-none bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold shadow-lg shadow-rose-500/20 whitespace-nowrap text-xs h-9 sm:h-10 px-3 sm:px-4"
                     >
-                        {roasting ? "🔮 Guru Thinking..." : "🔥 Roast My Profile"}
+                        {roasting ? "🔮 Thinking..." : "🔥 Roast Profile"}
                     </Button>
 
                     {completionPercentage === 100 && !formData.is_profile_completed_reward_claimed ? (
                         <Button 
                             onClick={handleClaimReward} 
                             disabled={loading}
-                            className="w-full sm:w-auto bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-bold shadow-lg shadow-amber-500/20 whitespace-nowrap animate-pulse"
+                            className="flex-1 sm:flex-none bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white font-bold shadow-lg shadow-amber-500/20 whitespace-nowrap animate-pulse text-xs h-9 sm:h-10 px-3 sm:px-4"
                         >
-                            💰 Claim 50 Coins
+                            💰 Claim Coins
                         </Button>
                     ) : completionPercentage < 100 ? (
-                        <div className="w-full sm:w-auto bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-700 text-xs font-bold text-indigo-800 dark:text-indigo-300 whitespace-nowrap text-center opacity-80 cursor-not-allowed flex items-center justify-center">
-                            🔒 Earn 50 Coins at 100%
+                        <div className="flex-1 sm:flex-none bg-white dark:bg-gray-800 px-3 rounded-lg border border-indigo-200 dark:border-indigo-700 text-[10px] sm:text-xs font-bold text-indigo-800 dark:text-indigo-300 whitespace-nowrap text-center opacity-80 cursor-not-allowed flex items-center justify-center h-9 sm:h-10">
+                            🔒 50 Coins at 100%
                         </div>
                     ) : null}
                 </div>
@@ -782,10 +782,10 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                     </div>
                 </div>
-                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
-                    <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto sm:min-w-[100px] h-11 sm:h-10 text-sm font-semibold rounded-xl">Cancel</Button>
-                    <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto sm:min-w-[140px] h-11 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/10">
-                        {loading ? 'Saving...' : 'Save Changes'}
+                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-row items-center justify-end gap-2.5 sm:gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
+                    <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none sm:min-w-[100px] h-9 sm:h-10 text-xs sm:text-sm font-semibold rounded-lg">Cancel</Button>
+                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none sm:min-w-[120px] h-9 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md">
+                        {loading ? 'Saving...' : <><span className="hidden sm:inline">Save Changes</span><span className="sm:hidden">Save</span></>}
                     </Button>
                 </div>
             </div>

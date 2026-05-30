@@ -782,9 +782,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                     </div>
                 </div>
-                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-row items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
-                    <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none sm:min-w-[100px]">Cancel</Button>
-                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none sm:min-w-[120px] bg-indigo-600 hover:bg-indigo-700">
+                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
+                    <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto sm:min-w-[100px] h-11 sm:h-10 text-sm font-semibold rounded-xl">Cancel</Button>
+                    <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto sm:min-w-[140px] h-11 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/10">
                         {loading ? 'Saving...' : 'Save Changes'}
                     </Button>
                 </div>

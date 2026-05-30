@@ -1659,11 +1659,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Attachment Image Editor Modal */}
             {showImageEditor && stagedPreviewUrl && stagedFile && (
-                <div className="fixed inset-0 z-[2015] bg-slate-950 flex flex-col md:flex-row overflow-hidden animate-in fade-in duration-200">
-                    <div className="w-full h-full overflow-hidden flex flex-col md:flex-row relative">
+                <div className="fixed inset-0 z-[2015] bg-slate-950 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden animate-in fade-in duration-200">
+                    <div className="w-full h-auto md:h-full flex flex-col md:flex-row relative">
                         
                         {/* Editor viewport (Left/Top) */}
-                        <div className="relative flex-1 bg-slate-950 overflow-hidden min-h-[50vh] md:h-full">
+                        <div className="relative w-full md:flex-1 h-[350px] sm:h-[400px] md:h-full bg-slate-950 shrink-0 md:shrink overflow-hidden">
                             {/* Applying active filter live to Cropper container style */}
                             <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
                                 {/* @ts-ignore */}
@@ -1685,7 +1685,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
 
                         {/* Editor Controls viewport (Right/Bottom) */}
-                        <div className="w-full md:w-[360px] p-6 flex flex-col gap-6 justify-between bg-slate-900/90 md:bg-slate-900/50 backdrop-blur-lg md:backdrop-blur-none select-none shrink-0 text-white border-t md:border-t-0 md:border-l border-white/10 overflow-y-auto">
+                        <div className="w-full md:w-[360px] p-6 flex flex-col gap-6 justify-between bg-slate-900/90 md:bg-slate-900/50 backdrop-blur-lg md:backdrop-blur-none select-none text-white border-t md:border-t-0 md:border-l border-white/10 shrink-0 md:h-full md:overflow-y-auto">
                             <div className="flex flex-col gap-5">
                                 <div className="flex justify-between items-center border-b border-white/10 pb-3">
                                     <h3 className="font-bold text-lg text-indigo-400">Edit Attachment</h3>

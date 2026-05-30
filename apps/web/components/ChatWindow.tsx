@@ -42,6 +42,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const recordingTimerRef = useRef<NodeJS.Timeout>();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<number | null>(null);
     
     // Internal state for partner info to handle missing query params
     const [partnerInfo, setPartnerInfo] = useState(partner);
@@ -129,14 +130,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 stream.getTracks().forEach(track => track.stop());
                 
                 setIsUploadingMedia(true);
+                setUploadProgress(0);
                 try {
                     const audioFile = new File([audioBlob], 'audio.webm', { type: 'audio/webm' });
-                    const res = await api.chat.uploadMedia(audioFile);
+                    const res = await api.chat.uploadMedia(audioFile, (percent) => setUploadProgress(percent));
                     if (res.url) handleSend(undefined, `[AUDIO]${res.url}`);
                 } catch (e: any) {
                     toast.error(`Audio upload failed: ${e.message || 'Unknown error'}`);
                 } finally {
                     setIsUploadingMedia(false);
+                    setUploadProgress(null);
                 }
                 
                 setIsRecording(false);
@@ -174,13 +177,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (!file) return;
         
         setIsUploadingMedia(true);
+        setUploadProgress(0);
         try {
-            const res = await api.chat.uploadMedia(file);
+            const res = await api.chat.uploadMedia(file, (percent) => setUploadProgress(percent));
             if (res.url) handleSend(undefined, `[IMAGE]${res.url}`);
         } catch (err: any) {
             toast.error(`Image upload failed: ${err.message || 'Unknown error'}`);
         } finally {
             setIsUploadingMedia(false);
+            setUploadProgress(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
@@ -1020,6 +1025,28 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <button type="button" onClick={() => setReplyTo(null)} className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-full">
                         <X size={16} />
                     </button>
+                </div>
+            )}
+
+            {/* Upload Progress Bar */}
+            {uploadProgress !== null && (
+                <div className="px-4 py-2 bg-indigo-50/50 dark:bg-indigo-950/20 border-t border-indigo-100 dark:border-indigo-900 flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        Uploading attachment...
+                    </div>
+                    <div className="flex-1 max-w-[200px] h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                        />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-gray-500 dark:text-gray-400">
+                        {uploadProgress}%
+                    </span>
                 </div>
             )}
 

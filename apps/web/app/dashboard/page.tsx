@@ -296,6 +296,41 @@ function DashboardContent() {
         checkAuth();
     }, [router]);
 
+    // Load saved Active Tab & Chat Connection on mount (Hydration-safe)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedTab = localStorage.getItem('dashboard_active_tab');
+            if (savedTab) {
+                setActiveTab(savedTab);
+            }
+            const savedConn = localStorage.getItem('dashboard_selected_connection');
+            if (savedConn) {
+                try {
+                    setSelectedConnection(JSON.parse(savedConn));
+                } catch (e) {
+                    console.error("Failed to parse saved connection from cache", e);
+                }
+            }
+        }
+    }, []);
+
+    // Sync Active Tab to localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('dashboard_active_tab', activeTab);
+        }
+    }, [activeTab]);
+
+    // Sync Selected Connection to localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            if (selectedConnection) {
+                localStorage.setItem('dashboard_selected_connection', JSON.stringify(selectedConnection));
+            } else {
+                localStorage.removeItem('dashboard_selected_connection');
+            }
+        }
+    }, [selectedConnection]);
 
     // Check for Deep Links, Payment Return & Actions
     useEffect(() => {
@@ -679,6 +714,8 @@ function DashboardContent() {
         if (confirm("Are you sure you want to log out?")) {
             localStorage.removeItem('token');
             localStorage.removeItem('userId');
+            localStorage.removeItem('dashboard_active_tab');
+            localStorage.removeItem('dashboard_selected_connection');
             router.push('/login');
         }
     };

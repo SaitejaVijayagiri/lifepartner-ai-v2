@@ -131,22 +131,49 @@ export const api = {
         }),
         likeMessage: (messageId: string) => fetchAPI(`/messages/${messageId}/like`, { method: 'POST' }),
         markRead: (connectionId: string) => fetchAPI(`/messages/${connectionId}/read`, { method: 'POST' }),
-        uploadMedia: async (file: File) => {
-            const formData = new FormData();
-            formData.append('file', file);
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/messages/upload-media`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+        uploadMedia: (file: File, onProgress?: (percent: number) => void): Promise<any> => {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${API_URL}/messages/upload-media`);
+
+                if (token) {
+                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                }
+
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable && onProgress) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        onProgress(percentComplete);
+                    }
+                };
+
+                xhr.onload = () => {
+                    let data = {};
+                    try {
+                        data = JSON.parse(xhr.responseText);
+                    } catch (e) {
+                        data = {};
+                    }
+
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(data);
+                    } else {
+                        const errData = data as any;
+                        const errorMsg = errData.details ? `${errData.error}: ${errData.details}` : (errData.error || 'Upload failed');
+                        reject(new Error(errorMsg));
+                    }
+                };
+
+                xhr.onerror = () => {
+                    reject(new Error('Network error during upload'));
+                };
+
+                xhr.send(formData);
             });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                console.error("Upload API Error:", data);
-                const errorMsg = data.details ? `${data.error}: ${data.details}` : (data.error || 'Upload failed');
-                throw new Error(errorMsg);
-            }
-            return data;
         },
         deleteMessage: (messageId: string, mode: 'me' | 'everyone') => fetchAPI(`/messages/${messageId}`, {
             method: 'DELETE',

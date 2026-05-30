@@ -865,18 +865,13 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         const files = req.files as Express.Multer.File[];
         filePaths = files.map(f => f.path);
 
-        // Premium Restriction for Stories
+        // Premium Restriction for Stories (Bypassed to allow free accounts to post stories)
         const user = await prisma.users.findUnique({
             where: { id: userId },
             include: { profiles: true }
         });
 
-        const isPremium = user?.is_premium;
         const currentStories = (user?.profiles?.stories as any[]) || [];
-
-        if (!isPremium) {
-            return res.status(403).json({ error: "Stories are a Premium feature" });
-        }
 
         // AUTO-CLEANUP: Filter out expired stories
         const now = new Date();

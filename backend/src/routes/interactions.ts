@@ -225,31 +225,26 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             }
 
             try {
-                // Fetch the latest message timestamp for each connection
-                const latestMessages = await prisma.messages.findMany({
-                    where: {
-                        OR: [
-                            { sender_id: userId, receiver_id: { in: partnerIds } },
-                            { sender_id: { in: partnerIds }, receiver_id: userId }
-                        ]
-                    },
-                    orderBy: { created_at: 'desc' },
-                    select: {
-                        sender_id: true,
-                        receiver_id: true,
-                        created_at: true
+                // Fetch the latest message timestamp for each partner (extremely optimized, uses index)
+                await Promise.all(partnerIds.map(async (pId) => {
+                    const latestMsg = await prisma.messages.findFirst({
+                        where: {
+                            OR: [
+                                { sender_id: userId, receiver_id: pId },
+                                { sender_id: pId, receiver_id: userId }
+                            ]
+                        },
+                        orderBy: { created_at: 'desc' },
+                        select: { created_at: true }
+                    });
+                    
+                    if (latestMsg) {
+                        const conn = uniqueConnections.get(pId);
+                        if (conn) {
+                            conn.latestMessageAt = latestMsg.created_at;
+                        }
                     }
-                });
-
-                // Map the latest message to the connection
-                latestMessages.forEach((msg: any) => {
-                    const pId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-                    const conn = uniqueConnections.get(pId);
-                    // Since it's ordered by desc, the first one we encounter is the latest
-                    if (conn && (!conn.latestMessageAt || new Date(msg.created_at) > new Date(conn.latestMessageAt))) {
-                        conn.latestMessageAt = msg.created_at;
-                    }
-                });
+                }));
             } catch (err) {
                 console.error("Failed to fetch latestMessages in Connections", err);
             }

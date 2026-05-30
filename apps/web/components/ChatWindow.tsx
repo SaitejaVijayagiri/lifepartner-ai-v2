@@ -123,6 +123,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
     const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<string | null>(null);
+    const [stagedFile, setStagedFile] = useState<File | null>(null);
+    const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
+
+    // Garbage collect staged object URL to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (stagedPreviewUrl) {
+                URL.revokeObjectURL(stagedPreviewUrl);
+            }
+        };
+    }, [stagedPreviewUrl]);
 
     const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍', '🔥', '🤩'];
 
@@ -228,22 +239,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
         
-        setIsUploadingMedia(true);
-        setUploadProgress(0);
-        try {
-            const res = await api.chat.uploadMedia(file, (percent) => setUploadProgress(percent));
-            if (res.url) handleSend(undefined, `[IMAGE]${res.url}`);
-        } catch (err: any) {
-            toast.error(`Image upload failed: ${err.message || 'Unknown error'}`);
-        } finally {
-            setIsUploadingMedia(false);
-            setUploadProgress(null);
-            if (fileInputRef.current) fileInputRef.current.value = '';
+        if (stagedPreviewUrl) {
+            URL.revokeObjectURL(stagedPreviewUrl);
         }
+        
+        setStagedFile(file);
+        setStagedPreviewUrl(URL.createObjectURL(file));
+        
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const handleViewProfile = async () => {
@@ -486,6 +493,43 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const handleSend = async (e?: React.FormEvent, forcedText?: string) => {
         if (e) e.preventDefault();
+
+        // High-resiliency Staged Attachment Upload & Dispatch
+        if (stagedFile && !forcedText) {
+            const fileToUpload = stagedFile;
+            const previewToClear = stagedPreviewUrl;
+            
+            // Instantly clear staging states for snappy visual feedback
+            setStagedFile(null);
+            setStagedPreviewUrl(null);
+            if (previewToClear) {
+                URL.revokeObjectURL(previewToClear);
+            }
+
+            setIsUploadingMedia(true);
+            setUploadProgress(0);
+            try {
+                const res = await api.chat.uploadMedia(fileToUpload, (percent) => setUploadProgress(percent));
+                if (res.url) {
+                    // Send the uploaded image attachment message
+                    await handleSend(undefined, `[IMAGE]${res.url}`);
+                    
+                    // If the user had written text, dispatch it sequentially as a caption!
+                    if (inputText.trim()) {
+                        await handleSend(undefined, inputText);
+                    }
+                }
+            } catch (err: any) {
+                toast.error(`Image upload failed: ${err.message || 'Unknown error'}`);
+                // High-resiliency error recovery: restore staged states
+                setStagedFile(fileToUpload);
+                setStagedPreviewUrl(previewToClear);
+            } finally {
+                setIsUploadingMedia(false);
+                setUploadProgress(null);
+            }
+            return;
+        }
 
         const textToSend = forcedText || inputText;
         if (!textToSend.trim()) return;
@@ -823,7 +867,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For "my" messages: action buttons go LEFT of bubble */}
                                 {isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
+                                    <div className={`hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: 'You' }); inputRef.current?.focus(); }}
                                             className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
@@ -846,7 +890,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </div>
                                 )}
 
-                                <div className={`flex flex-col relative max-w-[75%] ${isMe ? 'items-end' : 'items-start'}`}>
+                                <div className={`flex flex-col relative max-w-[75%] ${isMe ? 'items-end' : 'items-start'} ${activeMsgId === msg.id || emojiPickerMsgId === msg.id ? 'z-30' : 'z-0'}`}>
                                     {/* Emoji picker popup */}
                                     {emojiPickerMsgId === msg.id && (
                                         <div
@@ -1046,11 +1090,37 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             </div>
                                         );
                                     })()}
+                                    {/* Mobile-optimized Action Pill Bar */}
+                                    {activeMsgId === msg.id && (
+                                        <div className="flex sm:hidden items-center gap-2.5 mt-1 px-3 py-1.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-full shadow-md animate-in slide-in-from-top-1 duration-150 z-10">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: isMe ? 'You' : partnerInfo.name }); inputRef.current?.focus(); setActiveMsgId(null); }}
+                                                className="p-1 text-gray-500 hover:text-indigo-500 rounded-full transition-all cursor-pointer"
+                                                title="Reply"
+                                            >
+                                                <Reply size={14} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
+                                                className="p-1 text-gray-500 hover:text-amber-500 rounded-full transition-all text-xs cursor-pointer animate-pulse"
+                                                title="React"
+                                            >😊</button>
+                                            {isMe && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(msg.id); setActiveMsgId(null); }}
+                                                    className="p-1 text-gray-500 hover:text-red-500 rounded-full transition-all cursor-pointer"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* For partner messages: action buttons go RIGHT of bubble */}
                                 {!isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
+                                    <div className={`hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: partnerInfo.name }); inputRef.current?.focus(); }}
                                             className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
@@ -1150,6 +1220,48 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <button type="button" onClick={() => setReplyTo(null)} className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-full">
                         <X size={16} />
                     </button>
+                </div>
+            )}
+
+            {/* Staged Attachment Preview Bar */}
+            {stagedPreviewUrl && stagedFile && (
+                <div className="flex items-center justify-between gap-3 w-full px-4 py-3 bg-indigo-50/80 dark:bg-indigo-900/20 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Rounded Visual Thumbnail */}
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-black/10 border border-black/10 shrink-0 shadow-inner">
+                            <img src={stagedPreviewUrl} className="w-full h-full object-cover" alt="Selected attachment preview" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">Staged Attachment</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                                {stagedFile.name} • {Math.round(stagedFile.size / 1024)} KB
+                            </p>
+                        </div>
+                    </div>
+                    {/* Actions: Cancel & Change */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button 
+                            type="button" 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="px-2.5 py-1 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-bold rounded-lg border border-gray-200 dark:border-gray-700 transition-all text-gray-600 dark:text-gray-300 shadow-sm cursor-pointer"
+                        >
+                            Change
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => {
+                                setStagedFile(null);
+                                if (stagedPreviewUrl) {
+                                    URL.revokeObjectURL(stagedPreviewUrl);
+                                    setStagedPreviewUrl(null);
+                                }
+                            }} 
+                            className="p-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/40 text-red-500 rounded-full transition-all cursor-pointer"
+                            title="Remove attachment"
+                        >
+                            <X size={14} strokeWidth={2.5} />
+                        </button>
+                    </div>
                 </div>
             )}
 

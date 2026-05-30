@@ -515,7 +515,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
         setIsSending(true);
         try {
-            const storyContext = `📸 Replying to your story: "${replyText}"`;
+            const storyContext = `[STORY_REPLY:${story.url}:${story.type}]${replyText}`;
             
             // Use Direct Message API (handles 3-message limit for unconnected users)
             await api.interactions.sendDirectMessage(user.id, storyContext);

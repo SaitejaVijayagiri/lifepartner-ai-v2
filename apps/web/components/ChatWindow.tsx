@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2 } from 'lucide-react';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -28,6 +28,61 @@ interface ChatWindowProps {
     onMessagesRead?: () => void;
     onMessageSent?: () => void;
 }
+
+const getYoutubeId = (text: string): string | null => {
+    if (!text) return null;
+    const standardMatch = text.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
+    if (standardMatch) return standardMatch[1];
+    
+    const shortsMatch = text.match(/youtube\.com\/shorts\/([^"&?\/ ]{11})/i);
+    if (shortsMatch) return shortsMatch[1];
+
+    return null;
+};
+
+const YoutubeEmbedCard = ({ videoId, onFullscreen }: { videoId: string, onFullscreen: (id: string) => void }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    return (
+        <div className="relative w-[260px] h-[146px] sm:w-[320px] sm:h-[180px] rounded-xl overflow-hidden bg-black/10 border border-black/10 dark:border-white/10 shadow-sm mt-1 shrink-0 group">
+            {isPlaying ? (
+                <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+                    className="w-full h-full rounded-xl"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+            ) : (
+                <div className="relative w-full h-full cursor-pointer" onClick={() => setIsPlaying(true)}>
+                    <img 
+                        src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`} 
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300"
+                        alt="YouTube Video Thumbnail"
+                    />
+                    
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/35 transition-colors">
+                        <div className="w-14 h-10 bg-red-600/90 group-hover:bg-red-600 hover:scale-110 text-white rounded-xl flex items-center justify-center transition-all shadow-lg">
+                            <span className="text-xl leading-none">▶</span>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onFullscreen(videoId);
+                        }}
+                        className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-lg backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all border border-white/20 shadow-md flex items-center justify-center cursor-pointer"
+                        title="Play in fullscreen modal"
+                    >
+                        <Maximize2 size={14} />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
@@ -58,6 +113,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [fullscreenYoutubeId, setFullscreenYoutubeId] = useState<string | null>(null);
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
@@ -826,7 +882,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             if (!replyMsg) return null;
                                             const targetId = replyMsg.id || msg.replyToId;
                                             const rName = replyMsg.senderName || (replyMsg.senderId === 'me' || replyMsg.senderId === user?.id ? 'You' : partnerInfo.name);
-                                            const rText = replyMsg.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyMsg.text?.startsWith('[AUDIO]') ? '🎤 Voice message' : replyMsg.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyMsg.text;
+                                            const rText = replyMsg.text?.startsWith('[IMAGE]') 
+                                                ? '📷 Photo' 
+                                                : replyMsg.text?.startsWith('[AUDIO]') 
+                                                ? '🎤 Voice message' 
+                                                : replyMsg.text?.startsWith('[STICKER]') 
+                                                ? '🎭 Sticker' 
+                                                : replyMsg.text?.startsWith('[STORY_REPLY:') 
+                                                ? (() => {
+                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                                                    return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
+                                                  })()
+                                                : replyMsg.text;
                                             return (
                                                 <div
                                                     className={`mb-2 rounded-xl overflow-hidden border-l-[3px] cursor-pointer hover:opacity-80 active:scale-95 transition-all ${
@@ -857,7 +924,43 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenImage(msg.text.replace('[IMAGE]', ''))} />
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
-                                        ) : msg.text.startsWith('[DATE_INVITE:') ? (() => {
+                                        ) : msg.text.startsWith('[STORY_REPLY:') ? (() => {
+                                            const match = msg.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                                            if (match) {
+                                                const [, storyUrl, storyType, replyText] = match;
+                                                const isVideo = storyType === 'video';
+                                                return (
+                                                    <div className="flex flex-col gap-2 min-w-[180px] max-w-[280px]">
+                                                        <div 
+                                                            className={`p-2 rounded-xl flex items-center gap-3 border text-left cursor-pointer hover:opacity-90 transition-opacity backdrop-blur-md shadow-sm mt-1 ${
+                                                                isMe 
+                                                                    ? 'bg-white/10 border-white/20 text-white' 
+                                                                    : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-gray-800 dark:text-gray-100'
+                                                            }`}
+                                                            onClick={() => setFullscreenImage(storyUrl)}
+                                                            title="Click to view fullscreen"
+                                                        >
+                                                            <div className="relative w-11 h-16 rounded-lg overflow-hidden bg-black/20 shrink-0 border border-black/15 shadow-inner">
+                                                                {isVideo ? (
+                                                                    <video src={storyUrl} className="w-full h-full object-cover" muted playsInline />
+                                                                ) : (
+                                                                    <img src={storyUrl} className="w-full h-full object-cover" alt="story thumbnail" />
+                                                                )}
+                                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors text-white font-medium text-xs rounded-lg drop-shadow-md">
+                                                                    {isVideo ? '▶️' : '📸'}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">Replied to story</p>
+                                                                <p className="text-[9px] opacity-50 flex items-center gap-1 mt-0.5">Click to view</p>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-sm leading-relaxed break-words px-1 font-medium">{replyText}</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return msg.text;
+                                        })() : msg.text.startsWith('[DATE_INVITE:') ? (() => {
                                             const dateId = msg.text.replace('[DATE_INVITE:', '').replace(']', '');
                                             return (
                                                 <div className="bg-white/10 dark:bg-black/20 p-4 rounded-xl border border-white/20 dark:border-gray-700 min-w-[200px] flex flex-col items-center">
@@ -889,9 +992,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     </div>
                                                 </div>
                                             );
-                                        })() : (
-                                            msg.text
-                                        )}
+                                        })() : (() => {
+                                            const ytId = getYoutubeId(msg.text);
+                                            if (ytId) {
+                                                return (
+                                                    <div className="flex flex-col gap-2">
+                                                        <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                                                        <YoutubeEmbedCard videoId={ytId} onFullscreen={setFullscreenYoutubeId} />
+                                                    </div>
+                                                );
+                                            }
+                                            return msg.text;
+                                        })()}
                                         <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') ? 'text-gray-500 font-medium drop-shadow-sm' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
                                             {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                             {isMe && (
@@ -1020,7 +1132,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <div className="flex items-center justify-between gap-2 w-full px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
                     <div className="flex-1 min-w-0 border-l-4 border-indigo-500 pl-2">
                         <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">{replyTo.senderName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{replyTo.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyTo.text?.startsWith('[AUDIO]') ? '🎤 Voice' : replyTo.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyTo.text}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {replyTo.text?.startsWith('[IMAGE]') 
+                                ? '📷 Photo' 
+                                : replyTo.text?.startsWith('[AUDIO]') 
+                                ? '🎤 Voice' 
+                                : replyTo.text?.startsWith('[STICKER]') 
+                                ? '🎭 Sticker' 
+                                : replyTo.text?.startsWith('[STORY_REPLY:') 
+                                ? (() => {
+                                    const match = replyTo.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                                    return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
+                                  })()
+                                : replyTo.text}
+                        </p>
                     </div>
                     <button type="button" onClick={() => setReplyTo(null)} className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-full">
                         <X size={16} />
@@ -1145,13 +1270,48 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             )}
             <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partnerInfo.name} />
             
-            {/* Fullscreen Image Overlay */}
-            {fullscreenImage && (
-                <div className="fixed inset-0 z-[2010] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
-                    <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}>
+            {/* Fullscreen Image/Video Overlay */}
+            {fullscreenImage && (() => {
+                const isVideo = fullscreenImage.toLowerCase().endsWith('.mp4') || 
+                                fullscreenImage.toLowerCase().endsWith('.webm') || 
+                                fullscreenImage.toLowerCase().endsWith('.mov') ||
+                                fullscreenImage.toLowerCase().includes('/video/upload/') ||
+                                fullscreenImage.toLowerCase().includes('video');
+                return (
+                    <div className="fixed inset-0 z-[2010] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
+                        <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}>
+                            <X size={20} strokeWidth={3} />
+                        </button>
+                        {isVideo ? (
+                            <video src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" controls autoPlay loop />
+                        ) : (
+                            <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
+                        )}
+                    </div>
+                );
+            })()}
+
+            {/* Fullscreen YouTube Modal Overlay */}
+            {fullscreenYoutubeId && (
+                <div 
+                    className="fixed inset-0 z-[2010] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in zoom-in-95 duration-200" 
+                    onClick={() => setFullscreenYoutubeId(null)}
+                >
+                    <button 
+                        className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2.5 bg-white/10 hover:bg-white/25 text-white rounded-full backdrop-blur-md transition-all border border-white/20 cursor-pointer shadow-2xl flex items-center justify-center" 
+                        onClick={(e) => { e.stopPropagation(); setFullscreenYoutubeId(null); }}
+                    >
                         <X size={20} strokeWidth={3} />
                     </button>
-                    <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
+                    <div className="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] border border-white/10" onClick={(e) => e.stopPropagation()}>
+                        <iframe
+                            src={`https://www.youtube.com/embed/${fullscreenYoutubeId}?autoplay=1&rel=0`}
+                            className="w-full h-full"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                        ></iframe>
+                    </div>
                 </div>
             )}
 

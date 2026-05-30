@@ -48,6 +48,10 @@ export default function MessageToastBanner() {
             const preview = msg.text?.startsWith('[IMAGE]') ? '📷 Sent a photo'
                 : msg.text?.startsWith('[AUDIO]') ? '🎤 Sent a voice message'
                 : msg.text?.startsWith('[STICKER]') ? '🎭 Sent a sticker'
+                : msg.text?.startsWith('[STORY_REPLY:') ? (() => {
+                    const match = msg.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                    return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
+                  })()
                 : (msg.text || '').substring(0, 60) + ((msg.text || '').length > 60 ? '...' : '');
 
             const newToast: MessageToast = {

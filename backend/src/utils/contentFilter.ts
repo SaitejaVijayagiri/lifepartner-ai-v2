@@ -7,6 +7,16 @@
 export function sanitizeContent(text: string): string {
     if (!text) return "";
 
+    // Bypass sanitization entirely for machine-generated media attachments (images, audio, stickers)
+    // to prevent regex matching on long Base64 Data URIs and corrupting the binary data
+    if (
+        text.startsWith("[IMAGE]") || 
+        text.startsWith("[AUDIO]") || 
+        text.startsWith("[STICKER]")
+    ) {
+        return text;
+    }
+
     let sanitized = text;
 
     // 1. Email Regex

@@ -1012,12 +1012,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Reply Preview Bar */}
             {replyTo && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
-                    <div className="flex-1 border-l-4 border-indigo-500 pl-2">
-                        <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{replyTo.senderName}</p>
+                <div className="flex items-center justify-between gap-2 w-full px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
+                    <div className="flex-1 min-w-0 border-l-4 border-indigo-500 pl-2">
+                        <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">{replyTo.senderName}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{replyTo.text?.startsWith('[IMAGE]') ? '📷 Photo' : replyTo.text?.startsWith('[AUDIO]') ? '🎤 Voice' : replyTo.text?.startsWith('[STICKER]') ? '🎭 Sticker' : replyTo.text}</p>
                     </div>
-                    <button type="button" onClick={() => setReplyTo(null)} className="p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                    <button type="button" onClick={() => setReplyTo(null)} className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-full">
                         <X size={16} />
                     </button>
                 </div>

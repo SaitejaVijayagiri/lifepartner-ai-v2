@@ -14,22 +14,12 @@ const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
 const STEPS = [
     { id: 'welcome', title: 'Welcome' },
     { id: 'basics', title: 'Personal Details' },
-    { id: 'horoscope', title: 'Horoscope' },
-    { id: 'career', title: 'Career & Education' },
-    { id: 'family', title: 'Family Background' },
-    { id: 'lifestyle', title: 'Lifestyle & Habits' },
-    { id: 'partner', title: 'Partner Preferences' },
     { id: 'photos', title: 'Upload Photos' },
 ];
 
 const QUOTES = {
     welcome: "Your journey to finding the perfect life partner begins here.",
     basics: "Tell us about yourself. Honesty is the foundation of a great relationship.",
-    horoscope: "Stars align for those who believe. Share your astrological details.",
-    career: "Ambition meets compatibility. Share your professional journey.",
-    family: "Family is where life begins and love never ends.",
-    lifestyle: " Habits shape our lives. Let's find someone who matches your rhythm.",
-    partner: "Describe your soulmate. We'll use AI to find them.",
     photos: "A picture is worth a thousand words. Add your best moments."
 };
 
@@ -37,11 +27,6 @@ const QUOTES = {
 const GRADIENTS = {
     welcome: "from-indigo-600 to-purple-700",
     basics: "from-blue-600 to-cyan-600",
-    horoscope: "from-violet-600 to-fuchsia-700",
-    career: "from-emerald-600 to-teal-700",
-    family: "from-orange-500 to-red-600",
-    lifestyle: "from-lime-600 to-green-700",
-    partner: "from-pink-600 to-rose-600",
     photos: "from-indigo-500 to-blue-600",
 };
 
@@ -174,10 +159,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const isStepValid = () => {
         const stepId = STEPS[currentStep].id;
         if (stepId === 'basics') {
-            return !!(data.name && data.age && data.height && data.city && data.aboutMe && data.aboutMe.length >= 20);
-        }
-        if (stepId === 'career') {
-            return !!(data.profession && data.education);
+            return !!(data.name && data.age && data.gender);
         }
         if (stepId === 'photos') {
             return !!(data.photos && data.photos.length > 0);
@@ -189,17 +171,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const validateStep = () => {
         const stepId = STEPS[currentStep].id;
         if (stepId === 'basics') {
-            if (!(data.name && data.age && data.height && data.city)) {
-                toast.error("Please fill in required fields (*)");
-                return false;
-            }
-            if (!data.aboutMe || data.aboutMe.length < 20) {
-                toast.error("Please write a bit more about yourself (min 20 characters)");
-                return false;
-            }
-        }
-        if (stepId === 'career') {
-            if (!(data.profession && data.education)) {
+            if (!(data.name && data.age && data.gender)) {
                 toast.error("Please fill in required fields (*)");
                 return false;
             }
@@ -288,13 +260,13 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                                 <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Gender</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Gender *</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.gender} onChange={e => update('gender', e.target.value)}>
                                         <option>Male</option><option>Female</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Marital Status</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Marital Status (Optional)</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
                                         <option value="">Select Status</option>
                                         <option value="Single">Single</option>
@@ -305,7 +277,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Height *</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Height (Optional)</label>
                                     <select
                                         className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
                                         value={data.height}
@@ -320,7 +292,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </select>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Location *</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Location (Optional)</label>
                                     <div className="flex gap-2 w-full">
                                         <div className="flex-1">
                                             <Input placeholder="City" value={data.city} onChange={e => update('city', e.target.value)} />
@@ -346,7 +318,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Country</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Country (Optional)</label>
                                     <select
                                         className="w-full h-10 px-3 border dark:border-gray-700 rounded-md bg-transparent dark:bg-gray-900 dark:text-white"
                                         value={data.country || 'India'}
@@ -391,198 +363,20 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </select>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">About Me (Bio) *</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">About Me (Bio) (Optional)</label>
                                     <textarea
                                         className="flex min-h-[100px] w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600"
                                         placeholder="Tell us about yourself, your personality, and what you're looking for in life..."
                                         value={data.aboutMe || ''}
                                         onChange={e => update('aboutMe', e.target.value)}
                                     />
-                                    <p className="text-xs text-gray-400">Describe yourself in at least 50 characters for better visibility.</p>
+                                    <p className="text-xs text-gray-400">Introduce yourself to potential matches.</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 2: HOROSCOPE (Detailed) */}
-                    {stepId === 'horoscope' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Religion</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.religion} onChange={e => update('religion', e.target.value)}>
-                                        <option value="">Select Religion</option>
-                                        {RELIGION_OPTIONS.map(opt => (
-                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <Input label="Caste / Community" placeholder="e.g. Brahmin - Iyer, BC-B" value={data.caste} onChange={e => update('caste', e.target.value)} />
-                                <Input label="Gothra (Optional)" placeholder="e.g. Bharadwaj" value={data.gothra} onChange={e => update('gothra', e.target.value)} />
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Manglik</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.manglik} onChange={e => update('manglik', e.target.value)}>
-                                        <option>No</option><option>Yes</option><option>Don't Know</option>
-                                    </select>
-                                </div>
-                                <Input label="Birth Place" placeholder="e.g. Chennai, TN" value={data.birthPlace} onChange={e => update('birthPlace', e.target.value)} />
-                                <Input label="Time of Birth" placeholder="e.g. 10:30 AM" value={data.birthTime} onChange={e => update('birthTime', e.target.value)} />
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Zodiac Sign</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.zodiacSign} onChange={e => update('zodiacSign', e.target.value)}>
-                                        <option value="">Select Zodiac Sign</option>
-                                        {ZODIAC_OPTIONS.map(opt => (
-                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <Input label="Nakshatra" placeholder="e.g. Rohini" value={data.nakshatra} onChange={e => update('nakshatra', e.target.value)} />
-                            </div>
-                        </div>
-                    )}
 
-                    {/* STEP 3: CAREER & EDU */}
-                    {stepId === 'career' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-1 gap-6">
-                                <Input label="Profession / Job Title *" value={data.profession} onChange={e => update('profession', e.target.value)} />
-                                <Input label="Company Name" value={data.company} onChange={e => update('company', e.target.value)} />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Highest Education</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.education} onChange={e => update('education', e.target.value)}>
-                                        <option>High School</option><option>Bachelor's</option><option>Master's</option><option>PhD</option><option>Professional Degree</option>
-                                    </select>
-                                </div>
-                                <Input label="College / University" placeholder="e.g. IIT Bombay" value={data.college} onChange={e => update('college', e.target.value)} />
-                                <Input label="Degree Details" placeholder="e.g. B.Tech CS" value={data.degree} onChange={e => update('degree', e.target.value)} />
-                                <Input label="Annual Income" placeholder="e.g. 15 LPA" value={data.income} onChange={e => update('income', e.target.value)} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP: FAMILY */}
-                    {stepId === 'family' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Family Type</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyType} onChange={e => update('familyType', e.target.value)}>
-                                        <option>Nuclear</option><option>Joint</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Family Values</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.familyValues} onChange={e => update('familyValues', e.target.value)}>
-                                        <option>Moderate</option><option>Traditional</option><option>Orthodox</option><option>Liberal</option>
-                                    </select>
-                                </div>
-                                <Input label="Father's Occupation" value={data.fatherOccupation} onChange={e => update('fatherOccupation', e.target.value)} />
-                                <Input label="Mother's Occupation" value={data.motherOccupation} onChange={e => update('motherOccupation', e.target.value)} />
-                                <Input label="Brothers (Count)" placeholder="e.g. 1" type="number" value={data.brothers} onChange={e => update('brothers', e.target.value)} />
-                                <Input label="Sisters (Count)" placeholder="e.g. 0" type="number" value={data.sisters} onChange={e => update('sisters', e.target.value)} />
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Mother Tongue</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.motherTongue} onChange={e => update('motherTongue', e.target.value)}>
-                                        <option value="">Select Language</option>
-                                        <option>Assamese</option>
-                                        <option>Bengali</option>
-                                        <option>Bhojpuri</option>
-                                        <option>Bodo</option>
-                                        <option>Chhattisgarhi</option>
-                                        <option>Dogri</option>
-                                        <option>English</option>
-                                        <option>Gujarati</option>
-                                        <option>Haryanvi</option>
-                                        <option>Hindi</option>
-                                        <option>Kannada</option>
-                                        <option>Kashmiri</option>
-                                        <option>Khasi</option>
-                                        <option>Konkani</option>
-                                        <option>Kumaoni</option>
-                                        <option>Ladakhi</option>
-                                        <option>Maithili</option>
-                                        <option>Malayalam</option>
-                                        <option>Manipuri (Meitei)</option>
-                                        <option>Marathi</option>
-                                        <option>Mizo</option>
-                                        <option>Nagamese</option>
-                                        <option>Nepali</option>
-                                        <option>Odia</option>
-                                        <option>Punjabi</option>
-                                        <option>Rajasthani</option>
-                                        <option>Sanskrit</option>
-                                        <option>Santali</option>
-                                        <option>Sindhi</option>
-                                        <option>Tamil</option>
-                                        <option>Telugu</option>
-                                        <option>Tulu</option>
-                                        <option>Urdu</option>
-                                        <option>Other</option>
-                                    </select>
-                                </div>
-                                <Input label="Native Place / Ancestral Origin" placeholder="e.g. Kanchipuram" value={data.nativePlace} onChange={e => update('nativePlace', e.target.value)} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP: LIFESTYLE & INTERESTS */}
-                    {stepId === 'lifestyle' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Diet</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.diet} onChange={e => update('diet', e.target.value)}>
-                                        <option>Vegetarian</option><option>Non-Vegetarian</option><option>Eggetarian</option><option>Vegan</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Smoking</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.smoke} onChange={e => update('smoke', e.target.value)}>
-                                        <option>No</option><option>Yes</option><option>Occasionally</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Drinking</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.drink} onChange={e => update('drink', e.target.value)}>
-                                        <option>No</option><option>Yes</option><option>Occasionally</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium dark:text-gray-200">Hobbies & Interests</label>
-                                <textarea
-                                    className="w-full h-24 p-3 border dark:border-gray-700 rounded-md bg-white dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                    placeholder="e.g. Classical Dance, Cricket, Reading Novels, Traveling..."
-                                    value={data.hobbies}
-                                    onChange={e => update('hobbies', e.target.value)}
-                                />
-                                <p className="text-xs text-gray-400">Separate with commas</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STEP: PARTNER PREF */}
-                    {stepId === 'partner' && (
-                        <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="space-y-2">
-                                <h3 className="font-semibold text-gray-900 dark:text-white">Partner Expectations</h3>
-                                <textarea
-                                    className="w-full h-32 p-4 border dark:border-gray-700 rounded-md focus:ring-2 focus:ring-indigo-600 bg-gray-50 dark:bg-gray-900 dark:text-white"
-                                    placeholder="Describe your ideal partner... (e.g. Someone who is ambitious, loves travel, and respects family values. Should be willing to settle in Bangalore.)"
-                                    value={data.prompt}
-                                    onChange={e => update('prompt', e.target.value)}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input label="Pref Age Range" placeholder="24-29" value={data.partnerAgeRange} onChange={e => update('partnerAgeRange', e.target.value)} />
-                                <Input label="Pref Height" placeholder="5'2 - 5'8" value={data.partnerHeightRange} onChange={e => update('partnerHeightRange', e.target.value)} />
-                                <Input label="Min Income" placeholder="e.g. 10 LPA" value={data.partnerIncome} onChange={e => update('partnerIncome', e.target.value)} />
-                                <Input label="Pref Location" placeholder="e.g. Mumbai" value={data.partnerLocation} onChange={e => update('partnerLocation', e.target.value)} />
-                            </div>
-                        </div>
-                    )}
 
                     {/* STEP: PHOTOS */}
                     {stepId === 'photos' && (

@@ -606,7 +606,6 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     </button>
                                 </div>
                             )}
-                            )}
                 </div>
 
                 {/* Music Selector Panel */}

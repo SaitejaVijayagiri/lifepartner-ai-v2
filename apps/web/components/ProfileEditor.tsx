@@ -351,13 +351,15 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Basic Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Full Name" value={formData.name || ''} onChange={e => handleChange('root', 'name', e.target.value)} />
-                        {/* Gender Selector */}
+                        {/* Gender Selector (Locked) */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gender</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                                Gender <span className="text-[10px] text-gray-400 font-normal">(Contact support to change)</span>
+                            </label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed"
                                 value={formData.gender || ''}
-                                onChange={e => handleChange('root', 'gender', e.target.value)}
+                                disabled
                             >
                                 <option value="">Select Gender</option>
                                 <option value="Male">Male</option>
@@ -741,27 +743,27 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <Input label="Brothers" type="number" value={formData.family?.brothers || ''} onChange={(e) => handleChange('family', 'brothers', e.target.value)} />
                         <Input label="Sisters" type="number" value={formData.family?.sisters || ''} onChange={(e) => handleChange('family', 'sisters', e.target.value)} />
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Family Type</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Family Type</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.family?.type || formData.family?.familyType || 'Nuclear'}
                                 onChange={(e) => handleChange('family', 'type', e.target.value)}
                             >
-                                <option>Nuclear</option>
-                                <option>Joint</option>
+                                <option value="Nuclear">Nuclear</option>
+                                <option value="Joint">Joint</option>
                             </select>
                         </div>
                         <div className="space-y-1">
-                            <label className="text-sm font-medium">Family Values</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Family Values</label>
                             <select
-                                className="w-full h-10 px-3 border rounded-md"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.family?.values || formData.family?.familyValues || 'Moderate'}
                                 onChange={(e) => handleChange('family', 'values', e.target.value)}
                             >
-                                <option>Moderate</option>
-                                <option>Traditional</option>
-                                <option>Orthodox</option>
-                                <option>Liberal</option>
+                                <option value="Moderate">Moderate</option>
+                                <option value="Traditional">Traditional</option>
+                                <option value="Orthodox">Orthodox</option>
+                                <option value="Liberal">Liberal</option>
                             </select>
                         </div>
                         <Input label="Native Place" value={formData.family?.nativePlace || ''} onChange={(e) => handleChange('family', 'nativePlace', e.target.value)} />
@@ -780,9 +782,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                     </div>
                 </div>
-                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-end gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
-                    <Button variant="outline" onClick={onCancel}>Cancel</Button>
-                    <Button onClick={handleSave} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700">
+                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex flex-row items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
+                    <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none sm:min-w-[100px]">Cancel</Button>
+                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none sm:min-w-[120px] bg-indigo-600 hover:bg-indigo-700">
                         {loading ? 'Saving...' : 'Save Changes'}
                     </Button>
                 </div>

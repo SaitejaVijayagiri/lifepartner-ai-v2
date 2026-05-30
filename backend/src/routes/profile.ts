@@ -376,6 +376,12 @@ router.put('/me', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
+        // Fetch user's existing gender to enforce read-only protection
+        const existingUser = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { gender: true }
+        });
+
         // ...
 
         const {
@@ -389,6 +395,12 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             savedStickers,
             interests // Added interests/hobbies
         } = req.body;
+
+        // Lock Gender: If gender is already set in the database, do not allow changing it.
+        let finalGender = gender;
+        if (existingUser && existingUser.gender) {
+            finalGender = existingUser.gender;
+        }
 
         let finalPhotos: string[] = [];
         const rawPhotos = photos || [];
@@ -556,7 +568,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     data: {
                         full_name: name || undefined, // COALESCE equivalent: standard undefined ignored
                         age: finalAge,
-                        gender,
+                        gender: finalGender,
                         location_name: location?.city ? `${location.city}, ${location.country || ''}`.trim().replace(/,$/, '') : undefined, // Better location string
                         avatar_url: finalPhotoUrl,
                         email: email?.trim() ? email.trim() : undefined, // FIX: Never allow explicitly saving a blank email
@@ -606,7 +618,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
 
                 // --- REFERRAL BONUS DEFERMENT LOGIC ---
                 // If the user just completed core onboarding (Age & Gender provided)
-                if (finalAge && gender) {
+                if (finalAge && finalGender) {
                     const currentUser = await tx.users.findUnique({
                         where: { id: userId },
                         select: { referred_by: true, id: true }

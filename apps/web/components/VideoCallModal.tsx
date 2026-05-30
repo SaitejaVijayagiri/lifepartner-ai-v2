@@ -196,6 +196,20 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
     const connectionRef = useRef<any>(null); // Type any for SimplePeer instance
+    const streamRef = useRef<MediaStream | null>(null); // Always-current ref (avoids stale closures)
+
+    // STUN/TURN ICE configuration for fast, reliable WebRTC connections
+    const iceConfig = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' },
+        ],
+        iceCandidatePoolSize: 10,
+    };
 
     // Call duration timer
     useEffect(() => {
@@ -253,6 +267,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true })
             .then((currentStream) => {
                 setStream(currentStream);
+                streamRef.current = currentStream; // Keep ref in sync
                 if (myVideo.current && isVideo) {
                     myVideo.current.srcObject = currentStream;
                 }
@@ -330,7 +345,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     const callUser = (currentStream: MediaStream) => {
         setStatus(`Calling ${partner.name}...`);
-        const peer = new SimplePeer({ initiator: true, trickle: false, stream: currentStream });
+        // trickle:true — send ICE candidates incrementally = connects in <1s instead of 3-8s
+        const peer = new SimplePeer({
+            initiator: true,
+            trickle: true,
+            stream: currentStream,
+            config: iceConfig,
+        });
 
         peer.on("signal", (data: any) => {
             if (socket) {
@@ -345,31 +366,41 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     type: mode
                 };
 
-                // Emit immediately
+                // Emit immediately (trickle: each candidate gets its own signal event)
                 socket.emit("callUser", callPayload);
 
-                // Re-emit every 3 seconds for offline users opening via Push notification
-                const ringInterval = setInterval(() => {
-                    if ((window as any)._callEnded || connectionRef.current?.connected || isSpeedDate) {
-                        clearInterval(ringInterval);
-                    } else {
-                        socket.emit("callUser", callPayload);
-                    }
-                }, 3000);
-                (window as any)._ringInterval = ringInterval;
+                // Re-emit the full offer every 3s only when not yet connected (for offline wakeup)
+                // Only set the interval once (when signal type is 'offer')
+                if (data.type === 'offer' && !(window as any)._ringInterval) {
+                    const ringInterval = setInterval(() => {
+                        if ((window as any)._callEnded || connectionRef.current?.connected || isSpeedDate) {
+                            clearInterval(ringInterval);
+                            (window as any)._ringInterval = null;
+                        } else {
+                            socket.emit("callUser", callPayload);
+                        }
+                    }, 3000);
+                    (window as any)._ringInterval = ringInterval;
+                }
             }
         });
 
         peer.on("stream", (currentRemoteStream: MediaStream) => {
-            setRemoteStream(currentRemoteStream); // Save to state
+            setRemoteStream(currentRemoteStream);
         });
 
         peer.on("connect", () => {
+            setCallAccepted(true);
             setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
         });
 
         peer.on("error", (err: any) => {
-            console.error("Peer Error:", err);
+            console.error("Peer Error (initiator):", err.message || err);
+            // Surface connectivity errors to user
+            if (err.message?.includes('Ice connection failed') || err.code === 'ERR_ICE_CONNECTION_FAILURE') {
+                toast.error("Connection failed. Check your internet and try again.");
+                leaveCall(true);
+            }
         });
 
         connectionRef.current = peer;
@@ -383,28 +414,36 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             socket.emit("answerCall_stop_ringing", { to: incomingCall?.from });
         }
 
-        // Stream race condition fix
-        if (!stream) {
-            console.warn("[answerCall] Stream not ready yet, waiting...");
+        // Use streamRef to avoid stale closure — ref is always current even if state isn't
+        const localStream = streamRef.current;
+        if (!localStream) {
+            console.warn("[answerCall] Stream not ready yet, waiting via ref poll...");
             let retries = 0;
             const waitForStream = setInterval(() => {
                 retries++;
-                if (stream) {
+                const s = streamRef.current;
+                if (s) {
                     clearInterval(waitForStream);
-                    doAnswerCall(stream);
-                } else if (retries > 20) { // 4 second timeout
+                    doAnswerCall(s);
+                } else if (retries > 25) { // 5 second timeout
                     clearInterval(waitForStream);
-                    console.error("[answerCall] Stream never became available after 4s");
+                    console.error("[answerCall] Stream never became available after 5s");
                     toast.error("Microphone not ready. Please try calling again.");
                 }
             }, 200);
             return;
         }
-        doAnswerCall(stream);
+        doAnswerCall(localStream);
     };
 
     const doAnswerCall = (localStream: MediaStream) => {
-        const peer = new SimplePeer({ initiator: false, trickle: false, stream: localStream });
+        // trickle:true — enables incremental ICE for fastest possible connection
+        const peer = new SimplePeer({
+            initiator: false,
+            trickle: true,
+            stream: localStream,
+            config: iceConfig,
+        });
 
         peer.on("signal", (data: any) => {
             if (socket && (incomingCall || isSpeedDate)) {
@@ -413,7 +452,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         });
 
         peer.on("stream", (currentRemoteStream: MediaStream) => {
-            setRemoteStream(currentRemoteStream); // Save to state
+            setRemoteStream(currentRemoteStream);
         });
 
         peer.on("connect", () => {
@@ -422,7 +461,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         });
 
         peer.on("error", (err: any) => {
-            console.error("Peer Error:", err);
+            console.error("Peer Error (answerer):", err.message || err);
+            if (err.message?.includes('Ice connection failed') || err.code === 'ERR_ICE_CONNECTION_FAILURE') {
+                toast.error("Connection failed. Check your internet and try again.");
+                leaveCall(true);
+            }
         });
 
         if (incomingCall) {

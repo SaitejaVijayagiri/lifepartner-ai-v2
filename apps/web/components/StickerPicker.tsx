@@ -6,7 +6,7 @@ import { Download, Trash2, X, PlusCircle, CheckCircle2, Store, Heart, ArrowLeft,
 import { useToast } from '@/components/ui/Toast';
 
 const DEMO_STICKER_STORE = [
-    // Original 26 Emojis
+    // 52 100% Verified, Active Animated WebP Emojis
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f970/512.webp", // Heart Eyes
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp", // Alien
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f498/512.webp", // Heart with Arrow
@@ -33,8 +33,6 @@ const DEMO_STICKER_STORE = [
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a9/512.webp", // Poo
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp", // Rocket
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f6f8/512.webp", // Flying saucer
-    
-    // 26 New Animated Premium Emojis (Total 52 Emojis)
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1fae0/512.webp", // Melting Face
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp", // Sunglasses Face
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f49e/512.webp", // Revolving Hearts
@@ -45,22 +43,22 @@ const DEMO_STICKER_STORE = [
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92c/512.webp", // Swearing Face
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f971/512.webp", // Yawning Face
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f979/512.webp", // Holding Back Tears
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a6/512.webp", // Sweat Droplets
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4ac/512.webp", // Speech Balloon
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f93f/512.webp", // Otter
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4c8/512.webp", // Chart Increasing
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f50a/512.webp", // Speaker Loud
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f50e/512.webp", // Magnifying Glass Right
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a2/512.webp", // Anger Symbol
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f480/512.webp", // Skull
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f496/512.webp", // Sparkling Heart
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f49d/512.webp", // Heart with Ribbon
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92d/512.webp", // Face with Hand Over Mouth
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp", // Exploding Head
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f939/512.webp", // Juggling
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f9e1/512.webp", // Orange Heart
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4bb/512.webp", // Laptop
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f48b/512.webp"  // Kiss Mark
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f48b/512.webp", // Kiss Mark
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f600/512.webp", // Grinning Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f606/512.webp", // Laughing Squint Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f609/512.webp", // Winking Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f61c/512.webp", // Winking Face with Tongue
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60f/512.webp"  // Smirking Face
 ];
 
 export const getStickerAnimation = (url: string) => {
@@ -69,39 +67,20 @@ export const getStickerAnimation = (url: string) => {
 };
 
 const LazySticker = ({ url, isSaved, isDragging }: { url: string; isSaved?: boolean; isDragging?: boolean }) => {
-    const [isVisible, setIsVisible] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                setIsVisible(true);
-                observer.disconnect();
-            }
-        }, { rootMargin: '250px' });
-
-        if (ref.current) observer.observe(ref.current);
-        return () => observer.disconnect();
-    }, []);
-
     return (
-        <div ref={ref} className="w-full h-full flex items-center justify-center p-1">
-            {isVisible ? (
-                <img
-                    src={url}
-                    loading="lazy"
-                    decoding="async"
-                    width={128}
-                    height={128}
-                    className={`w-full h-full object-contain transition-all duration-300 ease-out transform group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-2 ${isSaved ? 'opacity-40' : 'opacity-100'} ${isDragging ? 'opacity-30' : ''}`}
-                    style={{
-                        filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.06))'
-                    }}
-                    alt="sticker"
-                />
-            ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-gray-700 border-t-indigo-500 animate-spin opacity-50"></div>
-            )}
+        <div className="w-full h-full flex items-center justify-center p-1">
+            <img
+                src={url}
+                loading="lazy"
+                decoding="async"
+                width={128}
+                height={128}
+                className={`w-full h-full object-contain transition-all duration-300 ease-out transform group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-2 ${isSaved ? 'opacity-40' : 'opacity-100'} ${isDragging ? 'opacity-30' : ''}`}
+                style={{
+                    filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.06))'
+                }}
+                alt="sticker"
+            />
         </div>
     );
 };
@@ -179,7 +158,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(blobUrl);
-            toast.success("Downloaded file to device!");
+            toast.success("Saved to device downloads!");
         } catch (error) {
             console.error("Failed to download sticker file", error);
             window.open(url, '_blank');

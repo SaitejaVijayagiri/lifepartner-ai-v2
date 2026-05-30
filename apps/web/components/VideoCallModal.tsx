@@ -703,10 +703,19 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                     )}
                                 </>
                             )}
-                            <div className="flex items-center gap-2 text-xs text-slate-300/80 mt-1.5 font-mono tracking-wider font-semibold bg-black/30 backdrop-blur-sm px-2 py-0.5 rounded-md border border-white/5 w-fit">
-                                <span className={callAccepted ? "text-emerald-400" : "text-amber-400"}>
-                                    {callAccepted ? (isSpeedDate ? formatDuration(180 - callDuration) + " remaining" : formatDuration(callDuration)) : status}
-                                </span>
+                            <div className="flex items-center gap-2 mt-1.5 w-fit flex-wrap">
+                                <div className="flex items-center gap-2 text-xs text-slate-300/80 font-mono tracking-wider font-semibold bg-black/30 backdrop-blur-sm px-2 py-0.5 rounded-md border border-white/5">
+                                    <span className={callAccepted ? "text-emerald-400" : "text-amber-400"}>
+                                        {callAccepted ? (isSpeedDate ? formatDuration(180 - callDuration) + " remaining" : formatDuration(callDuration)) : status}
+                                    </span>
+                                </div>
+                                {callAccepted && !callEnded && (
+                                    <div className="flex items-center gap-1 bg-emerald-500/10 backdrop-blur-md px-2 py-0.5 rounded-md border border-emerald-500/20">
+                                        <span className="text-[10px]">🛡️</span>
+                                        <span className="text-[9px] font-bold tracking-widest text-emerald-300 uppercase hidden sm:inline">E2E Encrypted</span>
+                                        <span className="text-[9px] font-bold tracking-widest text-emerald-300 uppercase sm:hidden">E2E</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -723,15 +732,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 {/* 3. CENTRAL INTERACTIVE AREA */}
                 <div className="flex-1 relative overflow-hidden flex items-center justify-center group z-10">
                     
-                    {/* E2EE Security Badge */}
-                    {callAccepted && !callEnded && (
-                        <div className="absolute top-28 left-0 right-0 flex justify-center z-30 pointer-events-none">
-                            <div className="bg-emerald-500/10 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-2 shadow-[0_4px_12px_rgba(16,185,129,0.15)] animate-fade-in">
-                                <span className="text-xs text-emerald-400">🛡️</span>
-                                <span className="text-[10px] font-bold tracking-widest text-emerald-300 uppercase">End-to-End Secure Call</span>
-                            </div>
-                        </div>
-                    )}
+                    {/* E2EE Security Badge — now shown inline in the header, not blocking video */}
                     
                     {/* INCOMING CALL SCREEN */}
                     {incomingCall && !callAnswered && !isSpeedDate ? (
@@ -904,12 +905,14 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     )}
                 </div>
 
-                {/* 4. SLEEK FLOATING CAPSULE CONTROLS */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 bg-slate-950/70 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
+                {/* 4. SLEEK FLOATING CAPSULE CONTROLS
+                     — positioned above the bottom nav on mobile (bottom-24 = ~96px),
+                       and lower on desktop where no bottom nav exists (lg:bottom-8).    */}
+                <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-slate-950/80 backdrop-blur-xl border border-white/10 px-5 py-3.5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
                     {/* Toggle Microphone */}
                     <button 
                         onClick={toggleMute} 
-                        className={`p-3.5 rounded-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ${isMuted ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600' : 'bg-white/10 text-white hover:bg-white/20 border border-white/15'}`}
+                        className={`p-3 sm:p-3.5 rounded-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ${isMuted ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600' : 'bg-white/10 text-white hover:bg-white/20 border border-white/15'}`}
                         title={isMuted ? "Unmute Mic" : "Mute Mic"}
                     >
                         {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
@@ -919,7 +922,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     {isVideo && (
                         <button 
                             onClick={switchCamera} 
-                            className="p-3.5 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/15 hover:scale-110 transition-all"
+                            className="p-3 sm:p-3.5 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/15 hover:scale-110 transition-all"
                             title="Switch Camera"
                         >
                             <RefreshCw size={18} />
@@ -930,7 +933,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     {isVideo && (
                         <button 
                             onClick={toggleVideo} 
-                            className={`p-3.5 rounded-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ${isVideoOff ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600' : 'bg-white/10 text-white hover:bg-white/20 border border-white/15'}`}
+                            className={`p-3 sm:p-3.5 rounded-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ${isVideoOff ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600' : 'bg-white/10 text-white hover:bg-white/20 border border-white/15'}`}
                             title={isVideoOff ? "Turn Video On" : "Turn Video Off"}
                         >
                             {isVideoOff ? <VideoOff size={18} /> : <Video size={18} />}
@@ -939,7 +942,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
                     {/* Gift Modal Trigger */}
                     <button 
-                        className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/20 hover:scale-110 hover:shadow-orange-500/40 transition-all animate-pulse" 
+                        className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/20 hover:scale-110 hover:shadow-orange-500/40 transition-all animate-pulse" 
                         onClick={() => setShowGiftModal(true)}
                         title="Send a Gift"
                     >
@@ -948,7 +951,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
                     {/* Crimson End Call Button */}
                     <button 
-                        className="p-4 rounded-2xl bg-rose-600 text-white shadow-lg shadow-rose-600/30 transition-all duration-300 hover:scale-110 hover:bg-rose-700" 
+                        className="p-3.5 sm:p-4 rounded-2xl bg-rose-600 text-white shadow-lg shadow-rose-600/30 transition-all duration-300 hover:scale-110 hover:bg-rose-700" 
                         onClick={() => leaveCall(true)}
                         title="End Call"
                     >

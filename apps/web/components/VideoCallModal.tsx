@@ -372,10 +372,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     const callUser = (currentStream: MediaStream) => {
         setStatus(`Calling ${partner.name}...`);
-        // trickle:true — send ICE candidates incrementally = connects in <1s instead of 3-8s
+        // trickle:false — required for this architecture (callUser socket event carries the full SDP offer)
+        // Multiple STUN servers ensure fast candidate gathering (<2s)
         const peer = new SimplePeer({
             initiator: true,
-            trickle: true,
+            trickle: false,
             stream: currentStream,
             config: iceConfig,
         });
@@ -393,12 +394,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     type: mode
                 };
 
-                // Emit immediately (trickle: each candidate gets its own signal event)
+                // Emit full SDP offer immediately
                 socket.emit("callUser", callPayload);
 
-                // Re-emit the full offer every 3s only when not yet connected (for offline wakeup)
-                // Only set the interval once (when signal type is 'offer')
-                if (data.type === 'offer' && !(window as any)._ringInterval) {
+                // Re-emit every 3s for offline wakeup — only once
+                if (!(window as any)._ringInterval) {
                     const ringInterval = setInterval(() => {
                         if ((window as any)._callEnded || connectionRef.current?.connected || isSpeedDate) {
                             clearInterval(ringInterval);
@@ -417,13 +417,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         });
 
         peer.on("connect", () => {
-            setCallAccepted(true);
             setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
         });
 
         peer.on("error", (err: any) => {
             console.error("Peer Error (initiator):", err.message || err);
-            // Surface connectivity errors to user
             if (err.message?.includes('Ice connection failed') || err.code === 'ERR_ICE_CONNECTION_FAILURE') {
                 toast.error("Connection failed. Check your internet and try again.");
                 leaveCall(true);
@@ -464,10 +462,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     };
 
     const doAnswerCall = (localStream: MediaStream) => {
-        // trickle:true — enables incremental ICE for fastest possible connection
+        // trickle:false — required for this architecture (answerCall socket carries full SDP answer)
         const peer = new SimplePeer({
             initiator: false,
-            trickle: true,
+            trickle: false,
             stream: localStream,
             config: iceConfig,
         });

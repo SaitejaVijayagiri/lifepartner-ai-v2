@@ -166,24 +166,11 @@ export const initSocket = (httpServer: HttpServer) => {
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
         try {
-                // Single DB query: get premium status AND location AND name together
+                // Fetch caller name and location for call UI (no premium gate — calls are free for all)
                 const callerData = from ? await prisma.users.findUnique({
                     where: { id: from },
-                    select: { is_premium: true, city: true, location_name: true, full_name: true }
+                    select: { city: true, location_name: true, full_name: true }
                 }) : null;
-
-                // REVENUE PROTECTION: Check if Caller is Premium
-                // Speed dates are always free (matchmaker already validated both users).
-                if (type !== 'speed_date') {
-                    if (!callerData || !callerData.is_premium) {
-                        console.log(`Blocked Call from Free User: ${from}`);
-                        io.to(socket.id).emit("callError", {
-                            message: "Voice & Video Calls are Premium Features. Upgrade to Plan to Unlock.",
-                            code: "PREMIUM_REQUIRED"
-                        });
-                        return;
-                    }
-                }
 
                 const userLocation = callerData?.city || callerData?.location_name || null;
                 const secureName = callerData?.full_name || name || 'A User';
@@ -218,9 +205,8 @@ export const initSocket = (httpServer: HttpServer) => {
                     ).catch(console.error);
                 }
 
-
             } catch (e) {
-                console.error("Call Gating Error", e);
+                console.error("Call Relay Error", e);
             }
         });
 

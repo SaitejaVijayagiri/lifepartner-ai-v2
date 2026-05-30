@@ -151,7 +151,7 @@ router.post('/chat', authenticateToken, async (req: any, res) => {
                                 ...geminiHistory,
                                 { role: 'user', parts: [{ text: message }] }
                             ],
-                            generationConfig: { maxOutputTokens: 200, temperature: 0.8 }
+                            generationConfig: { maxOutputTokens: 1500, temperature: 0.8 }
                         }),
                         signal: AbortSignal.timeout(8000)
                     }
@@ -249,7 +249,7 @@ DO NOT use markdown wrappers like \`\`\`json around the output. Only return raw 
                         contents: [
                             { role: 'user', parts: [{ text: JSON.stringify(analysisData) }] }
                         ],
-                        generationConfig: { maxOutputTokens: 500, temperature: 0.9 }
+                        generationConfig: { maxOutputTokens: 2000, temperature: 0.9 }
                     }),
                     signal: AbortSignal.timeout(12000)
                 }
@@ -403,7 +403,7 @@ IMPORTANT: 'score' MUST be an integer between 0 and 100. DO NOT use markdown wra
                             contents: [
                                 { role: 'user', parts: [{ text: JSON.stringify({ Person1: dataA, Person2: dataB }) }] }
                             ],
-                            generationConfig: { maxOutputTokens: 500, temperature: 0.8 }
+                            generationConfig: { maxOutputTokens: 2000, temperature: 0.8 }
                         }),
                         signal: AbortSignal.timeout(10000)
                     }

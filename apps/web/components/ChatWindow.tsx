@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -285,6 +285,29 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const getStickerAnimation = (url: string) => {
         return '';
+    };
+
+    const handleDownloadWebpChat = async (url: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const parts = url.split('/');
+            const emojiId = parts[parts.length - 2] || 'sticker';
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `sticker_${emojiId}.webp`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+            toast.success("Downloaded sticker to your device!");
+        } catch (error) {
+            console.error("Failed to download sticker file", error);
+            window.open(url, '_blank');
+        }
     };
 
     const [showGame, setShowGame] = useState(false);
@@ -828,6 +851,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     return (
         <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in fade-in zoom-in-95 duration-200"}>
+            <style>{`
+                @keyframes wiggle {
+                    0%, 100% { transform: rotate(0deg); }
+                    25% { transform: rotate(-5deg) scale(1.05); }
+                    75% { transform: rotate(5deg) scale(1.05); }
+                }
+                .animate-wiggle:hover {
+                    animation: wiggle 0.45s ease-in-out infinite;
+                }
+            `}</style>
             {/* Premium Header */}
             {!isCallMode && (
                 <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative">
@@ -1099,7 +1132,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             );
                                         })()}
                                         {msg.text.startsWith('[STICKER]') ? (
-                                            <img src={msg.text.replace('[STICKER]', '')} className={`w-32 h-32 object-contain drop-shadow-lg ${getStickerAnimation(msg.text.replace('[STICKER]', ''))}`} alt="sticker" />
+                                            <div className="relative group inline-block transition-all duration-300">
+                                                <img 
+                                                    src={msg.text.replace('[STICKER]', '')} 
+                                                    className="w-32 h-32 object-contain drop-shadow-lg select-none transition-all duration-300 transform animate-wiggle cursor-pointer" 
+                                                    alt="sticker" 
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleDownloadWebpChat(msg.text.replace('[STICKER]', ''), e)}
+                                                    className="absolute -top-1 -right-1 p-2 bg-slate-950/80 border border-white/10 hover:bg-slate-900 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center cursor-pointer z-10 backdrop-blur-md"
+                                                    title="Download Sticker"
+                                                >
+                                                    <Download size={12} />
+                                                </button>
+                                            </div>
                                         ) : msg.text.startsWith('[IMAGE]') ? (
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenImage(msg.text.replace('[IMAGE]', ''))} />
                                         ) : msg.text.startsWith('[AUDIO]') ? (

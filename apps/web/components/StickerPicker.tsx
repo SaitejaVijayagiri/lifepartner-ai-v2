@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
-import { Download, Trash2, X, PlusCircle, CheckCircle2, Store, Heart } from 'lucide-react';
+import { Download, Trash2, X, PlusCircle, CheckCircle2, Store, Heart, ArrowLeft, ArrowRight, Move } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 const DEMO_STICKER_STORE = [
+    // Original 26 Emojis
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f970/512.webp", // Heart Eyes
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp", // Alien
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f498/512.webp", // Heart with Arrow
@@ -31,7 +32,35 @@ const DEMO_STICKER_STORE = [
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp", // Ghost
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a9/512.webp", // Poo
     "https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp", // Rocket
-    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f6f8/512.webp"  // Flying saucer
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f6f8/512.webp", // Flying saucer
+    
+    // 26 New Animated Premium Emojis (Total 52 Emojis)
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1fae0/512.webp", // Melting Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp", // Sunglasses Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f49e/512.webp", // Revolving Hearts
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4e3/512.webp", // Megaphone
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f485/512.webp", // Nail Polish
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f917/512.webp", // Hugging Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f923/512.webp", // Rolling on Floor Laughing
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92c/512.webp", // Swearing Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f971/512.webp", // Yawning Face
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f979/512.webp", // Holding Back Tears
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a6/512.webp", // Sweat Droplets
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4ac/512.webp", // Speech Balloon
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f93f/512.webp", // Otter
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4c8/512.webp", // Chart Increasing
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f50a/512.webp", // Speaker Loud
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f50e/512.webp", // Magnifying Glass Right
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a2/512.webp", // Anger Symbol
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f480/512.webp", // Skull
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f496/512.webp", // Sparkling Heart
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f49d/512.webp", // Heart with Ribbon
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92d/512.webp", // Face with Hand Over Mouth
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp", // Exploding Head
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f939/512.webp", // Juggling
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f9e1/512.webp", // Orange Heart
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f4bb/512.webp", // Laptop
+    "https://fonts.gstatic.com/s/e/notoemoji/latest/1f48b/512.webp"  // Kiss Mark
 ];
 
 export const getStickerAnimation = (url: string) => {
@@ -39,7 +68,7 @@ export const getStickerAnimation = (url: string) => {
     return '';
 };
 
-const LazySticker = ({ url, isSaved }: { url: string; isSaved?: boolean }) => {
+const LazySticker = ({ url, isSaved, isDragging }: { url: string; isSaved?: boolean; isDragging?: boolean }) => {
     const [isVisible, setIsVisible] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -64,7 +93,10 @@ const LazySticker = ({ url, isSaved }: { url: string; isSaved?: boolean }) => {
                     decoding="async"
                     width={128}
                     height={128}
-                    className={`w-full h-full object-contain transition-opacity duration-300 ${isSaved ? 'opacity-50' : 'opacity-100'}`}
+                    className={`w-full h-full object-contain transition-all duration-300 ease-out transform group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-2 ${isSaved ? 'opacity-40' : 'opacity-100'} ${isDragging ? 'opacity-30' : ''}`}
+                    style={{
+                        filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.06))'
+                    }}
                     alt="sticker"
                 />
             ) : (
@@ -78,7 +110,11 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
     const [activeTab, setActiveTab] = useState<'mine' | 'store'>('mine');
     const [savedStickers, setSavedStickers] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isArrangeMode, setIsArrangeMode] = useState(false);
     const toast = useToast();
+
+    const dragItem = useRef<number | null>(null);
+    const dragOverItem = useRef<number | null>(null);
 
     useEffect(() => {
         fetchMyStickers();
@@ -103,7 +139,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
 
         const newStickers = [url, ...savedStickers];
         setSavedStickers(newStickers);
-        toast.success("Sticker saved!");
+        toast.success("Sticker added to Library!");
 
         try {
             await api.profile.updateProfile({ savedStickers: newStickers });
@@ -127,33 +163,134 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
         }
     };
 
+    const handleDownloadWebp = async (url: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const parts = url.split('/');
+            const emojiId = parts[parts.length - 2] || 'sticker';
+            
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `sticker_${emojiId}.webp`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+            toast.success("Downloaded file to device!");
+        } catch (error) {
+            console.error("Failed to download sticker file", error);
+            window.open(url, '_blank');
+        }
+    };
+
+    const handleDragStart = (index: number) => {
+        dragItem.current = index;
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        dragOverItem.current = index;
+    };
+
+    const handleDragEnd = async () => {
+        if (dragItem.current === null || dragOverItem.current === null || dragItem.current === dragOverItem.current) {
+            dragItem.current = null;
+            dragOverItem.current = null;
+            return;
+        }
+
+        const newStickers = [...savedStickers];
+        const draggedItemContent = newStickers[dragItem.current];
+        
+        newStickers.splice(dragItem.current, 1);
+        newStickers.splice(dragOverItem.current, 0, draggedItemContent);
+
+        dragItem.current = null;
+        dragOverItem.current = null;
+        setSavedStickers(newStickers);
+        
+        try {
+            await api.profile.updateProfile({ savedStickers: newStickers });
+        } catch (err) {
+            toast.error("Failed to save custom arrangement");
+        }
+    };
+
+    const shiftSticker = async (index: number, direction: 'left' | 'right', e: React.MouseEvent) => {
+        e.stopPropagation();
+        const targetIndex = direction === 'left' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= savedStickers.length) return;
+
+        const newStickers = [...savedStickers];
+        const temp = newStickers[index];
+        newStickers[index] = newStickers[targetIndex];
+        newStickers[targetIndex] = temp;
+
+        setSavedStickers(newStickers);
+
+        try {
+            await api.profile.updateProfile({ savedStickers: newStickers });
+        } catch (err) {
+            toast.error("Failed to save custom arrangement");
+        }
+    };
+
     return (
         <div className="absolute bottom-20 right-4 left-4 md:left-auto md:w-80 bg-white dark:bg-gray-900 shadow-2xl rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[110] animate-in slide-in-from-bottom-5">
             {/* Header / Tabs */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 p-2 bg-gray-50 dark:bg-gray-800/50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 p-2 bg-gray-50 dark:bg-gray-800/50">
                 <div className="flex gap-1">
                     <button
-                        onClick={() => setActiveTab('mine')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'mine' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-gray-800'}`}
+                        onClick={() => {
+                            setActiveTab('mine');
+                        }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'mine' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                     >
                         <Heart size={14} className={activeTab === 'mine' ? 'fill-indigo-500' : ''} />
                         My Stickers
                     </button>
                     <button
-                        onClick={() => setActiveTab('store')}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${activeTab === 'store' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:bg-gray-800'}`}
+                        onClick={() => {
+                            setActiveTab('store');
+                            setIsArrangeMode(false);
+                        }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${activeTab === 'store' ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
                     >
                         <Store size={14} />
                         Store
                     </button>
                 </div>
-                <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:bg-gray-700 rounded-full">
+                <button onClick={onClose} className="p-2 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full cursor-pointer">
                     <X size={16} />
                 </button>
             </div>
 
+            {/* Sub-Header / Arrange Mode Console */}
+            {activeTab === 'mine' && savedStickers.length > 0 && (
+                <div className="flex items-center justify-between px-3 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-indigo-100/50 dark:border-indigo-900/30 text-[11px] select-none">
+                    <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                        <Move size={12} className={isArrangeMode ? "animate-pulse" : ""} />
+                        {isArrangeMode ? "Drag cards or use arrows to sort" : "Your Library"}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setIsArrangeMode(!isArrangeMode)}
+                        className={`px-2.5 py-0.5 rounded-lg font-bold transition-all active:scale-95 shadow-sm border text-[10px] cursor-pointer ${
+                            isArrangeMode 
+                                ? 'bg-amber-500 border-amber-600 text-white hover:bg-amber-600' 
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                    >
+                        {isArrangeMode ? "Done" : "Arrange"}
+                    </button>
+                </div>
+            )}
+
             {/* Grid Area */}
-            <div className="h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800/30 dark:bg-gray-800/30">
+            <div className="h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800/30">
                 {isLoading ? (
                     <div className="flex justify-center items-center h-full">
                         <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
@@ -165,31 +302,88 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                             <p className="text-sm font-medium">No saved stickers</p>
                             <button
                                 onClick={() => setActiveTab('store')}
-                                className="px-4 py-2 bg-indigo-50 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold mt-2"
+                                className="px-4 py-2 bg-indigo-50 text-indigo-600 dark:text-indigo-400 rounded-full text-xs font-bold mt-2 cursor-pointer"
                             >
                                 Browse Store
                             </button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-4 gap-3">
-                            {savedStickers.map((url, i) => (
-                                <div
-                                    key={i}
-                                    className="relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
-                                    onClick={() => onSelect(url)}
-                                >
-                                    <LazySticker url={url} />
-
-                                    {/* Delete Button (Visible on Hover in Desktop, always accessible via long press logic in mobile, but we use explicit button for simplicity) */}
-                                    <button
-                                        onClick={(e) => deleteSticker(url, e)}
-                                        className="absolute top-1 right-1 p-1.5 bg-red-500/90 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
-                                        title="Remove Sticker"
+                            {savedStickers.map((url, i) => {
+                                const isDraggingThis = dragItem.current === i;
+                                return (
+                                    <div
+                                        key={i}
+                                        draggable={isArrangeMode}
+                                        onDragStart={() => handleDragStart(i)}
+                                        onDragOver={(e) => handleDragOver(e, i)}
+                                        onDragEnd={handleDragEnd}
+                                        className={`relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border overflow-hidden shadow-sm transition-all duration-300 select-none ${
+                                            isArrangeMode 
+                                                ? 'border-dashed border-amber-400 dark:border-amber-500 cursor-grab active:cursor-grabbing hover:scale-[1.02]' 
+                                                : 'border-gray-100 dark:border-gray-800 cursor-pointer hover:scale-105 active:scale-95'
+                                        } ${isDraggingThis ? 'opacity-30 border-indigo-500 bg-indigo-500/5' : ''}`}
+                                        onClick={() => {
+                                            if (isArrangeMode) return;
+                                            onSelect(url);
+                                        }}
                                     >
-                                        <Trash2 size={10} />
-                                    </button>
-                                </div>
-                            ))}
+                                        <LazySticker url={url} isDragging={isDraggingThis} />
+
+                                        {isArrangeMode ? (
+                                            /* Tactile Touchscreen / Mobile Controls Bar */
+                                            <div className="absolute inset-x-0 bottom-0 bg-slate-950/80 backdrop-blur-md py-1 flex items-center justify-between px-1 border-t border-white/10 text-white animate-in fade-in slide-in-from-bottom-2 duration-200 z-10">
+                                                <button
+                                                    type="button"
+                                                    disabled={i === 0}
+                                                    onClick={(e) => shiftSticker(i, 'left', e)}
+                                                    className="p-1 hover:bg-white/20 active:scale-90 rounded-md transition-all disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                                    title="Move Left"
+                                                >
+                                                    <ArrowLeft size={12} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => deleteSticker(url, e)}
+                                                    className="p-1 text-red-400 hover:bg-red-500/20 active:scale-90 rounded-md transition-all cursor-pointer"
+                                                    title="Remove Sticker"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={i === savedStickers.length - 1}
+                                                    onClick={(e) => shiftSticker(i, 'right', e)}
+                                                    className="p-1 hover:bg-white/20 active:scale-90 rounded-md transition-all disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                                                    title="Move Right"
+                                                >
+                                                    <ArrowRight size={12} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            /* Standard Mode Action Overlays (Download WebP & Delete Library) */
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleDownloadWebp(url, e)}
+                                                    className="absolute top-1 left-1 p-1 bg-indigo-600/90 hover:bg-indigo-750 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 shadow-md z-10 cursor-pointer flex items-center justify-center"
+                                                    title="Download WebP File"
+                                                >
+                                                    <Download size={10} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => deleteSticker(url, e)}
+                                                    className="absolute top-1 right-1 p-1 bg-red-500/90 hover:bg-red-650 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 shadow-md z-10 cursor-pointer flex items-center justify-center"
+                                                    title="Remove Sticker"
+                                                >
+                                                    <Trash2 size={10} />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )
                 ) : (
@@ -200,21 +394,34 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                             return (
                                 <div
                                     key={i}
-                                    className={`relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border ${isSaved ? 'border-indigo-200' : 'border-gray-100 dark:border-gray-800'} overflow-hidden shadow-sm hover:shadow-md transition-all`}
+                                    className={`relative group aspect-square rounded-xl bg-white dark:bg-gray-900 border overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 ${
+                                        isSaved ? 'border-indigo-200 dark:border-indigo-900 bg-indigo-50/10 dark:bg-indigo-950/10' : 'border-gray-100 dark:border-gray-800'
+                                    }`}
                                 >
                                     <LazySticker url={url} isSaved={isSaved} />
 
+                                    {/* Download WebP File directly from Store card */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleDownloadWebp(url, e)}
+                                        className="absolute top-1 left-1 p-1 bg-slate-900/80 border border-white/10 hover:bg-slate-950 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 shadow-md z-10 cursor-pointer flex items-center justify-center"
+                                        title="Download Sticker File"
+                                    >
+                                        <Download size={10} />
+                                    </button>
+
                                     {isSaved ? (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
-                                            <CheckCircle2 size={24} className="text-green-500 drop-shadow-md" />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-indigo-950/10 backdrop-blur-[0.5px] select-none pointer-events-none">
+                                            <CheckCircle2 size={22} className="text-green-500 drop-shadow-md animate-in zoom-in-50 duration-300" />
                                         </div>
                                     ) : (
                                         <button
+                                            type="button"
                                             onClick={() => downloadSticker(url)}
-                                            className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg"
-                                            title="Save Sticker"
+                                            className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full opacity-100 md:opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg cursor-pointer flex items-center justify-center z-10"
+                                            title="Add to Library"
                                         >
-                                            <Download size={12} />
+                                            <PlusCircle size={12} />
                                         </button>
                                     )}
                                 </div>
@@ -224,7 +431,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                 )}
             </div>
 
-            <div className="p-2 text-center border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 dark:bg-gray-800/50">
+            <div className="p-2 text-center border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">Click a sticker in your library to send it instantly.</p>
             </div>
         </div>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2 } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders } from 'lucide-react';
+import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
@@ -28,6 +29,97 @@ interface ChatWindowProps {
     onMessagesRead?: () => void;
     onMessageSent?: () => void;
 }
+
+const FILTER_PRESETS = [
+    { name: 'Normal', value: 'none' },
+    { name: 'Grayscale', value: 'grayscale(1)' },
+    { name: 'Sepia', value: 'sepia(1)' },
+    { name: 'Warm Sun', value: 'sepia(0.3) saturate(1.4) contrast(1.1)' },
+    { name: 'Cool Ice', value: 'hue-rotate(180deg) saturate(1.1) brightness(1.05)' },
+    { name: 'Vintage', value: 'sepia(0.5) contrast(0.9) brightness(1.1)' },
+    { name: 'Dramatic', value: 'contrast(1.4) saturate(1.2)' },
+    { name: 'Brighten', value: 'brightness(1.2) contrast(1.05)' }
+];
+
+const rotateSize = (width: number, height: number, rotation: number) => {
+    const rotRad = (rotation * Math.PI) / 180;
+    return {
+        width: Math.abs(Math.sin(rotRad) * height) + Math.abs(Math.cos(rotRad) * width),
+        height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+    };
+};
+
+const getCroppedImg = (
+    imageSrc: string,
+    pixelCrop: any,
+    rotation: number = 0,
+    filter: string = 'none'
+): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.src = imageSrc;
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('No 2d context'));
+                return;
+            }
+
+            const rotRad = (rotation * Math.PI) / 180;
+            const { width: bWidth, height: bHeight } = rotateSize(
+                image.width,
+                image.height,
+                rotation
+            );
+
+            canvas.width = bWidth;
+            canvas.height = bHeight;
+
+            ctx.translate(bWidth / 2, bHeight / 2);
+            ctx.rotate(rotRad);
+            ctx.translate(-image.width / 2, -image.height / 2);
+
+            ctx.drawImage(image, 0, 0);
+
+            const croppedCanvas = document.createElement('canvas');
+            const croppedCtx = croppedCanvas.getContext('2d');
+            if (!croppedCtx) {
+                reject(new Error('No 2d context for crop'));
+                return;
+            }
+
+            croppedCanvas.width = pixelCrop.width;
+            croppedCanvas.height = pixelCrop.height;
+
+            if (filter !== 'none') {
+                croppedCtx.filter = filter;
+            }
+
+            croppedCtx.drawImage(
+                canvas,
+                pixelCrop.x,
+                pixelCrop.y,
+                pixelCrop.width,
+                pixelCrop.height,
+                0,
+                0,
+                pixelCrop.width,
+                pixelCrop.height
+            );
+
+            croppedCanvas.toBlob((blob) => {
+                if (!blob) {
+                    reject(new Error('Canvas is empty'));
+                    return;
+                }
+                resolve(blob);
+            }, 'image/jpeg', 0.9);
+        };
+        image.onerror = (err) => reject(err);
+    });
+};
 
 const getYoutubeId = (text: string): string | null => {
     if (!text) return null;
@@ -125,6 +217,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<string | null>(null);
     const [stagedFile, setStagedFile] = useState<File | null>(null);
     const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
+    const [showImageEditor, setShowImageEditor] = useState(false);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+    const [activeFilter, setActiveFilter] = useState('none');
+    const [isEditingImage, setIsEditingImage] = useState(false);
 
     // Garbage collect staged object URL to prevent memory leaks
     useEffect(() => {
@@ -134,6 +233,43 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             }
         };
     }, [stagedPreviewUrl]);
+
+    const onCropComplete = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    const handleSaveEditedImage = async () => {
+        if (!croppedAreaPixels || isEditingImage || !stagedPreviewUrl || !stagedFile) return;
+        setIsEditingImage(true);
+        try {
+            const croppedBlob = await getCroppedImg(
+                stagedPreviewUrl,
+                croppedAreaPixels,
+                rotation,
+                activeFilter
+            );
+            
+            const croppedFile = new File([croppedBlob], stagedFile.name || 'edited-image.jpg', {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+            });
+
+            if (stagedPreviewUrl) {
+                URL.revokeObjectURL(stagedPreviewUrl);
+            }
+
+            setStagedFile(croppedFile);
+            setStagedPreviewUrl(URL.createObjectURL(croppedBlob));
+            
+            toast.success("Image edited successfully");
+            setShowImageEditor(false);
+        } catch (err: any) {
+            toast.error(`Editing failed: ${err.message || 'Unknown error'}`);
+            console.error("Image editing error:", err);
+        } finally {
+            setIsEditingImage(false);
+        }
+    };
 
     const QUICK_EMOJIS = ['❤️', '😂', '😮', '😢', '🙏', '👍', '🔥', '🤩'];
 
@@ -1238,8 +1374,23 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             </p>
                         </div>
                     </div>
-                    {/* Actions: Cancel & Change */}
+                    {/* Actions: Edit, Change & Cancel */}
                     <div className="flex items-center gap-2 shrink-0">
+                        {stagedFile.type.startsWith('image/') && (
+                            <button 
+                                type="button" 
+                                onClick={() => {
+                                    setRotation(0);
+                                    setZoom(1);
+                                    setActiveFilter('none');
+                                    setShowImageEditor(true);
+                                }}
+                                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg border border-indigo-600 transition-all shadow-sm cursor-pointer flex items-center gap-1"
+                            >
+                                <Sliders size={12} />
+                                Edit
+                            </button>
+                        )}
                         <button 
                             type="button" 
                             onClick={() => fileInputRef.current?.click()}
@@ -1423,6 +1574,136 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                         ></iframe>
+                    </div>
+                </div>
+            )}
+
+            {/* Attachment Image Editor Modal */}
+            {showImageEditor && stagedPreviewUrl && stagedFile && (
+                <div className="fixed inset-0 z-[2015] bg-slate-950/98 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+                    <div className="bg-slate-900/80 border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col md:flex-row shadow-[0_30px_70px_rgba(0,0,0,0.6)]">
+                        
+                        {/* Editor viewport (Left/Top) */}
+                        <div className="relative flex-1 bg-black/40 min-h-[300px] sm:min-h-[400px] md:h-auto overflow-hidden border-b md:border-b-0 md:border-r border-white/10">
+                            {/* Applying active filter live to Cropper container style */}
+                            <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
+                                {/* @ts-ignore */}
+                                <Cropper
+                                    image={stagedPreviewUrl}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    rotation={rotation}
+                                    aspect={1}
+                                    onCropChange={setCrop}
+                                    onCropComplete={onCropComplete}
+                                    onZoomChange={setZoom}
+                                    onRotationChange={setRotation}
+                                    style={{
+                                        containerStyle: { background: '#090d16' },
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Editor Controls viewport (Right/Bottom) */}
+                        <div className="w-full md:w-[320px] p-6 flex flex-col gap-6 justify-between bg-slate-900/40 select-none shrink-0 text-white">
+                            <div className="flex flex-col gap-5">
+                                <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                                    <h3 className="font-bold text-lg text-indigo-400">Edit Attachment</h3>
+                                    <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Image</span>
+                                </div>
+
+                                {/* Rotational Control */}
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Orientation</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setRotation((prev) => (prev + 90) % 360)}
+                                        className="w-full py-2.5 bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 rounded-xl flex items-center justify-center gap-2 transition-all font-semibold text-sm cursor-pointer shadow-sm"
+                                    >
+                                        <RotateCw size={16} />
+                                        Rotate 90° ({rotation}°)
+                                    </button>
+                                </div>
+
+                                {/* Zoom Slider Control */}
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex justify-between items-center text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        <span>Zoom</span>
+                                        <span className="font-mono text-[10px] text-indigo-400">{zoom.toFixed(1)}x</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={3}
+                                        step={0.1}
+                                        value={zoom}
+                                        onChange={(e) => setZoom(Number(e.target.value))}
+                                        className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-gray-700 rounded-lg appearance-none"
+                                    />
+                                </div>
+
+                                {/* Color Filters shelf */}
+                                <div className="flex flex-col gap-2.5">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Color Filters</label>
+                                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                                        {FILTER_PRESETS.map((f) => (
+                                            <button
+                                                key={f.name}
+                                                type="button"
+                                                onClick={() => setActiveFilter(f.value)}
+                                                className={`flex flex-col items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                                                    activeFilter === f.value ? 'scale-105' : 'opacity-60 hover:opacity-100'
+                                                }`}
+                                            >
+                                                <div 
+                                                    className="relative w-12 h-12 rounded-xl overflow-hidden border-2 shadow-md transition-all shrink-0 bg-neutral-800"
+                                                    style={{ borderColor: activeFilter === f.value ? '#6366f1' : 'rgba(255,255,255,0.1)' }}
+                                                >
+                                                    <img 
+                                                        src={stagedPreviewUrl} 
+                                                        className="w-full h-full object-cover" 
+                                                        style={{ filter: f.value }} 
+                                                        alt=""
+                                                    />
+                                                </div>
+                                                <span className={`text-[10px] font-semibold tracking-wide ${activeFilter === f.value ? 'text-indigo-400' : 'text-gray-400'}`}>
+                                                    {f.name}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions View */}
+                            <div className="flex gap-3 border-t border-white/10 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowImageEditor(false)}
+                                    disabled={isEditingImage}
+                                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 active:scale-95 transition-all text-sm cursor-pointer disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSaveEditedImage}
+                                    disabled={isEditingImage || !croppedAreaPixels}
+                                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800/50 text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer shadow-md shadow-indigo-900/50 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                >
+                                    {isEditingImage ? (
+                                        <>
+                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save'
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             )}

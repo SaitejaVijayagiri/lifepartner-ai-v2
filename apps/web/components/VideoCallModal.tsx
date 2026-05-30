@@ -1,6 +1,6 @@
 'use client';
 
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Gift, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Phone, Gift, Maximize2, Minimize2, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import GiftModal from './GiftModal';
 import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -177,7 +177,9 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const [isDragging, setIsDragging] = useState(false);
     const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
     const [isLocalMinimized, setIsLocalMinimized] = useState(false);
+    const [isSpeakerOn, setIsSpeakerOn] = useState(true); // audio call speaker toggle
     const ringtonePlayerRef = useRef<RingtonePlayer | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null); // dedicated audio element for audio-only calls
 
     useEffect(() => {
         console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode);
@@ -324,15 +326,40 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     }, [socket, isVideo, isSpeedDate]);
 
-    // Attach Remote Stream when ref or stream changes — also force unmute/volume
+    // Attach Remote Stream — use <audio> for audio-only, <video> for video calls
     useEffect(() => {
-        if (userVideo.current && remoteStream) {
-            userVideo.current.srcObject = remoteStream;
-            userVideo.current.muted = false;
-            userVideo.current.volume = 1.0;
-            userVideo.current.play().catch(e => console.warn('Remote video autoplay blocked:', e));
+        if (!remoteStream) return;
+        if (isVideo) {
+            // Video call: attach to video element
+            if (userVideo.current) {
+                userVideo.current.srcObject = remoteStream;
+                userVideo.current.muted = false;
+                userVideo.current.volume = 1.0;
+                userVideo.current.play().catch(e => console.warn('Remote video autoplay blocked:', e));
+            }
+        } else {
+            // Audio call: use a dedicated <audio> element for reliable audio on all devices
+            if (!audioRef.current) {
+                audioRef.current = new Audio();
+                audioRef.current.autoplay = true;
+            }
+            audioRef.current.srcObject = remoteStream;
+            audioRef.current.muted = false;
+            audioRef.current.volume = 1.0;
+            audioRef.current.play().catch(e => console.warn('Remote audio autoplay blocked:', e));
         }
-    }, [remoteStream, isMaximized, callAccepted]);
+    }, [remoteStream, isVideo, callAccepted]);
+
+    // Cleanup audio element on unmount
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.srcObject = null;
+                audioRef.current = null;
+            }
+        };
+    }, []);
 
     // Attach Local Stream when ref renders (solves React empty box race-condition)
     useEffect(() => {
@@ -484,6 +511,21 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 track.enabled = !track.enabled;
             });
             setIsMuted(!isMuted);
+        }
+    };
+
+    const toggleSpeaker = () => {
+        // Toggle speaker on/off for audio calls via the audio element
+        const nextVal = !isSpeakerOn;
+        setIsSpeakerOn(nextVal);
+        if (audioRef.current) {
+            audioRef.current.volume = nextVal ? 1.0 : 0;
+            audioRef.current.muted = !nextVal;
+        }
+        // Also handle video element for video calls
+        if (userVideo.current) {
+            userVideo.current.volume = nextVal ? 1.0 : 0;
+            userVideo.current.muted = !nextVal;
         }
     };
 
@@ -803,7 +845,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                             
                             <div className="text-center">
                                 <span className="text-[10px] font-extrabold tracking-widest text-indigo-400 uppercase bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
-                                    Incoming Call
+                                    {isVideo ? '📹 Incoming Video Call' : '📞 Incoming Audio Call'}
                                 </span>
                                 <h2 className="text-3xl font-extrabold text-white mt-4 tracking-tight drop-shadow-lg">
                                     {partner.name}
@@ -823,12 +865,12 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                 >
                                     <PhoneOff size={24} />
                                 </button>
-                                {/* Accept Button */}
+                                {/* Accept Button — Phone icon for audio, Video icon for video */}
                                 <button 
                                     onClick={answerCall} 
                                     className="p-4 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all duration-300 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:scale-110 flex items-center justify-center flex-1 max-w-[80px] animate-bounce"
                                 >
-                                    <Video size={24} />
+                                    {isVideo ? <Video size={24} /> : <Phone size={24} />}
                                 </button>
                             </div>
                         </div>
@@ -840,29 +882,30 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                     // Remote Video Stream
                                     <video ref={userVideo} playsInline autoPlay className="w-full h-full object-cover z-10" />
                                 ) : (
-                                    // Premium Audio Call Connected UI with Dynamic Visualizer Waves
-                                    <div className="flex flex-col items-center justify-center space-y-8 z-30">
-                                        <video
-                                            ref={userVideo}
-                                            playsInline
-                                            autoPlay
-                                            style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-                                        />
+                                    // Premium Audio Call Connected UI
+                                    <div className="flex flex-col items-center justify-center space-y-6 z-30 px-6 w-full">
+                                        {/* No video element needed — audio plays via audioRef (dedicated Audio object) */}
                                         <div className="relative flex items-center justify-center">
                                             <div className="absolute w-48 h-48 rounded-full border-2 border-indigo-500/10 animate-pulse-ring" />
                                             <div className="absolute w-38 h-38 rounded-full border border-pink-500/20 animate-pulse-ring [animation-delay:1.2s]" />
                                             <div className="absolute w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-500/10 to-purple-500/15 blur-md animate-pulse-glow" />
                                             
                                             {isSpeedDate ? (
-                                                <div className="relative w-28 h-28 rounded-full border-4 border-white/20 bg-slate-900 shadow-2xl flex items-center justify-center z-10 text-4xl">
+                                                <div className="relative w-32 h-32 rounded-full border-4 border-white/20 bg-slate-900 shadow-2xl flex items-center justify-center z-10 text-5xl">
                                                     🕵️
                                                 </div>
                                             ) : (
-                                                <img src={partner.photoUrl} className="relative w-28 h-28 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10" alt={partner.name} />
+                                                <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10" alt={partner.name} />
                                             )}
                                         </div>
 
-                                        {/* CSS Animated Audio Waveform */}
+                                        {/* Partner name + call type */}
+                                        <div className="text-center">
+                                            <h2 className="text-2xl font-extrabold text-white tracking-tight">{isSpeedDate ? 'Mystery Date' : partner.name}</h2>
+                                            <p className="text-xs font-semibold text-emerald-400 mt-1 tracking-widest uppercase">📞 Audio Call Connected</p>
+                                        </div>
+
+                                        {/* Animated Audio Waveform */}
                                         <div className="flex items-center gap-1.5 h-10 px-6 justify-center">
                                             {[0.1, 0.4, 0.25, 0.6, 0.3, 0.5, 0.15, 0.45].map((delay, i) => (
                                                 <div 
@@ -876,6 +919,14 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                                 />
                                             ))}
                                         </div>
+
+                                        {/* Speaker off indicator */}
+                                        {!isSpeakerOn && (
+                                            <div className="flex items-center gap-2 bg-rose-500/20 border border-rose-500/30 px-4 py-2 rounded-full">
+                                                <VolumeX size={14} className="text-rose-400" />
+                                                <span className="text-xs text-rose-300 font-bold">Speaker Off</span>
+                                            </div>
+                                        )}
                                     </div>
                                 )
                             ) : (
@@ -968,6 +1019,17 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     >
                         {isMuted ? <MicOff size={18} /> : <Mic size={18} />}
                     </button>
+
+                    {/* Speaker Toggle — audio calls only */}
+                    {!isVideo && (
+                        <button
+                            onClick={toggleSpeaker}
+                            className={`p-3 sm:p-3.5 rounded-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center shadow-lg ${!isSpeakerOn ? 'bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-600' : 'bg-white/10 text-white hover:bg-white/20 border border-white/15'}`}
+                            title={isSpeakerOn ? "Mute Speaker" : "Unmute Speaker"}
+                        >
+                            {isSpeakerOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                        </button>
+                    )}
 
                     {/* Camera Flip */}
                     {isVideo && (

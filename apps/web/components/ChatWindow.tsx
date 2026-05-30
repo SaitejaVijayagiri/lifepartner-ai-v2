@@ -238,9 +238,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         setCroppedAreaPixels(croppedAreaPixels);
     }, []);
 
-    const handleSaveEditedImage = async () => {
+    const handleSaveEditedImage = async (shouldSend: boolean = false) => {
         if (!croppedAreaPixels || isEditingImage || !stagedPreviewUrl || !stagedFile) return;
         setIsEditingImage(true);
+        
+        let fileToUpload: File | null = null;
+        let previewToClear: string | null = stagedPreviewUrl;
+        
         try {
             const croppedBlob = await getCroppedImg(
                 stagedPreviewUrl,
@@ -249,20 +253,48 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 activeFilter
             );
             
-            const croppedFile = new File([croppedBlob], stagedFile.name || 'edited-image.jpg', {
+            fileToUpload = new File([croppedBlob], stagedFile.name || 'edited-image.jpg', {
                 type: 'image/jpeg',
                 lastModified: Date.now()
             });
 
-            if (stagedPreviewUrl) {
-                URL.revokeObjectURL(stagedPreviewUrl);
+            if (shouldSend) {
+                setShowImageEditor(false);
+                setIsUploadingMedia(true);
+                setUploadProgress(0);
+                
+                try {
+                    const res = await api.chat.uploadMedia(fileToUpload, (percent) => setUploadProgress(percent));
+                    if (res.url) {
+                        setStagedFile(null);
+                        setStagedPreviewUrl(null);
+                        if (previewToClear) {
+                            URL.revokeObjectURL(previewToClear);
+                        }
+                        
+                        await handleSend(undefined, `[IMAGE]${res.url}`);
+                        if (inputText.trim()) {
+                            await handleSend(undefined, inputText);
+                        }
+                        toast.success("Attachment edited and sent!");
+                    }
+                } catch (uploadErr: any) {
+                    toast.error(`Direct send failed: ${uploadErr.message || 'Unknown error'}`);
+                    setStagedFile(fileToUpload);
+                    setStagedPreviewUrl(URL.createObjectURL(croppedBlob));
+                } finally {
+                    setIsUploadingMedia(false);
+                    setUploadProgress(null);
+                }
+            } else {
+                if (stagedPreviewUrl) {
+                    URL.revokeObjectURL(stagedPreviewUrl);
+                }
+                setStagedFile(fileToUpload);
+                setStagedPreviewUrl(URL.createObjectURL(croppedBlob));
+                toast.success("Image edited successfully");
+                setShowImageEditor(false);
             }
-
-            setStagedFile(croppedFile);
-            setStagedPreviewUrl(URL.createObjectURL(croppedBlob));
-            
-            toast.success("Image edited successfully");
-            setShowImageEditor(false);
         } catch (err: any) {
             toast.error(`Editing failed: ${err.message || 'Unknown error'}`);
             console.error("Image editing error:", err);
@@ -1627,11 +1659,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Attachment Image Editor Modal */}
             {showImageEditor && stagedPreviewUrl && stagedFile && (
-                <div className="fixed inset-0 z-[2015] bg-slate-950/98 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-                    <div className="bg-slate-900/80 border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col md:flex-row shadow-[0_30px_70px_rgba(0,0,0,0.6)]">
+                <div className="fixed inset-0 z-[2015] bg-slate-950 flex flex-col md:flex-row overflow-hidden animate-in fade-in duration-200">
+                    <div className="w-full h-full overflow-hidden flex flex-col md:flex-row relative">
                         
                         {/* Editor viewport (Left/Top) */}
-                        <div className="relative flex-1 bg-black/40 min-h-[300px] sm:min-h-[400px] md:h-auto overflow-hidden border-b md:border-b-0 md:border-r border-white/10">
+                        <div className="relative flex-1 bg-slate-950 overflow-hidden min-h-[50vh] md:h-full">
                             {/* Applying active filter live to Cropper container style */}
                             <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
                                 {/* @ts-ignore */}
@@ -1653,7 +1685,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
 
                         {/* Editor Controls viewport (Right/Bottom) */}
-                        <div className="w-full md:w-[320px] p-6 flex flex-col gap-6 justify-between bg-slate-900/40 select-none shrink-0 text-white">
+                        <div className="w-full md:w-[360px] p-6 flex flex-col gap-6 justify-between bg-slate-900/90 md:bg-slate-900/50 backdrop-blur-lg md:backdrop-blur-none select-none shrink-0 text-white border-t md:border-t-0 md:border-l border-white/10 overflow-y-auto">
                             <div className="flex flex-col gap-5">
                                 <div className="flex justify-between items-center border-b border-white/10 pb-3">
                                     <h3 className="font-bold text-lg text-indigo-400">Edit Attachment</h3>
@@ -1724,30 +1756,44 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             </div>
 
                             {/* Actions View */}
-                            <div className="flex gap-3 border-t border-white/10 pt-4">
+                            <div className="flex flex-col gap-2.5 border-t border-white/10 pt-4 shrink-0">
                                 <button
                                     type="button"
-                                    onClick={() => setShowImageEditor(false)}
-                                    disabled={isEditingImage}
-                                    className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 active:scale-95 transition-all text-sm cursor-pointer disabled:opacity-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleSaveEditedImage}
+                                    onClick={() => handleSaveEditedImage(true)}
                                     disabled={isEditingImage || !croppedAreaPixels}
-                                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800/50 text-white font-bold rounded-xl active:scale-95 transition-all text-sm cursor-pointer shadow-md shadow-indigo-900/50 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-indigo-800/50 disabled:to-purple-800/50 text-white font-bold rounded-xl active:scale-[0.98] transition-all text-sm cursor-pointer shadow-md shadow-indigo-950 flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
                                     {isEditingImage ? (
                                         <>
                                             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                            Saving...
+                                            Sending...
                                         </>
                                     ) : (
-                                        'Save'
+                                        <>
+                                            <Send size={14} />
+                                            Save & Send
+                                        </>
                                     )}
                                 </button>
+                                
+                                <div className="flex gap-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowImageEditor(false)}
+                                        disabled={isEditingImage}
+                                        className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl border border-white/10 active:scale-95 transition-all text-sm cursor-pointer disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSaveEditedImage(false)}
+                                        disabled={isEditingImage || !croppedAreaPixels}
+                                        className="flex-1 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 font-bold rounded-xl border border-indigo-500/25 active:scale-95 transition-all text-sm cursor-pointer disabled:opacity-50 flex items-center justify-center animate-in duration-200"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

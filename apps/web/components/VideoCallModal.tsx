@@ -271,16 +271,26 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     useEffect(() => {
         if (!socket) return;
+        
         socket.on("callAccepted", (signal: any) => {
             setCallAccepted(true);
             setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
-            connectionRef.current?.signal(signal);
+            try {
+                connectionRef.current?.signal(signal);
+            } catch (err) {
+                console.error("Failed to signal peer in callAccepted:", err);
+            }
         });
+        
         socket.on("callEnded", () => {
             console.log("Peer ended call");
             leaveCall(false); // Don't emit endCall back
         });
-        socket.on("callError", (data: any) => { toast.error(data.message); leaveCall(); });
+        
+        socket.on("callError", (data: any) => { 
+            toast.error(data.message); 
+            leaveCall(); 
+        });
 
         // Receiver answered — stop the dial/ringing looping sound instantly
         socket.on("callAnsweredByPeer", () => {
@@ -416,7 +426,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         });
 
         if (incomingCall) {
-            peer.signal(incomingCall.signal);
+            try {
+                peer.signal(incomingCall.signal);
+            } catch (err) {
+                console.error("Failed to signal peer inside doAnswerCall:", err);
+            }
         }
         connectionRef.current = peer;
     };
@@ -511,54 +525,97 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     }, [incomingCall, isSpeedDate, stream, callAnswered]);
 
     const leaveCall = (emitEvent = true) => {
+        console.log("[VideoCallModal] leaveCall initiated, emitEvent:", emitEvent);
         setCallEnded(true);
         (window as any)._callEnded = true;
-        if ((window as any)._ringInterval) clearInterval((window as any)._ringInterval);
+
+        if ((window as any)._ringInterval) {
+            try {
+                clearInterval((window as any)._ringInterval);
+                (window as any)._ringInterval = null;
+            } catch (e) {
+                console.error("Failed to clear ring interval:", e);
+            }
+        }
         
         // Ensure Ringtone is aggressively stopped
-        ringtonePlayerRef.current?.stop();
+        try {
+            ringtonePlayerRef.current?.stop();
+        } catch (e) {
+            console.error("Failed to stop ringtone player:", e);
+        }
 
         try {
             // Aggressively stop all tracks in state
-            stream?.getTracks().forEach(track => track.stop());
-            remoteStream?.getTracks().forEach(track => track.stop());
+            stream?.getTracks().forEach(track => {
+                try { track.stop(); } catch (err) { console.error("Error stopping state track:", err); }
+            });
+            remoteStream?.getTracks().forEach(track => {
+                try { track.stop(); } catch (err) { console.error("Error stopping remote state track:", err); }
+            });
 
             // Aggressively stop all tracks bound to the actual video DOM elements
             if (myVideo.current && myVideo.current.srcObject) {
                 const domStream = myVideo.current.srcObject as MediaStream;
-                domStream.getTracks().forEach(track => track.stop());
+                domStream.getTracks().forEach(track => {
+                    try { track.stop(); } catch (err) { console.error("Error stopping local DOM track:", err); }
+                });
                 myVideo.current.srcObject = null;
             }
             if (userVideo.current && userVideo.current.srcObject) {
                 const domStream = userVideo.current.srcObject as MediaStream;
-                domStream.getTracks().forEach(track => track.stop());
+                domStream.getTracks().forEach(track => {
+                    try { track.stop(); } catch (err) { console.error("Error stopping remote DOM track:", err); }
+                });
                 userVideo.current.srcObject = null;
             }
         } catch (e) {
-            console.error("Cleanup error", e);
+            console.error("Cleanup error in track stopping:", e);
         }
-        connectionRef.current?.destroy();
 
-        if (emitEvent && socket) {
-            // BUG RESOLUTION: Unconditionally emit endCall to clear ringing states instantly
-            const targetId = incomingCall ? incomingCall.from : partner.id;
-            if (targetId && targetId !== 'unknown') {
-                socket.emit("endCall", { to: targetId });
-                
-                // Log the call to database history
-                const durationSecs = callDuration || 0;
-                const finalStatus = callAccepted ? 'COMPLETED' : 'MISSED';
-                
-                api.calls?.log({
-                    receiverId: targetId,
-                    type: isVideo ? 'VIDEO' : 'AUDIO',
-                    status: finalStatus,
-                    duration: durationSecs
-                }).catch(console.error);
+        // Safely destroy connection Ref
+        try {
+            if (connectionRef.current) {
+                connectionRef.current.destroy();
             }
+        } catch (e) {
+            console.error("Error destroying connectionRef:", e);
+        }
+        connectionRef.current = null;
+
+        // Safely emit socket signals and post call log
+        try {
+            if (emitEvent && socket) {
+                const targetId = incomingCall ? incomingCall.from : partner.id;
+                if (targetId && targetId !== 'unknown') {
+                    console.log("[VideoCallModal] Emitting endCall to:", targetId);
+                    socket.emit("endCall", { to: targetId });
+                    
+                    // Log the call to database history
+                    const durationSecs = callDuration || 0;
+                    const finalStatus = callAccepted ? 'COMPLETED' : 'MISSED';
+                    
+                    api.calls?.log({
+                        receiverId: targetId,
+                        type: isVideo ? 'VIDEO' : 'AUDIO',
+                        status: finalStatus,
+                        duration: durationSecs
+                    }).catch(err => console.error("Failed to log call:", err));
+                }
+            }
+        } catch (e) {
+            console.error("Error in leaveCall socket / logging logic:", e);
         }
 
-        onEndCall();
+        // CRITICAL UNCONDITIONAL EXIT GATE:
+        // We guarantee that this callback is triggered no matter what exceptions were thrown.
+        // This resets React states and closes the modal cleanly.
+        try {
+            console.log("[VideoCallModal] Invoking onEndCall callback");
+            onEndCall();
+        } catch (e) {
+            console.error("Critical error inside onEndCall callback:", e);
+        }
     };
 
     const [showGiftModal, setShowGiftModal] = useState(false);

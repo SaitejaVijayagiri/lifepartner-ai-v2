@@ -1263,7 +1263,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     ? { id: partner.id, name: partnerInfo.name, photoUrl: partnerInfo.photoUrl }
                                                     : { 
                                                         id: user?.id || user?.userId || 'me', 
-                                                        name: 'You', 
+                                                        name: user?.name || user?.full_name || 'You', 
                                                         photoUrl: user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}` 
                                                       };
 

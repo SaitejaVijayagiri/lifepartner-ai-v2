@@ -461,8 +461,9 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
 
         res.json({ success: true });
 
-        // Bust the match cache for THIS user so next fetch returns updated status
-        matchCache.delete(userId);
+        // Bust the match cache for BOTH users so next fetch returns updated status
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${toUserId}_`);
 
         } finally {
             // Clear debounce lock after 2 seconds
@@ -648,6 +649,10 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
         }
 
         const remaining = user.is_premium ? "Unlimited" : Math.max(0, (user.free_direct_messages || 0) - 1);
+        
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${toUserId}_`);
+
         res.json({ success: true, remaining });
 
     } catch (e) {
@@ -677,6 +682,8 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
             if (updatedInteraction) {
                 const { from_user_id, to_user_id } = updatedInteraction;
                 if (from_user_id && to_user_id) {
+                    matchCache.deletePrefix(`${from_user_id}_`);
+                    matchCache.deletePrefix(`${to_user_id}_`);
                     try {
                         const uA = await prisma.users.findUnique({ where: { id: from_user_id } });
                         const uB = await prisma.users.findUnique({ where: { id: to_user_id } });
@@ -708,10 +715,20 @@ router.post('/requests/:interactionId/decline', authenticateToken, async (req: a
         const { interactionId } = req.params;
         const userId = req.user.userId;
 
+        const interaction = await prisma.interactions.findUnique({
+            where: { id: interactionId },
+            select: { from_user_id: true, to_user_id: true }
+        });
+
         await prisma.interactions.updateMany({
             where: { id: interactionId, to_user_id: userId },
             data: { status: 'declined' }
         });
+
+        if (interaction && interaction.from_user_id && interaction.to_user_id) {
+            matchCache.deletePrefix(`${interaction.from_user_id}_`);
+            matchCache.deletePrefix(`${interaction.to_user_id}_`);
+        }
 
         res.json({ success: true });
     } catch (e) {
@@ -778,6 +795,9 @@ router.delete('/interest/:toUserId', authenticateToken, async (req: any, res) =>
             }
         });
 
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${toUserId}_`);
+
         res.json({ success: true, message: "Interest revoked" });
     } catch (e) {
         console.error("Revoke Interest Error", e);
@@ -809,6 +829,9 @@ router.post('/like', authenticateToken, async (req: any, res) => {
             }
         });
 
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${toUserId}_`);
+
         res.json({ success: true, message: "Profile Liked!" });
     } catch (e) {
         console.error("Like Error", e);
@@ -831,6 +854,9 @@ router.delete('/like/:toUserId', authenticateToken, async (req: any, res) => {
                 is_liked: false
             }
         });
+
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${toUserId}_`);
 
         res.json({ success: true, message: "Like revoked" });
     } catch (e) {
@@ -968,6 +994,9 @@ router.post('/block', authenticateToken, async (req: any, res) => {
             }
         });
 
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${blockedId}_`);
+
         res.json({ success: true, message: "User blocked" });
     } catch (e) {
         console.error("Block Error", e);
@@ -987,6 +1016,9 @@ router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
                 blocked_id: blockedId
             }
         });
+
+        matchCache.deletePrefix(`${userId}_`);
+        matchCache.deletePrefix(`${blockedId}_`);
 
         res.json({ success: true, message: "User unblocked" });
     } catch (e) {

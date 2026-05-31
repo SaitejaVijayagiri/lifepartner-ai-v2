@@ -41,6 +41,14 @@ class LRUCache<K, V> {
     delete(key: K) {
         return this.cache.delete(key);
     }
+
+    deletePrefix(prefix: string) {
+        for (const key of Array.from(this.cache.keys())) {
+            if (typeof key === 'string' && key.startsWith(prefix)) {
+                this.cache.delete(key as unknown as K);
+            }
+        }
+    }
 }
 
 // In-memory match cache: userId -> { data, expiresAt } (Max 1000 users)

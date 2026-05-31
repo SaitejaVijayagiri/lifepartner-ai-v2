@@ -35,7 +35,7 @@ interface StoryModalProps {
 
 const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete, onViewProfile }: StoryModalProps) => {
     const router = useRouter();
-    const { socket } = useSocket() as any;
+    const { socket, onlineUsers } = useSocket() as any;
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
@@ -204,32 +204,47 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
                 {/* Header */}
                 <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-30">
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <img
-                                src={avatarUrl}
-                                className="w-11 h-11 rounded-full border-2 border-white shadow-lg object-cover"
-                                alt={displayName}
-                            />
-                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>
-                        </div>
-                        <div className="text-white">
-                            <span className="font-bold text-sm drop-shadow-md">{displayName}</span>
-                            <div className="flex items-center gap-1 text-xs text-white/70">
-                                <span>{new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                <span>•</span>
-                                <span>{currentIndex + 1}/{stories.length}</span>
-                            </div>
-                            {story.music && MUSIC_TRACKS[story.music] && (
-                                <div className="flex items-center gap-1 text-[10px] text-white mt-0.5 overflow-hidden w-32">
-                                    <span className="animate-pulse">🎵</span>
-                                    <div className="whitespace-nowrap animate-[marquee_5s_linear_infinite]">
-                                        {MUSIC_TRACKS[story.music].name}
-                                    </div>
+                    {(() => {
+                        const isOnline = Array.isArray(onlineUsers) && onlineUsers.includes(user.id);
+                        return (
+                            <div 
+                                className={`flex items-center gap-3 ${onViewProfile && !isOwner ? 'cursor-pointer hover:opacity-90 active:scale-95 transition-all group/header' : ''}`}
+                                onClick={() => {
+                                    if (onViewProfile && !isOwner) {
+                                        setIsPaused(true);
+                                        onViewProfile(user.id);
+                                    }
+                                }}
+                            >
+                                <div className="relative">
+                                    <img
+                                        src={avatarUrl}
+                                        className="w-11 h-11 rounded-full border-2 border-white shadow-lg object-cover"
+                                        alt={displayName}
+                                    />
+                                    {isOnline && (
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
-                    </div>
+                                <div className="text-white text-left">
+                                    <span className="font-bold text-sm drop-shadow-md block group-hover/header:underline">{displayName}</span>
+                                    <div className="flex items-center gap-1 text-xs text-white/70">
+                                        <span>{new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span>•</span>
+                                        <span>{currentIndex + 1}/{stories.length}</span>
+                                    </div>
+                                    {story.music && MUSIC_TRACKS[story.music] && (
+                                        <div className="flex items-center gap-1 text-[10px] text-white mt-0.5 overflow-hidden w-32">
+                                            <span className="animate-pulse">🎵</span>
+                                            <div className="whitespace-nowrap animate-[marquee_5s_linear_infinite]">
+                                                {MUSIC_TRACKS[story.music].name}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })()}
                     <div className="flex gap-2">
                         {isOwner && (
                             <button

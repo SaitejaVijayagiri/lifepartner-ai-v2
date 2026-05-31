@@ -217,7 +217,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: 'image' | 'video'; texts?: any[] } | null>(null);
+    const [fullscreenMedia, setFullscreenMedia] = useState<{ 
+        url: string; 
+        type: 'image' | 'video'; 
+        texts?: any[];
+        creator?: { id: string; name: string; photoUrl: string };
+    } | null>(null);
     const [fullscreenYoutubeId, setFullscreenYoutubeId] = useState<string | null>(null);
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
@@ -457,15 +462,22 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleViewProfile = async () => {
+    const handleViewAnyProfile = async (targetUserId: string) => {
+        if (!targetUserId || targetUserId === 'me' || targetUserId === user?.id || targetUserId === user?.userId) {
+            return; // Can't view own profile modal from here
+        }
         try {
-            // Optimistic open with basic data if fetched already or just set loading
-            const data = await api.profile.getById(partner.id);
+            const data = await api.profile.getById(targetUserId);
             setFullProfile(data);
             setShowProfile(true);
         } catch (e) {
             console.error("Failed to fetch profile", e);
+            toast.error("Failed to open user profile");
         }
+    };
+
+    const handleViewProfile = async () => {
+        await handleViewAnyProfile(partner.id);
     };
 
     const handleIcebreaker = async () => {
@@ -1255,7 +1267,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                                     ? 'bg-white/10 border-white/20 text-white' 
                                                                     : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-gray-800 dark:text-gray-100'
                                                             }`}
-                                                            onClick={() => setFullscreenMedia({ url: storyUrl, type: isVideo ? 'video' : 'image', texts: storyTexts })}
+                                                            onClick={() => {
+                                                                const creator = isMe 
+                                                                    ? { id: partner.id, name: partnerInfo.name, photoUrl: partnerInfo.photoUrl }
+                                                                    : { 
+                                                                        id: user?.id || user?.userId || 'me', 
+                                                                        name: 'You', 
+                                                                        photoUrl: user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}` 
+                                                                      };
+                                                                setFullscreenMedia({ 
+                                                                    url: storyUrl, 
+                                                                    type: isVideo ? 'video' : 'image', 
+                                                                    texts: storyTexts,
+                                                                    creator: creator
+                                                                });
+                                                            }}
                                                             title="Click to view fullscreen"
                                                         >
                                                             <div className="relative w-11 h-16 rounded-lg overflow-hidden bg-black/20 shrink-0 border border-black/15 shadow-inner">
@@ -1705,6 +1731,35 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {/* Fullscreen Image/Video Overlay */}
             {fullscreenMedia && (
                 <div className="fixed inset-0 z-[2010] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenMedia(null)}>
+                    {(() => {
+                        const creator = fullscreenMedia.creator;
+                        if (!creator) return null;
+                        return (
+                            <div 
+                                className="absolute top-6 left-6 z-[2020] flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-95 transition-all bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-lg text-white"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFullscreenMedia(null);
+                                    handleViewAnyProfile(creator.id);
+                                }}
+                            >
+                                <img 
+                                    src={creator.photoUrl} 
+                                    className="w-8 h-8 rounded-full border border-white/20 object-cover" 
+                                    alt={creator.name}
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(creator.name)}`;
+                                    }}
+                                />
+                                <div className="flex flex-col text-left">
+                                    <span className="font-bold text-xs leading-tight">{creator.name}</span>
+                                    <span className="text-[9px] text-white/60">View Profile</span>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenMedia(null); }}>
                         <X size={20} strokeWidth={3} />
                     </button>

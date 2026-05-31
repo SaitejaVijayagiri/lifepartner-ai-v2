@@ -1836,7 +1836,7 @@ function DashboardContent() {
                     user={{
                         id: activeStorySet.user?.id || activeStorySet.user?.userId || 'me',
                         name: activeStorySet.user?.name || activeStorySet.user?.full_name || 'User',
-                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || "https://i.pravatar.cc/150"
+                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeStorySet.user?.name || 'User')}`
                     }}
                     currentUser={currentUser}
                     onClose={() => {

@@ -462,17 +462,36 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleViewAnyProfile = async (targetUserId: string) => {
+    const handleViewAnyProfile = async (targetUserId: string, fallbackName?: string, fallbackPhoto?: string) => {
         if (!targetUserId || targetUserId === 'me' || targetUserId === user?.id || targetUserId === user?.userId) {
             return; // Can't view own profile modal from here
         }
+        
+        // Optimistic UI: open modal instantly with basic profile details
+        const isPartner = targetUserId === partner.id || targetUserId === partnerInfo.id;
+        const optimisticProfile = isPartner
+            ? partnerInfo
+            : {
+                id: targetUserId,
+                name: fallbackName || 'User',
+                photoUrl: fallbackPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fallbackName || 'User')}`,
+                bio: 'Loading full details...'
+            };
+
+        setFullProfile(optimisticProfile);
+        setShowProfile(true);
+
         try {
             const data = await api.profile.getById(targetUserId);
+            // Confirm we are still displaying the same profile
             setFullProfile(data);
-            setShowProfile(true);
         } catch (e) {
             console.error("Failed to fetch profile", e);
-            toast.error("Failed to open user profile");
+            // If API failed and we had no real details, close it or keep the optimistic model
+            if (!isPartner && !fallbackName) {
+                setShowProfile(false);
+                toast.error("Failed to load user profile");
+            }
         }
     };
 
@@ -1808,7 +1827,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setFullscreenMedia(null);
-                                    handleViewAnyProfile(creator.id);
+                                    handleViewAnyProfile(creator.id, creator.name, creator.photoUrl);
                                 }}
                             >
                                 <img 

@@ -30,7 +30,7 @@ interface StoryModalProps {
     currentUser: any;
     onClose: () => void;
     onDelete: (storyId: string) => void;
-    onViewProfile?: (userId: string) => void;
+    onViewProfile?: (userId: string, userName?: string, userPhotoUrl?: string) => void;
 }
 
 const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete, onViewProfile }: StoryModalProps) => {
@@ -212,7 +212,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                 onClick={() => {
                                     if (onViewProfile && !isOwner) {
                                         setIsPaused(true);
-                                        onViewProfile(user.id);
+                                        onViewProfile(user.id, user.name || user.full_name, user.photoUrl || user.avatar_url);
                                     }
                                 }}
                             >

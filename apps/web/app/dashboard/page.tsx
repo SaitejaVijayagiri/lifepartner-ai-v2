@@ -1852,12 +1852,22 @@ function DashboardContent() {
                         // Also refresh story feed
                         api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
                     }}
-                    onViewProfile={async (userId: string) => {
+                    onViewProfile={async (userId: string, userName?: string, userPhotoUrl?: string) => {
+                        // Close story modal instantly to prevent lag/overlay blockages
+                        setActiveStorySet(null);
+                        
                         // First check if viewer is already in the matches list
                         const existingMatch = matches.find((m: any) => m.id === userId);
                         if (existingMatch) {
                             setSelectedProfile(existingMatch);
                         } else {
+                            // Optimistically open MatchCard with basic details instantly
+                            setSelectedProfile({
+                                id: userId,
+                                name: userName || 'User',
+                                photoUrl: userPhotoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'User')}`,
+                                bio: 'Loading full details...'
+                            });
                             // Fetch profile from API and open ProfileModal
                             try {
                                 const data = await api.profile.getById(userId);

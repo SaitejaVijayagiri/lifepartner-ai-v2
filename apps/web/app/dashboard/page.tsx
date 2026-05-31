@@ -391,7 +391,7 @@ function DashboardContent() {
     const navItems = [
         { id: 'matches', label: 'Matches', icon: Heart },
         { id: 'map', label: 'Live Map', icon: MapPin },
-        { id: 'events', label: 'Meet Spots', icon: Calendar, highlight: true },
+        { id: 'events', label: 'Meetups', icon: Calendar, highlight: true },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
         { id: 'community', label: 'Lounge', icon: Coffee },

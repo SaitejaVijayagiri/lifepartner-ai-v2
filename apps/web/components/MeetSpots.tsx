@@ -180,7 +180,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
             }
 
             if (res.success) {
-                toast.success(editingEvent ? 'Event updated! ✅' : 'Meet Spot created! 🎉');
+                toast.success(editingEvent ? 'Event updated! ✅' : 'Meetup created! 🎉');
                 closeModal();
                 fetchEvents();
             }
@@ -445,7 +445,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                                 <Sparkles size={16} className="text-yellow-300" />
                                 <span className="text-xs font-black uppercase tracking-widest text-indigo-200">Community</span>
                             </div>
-                            <h2 className="text-3xl font-black tracking-tight">Meet Spots</h2>
+                            <h2 className="text-3xl font-black tracking-tight">Meetups</h2>
                             <p className="text-sm text-indigo-200/80 mt-1 font-light">Discover &amp; host real-world meetups nearby</p>
                         </div>
                         <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-white text-indigo-700 font-bold text-sm px-5 py-2.5 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all active:scale-95 shrink-0">
@@ -591,7 +591,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                         <div className="px-6 py-4 flex justify-between items-center border-b border-gray-100 dark:border-gray-800">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                                    {editingEvent ? 'Edit Meet Spot' : 'Host a Meet Spot'}
+                                    {editingEvent ? 'Edit Meetup' : 'Host a Meetup'}
                                 </h3>
                                 <p className="text-xs text-gray-400">
                                     {editingEvent ? 'Update your event details' : 'Create a local gathering'}

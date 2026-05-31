@@ -347,7 +347,7 @@ export default function LandingPageClient() {
         </div>
       </section>
 
-      {/* --- MEET SPOTS SECTION --- */}
+      {/* --- MEETUPS SECTION --- */}
       <section id="meet-spots" className="py-24 bg-indigo-900 relative overflow-hidden">
         {/* Background Accents */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
@@ -362,7 +362,7 @@ export default function LandingPageClient() {
               </span>
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-black mb-6 leading-tight">
                 Take it offline with <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">Meet Spots</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">Meetups</span>
               </h2>
               <p className="text-lg text-indigo-100/80 mb-8 leading-relaxed font-light">
                 Tired of endless chatting? Skip the small talk and connect organically at curated local events. From pottery classes to group hikes, discover safe, verified meetups happening near you.

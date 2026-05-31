@@ -62,7 +62,15 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         'cinematic': { name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
         'acoustic': { name: 'Acoustic Guitar 🎸', url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3' },
         'electronic': { name: 'Electronic 🎧', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-        'bollywood': { name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' }
+        'bollywood': { name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+        'devotional': { name: 'Devotional Flute 🕉️', url: 'https://cdn.pixabay.com/download/audio/2022/01/26/audio_9bc6b3a0cc.mp3' },
+        'pop': { name: 'Summer Pop ☀️', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+        'jazz': { name: 'Midnight Jazz 🎷', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+        'retro': { name: 'Synthwave Retro ⚡', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+        'classical': { name: 'Symphony Classic 🎻', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
+        'rock': { name: 'Energetic Rock 🎸', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
+        'chillout': { name: 'Ambient Chillout 🌊', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3' },
+        'party': { name: 'Club Party Beat 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
     };
 
     // Handle Music Playback

@@ -23,7 +23,17 @@ const STORY_FILTERS = [
     { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2)' },
     { name: 'Dreamy ☁️', filter: 'blur(0.5px) brightness(1.1) contrast(0.9) saturate(1.2)' },
     { name: 'Cyberpunk 🌆', filter: 'contrast(1.4) saturate(1.5) hue-rotate(30deg) brightness(0.9)' },
-    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(1.1) brightness(0.9) saturate(1.2)' }
+    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(1.1) brightness(0.9) saturate(1.2)' },
+    { name: 'Emerald Forest 🌿', filter: 'contrast(1.2) saturate(1.3) hue-rotate(-15deg) brightness(0.95) sepia(0.1)' },
+    { name: 'Ocean Breeze 🌊', filter: 'contrast(1.1) saturate(1.4) hue-rotate(180deg) brightness(1.05)' },
+    { name: 'Midnight Glow 🌌', filter: 'brightness(0.8) contrast(1.3) saturate(1.5) hue-rotate(-45deg)' },
+    { name: 'Fairy Dust ✨', filter: 'brightness(1.2) saturate(1.2) contrast(0.95) sepia(0.15) hue-rotate(15deg) blur(0.3px)' },
+    { name: 'Warm Sunset 🌅', filter: 'sepia(0.4) saturate(1.6) brightness(1.05) contrast(1.1) hue-rotate(-10deg)' },
+    { name: 'Cool Mint 🍃', filter: 'contrast(1.05) saturate(1.25) hue-rotate(120deg) brightness(1.02)' },
+    { name: 'Gothic Punk 🧛', filter: 'grayscale(0.6) contrast(1.5) brightness(0.85) sepia(0.1)' },
+    { name: 'Barbie Core 🎀', filter: 'hue-rotate(320deg) saturate(1.6) brightness(1.1) contrast(1.05)' },
+    { name: 'Teal & Orange 🍊', filter: 'contrast(1.2) saturate(1.3) sepia(0.1) hue-rotate(-5deg) brightness(0.98)' },
+    { name: 'Noir Dark 🩸', filter: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
 
 const MUSIC_TRACKS = [
@@ -34,7 +44,15 @@ const MUSIC_TRACKS = [
     { id: 'cinematic', name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
     { id: 'acoustic', name: 'Acoustic Guitar 🎸', url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3' },
     { id: 'electronic', name: 'Electronic 🎧', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-    { id: 'bollywood', name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' }
+    { id: 'bollywood', name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+    { id: 'devotional', name: 'Devotional Flute 🕉️', url: 'https://cdn.pixabay.com/download/audio/2022/01/26/audio_9bc6b3a0cc.mp3' },
+    { id: 'pop', name: 'Summer Pop ☀️', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
+    { id: 'jazz', name: 'Midnight Jazz 🎷', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+    { id: 'retro', name: 'Synthwave Retro ⚡', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+    { id: 'classical', name: 'Symphony Classic 🎻', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
+    { id: 'rock', name: 'Energetic Rock 🎸', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
+    { id: 'chillout', name: 'Ambient Chillout 🌊', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3' },
+    { id: 'party', name: 'Club Party Beat 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
 ];
 
 export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, onSuccess }: StoryCreatorProps) {

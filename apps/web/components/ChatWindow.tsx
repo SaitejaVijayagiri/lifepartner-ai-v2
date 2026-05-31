@@ -32,13 +32,26 @@ interface ChatWindowProps {
 
 const FILTER_PRESETS = [
     { name: 'Normal', value: 'none' },
-    { name: 'Grayscale', value: 'grayscale(1)' },
-    { name: 'Sepia', value: 'sepia(1)' },
-    { name: 'Warm Sun', value: 'sepia(0.3) saturate(1.4) contrast(1.1)' },
-    { name: 'Cool Ice', value: 'hue-rotate(180deg) saturate(1.1) brightness(1.05)' },
-    { name: 'Vintage', value: 'sepia(0.5) contrast(0.9) brightness(1.1)' },
-    { name: 'Dramatic', value: 'contrast(1.4) saturate(1.2)' },
-    { name: 'Brighten', value: 'brightness(1.2) contrast(1.05)' }
+    { name: 'Golden Hour 🌅', value: 'sepia(0.3) brightness(1.1) contrast(1.1) saturate(1.4) hue-rotate(-5deg)' },
+    { name: 'Soft Glam 🌸', value: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
+    { name: 'Paris ✨', value: 'sepia(0.2) contrast(1.1) brightness(1.1) hue-rotate(-10deg) saturate(1.2)' },
+    { name: 'Baddie 💅', value: 'contrast(1.3) brightness(0.95) saturate(1.1) hue-rotate(10deg)' },
+    { name: 'Cinematic 🎬', value: 'brightness(0.9) contrast(1.2) saturate(1.3) sepia(0.2) hue-rotate(15deg)' },
+    { name: 'Retro 90s 📼', value: 'contrast(1.3) saturate(0.8) sepia(0.4) brightness(0.9)' },
+    { name: 'Noir 🖤', value: 'grayscale(1) contrast(1.2)' },
+    { name: 'Dreamy ☁️', value: 'blur(0.5px) brightness(1.1) contrast(0.9) saturate(1.2)' },
+    { name: 'Cyberpunk 🌆', value: 'contrast(1.4) saturate(1.5) hue-rotate(30deg) brightness(0.9)' },
+    { name: 'Vintage 🎞️', value: 'sepia(0.5) contrast(1.1) brightness(0.9) saturate(1.2)' },
+    { name: 'Emerald Forest 🌿', value: 'contrast(1.2) saturate(1.3) hue-rotate(-15deg) brightness(0.95) sepia(0.1)' },
+    { name: 'Ocean Breeze 🌊', value: 'contrast(1.1) saturate(1.4) hue-rotate(180deg) brightness(1.05)' },
+    { name: 'Midnight Glow 🌌', value: 'brightness(0.8) contrast(1.3) saturate(1.5) hue-rotate(-45deg)' },
+    { name: 'Fairy Dust ✨', value: 'brightness(1.2) saturate(1.2) contrast(0.95) sepia(0.15) hue-rotate(15deg) blur(0.3px)' },
+    { name: 'Warm Sunset 🌅', value: 'sepia(0.4) saturate(1.6) brightness(1.05) contrast(1.1) hue-rotate(-10deg)' },
+    { name: 'Cool Mint 🍃', value: 'contrast(1.05) saturate(1.25) hue-rotate(120deg) brightness(1.02)' },
+    { name: 'Gothic Punk 🧛', value: 'grayscale(0.6) contrast(1.5) brightness(0.85) sepia(0.1)' },
+    { name: 'Barbie Core 🎀', value: 'hue-rotate(320deg) saturate(1.6) brightness(1.1) contrast(1.05)' },
+    { name: 'Teal & Orange 🍊', value: 'contrast(1.2) saturate(1.3) sepia(0.1) hue-rotate(-5deg) brightness(0.98)' },
+    { name: 'Noir Dark 🩸', value: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
 
 const rotateSize = (width: number, height: number, rotation: number) => {

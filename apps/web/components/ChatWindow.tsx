@@ -1193,8 +1193,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 ? '🎭 Sticker' 
                                                 : replyMsg.text?.startsWith('[STORY_REPLY:') 
                                                 ? (() => {
-                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
-                                                    return match ? `📸 Story Reply: ${match[4]}` : '📸 Story Reply';
+                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
+                                                    return match ? `📸 Story Reply: ${match[7]}` : '📸 Story Reply';
                                                   })()
                                                 : replyMsg.text;
                                             return (
@@ -1242,9 +1242,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
                                         ) : msg.text.startsWith('[STORY_REPLY:') ? (() => {
-                                            const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
+                                            const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
                                             if (match) {
-                                                const [, storyUrl, storyType, textsMetadata, replyText] = match;
+                                                const [, storyUrl, storyType, textsMetadata, cId, cNameEncoded, cPhotoEncoded, replyText] = match;
                                                 const isVideo = storyType === 'video';
                                                 
                                                 // Extract story_texts (bracket parameter or url query parameter fallback)
@@ -1263,13 +1263,35 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     } catch (err) {}
                                                 }
 
-                                                const creator = isMe 
-                                                    ? { id: partner.id, name: partnerInfo.name, photoUrl: partnerInfo.photoUrl }
-                                                    : { 
-                                                        id: user?.id || user?.userId || 'me', 
-                                                        name: user?.name || user?.full_name || 'You', 
-                                                        photoUrl: user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}` 
-                                                      };
+                                                // Determine creator:
+                                                // 1. If we have the encoded creator metadata, use it directly!
+                                                // 2. Otherwise fall back to the dynamic evaluation.
+                                                let creator: { id: string; name: string; photoUrl: string };
+                                                if (cId && cNameEncoded && cPhotoEncoded) {
+                                                    const nameDecoded = decodeURIComponent(cNameEncoded);
+                                                    const photoDecoded = decodeURIComponent(cPhotoEncoded);
+                                                    // Map 'You' to their actual full name if they are the current user
+                                                    const isMeCreator = cId === (user?.id || user?.userId || 'me');
+                                                    creator = {
+                                                        id: cId,
+                                                        name: isMeCreator ? (user?.name || user?.full_name || nameDecoded) : (partnerInfo.name || (partnerInfo as any).full_name || nameDecoded),
+                                                        photoUrl: photoDecoded || (isMeCreator 
+                                                            ? (user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}`)
+                                                            : (partnerInfo.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`))
+                                                    };
+                                                } else {
+                                                    creator = isMe 
+                                                        ? { 
+                                                            id: partner.id, 
+                                                            name: partnerInfo.name || (partnerInfo as any).full_name || 'User', 
+                                                            photoUrl: partnerInfo.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}` 
+                                                          }
+                                                        : { 
+                                                            id: user?.id || user?.userId || 'me', 
+                                                            name: user?.name || user?.full_name || 'You', 
+                                                            photoUrl: user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}` 
+                                                          };
+                                                }
 
                                                 return (
                                                     <div className="flex flex-col gap-2 w-[180px] sm:w-[200px] mt-1 select-none">
@@ -1300,7 +1322,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                             <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10 pointer-events-none">
                                                                 <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/10 shadow-sm max-w-[90%]">
                                                                     <img 
-                                                                        src={creator.photoUrl} 
+                                                                        src={creator.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(creator.name)}`} 
                                                                         className="w-3.5 h-3.5 rounded-full object-cover border border-white/20 shrink-0" 
                                                                         alt=""
                                                                         onError={(e) => {
@@ -1581,8 +1603,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 ? '🎭 Sticker' 
                                 : replyTo.text?.startsWith('[STORY_REPLY:') 
                                 ? (() => {
-                                    const match = replyTo.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
-                                    return match ? `📸 Story Reply: ${match[4]}` : '📸 Story Reply';
+                                    const match = replyTo.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
+                                    return match ? `📸 Story Reply: ${match[7]}` : '📸 Story Reply';
                                   })()
                                 : replyTo.text}
                         </p>

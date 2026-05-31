@@ -525,7 +525,10 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
         try {
             // Put encoded story texts inside the bracket as a third parameter (pristine story.url)
             const textsVal = story.texts && story.texts.length > 0 ? encodeURIComponent(JSON.stringify(story.texts)) : '';
-            const storyContext = `[STORY_REPLY:${story.url}:${story.type}:${textsVal}]${replyText}`;
+            const cId = user.id;
+            const cName = encodeURIComponent(user.name || user.full_name || 'User');
+            const cPhoto = encodeURIComponent(user.photoUrl || user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`);
+            const storyContext = `[STORY_REPLY:${story.url}:${story.type}:${textsVal}:${cId}:${cName}:${cPhoto}]${replyText}`;
             
             // Use Direct Message API (handles 3-message limit for unconnected users)
             await api.interactions.sendDirectMessage(user.id, storyContext);

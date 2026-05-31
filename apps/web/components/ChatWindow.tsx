@@ -1271,13 +1271,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     const nameDecoded = decodeURIComponent(cNameEncoded);
                                                     const photoDecoded = decodeURIComponent(cPhotoEncoded);
                                                     // Map 'You' to their actual full name if they are the current user
-                                                    const isMeCreator = cId === (user?.id || user?.userId || 'me');
+                                                    const myId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
+                                                    const isMeCreator = cId === 'me' || (!!myId && cId === myId);
                                                     creator = {
-                                                        id: cId,
-                                                        name: isMeCreator ? (user?.name || user?.full_name || nameDecoded) : (partnerInfo.name || (partnerInfo as any).full_name || nameDecoded),
+                                                        id: isMeCreator ? (myId || 'me') : cId,
+                                                        name: isMeCreator 
+                                                            ? (user?.name || user?.full_name || nameDecoded) 
+                                                            : (cId === partner.id || cId === partnerInfo.id
+                                                                ? (partnerInfo.name || (partnerInfo as any).full_name || nameDecoded)
+                                                                : nameDecoded),
                                                         photoUrl: photoDecoded || (isMeCreator 
                                                             ? (user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}`)
-                                                            : (partnerInfo.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`))
+                                                            : (cId === partner.id || cId === partnerInfo.id
+                                                                ? (partnerInfo.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`)
+                                                                : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nameDecoded)}`))
                                                     };
                                                 } else {
                                                     creator = isMe 

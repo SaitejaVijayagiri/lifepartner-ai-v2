@@ -501,7 +501,9 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
                                                 onError={(e) => { const t = e.target as HTMLImageElement; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'U')}`; }}
                                             />
                                             {/* Online indicator dot */}
-                                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-black"></div>
+                                            {Array.isArray(onlineUsers) && onlineUsers.includes(viewer.userId) && (
+                                                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>
+                                            )}
                                         </div>
 
                                         {/* Info */}

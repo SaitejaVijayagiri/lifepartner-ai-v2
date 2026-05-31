@@ -548,23 +548,47 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         setDeleteMenuMsgId(null);
     };
 
+    // Sync chat history to localStorage cache in real-time
     useEffect(() => {
+        if (typeof window !== 'undefined' && partner.id) {
+            try {
+                localStorage.setItem(`chat_history_${partner.id}`, JSON.stringify(messages));
+            } catch (e) {
+                console.error("Failed to write chat history to cache", e);
+            }
+        }
+    }, [messages, partner.id]);
+
+    useEffect(() => {
+        // Optimistic SWR: Immediately load cached chat history to paint the conversation instantly
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem(`chat_history_${partner.id}`);
+                if (cached) {
+                    setMessages(JSON.parse(cached));
+                } else {
+                    setMessages([]);
+                }
+            } catch (e) {
+                setMessages([]);
+            }
+        } else {
+            setMessages([]);
+        }
+
         const loadHistory = async () => {
             try {
                 // Backend expects User ID (partner.id), not Interaction ID
                 const history = await api.chat.getHistory(partner.id);
                 if (Array.isArray(history)) {
                     setMessages(history);
-                } else {
-                    setMessages([]);
                 }
                 // Mark messages as read
                 await api.chat.markRead(partner.id);
                 if (onMessagesRead) onMessagesRead();
             } catch (e: any) {
                 console.error("Chat history fetch error:", e);
-                setMessages([]);
-                toast.error(`Failed to load chat: ${e.message || 'Network error'}`);
+                // Keep the cached messages if offline/network error, don't wipe them!
             }
         };
 

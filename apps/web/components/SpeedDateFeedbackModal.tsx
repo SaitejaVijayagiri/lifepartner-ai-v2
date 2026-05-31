@@ -77,30 +77,34 @@ export default function SpeedDateFeedbackModal({ partnerId, onClose }: SpeedDate
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-300">
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-gray-100 dark:border-gray-800">
-                <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Sparkles className="text-indigo-600 dark:text-indigo-400 w-10 h-10" />
+            <div className="bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-white/10 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="w-20 h-20 bg-gradient-to-tr from-pink-500/20 to-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10 relative">
+                    <Sparkles className="text-pink-400 w-10 h-10 animate-pulse" />
+                    <Heart className="absolute w-4 h-4 text-rose-500 fill-rose-500 -top-1 -right-1 animate-bounce" />
                 </div>
                 
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Time's Up!</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-8">
-                    Did you feel a connection over the call?
+                <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-pink-100 to-indigo-200 mb-2 tracking-tight">Time's Up! ⚡</h2>
+                <p className="text-gray-300 text-sm font-medium mb-8 leading-relaxed">
+                    Did you feel the spark over the blind call? Choose your reaction to reveal your match!
                 </p>
 
                 <div className="flex gap-4">
                     <button 
                         onClick={() => handleChoice(false)}
                         disabled={submitting}
-                        className="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold py-4 rounded-2xl transition-colors disabled:opacity-50"
+                        className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-2xl border border-white/10 transition-all active:scale-95 disabled:opacity-50 text-sm tracking-wide shadow-inner"
                     >
-                        Pass
+                        Pass ✕
                     </button>
                     <button 
                         onClick={() => handleChoice(true)}
                         disabled={submitting}
-                        className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-4 rounded-2xl shadow-lg transition-transform hover:scale-105 disabled:opacity-50"
+                        className="flex-1 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white font-extrabold py-4 rounded-2xl shadow-lg shadow-pink-500/25 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 text-sm tracking-wide"
                     >
-                        Like
+                        Like 💖
                     </button>
                 </div>
             </div>

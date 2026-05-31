@@ -137,15 +137,16 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     const completionPercentage = Math.round((countFields.filter(Boolean).length / countFields.length) * 100);
 
     return (
-        <div className="fixed inset-0 w-full h-[100dvh] md:relative md:h-auto bg-white dark:bg-gray-800 md:rounded-xl shadow-lg border-x-0 border-y md:border border-gray-100 dark:border-gray-800 overflow-y-auto z-[2000] md:z-auto animate-in slide-in-from-bottom md:slide-in-from-bottom-0 duration-300">
-            <div className="bg-indigo-600 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center text-white sticky top-0 z-20">
+        <div className="fixed inset-0 w-full h-[100dvh] md:relative md:max-h-[85vh] flex flex-col bg-white dark:bg-gray-800 md:rounded-2xl shadow-xl border-x-0 border-y md:border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] md:z-auto animate-in slide-in-from-bottom md:slide-in-from-bottom-0 duration-300">
+            <div className="bg-indigo-600 px-4 py-3 md:px-6 md:py-4 flex justify-between items-center text-white flex-shrink-0">
                 <h3 className="text-base md:text-lg font-bold">Edit Profile</h3>
                 <button onClick={onCancel} className="bg-white/20 hover:bg-white/30 p-2 rounded-full text-white transition-colors">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
 
-            {/* GAMIFICATION WIDGET & AI ROAST */}
+            <div className="flex-1 overflow-y-auto min-h-0 bg-white dark:bg-gray-800">
+                {/* GAMIFICATION WIDGET & AI ROAST */}
             <div className="bg-indigo-50 dark:bg-indigo-900/30 border-b border-indigo-100 dark:border-indigo-800/50 p-3 md:p-6 flex flex-col md:flex-row items-center justify-between gap-3 md:gap-4">
                 <div className="w-full flex-1">
                     <div className="flex justify-between items-center mb-1.5">
@@ -191,33 +192,50 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
             {/* ROAST RESULT DISPLAY */}
             {roastResult && (
-                <div className="bg-rose-50 dark:bg-rose-950/30 border-b border-rose-100 dark:border-rose-900/50 p-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                    <div className="flex items-start gap-4">
-                        <div className="text-4xl">🔮</div>
+                <div className="bg-gradient-to-br from-rose-50 to-pink-50/80 dark:from-rose-950/40 dark:to-pink-950/20 border-b border-rose-100 dark:border-rose-900/40 p-4 sm:p-6 animate-in fade-in slide-in-from-top-4 duration-500 relative group">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="text-3xl sm:text-4xl animate-bounce">🔥</div>
                         <div className="flex-1 space-y-4">
                             <div>
-                                <h3 className="text-lg font-bold text-rose-900 dark:text-rose-100">Guru's Verdict: {roastResult.score}/10</h3>
-                                <p className="text-rose-800 dark:text-rose-200 mt-1 italic font-medium">"{roastResult.roast}"</p>
+                                <h3 className="text-base sm:text-lg font-extrabold text-rose-900 dark:text-rose-100 flex items-center gap-2">
+                                    Guru's Verdict
+                                </h3>
+                                
+                                <div className="mt-2 flex items-center gap-3">
+                                    <div className="h-2 w-32 bg-rose-200 dark:bg-rose-900 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-rose-500 to-amber-500 rounded-full" 
+                                            style={{ width: `${roastResult.score * 10}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-xs sm:text-sm font-bold text-rose-700 dark:text-rose-300">{roastResult.score}/10 rating</span>
+                                </div>
+
+                                <p className="text-rose-800 dark:text-rose-200 mt-3 text-xs sm:text-sm italic font-semibold leading-relaxed bg-white/40 dark:bg-black/10 p-3 rounded-lg border border-rose-100/50 dark:border-rose-900/20">
+                                    "{roastResult.roast}"
+                                </p>
                             </div>
                             
-                            <div className="bg-white/60 dark:bg-black/20 rounded-lg p-4 border border-rose-200/50 dark:border-rose-800/50">
-                                <h4 className="font-bold text-rose-900 dark:text-rose-100 mb-2 text-sm uppercase tracking-wider">How to Fix It:</h4>
+                            <div className="bg-white/70 dark:bg-black/20 rounded-xl p-4 border border-rose-200/50 dark:border-rose-800/50 shadow-sm">
+                                <h4 className="font-bold text-rose-900 dark:text-rose-100 mb-2.5 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                    <span>✨</span> How to Polish Your Profile:
+                                </h4>
                                 <ul className="space-y-2">
                                     {roastResult.tips.map((tip, i) => (
-                                        <li key={i} className="flex gap-2 text-sm text-rose-800/90 dark:text-rose-200/90 items-start">
-                                            <span className="text-rose-500 font-bold mt-0.5">·</span> 
+                                        <li key={i} className="flex gap-2 text-xs sm:text-sm text-rose-800/90 dark:text-rose-200/90 items-start">
+                                            <span className="text-rose-500 font-bold mt-0.5">✅</span> 
                                             <span>{tip}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
                         </div>
-                        <button onClick={() => setRoastResult(null)} className="text-rose-400 hover:text-rose-600 transition-colors">✕</button>
+                        <button onClick={() => setRoastResult(null)} className="text-rose-400 hover:text-rose-600 transition-colors p-1 bg-rose-100/50 dark:bg-rose-900/30 rounded-full text-xs font-bold w-6 h-6 flex items-center justify-center hover:scale-105 active:scale-95">✕</button>
                     </div>
                 </div>
             )}
 
-            <div className="p-6 space-y-8 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-8">
                 {/* Photo Upload Section */}
                 {/* Photo Gallery Upload Section */}
                 <div className="space-y-4">
@@ -782,12 +800,14 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         />
                     </div>
                 </div>
-                <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-row items-center justify-end gap-2.5 sm:gap-3 border-t border-gray-200 dark:border-gray-800 z-20">
-                    <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none sm:min-w-[100px] h-9 sm:h-10 text-xs sm:text-sm font-semibold rounded-lg">Cancel</Button>
-                    <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none sm:min-w-[120px] h-9 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md">
-                        {loading ? 'Saving...' : <><span className="hidden sm:inline">Save Changes</span><span className="sm:hidden">Save</span></>}
-                    </Button>
-                </div>
+            </div> {/* End of form fields */}
+            </div> {/* End of scrollable body */}
+
+            <div className="sticky bottom-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md px-4 sm:px-6 py-2.5 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-row items-center justify-end gap-2.5 sm:gap-3 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 z-20 animate-in fade-in duration-300">
+                <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none sm:min-w-[100px] h-9 sm:h-10 text-xs sm:text-sm font-semibold rounded-lg">Cancel</Button>
+                <Button onClick={handleSave} disabled={loading} className="flex-1 sm:flex-none sm:min-w-[120px] h-9 sm:h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md">
+                    {loading ? 'Saving...' : <><span className="hidden sm:inline">Save Changes</span><span className="sm:hidden">Save</span></>}
+                </Button>
             </div>
         </div >
     );

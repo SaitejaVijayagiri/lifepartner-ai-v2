@@ -40,11 +40,29 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     }}
                 />
 
+                {/* Photo Index Badge */}
+                {photos.length > 1 && (
+                    <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-wider z-20 border border-white/10">
+                        📸 {currentPhotoIndex + 1} / {photos.length}
+                    </div>
+                )}
+
                 {/* Overlay Text */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-20 pointer-events-none">
-                    <h2 className="text-2xl font-bold text-white tracking-tight">{profile.name}, {profile.age}</h2>
-                    <p className="text-gray-300 text-sm font-medium">
-                        {profile.career?.profession || "-"} • {formatLocationString(profile.location)}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 z-20 pointer-events-none">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">{profile.name}, {profile.age}</h2>
+                        {profile.is_verified && (
+                            <span className="bg-blue-500 text-white p-0.5 rounded-full text-[10px] font-bold inline-flex items-center justify-center w-4 h-4 shadow-md shadow-blue-500/30">
+                                ✓
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-gray-300 text-xs sm:text-sm font-medium mt-1 drop-shadow-sm flex items-center gap-1.5">
+                        <span className="bg-white/15 px-2.5 py-0.5 rounded text-[10px] uppercase font-bold text-white tracking-wider backdrop-blur-sm border border-white/10">
+                            {profile.career?.profession || "Member"}
+                        </span>
+                        <span className="text-white/40">•</span>
+                        <span className="text-gray-300">{formatLocationString(profile.location)}</span>
                     </p>
                 </div>
 
@@ -119,10 +137,13 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'about' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
-                            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/50">
-                                <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-3">About Me</h3>
-                                <p className="text-blue-800/90 dark:text-blue-300 leading-relaxed text-[15px]">
-                                    {profile.aboutMe || "No bio added yet."}
+                            <div className="bg-gradient-to-br from-indigo-50/90 to-blue-50/80 dark:from-indigo-950/20 dark:to-blue-950/10 p-6 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30 shadow-sm backdrop-blur-sm relative overflow-hidden">
+                                <div className="absolute top-2 right-4 text-6xl text-indigo-200/40 dark:text-indigo-800/20 font-serif pointer-events-none select-none">“</div>
+                                <h3 className="font-extrabold text-indigo-950 dark:text-indigo-100 mb-3 text-sm uppercase tracking-wider flex items-center gap-1.5">
+                                    <span>✨</span> Personal Bio
+                                </h3>
+                                <p className="text-indigo-900/90 dark:text-indigo-300 leading-relaxed text-sm sm:text-[15px] font-medium relative z-10 italic">
+                                    "{profile.aboutMe || "No bio added yet."}"
                                 </p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -281,9 +302,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
 // Helpers
 const InfoCard = ({ label, value }: any) => (
-    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
-        <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">{label}</div>
-        <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm break-words">{value}</div>
+    <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100/80 dark:border-gray-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
+        <div className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider mb-1">{label}</div>
+        <div className="font-bold text-gray-800 dark:text-gray-200 text-sm sm:text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors break-words">{value}</div>
     </div>
 );
 

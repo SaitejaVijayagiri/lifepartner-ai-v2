@@ -149,6 +149,62 @@ router.post('/:id/respond', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Cancel Date Proposal/Meetup
+router.post('/:id/cancel', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const dateId = req.params.id;
+
+        const dates: any[] = await prisma.$queryRawUnsafe(`
+            SELECT * FROM meet_dates WHERE id = $1::uuid;
+        `, dateId);
+
+        if (!dates.length) return res.status(404).json({ error: 'Date not found' });
+        const meetDate = dates[0];
+
+        if (meetDate.sender_id !== userId && meetDate.receiver_id !== userId) {
+            return res.status(403).json({ error: 'You are not authorized to cancel this date' });
+        }
+
+        const updated: any[] = await prisma.$queryRawUnsafe(`
+            UPDATE meet_dates SET status = 'cancelled', updated_at = now() WHERE id = $1::uuid RETURNING *;
+        `, dateId);
+
+        // Notify partner
+        try {
+            const partnerId = userId === meetDate.sender_id ? meetDate.receiver_id : meetDate.sender_id;
+            const { getIO } = require('../socket');
+            const io = getIO();
+            
+            const payload = `[DATE_RESPONSE:${dateId}:cancelled]`;
+            const newMsg = await (prisma.messages as any).create({
+                data: {
+                    sender_id: userId,
+                    receiver_id: partnerId,
+                    content: payload,
+                    delivery_status: "sent"
+                },
+                select: { id: true, created_at: true }
+            });
+            
+            io.to(partnerId).emit("receiveMessage", {
+                id: newMsg.id,
+                text: payload,
+                senderId: userId,
+                timestamp: newMsg.created_at,
+                status: "sent"
+            });
+        } catch (err) {
+            console.error("Cancel date notification failed", err);
+        }
+
+        res.json({ success: true, date: updated[0] });
+    } catch (e: any) {
+        console.error('Cancel Date Error', e);
+        res.status(500).json({ error: 'Failed to cancel meetup' });
+    }
+});
+
 // 4. Get active dates for user
 router.get('/active', authenticateToken, async (req: any, res) => {
     try {

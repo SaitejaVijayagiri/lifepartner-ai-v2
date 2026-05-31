@@ -720,7 +720,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     if (callEnded || !mounted) return null;
 
     return createPortal(
-        <div className={`fixed z-[1100] bg-slate-950 flex overflow-hidden animate-in fade-in duration-300 shadow-2xl transition-all border border-white/5
+        <div className={`fixed z-[30000] bg-slate-950 flex overflow-hidden animate-in fade-in duration-300 shadow-2xl transition-all border border-white/5
             ${isMaximized ? 'inset-0' : 'bottom-4 right-4 w-80 h-[500px] rounded-3xl border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,0.5)]'}
         `}>
             {/* Custom Animation Keyframes and CSS Classes */}

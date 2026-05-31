@@ -124,6 +124,26 @@ export default function DateSafetyOverlay() {
         }
     };
 
+    const handleCancelDate = async () => {
+        if (!confirm("Are you sure you want to cancel this meetup? This will notify your partner.")) return;
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${activeDate.id}/cancel`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            }).then(r => r.json());
+
+            if (res.success) {
+                toast.success("Meetup cancelled successfully.");
+                setShowSOS(false);
+                setActiveDate(null); // Remove overlay
+            } else {
+                toast.error(res.error || "Failed to cancel meetup.");
+            }
+        } catch (e) {
+            toast.error("Network error cancelling meetup.");
+        }
+    };
+
     const getWhatsAppLink = (lat?: number, lng?: number) => {
         let phone = '';
         if (activeDate?.my_metadata) {
@@ -237,6 +257,13 @@ export default function DateSafetyOverlay() {
                                 className="w-full mt-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
                                 End Date Safely
+                            </button>
+
+                            <button 
+                                onClick={handleCancelDate}
+                                className="w-full mt-2 py-3 bg-rose-50/50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 rounded-2xl font-bold transition-all"
+                            >
+                                Cancel Meetup
                             </button>
                         </div>
                     </div>

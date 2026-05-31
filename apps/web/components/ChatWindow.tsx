@@ -204,7 +204,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+    const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
     const [fullscreenYoutubeId, setFullscreenYoutubeId] = useState<string | null>(null);
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
@@ -865,6 +865,39 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
+    const handleCancelProposal = async (dateId: string) => {
+        if (!confirm("Are you sure you want to cancel this date proposal?")) return;
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${dateId}/cancel`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            }).then(r => r.json());
+            
+            if (res.success) {
+                toast.success("Proposal cancelled!");
+            } else {
+                toast.error(res.error || "Failed to cancel proposal");
+            }
+        } catch (e) {
+            toast.error("Network error");
+        }
+    };
+
+    // Block Partner
+    const handleBlock = async () => {
+        if (!confirm("Block this user? You will not see their messages again.")) return;
+        try {
+            await api.interactions.reportUser(partner.id, "BLOCK", "Blocked from Chat");
+            toast.success("User blocked");
+            onClose?.();
+        } catch (e) {
+            toast.error("Failed to block user");
+        }
+    };
+
     // Keep likeMessage for Android native backward compat
     const handleLikeMessage = async (msgId: string) => {
         handleReact(msgId, '❤️');
@@ -1180,7 +1213,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 </button>
                                             </div>
                                         ) : msg.text.startsWith('[IMAGE]') ? (
-                                            <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenImage(msg.text.replace('[IMAGE]', ''))} />
+                                            <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: msg.text.replace('[IMAGE]', ''), type: 'image' })} />
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
                                         ) : msg.text.startsWith('[STORY_REPLY:') ? (() => {
@@ -1196,7 +1229,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                                     ? 'bg-white/10 border-white/20 text-white' 
                                                                     : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-gray-800 dark:text-gray-100'
                                                             }`}
-                                                            onClick={() => setFullscreenImage(storyUrl)}
+                                                            onClick={() => setFullscreenMedia({ url: storyUrl, type: isVideo ? 'video' : 'image' })}
                                                             title="Click to view fullscreen"
                                                         >
                                                             <div className="relative w-11 h-16 rounded-lg overflow-hidden bg-black/20 shrink-0 border border-black/15 shadow-inner">
@@ -1228,7 +1261,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     </div>
                                                     <p className="font-bold mb-1">Date Invitation</p>
                                                     <p className="text-xs opacity-80 text-center mb-3">Let's meet up!</p>
-                                                    {!isMe && (
+                                                    {isMe ? (
+                                                        <button 
+                                                            onClick={() => handleCancelProposal(dateId)} 
+                                                            className="w-full py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-colors"
+                                                        >
+                                                            Cancel Proposal
+                                                        </button>
+                                                    ) : (
                                                         <div className="flex gap-2 w-full">
                                                             <button onClick={() => handleRespondDate(dateId, 'declined')} className="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors">Decline</button>
                                                             <button onClick={() => handleRespondDate(dateId, 'accepted')} className="flex-1 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors">Accept</button>
@@ -1240,14 +1280,30 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             const parts = msg.text.replace('[DATE_RESPONSE:', '').replace(']', '').split(':');
                                             const status = parts[1];
                                             const accepted = status === 'accepted';
+                                            const cancelled = status === 'cancelled';
                                             return (
-                                                <div className={`p-3 rounded-xl border flex items-center gap-3 ${accepted ? 'bg-green-50/10 border-green-200/50 text-green-700 dark:text-green-300' : 'bg-red-50/10 border-red-200/50 text-red-700 dark:text-red-300'}`}>
-                                                    <div className={`p-2 rounded-full ${accepted ? 'bg-green-500' : 'bg-red-500'} text-white`}>
+                                                <div className={`p-3 rounded-xl border flex items-center gap-3 ${
+                                                    accepted 
+                                                        ? 'bg-green-50/10 border-green-200/50 text-green-700 dark:text-green-300' 
+                                                        : cancelled
+                                                        ? 'bg-gray-500/10 border-gray-300/40 text-gray-500 dark:text-gray-400'
+                                                        : 'bg-red-50/10 border-red-200/50 text-red-700 dark:text-red-300'
+                                                }`}>
+                                                    <div className={`p-2 rounded-full ${
+                                                        accepted 
+                                                            ? 'bg-green-500' 
+                                                            : cancelled
+                                                            ? 'bg-gray-400 dark:bg-gray-600'
+                                                            : 'bg-red-500'
+                                                    } text-white`}>
                                                         {accepted ? <Check size={16} /> : <X size={16} />}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-sm">Date {status.charAt(0).toUpperCase() + status.slice(1)}</p>
+                                                        <p className="font-bold text-sm">
+                                                            {cancelled ? 'Meetup Cancelled' : `Date ${status.charAt(0).toUpperCase() + status.slice(1)}`}
+                                                        </p>
                                                         {accepted && <p className="text-xs opacity-80">Safety features are now active for this date.</p>}
+                                                        {cancelled && <p className="text-xs opacity-80">This meetup has been cancelled.</p>}
                                                     </div>
                                                 </div>
                                             );
@@ -1613,25 +1669,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partnerInfo.name} />
             
             {/* Fullscreen Image/Video Overlay */}
-            {fullscreenImage && (() => {
-                const isVideo = fullscreenImage.toLowerCase().endsWith('.mp4') || 
-                                fullscreenImage.toLowerCase().endsWith('.webm') || 
-                                fullscreenImage.toLowerCase().endsWith('.mov') ||
-                                fullscreenImage.toLowerCase().includes('/video/upload/') ||
-                                fullscreenImage.toLowerCase().includes('video');
-                return (
-                    <div className="fixed inset-0 z-[2010] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenImage(null)}>
-                        <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenImage(null); }}>
-                            <X size={20} strokeWidth={3} />
-                        </button>
-                        {isVideo ? (
-                            <video src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" controls autoPlay loop />
-                        ) : (
-                            <img src={fullscreenImage} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
-                        )}
-                    </div>
-                );
-            })()}
+            {fullscreenMedia && (
+                <div className="fixed inset-0 z-[2010] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setFullscreenMedia(null)}>
+                    <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenMedia(null); }}>
+                        <X size={20} strokeWidth={3} />
+                    </button>
+                    {fullscreenMedia.type === 'video' ? (
+                        <video src={fullscreenMedia.url} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" controls autoPlay loop />
+                    ) : (
+                        <img src={fullscreenMedia.url} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
+                    )}
+                </div>
+            )}
 
             {/* Fullscreen YouTube Modal Overlay */}
             {fullscreenYoutubeId && (

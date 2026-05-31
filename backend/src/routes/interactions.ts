@@ -1,7 +1,7 @@
 import express from 'express';
 // import { pool } from '../db';
 import { prisma } from '../prisma';
-import { getIO } from '../socket'; // Import socket getter
+import { getIO, isUserOnline } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
@@ -487,7 +487,7 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
         // Get user details & check quota
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { full_name: true, is_premium: true, free_direct_messages: true }
+            select: { full_name: true, is_premium: true, free_direct_messages: true, avatar_url: true }
         });
 
         if (!user) return res.status(404).json({ error: "User not found" });
@@ -570,45 +570,78 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
         // 3. Notify receiver
         try {
-            const myName = user.full_name || "Someone";
-            const msg = `${myName} sent you a Direct Message: "${cleanText.substring(0, 30)}${cleanText.length > 30 ? '...' : ''}"`;
-
-            // Persist
-            await prisma.notifications.create({
-                data: {
-                    user_id: toUserId,
-                    type: 'direct_message',
-                    message: msg,
-                    data: { fromUserId: userId }
+            const isStoryReply = cleanText.startsWith('[STORY_REPLY:');
+            let actualText = cleanText;
+            if (isStoryReply) {
+                const match = cleanText.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                if (match) {
+                    actualText = match[3];
                 }
-            });
+            }
 
-            // Realtime Notification
-            getIO().to(toUserId).emit('notification:new', {
-                type: 'direct_message',
-                message: msg,
-                timestamp: new Date()
-            });
+            const myName = user.full_name || "Someone";
+            let msg;
+            if (isStoryReply) {
+                msg = `${myName} replied to your story: "${actualText.substring(0, 30)}${actualText.length > 30 ? '...' : ''}"`;
+            } else {
+                msg = `${myName} sent you a Direct Message: "${cleanText.substring(0, 30)}${cleanText.length > 30 ? '...' : ''}"`;
+            }
+
+            const isOnline = isUserOnline(toUserId);
+
+            if (!isAlreadyConnected) {
+                // Persist
+                await prisma.notifications.create({
+                    data: {
+                        user_id: toUserId,
+                        type: isStoryReply ? 'story_reply' : 'direct_message',
+                        message: msg,
+                        data: { fromUserId: userId }
+                    }
+                });
+
+                // Realtime Notification
+                getIO().to(toUserId).emit('notification:new', {
+                    type: isStoryReply ? 'story_reply' : 'direct_message',
+                    message: msg,
+                    timestamp: new Date()
+                });
+
+                // Realtime Push via Service Worker / FCM
+                const pushData = { type: 'chat', from: userId, screen: 'connections' };
+                const { NotificationService } = await import('../services/notification');
+                NotificationService.getInstance().sendToUser(
+                    toUserId, 
+                    isStoryReply ? "New Story Reply! 📸" : "New Direct Message! 💌", 
+                    msg,
+                    pushData
+                ).catch(e => console.warn("Push failed in direct msg", e));
+            } else {
+                // Already connected. Only send push notification if offline.
+                if (!isOnline) {
+                    const pushData = { type: 'chat', from: userId, screen: 'connections' };
+                    const { NotificationService } = await import('../services/notification');
+                    NotificationService.getInstance().sendToUser(
+                        toUserId, 
+                        isStoryReply ? "New Story Reply! 📸" : "New Direct Message! 💌", 
+                        msg,
+                        pushData
+                    ).catch(e => console.warn("Push failed in direct msg for connected user", e));
+                }
+            }
 
             // Realtime Message Broadcast
+            const senderPhoto = sanitizePhotoUrl(user.avatar_url, myName);
             const newMessage = {
-                id: Math.random().toString(36).substr(2, 9), // Temporary ID for realtime
+                id: newMessageRecord.id,
                 text: cleanText,
                 senderId: userId,
-                timestamp: new Date(),
+                senderName: myName,
+                senderPhoto: senderPhoto,
+                timestamp: newMessageRecord.created_at || new Date(),
                 status: "sent"
             };
             getIO().to(toUserId).emit("receiveMessage", newMessage);
-
-            // Realtime Push via Service Worker / FCM
-            const pushData = { type: 'chat', from: userId, screen: 'connections' };
-            const { NotificationService } = await import('../services/notification');
-            NotificationService.getInstance().sendToUser(
-                toUserId, 
-                "New Direct Message! 💌", 
-                msg,
-                pushData
-            ).catch(e => console.warn("Push failed in direct msg", e));
 
         } catch (err) {
             console.warn("Notification failed for direct message:", err);

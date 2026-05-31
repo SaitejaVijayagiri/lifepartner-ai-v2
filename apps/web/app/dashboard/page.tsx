@@ -956,25 +956,35 @@ function DashboardContent() {
                 ))}
 
                 {/* Other Users' Stories (opposite gender via feed API) */}
-                {storyFeed.map((feedUser, idx) => (
-                    <div
-                        key={feedUser.id}
-                        className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
-                        style={{ animationDelay: `${idx * 50}ms` }}
-                        onClick={() => handleViewStory(feedUser)}
-                    >
-                        <div className="relative">
-                            <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40 transition-all duration-300 group-hover:scale-105">
-                                <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                    <img src={feedUser.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt={feedUser.name} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(feedUser.name || 'User')}`; }} />
+                {storyFeed.map((feedUser, idx) => {
+                    const currentUserId = currentUser?.id || currentUser?.userId;
+                    const isAllViewed = currentUserId && feedUser.stories && feedUser.stories.length > 0 && feedUser.stories.every((s: any) => s.views?.some((v: any) => v.userId === currentUserId));
+                    return (
+                        <div
+                            key={feedUser.id}
+                            className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
+                            style={{ animationDelay: `${idx * 50}ms` }}
+                            onClick={() => handleViewStory(feedUser)}
+                        >
+                            <div className="relative">
+                                <div className={`w-20 h-20 rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 ${
+                                    isAllViewed 
+                                        ? 'bg-slate-200 dark:bg-slate-800 shadow-sm border border-slate-300/30 dark:border-slate-700/30' 
+                                        : 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40'
+                                }`}>
+                                    <div className="w-full h-full rounded-full p-[2px] bg-background">
+                                        <img src={feedUser.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt={feedUser.name} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(feedUser.name || 'User')}`; }} />
+                                    </div>
                                 </div>
+                                {/* Unread indicator */}
+                                {!isAllViewed && (
+                                    <div className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
+                                )}
                             </div>
-                            {/* Unread indicator */}
-                            <div className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
+                            <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{feedUser.name}</span>
                         </div>
-                        <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{feedUser.name}</span>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
@@ -1829,7 +1839,10 @@ function DashboardContent() {
                         photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || "https://i.pravatar.cc/150"
                     }}
                     currentUser={currentUser}
-                    onClose={() => setActiveStorySet(null)}
+                    onClose={() => {
+                        setActiveStorySet(null);
+                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
+                    }}
                     onDelete={async (deletedId) => {
                         await api.profile.deleteStory(deletedId);
                         // Optimistically remove from view or refresh

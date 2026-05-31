@@ -443,6 +443,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                         where: { user_a_id: userId },
                         select: { status: true, is_liked: true }
                     },
+                    interactions_interactions_to_user_idTousers: {
+                        where: { from_user_id: userId, type: 'REQUEST' },
+                        select: { status: true }
+                    },
+                    interactions_interactions_from_user_idTousers: {
+                        where: { to_user_id: userId, type: 'REQUEST' },
+                        select: { status: true }
+                    },
                     _count: {
                         select: {
                             matches_matches_user_b_idTousers: { where: { is_liked: true } }
@@ -536,6 +544,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             // Interaction Status
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
+            const sentRequest = c.interactions_interactions_to_user_idTousers?.[0];
+            const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
+            const matchStatus = sentRequest?.status || receivedRequest?.status || null;
 
             return {
                 id: c.id,
@@ -579,7 +590,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 stories: meta.stories || [],
                 total_likes: c._count.matches_matches_user_b_idTousers || 0,
                 total_gifts: giftMap.get(c.id) || 0,
-                match_status: matchRecord?.status || null,
+                match_status: matchStatus,
                 is_liked: matchRecord?.is_liked || false,
                 isPremium: c.is_premium || false,
 
@@ -943,7 +954,42 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             }
         }));
 
-        res.json({ matches: finalMatches, filters });
+        // Batch Query for Likes & Interactions Status
+        const candidateIds = finalMatches.map(m => m.id);
+        const [likes, interactions] = await Promise.all([
+            prisma.matches.findMany({
+                where: {
+                    user_a_id: userId,
+                    user_b_id: { in: candidateIds }
+                },
+                select: { user_b_id: true, is_liked: true }
+            }),
+            prisma.interactions.findMany({
+                where: {
+                    OR: [
+                        { from_user_id: userId, to_user_id: { in: candidateIds } },
+                        { from_user_id: { in: candidateIds }, to_user_id: userId }
+                    ],
+                    type: 'REQUEST'
+                },
+                select: { from_user_id: true, to_user_id: true, status: true }
+            })
+        ]);
+
+        const likeMap = new Map(likes.map(l => [l.user_b_id, l.is_liked]));
+        const interactionMap = new Map();
+        interactions.forEach(i => {
+            const partnerId = i.from_user_id === userId ? i.to_user_id : i.from_user_id;
+            interactionMap.set(partnerId, i.status);
+        });
+
+        const finalMatchesWithStatus = finalMatches.map(m => ({
+            ...m,
+            match_status: interactionMap.get(m.id) || null,
+            is_liked: likeMap.get(m.id) || false
+        }));
+
+        res.json({ matches: finalMatchesWithStatus, filters });
 
     } catch (e) {
         console.error("Search Error", e);

@@ -574,9 +574,9 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
             const isStoryReply = cleanText.startsWith('[STORY_REPLY:');
             let actualText = cleanText;
             if (isStoryReply) {
-                const match = cleanText.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
+                const match = cleanText.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
                 if (match) {
-                    actualText = match[3];
+                    actualText = match[4];
                 }
             }
 

@@ -523,12 +523,9 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
         setIsSending(true);
         try {
-            // Encode story texts dynamically into the story URL as a query parameter
-            const textParam = story.texts && story.texts.length > 0
-                ? (story.url.includes('?') ? '&' : '?') + `story_texts=${encodeURIComponent(JSON.stringify(story.texts))}`
-                : '';
-            const storyUrlWithTexts = story.url + textParam;
-            const storyContext = `[STORY_REPLY:${storyUrlWithTexts}:${story.type}]${replyText}`;
+            // Put encoded story texts inside the bracket as a third parameter (pristine story.url)
+            const textsVal = story.texts && story.texts.length > 0 ? encodeURIComponent(JSON.stringify(story.texts)) : '';
+            const storyContext = `[STORY_REPLY:${story.url}:${story.type}:${textsVal}]${replyText}`;
             
             // Use Direct Message API (handles 3-message limit for unconnected users)
             await api.interactions.sendDirectMessage(user.id, storyContext);

@@ -1193,8 +1193,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 ? '🎭 Sticker' 
                                                 : replyMsg.text?.startsWith('[STORY_REPLY:') 
                                                 ? (() => {
-                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
-                                                    return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
+                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
+                                                    return match ? `📸 Story Reply: ${match[4]}` : '📸 Story Reply';
                                                   })()
                                                 : replyMsg.text;
                                             return (
@@ -1242,21 +1242,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
                                         ) : msg.text.startsWith('[STORY_REPLY:') ? (() => {
-                                            const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
+                                            const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
                                             if (match) {
-                                                const [, storyUrl, storyType, replyText] = match;
+                                                const [, storyUrl, storyType, textsMetadata, replyText] = match;
                                                 const isVideo = storyType === 'video';
                                                 
-                                                // Extract story_texts query parameter from storyUrl
+                                                // Extract story_texts (bracket parameter or url query parameter fallback)
                                                 let storyTexts: any[] = [];
-                                                if (storyUrl.includes('story_texts=')) {
+                                                if (textsMetadata) {
+                                                    try {
+                                                        storyTexts = JSON.parse(decodeURIComponent(textsMetadata));
+                                                    } catch (e) {
+                                                        console.error("Failed to parse story texts from bracket metadata", e);
+                                                    }
+                                                } else if (storyUrl.includes('story_texts=')) {
                                                     try {
                                                         const parts = storyUrl.split('story_texts=');
                                                         const textsStr = parts[1].split('&')[0];
                                                         storyTexts = JSON.parse(decodeURIComponent(textsStr));
-                                                    } catch (err) {
-                                                        console.error("Failed to parse story texts from URL", err);
-                                                    }
+                                                    } catch (err) {}
                                                 }
 
                                                 const creator = isMe 
@@ -1577,8 +1581,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 ? '🎭 Sticker' 
                                 : replyTo.text?.startsWith('[STORY_REPLY:') 
                                 ? (() => {
-                                    const match = replyTo.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
-                                    return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
+                                    const match = replyTo.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?\]([\s\S]*)$/);
+                                    return match ? `📸 Story Reply: ${match[4]}` : '📸 Story Reply';
                                   })()
                                 : replyTo.text}
                         </p>

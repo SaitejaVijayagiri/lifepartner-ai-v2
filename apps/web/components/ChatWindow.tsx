@@ -1259,22 +1259,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     }
                                                 }
 
+                                                const creator = isMe 
+                                                    ? { id: partner.id, name: partnerInfo.name, photoUrl: partnerInfo.photoUrl }
+                                                    : { 
+                                                        id: user?.id || user?.userId || 'me', 
+                                                        name: 'You', 
+                                                        photoUrl: user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}` 
+                                                      };
+
                                                 return (
-                                                    <div className="flex flex-col gap-2 min-w-[180px] max-w-[280px]">
+                                                    <div className="flex flex-col gap-2 w-[180px] sm:w-[200px] mt-1 select-none">
+                                                        {/* Instagram-style Tall Story Mini Card */}
                                                         <div 
-                                                            className={`p-2 rounded-xl flex items-center gap-3 border text-left cursor-pointer hover:opacity-90 transition-opacity backdrop-blur-md shadow-sm mt-1 ${
-                                                                isMe 
-                                                                    ? 'bg-white/10 border-white/20 text-white' 
-                                                                    : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-gray-800 dark:text-gray-100'
-                                                            }`}
+                                                            className="relative aspect-[9/16] w-full rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-neutral-900 cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all group"
                                                             onClick={() => {
-                                                                const creator = isMe 
-                                                                    ? { id: partner.id, name: partnerInfo.name, photoUrl: partnerInfo.photoUrl }
-                                                                    : { 
-                                                                        id: user?.id || user?.userId || 'me', 
-                                                                        name: 'You', 
-                                                                        photoUrl: user?.photoUrl || user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user?.name || 'You')}` 
-                                                                      };
                                                                 setFullscreenMedia({ 
                                                                     url: storyUrl, 
                                                                     type: isVideo ? 'video' : 'image', 
@@ -1284,30 +1282,67 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                             }}
                                                             title="Click to view fullscreen"
                                                         >
-                                                            <div className="relative w-11 h-16 rounded-lg overflow-hidden bg-black/20 shrink-0 border border-black/15 shadow-inner">
-                                                                {isVideo ? (
-                                                                    <video src={storyUrl} className="w-full h-full object-cover" muted playsInline />
-                                                                ) : (
-                                                                    <img src={storyUrl} className="w-full h-full object-cover" alt="story thumbnail" />
-                                                                )}
-                                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 hover:bg-black/30 transition-colors text-white font-medium text-xs rounded-lg drop-shadow-md">
-                                                                    {isVideo ? '▶️' : '📸'}
+                                                            {/* Story Media */}
+                                                            {isVideo ? (
+                                                                <video src={storyUrl} className="w-full h-full object-cover" muted playsInline />
+                                                            ) : (
+                                                                <img src={storyUrl} className="w-full h-full object-cover" alt="story" />
+                                                            )}
+                                                            
+                                                            {/* Translucent overlay on hover */}
+                                                            <div className="absolute inset-0 bg-black/15 z-0 group-hover:bg-black/25 transition-colors"></div>
+
+                                                            {/* Instagram Story Top Header Overlay */}
+                                                            <div className="absolute top-2 left-2 right-2 flex items-center justify-between z-10 pointer-events-none">
+                                                                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-white/10 shadow-sm max-w-[90%]">
+                                                                    <img 
+                                                                        src={creator.photoUrl} 
+                                                                        className="w-3.5 h-3.5 rounded-full object-cover border border-white/20 shrink-0" 
+                                                                        alt=""
+                                                                        onError={(e) => {
+                                                                            const target = e.target as HTMLImageElement;
+                                                                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(creator.name)}`;
+                                                                        }}
+                                                                    />
+                                                                    <span className="text-[8px] font-bold text-white truncate drop-shadow-md">
+                                                                        {creator.name}
+                                                                    </span>
                                                                 </div>
+                                                                <span className="text-[9px] drop-shadow-md z-10 leading-none">
+                                                                    {isVideo ? '▶️' : '📸'}
+                                                                </span>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">
-                                                                    {isMe ? `Replied to ${partnerInfo.name}'s Story` : 'Replied to your Story'}
-                                                                </p>
-                                                                {storyTexts && storyTexts.length > 0 ? (
-                                                                    <p className="text-[9px] opacity-90 truncate italic mt-0.5 max-w-[150px]">
-                                                                        "{storyTexts[0].text}"
-                                                                    </p>
-                                                                ) : (
-                                                                    <p className="text-[9px] opacity-50 flex items-center gap-1 mt-0.5">Click to view</p>
-                                                                )}
-                                                            </div>
+
+                                                            {/* Miniature dynamic text overlays scaled perfectly to 48% */}
+                                                            {storyTexts && storyTexts.length > 0 && storyTexts.map((t: any, i: number) => (
+                                                                <div 
+                                                                    key={i} 
+                                                                    className="absolute top-1/2 left-1/2 pointer-events-none z-10" 
+                                                                    style={{ transform: `translate(-50%, -50%) translate(${t.x * 0.4}px, ${t.y * 0.4}px) scale(0.48)` }}
+                                                                >
+                                                                    <div 
+                                                                        style={{ 
+                                                                            color: t.bgStyle === 'highlight' ? (t.color === 'white' ? 'black' : 'white') : t.color,
+                                                                            backgroundColor: t.bgStyle === 'highlight' ? t.color : 'transparent',
+                                                                            textShadow: t.bgStyle === 'neon' ? `0 0 10px ${t.color}, 0 0 20px ${t.color}` : (t.bgStyle === 'plain' ? '0px 1px 10px rgba(0,0,0,0.8)' : 'none'),
+                                                                            fontSize: '0.9rem',
+                                                                            fontFamily: t.fontFamily,
+                                                                            fontWeight: 'bold',
+                                                                            whiteSpace: 'pre-wrap',
+                                                                            padding: t.bgStyle === 'highlight' ? '4px 8px' : '0',
+                                                                            borderRadius: t.bgStyle === 'highlight' ? '6px' : '0',
+                                                                            textAlign: 'center',
+                                                                            lineHeight: '1.2'
+                                                                        }}
+                                                                    >
+                                                                        {t.text}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                        <p className="text-sm leading-relaxed break-words px-1 font-medium">{replyText}</p>
+
+                                                        {/* Reply Message Text underneath Story Card */}
+                                                        <p className="text-sm leading-relaxed break-words px-1 font-medium text-inherit">{replyText}</p>
                                                     </div>
                                                 );
                                             }

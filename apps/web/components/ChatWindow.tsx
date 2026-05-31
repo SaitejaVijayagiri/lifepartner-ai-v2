@@ -217,7 +217,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+    const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: 'image' | 'video'; texts?: any[] } | null>(null);
     const [fullscreenYoutubeId, setFullscreenYoutubeId] = useState<string | null>(null);
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
@@ -1234,6 +1234,19 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             if (match) {
                                                 const [, storyUrl, storyType, replyText] = match;
                                                 const isVideo = storyType === 'video';
+                                                
+                                                // Extract story_texts query parameter from storyUrl
+                                                let storyTexts: any[] = [];
+                                                if (storyUrl.includes('story_texts=')) {
+                                                    try {
+                                                        const parts = storyUrl.split('story_texts=');
+                                                        const textsStr = parts[1].split('&')[0];
+                                                        storyTexts = JSON.parse(decodeURIComponent(textsStr));
+                                                    } catch (err) {
+                                                        console.error("Failed to parse story texts from URL", err);
+                                                    }
+                                                }
+
                                                 return (
                                                     <div className="flex flex-col gap-2 min-w-[180px] max-w-[280px]">
                                                         <div 
@@ -1242,7 +1255,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                                     ? 'bg-white/10 border-white/20 text-white' 
                                                                     : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-gray-800 dark:text-gray-100'
                                                             }`}
-                                                            onClick={() => setFullscreenMedia({ url: storyUrl, type: isVideo ? 'video' : 'image' })}
+                                                            onClick={() => setFullscreenMedia({ url: storyUrl, type: isVideo ? 'video' : 'image', texts: storyTexts })}
                                                             title="Click to view fullscreen"
                                                         >
                                                             <div className="relative w-11 h-16 rounded-lg overflow-hidden bg-black/20 shrink-0 border border-black/15 shadow-inner">
@@ -1256,8 +1269,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                                 </div>
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">Replied to story</p>
-                                                                <p className="text-[9px] opacity-50 flex items-center gap-1 mt-0.5">Click to view</p>
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">
+                                                                    {isMe ? `Replied to ${partnerInfo.name}'s Story` : 'Replied to your Story'}
+                                                                </p>
+                                                                {storyTexts && storyTexts.length > 0 ? (
+                                                                    <p className="text-[9px] opacity-90 truncate italic mt-0.5 max-w-[150px]">
+                                                                        "{storyTexts[0].text}"
+                                                                    </p>
+                                                                ) : (
+                                                                    <p className="text-[9px] opacity-50 flex items-center gap-1 mt-0.5">Click to view</p>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <p className="text-sm leading-relaxed break-words px-1 font-medium">{replyText}</p>
@@ -1687,11 +1708,36 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     <button className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2 bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-md transition-all border border-white/30 cursor-pointer shadow-xl" onClick={(e) => { e.stopPropagation(); setFullscreenMedia(null); }}>
                         <X size={20} strokeWidth={3} />
                     </button>
-                    {fullscreenMedia.type === 'video' ? (
-                        <video src={fullscreenMedia.url} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" controls autoPlay loop />
-                    ) : (
-                        <img src={fullscreenMedia.url} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
-                    )}
+                    <div className="relative max-w-full max-h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        {fullscreenMedia.type === 'video' ? (
+                            <video src={fullscreenMedia.url} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" controls autoPlay loop />
+                        ) : (
+                            <img src={fullscreenMedia.url} className="max-w-full max-h-full object-contain drop-shadow-2xl rounded-sm" alt="Fullscreen" />
+                        )}
+
+                        {/* Text Overlays rendered dynamically on top */}
+                        {fullscreenMedia.texts && Array.isArray(fullscreenMedia.texts) && fullscreenMedia.texts.map((t: any, i: number) => (
+                            <div key={i} className="absolute top-1/2 left-1/2 pointer-events-none" style={{ zIndex: 20, transform: `translate(${t.x}px, ${t.y}px)` }}>
+                                <div 
+                                    style={{ 
+                                        transform: 'translate(-50%, -50%)',
+                                        color: t.bgStyle === 'highlight' ? (t.color === 'white' ? 'black' : 'white') : t.color,
+                                        backgroundColor: t.bgStyle === 'highlight' ? t.color : 'transparent',
+                                        textShadow: t.bgStyle === 'neon' ? `0 0 10px ${t.color}, 0 0 20px ${t.color}, 0 0 30px ${t.color}` : (t.bgStyle === 'plain' ? '0px 2px 15px rgba(0,0,0,0.8)' : 'none'),
+                                        fontSize: `clamp(${1.0 * t.scale}rem, ${4 * t.scale}vw, ${2.2 * t.scale}rem)`,
+                                        fontFamily: t.fontFamily,
+                                        fontWeight: 'bold',
+                                        whiteSpace: 'pre-wrap',
+                                        padding: t.bgStyle === 'highlight' ? '6px 12px' : '0',
+                                        borderRadius: t.bgStyle === 'highlight' ? '8px' : '0',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    {t.text}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

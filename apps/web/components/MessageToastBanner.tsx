@@ -49,7 +49,7 @@ export default function MessageToastBanner() {
                 : msg.text?.startsWith('[AUDIO]') ? '🎤 Sent a voice message'
                 : msg.text?.startsWith('[STICKER]') ? '🎭 Sent a sticker'
                 : msg.text?.startsWith('[STORY_REPLY:') ? (() => {
-                    const match = msg.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                    const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
                     return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
                   })()
                 : (msg.text || '').substring(0, 60) + ((msg.text || '').length > 60 ? '...' : '');

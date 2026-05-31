@@ -1168,7 +1168,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 ? '🎭 Sticker' 
                                                 : replyMsg.text?.startsWith('[STORY_REPLY:') 
                                                 ? (() => {
-                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
                                                     return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
                                                   })()
                                                 : replyMsg.text;
@@ -1217,7 +1217,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         ) : msg.text.startsWith('[AUDIO]') ? (
                                             <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
                                         ) : msg.text.startsWith('[STORY_REPLY:') ? (() => {
-                                            const match = msg.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                                            const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
                                             if (match) {
                                                 const [, storyUrl, storyType, replyText] = match;
                                                 const isVideo = storyType === 'video';
@@ -1482,7 +1482,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 ? '🎭 Sticker' 
                                 : replyTo.text?.startsWith('[STORY_REPLY:') 
                                 ? (() => {
-                                    const match = replyTo.text.match(/^\[STORY_REPLY:([^:]+):([^\]]+)\]([\s\S]*)$/);
+                                    const match = replyTo.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)\]([\s\S]*)$/);
                                     return match ? `📸 Story Reply: ${match[3]}` : '📸 Story Reply';
                                   })()
                                 : replyTo.text}

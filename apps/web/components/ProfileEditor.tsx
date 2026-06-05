@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
@@ -11,6 +11,78 @@ interface ProfileEditorProps {
     initialData: any;
     onSave: (newData: any) => void;
     onCancel: () => void;
+}
+
+const PHOTO_FILTERS = [
+    { name: 'Normal', filter: 'none' },
+    { name: 'Warm Sunset 🌅', filter: 'sepia(0.35) saturate(1.5) brightness(1.05) contrast(1.1) hue-rotate(-5deg)' },
+    { name: 'Soft Glow 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1)' },
+    { name: 'Retro 📼', filter: 'contrast(1.2) saturate(0.85) sepia(0.3) brightness(0.95)' },
+    { name: 'Cinematic 🎬', filter: 'brightness(0.9) contrast(1.2) saturate(1.25) sepia(0.15)' },
+    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2) brightness(0.95)' }
+];
+
+function rotateSize(width: number, height: number, rotation: number) {
+    const rotRad = (rotation * Math.PI) / 180;
+    return {
+        width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+        height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+    };
+}
+
+async function getCroppedImg(
+    imageSrc: string,
+    pixelCrop: { x: number; y: number; width: number; height: number },
+    rotation = 0,
+    filter = 'none'
+): Promise<string> {
+    const image = new Image();
+    image.src = imageSrc;
+    image.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+    });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No 2d context');
+
+    const rotRad = (rotation * Math.PI) / 180;
+    const { width: bWidth, height: bHeight } = rotateSize(image.width, image.height, rotation);
+
+    canvas.width = bWidth;
+    canvas.height = bHeight;
+
+    ctx.translate(bWidth / 2, bHeight / 2);
+    ctx.rotate(rotRad);
+    ctx.translate(-image.width / 2, -image.height / 2);
+    ctx.drawImage(image, 0, 0);
+
+    const croppedCanvas = document.createElement('canvas');
+    const croppedCtx = croppedCanvas.getContext('2d');
+    if (!croppedCtx) throw new Error('No cropped context');
+
+    croppedCanvas.width = pixelCrop.width;
+    croppedCanvas.height = pixelCrop.height;
+
+    if (filter !== 'none') {
+        croppedCtx.filter = filter;
+    }
+
+    croppedCtx.drawImage(
+        canvas,
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height
+    );
+
+    return croppedCanvas.toDataURL('image/jpeg', 0.85);
 }
 
 export default function ProfileEditor({ initialData, onSave, onCancel }: ProfileEditorProps) {
@@ -31,6 +103,17 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
         return data;
     });
+
+    // Image Editor States
+    const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
+    const [editingPhotoIdx, setEditingPhotoIdx] = useState<number | null>(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+    const [activeFilter, setActiveFilter] = useState<string>('none');
+    const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+
     const [loading, setLoading] = useState(false);
     const [roasting, setRoasting] = useState(false);
     const [roastResult, setRoastResult] = useState<{roast: string, score: number, tips: string[]} | null>(null);
@@ -321,6 +404,25 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 return (
                                 <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm group">
                                     <img src={photo} alt="Upload" className="w-full h-full object-cover" />
+                                    
+                                    {/* Edit Button */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setEditingPhoto(photo);
+                                            setEditingPhotoIdx(idx);
+                                            setCrop({ x: 0, y: 0 });
+                                            setZoom(1);
+                                            setRotation(0);
+                                            setActiveFilter('none');
+                                            setCroppedAreaPixels(null);
+                                        }}
+                                        className="absolute top-1 left-1 bg-indigo-600 hover:bg-indigo-700 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center shadow-md transition-transform active:scale-95 z-20"
+                                        title="Edit Photo"
+                                    >
+                                        ✏️
+                                    </button>
+
                                     <button
                                         onClick={() => {
                                             const currentArr = formData.photos?.length > 0 ? formData.photos : [formData.photoUrl];
@@ -809,6 +911,153 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     {loading ? 'Saving...' : <><span className="hidden sm:inline">Save Changes</span><span className="sm:hidden">Save</span></>}
                 </Button>
             </div>
+
+            {/* Profile Photo Editor Modal */}
+            {editingPhoto !== null && (
+                <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col relative shadow-2xl">
+                        
+                        {/* Header */}
+                        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800 text-white flex-shrink-0">
+                            <h4 className="font-bold text-base">Edit Photo</h4>
+                            <button 
+                                onClick={() => setEditingPhoto(null)}
+                                className="text-gray-400 hover:text-white p-1 hover:bg-gray-800 rounded-full transition-all"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        {/* Cropper Container */}
+                        <div className="relative flex-1 w-full min-h-[300px] bg-black">
+                            <div className="absolute inset-0" style={{ filter: activeFilter }}>
+                                {/* @ts-ignore */}
+                                <Cropper
+                                    image={editingPhoto}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    rotation={rotation}
+                                    aspect={1}
+                                    onCropChange={setCrop}
+                                    onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+                                    onZoomChange={setZoom}
+                                    onRotationChange={setRotation}
+                                    showGrid={false}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Controls & Presets */}
+                        <div className="p-6 bg-gray-900 space-y-5 border-t border-gray-800 flex-shrink-0">
+                            {/* Zoom Slider */}
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-xs font-bold text-gray-400">
+                                    <span>ZOOM</span>
+                                    <span>{zoom.toFixed(1)}x</span>
+                                </div>
+                                <input 
+                                    type="range" min="1" max="3" step="0.1"
+                                    value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}
+                                    className="w-full accent-indigo-500 bg-gray-800 h-1.5 rounded-lg appearance-none cursor-pointer"
+                                />
+                            </div>
+
+                            {/* Rotation Control */}
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-gray-400">ROTATION</span>
+                                <button
+                                    onClick={() => setRotation(prev => (prev + 90) % 360)}
+                                    className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/20 transition-all active:scale-95"
+                                >
+                                    🔄 Rotate 90°
+                                </button>
+                            </div>
+
+                            {/* Filter Presets Carousel */}
+                            <div className="space-y-2">
+                                <span className="text-xs font-bold text-gray-400 block">FILTERS</span>
+                                <div className="flex gap-3 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
+                                    {PHOTO_FILTERS.map(f => (
+                                        <div 
+                                            key={f.name}
+                                            onClick={() => setActiveFilter(f.filter)}
+                                            className="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group"
+                                        >
+                                            <div className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all duration-300 ${activeFilter === f.filter ? 'border-indigo-500 scale-105 shadow-md shadow-indigo-500/20' : 'border-transparent opacity-60 group-hover:opacity-100'}`}>
+                                                <img 
+                                                    src={editingPhoto} 
+                                                    className="w-full h-full object-cover"
+                                                    style={{ filter: f.filter }}
+                                                />
+                                            </div>
+                                            <span className={`text-[10px] font-medium transition-colors ${activeFilter === f.filter ? 'text-indigo-400 font-bold' : 'text-gray-400'}`}>
+                                                {f.name.split(' ')[0]}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-2">
+                                <button 
+                                    onClick={() => setEditingPhoto(null)}
+                                    className="flex-1 py-2.5 rounded-xl border border-gray-800 hover:bg-gray-800 text-gray-300 font-bold text-sm transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    disabled={isProcessingPhoto}
+                                    onClick={async () => {
+                                        if (!croppedAreaPixels) return;
+                                        setIsProcessingPhoto(true);
+                                        try {
+                                            const croppedBase64 = await getCroppedImg(
+                                                editingPhoto,
+                                                croppedAreaPixels,
+                                                rotation,
+                                                activeFilter
+                                            );
+                                            
+                                            // Update photos array in state
+                                            const idx = editingPhotoIdx;
+                                            if (idx !== null) {
+                                                const currentArr = formData.photos?.length > 0 ? formData.photos : [formData.photoUrl];
+                                                const newPhotos = [...currentArr];
+                                                newPhotos[idx] = croppedBase64;
+                                                
+                                                setFormData((prev: any) => ({
+                                                    ...prev,
+                                                    photos: newPhotos,
+                                                    photoUrl: idx === 0 ? croppedBase64 : prev.photoUrl
+                                                }));
+                                                toast.success("Photo edited successfully!");
+                                            }
+                                            setEditingPhoto(null);
+                                        } catch (err) {
+                                            toast.error("Failed to process photo edits.");
+                                            console.error(err);
+                                        } finally {
+                                            setIsProcessingPhoto(false);
+                                        }
+                                    }}
+                                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/25"
+                                >
+                                    {isProcessingPhoto ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        "Apply & Save"
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

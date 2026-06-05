@@ -932,7 +932,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
 
                         {/* Cropper Container */}
-                        <div className="relative flex-1 w-full min-h-[300px] bg-black">
+                        <div className="relative w-full h-[240px] sm:h-[300px] bg-black flex-shrink-0">
                             <div className="absolute inset-0" style={{ filter: activeFilter }}>
                                 {/* @ts-ignore */}
                                 <Cropper
@@ -951,7 +951,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
 
                         {/* Controls & Presets */}
-                        <div className="p-6 bg-gray-900 space-y-5 border-t border-gray-800 flex-shrink-0">
+                        <div className="p-4 sm:p-5 bg-gray-900 space-y-3.5 sm:space-y-4 border-t border-gray-800 flex-shrink overflow-y-auto">
                             {/* Zoom Slider */}
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-xs font-bold text-gray-400">

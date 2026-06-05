@@ -289,19 +289,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         </div>
                     )}
 
-                    {/* Match Reasons (AI Similarity Reasons) */}
-                    {match.match_reasons && match.match_reasons.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-2 pointer-events-auto">
-                            {match.match_reasons.map((reason: string, idx: number) => (
-                                <div 
-                                    key={idx} 
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-indigo-500/80 to-purple-600/80 backdrop-blur-md border border-white/15 text-white shadow-md text-[9px] font-extrabold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-default"
-                                >
-                                    <span>✨ {reason}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
                     <div className="flex items-end gap-2 mb-1">
                         <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter flex items-center gap-1">

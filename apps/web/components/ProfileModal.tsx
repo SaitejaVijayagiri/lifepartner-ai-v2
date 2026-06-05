@@ -305,8 +305,22 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <h3 className="font-bold text-indigo-900 dark:text-indigo-100">AI Compatibility Analysis</h3>
                                     </div>
                                     <p className="text-indigo-800/80 dark:text-indigo-300 italic text-sm leading-relaxed border-l-4 border-indigo-400 dark:border-indigo-500 pl-4 py-1">
-                                        "{profile.match_reasons?.[0] || profile.summary || "Strong compatibility based on shared values."}"
+                                        "{safeProfile.summary || "Strong compatibility based on shared values like lifestyle, career expectations, and background compatibility."}"
                                     </p>
+
+                                    {/* Match Reasons (AI Similarity Badges) */}
+                                    {safeProfile.match_reasons && safeProfile.match_reasons.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 mt-4">
+                                            {safeProfile.match_reasons.map((reason: string, idx: number) => (
+                                                <div 
+                                                    key={idx}
+                                                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold uppercase tracking-wider shadow-sm"
+                                                >
+                                                    <span>✨ {reason}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
 
                                     <div className="flex gap-3 mt-6">
                                         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">

@@ -29,6 +29,10 @@ jest.mock('../src/middleware/auth', () => ({
         req.user = { userId: 'my-user-id', id: 'my-user-id' };
         next();
     },
+    authenticateOptional: (req: any, res: any, next: any) => {
+        req.user = { userId: 'my-user-id', id: 'my-user-id' };
+        next();
+    },
     requireAdmin: (req: any, res: any, next: any) => next()
 }));
 
@@ -43,7 +47,9 @@ jest.mock('../src/services/notification', () => {
     };
 });
 
-jest.mock('../src/routes/verification', () => require('express').Router());
+jest.mock('../src/routes/verification', () => ({
+    default: require('express').Router()
+}));
 
 import { prisma } from '../src/prisma';
 // Dynamic app import

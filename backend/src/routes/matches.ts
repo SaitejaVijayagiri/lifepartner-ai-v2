@@ -522,6 +522,45 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 score -= 20;
             }
 
+            // Age Priority improvements:
+            // 1. Deprioritize male candidates whose age is greater than 40
+            if (c.gender && c.gender.toLowerCase() === 'male' && c.age && c.age > 40) {
+                score -= 15;
+            }
+
+            // 2. Similar age group match & Age gap penalties
+            if (me.age && c.age) {
+                const ageDiff = Math.abs(me.age - c.age);
+                if (ageDiff <= 3) {
+                    score += 10;
+                } else if (ageDiff >= 12) {
+                    score -= 20;
+                } else if (ageDiff >= 8) {
+                    score -= 10;
+                }
+            }
+
+            // 3. Cultural & Mother Tongue compatibility
+            const mt1 = meMeta.motherTongue || "";
+            const mt2 = meta.motherTongue || "";
+            if (mt1 && mt2 && mt1 !== "Unknown" && mt1 === mt2) {
+                score += 10;
+                reasons.push("Same Mother Tongue");
+            }
+
+            // 4. Education level match
+            const edu1 = meMeta.career?.educationLevel || "";
+            const edu2 = meta.career?.educationLevel || "";
+            if (edu1 && edu2 && edu1 === edu2) {
+                score += 10;
+                reasons.push("Education Match");
+            }
+
+            // 5. Smoking compatibility
+            if (meMeta.lifestyle?.smoking === 'No' && meta.lifestyle?.smoking === 'Yes') {
+                score -= 15;
+            }
+
             // Cap
             if (score > 99) score = 99;
 
@@ -901,6 +940,45 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             // base64 photos render fine in browser — no penalty.
             if (!c.avatar_url || c.avatar_url.includes('dicebear')) {
                 score -= 20;
+            }
+
+            // Age Priority improvements:
+            // 1. Deprioritize male candidates whose age is greater than 40
+            if (c.gender && c.gender.toLowerCase() === 'male' && c.age && c.age > 40) {
+                score -= 15;
+            }
+
+            // 2. Similar age group match & Age gap penalties
+            if (me.age && c.age) {
+                const ageDiff = Math.abs(me.age - c.age);
+                if (ageDiff <= 3) {
+                    score += 10;
+                } else if (ageDiff >= 12) {
+                    score -= 20;
+                } else if (ageDiff >= 8) {
+                    score -= 10;
+                }
+            }
+
+            // 3. Cultural & Mother Tongue compatibility
+            const mt1 = meMeta.motherTongue || "";
+            const mt2 = meta.motherTongue || "";
+            if (mt1 && mt2 && mt1 !== "Unknown" && mt1 === mt2) {
+                score += 10;
+                reasons.push("Same Mother Tongue");
+            }
+
+            // 4. Education level match
+            const edu1 = meMeta.career?.educationLevel || "";
+            const edu2 = meta.career?.educationLevel || "";
+            if (edu1 && edu2 && edu1 === edu2) {
+                score += 10;
+                reasons.push("Education Match");
+            }
+
+            // 5. Smoking compatibility
+            if (meMeta.lifestyle?.smoking === 'No' && meta.lifestyle?.smoking === 'Yes') {
+                score -= 15;
             }
 
             return {

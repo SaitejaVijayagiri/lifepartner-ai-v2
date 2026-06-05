@@ -16,6 +16,10 @@ jest.mock('../src/middleware/auth', () => ({
     authenticateToken: (req: any, res: any, next: any) => {
         req.user = { userId: 'my-user-id' };
         next();
+    },
+    authenticateOptional: (req: any, res: any, next: any) => {
+        req.user = { userId: 'my-user-id' };
+        next();
     }
 }));
 

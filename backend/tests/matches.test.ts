@@ -10,13 +10,24 @@ jest.mock('../src/prisma', () => ({
             findUnique: jest.fn(),
             count: jest.fn(),
         },
+        matches: {
+            findMany: jest.fn().mockResolvedValue([]),
+        },
+        interactions: {
+            findMany: jest.fn().mockResolvedValue([]),
+        },
         $queryRaw: jest.fn(),
+        $queryRawUnsafe: jest.fn(),
     }
 }));
 
 // Mock Auth Middleware
 jest.mock('../src/middleware/auth', () => ({
     authenticateToken: (req: any, res: any, next: any) => {
+        req.user = { userId: 'my-user-id' };
+        next();
+    },
+    authenticateOptional: (req: any, res: any, next: any) => {
         req.user = { userId: 'my-user-id' };
         next();
     }
@@ -39,7 +50,7 @@ jest.mock('../src/services/ai', () => {
 });
 
 
-import matchesRoutes from '../src/routes/matches';
+import matchesRoutes, { matchCache } from '../src/routes/matches';
 import { prisma } from '../src/prisma';
 
 const app = express();
@@ -49,6 +60,9 @@ app.use('/matches', matchesRoutes);
 describe('Matches Routes', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        if (matchCache) {
+            matchCache.deletePrefix('');
+        }
     });
 
     describe('GET /matches/public-preview', () => {
@@ -80,27 +94,43 @@ describe('Matches Routes', () => {
     });
 
     describe('GET /matches/recommendations', () => {
-        it('should return recommendations with scores', async () => {
+        it('should return recommendations with scores including age similarity, mother tongue, and education boosts', async () => {
             // Mock findUnique for "Me"
             (prisma.users.findUnique as jest.Mock).mockResolvedValue({
                 id: 'my-user-id',
-                gender: 'Male',
+                gender: 'Female',
+                age: 30,
                 profiles: {
-                    metadata: { religion: { religion: 'Hindu' } }
+                    metadata: { 
+                        religion: { religion: 'Hindu' },
+                        motherTongue: 'Telugu',
+                        career: { educationLevel: 'Masters' }
+                    }
                 }
             });
 
-            // Mock findMany for "Candidates"
+            // Mock $queryRaw candidates IDs
+            (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ id: 'c1' }]);
+
+            // Mock findMany for "Candidates" (Male, age 31, similar age boost +10, mother tongue match +10, education match +10)
             (prisma.users.findMany as jest.Mock).mockResolvedValue([
                 {
                     id: 'c1',
                     full_name: 'Candidate One',
-                    age: 24,
+                    age: 31,
+                    gender: 'Male',
+                    avatar_url: 'http://pic.com',
                     profiles: {
-                        metadata: { religion: { religion: 'Hindu' }, career: { profession: 'Doctor' } }
+                        metadata: { 
+                            religion: { religion: 'Hindu' }, 
+                            career: { profession: 'Doctor', educationLevel: 'Masters' },
+                            motherTongue: 'Telugu'
+                        }
                     },
-                    matches_matches_user_b_idTousers: [], // No interaction yet
-                    _count: { matches_matches_user_b_idTousers: 5 } // 5 likes
+                    matches_matches_user_b_idTousers: [],
+                    _count: { matches_matches_user_b_idTousers: 5 },
+                    interactions_interactions_to_user_idTousers: [],
+                    interactions_interactions_from_user_idTousers: []
                 }
             ]);
 
@@ -109,7 +139,49 @@ describe('Matches Routes', () => {
             expect(res.status).toBe(200);
             expect(res.body.matches).toHaveLength(1);
             expect(res.body.matches[0].name).toBe('Candidate One');
-            expect(res.body.matches[0].score).toBeGreaterThan(50); // Base 50 + Religion match
+            // Base 50 + Religion 10 + Age similarity 10 + Mother Tongue 10 + Education 10 = 90
+            expect(res.body.matches[0].score).toBe(90);
+        });
+
+        it('should apply penalty for male candidates over 40 and large age gap', async () => {
+            // Mock findUnique for "Me"
+            (prisma.users.findUnique as jest.Mock).mockResolvedValue({
+                id: 'my-user-id',
+                gender: 'Female',
+                age: 30,
+                profiles: {
+                    metadata: {}
+                }
+            });
+
+            // Mock $queryRaw candidates IDs
+            (prisma.$queryRaw as jest.Mock).mockResolvedValue([{ id: 'c2' }]);
+
+            // Mock findMany for "Candidates" (Male, age 45, penalty -15, age gap penalty -20)
+            (prisma.users.findMany as jest.Mock).mockResolvedValue([
+                {
+                    id: 'c2',
+                    full_name: 'Candidate Two',
+                    age: 45,
+                    gender: 'Male',
+                    avatar_url: 'http://pic.com',
+                    profiles: {
+                        metadata: {}
+                    },
+                    matches_matches_user_b_idTousers: [],
+                    _count: { matches_matches_user_b_idTousers: 0 },
+                    interactions_interactions_to_user_idTousers: [],
+                    interactions_interactions_from_user_idTousers: []
+                }
+            ]);
+
+            const res = await request(app).get('/matches/recommendations');
+
+            expect(res.status).toBe(200);
+            expect(res.body.matches).toHaveLength(1);
+            expect(res.body.matches[0].name).toBe('Candidate Two');
+            // Base 50 - over40 male penalty 15 - ageGap(15 yrs >= 12) penalty 20 = 15
+            expect(res.body.matches[0].score).toBe(15);
         });
     });
 
@@ -122,15 +194,21 @@ describe('Matches Routes', () => {
                 profiles: { metadata: {} }
             });
 
-            // Mock Search Results
-            (prisma.users.findMany as jest.Mock).mockResolvedValue([
+            // Mock $queryRawUnsafe search results
+            (prisma.$queryRawUnsafe as jest.Mock).mockResolvedValue([
                 {
                     id: 's1',
                     full_name: 'Search Result',
                     age: 28,
-                    profiles: { metadata: { career: { profession: 'Engineer' } } },
-                    matches_matches_user_b_idTousers: [],
-                    _count: { matches_matches_user_b_idTousers: 0 }
+                    gender: 'Female',
+                    city: 'Bangalore',
+                    state: 'Karnataka',
+                    location_name: 'Bangalore, India',
+                    avatar_url: 'http://pic.com',
+                    is_premium: false,
+                    raw_prompt: 'Engineer',
+                    metadata: { career: { profession: 'Engineer' } },
+                    ai_similarity: 0.8
                 }
             ]);
 

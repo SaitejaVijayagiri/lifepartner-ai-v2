@@ -31,6 +31,10 @@ jest.mock('../src/middleware/auth', () => ({
         req.user = { userId: 'my-user-id' };
         next();
     },
+    authenticateOptional: (req: any, res: any, next: any) => {
+        req.user = { userId: 'my-user-id' };
+        next();
+    },
     requireAdmin: (req: any, res: any, next: any) => next() // Allow admin check to pass
 }));
 

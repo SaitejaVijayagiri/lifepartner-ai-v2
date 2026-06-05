@@ -12,6 +12,7 @@ jest.mock('../src/prisma', () => ({
 // Mock Auth
 jest.mock('../src/middleware/auth', () => ({
     authenticateToken: (req: any, res: any, next: any) => next(),
+    authenticateOptional: (req: any, res: any, next: any) => next(),
 }));
 
 import express from 'express';

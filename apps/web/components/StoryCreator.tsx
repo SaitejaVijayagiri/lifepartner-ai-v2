@@ -46,6 +46,69 @@ const MUSIC_TRACKS = [
     { id: 'party', name: 'Club Party Beat 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
 ];
 
+function rotateSize(width: number, height: number, rotation: number) {
+    const rotRad = (rotation * Math.PI) / 180;
+    return {
+        width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+        height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+    };
+}
+
+async function getCroppedImg(
+    imageSrc: string,
+    pixelCrop: { x: number; y: number; width: number; height: number },
+    rotation = 0,
+    filter = 'none'
+): Promise<string> {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.src = imageSrc;
+    await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+    });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('No 2d context');
+
+    const rotRad = (rotation * Math.PI) / 180;
+    const { width: bWidth, height: bHeight } = rotateSize(image.width, image.height, rotation);
+
+    canvas.width = bWidth;
+    canvas.height = bHeight;
+
+    ctx.translate(bWidth / 2, bHeight / 2);
+    ctx.rotate(rotRad);
+    ctx.translate(-image.width / 2, -image.height / 2);
+    ctx.drawImage(image, 0, 0);
+
+    const croppedCanvas = document.createElement('canvas');
+    const croppedCtx = croppedCanvas.getContext('2d');
+    if (!croppedCtx) throw new Error('No cropped context');
+
+    croppedCanvas.width = pixelCrop.width;
+    croppedCanvas.height = pixelCrop.height;
+
+    if (filter !== 'none') {
+        croppedCtx.filter = filter;
+    }
+
+    croppedCtx.drawImage(
+        canvas,
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height
+    );
+
+    return croppedCanvas.toDataURL('image/jpeg', 0.85);
+}
+
 export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, onSuccess }: StoryCreatorProps) {
     const toast = useToast();
     const [activeFilter, setActiveFilter] = useState<string>('none');
@@ -141,38 +204,40 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                 
                 finalData = formData;
             } else {
-                // Apply Canvas Filter & Text (Single Image)
+                // Apply Crop, Filter & Text (Single Image)
+                let imageSrc = storyPreviewUrls[0];
+                if (croppedAreaPixels) {
+                    try {
+                        imageSrc = await getCroppedImg(
+                            storyPreviewUrls[0],
+                            croppedAreaPixels,
+                            rotation,
+                            activeFilter
+                        );
+                    } catch (cropErr) {
+                        console.error("Failed to crop image:", cropErr);
+                    }
+                }
+
                 const img = new Image();
                 img.crossOrigin = "anonymous";
                 await new Promise((resolve, reject) => {
                     img.onload = resolve;
                     img.onerror = reject;
-                    img.src = storyPreviewUrls[0];
+                    img.src = imageSrc;
                 });
 
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 if (!ctx) throw new Error("Canvas not supported");
 
-                if (croppedAreaPixels) {
-                    canvas.width = croppedAreaPixels.width;
-                    canvas.height = croppedAreaPixels.height;
-                    if (activeFilter !== 'none') ctx.filter = activeFilter;
-                    ctx.drawImage(
-                        img,
-                        croppedAreaPixels.x,
-                        croppedAreaPixels.y,
-                        croppedAreaPixels.width,
-                        croppedAreaPixels.height,
-                        0, 0, canvas.width, canvas.height
-                    );
-                } else {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    if (activeFilter !== 'none') ctx.filter = activeFilter;
-                    ctx.drawImage(img, 0, 0);
-                }
+                canvas.width = img.width;
+                canvas.height = img.height;
 
+                if (!croppedAreaPixels && activeFilter !== 'none') {
+                    ctx.filter = activeFilter;
+                }
+                ctx.drawImage(img, 0, 0);
                 ctx.filter = 'none';
 
                 // Draw Text Overlays
@@ -452,7 +517,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             )}
                         </div>
                     ) : (
-                        <div className="relative w-full h-full" style={{ aspectRatio: '9/16', margin: '0 auto', maxWidth: '100%', maxHeight: '100%' }}>
+                        <div className="relative h-full aspect-[9/16] max-w-full" style={{ margin: '0 auto' }}>
                             
                             <div className="absolute inset-0">
                                 {/* @ts-ignore */}
@@ -659,6 +724,28 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                     <div className="pointer-events-auto">
                         {!isSlideshow && !storyFiles[0]?.type.startsWith('video') && !isAddingText && (
                             <div className="mb-6 flex flex-col gap-4">
+                                {/* Cropper Controls (Zoom & Rotate) */}
+                                <div className="flex items-center gap-4 bg-black/50 backdrop-blur-md p-3 rounded-2xl border border-white/10 text-white select-none">
+                                    <div className="flex-1 flex flex-col gap-1">
+                                        <div className="flex justify-between text-[10px] font-extrabold uppercase tracking-wider text-white/60">
+                                            <span>Zoom</span>
+                                            <span>{zoom.toFixed(1)}x</span>
+                                        </div>
+                                        <input 
+                                            type="range" min="1" max="3" step="0.1"
+                                            value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}
+                                            className="w-full accent-white bg-white/20 h-1.5 rounded-lg cursor-pointer"
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={() => setRotation(r => (r + 90) % 360)}
+                                        className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 rounded-xl border border-white/10 text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5"
+                                    >
+                                        <span>🔄</span>
+                                        <span className="text-[9px] uppercase font-bold text-white/80">Rotate</span>
+                                    </button>
+                                </div>
+
                                 {/* Filters Carousel */}
                                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
                                     {STORY_FILTERS.map(f => (

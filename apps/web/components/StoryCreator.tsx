@@ -14,29 +14,17 @@ interface StoryCreatorProps {
 
 const STORY_FILTERS = [
     { name: 'Normal', filter: 'none' },
-    { name: 'Lofi Dusk 🌇', filter: 'contrast(1.22) saturate(1.3) sepia(0.15) hue-rotate(-10deg) brightness(0.95)' },
-    { name: 'Lofi 📷', filter: 'contrast(1.25) saturate(1.35) sepia(0.05) brightness(0.98)' },
-    { name: 'Dusk 🌆', filter: 'brightness(0.92) contrast(1.1) saturate(1.15) sepia(0.2) hue-rotate(-15deg)' },
-    { name: 'Golden Hour 🌅', filter: 'sepia(0.3) brightness(1.1) contrast(1.1) saturate(1.4) hue-rotate(-5deg)' },
-    { name: 'Soft Glam 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
-    { name: 'Paris ✨', filter: 'sepia(0.2) contrast(1.1) brightness(1.1) hue-rotate(-10deg) saturate(1.2)' },
-    { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.95) saturate(1.1) hue-rotate(10deg)' },
-    { name: 'Cinematic 🎬', filter: 'brightness(0.9) contrast(1.2) saturate(1.3) sepia(0.2) hue-rotate(15deg)' },
-    { name: 'Retro 90s 📼', filter: 'contrast(1.3) saturate(0.8) sepia(0.4) brightness(0.9)' },
-    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2)' },
-    { name: 'Dreamy ☁️', filter: 'blur(0.5px) brightness(1.1) contrast(0.9) saturate(1.2)' },
-    { name: 'Cyberpunk 🌆', filter: 'contrast(1.4) saturate(1.5) hue-rotate(30deg) brightness(0.9)' },
-    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(1.1) brightness(0.9) saturate(1.2)' },
-    { name: 'Emerald Forest 🌿', filter: 'contrast(1.2) saturate(1.3) hue-rotate(-15deg) brightness(0.95) sepia(0.1)' },
-    { name: 'Ocean Breeze 🌊', filter: 'contrast(1.1) saturate(1.4) hue-rotate(180deg) brightness(1.05)' },
-    { name: 'Midnight Glow 🌌', filter: 'brightness(0.8) contrast(1.3) saturate(1.5) hue-rotate(-45deg)' },
-    { name: 'Fairy Dust ✨', filter: 'brightness(1.2) saturate(1.2) contrast(0.95) sepia(0.15) hue-rotate(15deg) blur(0.3px)' },
-    { name: 'Warm Sunset 🌅', filter: 'sepia(0.4) saturate(1.6) brightness(1.05) contrast(1.1) hue-rotate(-10deg)' },
-    { name: 'Cool Mint 🍃', filter: 'contrast(1.05) saturate(1.25) hue-rotate(120deg) brightness(1.02)' },
-    { name: 'Gothic Punk 🧛', filter: 'grayscale(0.6) contrast(1.5) brightness(0.85) sepia(0.1)' },
-    { name: 'Barbie Core 🎀', filter: 'hue-rotate(320deg) saturate(1.6) brightness(1.1) contrast(1.05)' },
-    { name: 'Teal & Orange 🍊', filter: 'contrast(1.2) saturate(1.3) sepia(0.1) hue-rotate(-5deg) brightness(0.98)' },
-    { name: 'Noir Dark 🩸', filter: 'contrast(1.6) grayscale(1) brightness(0.9)' }
+    { name: 'Lofi Dusk 🌇', filter: 'contrast(1.25) saturate(1.35) sepia(0.15) hue-rotate(-10deg) brightness(0.95)' },
+    { name: 'Cyberpunk 🌆', filter: 'contrast(1.4) saturate(1.6) hue-rotate(50deg) brightness(0.85)' },
+    { name: 'Cinematic 🎬', filter: 'contrast(1.2) saturate(1.1) sepia(0.1) hue-rotate(-15deg) brightness(0.92)' },
+    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(0.9) brightness(1.02) saturate(0.85)' },
+    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.4) brightness(0.95)' },
+    { name: 'Barbie Core 🎀', filter: 'hue-rotate(325deg) saturate(1.6) brightness(1.1) contrast(1.05)' },
+    { name: 'Cool Mint 🍃', filter: 'contrast(1.1) saturate(1.2) hue-rotate(110deg) brightness(1.02)' },
+    { name: 'Midnight Glow 🌌', filter: 'brightness(0.8) contrast(1.35) saturate(1.4) hue-rotate(240deg)' },
+    { name: 'Soft Glam 🌸', filter: 'brightness(1.18) contrast(0.88) saturate(1.05) sepia(0.1) hue-rotate(-5deg)' },
+    { name: 'Ocean Breeze 🌊', filter: 'contrast(1.15) saturate(1.3) hue-rotate(150deg) brightness(1.02)' },
+    { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.92) saturate(1.25) hue-rotate(5deg)' }
 ];
 
 const MUSIC_TRACKS = [

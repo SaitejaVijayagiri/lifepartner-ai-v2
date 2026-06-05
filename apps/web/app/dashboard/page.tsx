@@ -1674,6 +1674,11 @@ function DashboardContent() {
                             />
                         ) : (
                             <div className="space-y-6">
+                                <ProfileView
+                                    profile={currentUser}
+                                    onEdit={() => setIsEditingProfile(true)}
+                                />
+
                                 {/* Profile Stats Row */}
                                 <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
                                     <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
@@ -1758,7 +1763,7 @@ function DashboardContent() {
                                         </div>
                                         <div className="text-center">
                                             <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Free Coins</div>
-                                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Refer Friend</div>
+                                            <div className="text-[10px] text-emerald-600 dark:text-indigo-400">Refer Friend</div>
                                         </div>
                                     </div>
 
@@ -1802,11 +1807,6 @@ function DashboardContent() {
                                         </div>
                                     </div>
                                 </div>
-
-                                <ProfileView
-                                    profile={currentUser}
-                                    onEdit={() => setIsEditingProfile(true)}
-                                />
                             </div>
                         )
                     )}

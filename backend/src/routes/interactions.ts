@@ -270,10 +270,16 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
 router.delete('/connections/:id', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-
         const { id } = req.params;
+
+        // Fetch to get user IDs for cache busting before deleting
+        const interaction = await prisma.interactions.findUnique({
+            where: { id: id },
+            select: { from_user_id: true, to_user_id: true }
+        });
+
         // Verify user is part of the connection
-        await prisma.interactions.deleteMany({
+        const deleteResult = await prisma.interactions.deleteMany({
             where: {
                 id: id,
                 OR: [
@@ -282,6 +288,14 @@ router.delete('/connections/:id', authenticateToken, async (req: any, res) => {
                 ]
             }
         });
+
+        if (interaction && deleteResult.count > 0) {
+            const { from_user_id, to_user_id } = interaction;
+            if (from_user_id && to_user_id) {
+                matchCache.deletePrefix(`${from_user_id}_`);
+                matchCache.deletePrefix(`${to_user_id}_`);
+            }
+        }
 
         res.json({ success: true });
     } catch (e) {

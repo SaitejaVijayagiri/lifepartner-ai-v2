@@ -14,17 +14,17 @@ interface StoryCreatorProps {
 
 const STORY_FILTERS = [
     { name: 'Normal', filter: 'none' },
-    { name: 'Lofi Dusk 🌇', filter: 'contrast(1.25) saturate(1.35) sepia(0.15) hue-rotate(-10deg) brightness(0.95)' },
-    { name: 'Cyberpunk 🌆', filter: 'contrast(1.4) saturate(1.6) hue-rotate(50deg) brightness(0.85)' },
-    { name: 'Cinematic 🎬', filter: 'contrast(1.2) saturate(1.1) sepia(0.1) hue-rotate(-15deg) brightness(0.92)' },
-    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(0.9) brightness(1.02) saturate(0.85)' },
-    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.4) brightness(0.95)' },
-    { name: 'Barbie Core 🎀', filter: 'hue-rotate(325deg) saturate(1.6) brightness(1.1) contrast(1.05)' },
-    { name: 'Cool Mint 🍃', filter: 'contrast(1.1) saturate(1.2) hue-rotate(110deg) brightness(1.02)' },
-    { name: 'Midnight Glow 🌌', filter: 'brightness(0.8) contrast(1.35) saturate(1.4) hue-rotate(240deg)' },
-    { name: 'Soft Glam 🌸', filter: 'brightness(1.18) contrast(0.88) saturate(1.05) sepia(0.1) hue-rotate(-5deg)' },
-    { name: 'Ocean Breeze 🌊', filter: 'contrast(1.15) saturate(1.3) hue-rotate(150deg) brightness(1.02)' },
-    { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.92) saturate(1.25) hue-rotate(5deg)' }
+    { name: 'Warm Sunset 🌅', filter: 'sepia(0.15) saturate(1.25) contrast(1.1) brightness(1.02)' },
+    { name: 'Soft Glam 🌸', filter: 'brightness(1.12) contrast(0.92) saturate(1.05) sepia(0.05)' },
+    { name: 'Classic Film 🎬', filter: 'contrast(1.15) saturate(1.1) brightness(0.98) sepia(0.08)' },
+    { name: 'Bright & Airy ☀️', filter: 'brightness(1.15) contrast(1.05) saturate(1.12)' },
+    { name: 'Moody Matte 🖤', filter: 'contrast(1.15) saturate(0.85) brightness(0.96) sepia(0.05)' },
+    { name: 'Golden Hour 🌇', filter: 'sepia(0.25) saturate(1.3) contrast(1.05) brightness(1.03)' },
+    { name: 'Monochrome 📸', filter: 'grayscale(1) contrast(1.25) brightness(0.98)' },
+    { name: 'Lofi Portrait 🎞️', filter: 'contrast(1.18) saturate(1.15) brightness(0.97) sepia(0.05)' },
+    { name: 'Cool Light ❄️', filter: 'contrast(1.08) saturate(1.1) brightness(1.04) hue-rotate(-3deg)' },
+    { name: 'Warm Bronze 🤎', filter: 'sepia(0.2) saturate(1.2) contrast(1.12) brightness(0.95)' },
+    { name: 'Natural Glow ✨', filter: 'saturate(1.2) contrast(1.06) brightness(1.02)' }
 ];
 
 const MUSIC_TRACKS = [

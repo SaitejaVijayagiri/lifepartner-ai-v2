@@ -939,7 +939,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     rotation={rotation}
                                     aspect={1}
                                     onCropChange={setCrop}
-                                    onCropComplete={(_, pixels) => setCroppedAreaPixels(pixels)}
+                                    onCropComplete={(_: any, pixels: any) => setCroppedAreaPixels(pixels)}
                                     onZoomChange={setZoom}
                                     onRotationChange={setRotation}
                                     showGrid={false}

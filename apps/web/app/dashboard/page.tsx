@@ -27,7 +27,7 @@ const MatchCard = dynamic(() => import('@/components/MatchCard'));
 const KundliModal = dynamic(() => import('@/components/KundliModal'));
 const StoryModal = dynamic(() => import('@/components/StoryModal'));
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
-const ProfileEditor = dynamic(() => import('@/components/ProfileEditor'));
+const ProfileEditor = dynamic(() => import('@/components/ProfileEditor'), { ssr: false });
 const ProfileModal = dynamic(() => import('@/components/ProfileModal'));
 const ChatWindow = dynamic(() => import('@/components/ChatWindow'), { ssr: false });
 const CoinStoreModal = dynamic(() => import('@/components/CoinStoreModal'));

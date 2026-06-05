@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
+import Cropper from 'react-easy-crop';
 
 interface ProfileEditorProps {
     initialData: any;

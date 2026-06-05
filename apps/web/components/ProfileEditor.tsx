@@ -17,6 +17,9 @@ interface ProfileEditorProps {
 
 const PHOTO_FILTERS = [
     { name: 'Normal', filter: 'none' },
+    { name: 'Lofi Dusk 🌇', filter: 'contrast(1.22) saturate(1.3) sepia(0.15) hue-rotate(-10deg) brightness(0.95)' },
+    { name: 'Lofi 📷', filter: 'contrast(1.25) saturate(1.35) sepia(0.05) brightness(0.98)' },
+    { name: 'Dusk 🌆', filter: 'brightness(0.92) contrast(1.1) saturate(1.15) sepia(0.2) hue-rotate(-15deg)' },
     { name: 'Warm Sunset 🌅', filter: 'sepia(0.35) saturate(1.5) brightness(1.05) contrast(1.1) hue-rotate(-5deg)' },
     { name: 'Soft Glow 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
     { name: 'Retro 📼', filter: 'contrast(1.2) saturate(0.85) sepia(0.3) brightness(0.95)' },

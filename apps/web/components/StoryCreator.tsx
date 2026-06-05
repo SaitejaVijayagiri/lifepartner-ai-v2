@@ -14,6 +14,9 @@ interface StoryCreatorProps {
 
 const STORY_FILTERS = [
     { name: 'Normal', filter: 'none' },
+    { name: 'Lofi Dusk 🌇', filter: 'contrast(1.22) saturate(1.3) sepia(0.15) hue-rotate(-10deg) brightness(0.95)' },
+    { name: 'Lofi 📷', filter: 'contrast(1.25) saturate(1.35) sepia(0.05) brightness(0.98)' },
+    { name: 'Dusk 🌆', filter: 'brightness(0.92) contrast(1.1) saturate(1.15) sepia(0.2) hue-rotate(-15deg)' },
     { name: 'Golden Hour 🌅', filter: 'sepia(0.3) brightness(1.1) contrast(1.1) saturate(1.4) hue-rotate(-5deg)' },
     { name: 'Soft Glam 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
     { name: 'Paris ✨', filter: 'sepia(0.2) contrast(1.1) brightness(1.1) hue-rotate(-10deg) saturate(1.2)' },

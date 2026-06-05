@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 import Cropper from 'react-easy-crop';
+import { Edit2, Trash2, Camera, X, RotateCw } from 'lucide-react';
 
 interface ProfileEditorProps {
     initialData: any;
@@ -314,7 +315,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 </ul>
                             </div>
                         </div>
-                        <button onClick={() => setRoastResult(null)} className="text-rose-400 hover:text-rose-600 transition-colors p-1 bg-rose-100/50 dark:bg-rose-900/30 rounded-full text-xs font-bold w-6 h-6 flex items-center justify-center hover:scale-105 active:scale-95">✕</button>
+                        <button onClick={() => setRoastResult(null)} className="text-rose-400 hover:text-rose-600 transition-colors p-1 bg-rose-100/50 dark:bg-rose-900/30 rounded-full text-xs font-bold w-6 h-6 flex items-center justify-center hover:scale-105 active:scale-95"><X size={12} /></button>
                     </div>
                 </div>
             )}
@@ -390,8 +391,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 }));
                             }}
                         />
-                        <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-3 text-2xl group-hover:scale-110 transition-transform">
-                            📸
+                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            <Camera size={28} />
                         </div>
                         <h5 className="font-semibold text-gray-900 dark:text-gray-100">Upload Photos</h5>
                         <p className="text-xs text-gray-500 mt-1">Drag & drop or Click to browse (Multiple allowed)</p>
@@ -403,7 +404,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             {(formData.photos?.length > 0 ? formData.photos : [formData.photoUrl]).map((photo: string, idx: number) => {
                                 if (!photo) return null;
                                 return (
-                                <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm group">
+                                <div key={idx} className="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-md group">
                                     <img src={photo} alt="Upload" className="w-full h-full object-cover" />
                                     
                                     {/* Edit Button */}
@@ -418,10 +419,10 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                             setActiveFilter('none');
                                             setCroppedAreaPixels(null);
                                         }}
-                                        className="absolute top-1 left-1 bg-indigo-600 hover:bg-indigo-700 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center shadow-md transition-transform active:scale-95 z-20"
+                                        className="absolute top-1.5 left-1.5 bg-black/60 hover:bg-indigo-600 border border-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 z-20 backdrop-blur-sm"
                                         title="Edit Photo"
                                     >
-                                        ✏️
+                                        <Edit2 size={14} className="stroke-[2.5]" />
                                     </button>
 
                                     <button
@@ -438,13 +439,14 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                                 photoUrl: idx === 0 ? (newPhotos[0] || '') : prev.photoUrl // Update primary if first deleted
                                             }));
                                         }}
-                                        className="absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center shadow-md transition-transform active:scale-95"
+                                        className="absolute top-1.5 right-1.5 bg-black/60 hover:bg-red-600 border border-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 active:scale-90 z-20 backdrop-blur-sm"
+                                        title="Delete Photo"
                                     >
-                                        ✕
+                                        <Trash2 size={14} className="stroke-[2.5]" />
                                     </button>
                                     {/* Star for Primary - Fallback to idx === 0 if photoUrl logic is desynced */}
                                     {(formData.photoUrl === photo || idx === 0) && (
-                                        <div className="absolute bottom-1 left-1 bg-yellow-400 text-white text-[10px] px-1 rounded shadow-sm font-bold">
+                                        <div className="absolute bottom-1.5 left-1.5 bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-md shadow-md font-extrabold uppercase tracking-wider">
                                             Main
                                         </div>
                                     )}
@@ -925,7 +927,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 onClick={() => setEditingPhoto(null)}
                                 className="text-gray-400 hover:text-white p-1 hover:bg-gray-800 rounded-full transition-all"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                <X size={20} />
                             </button>
                         </div>
 
@@ -959,7 +961,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 <input 
                                     type="range" min="1" max="3" step="0.1"
                                     value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}
-                                    className="w-full accent-indigo-500 bg-gray-800 h-1.5 rounded-lg appearance-none cursor-pointer"
+                                    className="w-full accent-indigo-500 bg-gray-800 h-1.5 rounded-lg cursor-pointer"
                                 />
                             </div>
 
@@ -970,7 +972,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     onClick={() => setRotation(prev => (prev + 90) % 360)}
                                     className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/20 transition-all active:scale-95"
                                 >
-                                    🔄 Rotate 90°
+                                    <RotateCw size={14} /> Rotate 90°
                                 </button>
                             </div>
 
@@ -1003,7 +1005,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             <div className="flex gap-3 pt-2">
                                 <button 
                                     onClick={() => setEditingPhoto(null)}
-                                    className="flex-1 py-2.5 rounded-xl border border-gray-800 hover:bg-gray-800 text-gray-300 font-bold text-sm transition-all"
+                                    className="flex-1 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-bold text-sm transition-all border border-gray-700/60"
                                 >
                                     Cancel
                                 </button>

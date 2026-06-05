@@ -130,6 +130,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
     const [activeFilter, setActiveFilter] = useState<string>('none');
     const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+    const [originalPhotos, setOriginalPhotos] = useState<Record<string, string>>({});
 
     const [loading, setLoading] = useState(false);
     const [roasting, setRoasting] = useState(false);
@@ -426,7 +427,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     <button
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            setEditingPhoto(photo);
+                                            const original = originalPhotos[photo] || photo;
+                                            setEditingPhoto(original);
                                             setEditingPhotoIdx(idx);
                                             setCrop({ x: 0, y: 0 });
                                             setZoom(1);
@@ -1048,6 +1050,11 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                             const newPhotos = [...currentArr];
                                             newPhotos[idx] = croppedBase64;
                                             
+                                            setOriginalPhotos(prev => ({
+                                                ...prev,
+                                                [croppedBase64]: editingPhoto
+                                            }));
+
                                             setFormData((prev: any) => ({
                                                 ...prev,
                                                 photos: newPhotos,

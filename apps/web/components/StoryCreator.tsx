@@ -463,8 +463,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                     ) : (
                         <div className="relative w-full h-full" style={{ aspectRatio: '9/16', margin: '0 auto', maxWidth: '100%', maxHeight: '100%' }}>
                             
-                            {/* Cropper Base Layer */}
-                            <div className="absolute inset-0" style={{ filter: activeFilter !== 'none' ? activeFilter : 'none' }}>
+                            <div className="absolute inset-0">
                                 {/* @ts-ignore */}
                                 <Cropper
                                     image={storyPreviewUrls[0]}
@@ -479,6 +478,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     showGrid={false}
                                     style={{
                                         containerStyle: { background: '#111' },
+                                        mediaStyle: { filter: activeFilter !== 'none' ? activeFilter : 'none' }
                                     }}
                                 />
                             </div>

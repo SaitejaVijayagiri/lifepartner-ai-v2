@@ -18,10 +18,25 @@ interface ProfileEditorProps {
 const PHOTO_FILTERS = [
     { name: 'Normal', filter: 'none' },
     { name: 'Warm Sunset 🌅', filter: 'sepia(0.35) saturate(1.5) brightness(1.05) contrast(1.1) hue-rotate(-5deg)' },
-    { name: 'Soft Glow 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1)' },
+    { name: 'Soft Glow 🌸', filter: 'brightness(1.15) contrast(0.9) saturate(1.1) sepia(0.1) hue-rotate(-15deg)' },
     { name: 'Retro 📼', filter: 'contrast(1.2) saturate(0.85) sepia(0.3) brightness(0.95)' },
     { name: 'Cinematic 🎬', filter: 'brightness(0.9) contrast(1.2) saturate(1.25) sepia(0.15)' },
-    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2) brightness(0.95)' }
+    { name: 'Noir 🖤', filter: 'grayscale(1) contrast(1.2) brightness(0.95)' },
+    { name: 'Golden Hour 🌅', filter: 'sepia(0.3) brightness(1.1) contrast(1.1) saturate(1.4) hue-rotate(-5deg)' },
+    { name: 'Paris ✨', filter: 'sepia(0.2) contrast(1.1) brightness(1.1) hue-rotate(-10deg) saturate(1.2)' },
+    { name: 'Baddie 💅', filter: 'contrast(1.3) brightness(0.95) saturate(1.1) hue-rotate(10deg)' },
+    { name: 'Dreamy ☁️', filter: 'blur(0.5px) brightness(1.1) contrast(0.9) saturate(1.2)' },
+    { name: 'Cyberpunk 🌆', filter: 'contrast(1.4) saturate(1.5) hue-rotate(30deg) brightness(0.9)' },
+    { name: 'Vintage 🎞️', filter: 'sepia(0.5) contrast(1.1) brightness(0.9) saturate(1.2)' },
+    { name: 'Emerald Forest 🌿', filter: 'contrast(1.2) saturate(1.3) hue-rotate(-15deg) brightness(0.95) sepia(0.1)' },
+    { name: 'Ocean Breeze 🌊', filter: 'contrast(1.1) saturate(1.4) hue-rotate(180deg) brightness(1.05)' },
+    { name: 'Midnight Glow 🌌', filter: 'brightness(0.8) contrast(1.3) saturate(1.5) hue-rotate(-45deg)' },
+    { name: 'Fairy Dust ✨', filter: 'brightness(1.2) saturate(1.2) contrast(0.95) sepia(0.15) hue-rotate(15deg) blur(0.3px)' },
+    { name: 'Cool Mint 🍃', filter: 'contrast(1.05) saturate(1.25) hue-rotate(120deg) brightness(1.02)' },
+    { name: 'Gothic Punk 🧛', filter: 'grayscale(0.6) contrast(1.5) brightness(0.85) sepia(0.1)' },
+    { name: 'Barbie Core 🎀', filter: 'hue-rotate(320deg) saturate(1.6) brightness(1.1) contrast(1.05)' },
+    { name: 'Teal & Orange 🍊', filter: 'contrast(1.2) saturate(1.3) sepia(0.1) hue-rotate(-5deg) brightness(0.98)' },
+    { name: 'Noir Dark 🩸', filter: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
 
 function rotateSize(width: number, height: number, rotation: number) {
@@ -39,8 +54,8 @@ async function getCroppedImg(
     filter = 'none'
 ): Promise<string> {
     const image = new Image();
-    image.src = imageSrc;
     image.crossOrigin = 'anonymous';
+    image.src = imageSrc;
     await new Promise((resolve, reject) => {
         image.onload = resolve;
         image.onerror = reject;
@@ -933,7 +948,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                         {/* Cropper Container */}
                         <div className="relative w-full h-[320px] sm:h-[300px] bg-black flex-shrink-0">
-                            <div className="absolute inset-0" style={{ filter: activeFilter }}>
+                            <div className="absolute inset-0">
                                 {/* @ts-ignore */}
                                 <Cropper
                                     image={editingPhoto}
@@ -946,6 +961,9 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     onZoomChange={setZoom}
                                     onRotationChange={setRotation}
                                     showGrid={false}
+                                    style={{
+                                        mediaStyle: { filter: activeFilter !== 'none' ? activeFilter : 'none' }
+                                    }}
                                 />
                             </div>
                         </div>
@@ -1000,62 +1018,62 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     ))}
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-3 pt-2">
-                                <button 
-                                    onClick={() => setEditingPhoto(null)}
-                                    className="flex-1 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-bold text-sm transition-all border border-gray-700/60"
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    disabled={isProcessingPhoto}
-                                    onClick={async () => {
-                                        if (!croppedAreaPixels) return;
-                                        setIsProcessingPhoto(true);
-                                        try {
-                                            const croppedBase64 = await getCroppedImg(
-                                                editingPhoto,
-                                                croppedAreaPixels,
-                                                rotation,
-                                                activeFilter
-                                            );
+                        {/* Actions */}
+                        <div className="flex gap-3 p-4 sm:p-5 bg-gray-950 border-t border-gray-800 flex-shrink-0 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+                            <button 
+                                onClick={() => setEditingPhoto(null)}
+                                className="flex-1 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-white font-bold text-sm transition-all border border-gray-700/60"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                disabled={isProcessingPhoto}
+                                onClick={async () => {
+                                    if (!croppedAreaPixels) return;
+                                    setIsProcessingPhoto(true);
+                                    try {
+                                        const croppedBase64 = await getCroppedImg(
+                                            editingPhoto,
+                                            croppedAreaPixels,
+                                            rotation,
+                                            activeFilter
+                                        );
+                                        
+                                        // Update photos array in state
+                                        const idx = editingPhotoIdx;
+                                        if (idx !== null) {
+                                            const currentArr = formData.photos?.length > 0 ? formData.photos : [formData.photoUrl];
+                                            const newPhotos = [...currentArr];
+                                            newPhotos[idx] = croppedBase64;
                                             
-                                            // Update photos array in state
-                                            const idx = editingPhotoIdx;
-                                            if (idx !== null) {
-                                                const currentArr = formData.photos?.length > 0 ? formData.photos : [formData.photoUrl];
-                                                const newPhotos = [...currentArr];
-                                                newPhotos[idx] = croppedBase64;
-                                                
-                                                setFormData((prev: any) => ({
-                                                    ...prev,
-                                                    photos: newPhotos,
-                                                    photoUrl: idx === 0 ? croppedBase64 : prev.photoUrl
-                                                }));
-                                                toast.success("Photo edited successfully!");
-                                            }
-                                            setEditingPhoto(null);
-                                        } catch (err) {
-                                            toast.error("Failed to process photo edits.");
-                                            console.error(err);
-                                        } finally {
-                                            setIsProcessingPhoto(false);
+                                            setFormData((prev: any) => ({
+                                                ...prev,
+                                                photos: newPhotos,
+                                                photoUrl: idx === 0 ? croppedBase64 : prev.photoUrl
+                                            }));
+                                            toast.success("Photo edited successfully!");
                                         }
-                                    }}
-                                    className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/25"
-                                >
-                                    {isProcessingPhoto ? (
-                                        <>
-                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Saving...
-                                        </>
-                                    ) : (
-                                        "Apply & Save"
-                                    )}
-                                </button>
-                            </div>
+                                        setEditingPhoto(null);
+                                    } catch (err) {
+                                        toast.error("Failed to process photo edits.");
+                                        console.error(err);
+                                    } finally {
+                                        setIsProcessingPhoto(false);
+                                    }
+                                }}
+                                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/25"
+                            >
+                                {isProcessingPhoto ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Apply & Save"
+                                )}
+                            </button>
                         </div>
 
                     </div>

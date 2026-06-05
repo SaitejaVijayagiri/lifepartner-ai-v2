@@ -231,7 +231,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 </div>
             )}
 
-            {/* Status Stack: Stories, Reasons, Voice Bio */}
+            {/* Status Stack: Stories, Voice Bio */}
             <div className={`absolute z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
                 {/* 1. Story Badge */}
                 {match.stories && match.stories.length > 0 && (
@@ -241,16 +241,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         </div>
                     </div>
                 )}
-
-                {/* 2. Match Reasons (Show All) - Premium Glass Pill */}
-                {match.match_reasons?.map((reason: string, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600/90 to-purple-600/90 backdrop-blur-md border border-white/10 text-white shadow-lg animate-in slide-in-from-left-4 duration-500 hover:scale-105 transition-transform cursor-default group/badge" style={{ animationDelay: `${idx * 150}ms` }}>
-                        <div className="p-1 rounded-full bg-white/20 group-hover/badge:bg-white/30 transition-colors">
-                            <span className="text-[10px]">✨</span>
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wide group-hover/badge:tracking-wider transition-all">{reason}</span>
-                    </div>
-                ))}
 
                 {/* 3. Voice Bio */}
                 {match.voiceBioUrl && (
@@ -296,6 +286,20 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 <span className="text-sm">🕉️</span>
                                 <span className="text-xs font-bold">{match.kundli.score}/36 Guna</span>
                             </button>
+                        </div>
+                    )}
+
+                    {/* Match Reasons (AI Similarity Reasons) */}
+                    {match.match_reasons && match.match_reasons.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-2 pointer-events-auto">
+                            {match.match_reasons.map((reason: string, idx: number) => (
+                                <div 
+                                    key={idx} 
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-indigo-500/80 to-purple-600/80 backdrop-blur-md border border-white/15 text-white shadow-md text-[9px] font-extrabold uppercase tracking-wider transition-all duration-300 hover:scale-105 cursor-default"
+                                >
+                                    <span>✨ {reason}</span>
+                                </div>
+                            ))}
                         </div>
                     )}
 

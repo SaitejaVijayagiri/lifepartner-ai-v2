@@ -57,5 +57,36 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.8,
     }));
 
-    return [...routes, ...blogRoutes, ...cityRoutes, ...communityRoutes, ...professionRoutes];
+    // Dating Programmatic SEO Routes
+    const cityDatingRoutes = CITIES.map(city => ({
+        url: `${baseUrl}/dating/location/${city.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+    }));
+
+    const communityDatingRoutes = COMMUNITIES.map(comm => ({
+        url: `${baseUrl}/dating/community/${comm.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+    }));
+
+    const professionDatingRoutes = PROFESSIONS.map(prof => ({
+        url: `${baseUrl}/dating/profession/${prof.toLowerCase()}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+    }));
+
+    return [
+        ...routes,
+        ...blogRoutes,
+        ...cityRoutes,
+        ...communityRoutes,
+        ...professionRoutes,
+        ...cityDatingRoutes,
+        ...communityDatingRoutes,
+        ...professionDatingRoutes
+    ];
 }

@@ -110,7 +110,7 @@ export default function LandingPageClient() {
               </span>
               <br />
               <span className="text-2xl md:text-3xl font-sans font-bold text-gray-400 dark:text-gray-500 tracking-normal block mt-4">
-                100% Free. Zero Fees.
+                100% Free Matrimony & Dating App
               </span>
             </h1>
 
@@ -140,7 +140,7 @@ export default function LandingPageClient() {
                   "/images/avatars/user-4.jpg"
                 ].map((src, i) => (
                   <div key={i} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
-                    <img src={src} alt="User" className="w-full h-full object-cover" />
+                    <img src={src} alt={`Verified Single Dating Profile ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
                 <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">
@@ -165,7 +165,7 @@ export default function LandingPageClient() {
                   src="/images/orbital.jpg"
                   fill
                   className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                  alt="Matched Profile"
+                  alt="Verified Matrimony and Dating Compatibility Profile on LifePartner AI"
                   priority
                 />
 
@@ -438,7 +438,7 @@ export default function LandingPageClient() {
                   <div className="absolute top-[4.5rem] left-5 z-10">
                     <div className="relative">
                       <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm" />
-                      <img src="/images/avatars/user-1.jpg" alt="Host"
+                      <img src="/images/avatars/user-1.jpg" alt="Local Matchmaking Meetup Host in India"
                         className="relative w-14 h-14 rounded-full border-2 border-white dark:border-gray-900 object-cover shadow-md bg-gray-100"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
                     </div>
@@ -503,7 +503,7 @@ export default function LandingPageClient() {
                   <div className="absolute top-[3.5rem] left-5 z-10">
                     <div className="relative">
                       <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm" />
-                      <img src="/images/avatars/user-3.jpg" alt="Host"
+                      <img src="/images/avatars/user-3.jpg" alt="Speed Dating Event Host"
                         className="relative w-12 h-12 rounded-full border-2 border-white object-cover shadow-md bg-gray-100"
                         onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
                     </div>

@@ -63,6 +63,57 @@ export default function Footer() {
                 </div>
             </div>
 
+            {/* Programmatic SEO Links Section */}
+            <div className="border-t border-gray-800 pt-8 mt-12 grid grid-cols-2 md:grid-cols-5 gap-8 text-xs text-gray-400 max-w-6xl mx-auto">
+                <div>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Matrimony by City</h5>
+                    <ul className="space-y-1.5">
+                        <li><Link href="/matrimony/location/bangalore" className="hover:text-indigo-400 transition-colors">Bangalore Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/mumbai" className="hover:text-indigo-400 transition-colors">Mumbai Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/delhi" className="hover:text-indigo-400 transition-colors">Delhi Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/hyderabad" className="hover:text-indigo-400 transition-colors">Hyderabad Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/chennai" className="hover:text-indigo-400 transition-colors">Chennai Matrimony</Link></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Dating by City</h5>
+                    <ul className="space-y-1.5">
+                        <li><Link href="/dating/location/bangalore" className="hover:text-indigo-400 transition-colors">Dating in Bangalore</Link></li>
+                        <li><Link href="/dating/location/mumbai" className="hover:text-indigo-400 transition-colors">Dating in Mumbai</Link></li>
+                        <li><Link href="/dating/location/delhi" className="hover:text-indigo-400 transition-colors">Dating in Delhi</Link></li>
+                        <li><Link href="/dating/location/hyderabad" className="hover:text-indigo-400 transition-colors">Dating in Hyderabad</Link></li>
+                        <li><Link href="/dating/location/chennai" className="hover:text-indigo-400 transition-colors">Dating in Chennai</Link></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Top Communities</h5>
+                    <ul className="space-y-1.5">
+                        <li><Link href="/matrimony/community/reddy" className="hover:text-indigo-400 transition-colors">Reddy Matrimony</Link></li>
+                        <li><Link href="/dating/community/kamma" className="hover:text-indigo-400 transition-colors">Kamma Dating</Link></li>
+                        <li><Link href="/matrimony/community/brahmin" className="hover:text-indigo-400 transition-colors">Brahmin Matrimony</Link></li>
+                        <li><Link href="/dating/community/nair" className="hover:text-indigo-400 transition-colors">Nair Dating & Chat</Link></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">By Profession</h5>
+                    <ul className="space-y-1.5">
+                        <li><Link href="/dating/profession/software-engineer" className="hover:text-indigo-400 transition-colors">Software Engineer Dating</Link></li>
+                        <li><Link href="/matrimony/profession/doctor" className="hover:text-indigo-400 transition-colors">Doctor Matrimony</Link></li>
+                        <li><Link href="/dating/profession/ias-ips" className="hover:text-indigo-400 transition-colors">IAS/IPS Matches</Link></li>
+                        <li><Link href="/matrimony/profession/teacher" className="hover:text-indigo-400 transition-colors">Teacher Matrimony</Link></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Trending Dating</h5>
+                    <ul className="space-y-1.5">
+                        <li><Link href="/dating/location/pune" className="hover:text-indigo-400 transition-colors">Dating in Pune</Link></li>
+                        <li><Link href="/dating/location/kolkata" className="hover:text-indigo-400 transition-colors">Dating in Kolkata</Link></li>
+                        <li><Link href="/dating/location/jaipur" className="hover:text-indigo-400 transition-colors">Dating in Jaipur</Link></li>
+                        <li><Link href="/dating/location/lucknow" className="hover:text-indigo-400 transition-colors">Dating in Lucknow</Link></li>
+                    </ul>
+                </div>
+            </div>
+
             <div className="border-t border-gray-800 pt-8 mt-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center max-w-6xl mx-auto">
                 <p className="text-gray-500 text-sm">
                     © {currentYear} LifePartner AI. All rights reserved.

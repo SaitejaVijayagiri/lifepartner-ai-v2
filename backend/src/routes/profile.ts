@@ -23,43 +23,23 @@ import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isCon
 /**
  * Upload a profile image with fallback chain:
  *   1. Cloudinary (free 25 GB, no egress fees, global CDN) — primary
- *   2. Supabase storage (legacy, ISP-blocked via proxy)    — secondary
- *   3. Return null so caller stores base64 as last resort
+ *   2. Return null so caller stores base64 as last resort
  *
  * If the input is already an https URL (not base64), it is returned as-is.
  */
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string | null> {
     if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Already a URL
 
-    const buffer = await ImageOptimizer.optimize(base64);
-
-    // ── 1. Try Cloudinary ──────────────────────────────────────────────────────
+    // We store only in Cloudinary
     if (cloudinaryConfigured()) {
         const cloudinaryUrl = await uploadToCloudinary(base64, userId);
         if (cloudinaryUrl) return cloudinaryUrl;
-        console.warn('[profile] Cloudinary upload failed — trying Supabase...');
+        console.warn('[profile] Cloudinary upload failed.');
+    } else {
+        console.warn('[profile] Cloudinary not configured.');
     }
 
-    // ── 2. Try Supabase ────────────────────────────────────────────────────────
-    try {
-        const filename = `profiles/${userId}/${Date.now()}_${Math.random().toString(36).substring(7)}.webp`;
-
-        const { error } = await supabase.storage
-            .from('profiles')
-            .upload(filename, buffer, {
-                contentType: 'image/webp',
-                upsert: true
-            });
-
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage.from('profiles').getPublicUrl(filename);
-        console.log(`✅ [Supabase] Uploaded photo: ${filename}`);
-        return publicUrl;
-    } catch (e) {
-        console.warn('[profile] Supabase upload also failed — falling back to base64.');
-        return null; // Caller stores base64 as last resort
-    }
+    return null; // Fallback to base64 as last resort
 }
 
 // Debug Logger
@@ -918,16 +898,7 @@ router.post('/stories', authenticateToken, (req, res, next) => {
                 publicId = uploadResult.publicId;
                 logDebug(`Upload Success: ${publicUrl}`);
             } else {
-                // Fallback to Supabase if Cloudinary is not configured or fails
-                const filename = `stories/${userId}/${Date.now()}-${path.basename(file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_'))}`;
-                const fileContent = fs.readFileSync(file.path);
-                const { error } = await supabase.storage.from('stories').upload(filename, fileContent, {
-                    contentType: file.mimetype,
-                    upsert: true
-                });
-                if (error) throw error;
-                const { data } = supabase.storage.from('stories').getPublicUrl(filename);
-                publicUrl = data.publicUrl;
+                throw new Error("Failed to upload story to Cloudinary. Supabase uploads are disabled.");
             }
         }
 

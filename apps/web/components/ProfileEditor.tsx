@@ -917,8 +917,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
             {/* Profile Photo Editor Modal */}
             {editingPhoto !== null && (
-                <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-gray-900 border border-gray-800 rounded-3xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col relative shadow-2xl">
+                <div className="fixed inset-0 z-[3000] bg-black/90 flex items-center justify-center p-0 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-gray-900 border-0 sm:border border-gray-800 w-full h-full sm:h-auto sm:max-h-[90vh] sm:rounded-3xl max-w-none sm:max-w-md overflow-hidden flex flex-col relative shadow-2xl">
                         
                         {/* Header */}
                         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800 text-white flex-shrink-0">
@@ -932,7 +932,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
 
                         {/* Cropper Container */}
-                        <div className="relative w-full h-[240px] sm:h-[300px] bg-black flex-shrink-0">
+                        <div className="relative w-full h-[320px] sm:h-[300px] bg-black flex-shrink-0">
                             <div className="absolute inset-0" style={{ filter: activeFilter }}>
                                 {/* @ts-ignore */}
                                 <Cropper
@@ -951,7 +951,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         </div>
 
                         {/* Controls & Presets */}
-                        <div className="p-4 sm:p-5 bg-gray-900 space-y-3.5 sm:space-y-4 border-t border-gray-800 flex-shrink overflow-y-auto">
+                        <div className="p-4 sm:p-5 bg-gray-900 space-y-4 border-t border-gray-800 flex-1 overflow-y-auto pb-[max(1rem,env(safe-area-inset-bottom))]">
                             {/* Zoom Slider */}
                             <div className="space-y-1.5">
                                 <div className="flex justify-between text-xs font-bold text-gray-400">

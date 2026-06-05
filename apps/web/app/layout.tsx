@@ -7,7 +7,6 @@ import NetworkStatus from '@/components/NetworkStatus';
 import StickyCTA from '@/components/StickyCTA';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import FloatingLoveGuru from '@/components/FloatingLoveGuru';
 import MessageToastBanner from '@/components/MessageToastBanner';
 import DateSafetyOverlay from '@/components/DateSafetyOverlay';
 
@@ -192,7 +191,6 @@ export default function RootLayout({
             {children}
             <StickyCTA />
             <ThemeToggle />
-            <FloatingLoveGuru />
             <MessageToastBanner />
             <DateSafetyOverlay />
           </ClientProviders>

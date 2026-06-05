@@ -37,6 +37,7 @@ const GameModal = dynamic(() => import('@/components/GameModal'));
 const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
 const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
 const MeetSpots = dynamic(() => import('@/components/MeetSpots'));
+const FloatingLoveGuru = dynamic(() => import('@/components/FloatingLoveGuru'), { ssr: false });
 import { Capacitor } from '@capacitor/core';
 
 // Duplicate InteractiveMap removed
@@ -2022,6 +2023,8 @@ function DashboardContent() {
                     unreadCount={unreadMessageCount}
                 />
             </div>
+
+            {activeTab === 'matches' && <FloatingLoveGuru />}
 
 
             {/* End of Main Content - Duplicate Block Removed */}

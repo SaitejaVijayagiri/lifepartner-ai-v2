@@ -724,28 +724,6 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                     <div className="pointer-events-auto">
                         {!isSlideshow && !storyFiles[0]?.type.startsWith('video') && !isAddingText && (
                             <div className="mb-6 flex flex-col gap-4">
-                                {/* Cropper Controls (Zoom & Rotate) */}
-                                <div className="flex items-center gap-4 bg-black/50 backdrop-blur-md p-3 rounded-2xl border border-white/10 text-white select-none">
-                                    <div className="flex-1 flex flex-col gap-1">
-                                        <div className="flex justify-between text-[10px] font-extrabold uppercase tracking-wider text-white/60">
-                                            <span>Zoom</span>
-                                            <span>{zoom.toFixed(1)}x</span>
-                                        </div>
-                                        <input 
-                                            type="range" min="1" max="3" step="0.1"
-                                            value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))}
-                                            className="w-full accent-white bg-white/20 h-1.5 rounded-lg cursor-pointer"
-                                        />
-                                    </div>
-                                    <button 
-                                        onClick={() => setRotation(r => (r + 90) % 360)}
-                                        className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 rounded-xl border border-white/10 text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5"
-                                    >
-                                        <span>🔄</span>
-                                        <span className="text-[9px] uppercase font-bold text-white/80">Rotate</span>
-                                    </button>
-                                </div>
-
                                 {/* Filters Carousel */}
                                 <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar px-1">
                                     {STORY_FILTERS.map(f => (

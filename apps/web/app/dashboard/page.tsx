@@ -1609,6 +1609,39 @@ function DashboardContent() {
         );
     };
 
+    if (loading && !currentUser) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-gray-950 relative overflow-hidden">
+                {/* Decorative background orbs */}
+                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 dark:bg-pink-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+                <div className="relative z-10 flex flex-col items-center gap-6 text-center px-4">
+                    {/* Bouncing Sparkles Icon */}
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 animate-bounce">
+                        <Sparkles className="text-white" size={40} fill="white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-heading font-bold text-gray-900 dark:text-white flex items-center gap-2 justify-center">
+                            <span>LifePartner</span>
+                            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">AI</span>
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 font-medium tracking-wide">
+                            Setting up your personalized matches feed...
+                        </p>
+                    </div>
+
+                    {/* Progress Dots */}
+                    <div className="flex gap-2.5 mt-2">
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-[bounce_1s_infinite_0ms]"></span>
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 animate-[bounce_1s_infinite_200ms]"></span>
+                        <span className="w-3 h-3 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 animate-[bounce_1s_infinite_400ms]"></span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'map' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
             {renderHeader()}

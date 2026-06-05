@@ -119,8 +119,23 @@ export class EmailService {
         }
     }
 
-    static async sendMatchAcceptedEmail(email: string, name: string, partnerName: string) {
+    static async sendMatchAcceptedEmail(
+        email: string,
+        name: string,
+        userPhotoUrl: string,
+        partnerName: string,
+        partnerPhotoUrl: string,
+        partnerDetails?: {
+            age?: number | string;
+            location?: string;
+            job?: string;
+            detailsString?: string;
+        }
+    ) {
         if (!process.env.RESEND_API_KEY) return;
+
+        const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
+        const partnerInfo = partnerDetails?.detailsString || '';
 
         try {
             await resend.emails.send({
@@ -128,11 +143,82 @@ export class EmailService {
                 to: email,
                 subject: `💖 It's a Match! You and ${partnerName} are connected.`,
                 html: `
-                    <h1>Congratulations!</h1>
-                    <p>You and <strong>${partnerName}</strong> are now connected.</p>
-                    <p>You can now chat, video call, and get to know each other.</p>
-                    <br/>
-                    <a href="${process.env.FRONTEND_URL || 'https://lifepartnerai.in'}/dashboard" style="padding: 10px 20px; background: #059669; color: white; text-decoration: none; border-radius: 5px;">Start Chatting</a>
+                    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0b0b14; color: #f5f5f5; border-radius: 24px; overflow: hidden; border: 1px solid #2a2a40; box-shadow: 0 12px 40px rgba(0,0,0,0.5);">
+                        <!-- Header Gradient Banner -->
+                        <div style="background: linear-gradient(135deg, #FF2E93 0%, #FF8A00 100%); padding: 50px 30px; text-align: center;">
+                            <div style="font-size: 56px; line-height: 1; margin-bottom: 15px;">🎉 Match! 🎉</div>
+                            <h1 style="margin: 0; font-size: 30px; color: #ffffff; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">
+                                It's a Match!
+                            </h1>
+                            <p style="color: #ffffff; opacity: 0.9; font-size: 16px; margin-top: 10px; font-weight: 500;">
+                                Congratulations! A beautiful connection has been made.
+                            </p>
+                        </div>
+
+                        <!-- Main Body -->
+                        <div style="padding: 40px 30px; text-align: center;">
+                            
+                            <!-- Connected Avatars Table -->
+                            <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 30px auto; width: 100%; max-width: 380px;">
+                                <tr>
+                                    <!-- User A (Recipient) -->
+                                    <td align="center" style="vertical-align: middle; width: 110px;">
+                                        <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 4px solid #FF2E93; box-shadow: 0 4px 15px rgba(255, 46, 147, 0.4); margin: 0 auto;">
+                                            <img src="${userPhotoUrl}" alt="${name}" style="width: 100px; height: 100px; object-fit: cover; display: block;" />
+                                        </div>
+                                        <div style="margin-top: 12px; font-size: 15px; font-weight: 700; color: #ffffff; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">
+                                            ${name}
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- Heart / Connection -->
+                                    <td align="center" style="vertical-align: middle; padding: 0 10px;">
+                                        <div style="font-size: 36px; line-height: 1; color: #FF2E93;">
+                                            💖
+                                        </div>
+                                        <div style="height: 2px; background: linear-gradient(90deg, #FF2E93, #FF8A00); margin: 10px 10px 0 10px; min-width: 50px;"></div>
+                                    </td>
+                                    
+                                    <!-- User B (Partner) -->
+                                    <td align="center" style="vertical-align: middle; width: 110px;">
+                                        <div style="width: 100px; height: 100px; border-radius: 50%; overflow: hidden; border: 4px solid #FF8A00; box-shadow: 0 4px 15px rgba(255, 138, 0, 0.4); margin: 0 auto;">
+                                            <img src="${partnerPhotoUrl}" alt="${partnerName}" style="width: 100px; height: 100px; object-fit: cover; display: block;" />
+                                        </div>
+                                        <div style="margin-top: 12px; font-size: 15px; font-weight: 700; color: #ffffff; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">
+                                            ${partnerName}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Message/Intro Card -->
+                            <div style="background: #151526; border-radius: 16px; padding: 24px; border: 1px solid #23233c; margin: 30px 0; text-align: left;">
+                                <h3 style="margin: 0 0 10px 0; color: #ffffff; font-size: 18px; font-weight: 700;">You and ${partnerName} connected!</h3>
+                                
+                                ${partnerInfo ? `<p style="margin: 0 0 16px 0; color: #a0aec0; font-size: 14px; font-weight: 500; font-style: italic;">${partnerInfo}</p>` : ''}
+                                
+                                <p style="margin: 0; color: #cbd5e0; font-size: 15px; line-height: 1.6;">
+                                    The spark is lit! You can now send messages, start voice/video calls, and discover more about each other on LifePartner AI. Don't keep them waiting. Say hello!
+                                </p>
+                            </div>
+
+                            <!-- Call To Action -->
+                            <div style="margin: 35px 0 20px 0;">
+                                <a href="${frontendUrl}/dashboard" style="display: inline-block; padding: 16px 45px; background: linear-gradient(135deg, #FF2E93, #FF8A00); color: #ffffff; text-decoration: none; border-radius: 50px; font-size: 16px; font-weight: 700; box-shadow: 0 6px 20px rgba(255, 46, 147, 0.4); text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Start Chatting Now 💬
+                                </a>
+                            </div>
+                            
+                        </div>
+
+                        <!-- Footer -->
+                        <div style="background: #08080f; padding: 24px 32px; text-align: center; border-top: 1px solid #1a1a2b;">
+                            <p style="font-size: 13px; color: #718096; margin: 0; line-height: 1.5;">
+                                <strong>LifePartner AI</strong> · Hyderabad, India<br/>
+                                <span style="font-size: 12px; margin-top: 6px; display: inline-block; color: #4a5568;">Connecting hearts, safely and smartly.</span>
+                            </p>
+                        </div>
+                    </div>
                 `
             });
         } catch (error) {

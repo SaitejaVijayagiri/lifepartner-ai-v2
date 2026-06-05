@@ -15,6 +15,7 @@ jest.mock('../src/prisma', () => ({
             update: jest.fn(),
             deleteMany: jest.fn(),
             create: jest.fn(),
+            findUnique: jest.fn(),
         },
         notifications: {
             create: jest.fn(),

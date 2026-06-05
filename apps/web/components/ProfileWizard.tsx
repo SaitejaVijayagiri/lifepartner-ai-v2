@@ -41,7 +41,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         // Horoscope
         zodiacSign: '', nakshatra: '', manglik: 'No', birthTime: '',
         // Religion
-        religion: 'Hindu', caste: '', interCasteOpen: false,
+        religion: 'Not Specified', caste: '', interCasteOpen: false,
         // Career
         education: "Bachelor's", profession: '', income: '', company: '',
         // Family

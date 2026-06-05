@@ -1,5 +1,6 @@
 /** Religion symbol/emoji map for display across the app */
 export const RELIGION_SYMBOLS: Record<string, string> = {
+    'Not Specified': '❓',
     'Hindu': '🕉️',
     'Muslim': '☪️',
     'Christian': '✝️',

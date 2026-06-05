@@ -361,14 +361,16 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: "Email and password are required" });
         }
 
+        const emailNormalized = email.trim().toLowerCase();
+
         // Log login attempt (without password)
-        console.log(`🔐 Login attempt for: ${email}`);
+        console.log(`🔐 Login attempt for: ${emailNormalized}`);
 
         const user = await prisma.users.findFirst({
             where: {
                 OR: [
-                    { email: email },
-                    { phone: email }
+                    { email: emailNormalized },
+                    { phone: emailNormalized }
                 ]
             }
         });
@@ -486,9 +488,11 @@ router.post('/forgot-password', async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ error: "Email required" });
 
+        const emailNormalized = email.trim().toLowerCase();
+
         // 1. Check User exists
         const user = await prisma.users.findUnique({
-            where: { email },
+            where: { email: emailNormalized },
             select: { id: true, full_name: true }
         });
 
@@ -570,9 +574,11 @@ router.post('/reset-password', async (req, res) => {
         const { email, otp, newPassword } = req.body;
         if (!email || !otp || !newPassword) return res.status(400).json({ error: "Missing fields" });
 
+        const emailNormalized = email.trim().toLowerCase();
+
         // 1. Validate User & OTP
         const user = await prisma.users.findUnique({
-            where: { email },
+            where: { email: emailNormalized },
             select: { id: true, otp_code: true, otp_expires_at: true }
         });
 

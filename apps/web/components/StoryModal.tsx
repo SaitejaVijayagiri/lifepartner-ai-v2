@@ -33,7 +33,7 @@ interface StoryModalProps {
     onViewProfile?: (userId: string, userName?: string, userPhotoUrl?: string) => void;
 }
 
-const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelete, onViewProfile }: StoryModalProps) => {
+const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser, onDelete, onViewProfile }: StoryModalProps) => {
     const router = useRouter();
     const { socket, onlineUsers } = useSocket() as any;
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -44,7 +44,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     const [isSending, setIsSending] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
-    const story = stories[currentIndex] as any;
+    const story = (stories && stories[currentIndex]) ? (stories[currentIndex] as any) : null;
 
     // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
     const currentUserId = currentUser?.id || currentUser?.userId;
@@ -80,7 +80,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
             audioRef.current = null;
         }
 
-        if (story?.music && MUSIC_TRACKS[story.music]) {
+        if (story && story.music && MUSIC_TRACKS[story.music]) {
             const track = MUSIC_TRACKS[story.music];
             audioRef.current = new Audio(track.url);
             audioRef.current.volume = 0.5;
@@ -120,7 +120,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
     // Auto-advance Timer (Only for Images)
     useEffect(() => {
-        if (isPaused || story?.type === 'video') return;
+        if (!story || isPaused || story.type === 'video') return;
 
         const timer = setInterval(() => {
             setProgress((prev) => {
@@ -134,7 +134,7 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
 
     // Track View when Story Changes
     useEffect(() => {
-        if (!story) return;
+        if (!story || !story.id) return;
         setIsViewsOpen(false); // Close views panel if story changes
         if (currentUser && !isOwner) {
             api.profile.trackStoryView(user.id, story.id).catch(console.error);
@@ -144,17 +144,17 @@ const StoryModal = ({ stories, initialIndex, user, onClose, currentUser, onDelet
     // Handle Story Completion
     useEffect(() => {
         if (progress >= 100) {
-            if (currentIndex < stories.length - 1) {
+            if (stories && stories.length > 0 && currentIndex < stories.length - 1) {
                 setCurrentIndex((prev: number) => prev + 1);
                 setProgress(0);
             } else {
                 onClose();
             }
         }
-    }, [progress, currentIndex, stories.length, onClose]);
+    }, [progress, currentIndex, stories?.length, onClose]);
 
     const goNext = () => {
-        if (currentIndex < stories.length - 1) {
+        if (stories && stories.length > 0 && currentIndex < stories.length - 1) {
             setCurrentIndex((prev: number) => prev + 1);
             setProgress(0);
         } else {

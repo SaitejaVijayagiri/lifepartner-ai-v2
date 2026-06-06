@@ -265,8 +265,8 @@ export default function LandingPageClient() {
             </div>
             <h2 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Matches made by AI.<br />Verified by Humans.</h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-              "Hi, I'm Saiteja. I built LifePartner AI because I was tired of matrimony sites filled with fake profiles and expensive paywalls.
-              My mission is simple: <b>Zero fake profiles. Zero cost.</b>"
+              "Hi, I'm Saiteja. I built LifePartner AI because I was tired of dating apps and matrimony sites filled with fake profiles, paywalls, and endless swiping.
+              My mission is simple: <b>Zero fake profiles. Zero cost. Genuine connections.</b>"
             </p>
 
 

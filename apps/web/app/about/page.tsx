@@ -29,14 +29,14 @@ export default function AboutPage() {
                             <h3 className="text-3xl font-bold mb-6 text-indigo-900 dark:text-indigo-400">Why I Built This</h3>
                             <div className="space-y-6 text-lg text-gray-750 dark:text-gray-300 leading-relaxed">
                                 <p>
-                                    Like many declared "eligible bachelors/spinsters", I was frustrated with the current state of matrimony apps.
-                                    They are crowded with fake profiles, scammers, and expensive subscription models that charge you just to say "Hi".
+                                    Like many declared "eligible bachelors/spinsters", I was frustrated with the current state of dating and matrimony apps.
+                                    They are crowded with fake profiles, swipe fatigue, scammers, and expensive subscription models that charge you just to say "Hi".
                                 </p>
                                 <p>
                                     <b>LifePartner AI is different.</b>
                                 </p>
                                 <p>
-                                    I built this platform with a single goal: To use advanced technology to connect real people specifically for marriage, without the corporate greed.
+                                    I built this platform with a single goal: To use advanced technology to connect real people for meaningful dating, serious relationships, and marriage—without the corporate greed.
                                 </p>
                                 <div className="bg-indigo-50 dark:bg-indigo-950/30 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
                                     <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-2">My Promise to You:</h4>
@@ -69,7 +69,7 @@ export default function AboutPage() {
                         <span className="inline-block py-1 px-3 rounded-full bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300 text-xs font-bold uppercase tracking-wider mb-4">We Are Hiring</span>
                         <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Want to build this with me?</h3>
                         <p className="text-gray-650 dark:text-gray-400 max-w-xl mx-auto mb-6">
-                            If you are a developer, marketer, or just a problem solver who wants to fix the broken matrimony industry, I want to hear from you.
+                            If you are a developer, marketer, or just a problem solver who wants to fix the broken dating and matrimony industry, I want to hear from you.
                         </p>
                         <p className="font-medium text-indigo-900 dark:text-indigo-400">
                             Send your resume or just say "Hi" to <a href="mailto:lifepartnerai.in@gmail.com" className="underline hover:text-indigo-600 dark:hover:text-indigo-300">lifepartnerai.in@gmail.com</a>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, MessageCircle, ShieldCheck, Lock, Award, Gift, MapPin, Calendar } from 'lucide-react';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
@@ -269,26 +269,7 @@ export default function LandingPageClient() {
               My mission is simple: <b>Zero fake profiles. Zero cost.</b>"
             </p>
 
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 mb-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10"><MessageCircle size={80} className="text-indigo-600" /></div>
-              <h4 className="font-bold text-indigo-900 mb-2 flex items-center gap-2"><Star size={18} className="text-amber-500 fill-amber-500" /> Direct Concierge Service</h4>
-              <p className="text-indigo-800 text-sm mb-4 font-medium">
-                We are building a community of genuine singles.
-                <b>Want your profile to be the first profile seen by thousands?</b>
-              </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 text-indigo-900 font-bold">
-                  <span className="w-8 h-8 rounded-full bg-white dark:bg-gray-950 flex items-center justify-center shadow-sm">📧</span>
-                  <img src="mailto:lifepartnerai.in@gmail.com" className="hidden" /> {/* SEO hidden mailto */}
-                  lifepartnerai.in@gmail.com
-                </div>
-              </div>
-              <p className="text-xs text-indigo-500 mt-4 italic">Send me your details directly. I will personally verify and list your profile.</p>
-              <div className="mt-6 pt-4 border-t border-indigo-200/50">
-                <p className="text-sm font-bold text-indigo-800 mb-1">🚀 Join the Revolution</p>
-                <p className="text-xs text-indigo-600">Passionate about changing the matrimony landscape? <b>We are hiring.</b> Drop your resume to the email or WhatsApp above.</p>
-              </div>
-            </div>
+
 
             <div className="flex gap-4">
               <Link href="/about">

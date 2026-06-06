@@ -394,7 +394,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
 
         const page = parseInt(req.query.page as string) || 1;
-        const limit = 50;
+        const limit = 200; // Show all matches in one page (we have at most ~200 verified users)
         const offset = (page - 1) * limit;
 
         // Check Cache per page

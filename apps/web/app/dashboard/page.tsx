@@ -266,7 +266,7 @@ function DashboardContent() {
                 if (matchesResult.status === 'fulfilled') {
                     const freshMatches = matchesResult.value?.matches || [];
                     setMatches(freshMatches);
-                    if (freshMatches.length < 50) setHasMore(false);
+                    if (freshMatches.length < 200) setHasMore(false);
                     try {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
                     } catch (e) {}
@@ -459,7 +459,7 @@ function DashboardContent() {
             const data = await api.matches.getAll(pageNum);
             const newMatches = data.matches || [];
             
-            if (newMatches.length < 50) {
+            if (newMatches.length < 200) {
                 setHasMore(false);
             } else {
                 setHasMore(true);

@@ -18,7 +18,6 @@ export async function generateBlogPost(topic: string): Promise<boolean> {
             content: `<h2>Understanding ${topic}</h2><p>When it comes to building a lasting relationship, understanding ${topic} is absolutely crucial. LifePartner AI takes this into account using advanced psychological profiling and compatibility scoring.</p><h3>Why it Matters</h3><p>Many couples find that aligning on core values and interests leads to a stronger bond.</p><ul><li>Communication is key</li><li>Shared values create a strong foundation</li><li>Mutual respect ensures longevity</li></ul>`
         };
 
-        // @ts-ignore
         await prisma.blog_posts.create({
             data: blogData
         });

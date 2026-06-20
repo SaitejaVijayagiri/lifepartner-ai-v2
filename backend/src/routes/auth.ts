@@ -585,8 +585,7 @@ router.post('/reset-password', async (req, res) => {
         if (!user) return res.status(400).json({ error: "Invalid request" });
 
         if (user.otp_code !== otp) return res.status(400).json({ error: "Invalid OTP" });
-        // @ts-ignore
-        if (user.otp_expires_at && new Date() > new Date(user.otp_expires_at)) return res.status(400).json({ error: "OTP Expired" });
+        if (user.otp_expires_at && new Date().getTime() > user.otp_expires_at.getTime()) return res.status(400).json({ error: "OTP Expired" });
 
         // 2. Hash New Password
         const salt = await bcrypt.genSalt(10);

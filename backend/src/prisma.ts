@@ -17,5 +17,4 @@ export { pool }; // Export pool for health checks
 
 const adapter = new PrismaPg(pool);
 
-// @ts-ignore
 export const prisma = new PrismaClient({ adapter });

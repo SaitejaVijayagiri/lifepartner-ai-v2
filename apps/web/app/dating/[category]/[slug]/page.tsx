@@ -110,7 +110,7 @@ export default async function SEODatingPage({ params }: PageProps) {
                         <ShareButton
                             title={`Meet verified singles in ${displayValue}`}
                             text={`Check out verified dating profiles in ${displayValue} on LifePartner AI!`}
-                            url={`https://lifepartnerai.in/dating/${category}/${slug}`}
+                            url={`https://lifepartnerai.in/dating/${category}/${slug}?utm_source=share&utm_medium=social&utm_campaign=dating_seo`}
                         />
                     </div>
                 </div>

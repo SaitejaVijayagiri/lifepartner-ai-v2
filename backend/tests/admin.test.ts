@@ -57,15 +57,15 @@ describe('Admin Routes', () => {
     describe('GET /admin/stats', () => {
         it('should return dashboard stats', async () => {
             (prisma.users.count as jest.Mock).mockResolvedValue(100);
+            (prisma.users.findMany as jest.Mock).mockResolvedValue([]);
             (prisma.transactions.aggregate as jest.Mock).mockResolvedValue({ _sum: { amount: 5000 } });
             (prisma.reports.count as jest.Mock).mockResolvedValue(5);
 
             const res = await request(app).get('/admin/stats');
 
-            if (res.status === 200) {
-                expect(res.body.totalUsers).toBe(100);
-                expect(res.body.pendingReports).toBe(5);
-            }
+            expect(res.status).toBe(200);
+            expect(res.body.totalUsers).toBe(100);
+            expect(res.body.pendingReports).toBe(5);
         });
     });
 

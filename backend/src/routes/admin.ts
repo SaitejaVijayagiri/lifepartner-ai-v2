@@ -47,10 +47,10 @@ router.get('/stats', async (req, res) => {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         // We'll fetch the last 30 days of users and group them in JS to avoid complex cross-database raw queries
-        const recentUsers = await prisma.users.findMany({
+        const recentUsers = (await prisma.users.findMany({
             where: { created_at: { gte: thirtyDaysAgo } },
             select: { created_at: true, gender: true }
-        });
+        })) || [];
 
         const chartDataMap: Record<string, { date: string, users: number, male: number, female: number }> = {};
         

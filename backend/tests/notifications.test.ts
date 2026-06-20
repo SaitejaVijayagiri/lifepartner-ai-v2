@@ -78,8 +78,13 @@ describe('Notification Routes', () => {
 
     describe('GET /notifications/', () => {
         it('should return notifications', async () => {
-            (prisma.notifications.findMany as jest.Mock).mockResolvedValue([]);
-            (prisma.notifications.count as jest.Mock).mockResolvedValue(5);
+            (prisma.notifications.findMany as jest.Mock).mockResolvedValue([
+                { id: 'n1', is_read: false },
+                { id: 'n2', is_read: false },
+                { id: 'n3', is_read: false },
+                { id: 'n4', is_read: false },
+                { id: 'n5', is_read: false }
+            ]);
 
             const res = await request(app).get('/notifications/');
 

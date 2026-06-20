@@ -93,11 +93,11 @@ router.post('/register', async (req, res) => {
 
         if (existingUser) {
             // Self-Healing Logic: If user is UNVERIFIED, allow overwrite and resend OTP
-            if (!existingUser.is_verified) {
+            if (existingUser.is_verified === false) {
                 console.log(`♻️ Self-Healing Registration for unverified user: ${email || phone}`);
 
                 // 3. Hash New Password (Optimized: reuse existing hash if password passes compare)
-                const isSamePassword = await bcrypt.compare(password, existingUser.password_hash);
+                const isSamePassword = (password && existingUser.password_hash) ? await bcrypt.compare(password, existingUser.password_hash) : false;
                 const passwordHash = isSamePassword ? existingUser.password_hash : await bcrypt.hash(password, 10);
 
                 // 4. Generate New OTP

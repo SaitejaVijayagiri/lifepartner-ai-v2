@@ -24,8 +24,23 @@ jest.mock('@supabase/supabase-js', () => ({
 }));
 
 jest.mock('../src/socket', () => {
+    const mockEmit = jest.fn();
+    const mockTo = jest.fn().mockReturnValue({ emit: mockEmit });
+    const mockIO = {
+        to: mockTo,
+        emit: mockEmit,
+        sockets: {
+            adapter: {
+                rooms: {
+                    get: jest.fn()
+                }
+            }
+        }
+    };
     return {
-        initSocket: jest.fn(),
+        initSocket: jest.fn().mockReturnValue(mockIO),
+        getIO: jest.fn().mockReturnValue(mockIO),
+        isUserOnline: jest.fn().mockReturnValue(false),
     };
 });
 

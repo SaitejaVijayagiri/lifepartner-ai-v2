@@ -110,7 +110,7 @@ export default async function SEOPage({ params }: PageProps) {
                         <ShareButton
                             title={`Find matches in ${displayValue}`}
                             text={`Check out verified matches in ${displayValue} on LifePartner AI!`}
-                            url={`https://lifepartnerai.in/matrimony/${category}/${slug}`}
+                            url={`https://lifepartnerai.in/matrimony/${category}/${slug}?utm_source=share&utm_medium=social&utm_campaign=matrimony_seo`}
                         />
                     </div>
                 </div>

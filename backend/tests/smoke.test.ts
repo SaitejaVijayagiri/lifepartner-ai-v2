@@ -29,7 +29,7 @@ describe('Smoke Test', () => {
     });
 
     afterAll((done) => {
-        if (server) {
+        if (server && server.listening) {
             server.close(done);
         } else {
             done();

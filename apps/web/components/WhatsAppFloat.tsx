@@ -3,7 +3,7 @@
 import { MessageCircle } from 'lucide-react';
 
 export default function WhatsAppFloat() {
-    const shareText = encodeURIComponent("Hey! I found this amazing free matrimony app: LifePartner AI. It has zero fake profiles and it's 100% free! Check it out: https://lifepartnerai.in");
+    const shareText = encodeURIComponent("Hey! I found this amazing free matrimony app: LifePartner AI. It has zero fake profiles and it's 100% free! Check it out: https://lifepartnerai.in?utm_source=whatsapp&utm_medium=social&utm_campaign=share_float");
     const shareUrl = `https://wa.me/?text=${shareText}`;
 
     return (

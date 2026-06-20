@@ -386,7 +386,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 const shareData = {
                                     title: `Match: ${match.name}`,
                                     text: `Check out ${match.name} on LifePartner AI!`,
-                                    url: `https://lifepartnerai.in/profile/${match.id}`
+                                    url: `https://lifepartnerai.in/profile/${match.id}?utm_source=share&utm_medium=social&utm_campaign=profile_share`
                                 };
                                 try {
                                     if (navigator.share) {

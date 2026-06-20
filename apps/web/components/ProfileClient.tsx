@@ -53,7 +53,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
         const shareData = {
             title: `Profile: ${profile.name}`,
             text: `Check out ${profile.name} on LifePartner AI!`,
-            url: `https://www.lifepartnerai.in/profile/${profileId}`
+            url: `https://www.lifepartnerai.in/profile/${profileId}?utm_source=share&utm_medium=social&utm_campaign=profile_share`
         };
         try {
             if (navigator.share) {

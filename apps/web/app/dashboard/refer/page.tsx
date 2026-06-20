@@ -31,13 +31,13 @@ export default function ReferralPage() {
     }, []);
 
     const handleCopy = () => {
-        const link = `https://lifepartnerai.in/register?ref=${referralData?.referralCode}`;
+        const link = `https://lifepartnerai.in/register?ref=${referralData?.referralCode}&utm_source=referral&utm_medium=social&utm_campaign=invite_friend`;
         navigator.clipboard.writeText(link);
         toast.success("Referral link copied!");
     };
 
     const handleShare = async () => {
-        const link = `https://lifepartnerai.in/register?ref=${referralData?.referralCode}`;
+        const link = `https://lifepartnerai.in/register?ref=${referralData?.referralCode}&utm_source=referral&utm_medium=social&utm_campaign=invite_friend`;
         if (navigator.share) {
             try {
                 await navigator.share({

@@ -56,6 +56,9 @@ export async function generateMetadata(
             description: post.meta_description || post.excerpt,
             type: 'article',
             publishedTime: post.created_at,
+        },
+        alternates: {
+            canonical: `https://lifepartnerai.in/blog/${params.slug}`,
         }
     };
 }

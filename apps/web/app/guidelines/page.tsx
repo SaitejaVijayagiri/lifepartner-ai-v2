@@ -4,7 +4,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Community Guidelines | LifePartner AI',
     description: 'Read the community guidelines for LifePartner AI to ensure a safe, respectful, and authentic matchmaking experience.',
-    keywords: ['community guidelines', 'matrimony rules', 'dating rules']
+    keywords: ['community guidelines', 'matrimony rules', 'dating rules'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/guidelines',
+    }
 };
 
 export default function GuidelinesPage() {

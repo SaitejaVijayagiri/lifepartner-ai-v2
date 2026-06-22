@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { BLOG_POSTS } from '@/lib/blog-data';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = 'https://lifepartnerai.in';
 
     // Static Pages
@@ -22,12 +22,43 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: route === '' ? 1 : 0.8,
     }));
 
-    // Dynamic Blog Posts
-    const blogRoutes = BLOG_POSTS.map((post) => ({
+    // Dynamic Blog Posts (fallback to static data, try to fetch from API)
+    let posts = BLOG_POSTS.map(post => ({
+        slug: post.slug,
+        date: post.date
+    }));
+
+    try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000';
+        const res = await fetch(`${apiUrl}/blog?limit=100`, {
+            signal: AbortSignal.timeout(3000)
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.posts && data.posts.length > 0) {
+                // Merge static posts and API posts by slug to avoid duplicates
+                const uniquePostsMap = new Map();
+                // Add static posts first
+                posts.forEach(p => uniquePostsMap.set(p.slug, p));
+                // Add or overwrite with database posts
+                data.posts.forEach((p: any) => {
+                    uniquePostsMap.set(p.slug, {
+                        slug: p.slug,
+                        date: p.created_at || new Date().toISOString()
+                    });
+                });
+                posts = Array.from(uniquePostsMap.values());
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch dynamic blog posts for sitemap, using fallback", e);
+    }
+
+    const blogRoutes = posts.map((post) => ({
         url: `${baseUrl}/blog/${post.slug}`,
-        lastModified: new Date(post.date), // Use post date or current date
+        lastModified: new Date(post.date),
         changeFrequency: 'weekly' as const,
-        priority: 0.9, // High priority for content
+        priority: 0.9,
     }));
 
 

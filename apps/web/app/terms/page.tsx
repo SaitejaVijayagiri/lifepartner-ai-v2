@@ -3,7 +3,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Terms of Service | LifePartner AI',
     description: 'Read the terms of service for using LifePartner AI. By accessing or using our services, you agree to be bound by these terms.',
-    keywords: ['terms of service', 'lifepartner terms', 'user agreement']
+    keywords: ['terms of service', 'lifepartner terms', 'user agreement'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/terms',
+    }
 };
 
 export default function TermsPage() {

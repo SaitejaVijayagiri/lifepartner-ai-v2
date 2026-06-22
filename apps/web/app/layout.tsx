@@ -66,12 +66,6 @@ export const metadata: Metadata = {
     description: "Join 10,000+ verified singles finding love on LifePartner AI. The smarter, safer alternative to Shaadi, Jeevansathi, and dating apps.",
     images: ["/og-image.jpg"],
   },
-  alternates: {
-    canonical: "https://lifepartnerai.in",
-    languages: {
-      'en-IN': 'https://lifepartnerai.in',
-    },
-  },
   category: "Dating Application",
   other: {
     "mobile-web-app-capable": "yes",

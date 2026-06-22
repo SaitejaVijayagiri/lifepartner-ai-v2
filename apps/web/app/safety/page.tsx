@@ -5,7 +5,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Dating Safety Tips | LifePartner AI',
     description: 'Prioritize your safety with our dating tips and verify your matches using our 100% human-verified system.',
-    keywords: ['dating safety', 'safe matrimony', 'anti catfish dating']
+    keywords: ['dating safety', 'safe matrimony', 'anti catfish dating'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/safety',
+    }
 };
 
 export default function SafetyPage() {

@@ -7,7 +7,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'About Our Mission | LifePartner AI',
     description: "Learn why we built India's first 100% Free, AI-Powered, and Transparent matchmaking platform without fake profiles or paywalls.",
-    keywords: ['about lifepartner ai', 'free matrimony mission', 'saiteja founder matrimony', 'transparent matchmaking', 'no paywall matrimony']
+    keywords: ['about lifepartner ai', 'free matrimony mission', 'saiteja founder matrimony', 'transparent matchmaking', 'no paywall matrimony'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/about',
+    }
 };
 
 export default function AboutPage() {

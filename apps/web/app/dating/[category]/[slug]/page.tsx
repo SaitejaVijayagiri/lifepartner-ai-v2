@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             images: ['/og-image.jpg'],
         },
         alternates: {
-            canonical: `https://lifepartnerai.in/dating/${category}/${slug}`,
+            canonical: `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
         }
     };
 }

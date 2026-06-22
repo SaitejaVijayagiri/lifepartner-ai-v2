@@ -5,7 +5,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Careers | LifePartner AI',
     description: 'Join the LifePartner AI team and help us build the future of human connection and matchmaking in India.',
-    keywords: ['startup jobs', 'lifepartner ai careers', 'matrimony jobs']
+    keywords: ['startup jobs', 'lifepartner ai careers', 'matrimony jobs'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/careers',
+    }
 };
 
 export default function CareersPage() {

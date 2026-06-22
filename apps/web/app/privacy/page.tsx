@@ -3,7 +3,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Privacy Policy | LifePartner AI',
     description: 'Read the privacy policy for LifePartner AI. We respect your privacy and are committed to protecting your personal data.',
-    keywords: ['privacy policy', 'data protection', 'lifepartner privacy']
+    keywords: ['privacy policy', 'data protection', 'lifepartner privacy'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/privacy',
+    }
 };
 
 export default function PrivacyPage() {

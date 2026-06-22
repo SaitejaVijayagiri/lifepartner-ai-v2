@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
     title: 'Relationship Advice & Matchmaking Blog | LifePartner AI',
     description: 'Expert advice on dating, marriage, astrology matching, and finding a serious relationship in the modern world.',
-    keywords: ['relationship advice', 'dating tips', 'astrology compatibility', 'matrimony blog', 'LifePartner AI']
+    keywords: ['relationship advice', 'dating tips', 'astrology compatibility', 'matrimony blog', 'LifePartner AI'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/blog',
+    }
 };
 
 interface BlogPost {

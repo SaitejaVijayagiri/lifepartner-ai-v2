@@ -3,7 +3,10 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
     title: 'Refund Policy | LifePartner AI',
     description: 'Read the cancellation and refund policy for LifePartner AI premium features and coin purchases.',
-    keywords: ['refund policy', 'cancellation policy', 'lifepartner ai billing']
+    keywords: ['refund policy', 'cancellation policy', 'lifepartner ai billing'],
+    alternates: {
+        canonical: 'https://lifepartnerai.in/refund-policy',
+    }
 };
 
 export default function RefundPolicyPage() {

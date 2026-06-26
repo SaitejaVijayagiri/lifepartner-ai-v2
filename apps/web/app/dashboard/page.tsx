@@ -23,7 +23,7 @@ import SpeedDatingLobby from '@/components/SpeedDatingLobby';
 import SpeedDateFeedbackModal from '@/components/SpeedDateFeedbackModal';
 
 // Performance: Lazy-load heavy components that aren't needed on first paint
-const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'));
+const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'), { ssr: false });
 const ConnectionsTab = dynamic(() => import('@/components/dashboard/ConnectionsTab'), { ssr: false });
 const RequestsTab = dynamic(() => import('@/components/dashboard/RequestsTab'), { ssr: false });
 const KundliModal = dynamic(() => import('@/components/KundliModal'));
@@ -80,6 +80,7 @@ function DashboardContent() {
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [activeFilters, setActiveFilters] = useState<FilterState | null>(null);
 
+    const [selectedProfile, setSelectedProfile] = useState<any>(null);
     const [selectedKundli, setSelectedKundli] = useState<{ data: any, names: { me: string, partner: string } } | null>(null);
 
     /* Gift State */
@@ -88,13 +89,13 @@ function DashboardContent() {
     /* Speed Dating State */
     const [showSpeedDatingLobby, setShowSpeedDatingLobby] = useState(false);
 
-    /* Push Notification Toggle State */
-    const [pushEnabled, setPushEnabled] = useState<boolean>(() => {
+    const [pushEnabled, setPushEnabled] = useState<boolean>(true);
+
+    useEffect(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('push_notifications_enabled') !== 'false';
+            setPushEnabled(localStorage.getItem('push_notifications_enabled') !== 'false');
         }
-        return true;
-    });
+    }, []);
 
     /* Game State - for connections list */
     const [gameTarget, setGameTarget] = useState<{ id: string; name: string } | null>(null);

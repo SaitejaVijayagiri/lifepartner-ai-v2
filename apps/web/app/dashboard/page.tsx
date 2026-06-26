@@ -23,10 +23,10 @@ import SpeedDatingLobby from '@/components/SpeedDatingLobby';
 import SpeedDateFeedbackModal from '@/components/SpeedDateFeedbackModal';
 
 // Performance: Lazy-load heavy components that aren't needed on first paint
-const MatchCard = dynamic(() => import('@/components/MatchCard'));
+const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'));
+const ConnectionsTab = dynamic(() => import('@/components/dashboard/ConnectionsTab'), { ssr: false });
+const RequestsTab = dynamic(() => import('@/components/dashboard/RequestsTab'), { ssr: false });
 const KundliModal = dynamic(() => import('@/components/KundliModal'));
-const StoryModal = dynamic(() => import('@/components/StoryModal'));
-const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
 const ProfileEditor = dynamic(() => import('@/components/ProfileEditor'), { ssr: false });
 const ProfileModal = dynamic(() => import('@/components/ProfileModal'));
 const ChatWindow = dynamic(() => import('@/components/ChatWindow'), { ssr: false });
@@ -41,14 +41,7 @@ const FloatingLoveGuru = dynamic(() => import('@/components/FloatingLoveGuru'), 
 import { Capacitor } from '@capacitor/core';
 
 // Duplicate InteractiveMap removed
-/* Mock Data for Stories */
-const STORIES = [
-    { id: '1', user: 'Ananya', img: 'https://i.pravatar.cc/150?u=1' },
-    { id: '2', user: 'Rahul', img: 'https://i.pravatar.cc/150?u=2' },
-    { id: '3', user: 'Vikram', img: 'https://i.pravatar.cc/150?u=3' },
-    { id: '4', user: 'Sneha', img: 'https://i.pravatar.cc/150?u=4', hasStory: true },
-    { id: '5', user: 'Priya', img: 'https://i.pravatar.cc/150?u=5', hasStory: true },
-];
+
 
 /* Mock Data for Events */
 
@@ -84,14 +77,9 @@ function DashboardContent() {
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [initialStoreTab, setInitialStoreTab] = useState<'coins' | 'premium'>('coins');
     const [showCallHistory, setShowCallHistory] = useState(false);
-    const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
-    const [visitorsData, setVisitorsData] = useState<any>(null);
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [activeFilters, setActiveFilters] = useState<FilterState | null>(null);
 
-    /* Story State */
-    const [currentStoryIndex, setCurrentStoryIndex] = useState<number | null>(null);
-    const [storyFeed, setStoryFeed] = useState<any[]>([]);
     const [selectedKundli, setSelectedKundli] = useState<{ data: any, names: { me: string, partner: string } } | null>(null);
 
     /* Gift State */
@@ -220,11 +208,10 @@ function DashboardContent() {
 
             // PERF: Fire profile check + matches + counts all in parallel
             try {
-                const [profileResult, matchesResult, countsResult, storyFeedResult] = await Promise.allSettled([
+                const [profileResult, matchesResult, countsResult] = await Promise.allSettled([
                     api.profile.getMe(),
                     api.matches.getAll(),
-                    api.interactions.getCounts(),
-                    api.profile.getStoryFeed()
+                    api.interactions.getCounts()
                 ]);
 
                 // Handle profile
@@ -271,9 +258,6 @@ function DashboardContent() {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
                     } catch (e) {}
                 }
-                if (storyFeedResult.status === 'fulfilled') {
-                    setStoryFeed(storyFeedResult.value?.feed || []);
-                }
 
                 setLoading(false);
 
@@ -282,12 +266,6 @@ function DashboardContent() {
                     setRequestsCount(countsResult.value?.requestCount || 0);
                     setUnreadMessageCount(countsResult.value?.unreadMessages || 0);
                 }
-
-                // Lazy-load secondary data (who liked me, visitors) after render
-                setTimeout(() => {
-                    api.interactions.whoLikedMe().then(setWhoLikedMe).catch(() => {});
-                    api.interactions.getVisitors().then(setVisitorsData).catch(() => {});
-                }, 800);
 
             } catch (err: any) {
                 console.error('Auth/init error', err);
@@ -440,17 +418,6 @@ function DashboardContent() {
             const reqs = await api.interactions.getRequests();
             setRequestsCount(reqs.length);
         } catch (e) { console.error(e); }
-        // Fetch who liked me
-        try {
-            const likesData = await api.interactions.whoLikedMe();
-            setWhoLikedMe(likesData);
-        } catch (e) { console.error('Who liked me error:', e); }
-
-        // Fetch visitors
-        try {
-            const vData = await api.interactions.getVisitors();
-            setVisitorsData(vData);
-        } catch (e) { console.error('Visitors error:', e); }
     };
 
     const fetchMatches = async (pageNum = 1) => {
@@ -861,754 +828,6 @@ function DashboardContent() {
         </header >
     );
 
-    const [activeStorySet, setActiveStorySet] = useState<any>(null);
-    const [storyFiles, setStoryFiles] = useState<File[] | null>(null);
-    const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
-
-    const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-
-        // Prevent mixing videos and images
-        const hasVideo = files.some(f => f.type.startsWith('video'));
-        if (hasVideo && files.length > 1) {
-            toast.error("Please select only 1 video or multiple images.");
-            return;
-        }
-
-        // Limit to 10 images
-        if (files.length > 10) {
-            toast.error("You can select up to 10 images maximum.");
-            return;
-        }
-
-        const validFiles: File[] = [];
-        const previewUrls: string[] = [];
-        
-        for (const file of files) {
-            if (file.size > 50 * 1024 * 1024) {
-                toast.error(`File ${file.name} is too large (Max 50MB)`);
-                continue;
-            }
-            validFiles.push(file);
-            previewUrls.push(URL.createObjectURL(file));
-        }
-
-        if (validFiles.length > 0) {
-            setStoryFiles(validFiles);
-            setStoryPreviewUrls(previewUrls);
-        }
-    };
-
-    const handleViewStory = (user: any) => {
-        if (!user.stories || user.stories.length === 0) return;
-        setActiveStorySet({
-            stories: user.stories,
-            user: user
-        });
-    };
-
-
-    const renderStories = () => (
-        <div className="relative">
-            {/* Stories Container with gradient fade edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
-
-            <div className="flex gap-5 overflow-x-auto pb-4 no-scrollbar px-6 pt-2">
-                {/* My Story Upload - Premium Design */}
-                <div className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group">
-                    <label className="relative cursor-pointer">
-                        <div className="w-20 h-20 rounded-full p-[3px] border-2 border-dashed border-gray-300 dark:border-gray-700 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
-                            <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
-                                    +
-                                </div>
-                            </div>
-                            {/* Hover glow effect */}
-                            <div className="absolute inset-0 rounded-full bg-indigo-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity"></div>
-                        </div>
-                        <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleStoryFileSelect} />
-                    </label>
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
-                </div>
-
-                {/* My Active Story (if any) - click to open full viewer */}
-                {currentUser?.stories?.filter((s: any) => new Date(s.expiresAt) > new Date()).map((story: any, i: number) => (
-                    <div key={'me' + i} className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group" onClick={() => {
-                        setActiveStorySet({
-                            stories: currentUser.stories.filter((s: any) => new Date(s.expiresAt) > new Date()),
-                            user: { ...currentUser, id: currentUser.id || currentUser.userId, name: currentUser.full_name || currentUser.name }
-                        });
-                    }}>
-                        <div className="relative">
-                            <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
-                                <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                    <img src={currentUser.photos?.[0] || currentUser.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt="You" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.full_name || 'Me')}`; }} />
-                                </div>
-                            </div>
-                            {/* Live indicator */}
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md">
-                                You
-                            </div>
-                        </div>
-                        <span className="text-xs font-semibold text-foreground mt-1">Your Story</span>
-                    </div>
-                ))}
-
-                {/* Other Users' Stories (opposite gender via feed API) */}
-                {storyFeed.map((feedUser, idx) => {
-                    const currentUserId = currentUser?.id || currentUser?.userId;
-                    const isAllViewed = currentUserId && feedUser.stories && feedUser.stories.length > 0 && feedUser.stories.every((s: any) => s.views?.some((v: any) => v.userId === currentUserId));
-                    return (
-                        <div
-                            key={feedUser.id}
-                            className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
-                            style={{ animationDelay: `${idx * 50}ms` }}
-                            onClick={() => handleViewStory(feedUser)}
-                        >
-                            <div className="relative">
-                                <div className={`w-20 h-20 rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 ${
-                                    isAllViewed 
-                                        ? 'bg-slate-200 dark:bg-slate-800 shadow-sm border border-slate-300/30 dark:border-slate-700/30' 
-                                        : 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40'
-                                }`}>
-                                    <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                        <img src={feedUser.photoUrl || '/avatar-fallback.svg'} className="w-full h-full rounded-full object-cover" alt={feedUser.name} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(feedUser.name || 'User')}`; }} />
-                                    </div>
-                                </div>
-                                {/* Unread indicator */}
-                                {!isAllViewed && (
-                                    <div className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
-                                )}
-                            </div>
-                            <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{feedUser.name}</span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-
-
-
-    const [searchQuery, setSearchQuery] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-
-    const [selectedProfile, setSelectedProfile] = useState<any>(null);
-    const [aiFilters, setAiFilters] = useState<any>(null); // New: Store AI's understanding
-
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) return;
-        setLoading(true);
-        setIsSearching(true); // Trigger "Thinking" UI
-        setAiFilters(null);
-        try {
-            // Simulate AI "Thinking" delay for UX (at least 1.5s)
-            const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
-            const [results] = await Promise.all([
-                api.matches.search(searchQuery),
-                minDelay
-            ]);
-
-            setMatches(results.matches || []);
-            setAiFilters(results.filters || null); // Save filters for feedback header
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-            setIsSearching(false);
-        }
-    };
-
-    const renderDiscoveryFeed = () => {
-        if (loading) {
-            return (
-                <div className="w-full space-y-8 pb-32">
-                    {/* Skeleton for AI Search */}
-                    {/* AI "Thinking" UI - Replaces generic skeleton */}
-                    <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-indigo-100/50 dark:border-indigo-900/50 space-y-6 text-center relative overflow-hidden">
-                        {/* Animated Gradient Background */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 animate-pulse"></div>
-
-                        <div className="relative z-10 flex flex-col items-center gap-4">
-                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-bounce">
-                                <Sparkles className="text-white animate-spin-slow" size={32} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent animate-pulse">
-                                    Analyzing your preferences...
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-2">Connecting dots between query, personality, and database...</p>
-                            </div>
-
-                            {/* Fake Progress Steps */}
-                            <div className="flex gap-2 mt-2">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_0ms]"></span>
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_200ms]"></span>
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-[bounce_1s_infinite_400ms]"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Skeleton Header */}
-                    <div className="flex items-center justify-between px-2">
-                        <div className="h-8 w-56 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 rounded-lg animate-pulse"></div>
-                        <div className="h-4 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse"></div>
-                    </div>
-
-                    {/* Skeleton Cards Grid - 3 columns on desktop */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 dark:border-gray-800 animate-pulse">
-                                {/* Image Skeleton with gradient shimmer */}
-                                <div className="h-72 bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 dark:via-white/5 to-transparent skeleton-shimmer"></div>
-                                </div>
-                                {/* Content Skeleton */}
-                                <div className="p-5 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="h-6 w-32 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
-                                        <div className="h-8 w-16 bg-indigo-100 dark:bg-indigo-900/40 rounded-full"></div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="h-4 w-full bg-gray-100 dark:bg-gray-800 rounded"></div>
-                                        <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-800 rounded"></div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <div className="h-6 w-16 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
-                                        <div className="h-6 w-20 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
-                                        <div className="h-6 w-14 bg-gray-100 dark:bg-gray-800 rounded-full"></div>
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <div className="flex-1 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"></div>
-                                        <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 rounded-xl"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-            <div className="w-full space-y-8 pb-32">
-                {/* Speed Dating Banner */}
-                <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 md:p-8 mb-6 text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-4 bg-white/20 backdrop-blur-md rounded-2xl hidden sm:flex items-center justify-center">
-                                <Zap className="w-8 h-8 text-white animate-pulse" />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2">
-                                    <Sparkles className="text-yellow-300 w-6 h-6 animate-pulse" />
-                                    Live Speed Dating
-                                </h3>
-                                <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowSpeedDatingLobby(true)}
-                            className="bg-white text-purple-700 hover:bg-purple-50 active:bg-purple-100 font-bold shadow-xl border-0 px-8 py-4 rounded-2xl text-lg hover:scale-105 active:scale-100 transition-all w-full md:w-auto focus:outline-none focus:ring-4 focus:ring-purple-300 cursor-pointer"
-                        >
-                            ⚡ Enter Lobby
-                        </button>
-                    </div>
-                </div>
-
-                {/* Recent Visitors Section */}
-                {
-                    visitorsData && visitorsData.visitors?.length > 0 && (
-                        <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-blue-900/20 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
-                            {/* Decorative */}
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-200/40 to-indigo-300/40 rounded-full blur-2xl"></div>
-
-                            <div className="flex items-center justify-between mb-4 relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
-                                        <Eye className="text-white" size={20} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                            Recent Visitors
-                                            {!visitorsData.isPremium && (
-                                                <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                    <Crown size={10} /> PREMIUM
-                                                </span>
-                                            )}
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            People who viewed in your profile recently
-                                        </p>
-                                    </div>
-                                </div>
-                                {!visitorsData.isPremium && (
-                                    <button
-                                        onClick={() => setShowCoinStore(true)}
-                                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-                                    >
-                                        <Eye size={16} /> Unlock
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Visitors List */}
-                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
-                                {visitorsData.visitors.map((visitor: any, idx: number) => (
-                                    <div
-                                        key={visitor.id || idx}
-                                        className={`flex-shrink-0 w-20 text-center group cursor-pointer ${visitor.isBlurred ? 'pointer-events-none' : ''}`}
-                                        onClick={() => !visitor.isBlurred && setSelectedProfile(visitor)}
-                                    >
-                                        <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-blue-200 ring-offset-2 ${visitor.isBlurred ? 'blur-md' : 'group-hover:ring-blue-400 transition-all'}`}>
-                                            <img
-                                                src={visitor.photoUrl || '/avatar-fallback.svg'}
-                                                alt={visitor.name}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(visitor.name || 'User')}`; }}
-                                            />
-                                            {visitor.isBlurred && (
-                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                                    <Lock size={20} className="text-white" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <p className={`text-xs font-semibold truncate ${visitor.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
-                                            {visitor.name}
-                                        </p>
-                                        {!visitor.isBlurred && (
-                                            <p className="text-[10px] text-gray-400">{visitor.age}, {visitor.location?.split(',')[0]}</p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* Who Liked You Section */}
-                {
-                    whoLikedMe && whoLikedMe.totalLikes > 0 && (
-                        <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 dark:from-pink-900/20 dark:via-rose-900/20 dark:to-pink-900/20 p-5 rounded-3xl border border-pink-100 dark:border-pink-900/30 overflow-hidden">
-                            {/* Decorative */}
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
-
-                            <div className="flex items-center justify-between mb-4 relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
-                                        <Heart className="text-white" size={20} fill="white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                            Who Liked You
-                                            {!whoLikedMe.isPremium && (
-                                                <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                                    <Crown size={10} /> PREMIUM
-                                                </span>
-                                            )}
-                                        </h3>
-                                        <p className="text-sm text-gray-500">
-                                            {whoLikedMe.isPremium
-                                                ? `${whoLikedMe.totalLikes} people liked your profile`
-                                                : whoLikedMe.message}
-                                        </p>
-                                    </div>
-                                </div>
-                                {!whoLikedMe.isPremium && (
-                                    <button
-                                        onClick={() => setShowCoinStore(true)}
-                                        className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-                                    >
-                                        <Eye size={16} /> See All
-                                    </button>
-                                )}
-                            </div>
-
-                            {/* Likes Grid */}
-                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
-                                {whoLikedMe.likes?.map((like: any, idx: number) => (
-                                    <div
-                                        key={like.id || idx}
-                                        className={`flex-shrink-0 w-20 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
-                                        onClick={() => !like.isBlurred && setSelectedProfile(like)}
-                                    >
-                                        <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
-                                            <img
-                                                src={like.photoUrl || '/avatar-fallback.svg'}
-                                                alt={like.name}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(like.name || 'User')}`; }}
-                                            />
-                                            {like.isBlurred && (
-                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                                    <Lock size={20} className="text-white" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-pink-600 dark:group-hover:text-pink-400'}`}>
-                                            {like.name}
-                                        </p>
-                                        {!like.isBlurred && (
-                                            <p className="text-[10px] text-gray-400">{like.age}, {like.location?.split(',')[0]}</p>
-                                        )}
-                                    </div>
-                                ))}
-
-                                {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
-                                    <div
-                                        className="flex-shrink-0 w-20 text-center cursor-pointer"
-                                        onClick={() => setShowCoinStore(true)}
-                                    >
-                                        <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 border-2 border-dashed border-amber-300 flex items-center justify-center">
-                                            <span className="text-amber-600 font-bold text-sm">+{whoLikedMe.totalLikes - 3}</span>
-                                        </div>
-                                        <p className="text-xs font-semibold text-amber-600">See More</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* AI Search Bar - Premium Glass Design */}
-                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
-                    {/* Decorative gradient orbs */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
-                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
-
-                    <div className="relative z-10">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-1">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
-                                <Sparkles className="text-white" size={20} />
-                            </div>
-                            <span className="text-gradient">AI Matchmaker</span>
-                        </h2>
-                        <p className="text-sm text-gray-500 ml-12">Describe your ideal partner and let AI find the perfect match</p>
-                    </div>
-
-                    <div className="flex gap-3 relative z-10">
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="e.g., 'Architect in Mumbai who loves hiking and reading'..."
-                            className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
-                        />
-                        <button
-                            onClick={handleSearch}
-                            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
-                        >
-                            <Search size={18} />
-                            <span className="hidden sm:inline">Search</span>
-                        </button>
-                    </div>
-                </div>
-
-
-                {/* Header for Feed - Enhanced */}
-                {/* Header for Feed - Enhanced with AI Feedback */}
-                {aiFilters && (
-                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-2xl p-4 mb-6 aniimate-in fade-in slide-in-from-top-4">
-                        <div className="flex items-start gap-3">
-                            <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400">
-                                <Sparkles size={18} />
-                            </div>
-                            <div>
-                                <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-100">Here's what I understood:</h3>
-                                <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">
-                                    Looking for
-                                    {aiFilters.profession && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💼 {aiFilters.profession}</span>}
-                                    {aiFilters.location && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">📍 {aiFilters.location}</span>}
-                                    {aiFilters.values?.length > 0 && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💛 {aiFilters.values[0]}</span>}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex items-center justify-between px-2">
-                    <div>
-                        <h2 className="text-2xl font-heading font-bold text-foreground">
-                            {searchQuery ? (aiFilters ? 'AI Recommended Matches' : 'Search Results') : 'Daily Recommendations'}
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-1">Handpicked matches just for you ✨</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full border border-indigo-100">
-                            {matches.length} matches
-                        </span>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {displayMatches.map((match, idx) => (
-                        <div
-                            key={match.id}
-                            className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium"
-                            style={{ animationDelay: `${idx * 100}ms` }}
-                        >
-                            <MatchCard
-                                match={match}
-                                onConnect={() => {
-                                    // Optimistically mark as pending so "✓ Request Sent" badge shows
-                                    setMatches(prev => prev.map(m =>
-                                        m.id === match.id ? { ...m, match_status: 'pending' } : m
-                                    ));
-                                    // Bust cache so next page load fetches real status
-                                    try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
-                                }}
-                                onViewProfile={() => setSelectedProfile(match)}
-                                onShowKundli={(data: any) => setSelectedKundli({
-                                    data,
-                                    names: { me: "You", partner: match.name }
-                                })}
-                                onGift={() => setGiftData({ userId: match.id, userName: match.name })}
-                    isConnectedProp={connections.some((c: any) => c.partner?.id === match.id)}
-                                onChat={() => {
-                                    const conn = connections.find((c: any) => c.partner?.id === match.id);
-                                    if (conn) {
-                                        openChat(conn);
-                                    } else {
-                                        setActiveTab('connections');
-                                    }
-                                }}
-                            />
-                        </div>
-                    ))}
-                </div>
-
-                {hasMore && displayMatches.length > 0 && (
-                    <div className="flex justify-center mt-10">
-                        <button
-                            onClick={() => fetchMatches(page + 1)}
-                            disabled={loadingMore}
-                            className="bg-white border-2 border-indigo-100 text-indigo-600 px-8 py-3 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-indigo-50 transition-all flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {loadingMore ? (
-                                <>
-                                    <div className="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
-                                    Loading...
-                                </>
-                            ) : (
-                                'Load More Matches'
-                            )}
-                        </button>
-                    </div>
-                )}
-
-                {
-                    displayMatches.length === 0 && (
-                        <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100">
-                            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                                <Search className="text-gray-300" size={40} />
-                            </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                {activeFilters ? 'No matches with these filters' : 'No Matches Found'}
-                            </h3>
-                            <p className="text-gray-500 max-w-sm mx-auto">
-                                {activeFilters
-                                    ? 'Try adjusting your filter criteria to see more profiles.'
-                                    : 'Try adjusting your search criteria or check back later for new recommendations.'}
-                            </p>
-                            {activeFilters && (
-                                <button
-                                    onClick={() => setActiveFilters(null)}
-                                    className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition-colors"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                        </div>
-                    )
-                }
-            </div >
-        );
-    };
-
-    const renderRequests = () => (
-        <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-3 sm:space-y-4">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1 text-gray-900 dark:text-white">
-                Pending Requests <span className="text-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full text-base ml-2">{requests.length}</span>
-            </h2>
-            {requests.length === 0 && (
-                <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-800/20 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
-                    <Heart className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">No pending requests at the moment</p>
-                </div>
-            )}
-            {requests.map((req: any) => (
-                <div key={req.interactionId} className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-3xl shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-all duration-300 justify-between group overflow-hidden relative">
-                    {/* Decorative gradient blur */}
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-400/10 to-purple-500/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    
-                    <div className="flex items-center gap-4 w-full sm:w-auto relative z-10">
-                        <div className="relative">
-                            <img src={req.fromUser.photoUrl || '/avatar-fallback.svg'} className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-lg shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.fromUser.name || 'User')}`; }} />
-                            <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-rose-400 to-pink-500 text-white p-1.5 rounded-full border-2 border-white dark:border-gray-800 shadow-md">
-                                <Heart size={12} fill="white" />
-                            </div>
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                {req.fromUser.name || 'Someone'}
-                                {req.fromUser.age && <span className="text-sm font-normal text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md">{req.fromUser.age}</span>}
-                            </h4>
-                            <div className="flex flex-col gap-1 mt-1">
-                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <MapPin size={14} className="text-indigo-400 shrink-0" />
-                                    <span className="truncate">{typeof req.fromUser.location === 'string' ? req.fromUser.location : (req.fromUser.location?.city || "Unknown Location")}</span>
-                                </p>
-                                {req.fromUser.career?.profession && (
-                                     <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                         <Briefcase size={14} className="text-indigo-400 shrink-0" /> 
-                                         <span className="truncate">{req.fromUser.career.profession}</span>
-                                     </p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="flex gap-2 sm:gap-3 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700 relative z-10">
-                        <button 
-                            onClick={() => handleDeclineRequest(req.interactionId)} 
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 dark:bg-gray-800 dark:hover:bg-rose-900/20 border border-gray-200 dark:border-gray-700 dark:text-gray-300 dark:hover:text-rose-400 rounded-2xl font-bold transition-all"
-                        >
-                            <X size={18} strokeWidth={3} /> Decline
-                        </button>
-                        <button 
-                            onClick={() => handleAcceptRequest(req.interactionId)} 
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl font-bold shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all"
-                        >
-                            <Check size={18} strokeWidth={3} /> Accept
-                        </button>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-
-    const renderConnections = () => {
-        // Sort connections so online users appear at the top, preserving the recent-message order within groups
-        const onlineConns = connections.filter(c => onlineUsers.includes(c.partner.id));
-        const offlineConns = connections.filter(c => !onlineUsers.includes(c.partner.id));
-        const sortedConnections = [...onlineConns, ...offlineConns];
-
-        return (
-            <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1 text-gray-900 dark:text-white">Your Connections</h2>
-                {sortedConnections.length === 0 && (
-                    <div className="text-center py-20 text-gray-500 dark:text-gray-400">No connections yet</div>
-                )}
-                {sortedConnections.map((conn: any) => (
-                    <div
-                        key={conn.interactionId}
-                        className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md group"
-                    >
-                        <div
-                            className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
-                            onClick={() => openChat(conn)}
-                        >
-                            <div className="relative">
-                                <img src={conn.partner.photoUrl || '/avatar-fallback.svg'} className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(conn.partner.name || 'User')}`; }} />
-                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">
-                                        {conn.partner.name}
-                                    </h4>
-                                    {conn.unreadCount > 0 && (
-                                        <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full min-w-[18px] sm:min-w-[20px] text-center shadow-sm animate-pulse">
-                                            {conn.unreadCount}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
-                                    {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 border-gray-100 dark:border-gray-700 pt-3 sm:pt-0 mt-2 sm:mt-0">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full"
-                                title="Remove Connection"
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (!confirm("Are you sure you want to remove this connection?")) return;
-                                    try {
-                                        await api.interactions.deleteConnection(conn.interactionId);
-                                        setConnections(prev => prev.filter((c: any) => c.interactionId !== conn.interactionId));
-                                        toast.success("Connection removed");
-                                    } catch (err) {
-                                        toast.error("Failed to remove");
-                                    }
-                                }}
-                            >
-                                <Trash2 size={20} />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                title={currentUser?.muted_users?.includes(conn.partner.id) ? "Unmute Notifications" : "Mute Notifications"}
-                                className={currentUser?.muted_users?.includes(conn.partner.id)
-                                    ? "text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-full"
-                                    : "text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-full"}
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    try {
-                                        const res = await api.profile.toggleMute(conn.partner.id);
-                                        if (res.isMuted !== undefined) {
-                                            const currentMuted: string[] = currentUser?.muted_users || [];
-                                            const newMuted = res.isMuted
-                                                ? [...currentMuted, conn.partner.id]
-                                                : currentMuted.filter((id: string) => id !== conn.partner.id);
-                                            setCurrentUser((prev: any) => ({ ...prev, muted_users: newMuted }));
-                                            toast.success(res.isMuted ? `${conn.partner.name} muted` : `${conn.partner.name} unmuted`);
-                                        }
-                                    } catch (err) {
-                                        toast.error("Failed to update mute");
-                                    }
-                                }}
-                            >
-                                {currentUser?.muted_users?.includes(conn.partner.id)
-                                    ? <BellOff size={18} />
-                                    : <Bell size={18} />}
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Play Compatibility Quiz"
-                                className="text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full text-lg"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setGameTarget({ id: conn.partner.id, name: conn.partner.name });
-                                }}
-                            >
-                                🎲
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-full"
-                                onClick={() => openChat(conn)}
-                            >
-                                <MessageCircle size={20} />
-                            </Button>
-                        </div>
-                    </div>
-                ))
-                }
-            </div >
-        );
-    };
-
     if (loading && !currentUser) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-gray-950 relative overflow-hidden">
@@ -1649,14 +868,49 @@ function DashboardContent() {
                 {/* Main Feed Column */}
                 <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'map' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
                     {activeTab === 'matches' && (
-                        <div className="mb-8">{renderStories()}</div>
+                        <MatchesTab
+                            currentUser={currentUser}
+                            setCurrentUser={setCurrentUser}
+                            matches={matches}
+                            setMatches={setMatches}
+                            fetchMatches={fetchMatches}
+                            hasMore={hasMore}
+                            loadingMore={loadingMore}
+                            page={page}
+                            activeFilters={activeFilters}
+                            setActiveFilters={setActiveFilters}
+                            setSelectedProfile={setSelectedProfile}
+                            setSelectedKundli={setSelectedKundli}
+                            setGiftData={setGiftData}
+                            connections={connections}
+                            openChat={openChat}
+                            setActiveTab={setActiveTab}
+                            setShowCoinStore={setShowCoinStore}
+                            setShowSpeedDatingLobby={setShowSpeedDatingLobby}
+                        />
                     )}
-
-                    {activeTab === 'matches' && renderDiscoveryFeed()}
                     {activeTab === 'map' && <InteractiveMap profiles={mapProfiles} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />}
 
-                    {activeTab === 'requests' && renderRequests()}
-                    {activeTab === 'connections' && renderConnections()}
+                    {activeTab === 'requests' && (
+                        <RequestsTab
+                            requests={requests}
+                            handleAcceptRequest={handleAcceptRequest}
+                            handleDeclineRequest={handleDeclineRequest}
+                            loading={loading}
+                        />
+                    )}
+                    {activeTab === 'connections' && (
+                        <ConnectionsTab
+                            currentUser={currentUser}
+                            setCurrentUser={setCurrentUser}
+                            connections={connections}
+                            setConnections={setConnections}
+                            onlineUsers={onlineUsers}
+                            openChat={openChat}
+                            setGameTarget={setGameTarget}
+                            setUnreadMessageCount={setUnreadMessageCount}
+                        />
+                    )}
                     {activeTab === 'events' && <MeetSpots currentUser={currentUser} />}
 
                     {activeTab === 'community' && (
@@ -1863,56 +1117,7 @@ function DashboardContent() {
                 }}
             />
 
-            {activeStorySet && (
-                <StoryModal
-                    initialIndex={0}
-                    stories={activeStorySet.stories}
-                    user={{
-                        id: activeStorySet.user?.id || activeStorySet.user?.userId || 'me',
-                        name: activeStorySet.user?.name || activeStorySet.user?.full_name || 'User',
-                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeStorySet.user?.name || 'User')}`
-                    }}
-                    currentUser={currentUser}
-                    onClose={() => {
-                        setActiveStorySet(null);
-                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
-                    }}
-                    onDelete={async (deletedId) => {
-                        await api.profile.deleteStory(deletedId);
-                        // Optimistically remove from view or refresh
-                        setActiveStorySet(null);
-                        // Refresh full feed
-                        api.profile.getMe().then(setCurrentUser);
-                        // Also refresh story feed
-                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
-                    }}
-                    onViewProfile={async (userId: string, userName?: string, userPhotoUrl?: string) => {
-                        // Close story modal instantly to prevent lag/overlay blockages
-                        setActiveStorySet(null);
-                        
-                        // First check if viewer is already in the matches list
-                        const existingMatch = matches.find((m: any) => m.id === userId);
-                        if (existingMatch) {
-                            setSelectedProfile(existingMatch);
-                        } else {
-                            // Optimistically open MatchCard with basic details instantly
-                            setSelectedProfile({
-                                id: userId,
-                                name: userName || 'User',
-                                photoUrl: userPhotoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(userName || 'User')}`,
-                                bio: 'Loading full details...'
-                            });
-                            // Fetch profile from API and open ProfileModal
-                            try {
-                                const data = await api.profile.getById(userId);
-                                if (data) setSelectedProfile(data);
-                            } catch (e) {
-                                console.error('Failed to load viewer profile', e);
-                            }
-                        }
-                    }}
-                />
-            )}
+            
 
             {selectedConnection && (
                 <ChatWindow
@@ -1988,20 +1193,7 @@ function DashboardContent() {
                 />
             )}
 
-            {/* Story Creator Modal */}
-            {storyPreviewUrls && storyFiles && (
-                <StoryCreator 
-                    storyFiles={storyFiles}
-                    storyPreviewUrls={storyPreviewUrls}
-                    onClose={() => { setStoryPreviewUrls(null); setStoryFiles(null); }}
-                    onSuccess={async () => {
-                        setStoryFiles(null);
-                        setStoryPreviewUrls(null);
-                        const me = await api.profile.getMe();
-                        setCurrentUser(me);
-                    }}
-                />
-            )}
+            
 
             {/* Filter Modal */}
             <FilterModal

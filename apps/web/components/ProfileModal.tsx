@@ -422,7 +422,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                         <span className="text-green-600 dark:text-green-400">✓</span> See Who Liked You
                                                     </div>
                                                     <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                                                        <span className="text-green-600 dark:text-green-400">✓</span> Unlimited Interest Requests
+                                                        <span className="text-green-600 dark:text-green-400">✓</span> Verified Profile Badge
                                                     </div>
                                                 </div>
 

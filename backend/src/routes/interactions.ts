@@ -350,30 +350,8 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         const targetName = target.full_name || "User";
         const targetEmail = target.email;
         const isPremium = user.is_premium;
-
         try {
-            // Rate Limit (Free: 5/day)
-        if (!isPremium) {
-            const todayStart = new Date();
-            todayStart.setHours(0, 0, 0, 0);
-
-            const todayCount = await prisma.interactions.count({
-                where: {
-                    from_user_id: userId,
-                    type: 'REQUEST',
-                    created_at: { gte: todayStart }
-                }
-            });
-
-            if (todayCount >= 5) {
-                return res.status(403).json({
-                    error: "Daily Limit Reached",
-                    message: "You have reached your daily limit of 5 interests. Upgrade to Premium for unlimited connections!"
-                });
-            }
-        }
-
-        // 1. Check if we already sent a request to this user
+            // 1. Check if we already sent a request to this user
         const existingInteraction = await prisma.interactions.findUnique({
             where: {
                 from_user_id_to_user_id_type: {

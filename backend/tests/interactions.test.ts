@@ -81,8 +81,7 @@ describe('Interactions Routes (Prisma)', () => {
                 .mockResolvedValueOnce({ full_name: 'Me', is_premium: false }) // Me
                 .mockResolvedValueOnce({ full_name: 'Target', email: 't@example.com' }); // Target
 
-            // Mock count (< 5)
-            (prisma.interactions.count as jest.Mock).mockResolvedValue(2);
+
 
             // Mock upsert
             (prisma.interactions.upsert as jest.Mock).mockResolvedValue({ id: 'int1' });

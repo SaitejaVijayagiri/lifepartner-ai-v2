@@ -9,7 +9,7 @@ export function initAngelTimer() {
     cron.schedule('* * * * *', async () => {
         try {
             // 1. Find dates that started exactly 45-46 mins ago and haven't triggered safety check yet
-            const datesToPing: any[] = await prisma.$queryRawUnsafe(`
+            const datesToPing: any[] = await prisma.$queryRaw<any[]>`
                 SELECT d.*, 
                        u.email as receiver_email, 
                        u.full_name as receiver_name,
@@ -20,7 +20,7 @@ export function initAngelTimer() {
                   AND d.safety_check_triggered = false
                   AND d.date_time <= NOW() - INTERVAL '45 minutes'
                   AND d.date_time > NOW() - INTERVAL '50 minutes'
-            `);
+            `;
 
             for (const date of datesToPing) {
                 // Send push notification to the receiver asking if they are okay
@@ -53,15 +53,15 @@ export function initAngelTimer() {
                 }
 
                 // Mark as triggered so we don't spam
-                await prisma.$queryRawUnsafe(`
-                    UPDATE meet_dates SET safety_check_triggered = true WHERE id = $1::uuid;
-                `, date.id);
+                await prisma.$executeRaw`
+                    UPDATE meet_dates SET safety_check_triggered = true WHERE id = ${date.id}::uuid
+                `;
             }
 
             // 2. Find dates that were triggered 15 mins ago but haven't been 'completed' or 'cancelled'
             // and we need to alert the emergency contact.
             // (Assuming they click "Yes, I'm safe" which sets status to 'safe' or 'completed')
-            const datesToAlert: any[] = await prisma.$queryRawUnsafe(`
+            const datesToAlert: any[] = await prisma.$queryRaw<any[]>`
                 SELECT d.*, 
                        u.full_name as receiver_name,
                        u.id as receiver_id,
@@ -76,7 +76,7 @@ export function initAngelTimer() {
                   AND d.safety_check_triggered = true
                   AND d.date_time <= NOW() - INTERVAL '60 minutes'
                   AND d.date_time > NOW() - INTERVAL '65 minutes'
-            `);
+            `;
 
             for (const date of datesToAlert) {
                 const metadata = typeof date.profile_metadata === 'string' ? JSON.parse(date.profile_metadata) : (date.profile_metadata || {});

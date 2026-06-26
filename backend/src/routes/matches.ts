@@ -701,40 +701,36 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             queryVector = Array(384).fill(0);
         }
 
-        // Build dynamic SQL WHERE clauses
-        // SECURITY: userId is a UUID from auth middleware (trusted), but we still use cast.
-        // All other values are sanitized via escapeStr() to prevent SQL injection.
-        const escapeStr = (s: string) => s.replace(/'/g, "''").replace(/;/g, '').replace(/--/g, '');
-
-        let whereClauses = [`u.id != '${userId}'::uuid`, `u.is_verified = true`];
+        // Build dynamic SQL WHERE clauses using safe parameterized Prisma.sql fragments
+        const conditions: Prisma.Sql[] = [
+            Prisma.sql`u.id != ${userId}::uuid`,
+            Prisma.sql`u.is_verified = true`
+        ];
 
         // Gender
-        if (myGender === 'male') whereClauses.push(`u.gender ILIKE 'female'`);
-        else if (myGender === 'female') whereClauses.push(`u.gender ILIKE 'male'`);
+        if (myGender === 'male') conditions.push(Prisma.sql`u.gender ILIKE 'female'`);
+        else if (myGender === 'female') conditions.push(Prisma.sql`u.gender ILIKE 'male'`);
 
         // Age
-        if (filters.minAge) whereClauses.push(`u.age >= ${parseInt(filters.minAge)}`);
-        if (filters.maxAge) whereClauses.push(`u.age <= ${parseInt(filters.maxAge)}`);
+        if (filters.minAge) conditions.push(Prisma.sql`u.age >= ${parseInt(filters.minAge)}`);
+        if (filters.maxAge) conditions.push(Prisma.sql`u.age <= ${parseInt(filters.maxAge)}`);
 
         // Location
         if (filters.location) {
-            const loc = escapeStr(filters.location);
-            whereClauses.push(`(u.location_name ILIKE '%${loc}%' OR u.city ILIKE '%${loc}%' OR u.state ILIKE '%${loc}%')`);
+            conditions.push(Prisma.sql`(u.location_name ILIKE ${`%${filters.location}%`} OR u.city ILIKE ${`%${filters.location}%`} OR u.state ILIKE ${`%${filters.location}%`})`);
         }
 
         // Profession (Native JSONB)
         if (filters.profession) {
-            const prof = escapeStr(filters.profession);
-            whereClauses.push(`p.metadata->'career'->>'profession' ILIKE '%${prof}%'`);
+            conditions.push(Prisma.sql`p.metadata->'career'->>'profession' ILIKE ${`%${filters.profession}%`}`);
         }
 
         // Income (Native JSONB)
         if (filters.minIncome) {
-            // Only allow integers to reach the SQL
-            whereClauses.push(`COALESCE(NULLIF(regexp_replace(p.metadata->'career'->>'income', '[^0-9]', '', 'g'), ''), '0')::int >= ${parseInt(filters.minIncome)}`);
+            conditions.push(Prisma.sql`COALESCE(NULLIF(regexp_replace(p.metadata->'career'->>'income', '[^0-9]', '', 'g'), ''), '0')::int >= ${parseInt(filters.minIncome)}`);
         }
 
-        const whereSql = whereClauses.join(' AND ');
+        const whereSql = Prisma.join(conditions, ' AND ');
 
         // Validate vector: must be an array of exactly 384 floats
         // Prevents vector injection via malformed embedding arrays
@@ -745,17 +741,17 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         console.log("🚀 Executing AI Vector Search...");
 
-        const rawResults: any[] = await prisma.$queryRawUnsafe(`
+        const rawResults: any[] = await prisma.$queryRaw<any[]>`
             SELECT 
                 u.id, u.full_name, u.age, u.gender, u.city, u.state, u.location_name, u.avatar_url, u.is_premium,
                 p.raw_prompt, p.metadata,
-                1 - (p.embedding <=> '${vectorString}'::vector) AS ai_similarity
+                1 - (p.embedding <=> ${vectorString}::vector) AS ai_similarity
             FROM users u
             LEFT JOIN profiles p ON u.id = p.user_id
             WHERE ${whereSql}
-            ORDER BY p.embedding <=> '${vectorString}'::vector ASC
+            ORDER BY p.embedding <=> ${vectorString}::vector ASC
             LIMIT 50
-        `);
+        `;
 
         // Map raw query results back to expected Prisma-like structure
         let rows = rawResults.map(r => ({
@@ -772,27 +768,26 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             console.log("⚠️ Low Strict Results. Relaxing filters...");
             isBroad = true;
             // Relaxed query: remove strict JSON/Location constraints but keep AI vector ordering
-            // SECURITY: userId is a UUID from auth middleware; escapeStr already protects gender values
-            const relaxedClauses = [
-                `u.id != '${userId}'::uuid`,
-                `u.is_verified = true`
+            const relaxedConditions: Prisma.Sql[] = [
+                Prisma.sql`u.id != ${userId}::uuid`,
+                Prisma.sql`u.is_verified = true`
             ];
-            if (myGender === 'male') relaxedClauses.push(`u.gender ILIKE 'female'`);
-            else if (myGender === 'female') relaxedClauses.push(`u.gender ILIKE 'male'`);
+            if (myGender === 'male') relaxedConditions.push(Prisma.sql`u.gender ILIKE 'female'`);
+            else if (myGender === 'female') relaxedConditions.push(Prisma.sql`u.gender ILIKE 'male'`);
 
-            const relaxedSql = relaxedClauses.join(' AND ');
+            const relaxedSql = Prisma.join(relaxedConditions, ' AND ');
 
-            const broadResults: any[] = await prisma.$queryRawUnsafe(`
+            const broadResults: any[] = await prisma.$queryRaw<any[]>`
                 SELECT 
                     u.id, u.full_name, u.age, u.gender, u.city, u.state, u.location_name, u.avatar_url, u.is_premium,
                     p.raw_prompt, p.metadata,
-                    1 - (p.embedding <=> '${vectorString}'::vector) AS ai_similarity
+                    1 - (p.embedding <=> ${vectorString}::vector) AS ai_similarity
                 FROM users u
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE ${relaxedSql}
-                ORDER BY p.embedding <=> '${vectorString}'::vector ASC
+                ORDER BY p.embedding <=> ${vectorString}::vector ASC
                 LIMIT 50
-            `);
+            `;
 
             // Deduplicate
             const existingIds = new Set(rows.map(r => r.id));

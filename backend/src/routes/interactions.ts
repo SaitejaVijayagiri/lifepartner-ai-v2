@@ -326,31 +326,32 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         }
         interestDebounceCache.add(debounceKey);
 
-        // Fetch Names, Premium & Details for Notification
-        const user = await prisma.users.findUnique({
-            where: { id: userId },
-            select: {
-                full_name: true,
-                is_premium: true,
-                age: true,
-                city: true,
-                location_name: true,
-                avatar_url: true,
-                profiles: { select: { metadata: true } }
-            }
-        });
-        const target = await prisma.users.findUnique({
-            where: { id: toUserId },
-            select: { full_name: true, email: true }
-        });
-
-        if (!user || !target) return res.status(404).json({ error: "User not found" });
-
-        const myName = user.full_name || "Someone";
-        const targetName = target.full_name || "User";
-        const targetEmail = target.email;
-        const isPremium = user.is_premium;
         try {
+            // Fetch Names, Premium & Details for Notification
+            const user = await prisma.users.findUnique({
+                where: { id: userId },
+                select: {
+                    full_name: true,
+                    is_premium: true,
+                    age: true,
+                    city: true,
+                    location_name: true,
+                    avatar_url: true,
+                    profiles: { select: { metadata: true } }
+                }
+            });
+            const target = await prisma.users.findUnique({
+                where: { id: toUserId },
+                select: { full_name: true, email: true }
+            });
+
+            if (!user || !target) return res.status(404).json({ error: "User not found" });
+
+            const myName = user.full_name || "Someone";
+            const targetName = target.full_name || "User";
+            const targetEmail = target.email;
+            const isPremium = user.is_premium;
+
             // 1. Check if we already sent a request to this user
         const existingInteraction = await prisma.interactions.findUnique({
             where: {

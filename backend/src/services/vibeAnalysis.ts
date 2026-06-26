@@ -32,10 +32,6 @@ export const analyzeVibe = async (fileUrlOrPath: string, type: 'VIDEO' | 'AUDIO'
                 return { vibe: "Mysterious", tags: ["Quiet"], confidence: 0.5, summary: "Could not transcribe audio." };
             }
 
-            if (!transcript) {
-                return { vibe: "Mysterious", tags: ["Quiet"], confidence: 0.5, summary: "Could not transcribe audio." };
-            }
-
             // 2. Analyze Text (OpenAI / Gemini - Free Tier)
             const vibe = await aiService.analyzePersonalityFromText(transcript);
             return vibe;

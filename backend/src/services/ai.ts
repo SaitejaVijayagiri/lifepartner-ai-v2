@@ -232,7 +232,53 @@ export class AIService {
     }
 
     async analyzeImage(imageBuffer: Buffer, promptText: string) {
-        // Without an expensive external VLM, we perform heuristic analysis on the prompt text 
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (apiKey && !apiKey.includes('your_') && apiKey.length > 10) {
+            try {
+                const base64Data = imageBuffer.toString('base64');
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: promptText },
+                                    { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+                                ]
+                            }],
+                            generationConfig: {
+                                temperature: 0.7,
+                                maxOutputTokens: 500,
+                                responseMimeType: "application/json",
+                                responseSchema: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        vibe: { type: "STRING" },
+                                        tags: { type: "ARRAY", items: { type: "STRING" } },
+                                        summary: { type: "STRING" }
+                                    },
+                                    required: ["vibe", "tags", "summary"]
+                                }
+                            }
+                        }),
+                        signal: AbortSignal.timeout(12000)
+                    }
+                );
+
+                if (response.ok) {
+                    const data: any = await response.json();
+                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        return JSON.parse(text);
+                    }
+                }
+            } catch (err: any) {
+                console.warn(`[analyzeImage] Gemini Vision call failed: ${err.message}`);
+            }
+        }
+
         // fallback to "Friendly Vibe" since image processing locally is too CPU intensive
         return {
             vibe: "Friendly & Authentic User",

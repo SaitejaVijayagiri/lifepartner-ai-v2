@@ -75,5 +75,19 @@ describe('Auth Routes (Integration)', () => {
             expect(res.status).toBe(400);
             expect(res.body).toHaveProperty('error', 'User already exists');
         });
+
+        it('should fail if email domain is disposable', async () => {
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    email: 'kodic62937@adsprite.com',
+                    password: 'password123',
+                    full_name: 'Test User'
+                });
+
+            expect(res.status).toBe(400);
+            expect(res.body).toHaveProperty('error', 'Please use a valid, non-disposable email address.');
+            expect(prisma.users.create).not.toHaveBeenCalled();
+        });
     });
 });

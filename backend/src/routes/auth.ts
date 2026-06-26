@@ -49,6 +49,12 @@ router.post('/register', async (req, res) => {
 
         // 1.5 Deep Email Validation (SMTP/MX check)
         if (email) {
+            // Block custom disposable email domains immediately
+            const { isDisposableEmail } = require('../utils/disposableEmailBlocker');
+            if (isDisposableEmail(email)) {
+                return res.status(400).json({ error: "Please use a valid, non-disposable email address." });
+            }
+
             try {
                 const emailValidation = await validateEmail({
                     email: email,

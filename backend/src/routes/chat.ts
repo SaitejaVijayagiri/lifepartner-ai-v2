@@ -349,6 +349,35 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
             // Non-fatal
         }
 
+        // Send Push Notification if recipient is offline
+        try {
+            const recipientId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+            const { isUserOnline } = require('../socket');
+            const hasReacted = reactions[userId] === emoji;
+            
+            if (recipientId && recipientId !== userId && hasReacted && !isUserOnline(recipientId)) {
+                const reactorName = reactor?.full_name?.split(' ')[0] || "Someone";
+                const { NotificationService } = require('../services/notification');
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                
+                await NotificationService.getInstance().sendToUser(
+                    recipientId,
+                    `${reactorName}`,
+                    `Reacted to your message: ${emoji}`,
+                    {
+                        url: `/dashboard?tab=connections&chatId=${userId}`,
+                        messageId: messageId,
+                        senderId: userId,
+                        senderName: reactor?.full_name || 'Someone',
+                        senderPhoto: sanitizePhotoUrl(reactor?.avatar_url ?? null, reactor?.full_name || 'User'),
+                        type: 'match' // Open connection chat
+                    }
+                );
+            }
+        } catch (pushErr) {
+            console.error("Reaction Push Notification Error", pushErr);
+        }
+
         res.json({ success: true, reactions });
     } catch (e) {
         console.error('React Error', e);
@@ -398,6 +427,38 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
             const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
             io.to(other!).emit('messageReaction', { messageId, reactions, reactorId: userId });
         } catch (_) {}
+
+        // Send Push Notification if recipient is offline
+        try {
+            const recipientId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+            const { isUserOnline } = require('../socket');
+            
+            if (recipientId && recipientId !== userId && !isLiked && !isUserOnline(recipientId)) {
+                const reactor = await prisma.users.findUnique({
+                    where: { id: userId },
+                    select: { full_name: true, avatar_url: true }
+                });
+                const reactorName = reactor?.full_name?.split(' ')[0] || "Someone";
+                const { NotificationService } = require('../services/notification');
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                
+                await NotificationService.getInstance().sendToUser(
+                    recipientId,
+                    `${reactorName}`,
+                    `Liked your message ❤️`,
+                    {
+                        url: `/dashboard?tab=connections&chatId=${userId}`,
+                        messageId: messageId,
+                        senderId: userId,
+                        senderName: reactor?.full_name || 'Someone',
+                        senderPhoto: sanitizePhotoUrl(reactor?.avatar_url ?? null, reactor?.full_name || 'User'),
+                        type: 'match' // Open connection chat
+                    }
+                );
+            }
+        } catch (pushErr) {
+            console.error("Like Push Notification Error", pushErr);
+        }
 
         res.json({ success: true, is_liked: !isLiked, reactions });
     } catch (e) {

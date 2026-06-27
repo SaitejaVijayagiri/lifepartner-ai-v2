@@ -526,11 +526,24 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     }
                 });
 
+                // Get photo url
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
+                const fromUserPhoto = rawPhotoUrl
+                    ? sanitizePhotoUrl(rawPhotoUrl, myName)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+
                 // Realtime
                 getIO().to(toUserId).emit('notification:new', {
                     type: 'request',
                     message: msg,
-                    timestamp: new Date()
+                    timestamp: new Date(),
+                    fromUserId: userId,
+                    fromUserName: myName,
+                    fromUserPhoto: fromUserPhoto
                 });
 
                 // Embed the sender ID so the Android app / PWA knows where to navigate
@@ -546,17 +559,8 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 ).catch(e => console.warn("Push failed in interactions", e));
 
                 // Email
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
-                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
-                // Most email clients (Gmail, Apple Mail) BLOCK base64 data URIs. 
-                // We MUST fall back to a standard http/https avatar image if it's base64.
-                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
-                    rawPhotoUrl = null;
-                }
                 // Provide a PNG fallback for emails, because email clients do not render SVGs
-                const emailPhotoUrl = rawPhotoUrl 
-                    ? sanitizePhotoUrl(rawPhotoUrl, myName) 
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+                const emailPhotoUrl = fromUserPhoto;
 
                 const senderDetails = {
                     name: myName,
@@ -1004,6 +1008,66 @@ router.post('/like', authenticateToken, async (req: any, res) => {
 
         matchCache.deletePrefix(`${userId}_`);
         matchCache.deletePrefix(`${toUserId}_`);
+
+        // Notification & Realtime push for Like
+        try {
+            const user = await prisma.users.findUnique({
+                where: { id: userId },
+                select: {
+                    full_name: true,
+                    avatar_url: true,
+                    profiles: { select: { metadata: true } }
+                }
+            });
+
+            if (user) {
+                const myName = user.full_name || "Someone";
+                const msg = `${myName} liked your profile! ❤️`;
+                
+                // Persist
+                await prisma.notifications.create({
+                    data: {
+                        user_id: toUserId,
+                        type: 'like',
+                        message: msg,
+                        data: { fromUserId: userId }
+                    }
+                });
+
+                // Get photo
+                const meta = (user.profiles?.metadata as any) || {};
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
+                const fromUserPhoto = rawPhotoUrl
+                    ? sanitizePhotoUrl(rawPhotoUrl, myName)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+
+                // Emit realtime
+                const { getIO } = require('../socket');
+                getIO().to(toUserId).emit('notification:new', {
+                    type: 'like',
+                    message: msg,
+                    timestamp: new Date(),
+                    fromUserId: userId,
+                    fromUserName: myName,
+                    fromUserPhoto: fromUserPhoto
+                });
+
+                // Push
+                const { NotificationService } = await import('../services/notification');
+                NotificationService.getInstance().sendToUser(
+                    toUserId,
+                    "New Profile Like! ❤️",
+                    msg,
+                    { type: 'like', from: userId, screen: 'matches' }
+                ).catch((e: any) => console.warn("Push failed in like", e));
+            }
+        } catch (notifErr) {
+            console.error("Failed to notify profile like:", notifErr);
+        }
 
         res.json({ success: true, message: "Profile Liked!" });
     } catch (e) {

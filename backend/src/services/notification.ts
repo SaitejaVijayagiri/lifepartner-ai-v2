@@ -146,8 +146,18 @@ export class NotificationService {
         // Multicast
         try {
             const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
+            const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
+            const notificationPayload: any = {
+                title: String(title),
+                body: String(body)
+            };
+            if (senderPhoto) {
+                notificationPayload.imageUrl = String(senderPhoto);
+            }
+
             const message = {
                 tokens,
+                notification: notificationPayload,
                 data: {
                     title: String(title),
                     body: String(body),

@@ -155,8 +155,17 @@ function DashboardContent() {
                 });
             }
         };
+        const handleChangeTabEvent = (e: any) => {
+            if (e.detail && e.detail.tab) {
+                setActiveTab(e.detail.tab);
+            }
+        };
         window.addEventListener('openChat', handleOpenChatEvent);
-        return () => window.removeEventListener('openChat', handleOpenChatEvent);
+        window.addEventListener('changeTab', handleChangeTabEvent);
+        return () => {
+            window.removeEventListener('openChat', handleOpenChatEvent);
+            window.removeEventListener('changeTab', handleChangeTabEvent);
+        };
     }, []);
     const closeChat = () => {
         setSelectedConnection(null);

@@ -8,6 +8,7 @@ import StickyCTA from '@/components/StickyCTA';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import MessageToastBanner from '@/components/MessageToastBanner';
+import NotificationToastBanner from '@/components/NotificationToastBanner';
 import DateSafetyOverlay from '@/components/DateSafetyOverlay';
 
 const fontSans = DM_Sans({
@@ -186,6 +187,7 @@ export default function RootLayout({
             <StickyCTA />
             <ThemeToggle />
             <MessageToastBanner />
+            <NotificationToastBanner />
             <DateSafetyOverlay />
           </ClientProviders>
         </ThemeProvider>

@@ -937,6 +937,83 @@ router.post('/stories', authenticateToken, (req, res, next) => {
             }
         });
 
+        // Notification & Realtime push for New Story to connections
+        try {
+            // Find all connected users
+            const connections = await prisma.interactions.findMany({
+                where: {
+                    OR: [
+                        { from_user_id: userId },
+                        { to_user_id: userId }
+                    ],
+                    status: 'connected'
+                },
+                select: {
+                    from_user_id: true,
+                    to_user_id: true
+                }
+            });
+
+            const connectionUserIds = connections
+                .map(c => c.from_user_id === userId ? c.to_user_id : c.from_user_id)
+                .filter(Boolean) as string[];
+
+            if (connectionUserIds.length > 0 && user) {
+                const myName = user.full_name || "Someone";
+                const msg = `${myName} added a new story! 📸`;
+                
+                // Get photo
+                const meta = (user.profiles?.metadata as any) || {};
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
+                const fromUserPhoto = rawPhotoUrl
+                    ? sanitizePhotoUrl(rawPhotoUrl, myName)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+
+                const { getIO } = require('../socket');
+                const io = getIO();
+
+                const { NotificationService } = await import('../services/notification');
+                const pushService = NotificationService.getInstance();
+
+                for (const connId of connectionUserIds) {
+                    // Persist notification for connection
+                    prisma.notifications.create({
+                        data: {
+                            user_id: connId,
+                            type: 'story',
+                            message: msg,
+                            data: { fromUserId: userId, storyId: newStory.id }
+                        }
+                    }).catch(console.error);
+
+                    // Emit realtime notification
+                    io.to(connId).emit('notification:new', {
+                        type: 'story',
+                        message: msg,
+                        timestamp: new Date(),
+                        fromUserId: userId,
+                        fromUserName: myName,
+                        fromUserPhoto: fromUserPhoto,
+                        storyId: newStory.id
+                    });
+
+                    // Send offline push notification to connection's device
+                    pushService.sendToUser(
+                        connId,
+                        "New Connection Story! 📸",
+                        msg,
+                        { type: 'story', from: userId, screen: 'matches' }
+                    ).catch((e: any) => console.warn("Push failed in story notification", e));
+                }
+            }
+        } catch (storyNotifErr) {
+            console.error("Failed to trigger story notification:", storyNotifErr);
+        }
+
         res.json({ success: true, story: newStory });
 
     } catch (e: any) {

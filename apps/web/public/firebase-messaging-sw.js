@@ -17,11 +17,16 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    const notificationTitle = payload.notification?.title || 'Coming In Hot';
+    
+    const notificationTitle = payload.notification?.title || payload.data?.title || 'Coming In Hot';
+    const senderPhoto = payload.notification?.imageUrl || payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;
+    
     const notificationOptions = {
-        body: payload.notification?.body || 'New Notification',
-        icon: '/images/icon-192x192.png',
+        body: payload.notification?.body || payload.data?.body || 'New Notification',
+        icon: senderPhoto || '/icon.png', // Display sender's profile picture as the main avatar icon
+        badge: '/icon.png', // Display app logo as the status bar badge
         data: payload.data,
+        silent: false, // Explicitly tell browser/device to play default system alert sound
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
@@ -32,18 +37,36 @@ self.addEventListener('notificationclick', function(event) {
     console.log('[firebase-messaging-sw.js] Notification click received.');
 
     event.notification.close();
+
+    // Determine target tab from payload data
+    const payloadData = event.notification.data || {};
+    const type = payloadData.type;
+    
+    let targetTab = 'matches';
+    if (type === 'request') {
+        targetTab = 'requests';
+    } else if (type === 'match') {
+        targetTab = 'connections';
+    }
+    
+    const urlToOpen = `/dashboard?tab=${targetTab}`;
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Check if there is already a window/tab open with the target URL
-            const urlToOpen = '/dashboard?tab=connections'; // Default tab
+            // Check if there is already a window/tab open with the dashboard URL
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
-                // If so, just focus it.
-                if (client.url.includes('/dashboard') && 'focus' in client) {
-                    return client.focus();
+                if (client.url.includes('/dashboard')) {
+                    // Update/Navigate the open client window to the correct tab
+                    if ('navigate' in client) {
+                        client.navigate(urlToOpen);
+                    }
+                    if ('focus' in client) {
+                        return client.focus();
+                    }
                 }
             }
-            // If not, then open the target URL in a new window/tab.
+            // If no window is open, open a new one with the target URL
             if (clients.openWindow) {
                 return clients.openWindow(urlToOpen);
             }

@@ -151,8 +151,26 @@ export class NotificationService {
                 title: String(title),
                 body: String(body)
             };
+            
+            const apnsPayload: any = {
+                payload: {
+                    aps: {
+                        alert: { title, body },
+                        sound: 'default'
+                    }
+                }
+            };
+
             if (senderPhoto) {
+                // Set both 'image' (FCM v1 official) and 'imageUrl' (legacy)
+                notificationPayload.image = String(senderPhoto);
                 notificationPayload.imageUrl = String(senderPhoto);
+
+                // Enable rich media push on iOS
+                apnsPayload.payload.aps['mutable-content'] = 1;
+                apnsPayload.fcm_options = {
+                    image: String(senderPhoto)
+                };
             }
 
             const message = {
@@ -163,14 +181,7 @@ export class NotificationService {
                     body: String(body),
                     ...mappedData
                 },
-                apns: {
-                    payload: {
-                        aps: {
-                            alert: { title, body },
-                            sound: 'default'
-                        }
-                    }
-                }
+                apns: apnsPayload
             };
             const batchResponse = await admin.messaging().sendEachForMulticast(message);
             console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);

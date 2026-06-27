@@ -18,13 +18,24 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
     
+    const origin = self.location.origin;
     const notificationTitle = payload.notification?.title || payload.data?.title || 'Coming In Hot';
-    const senderPhoto = payload.notification?.imageUrl || payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;
+    
+    // Support image properties from both notification object (official image/imageUrl) and data payload
+    const rawPhoto = payload.notification?.image || payload.notification?.imageUrl || payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;
+    
+    // Resolve relative path to absolute URL if needed to guarantee display on all browsers/platforms
+    let senderPhoto = rawPhoto;
+    if (senderPhoto && !senderPhoto.startsWith('http') && !senderPhoto.startsWith('data:')) {
+        const cleanPath = senderPhoto.startsWith('/') ? senderPhoto.slice(1) : senderPhoto;
+        senderPhoto = `${origin}/${cleanPath}`;
+    }
     
     const notificationOptions = {
         body: payload.notification?.body || payload.data?.body || 'New Notification',
-        icon: senderPhoto || '/icon.png', // Display sender's profile picture as the main avatar icon
-        badge: '/icon.png', // Display app logo as the status bar badge
+        icon: senderPhoto || `${origin}/icon.png`, // Absolute path to sender avatar or platform logo
+        badge: `${origin}/icon-192x192.png`, // Absolute path to app logo badge
+        image: senderPhoto || null, // Optional large image preview (useful for story updates)
         data: payload.data,
         silent: false, // Explicitly tell browser/device to play default system alert sound
     };

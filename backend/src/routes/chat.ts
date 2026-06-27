@@ -276,7 +276,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                         messageId: newMessageRecord.id,
                         senderId: senderId,
                         senderName: senderName,
-                        senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User')
+                        senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User'),
+                        type: 'match'
                     }
                 );
             }

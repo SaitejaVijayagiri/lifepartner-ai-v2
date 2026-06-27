@@ -162,14 +162,13 @@ export class NotificationService {
             };
 
             if (senderPhoto) {
-                // Set both 'image' (FCM v1 official) and 'imageUrl' (legacy)
-                notificationPayload.image = String(senderPhoto);
+                // Node.js SDK expects imageUrl (internally converted to image in REST API)
                 notificationPayload.imageUrl = String(senderPhoto);
 
                 // Enable rich media push on iOS
                 apnsPayload.payload.aps['mutable-content'] = 1;
-                apnsPayload.fcm_options = {
-                    image: String(senderPhoto)
+                apnsPayload.fcmOptions = {
+                    imageUrl: String(senderPhoto)
                 };
             }
 

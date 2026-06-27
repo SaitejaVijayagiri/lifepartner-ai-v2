@@ -1317,6 +1317,76 @@ router.post('/view', authenticateToken, async (req: any, res) => {
             }
         });
 
+        // Notification & Realtime push for profile view
+        try {
+            const viewer = await prisma.users.findUnique({
+                where: { id: userId },
+                select: {
+                    full_name: true,
+                    avatar_url: true,
+                    profiles: { select: { metadata: true } }
+                }
+            });
+
+            if (viewer) {
+                const viewerName = viewer.full_name || "Someone";
+                const msg = `${viewerName} viewed your profile! 👀`;
+
+                // Persist notification for targetId
+                await prisma.notifications.create({
+                    data: {
+                        user_id: targetId,
+                        type: 'view',
+                        message: msg,
+                        data: { fromUserId: userId }
+                    }
+                });
+
+                // Get photo
+                const meta = (viewer.profiles?.metadata as any) || {};
+                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                let rawPhotoUrl = viewer.avatar_url || meta.photos?.[0] || null;
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
+                const fromUserPhoto = rawPhotoUrl
+                    ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`;
+
+                // Emit realtime socket event if online
+                const { getIO } = require('../socket');
+                getIO().to(targetId).emit('notification:new', {
+                    type: 'view',
+                    message: msg,
+                    timestamp: new Date(),
+                    fromUserId: userId,
+                    fromUserName: viewerName,
+                    fromUserPhoto: fromUserPhoto
+                });
+
+                // Send Push Notification if offline
+                const { isUserOnline } = require('../socket');
+                if (!isUserOnline(targetId)) {
+                    const { NotificationService } = require('../services/notification');
+                    NotificationService.getInstance().sendToUser(
+                        targetId,
+                        `${viewerName}`,
+                        `viewed your profile! 👀`,
+                        {
+                            type: 'view',
+                            from: userId,
+                            screen: 'visitors',
+                            fromUserId: userId,
+                            fromUserName: viewerName,
+                            fromUserPhoto: fromUserPhoto
+                        }
+                    ).catch((e: any) => console.warn("Push failed in view profile", e));
+                }
+            }
+        } catch (viewNotifErr) {
+            console.error("Failed to notify profile view:", viewNotifErr);
+        }
+
         res.json({ success: true });
     } catch (e) {
         console.error("View Profile Error", e);

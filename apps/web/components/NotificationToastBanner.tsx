@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSocket } from '@/context/SocketContext';
-import { X, Heart, Camera, Sparkles, Bell } from 'lucide-react';
+import { X, Heart, Camera, Sparkles, Bell, Eye } from 'lucide-react';
 
 interface NotificationToast {
     id: string;
@@ -148,6 +148,14 @@ export default function NotificationToastBanner() {
                     icon: Sparkles,
                     targetTab: 'connections' // Matches go to chat tab
                 };
+            case 'view':
+                return {
+                    borderColor: 'border-cyan-500',
+                    shadowColor: 'hover:shadow-cyan-200/80 dark:hover:shadow-cyan-900/30',
+                    iconBg: 'bg-cyan-100 dark:bg-cyan-950 text-cyan-500',
+                    icon: Eye,
+                    targetTab: 'matches'
+                };
             default:
                 return {
                     borderColor: 'border-blue-500',
@@ -209,7 +217,7 @@ export default function NotificationToastBanner() {
                         {/* Text Content */}
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">
-                                {toast.type === 'request' ? 'Interest Request' : toast.type === 'like' ? 'Profile Like' : toast.type === 'story' ? 'New Story' : toast.type === 'match' ? 'It\'s a Match!' : 'Notification'}
+                                {toast.type === 'request' ? 'Interest Request' : toast.type === 'like' ? 'Profile Like' : toast.type === 'story' ? 'New Story' : toast.type === 'match' ? 'It\'s a Match!' : toast.type === 'view' ? 'Profile View' : 'Notification'}
                             </p>
                             <p className="text-sm text-gray-800 dark:text-gray-100 font-medium leading-snug">
                                 {toast.message}

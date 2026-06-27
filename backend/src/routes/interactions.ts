@@ -225,26 +225,25 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             }
 
             try {
-                // Fetch the latest message timestamp for each partner (extremely optimized, uses index)
-                await Promise.all(partnerIds.map(async (pId) => {
-                    const latestMsg = await prisma.messages.findFirst({
-                        where: {
-                            OR: [
-                                { sender_id: userId, receiver_id: pId },
-                                { sender_id: pId, receiver_id: userId }
-                            ]
-                        },
-                        orderBy: { created_at: 'desc' },
-                        select: { created_at: true }
-                    });
-                    
-                    if (latestMsg) {
-                        const conn = uniqueConnections.get(pId);
-                        if (conn) {
-                            conn.latestMessageAt = latestMsg.created_at;
-                        }
+                // Fetch the latest message timestamp for all conversations in a single, ultra-fast query
+                const latestMessages: any[] = await prisma.$queryRawUnsafe(`
+                    SELECT 
+                        CASE 
+                            WHEN sender_id = $1::uuid THEN receiver_id 
+                            ELSE sender_id 
+                        END as partner_id,
+                        MAX(created_at) as latest_message_at
+                    FROM messages
+                    WHERE sender_id = $1::uuid OR receiver_id = $1::uuid
+                    GROUP BY partner_id
+                `, userId);
+
+                latestMessages.forEach((msg: any) => {
+                    const pId = msg.partner_id;
+                    if (pId && uniqueConnections.has(pId)) {
+                        uniqueConnections.get(pId).latestMessageAt = msg.latest_message_at;
                     }
-                }));
+                });
             } catch (err) {
                 console.error("Failed to fetch latestMessages in Connections", err);
             }

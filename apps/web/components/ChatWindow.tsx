@@ -593,6 +593,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         };
 
         const loadProfileHeader = async () => {
+            // Optimization: Skip backend round-trip if name & photo are already passed in props
+            if (partner.name && partner.photoUrl && !partner.photoUrl.includes('initials/svg')) {
+                return;
+            }
             try {
                 const data = await api.profile.getById(partner.id);
                 if (data) {

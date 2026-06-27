@@ -161,6 +161,28 @@ export class NotificationService {
                 }
             };
 
+            const webpushPayload: any = {
+                notification: {
+                    title: String(title),
+                    body: String(body),
+                    icon: senderPhoto ? String(senderPhoto) : 'https://lifepartnerai.in/icon.png',
+                    badge: 'https://lifepartnerai.in/icon-192x192.png',
+                    requireInteraction: true,
+                    silent: false
+                },
+                headers: {
+                    Urgency: 'high'
+                }
+            };
+
+            // Add Accept/Decline action buttons for Web Push client natively
+            if (data?.type === 'request' && data?.interactionId) {
+                webpushPayload.notification.actions = [
+                    { action: 'accept_request', title: 'Accept ✅' },
+                    { action: 'decline_request', title: 'Decline ❌' }
+                ];
+            }
+
             if (senderPhoto) {
                 // Node.js SDK expects imageUrl (internally converted to image in REST API)
                 notificationPayload.imageUrl = String(senderPhoto);
@@ -180,7 +202,8 @@ export class NotificationService {
                     body: String(body),
                     ...mappedData
                 },
-                apns: apnsPayload
+                apns: apnsPayload,
+                webpush: webpushPayload
             };
             const batchResponse = await admin.messaging().sendEachForMulticast(message);
             console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);

@@ -11,6 +11,17 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 function ProvidersContent({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
 
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('token');
+            if (token && 'caches' in window) {
+                caches.open('auth-token').then(cache => {
+                    cache.put('/token', new Response(token));
+                }).catch(err => console.warn('Cache token sync failed', err));
+            }
+        }
+    }, [user]);
+
     return (
         <SocketProvider userId={user?.id}>
             <CallProvider>

@@ -483,7 +483,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         }
 
         // UPSERT Interaction (only runs if no existing/opposite request is connected or pending)
-        await prisma.interactions.upsert({
+        const interaction = await prisma.interactions.upsert({
             where: {
                 from_user_id_to_user_id_type: {
                     from_user_id: userId,
@@ -547,7 +547,12 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 });
 
                 // Embed the sender ID so the Android app / PWA knows where to navigate
-                const pushData = { type: 'request', from: userId, screen: 'requests' };
+                const pushData = { 
+                    type: 'request', 
+                    from: userId, 
+                    screen: 'requests',
+                    interactionId: interaction.id
+                };
                 
                 // Realtime Push via Service Worker / FCM
                 const { NotificationService } = await import('../services/notification');

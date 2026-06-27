@@ -29,6 +29,14 @@ messaging.onBackgroundMessage((payload) => {
         silent: false, // Explicitly tell browser/device to play default system alert sound
     };
 
+    // Add Accept/Decline actions only if it's an interest request containing interactionId!
+    if (payload.data?.type === 'request' && payload.data?.interactionId) {
+        notificationOptions.actions = [
+            { action: 'accept_request', title: 'Accept ✅' },
+            { action: 'decline_request', title: 'Decline ❌' }
+        ];
+    }
+
     self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
@@ -38,10 +46,76 @@ self.addEventListener('notificationclick', function(event) {
 
     event.notification.close();
 
-    // Determine target tab from payload data
     const payloadData = event.notification.data || {};
+    const interactionId = payloadData.interactionId;
+    const action = event.action;
+
+    // Check if an action button was clicked
+    if (action === 'accept_request' || action === 'decline_request') {
+        const actionType = action === 'accept_request' ? 'accept' : 'decline';
+        const API_URL = self.location.origin.includes('localhost') 
+            ? 'http://localhost:5000' 
+            : 'https://lifepartner-ai.onrender.com';
+
+        event.waitUntil(
+            caches.open('auth-token')
+                .then(cache => cache.match('/token'))
+                .then(res => {
+                    if (!res) throw new Error('No auth token cached');
+                    return res.text();
+                })
+                .then(token => {
+                    return fetch(`${API_URL}/interactions/requests/${interactionId}/${actionType}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error(`API request failed with status: ${response.status}`);
+                    return response.json();
+                })
+                .then(result => {
+                    console.log(`Successfully completed interest action: ${actionType}`, result);
+                    const msgText = actionType === 'accept' 
+                        ? 'You accepted the interest request! 🎉' 
+                        : 'You declined the interest request.';
+                        
+                    return self.registration.showNotification('Match Request Update', {
+                        body: msgText,
+                        icon: '/icon.png',
+                        silent: false
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to perform background notification action:', err);
+                    // Fallback: Open dashboard requests tab so user can review/action manually
+                    return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                        const urlToOpen = '/dashboard?tab=requests';
+                        for (let i = 0; i < windowClients.length; i++) {
+                            const client = windowClients[i];
+                            if (client.url.includes('/dashboard')) {
+                                if ('navigate' in client) {
+                                    client.navigate(urlToOpen);
+                                }
+                                if ('focus' in client) {
+                                    return client.focus();
+                                }
+                            }
+                        }
+                        if (clients.openWindow) {
+                            return clients.openWindow(urlToOpen);
+                        }
+                    });
+                })
+        );
+        return;
+    }
+
+    // Determine target tab from payload data
     const type = payloadData.type;
-    
     let targetTab = 'matches';
     if (type === 'request') {
         targetTab = 'requests';

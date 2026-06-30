@@ -29,7 +29,7 @@ export const toProxyUrl = (url: string): string => {
  */
 export const sanitizePhotoUrl = (url: string | null | undefined, seed: string): string => {
     if (!url) {
-        return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+        return `https://api.dicebear.com/7.x/initials/png?seed=${encodeURIComponent(seed)}`;
     }
     // base64: inline — browser renders directly, no network request
     if (url.startsWith('data:image')) return url;

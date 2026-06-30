@@ -18,11 +18,16 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message ', payload);
     
-    const origin = self.location.origin;
-    const notificationTitle = payload.notification?.title || payload.data?.title || 'Coming In Hot';
+    // Crucial: If the payload contains a notification block, the browser natively handles displaying it.
+    // Calling self.registration.showNotification here would create duplicate/double notifications!
+    if (payload.notification) {
+        console.log('[firebase-messaging-sw.js] Native notification block present. Bypassing manual showNotification to avoid duplicates.');
+        return;
+    }
     
-    // Support image properties from both notification object (official image/imageUrl) and data payload
-    const rawPhoto = payload.notification?.image || payload.notification?.imageUrl || payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;
+    const origin = self.location.origin;
+    const notificationTitle = payload.data?.title || 'Coming In Hot';
+    const rawPhoto = payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;
     
     // Resolve relative path to absolute URL if needed to guarantee display on all browsers/platforms
     let senderPhoto = rawPhoto;
@@ -32,7 +37,7 @@ messaging.onBackgroundMessage((payload) => {
     }
     
     const notificationOptions = {
-        body: payload.notification?.body || payload.data?.body || 'New Notification',
+        body: payload.data?.body || 'New Notification',
         icon: senderPhoto || `${origin}/icon.png`, // Absolute path to sender avatar or platform logo
         badge: `${origin}/icon-192x192.png`, // Absolute path to app logo badge
         image: senderPhoto || null, // Optional large image preview (useful for story updates)
@@ -45,6 +50,12 @@ messaging.onBackgroundMessage((payload) => {
         notificationOptions.actions = [
             { action: 'accept_request', title: 'Accept ✅' },
             { action: 'decline_request', title: 'Decline ❌' }
+        ];
+    } else if (payload.data?.type === 'match' && payload.data?.messageId && payload.data?.senderId) {
+        // Add Like and Reply actions for chat messages/replies
+        notificationOptions.actions = [
+            { action: 'like_message', title: 'Like ❤️' },
+            { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
         ];
     }
 
@@ -120,6 +131,95 @@ self.addEventListener('notificationclick', function(event) {
                             return clients.openWindow(urlToOpen);
                         }
                     });
+                })
+        );
+        return;
+    }
+
+    // Like message action click handler
+    if (action === 'like_message') {
+        const messageId = payloadData.messageId;
+        const API_URL = self.location.origin.includes('localhost') 
+            ? 'http://localhost:5000' 
+            : 'https://lifepartner-ai.onrender.com';
+
+        event.waitUntil(
+            caches.open('auth-token')
+                .then(cache => cache.match('/token'))
+                .then(res => {
+                    if (!res) throw new Error('No auth token cached');
+                    return res.text();
+                })
+                .then(token => {
+                    return fetch(`${API_URL}/messages/${messageId}/like`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error(`API request failed with status: ${response.status}`);
+                    return response.json();
+                })
+                .then(result => {
+                    return self.registration.showNotification('LifePartner AI', {
+                        body: 'Message liked! ❤️',
+                        icon: '/icon.png',
+                        silent: true
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to like message from notification:', err);
+                })
+        );
+        return;
+    }
+
+    // Inline reply action click handler
+    if (action === 'reply_to_message') {
+        const replyText = event.reply;
+        const senderId = payloadData.senderId; // The partner's user ID
+        
+        if (!replyText) return;
+        
+        const API_URL = self.location.origin.includes('localhost') 
+            ? 'http://localhost:5000' 
+            : 'https://lifepartner-ai.onrender.com';
+
+        event.waitUntil(
+            caches.open('auth-token')
+                .then(cache => cache.match('/token'))
+                .then(res => {
+                    if (!res) throw new Error('No auth token cached');
+                    return res.text();
+                })
+                .then(token => {
+                    return fetch(`${API_URL}/messages/${senderId}/send`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            text: replyText
+                        })
+                    });
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error(`API request failed with status: ${response.status}`);
+                    return response.json();
+                })
+                .then(result => {
+                    return self.registration.showNotification('LifePartner AI', {
+                        body: `Reply sent: "${replyText}"`,
+                        icon: '/icon.png',
+                        silent: true
+                    });
+                })
+                .catch(err => {
+                    console.error('Failed to send reply from notification:', err);
                 })
         );
         return;

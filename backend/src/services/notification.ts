@@ -181,6 +181,11 @@ export class NotificationService {
                     { action: 'accept_request', title: 'Accept ✅' },
                     { action: 'decline_request', title: 'Decline ❌' }
                 ];
+            } else if (data?.type === 'match' && data?.messageId && data?.senderId) {
+                webpushPayload.notification.actions = [
+                    { action: 'like_message', title: 'Like ❤️' },
+                    { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
+                ];
             }
 
             if (senderPhoto) {

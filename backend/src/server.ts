@@ -205,6 +205,10 @@ if (require.main === module) {
             // Start Angel Timer
             initAngelTimer();
 
+            // Start Witty Push Notifications Cron
+            const { initWittyNotificationsCron } = require('./services/wittyNotifications');
+            initWittyNotificationsCron();
+
             // ⏰ Start Daily SEO Blog Generation
             cron.schedule('0 12 * * *', async () => {
                 const topics = [

@@ -479,6 +479,13 @@ router.post('/send-campaign', async (req: any, res) => {
                 console.log(`[Campaign] Invites: sent ${emails.length} emails`);
             }
 
+            /* ── Swiggy/Zomato Style Witty Push Notifications ── */
+            if (type === 'witty_reengagement' || type === 'all') {
+                const { sendWittyNotifications } = require('../services/wittyNotifications');
+                await sendWittyNotifications();
+                result.witty_reengagement_sent = true;
+            }
+ 
             console.log('[Campaign] Completed:', result);
         } catch (err) {
             console.error('[Campaign] Background job failed:', err);

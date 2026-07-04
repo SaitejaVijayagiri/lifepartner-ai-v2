@@ -180,6 +180,45 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const [isSpeakerOn, setIsSpeakerOn] = useState(true); // audio call speaker toggle
     const ringtonePlayerRef = useRef<RingtonePlayer | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null); // dedicated audio element for audio-only calls
+    const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        let typingTimer: NodeJS.Timeout;
+        const handlePartnerTyping = (data: any) => {
+            if (data.from === partner.id) {
+                setIsPartnerTyping(true);
+                if (typingTimer) clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => setIsPartnerTyping(false), 3000);
+            }
+        };
+
+        socket.on("typing", handlePartnerTyping);
+        return () => {
+            socket.off("typing", handlePartnerTyping);
+            if (typingTimer) clearTimeout(typingTimer);
+        };
+    }, [socket, partner.id]);
+
+    const setupIceConnectionMonitoring = (peerInstance: any) => {
+        if (peerInstance && peerInstance._pc) {
+            const pc = peerInstance._pc as RTCPeerConnection;
+            pc.oniceconnectionstatechange = () => {
+                const state = pc.iceConnectionState;
+                console.log(`[WebRTC] ICE connection state change: ${state}`);
+                if (state === 'disconnected') {
+                    setStatus("Reconnecting...");
+                } else if (state === 'failed') {
+                    setStatus("Failed");
+                    toast.error("Call disconnected. Checking connection...");
+                    leaveCall(true);
+                } else if (state === 'connected' || state === 'completed') {
+                    setStatus(isVideo ? "Connected" : (isSpeedDate ? "Speed Date Connected" : "Audio Connected"));
+                }
+            };
+        }
+    };
 
     useEffect(() => {
         console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode);
@@ -428,6 +467,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             }
         });
 
+        setupIceConnectionMonitoring(peer);
         connectionRef.current = peer;
     };
 
@@ -500,6 +540,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 console.error("Failed to signal peer inside doAnswerCall:", err);
             }
         }
+        setupIceConnectionMonitoring(peer);
         connectionRef.current = peer;
     };
 
@@ -878,7 +919,29 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                             {callAccepted && !callEnded ? (
                                 isVideo ? (
                                     // Remote Video Stream
-                                    <video ref={userVideo} playsInline autoPlay className="w-full h-full object-cover z-10" />
+                                    <div className="relative w-full h-full z-10">
+                                        <video ref={userVideo} playsInline autoPlay className="w-full h-full object-cover" />
+                                        
+                                        {/* Typing status overlay */}
+                                        {isPartnerTyping && (
+                                            <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/10 z-20 flex items-center gap-2 animate-float">
+                                                <div className="flex gap-1">
+                                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
+                                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                                                </div>
+                                                <span className="text-[10px] text-white/90 font-bold">{partner.name} is typing...</span>
+                                            </div>
+                                        )}
+
+                                        {/* Reconnecting overlay */}
+                                        {status === "Reconnecting..." && (
+                                            <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-30 flex flex-col items-center justify-center space-y-4">
+                                                <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 border-t-transparent"></div>
+                                                <p className="text-white font-bold text-sm tracking-wide animate-pulse">Connection lost. Reconnecting...</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 ) : (
                                     // Premium Audio Call Connected UI
                                     <div className="flex flex-col items-center justify-center space-y-6 z-30 px-6 w-full">
@@ -896,11 +959,27 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                                 <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10" alt={partner.name} />
                                             )}
                                         </div>
-
+ 
                                         {/* Partner name + call type */}
-                                        <div className="text-center">
+                                        <div className="text-center flex flex-col items-center space-y-2">
                                             <h2 className="text-2xl font-extrabold text-white tracking-tight">{isSpeedDate ? 'Mystery Date' : partner.name}</h2>
-                                            <p className="text-xs font-semibold text-emerald-400 mt-1 tracking-widest uppercase">📞 Audio Call Connected</p>
+                                            
+                                            {isPartnerTyping && (
+                                                <p className="text-xs text-indigo-400 font-bold tracking-wide flex items-center justify-center gap-1.5 animate-pulse">
+                                                    <span>💬</span> {partner.name} is typing...
+                                                </p>
+                                            )}
+
+                                            {status === "Reconnecting..." ? (
+                                                <p className="text-xs font-bold text-rose-500 tracking-widest uppercase flex items-center justify-center gap-2 bg-rose-500/10 px-3.5 py-1 rounded-full border border-rose-500/20 animate-pulse">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+                                                    Connection Lost... Reconnecting...
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs font-semibold text-emerald-400 tracking-widest uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                    📞 Audio Call Connected
+                                                </p>
+                                            )}
                                         </div>
 
                                         {/* Animated Audio Waveform */}

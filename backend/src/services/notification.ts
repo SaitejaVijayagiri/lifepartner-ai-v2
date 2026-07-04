@@ -147,6 +147,7 @@ export class NotificationService {
         try {
             const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
             const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
+            const bannerUrl = data?.bannerUrl || null;
             const notificationPayload: any = {
                 title: String(title),
                 body: String(body)
@@ -175,6 +176,10 @@ export class NotificationService {
                 }
             };
 
+            if (bannerUrl) {
+                webpushPayload.notification.image = String(bannerUrl);
+            }
+
             // Add Accept/Decline action buttons for Web Push client natively
             if (data?.type === 'request' && data?.interactionId) {
                 webpushPayload.notification.actions = [
@@ -186,9 +191,20 @@ export class NotificationService {
                     { action: 'like_message', title: 'Like ❤️' },
                     { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
                 ];
+            } else if (data?.type === 'witty_reengagement') {
+                webpushPayload.notification.actions = [
+                    { action: 'find_matches', title: 'Swipe Matches 🔍' },
+                    { action: 'love_guru', title: 'Ask Love Guru 🤖' }
+                ];
             }
 
-            if (senderPhoto) {
+            if (bannerUrl) {
+                notificationPayload.imageUrl = String(bannerUrl);
+                apnsPayload.payload.aps['mutable-content'] = 1;
+                apnsPayload.fcmOptions = {
+                    imageUrl: String(bannerUrl)
+                };
+            } else if (senderPhoto) {
                 // Node.js SDK expects imageUrl (internally converted to image in REST API)
                 notificationPayload.imageUrl = String(senderPhoto);
 

@@ -28,6 +28,7 @@ messaging.onBackgroundMessage((payload) => {
     const origin = self.location.origin;
     const notificationTitle = payload.data?.title || 'Coming In Hot';
     const rawPhoto = payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;
+    const rawBanner = payload.data?.bannerUrl || null;
     
     // Resolve relative path to absolute URL if needed to guarantee display on all browsers/platforms
     let senderPhoto = rawPhoto;
@@ -35,12 +36,18 @@ messaging.onBackgroundMessage((payload) => {
         const cleanPath = senderPhoto.startsWith('/') ? senderPhoto.slice(1) : senderPhoto;
         senderPhoto = `${origin}/${cleanPath}`;
     }
+
+    let bannerUrl = rawBanner;
+    if (bannerUrl && !bannerUrl.startsWith('http') && !bannerUrl.startsWith('data:')) {
+        const cleanPath = bannerUrl.startsWith('/') ? bannerUrl.slice(1) : bannerUrl;
+        bannerUrl = `${origin}/${cleanPath}`;
+    }
     
     const notificationOptions = {
         body: payload.data?.body || 'New Notification',
         icon: senderPhoto || `${origin}/icon.png`, // Absolute path to sender avatar or platform logo
         badge: `${origin}/icon-192x192.png`, // Absolute path to app logo badge
-        image: senderPhoto || null, // Optional large image preview (useful for story updates)
+        image: bannerUrl || senderPhoto || null, // Optional large image preview (useful for story updates)
         data: payload.data,
         silent: false, // Explicitly tell browser/device to play default system alert sound
     };
@@ -56,6 +63,11 @@ messaging.onBackgroundMessage((payload) => {
         notificationOptions.actions = [
             { action: 'like_message', title: 'Like ❤️' },
             { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
+        ];
+    } else if (payload.data?.type === 'witty_reengagement') {
+        notificationOptions.actions = [
+            { action: 'find_matches', title: 'Swipe Matches 🔍' },
+            { action: 'love_guru', title: 'Ask Love Guru 🤖' }
         ];
     }
 
@@ -73,6 +85,40 @@ self.addEventListener('notificationclick', function(event) {
     const action = event.action;
 
     // Check if an action button was clicked
+    if (action === 'find_matches') {
+        const urlToOpen = '/dashboard?tab=matches';
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('/dashboard')) {
+                        if ('navigate' in client) client.navigate(urlToOpen);
+                        if ('focus' in client) return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow(urlToOpen);
+            })
+        );
+        return;
+    }
+
+    if (action === 'love_guru') {
+        const urlToOpen = '/dashboard?tab=matches&openGuru=true';
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('/dashboard')) {
+                        if ('navigate' in client) client.navigate(urlToOpen);
+                        if ('focus' in client) return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow(urlToOpen);
+            })
+        );
+        return;
+    }
+
     if (action === 'accept_request' || action === 'decline_request') {
         const actionType = action === 'accept_request' ? 'accept' : 'decline';
         const API_URL = self.location.origin.includes('localhost') 

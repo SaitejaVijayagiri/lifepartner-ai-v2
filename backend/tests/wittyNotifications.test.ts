@@ -82,7 +82,11 @@ describe('Witty Notifications Service', () => {
             'user-1',
             expect.any(String),
             expect.any(String),
-            { type: 'witty_reengagement', screen: 'matches' }
+            { 
+                type: 'witty_reengagement', 
+                screen: 'matches',
+                bannerUrl: expect.any(String)
+            }
         );
 
         // Verify the title contains the user's first name

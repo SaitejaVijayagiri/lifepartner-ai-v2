@@ -14,6 +14,16 @@ export default function FloatingLoveGuru() {
     const [loading, setLoading] = useState(false);
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
+    // Auto-open if query param is set
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('openGuru') === 'true') {
+                setIsOpen(true);
+            }
+        }
+    }, []);
+
     // Scroll to bottom when messages update
     useEffect(() => {
         if (endOfMessagesRef.current) {

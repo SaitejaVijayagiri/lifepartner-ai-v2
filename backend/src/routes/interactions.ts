@@ -388,96 +388,100 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
             }
             if (oppositeInteraction.status === 'pending') {
                 // Mutual Interest! Automatically connect them
-                await prisma.interactions.update({
-                    where: { id: oppositeInteraction.id },
+                const updateRes = await prisma.interactions.updateMany({
+                    where: { id: oppositeInteraction.id, status: 'pending' },
                     data: { status: 'connected' }
                 });
 
-                // Trigger notifications & match email (similar to Accept route)
-                try {
-                    const uA = await prisma.users.findUnique({ 
-                        where: { id: toUserId },
-                        select: {
-                            email: true,
-                            full_name: true,
-                            avatar_url: true,
-                            profiles: { select: { metadata: true } }
-                        }
-                    });
-                    const uB = await prisma.users.findUnique({ 
-                        where: { id: userId },
-                        select: {
-                            full_name: true,
-                            age: true,
-                            city: true,
-                            location_name: true,
-                            avatar_url: true,
-                            profiles: { select: { metadata: true } }
-                        }
-                    });
-
-                    if (uA && uB) {
-                        const { sanitizePhotoUrl } = require('../utils/photoUrl');
-                        
-                        // User A (target user) photo
-                        const metaA = (uA.profiles?.metadata as any) || {};
-                        let rawPhotoA = uA.avatar_url || metaA.photos?.[0] || null;
-                        if (rawPhotoA && rawPhotoA.startsWith('data:image')) {
-                            rawPhotoA = null;
-                        }
-                        const userPhotoUrl = rawPhotoA
-                            ? sanitizePhotoUrl(rawPhotoA, uA.full_name || "User")
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(uA.full_name || "User")}&background=random&color=fff&size=256`;
-
-                        // User B (current user) photo & details
-                        const metaB = (uB.profiles?.metadata as any) || {};
-                        const ageStr = uB.age ? `${uB.age} yr` : '';
-                        const profStr = metaB.career?.profession || "";
-                        const locStr = uB.city || uB.location_name || metaB.location?.city || "";
-
-                        const detailsArr = [ageStr, profStr, locStr].filter(Boolean);
-                        const detailsStr = detailsArr.length > 0 ? detailsArr.join(' • ') : '';
-
-                        let rawPhotoB = uB.avatar_url || metaB.photos?.[0] || null;
-                        if (rawPhotoB && rawPhotoB.startsWith('data:image')) {
-                            rawPhotoB = null;
-                        }
-                        const partnerPhotoUrl = rawPhotoB
-                            ? sanitizePhotoUrl(rawPhotoB, uB.full_name || "Partner")
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(uB.full_name || "Partner")}&background=random&color=fff&size=256`;
-
-                        const partnerDetails = {
-                            age: uB.age || metaB.age,
-                            location: locStr,
-                            job: profStr,
-                            detailsString: detailsStr
-                        };
-
-                        await EmailService.sendMatchAcceptedEmail(
-                            uA.email,
-                            uA.full_name || "User",
-                            userPhotoUrl,
-                            uB.full_name || "User",
-                            partnerPhotoUrl,
-                            partnerDetails
-                        );
-
-                        const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
-                        getIO().to(toUserId).emit('notification:new', {
-                            type: 'match',
-                            message: msg,
-                            timestamp: new Date()
+                if (updateRes.count > 0) {
+                    // Trigger notifications & match email (similar to Accept route)
+                    try {
+                        const uA = await prisma.users.findUnique({ 
+                            where: { id: toUserId },
+                            select: {
+                                email: true,
+                                full_name: true,
+                                avatar_url: true,
+                                profiles: { select: { metadata: true } }
+                            }
                         });
+                        const uB = await prisma.users.findUnique({ 
+                            where: { id: userId },
+                            select: {
+                                full_name: true,
+                                age: true,
+                                city: true,
+                                location_name: true,
+                                avatar_url: true,
+                                profiles: { select: { metadata: true } }
+                            }
+                        });
+
+                        if (uA && uB) {
+                            const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                            
+                            // User A (target user) photo
+                            const metaA = (uA.profiles?.metadata as any) || {};
+                            let rawPhotoA = uA.avatar_url || metaA.photos?.[0] || null;
+                            if (rawPhotoA && rawPhotoA.startsWith('data:image')) {
+                                rawPhotoA = null;
+                            }
+                            const userPhotoUrl = rawPhotoA
+                                ? sanitizePhotoUrl(rawPhotoA, uA.full_name || "User")
+                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(uA.full_name || "User")}&background=random&color=fff&size=256`;
+
+                            // User B (current user) photo & details
+                            const metaB = (uB.profiles?.metadata as any) || {};
+                            const ageStr = uB.age ? `${uB.age} yr` : '';
+                            const profStr = metaB.career?.profession || "";
+                            const locStr = uB.city || uB.location_name || metaB.location?.city || "";
+
+                            const detailsArr = [ageStr, profStr, locStr].filter(Boolean);
+                            const detailsStr = detailsArr.length > 0 ? detailsArr.join(' • ') : '';
+
+                            let rawPhotoB = uB.avatar_url || metaB.photos?.[0] || null;
+                            if (rawPhotoB && rawPhotoB.startsWith('data:image')) {
+                                rawPhotoB = null;
+                            }
+                            const partnerPhotoUrl = rawPhotoB
+                                ? sanitizePhotoUrl(rawPhotoB, uB.full_name || "Partner")
+                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(uB.full_name || "Partner")}&background=random&color=fff&size=256`;
+
+                            const partnerDetails = {
+                                age: uB.age || metaB.age,
+                                location: locStr,
+                                job: profStr,
+                                detailsString: detailsStr
+                            };
+
+                            await EmailService.sendMatchAcceptedEmail(
+                                uA.email,
+                                uA.full_name || "User",
+                                userPhotoUrl,
+                                uB.full_name || "User",
+                                partnerPhotoUrl,
+                                partnerDetails
+                            );
+
+                            const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+                            getIO().to(toUserId).emit('notification:new', {
+                                type: 'match',
+                                message: msg,
+                                timestamp: new Date()
+                            });
+                        }
+                    } catch (notifyErr) { 
+                        console.error("Notify error during mutual match", notifyErr); 
                     }
-                } catch (notifyErr) { 
-                    console.error("Notify error during mutual match", notifyErr); 
+
+                    // Bust cache for both
+                    matchCache.deletePrefix(`${userId}_`);
+                    matchCache.deletePrefix(`${toUserId}_`);
+
+                    return res.json({ success: true, message: "Connected mutually!" });
+                } else {
+                    return res.json({ success: true, message: "Already connected" });
                 }
-
-                // Bust cache for both
-                matchCache.deletePrefix(`${userId}_`);
-                matchCache.deletePrefix(`${toUserId}_`);
-
-                return res.json({ success: true, message: "Connected mutually!" });
             }
         }
 
@@ -790,7 +794,7 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
 
         // Update
         const interaction = await prisma.interactions.updateMany({
-            where: { id: interactionId, to_user_id: req.user.userId },
+            where: { id: interactionId, to_user_id: req.user.userId, status: 'pending' },
             data: { status: 'connected' }
         });
 

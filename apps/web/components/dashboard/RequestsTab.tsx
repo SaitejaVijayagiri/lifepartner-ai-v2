@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import { Heart, MapPin, Briefcase, X, Check } from 'lucide-react';
 
 interface RequestsTabProps {
@@ -15,6 +16,42 @@ export default function RequestsTab({
     handleDeclineRequest,
     loading
 }: RequestsTabProps) {
+    const [actioningIds, setActioningIds] = useState<Set<string>>(new Set());
+
+    const onAccept = async (id: string) => {
+        setActioningIds(prev => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+        try {
+            await handleAcceptRequest(id);
+        } finally {
+            setActioningIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }
+    };
+
+    const onDecline = async (id: string) => {
+        setActioningIds(prev => {
+            const next = new Set(prev);
+            next.add(id);
+            return next;
+        });
+        try {
+            await handleDeclineRequest(id);
+        } finally {
+            setActioningIds(prev => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }
+    };
+
     if (loading && requests.length === 0) {
         return (
             <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 flex flex-col items-center justify-center space-y-4">
@@ -78,14 +115,16 @@ export default function RequestsTab({
                     
                     <div className="flex gap-2 sm:gap-3 w-full sm:w-auto mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-gray-700 relative z-10">
                         <button 
-                            onClick={() => handleDeclineRequest(req.interactionId)} 
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 dark:bg-gray-800 dark:hover:bg-rose-900/20 border border-gray-200 dark:border-gray-700 dark:text-gray-300 dark:hover:text-rose-400 rounded-2xl font-bold transition-all"
+                            onClick={() => onDecline(req.interactionId)} 
+                            disabled={actioningIds.has(req.interactionId)}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-gray-50 hover:bg-rose-50 text-gray-600 hover:text-rose-600 dark:bg-gray-800 dark:hover:bg-rose-900/20 border border-gray-200 dark:border-gray-700 dark:text-gray-300 dark:hover:text-rose-400 rounded-2xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50 disabled:hover:text-gray-600"
                         >
                             <X size={18} strokeWidth={3} /> Decline
                         </button>
                         <button 
-                            onClick={() => handleAcceptRequest(req.interactionId)} 
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl font-bold shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all"
+                            onClick={() => onAccept(req.interactionId)} 
+                            disabled={actioningIds.has(req.interactionId)}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl font-bold shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:to-purple-600 disabled:translate-y-0"
                         >
                             <Check size={18} strokeWidth={3} /> Accept
                         </button>

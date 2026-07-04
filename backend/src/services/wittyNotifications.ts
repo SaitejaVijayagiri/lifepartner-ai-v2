@@ -3,44 +3,44 @@ import { prisma } from '../prisma';
 import { NotificationService } from './notification';
 
 interface NotificationTemplate {
-    title: string;
+    title: string | ((name: string) => string);
     body: string;
     hours: number[]; // Hour range (0-23) when this template is relevant
 }
 
 const templates: NotificationTemplate[] = [
     {
-        title: "Your tea is feeling lonely... ☕",
+        title: (name: string) => `${name}, your tea is feeling lonely... ☕`,
         body: "A warm cup of chai is best shared. Let's find someone who shares your vibe today!",
         hours: [8, 9, 10, 11, 16, 17, 18]
     },
     {
-        title: "Eating lunch alone again? 🍽️",
+        title: (name: string) => `Hey ${name}, eating lunch alone again? 🍽️`,
         body: "Your future partner is probably doing the same. Let's swipe and change that!",
         hours: [12, 13, 14, 15]
     },
     {
-        title: "Late night thoughts? 💭",
+        title: (name: string) => `Late night thoughts, ${name}? 💭`,
         body: "Skip the overthinking. Talk to someone who actually understands you on LifePartner AI.",
         hours: [20, 21, 22, 23, 0, 1, 2]
     },
     {
-        title: "Your profile bio called... 💅",
+        title: (name: string) => `${name}, your profile bio called... 💅`,
         body: "It wants a polish! Ask the Love Guru to roast your bio and attract 8x more matches.",
         hours: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
     },
     {
-        title: "Don't tell your mom, but... 🤫",
+        title: (name: string) => `Don't tell your mom, ${name}... 🤫`,
         body: "Someone highly compatible just browsed the matches list. Tap to check them out!",
         hours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
     },
     {
-        title: "Are you a keyboard? ⌨️",
+        title: (name: string) => `${name}, are you a keyboard? ⌨️`,
         body: "Because you're just our type. 😉 Let's see who else is your type today!",
         hours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
     },
     {
-        title: "Zodiac signs are matching! 🌌",
+        title: (name: string) => `Zodiac signs are matching, ${name}! 🌌`,
         body: "The stars align at this hour. Find your cosmic compatibility score with new matches.",
         hours: [18, 19, 20, 21, 22, 23]
     }
@@ -91,7 +91,9 @@ export async function sendWittyNotifications() {
             const firstName = user.full_name?.split(' ')[0] || 'there';
             
             // Personalize title and body
-            const personalizedTitle = template.title.replace("Your", `${firstName}, your`).replace("Eating", `Hey ${firstName}, eating`);
+            const personalizedTitle = typeof template.title === 'function'
+                ? template.title(firstName)
+                : template.title;
             const personalizedBody = template.body;
 
             await ns.sendToUser(

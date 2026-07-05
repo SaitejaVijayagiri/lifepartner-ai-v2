@@ -75,10 +75,30 @@ router.post('/test', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "Admin access required" });
         }
 
-        const { title, body } = req.body;
+        const { title, body, type } = req.body;
 
-        // Removed pool arg
-        await notificationService.sendToUser(userId, title || "Test Notification", body || "This is a test from LifePartner AI");
+        if (type === 'witty_reengagement') {
+            const bannerUrl = "/images/campaigns/lunch.png";
+            await notificationService.sendToUser(userId, title || "Eating Masala Dosa alone? 🍛", body || "Your future partner is doing the same. Swipe matches now!", {
+                type: 'witty_reengagement',
+                screen: 'matches',
+                bannerUrl
+            });
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                io.to(userId).emit('notification:new', {
+                    id: `sample-${Date.now()}`,
+                    type: 'witty_reengagement',
+                    message: title || "Eating Masala Dosa alone? 🍛",
+                    body: body || "Your future partner is doing the same. Swipe matches now!",
+                    bannerUrl,
+                    timestamp: new Date()
+                });
+            } catch (_) {}
+        } else {
+            await notificationService.sendToUser(userId, title || "Test Notification", body || "This is a test from LifePartner AI");
+        }
 
         res.json({ success: true, message: "Notification queued" });
     } catch (e) {

@@ -155,7 +155,9 @@ export class NotificationService {
             const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
             let bannerUrl = data?.bannerUrl || null;
             if (bannerUrl && bannerUrl.startsWith('/')) {
-                bannerUrl = `https://www.lifepartnerai.in${bannerUrl}`;
+                const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
+                const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+                bannerUrl = `${cleanBase}${bannerUrl}`;
             }
             const notificationPayload: any = {
                 title: String(title),

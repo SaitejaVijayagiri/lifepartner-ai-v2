@@ -244,7 +244,11 @@ export default function NotificationToastBanner() {
                             {toast.bannerUrl && (
                                 <div className="mt-3 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm">
                                     <img
-                                        src={toast.bannerUrl}
+                                        src={
+                                            toast.bannerUrl.startsWith('http') && typeof window !== 'undefined' && window.location.hostname === 'localhost'
+                                                ? toast.bannerUrl.replace('https://www.lifepartnerai.in', '').replace('https://lifepartnerai.in', '')
+                                                : toast.bannerUrl
+                                        }
                                         alt=""
                                         className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500"
                                         onError={(e) => {

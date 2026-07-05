@@ -128,14 +128,39 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private Bitmap getBitmapFromURL(String src) {
         try {
-            URL url = new URI(src).toURL();
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setDoInput(true);
-            connection.connect();
+            int redirectLimit = 5;
+            String currentUrl = src;
+            HttpURLConnection connection = null;
+            
+            while (redirectLimit-- > 0) {
+                URL url = new URI(currentUrl).toURL();
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.setInstanceFollowRedirects(true);
+                
+                int status = connection.getResponseCode();
+                if (status == HttpURLConnection.HTTP_MOVED_TEMP || 
+                    status == HttpURLConnection.HTTP_MOVED_PERM || 
+                    status == 307 || status == 308) {
+                    
+                    String newUrl = connection.getHeaderField("Location");
+                    if (newUrl != null) {
+                        currentUrl = newUrl;
+                        connection.disconnect();
+                        continue;
+                    }
+                }
+                break;
+            }
+            
+            if (connection == null) return null;
             InputStream input = connection.getInputStream();
-            return BitmapFactory.decodeStream(input);
+            Bitmap bitmap = BitmapFactory.decodeStream(input);
+            connection.disconnect();
+            return bitmap;
         } catch (Exception e) {
-            Log.e(TAG, "Failed to download image", e);
+            Log.e(TAG, "Failed to download image: " + src, e);
             return null;
         }
     }

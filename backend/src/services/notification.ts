@@ -155,7 +155,7 @@ export class NotificationService {
             const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
             let bannerUrl = data?.bannerUrl || null;
             if (bannerUrl && bannerUrl.startsWith('/')) {
-                bannerUrl = `https://lifepartnerai.in${bannerUrl}`;
+                bannerUrl = `https://www.lifepartnerai.in${bannerUrl}`;
             }
             const notificationPayload: any = {
                 title: String(title),

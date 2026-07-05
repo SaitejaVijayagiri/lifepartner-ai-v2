@@ -10,14 +10,15 @@ import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 
-// Dynamic Import for SimplePeer to avoid Next.js SSR issues
+// Dynamic Import for SimplePeer with pre-polyfills to avoid Next.js SSR issues
 let SimplePeer: any;
 if (typeof window !== 'undefined') {
-    SimplePeer = require('simple-peer');
-    // Polyfills
+    // Polyfills FIRST
     if (!(window as any).global) (window as any).global = window;
     if (!(window as any).process) (window as any).process = { env: { DEBUG: undefined }, version: '' };
     if (!(window as any).Buffer) (window as any).Buffer = require('buffer').Buffer;
+
+    SimplePeer = require('simple-peer');
 }
 
 /**

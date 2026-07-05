@@ -215,9 +215,8 @@ export class NotificationService {
                 };
             }
 
-            const message = {
+            const message: any = {
                 tokens,
-                notification: notificationPayload,
                 data: {
                     title: String(title),
                     body: String(body),
@@ -226,6 +225,10 @@ export class NotificationService {
                 apns: apnsPayload,
                 webpush: webpushPayload
             };
+
+            if (data?.type !== 'witty_reengagement') {
+                message.notification = notificationPayload;
+            }
             const batchResponse = await admin.messaging().sendEachForMulticast(message);
             console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);
 

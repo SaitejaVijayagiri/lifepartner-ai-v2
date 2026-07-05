@@ -22,6 +22,8 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
+    const [campaignStats, setCampaignStats] = useState<any>(null);
+
     // Campaign state
     const [campaignLoading, setCampaignLoading] = useState<string | null>(null);
     const [campaignResult, setCampaignResult] = useState<any>(null);
@@ -48,16 +50,18 @@ export default function AdminDashboard() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [statsRes, usersRes, txRes, photosRes] = await Promise.all([
+            const [statsRes, usersRes, txRes, photosRes, campaignStatsRes] = await Promise.all([
                 api.admin.getStats(),
                 api.admin.getUsers({ search, limit: 20 }),
                 api.admin.getTransactions({ limit: 50 }),
-                api.admin.getPhotosPending()
+                api.admin.getPhotosPending(),
+                api.admin.getCampaignStats()
             ]);
             setStats(statsRes);
             setUsers(usersRes);
             setTransactions(txRes);
             setPendingPhotos(photosRes);
+            setCampaignStats(campaignStatsRes);
         } catch (e) {
             console.error("Admin Load Error", e);
         } finally {
@@ -404,95 +408,198 @@ export default function AdminDashboard() {
 
                     {/* CAMPAIGNS TAB */}
                     <TabsContent value="campaigns" className="space-y-6">
+                        {/* 1. Analytics Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border border-indigo-200">
+                                <CardContent className="pt-6">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Push Campaigns Sent</p>
+                                            <h3 className="text-3xl font-extrabold text-indigo-950 mt-1">{campaignStats?.totalSent || 0}</h3>
+                                        </div>
+                                        <div className="bg-indigo-600/10 p-3 rounded-xl text-indigo-700">
+                                            <Send className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-indigo-500 mt-2">Total witty re-engagement pushes delivered</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200">
+                                <CardContent className="pt-6">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Total Clicks</p>
+                                            <h3 className="text-3xl font-extrabold text-emerald-950 mt-1">{campaignStats?.totalClicked || 0}</h3>
+                                        </div>
+                                        <div className="bg-emerald-600/10 p-3 rounded-xl text-emerald-700">
+                                            <CheckCircle className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-emerald-500 mt-2">Unique push notification click events</p>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-200">
+                                <CardContent className="pt-6">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs font-semibold text-purple-600 uppercase tracking-wider">Click-Through Rate (CTR)</p>
+                                            <h3 className="text-3xl font-extrabold text-purple-950 mt-1">{campaignStats?.ctr || '0.00%'}</h3>
+                                        </div>
+                                        <div className="bg-purple-600/10 p-3 rounded-xl text-purple-700">
+                                            <Activity className="w-6 h-6" />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-purple-500 mt-2">Conversion rate of delivered pushes</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         {campaignResult && (
                             <div className={`p-4 rounded-xl border text-sm font-mono whitespace-pre-wrap ${campaignResult.error ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-800'}`}>
                                 {JSON.stringify(campaignResult, null, 2)}
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* 2. Campaign Action Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             {/* Onboarding */}
-                            <Card className="border-2 border-indigo-100">
+                            <Card className="border-2 border-indigo-100 hover:shadow-sm transition">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-indigo-700">
+                                    <CardTitle className="flex items-center gap-2 text-indigo-700 text-base">
                                         <UserPlus className="w-5 h-5" />
                                         Onboarding Reminder
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    <p className="text-sm text-gray-500">Sends a profile completion nudge to every registered user who signed up but never completed onboarding.</p>
+                                    <p className="text-xs text-gray-500 h-12">Sends a completion nudge to registered users who never finished onboarding.</p>
                                     <Button
                                         onClick={() => runCampaign('onboarding')}
                                         disabled={!!campaignLoading}
-                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-1.5 h-auto"
                                     >
                                         {campaignLoading === 'onboarding' ? 'Sending...' : '🚀 Run Campaign'}
                                     </Button>
                                 </CardContent>
                             </Card>
 
-                            {/* Re-engagement */}
-                            <Card className="border-2 border-purple-100">
+                            {/* Email Re-engagement */}
+                            <Card className="border-2 border-purple-100 hover:shadow-sm transition">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-purple-700">
+                                    <CardTitle className="flex items-center gap-2 text-purple-700 text-base">
                                         <Mail className="w-5 h-5" />
-                                        Re-engagement
+                                        Email Re-engagement
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
-                                    <p className="text-sm text-gray-500">Sends a "we miss you" email to active users who haven't logged in for 7+ days.</p>
+                                    <p className="text-xs text-gray-500 h-12">Sends a "we miss you" email to active users who haven't logged in for 7+ days.</p>
                                     <Button
                                         onClick={() => runCampaign('reengagement')}
                                         disabled={!!campaignLoading}
-                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                                        className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs py-1.5 h-auto"
                                     >
-                                        {campaignLoading === 'reengagement' ? 'Sending...' : '💭 Run Campaign'}
+                                        {campaignLoading === 'reengagement' ? 'Sending...' : '📧 Run Campaign'}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Witty Push Re-engagement */}
+                            <Card className="border-2 border-pink-100 hover:shadow-sm transition bg-gradient-to-br from-white to-pink-50/20">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-pink-700 text-base">
+                                        <Activity className="w-5 h-5 animate-pulse" />
+                                        Witty Push Campaign
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    <p className="text-xs text-gray-500 h-12">Triggers time-of-day re-engagement notifications with rich banners & buttons to offline users.</p>
+                                    <Button
+                                        onClick={() => runCampaign('witty_reengagement')}
+                                        disabled={!!campaignLoading}
+                                        className="w-full bg-pink-600 hover:bg-pink-700 text-white text-xs py-1.5 h-auto font-semibold"
+                                    >
+                                        {campaignLoading === 'witty_reengagement' ? 'Sending...' : '⚡ Run Push Campaign'}
                                     </Button>
                                 </CardContent>
                             </Card>
 
                             {/* Invite */}
-                            <Card className="border-2 border-rose-100">
+                            <Card className="border-2 border-rose-100 hover:shadow-sm transition">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-rose-700">
+                                    <CardTitle className="flex items-center gap-2 text-rose-700 text-base">
                                         <Send className="w-5 h-5" />
-                                        Invite Non-Registered
+                                        Invite External
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-3">
-                                    <p className="text-sm text-gray-500">Send invite emails to people who are not yet registered. Enter emails below (comma or newline separated).</p>
+                                <CardContent className="space-y-2">
+                                    <p className="text-xs text-gray-500">Send invitations to emails (comma/newline separated).</p>
                                     <textarea
                                         value={inviteEmails}
                                         onChange={e => setInviteEmails(e.target.value)}
-                                        placeholder="john@example.com, jane@example.com\nor one per line"
-                                        className="w-full h-28 p-3 text-sm border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-rose-400 font-mono"
+                                        placeholder="john@example.com"
+                                        className="w-full h-16 p-2 text-xs border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-rose-400 font-mono"
                                     />
                                     <Button
                                         onClick={() => runCampaign('invite')}
                                         disabled={!!campaignLoading || !inviteEmails.trim()}
-                                        className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                                        className="w-full bg-rose-600 hover:bg-rose-700 text-white text-xs py-1.5 h-auto"
                                     >
-                                        {campaignLoading === 'invite' ? 'Sending...' : `💌 Send Invites (${inviteEmails.split(/[,\n]/).filter(e => e.trim()).length})`}
+                                        {campaignLoading === 'invite' ? 'Sending...' : '💌 Send Invites'}
                                     </Button>
                                 </CardContent>
                             </Card>
                         </div>
 
-                        {/* Run All */}
-                        <Card className="border-2 border-gray-200 bg-gray-50">
-                            <CardContent className="pt-5 flex items-center justify-between gap-4">
-                                <div>
-                                    <p className="font-semibold text-gray-800">Run All Automated Campaigns</p>
-                                    <p className="text-sm text-gray-500">Runs both onboarding reminders and re-engagement emails in one go.</p>
-                                </div>
-                                <Button
-                                    onClick={() => runCampaign('all')}
-                                    disabled={!!campaignLoading}
-                                    variant="outline"
-                                    className="shrink-0"
-                                >
-                                    {campaignLoading === 'all' ? 'Running...' : '⚡ Run All Campaigns'}
-                                </Button>
+                        {/* 3. Recent Campaign Dispatch Log */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <Activity className="w-5 h-5 text-indigo-600" />
+                                    Witty Push Notification Delivery & Click Log (Last 50)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {(!campaignStats?.recentCampaigns || campaignStats.recentCampaigns.length === 0) ? (
+                                    <div className="text-center p-8 text-gray-500 text-sm">No re-engagement campaigns sent yet.</div>
+                                ) : (
+                                    <div className="rounded-md border overflow-hidden">
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="bg-gray-50 border-b">
+                                                <tr>
+                                                    <th className="p-3 font-semibold">Notification Title</th>
+                                                    <th className="p-3 font-semibold">Sent At</th>
+                                                    <th className="p-3 font-semibold">Delivery Status</th>
+                                                    <th className="p-3 font-semibold">Interaction Action</th>
+                                                    <th className="p-3 font-semibold">Interaction Time</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {campaignStats.recentCampaigns.map((c: any) => (
+                                                    <tr key={c.id} className="border-b hover:bg-gray-50/50">
+                                                        <td className="p-3 font-medium text-gray-800">{c.title}</td>
+                                                        <td className="p-3 text-gray-500">
+                                                            {format(new Date(c.sentAt), 'dd MMM yyyy, HH:mm')}
+                                                        </td>
+                                                        <td className="p-3">
+                                                            {c.clicked ? (
+                                                                <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">Clicked ✅</Badge>
+                                                            ) : (
+                                                                <Badge variant="secondary" className="bg-gray-100 text-gray-600">Delivered ✉️</Badge>
+                                                            )}
+                                                        </td>
+                                                        <td className="p-3 font-mono font-medium text-purple-700">
+                                                            {c.clicked ? (c.action === 'notification_body' ? 'Main Body Click' : c.action) : '-'}
+                                                        </td>
+                                                        <td className="p-3 text-gray-400">
+                                                            {c.clickedAt ? format(new Date(c.clickedAt), 'dd MMM HH:mm') : '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

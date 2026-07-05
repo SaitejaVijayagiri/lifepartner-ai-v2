@@ -257,7 +257,8 @@ export const api = {
         moderatePhoto: (userId: string, action: 'approve' | 'reject') => fetchAPI('/admin/moderate-photo', {
             method: 'POST',
             body: JSON.stringify({ userId, action })
-        })
+        }),
+        getCampaignStats: () => fetchAPI('/notifications/campaign-stats')
     },
     events: {
         getAll: (lat?: number, lng?: number, filter?: string) => {

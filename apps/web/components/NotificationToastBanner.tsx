@@ -7,8 +7,10 @@ import { X, Heart, Camera, Sparkles, Bell, Eye } from 'lucide-react';
 
 interface NotificationToast {
     id: string;
-    type: 'request' | 'like' | 'story' | 'match' | string;
+    type: 'request' | 'like' | 'story' | 'match' | 'witty_reengagement' | string;
     message: string;
+    body?: string;
+    bannerUrl?: string;
     fromUserId?: string;
     fromUserName?: string;
     fromUserPhoto?: string;
@@ -81,9 +83,13 @@ export default function NotificationToastBanner() {
                 id: toastId,
                 type: data.type || 'info',
                 message: data.message || 'New notification',
+                body: data.body,
+                bannerUrl: data.bannerUrl,
                 fromUserId: data.fromUserId,
-                fromUserName: data.fromUserName || 'LifePartner Member',
-                fromUserPhoto: data.fromUserPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fromUserName || 'User')}`,
+                fromUserName: data.fromUserName || (data.type === 'witty_reengagement' ? 'LifePartner AI' : 'LifePartner Member'),
+                fromUserPhoto: data.type === 'witty_reengagement' 
+                    ? '/icon.png' 
+                    : (data.fromUserPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fromUserName || 'User')}`),
                 timestamp: new Date(data.timestamp || Date.now())
             };
 
@@ -156,6 +162,14 @@ export default function NotificationToastBanner() {
                     icon: Eye,
                     targetTab: 'matches'
                 };
+            case 'witty_reengagement':
+                return {
+                    borderColor: 'border-indigo-500',
+                    shadowColor: 'hover:shadow-indigo-200/80 dark:hover:shadow-indigo-900/30',
+                    iconBg: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-500',
+                    icon: Sparkles,
+                    targetTab: 'matches'
+                };
             default:
                 return {
                     borderColor: 'border-blue-500',
@@ -217,11 +231,29 @@ export default function NotificationToastBanner() {
                         {/* Text Content */}
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">
-                                {toast.type === 'request' ? 'Interest Request' : toast.type === 'like' ? 'Profile Like' : toast.type === 'story' ? 'New Story' : toast.type === 'match' ? 'It\'s a Match!' : toast.type === 'view' ? 'Profile View' : 'Notification'}
+                                {toast.type === 'request' ? 'Interest Request' : toast.type === 'like' ? 'Profile Like' : toast.type === 'story' ? 'New Story' : toast.type === 'match' ? 'It\'s a Match!' : toast.type === 'view' ? 'Profile View' : toast.type === 'witty_reengagement' ? 'Recommendation ✨' : 'Notification'}
                             </p>
-                            <p className="text-sm text-gray-800 dark:text-gray-100 font-medium leading-snug">
+                            <p className="text-sm text-gray-800 dark:text-gray-100 font-semibold leading-snug">
                                 {toast.message}
                             </p>
+                            {toast.body && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-normal">
+                                    {toast.body}
+                                </p>
+                            )}
+                            {toast.bannerUrl && (
+                                <div className="mt-3 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm">
+                                    <img
+                                        src={toast.bannerUrl}
+                                        alt=""
+                                        className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500"
+                                        onError={(e) => {
+                                            const img = e.target as HTMLImageElement;
+                                            img.style.display = 'none';
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Close button */}

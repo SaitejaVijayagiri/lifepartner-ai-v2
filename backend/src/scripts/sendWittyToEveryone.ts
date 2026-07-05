@@ -138,6 +138,21 @@ async function main() {
                         notificationId: dbNotification.id
                     }
                 );
+
+                // Emit realtime notification socket event for active web users
+                try {
+                    const { getIO } = require('../socket');
+                    const io = getIO();
+                    io.to(user.id).emit('notification:new', {
+                        id: dbNotification.id,
+                        type: 'witty_reengagement',
+                        message: personalizedTitle,
+                        body: personalizedBody,
+                        bannerUrl: template.bannerUrl,
+                        timestamp: new Date()
+                    });
+                } catch (_) {}
+
                 count++;
             } catch (err: any) {
                 console.error(`Failed to send FCM push to user ${user.id}:`, err.message);

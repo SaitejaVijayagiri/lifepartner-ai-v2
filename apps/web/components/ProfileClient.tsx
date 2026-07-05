@@ -48,6 +48,59 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
         }
     }, [user, profileId]);
 
+    const [matchStatus, setMatchStatus] = useState<string | null>(profile?.match_status || null);
+    const [isLiked, setIsLiked] = useState<boolean>(profile?.is_liked || false);
+    const [likeCount, setLikeCount] = useState<number>(profile?.total_likes || 0);
+    const [loadingInterest, setLoadingInterest] = useState<boolean>(false);
+    const [loadingLike, setLoadingLike] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (profile) {
+            setMatchStatus(profile.match_status || null);
+            setIsLiked(profile.is_liked || false);
+            setLikeCount(profile.total_likes || 0);
+        }
+    }, [profile]);
+
+    const handleSendInterest = async () => {
+        if (!profile || loadingInterest || matchStatus === 'pending') return;
+        setLoadingInterest(true);
+        const prevStatus = matchStatus;
+        setMatchStatus('pending');
+        try {
+            await api.interactions.sendInterest(profile.id);
+            toast.success(`Interest request sent to ${profile.name}!`);
+        } catch (err: any) {
+            setMatchStatus(prevStatus);
+            toast.error(err.message || "Failed to send interest request");
+        } finally {
+            setLoadingInterest(false);
+        }
+    };
+
+    const handleToggleLike = async () => {
+        if (!profile || loadingLike) return;
+        setLoadingLike(true);
+        const nextIsLiked = !isLiked;
+        setIsLiked(nextIsLiked);
+        setLikeCount(prev => nextIsLiked ? prev + 1 : Math.max(0, prev - 1));
+        try {
+            if (nextIsLiked) {
+                await api.interactions.sendLike(profile.id);
+                toast.success(`Added ${profile.name} to shortlist!`);
+            } else {
+                await api.interactions.revokeLike(profile.id);
+                toast.success(`Removed ${profile.name} from shortlist.`);
+            }
+        } catch (err: any) {
+            setIsLiked(!nextIsLiked);
+            setLikeCount(prev => !nextIsLiked ? prev + 1 : Math.max(0, prev - 1));
+            toast.error(err.message || "Failed to update shortlist");
+        } finally {
+            setLoadingLike(false);
+        }
+    };
+
     // Share Handler
     const handleShare = async () => {
         const shareData = {
@@ -198,15 +251,39 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         </div>
                                     )}
                                 </div>
-
-                                <div className="pt-8 flex gap-4">
+                                 <div className="pt-8 flex gap-4 w-full">
                                     {user ? (
                                         <>
-                                            <Button className="flex-1 h-12 bg-primary hover:bg-indigo-700 shadow-lg shadow-indigo-200 rounded-xl font-bold text-base">
-                                                <Heart className="mr-2" size={20} /> Send Interest
-                                            </Button>
-                                            <Button variant="outline" className="h-12 w-12 rounded-xl border-gray-200">
-                                                <Star size={20} />
+                                            {matchStatus === 'accepted' || matchStatus === 'connected' ? (
+                                                <Button
+                                                    onClick={() => router.push('/dashboard?tab=connections')}
+                                                    className="flex-1 h-12 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg shadow-emerald-500/20 rounded-xl font-bold text-base"
+                                                >
+                                                    💬 Message
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    disabled={loadingInterest || matchStatus === 'pending'}
+                                                    onClick={handleSendInterest}
+                                                    className={`flex-1 h-12 font-bold text-base rounded-xl shadow-lg transition-all ${
+                                                        matchStatus === 'pending'
+                                                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                                                    }`}
+                                                >
+                                                    {loadingInterest ? 'Sending...' : (matchStatus === 'pending' ? '✓ Request Sent' : '✨ Send Interest')}
+                                                </Button>
+                                            )}
+                                            <Button
+                                                onClick={handleToggleLike}
+                                                disabled={loadingLike}
+                                                variant="outline"
+                                                className={`h-12 w-12 rounded-xl border-gray-200 flex items-center justify-center transition-all ${
+                                                    isLiked ? 'bg-pink-50 border-pink-200 text-pink-600' : 'text-gray-400 hover:text-pink-600'
+                                                }`}
+                                                title={isLiked ? "Remove Shortlist" : "Shortlist"}
+                                            >
+                                                <Heart className={isLiked ? "fill-current" : ""} size={20} />
                                             </Button>
                                         </>
                                     ) : (

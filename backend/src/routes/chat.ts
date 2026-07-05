@@ -91,7 +91,10 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     receiver_id: true,
                     content: true,
                     created_at: true,
-                    delivery_status: true
+                    delivery_status: true,
+                    cleared_by: true,
+                    reactions: true,
+                    reply_to_id: true
                 }
             });
         }
@@ -471,7 +474,7 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
 // DELETE MESSAGE (For Me / For Everyone)
 router.delete('/:messageId', authenticateToken, async (req: any, res) => {
     const { messageId } = req.params;
-    const { mode } = req.body; // 'me' | 'everyone'
+    const mode = req.query.mode || req.body?.mode || 'me'; // Accept via query param to bypass proxy body-stripping
     const userId = req.user.userId;
 
     try {

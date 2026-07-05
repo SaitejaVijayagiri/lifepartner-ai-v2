@@ -1159,39 +1159,40 @@ function DashboardContent() {
                 />
             )}
 
-            {/* Profile Detail Modal for Matches */}
-            {selectedProfile && (
-                <ProfileModal
-                    profile={selectedProfile}
-                    currentUser={currentUser}
-                    onClose={() => setSelectedProfile(null)}
-                    onConnect={() => {
-                        api.interactions.sendInterest(selectedProfile.id);
-                        setSelectedProfile(null);
-                        // Mark this match as pending in-state so "Request Sent" shows immediately
-                        setMatches(prev => prev.map(m =>
-                            m.id === selectedProfile.id ? { ...m, match_status: 'pending' } : m
-                        ));
-                        // Invalidate localStorage cache so next fetch returns fresh pending status
-                        try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
-                        toast.success(`Interest sent to ${selectedProfile.name}!`);
-                    }}
-                    isConnectedProp={connections.some((c: any) => c.partner?.id === selectedProfile.id)}
-                    onChat={() => {
-                        const conn = connections.find((c: any) => c.partner?.id === selectedProfile.id);
-                        setSelectedProfile(null);
-                        if (conn) {
-                            openChat(conn);
-                        } else {
-                            setActiveTab('connections');
-                        }
-                    }}
-                    onUpgrade={() => {
-                        setSelectedProfile(null);
-                        setShowCoinStore(true);
-                    }}
-                />
-            )}
+            {selectedProfile && (() => {
+                const latestMatch = matches.find((m: any) => m.id === selectedProfile.id);
+                const profileToShow = latestMatch ? { ...selectedProfile, match_status: latestMatch.match_status } : selectedProfile;
+                return (
+                    <ProfileModal
+                        profile={profileToShow}
+                        currentUser={currentUser}
+                        onClose={() => setSelectedProfile(null)}
+                        onConnect={() => {
+                            // Mark this match as pending in-state so "Request Sent" shows immediately
+                            setMatches(prev => prev.map(m =>
+                                m.id === profileToShow.id ? { ...m, match_status: 'pending' } : m
+                            ));
+                            // Invalidate localStorage cache so next fetch returns fresh pending status
+                            try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
+                            toast.success(`Interest sent to ${profileToShow.name}!`);
+                        }}
+                        isConnectedProp={connections.some((c: any) => c.partner?.id === profileToShow.id)}
+                        onChat={() => {
+                            const conn = connections.find((c: any) => c.partner?.id === profileToShow.id);
+                            setSelectedProfile(null);
+                            if (conn) {
+                                openChat(conn);
+                            } else {
+                                setActiveTab('connections');
+                            }
+                        }}
+                        onUpgrade={() => {
+                            setSelectedProfile(null);
+                            setShowCoinStore(true);
+                        }}
+                    />
+                );
+            })()}
 
             {/* Video Call Modal - UPDATED: Handled globally by GlobalCallUI, removed from here */}
 

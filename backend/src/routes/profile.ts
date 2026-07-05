@@ -287,10 +287,45 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
         // Fetch Requester (if logged in)
         const requesterId = req.user?.userId;
         let isRequesterPremium = false;
+        let matchStatus: string | null = null;
+        let isLiked = false;
 
         if (requesterId) {
-            const requester = await prisma.users.findUnique({ where: { id: requesterId }, select: { is_premium: true } });
+            const [requester, sentRequest, receivedRequest, matchRecord] = await Promise.all([
+                prisma.users.findUnique({ where: { id: requesterId }, select: { is_premium: true } }),
+                prisma.interactions.findUnique({
+                    where: {
+                        from_user_id_to_user_id_type: {
+                            from_user_id: requesterId,
+                            to_user_id: id,
+                            type: 'REQUEST'
+                        }
+                    },
+                    select: { status: true }
+                }),
+                prisma.interactions.findUnique({
+                    where: {
+                        from_user_id_to_user_id_type: {
+                            from_user_id: id,
+                            to_user_id: requesterId,
+                            type: 'REQUEST'
+                        }
+                    },
+                    select: { status: true }
+                }),
+                prisma.matches.findUnique({
+                    where: {
+                        user_a_id_user_b_id: {
+                            user_a_id: requesterId,
+                            user_b_id: id
+                        }
+                    },
+                    select: { is_liked: true }
+                })
+            ]);
             isRequesterPremium = requester?.is_premium || false;
+            matchStatus = sentRequest?.status || receivedRequest?.status || null;
+            isLiked = matchRecord?.is_liked || false;
         }
 
         const meta: any = user.profiles?.metadata || {};
@@ -342,6 +377,8 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             interests: meta.interests || [],
             summary: meta.summary || "",
             stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()),
+            match_status: matchStatus,
+            is_liked: isLiked,
             ...contactInfo,
             isContactUnlocked: isRequesterPremium
         });

@@ -9,6 +9,8 @@ import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
 import dynamic from 'next/dynamic';
 import { formatLocationString } from '@/lib/utils';
+import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/api';
 
 const KundliModal = dynamic(() => import('./KundliModal'), { ssr: false });
 const CoinStoreModal = dynamic(() => import('./CoinStoreModal'), { ssr: false });
@@ -35,6 +37,35 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [sheetExpanded, setSheetExpanded] = useState(false);
     const dragStartY = useState(0);
     const swipeStartX = useState(0);
+
+    const toast = useToast();
+    const [matchStatus, setMatchStatus] = useState<string | null>(profile.match_status || null);
+    const [loadingInterest, setLoadingInterest] = useState(false);
+
+    useEffect(() => {
+        setMatchStatus(profile.match_status || null);
+    }, [profile.match_status]);
+
+    const handleConnect = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (loadingInterest || matchStatus === 'pending' || isConnectedProp) return;
+
+        setLoadingInterest(true);
+        const prevStatus = matchStatus;
+        setMatchStatus('pending');
+
+        try {
+            await api.interactions.sendInterest(profile.id);
+            if (onConnect) onConnect();
+        } catch (err) {
+            setMatchStatus(prevStatus);
+            toast.error("Connection failed. Please try again.");
+        } finally {
+            setLoadingInterest(false);
+        }
+    };
 
     const TABS = ['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'];
     
@@ -545,8 +576,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Bottom Action Bar (Fixed on Mobile) */}
                     {(() => {
-                        const isAlreadyConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (profile.match_status === 'accepted' || profile.match_status === 'connected');
-                        const isPendingRequest = profile.match_status === 'pending';
+                        const isAlreadyConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (matchStatus === 'accepted' || matchStatus === 'connected');
+                        const isPendingRequest = matchStatus === 'pending';
                         return (
                             <div className="w-full p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210] pb-safe">
                                 {isAlreadyConnected && (
@@ -568,8 +599,12 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             ✓ Request Sent
                                         </Button>
                                     ) : (
-                                        <Button className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10" onClick={onConnect}>
-                                            ✨ Send Interest
+                                        <Button
+                                            disabled={loadingInterest}
+                                            className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10"
+                                            onClick={handleConnect}
+                                        >
+                                            {loadingInterest ? 'Sending...' : '✨ Send Interest'}
                                         </Button>
                                     )}
                                 </div>

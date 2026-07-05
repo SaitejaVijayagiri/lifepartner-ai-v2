@@ -175,7 +175,7 @@ export const api = {
                 xhr.send(formData);
             });
         },
-        deleteMessage: (messageId: string, mode: 'me' | 'everyone') => fetchAPI(`/messages/${messageId}`, {
+        deleteMessage: (messageId: string, mode: 'me' | 'everyone') => fetchAPI(`/messages/${messageId}?mode=${mode}`, {
             method: 'DELETE',
             body: JSON.stringify({ mode })
         })

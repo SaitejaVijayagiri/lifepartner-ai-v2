@@ -104,6 +104,20 @@ export async function sendWittyNotifications() {
                 : template.title;
             const personalizedBody = template.body;
 
+            // Create notification record in database first to track it
+            const dbNotification = await prisma.notifications.create({
+                data: {
+                    user_id: user.id,
+                    type: 'witty_reengagement',
+                    message: personalizedTitle,
+                    data: {
+                        body: personalizedBody,
+                        bannerUrl: template.bannerUrl,
+                        clicked: false
+                    }
+                }
+            });
+
             await ns.sendToUser(
                 user.id,
                 personalizedTitle,
@@ -111,7 +125,8 @@ export async function sendWittyNotifications() {
                 { 
                     type: 'witty_reengagement', 
                     screen: 'matches',
-                    bannerUrl: template.bannerUrl
+                    bannerUrl: template.bannerUrl,
+                    notificationId: dbNotification.id
                 }
             );
             count++;

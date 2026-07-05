@@ -82,7 +82,28 @@ self.addEventListener('notificationclick', function(event) {
 
     const payloadData = event.notification.data || {};
     const interactionId = payloadData.interactionId;
+    const notificationId = payloadData.notificationId;
     const action = event.action;
+
+    // Record the push click in database log asynchronously
+    if (notificationId) {
+        const API_URL = self.location.origin.includes('localhost') 
+            ? 'http://localhost:5000' 
+            : 'https://lifepartner-ai.onrender.com';
+            
+        event.waitUntil(
+            fetch(`${API_URL}/notifications/${notificationId}/click`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: action || 'notification_body' })
+            })
+            .then(res => res.json())
+            .then(data => console.log('Successfully recorded push click in DB:', data))
+            .catch(err => console.error('Failed to track push click:', err))
+        );
+    }
 
     // Check if an action button was clicked
     if (action === 'find_matches') {

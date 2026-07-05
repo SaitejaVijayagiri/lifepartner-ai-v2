@@ -5,6 +5,9 @@ jest.mock('../src/prisma', () => ({
     prisma: {
         users: {
             findMany: jest.fn(),
+        },
+        notifications: {
+            create: jest.fn().mockResolvedValue({ id: 'mock-notification-id' }),
         }
     }
 }));
@@ -85,7 +88,8 @@ describe('Witty Notifications Service', () => {
             { 
                 type: 'witty_reengagement', 
                 screen: 'matches',
-                bannerUrl: expect.any(String)
+                bannerUrl: expect.any(String),
+                notificationId: expect.any(String)
             }
         );
 

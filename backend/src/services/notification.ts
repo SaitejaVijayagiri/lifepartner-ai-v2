@@ -153,7 +153,10 @@ export class NotificationService {
         try {
             const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
             const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
-            const bannerUrl = data?.bannerUrl || null;
+            let bannerUrl = data?.bannerUrl || null;
+            if (bannerUrl && bannerUrl.startsWith('/')) {
+                bannerUrl = `https://lifepartnerai.in${bannerUrl}`;
+            }
             const notificationPayload: any = {
                 title: String(title),
                 body: String(body)

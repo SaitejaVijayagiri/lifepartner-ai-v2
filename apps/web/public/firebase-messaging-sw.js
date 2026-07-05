@@ -49,6 +49,7 @@ messaging.onBackgroundMessage((payload) => {
         badge: `${origin}/icon-192x192.png`, // Absolute path to app logo badge
         image: bannerUrl || senderPhoto || null, // Optional large image preview (useful for story updates)
         data: payload.data,
+        vibrate: [200, 100, 200], // Haptic vibration pattern for Android/mobile devices
         silent: false, // Explicitly tell browser/device to play default system alert sound
     };
 

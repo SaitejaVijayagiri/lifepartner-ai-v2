@@ -241,7 +241,7 @@ export default function NotificationToastBanner() {
                                     {toast.body}
                                 </p>
                             )}
-                            {toast.bannerUrl && (
+                             {toast.bannerUrl && (
                                 <div className="mt-3 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm">
                                     <img
                                         src={
@@ -253,6 +253,7 @@ export default function NotificationToastBanner() {
                                         className="w-full h-24 object-cover hover:scale-105 transition-transform duration-500"
                                         onError={(e) => {
                                             const img = e.target as HTMLImageElement;
+                                            console.warn("Notification Toast Banner failed to load image:", img.src);
                                             img.style.display = 'none';
                                         }}
                                     />

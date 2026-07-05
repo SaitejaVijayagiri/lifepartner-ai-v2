@@ -129,12 +129,18 @@ export class NotificationService {
 
         const tokensRec = await prisma.device_tokens.findMany({
             where: { user_id: userId },
-            select: { token: true }
+            select: { token: true, platform: true }
         });
 
         if (tokensRec.length === 0) return;
 
-        const tokens = tokensRec.map((r: any) => r.token);
+        // Prioritize android token over web token to avoid duplicate push notifications on same device
+        const hasAndroid = tokensRec.some((r: any) => r.platform === 'android');
+        const filteredTokens = hasAndroid 
+            ? tokensRec.filter((r: any) => r.platform === 'android')
+            : tokensRec;
+
+        const tokens = filteredTokens.map((r: any) => r.token);
 
         // 2. Send (Parallel)
         // If real firebase is off, we just mock log

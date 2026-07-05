@@ -194,6 +194,20 @@ function DashboardContent() {
     }, []);
 
     useEffect(() => {
+        if (!searchParams) return;
+        const notificationId = searchParams.get('notificationId');
+        const action = searchParams.get('action') || 'notification_body';
+        if (notificationId) {
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.lifepartnerai.in';
+            fetch(`${API_BASE_URL}/notifications/${notificationId}/click`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            }).catch(err => console.error('[Telemetry] Click tracking failed:', err));
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
         const checkAuth = async () => {
             const userId = localStorage.getItem('userId');
             if (!userId) {

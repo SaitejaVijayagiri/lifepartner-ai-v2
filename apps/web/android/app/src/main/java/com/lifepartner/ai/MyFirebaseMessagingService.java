@@ -60,10 +60,17 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String body = "You have a new message";
         String senderPhotoUrl = null;
         String connId = null;
+        String type = null;
+        String bannerUrl = null;
+        String campaignNotificationId = null;
 
         Map<String, String> data = remoteMessage.getData();
         String messageId = null;
         if (data.size() > 0) {
+            type = data.get("type");
+            bannerUrl = data.get("bannerUrl");
+            campaignNotificationId = data.get("notificationId");
+
             // Always prefer senderName as the notification title for chat messages
             String extractedSenderName = data.get("senderName");
             if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
@@ -104,8 +111,19 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if (senderPhotoUrl != null && !senderPhotoUrl.isEmpty()) {
             largeIcon = getBitmapFromURL(senderPhotoUrl);
         }
+        
+        // Fallback to app logo if largeIcon is not loaded (shows logo on re-engagement pushes!)
+        if (largeIcon == null) {
+            largeIcon = getBitmapFromURL("https://lifepartnerai.in/icon.png");
+        }
 
-        showNotification(title, body, largeIcon, connId, messageId);
+        // Fetch banner image if present
+        Bitmap bannerBitmap = null;
+        if (bannerUrl != null && !bannerUrl.isEmpty()) {
+            bannerBitmap = getBitmapFromURL(bannerUrl);
+        }
+
+        showNotification(title, body, largeIcon, connId, messageId, type, bannerBitmap, campaignNotificationId);
     }
 
     private Bitmap getBitmapFromURL(String src) {
@@ -122,11 +140,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
-    private void showNotification(String title, String body, Bitmap largeIcon, String connId, String messageId) {
+    private void showNotification(
+            String title, 
+            String body, 
+            Bitmap largeIcon, 
+            String connId, 
+            String messageId, 
+            String type, 
+            Bitmap bannerBitmap, 
+            String campaignNotificationId
+    ) {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         String CHANNEL_ID = "lifepartner_chat";
         // Compute notificationId once at method level so all places use the same value
-        int notificationId = (connId != null) ? connId.hashCode() : (int) System.currentTimeMillis();
+        int notificationId = (connId != null) 
+            ? connId.hashCode() 
+            : ((campaignNotificationId != null) ? campaignNotificationId.hashCode() : (int) System.currentTimeMillis());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -138,12 +167,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             manager.createNotificationChannel(channel);
         }
 
-        // 1. Regular Open-App Intent
+        // 1. Regular Open-App Intent with deep link pathing
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.setAction(Intent.ACTION_VIEW);
+        
+        String deepLinkUrl = "https://lifepartnerai.in/dashboard?tab=matches";
+        if (campaignNotificationId != null) {
+            deepLinkUrl += "&notificationId=" + campaignNotificationId + "&action=notification_body";
+        }
+        intent.setData(android.net.Uri.parse(deepLinkUrl));
+
         PendingIntent pendingIntent = PendingIntent.getActivity(
-                this, 0, intent,
-                PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE
+                this, 
+                notificationId, 
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
@@ -156,6 +195,41 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         if (largeIcon != null) {
             builder.setLargeIcon(largeIcon);
+        }
+
+        if (bannerBitmap != null) {
+            builder.setStyle(new NotificationCompat.BigPictureStyle()
+                    .bigPicture(bannerBitmap)
+                    .bigLargeIcon((Bitmap) null)); // Hide large icon in expanded view
+        }
+
+        // 2. Setup Witty Campaign Action Buttons
+        if ("witty_reengagement".equals(type) && campaignNotificationId != null) {
+            // Button 1: Swipe Matches 🔍
+            Intent matchesIntent = new Intent(this, MainActivity.class);
+            matchesIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            matchesIntent.setAction(Intent.ACTION_VIEW);
+            matchesIntent.setData(android.net.Uri.parse("https://lifepartnerai.in/dashboard?tab=matches&notificationId=" + campaignNotificationId + "&action=find_matches"));
+            PendingIntent matchesPendingIntent = PendingIntent.getActivity(
+                    this,
+                    campaignNotificationId.hashCode() + 1,
+                    matchesIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            builder.addAction(0, "Swipe Matches 🔍", matchesPendingIntent);
+
+            // Button 2: Ask Love Guru 🤖
+            Intent guruIntent = new Intent(this, MainActivity.class);
+            guruIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            guruIntent.setAction(Intent.ACTION_VIEW);
+            guruIntent.setData(android.net.Uri.parse("https://lifepartnerai.in/dashboard?tab=matches&openGuru=true&notificationId=" + campaignNotificationId + "&action=love_guru"));
+            PendingIntent guruPendingIntent = PendingIntent.getActivity(
+                    this,
+                    campaignNotificationId.hashCode() + 2,
+                    guruIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            builder.addAction(0, "Ask Love Guru 🤖", guruPendingIntent);
         }
 
         // 2. Setup "Quick Reply" Action if this is a chat message (connId exists)

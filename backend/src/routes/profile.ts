@@ -1194,7 +1194,10 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
         }
 
         // Fetch viewer details to store in the view array
-        const viewer = await prisma.users.findUnique({ where: { id: viewerId } });
+        const viewer = await prisma.users.findUnique({
+            where: { id: viewerId },
+            include: { profiles: true }
+        });
         if (!viewer) return res.status(404).json({ error: "Viewer not found" });
 
         const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
@@ -1226,6 +1229,63 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
                 where: { user_id: targetUserId },
                 data: { stories }
             });
+
+            // Trigger offline/real-time notification to the story owner
+            try {
+                const viewerName = viewer.full_name || "Someone";
+                const msg = `${viewerName} viewed your Story! 🎥`;
+
+                // Persist notification
+                const dbNotif = await prisma.notifications.create({
+                    data: {
+                        user_id: targetUserId,
+                        type: 'story',
+                        message: msg,
+                        data: { fromUserId: viewerId, storyId }
+                    }
+                });
+
+                // Get photo
+                const meta = (viewer.profiles?.metadata as any) || {};
+                let rawPhotoUrl = viewer.avatar_url || meta.photos?.[0] || null;
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
+                const fromUserPhoto = rawPhotoUrl
+                    ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`;
+
+                // Socket real-time alert
+                const { getIO } = require('../socket');
+                const io = getIO();
+                io.to(targetUserId).emit('notification:new', {
+                    id: dbNotif.id,
+                    type: 'story',
+                    message: msg,
+                    fromUserName: viewerName,
+                    fromUserPhoto: fromUserPhoto,
+                    fromUserId: viewerId,
+                    timestamp: new Date()
+                });
+
+                // Push alert for offline delivery
+                const { NotificationService } = require('../services/notification');
+                await NotificationService.getInstance().sendToUser(
+                    targetUserId,
+                    `${viewerName}`,
+                    `viewed your Story! 🎥`,
+                    {
+                        type: 'story',
+                        fromUserId: viewerId,
+                        fromUserName: viewerName,
+                        fromUserPhoto: fromUserPhoto,
+                        storyId
+                    }
+                ).catch((e: any) => console.warn("Push failed in story view", e));
+
+            } catch (notifErr) {
+                console.error("Failed to notify story view:", notifErr);
+            }
         }
 
         res.json({ success: true });

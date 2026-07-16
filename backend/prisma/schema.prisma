@@ -273,6 +273,8 @@ model users {
   state                                         String?                   @db.VarChar(100)
   is_admin                                      Boolean?                  @default(false)
   is_banned                                     Boolean?                  @default(false)
+  is_deactivated                                Boolean?                  @default(false)
+  deactivated_until                             DateTime?                 @db.Timestamp(6)
   free_direct_messages                          Int?                      @default(3)
   blocks_blocks_blocked_idTousers               blocks[]                  @relation("blocks_blocked_idTousers")
   blocks_blocks_blocker_idTousers               blocks[]                  @relation("blocks_blocker_idTousers")

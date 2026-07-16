@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSocket } from '@/context/SocketContext';
 import { X, Heart, Camera, Sparkles, Bell, Eye } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/api';
 
 interface NotificationToast {
     id: string;
@@ -15,6 +17,7 @@ interface NotificationToast {
     fromUserName?: string;
     fromUserPhoto?: string;
     timestamp: Date;
+    interactionId?: string;
 }
 
 // Synthesize a beautiful, premium, soft sine-wave chime using browser Web Audio API
@@ -56,6 +59,7 @@ export default function NotificationToastBanner() {
     const { socket } = useSocket() as any;
     const router = useRouter();
     const pathname = usePathname();
+    const toastHook = useToast();
     const [toasts, setToasts] = useState<NotificationToast[]>([]);
     const timersRef = useRef<Record<string, NodeJS.Timeout>>({});
 
@@ -86,6 +90,7 @@ export default function NotificationToastBanner() {
                 body: data.body,
                 bannerUrl: data.bannerUrl,
                 fromUserId: data.fromUserId,
+                interactionId: data.interactionId,
                 fromUserName: data.fromUserName || (data.type === 'witty_reengagement' ? 'LifePartner AI' : 'LifePartner Member'),
                 fromUserPhoto: data.type === 'witty_reengagement' 
                     ? '/icon.png' 
@@ -170,6 +175,14 @@ export default function NotificationToastBanner() {
                     icon: Sparkles,
                     targetTab: 'matches'
                 };
+            case 'connection_online':
+                return {
+                    borderColor: 'border-emerald-500',
+                    shadowColor: 'hover:shadow-emerald-200/80 dark:hover:shadow-emerald-900/30',
+                    iconBg: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-500',
+                    icon: Sparkles,
+                    targetTab: 'connections'
+                };
             default:
                 return {
                     borderColor: 'border-blue-500',
@@ -204,7 +217,7 @@ export default function NotificationToastBanner() {
                             }
 
                             // 2. Navigate to dashboard or matching screen
-                            if (toast.type === 'match' && toast.fromUserId) {
+                            if ((toast.type === 'match' || toast.type === 'connection_online') && toast.fromUserId) {
                                 router.push(`/chat/${toast.fromUserId}?name=${encodeURIComponent(toast.fromUserName || '')}&photo=${encodeURIComponent(toast.fromUserPhoto || '')}`);
                             } else {
                                 router.push('/dashboard');
@@ -231,7 +244,7 @@ export default function NotificationToastBanner() {
                         {/* Text Content */}
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                             <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">
-                                {toast.type === 'request' ? 'Interest Request' : toast.type === 'like' ? 'Profile Like' : toast.type === 'story' ? 'New Story' : toast.type === 'match' ? 'It\'s a Match!' : toast.type === 'view' ? 'Profile View' : toast.type === 'witty_reengagement' ? 'Recommendation ✨' : 'Notification'}
+                                {toast.type === 'request' ? 'Interest Request' : toast.type === 'like' ? 'Profile Like' : toast.type === 'story' ? 'New Story' : toast.type === 'match' ? 'It\'s a Match!' : toast.type === 'view' ? 'Profile View' : toast.type === 'witty_reengagement' ? 'Recommendation ✨' : toast.type === 'connection_online' ? 'Active Match ⚡' : 'Notification'}
                             </p>
                             <p className="text-sm text-gray-800 dark:text-gray-100 font-semibold leading-snug">
                                 {toast.message}
@@ -240,6 +253,38 @@ export default function NotificationToastBanner() {
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-normal">
                                     {toast.body}
                                 </p>
+                            )}
+                            {toast.type === 'request' && toast.interactionId && (
+                                <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.interactions.acceptRequest(toast.interactionId!);
+                                                toastHook.success("Interest Request Accepted! 🎉");
+                                                dismiss(toast.id);
+                                            } catch (err: any) {
+                                                toastHook.error(err.message || "Failed to accept request.");
+                                            }
+                                        }}
+                                        className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold shadow hover:bg-green-600 transition-colors"
+                                    >
+                                        Accept ✅
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.interactions.declineRequest(toast.interactionId!);
+                                                toastHook.success("Request Declined.");
+                                                dismiss(toast.id);
+                                            } catch (err: any) {
+                                                toastHook.error(err.message || "Failed to decline request.");
+                                            }
+                                        }}
+                                        className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        Decline ❌
+                                    </button>
+                                </div>
                             )}
                              {toast.bannerUrl && (
                                 <div className="mt-3 overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800 shadow-sm">

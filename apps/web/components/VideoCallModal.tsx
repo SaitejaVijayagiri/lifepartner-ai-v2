@@ -183,6 +183,16 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const audioRef = useRef<HTMLAudioElement | null>(null); // dedicated audio element for audio-only calls
     const [isPartnerTyping, setIsPartnerTyping] = useState(false);
 
+    // Determine Call Type and Partner
+    const isSpeedDate = mode === 'speed_date';
+    const isSpeedDateInitiator = isSpeedDate && !!(initialPartner as any)?._speedDateInitiator;
+    const isVideo = (mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate;
+    const partner = initialPartner || {
+        id: incomingCall?.from || 'unknown',
+        name: incomingCall?.name || 'Unknown User',
+        photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall?.name || 'U'),
+    };
+
     useEffect(() => {
         if (!socket) return;
 
@@ -225,15 +235,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode);
     }, []);
 
-    // Determine Call Type and Partner
-    const isSpeedDate = mode === 'speed_date';
-    const isSpeedDateInitiator = isSpeedDate && !!(initialPartner as any)?._speedDateInitiator;
-    const isVideo = (mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate;
-    const partner = initialPartner || {
-        id: incomingCall?.from || 'unknown',
-        name: incomingCall?.name || 'Unknown User',
-        photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall?.name || 'U'),
-    };
+
 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);

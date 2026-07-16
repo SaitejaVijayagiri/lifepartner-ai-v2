@@ -87,6 +87,71 @@ export const initSocket = (httpServer: HttpServer) => {
             if (currentCount === 0) {
                 socket.broadcast.emit('userOnline', userId);
                 io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
+
+                // Find active connections to send witty online alerts
+                (async () => {
+                    try {
+                        const userDetails = await prisma.users.findUnique({
+                            where: { id: userId },
+                            select: { full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
+                        });
+                        
+                        if (userDetails) {
+                            const connectionsList = await prisma.interactions.findMany({
+                                where: {
+                                    OR: [
+                                        { from_user_id: userId },
+                                        { to_user_id: userId }
+                                    ],
+                                    status: 'connected'
+                                },
+                                select: {
+                                    from_user_id: true,
+                                    to_user_id: true
+                                }
+                            });
+
+                            const name = userDetails.full_name || 'Someone';
+                            const meta = (userDetails.profiles?.metadata as any) || {};
+                            const { sanitizePhotoUrl } = require('./utils/photoUrl');
+                            let rawPhoto = userDetails.avatar_url || meta.photos?.[0] || null;
+                            if (rawPhoto && rawPhoto.startsWith('data:image')) {
+                                rawPhoto = null;
+                            }
+                            const fromUserPhoto = rawPhoto 
+                                ? sanitizePhotoUrl(rawPhoto, name)
+                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=256`;
+
+                            const wittyMsgs = [
+                                `Your match ${name} just logged on! Strike a conversation while they are active! ⚡`,
+                                `${name} is online now! Send a quick hello to see what they are up to. 💬`,
+                                `Look who is online! ${name} is active now. Don't keep them waiting! 😉`,
+                                `⚡ Chemistry alert! ${name} just came online. Perfect time to ask them about their day!`
+                            ];
+
+                            const msg = wittyMsgs[Math.floor(Math.random() * wittyMsgs.length)];
+
+                            for (const conn of connectionsList) {
+                                const targetUserId = conn.from_user_id === userId ? conn.to_user_id : conn.from_user_id;
+                                if (!targetUserId) continue;
+                                const targetOnlineCount = onlineUsers.get(targetUserId) || 0;
+                                if (targetOnlineCount > 0) {
+                                    io.to(targetUserId).emit('notification:new', {
+                                        id: `conn-online-${userId}-${Date.now()}`,
+                                        type: 'connection_online',
+                                        message: msg,
+                                        timestamp: new Date(),
+                                        fromUserId: userId,
+                                        fromUserName: name,
+                                        fromUserPhoto: fromUserPhoto
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Failed to notify online status to connections:", e);
+                    }
+                })();
             }
         }
 

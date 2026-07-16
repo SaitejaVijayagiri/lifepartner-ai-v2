@@ -168,6 +168,8 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE u.id != ${userId}::uuid
                   AND u.is_verified = true
+                  AND u.is_banned = false
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
                   AND LOWER(u.gender) = 'female'
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
@@ -187,6 +189,8 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE u.id != ${userId}::uuid
                   AND u.is_verified = true
+                  AND u.is_banned = false
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
                   AND LOWER(u.gender) = 'male'
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
@@ -207,6 +211,8 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE u.id != ${userId}::uuid
                   AND u.is_verified = true
+                  AND u.is_banned = false
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
@@ -421,19 +427,30 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         if (myGender === 'male') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
                 SELECT id FROM users
-                WHERE id != ${userId}::uuid AND is_verified = true AND LOWER(gender) = 'female'
+                WHERE id != ${userId}::uuid 
+                  AND is_verified = true 
+                  AND is_banned = false 
+                  AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
+                  AND LOWER(gender) = 'female'
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else if (myGender === 'female') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
                 SELECT id FROM users
-                WHERE id != ${userId}::uuid AND is_verified = true AND LOWER(gender) = 'male'
+                WHERE id != ${userId}::uuid 
+                  AND is_verified = true 
+                  AND is_banned = false 
+                  AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
+                  AND LOWER(gender) = 'male'
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
                 SELECT id FROM users
-                WHERE id != ${userId}::uuid AND is_verified = true
+                WHERE id != ${userId}::uuid 
+                  AND is_verified = true 
+                  AND is_banned = false 
+                  AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         }

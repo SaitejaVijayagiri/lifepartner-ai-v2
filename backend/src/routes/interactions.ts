@@ -546,7 +546,8 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     timestamp: new Date(),
                     fromUserId: userId,
                     fromUserName: myName,
-                    fromUserPhoto: fromUserPhoto
+                    fromUserPhoto: fromUserPhoto,
+                    interactionId: interaction.id
                 });
 
                 // Embed the sender ID so the Android app / PWA knows where to navigate

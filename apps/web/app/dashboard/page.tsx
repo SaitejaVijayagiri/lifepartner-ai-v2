@@ -9,7 +9,7 @@ import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
 import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
-import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar } from 'lucide-react';
+import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar, ShieldAlert } from 'lucide-react';
 
 import { Notifications } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
@@ -712,6 +712,41 @@ function DashboardContent() {
         }
     };
 
+    const handleDeactivateAccount = async () => {
+        if (confirm("Are you sure you want to deactivate your account for 15 days?\n\nThis will temporarily hide your profile, reels, and stories from other users. You can reactivate it at any time by logging back in.")) {
+            try {
+                await api.profile.deactivateAccount(15);
+                toast.success("Account deactivated successfully.");
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('dashboard_active_tab');
+                localStorage.removeItem('dashboard_selected_connection');
+                router.push('/login');
+            } catch (err: any) {
+                toast.error(err.message || "Failed to deactivate account.");
+            }
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        const confirmName = prompt("WARNING: This will permanently delete your account, matches, messages, and all data. This action is irreversible.\n\nTo proceed, please type 'DELETE' below:");
+        if (confirmName === 'DELETE') {
+            try {
+                await api.profile.deleteAccount();
+                toast.success("Your account has been permanently deleted.");
+                localStorage.removeItem('token');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('dashboard_active_tab');
+                localStorage.removeItem('dashboard_selected_connection');
+                router.push('/login');
+            } catch (err: any) {
+                toast.error(err.message || "Failed to delete account.");
+            }
+        } else if (confirmName !== null) {
+            toast.error("Confirmation text did not match. Deletion cancelled.");
+        }
+    };
+
     const handleAcceptRequest = async (requestId: string) => {
         try {
             await api.interactions.acceptRequest(requestId);
@@ -1116,6 +1151,57 @@ function DashboardContent() {
                                         <div className="text-center">
                                             <div className="font-bold text-sm text-red-900 dark:text-red-300">Log Out</div>
                                             <div className="text-[10px] text-red-500 dark:text-red-400">Sign Out</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Account Settings Section */}
+                                <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-6">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                            <ShieldAlert className="text-amber-500" size={20} />
+                                            Account Settings & Privacy
+                                        </h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            Manage your account visibility and permanent data removal.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {/* Deactivate Option */}
+                                        <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors flex flex-col justify-between space-y-4">
+                                            <div>
+                                                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Deactivate Account (15 Days)</h4>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    Temporarily hide your profile, reels, and stories from other users. You can reactivate by logging back in at any time.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleDeactivateAccount}
+                                                className="w-full justify-center border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 font-bold"
+                                            >
+                                                Deactivate Account
+                                            </Button>
+                                        </div>
+
+                                        {/* Delete Option */}
+                                        <div className="p-4 rounded-xl border border-dashed border-red-100 dark:border-red-900/20 bg-red-50/10 dark:bg-red-950/5 hover:bg-red-50/20 dark:hover:bg-red-950/10 transition-colors flex flex-col justify-between space-y-4">
+                                            <div>
+                                                <h4 className="text-sm font-bold text-red-700 dark:text-red-400">Permanently Delete Account</h4>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    Permanently delete your profile, messages, matches, and all other database records. This action is irreversible.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleDeleteAccount}
+                                                className="w-full justify-center border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold"
+                                            >
+                                                Delete Permanently
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

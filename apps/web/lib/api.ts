@@ -77,6 +77,8 @@ export const api = {
             body: formData,
             headers: {}
         }),
+        deactivateAccount: (days: number) => fetchAPI('/profile/deactivate', { method: 'POST', body: JSON.stringify({ days }) }),
+        deleteAccount: () => fetchAPI('/profile/me', { method: 'DELETE' }),
     },
     matches: {
         getAll: (page: number = 1) => fetchAPI(`/matches/recommendations?page=${page}`),

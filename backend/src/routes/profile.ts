@@ -142,11 +142,25 @@ router.get('/public/featured', async (req, res) => {
             { full_name: { contains: 'sidham', mode: 'insensitive' as const } }
         ];
 
+        const activeFilter = {
+            is_banned: false,
+            OR: [
+                { is_deactivated: false },
+                { is_deactivated: null },
+                { deactivated_until: { lt: new Date() } }
+            ]
+        };
+
         // 1. Prioritize these specific users
         const specificUsers = await prisma.users.findMany({
             where: {
-                OR: orConditions,
-                NOT: { OR: excludeConditions }
+                AND: [
+                    activeFilter,
+                    {
+                        OR: orConditions,
+                        NOT: { OR: excludeConditions }
+                    }
+                ]
             },
             include: { profiles: true },
             take: 15
@@ -162,6 +176,12 @@ router.get('/public/featured', async (req, res) => {
                     gender: { not: null },
                     age: { not: null },
                     avatar_url: { not: null },
+                    is_banned: false,
+                    OR: [
+                        { is_deactivated: false },
+                        { is_deactivated: null },
+                        { deactivated_until: { lt: new Date() } }
+                    ],
                     NOT: { OR: excludeConditions },
                     id: { notIn: specificUsers.map(u => u.id) }
                 },
@@ -280,7 +300,11 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             }
         });
 
-        if (!user) {
+        if (!user || user.is_banned) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        if (user.is_deactivated && (!user.deactivated_until || new Date() <= new Date(user.deactivated_until))) {
             return res.status(404).json({ error: "User not found" });
         }
 
@@ -819,6 +843,12 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
 
         const whereClause: any = {
             id: { not: userId }, // Exclude self
+            is_banned: false,
+            OR: [
+                { is_deactivated: false },
+                { is_deactivated: null },
+                { deactivated_until: { lt: new Date() } }
+            ]
         };
         if (oppositeGenders.length > 0) {
             whereClause.gender = { in: oppositeGenders };
@@ -1282,6 +1312,106 @@ router.get('/referrals', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Referral Fetch Error", e);
         res.status(500).json({ error: "Failed to fetch referrals" });
+    }
+});
+
+// Deactivate account temporarily (for 15 days by default)
+router.post('/deactivate', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const days = parseInt(req.body.days) || 15;
+
+        const deactivatedUntil = new Date();
+        deactivatedUntil.setDate(deactivatedUntil.getDate() + days);
+
+        await prisma.users.update({
+            where: { id: userId },
+            data: {
+                is_deactivated: true,
+                deactivated_until: deactivatedUntil
+            }
+        });
+
+        console.log(`🔒 Temporarily deactivated account for user ${userId} for ${days} days.`);
+        res.json({ success: true, message: `Account deactivated successfully for ${days} days.` });
+    } catch (e) {
+        console.error("Deactivate account error", e);
+        res.status(500).json({ error: "Failed to deactivate account" });
+    }
+});
+
+// Delete account permanently
+router.delete('/me', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        console.log(`🗑️ Initiating permanent deletion for user: ${userId}`);
+
+        // 1. Delete blocks
+        await prisma.blocks.deleteMany({
+            where: { OR: [{ blocker_id: userId }, { blocked_id: userId }] }
+        });
+
+        // 2. Delete call_logs
+        await prisma.call_logs.deleteMany({
+            where: { OR: [{ caller_id: userId }, { receiver_id: userId }] }
+        });
+
+        // 3. Delete games
+        await prisma.games.deleteMany({
+            where: { OR: [{ player_a_id: userId }, { player_b_id: userId }, { winner_id: userId }] }
+        });
+
+        // 4. Delete interactions
+        await prisma.interactions.deleteMany({
+            where: { OR: [{ from_user_id: userId }, { to_user_id: userId }] }
+        });
+
+        // 5. Find matches involving the user
+        const userMatches = await prisma.matches.findMany({
+            where: { OR: [{ user_a_id: userId }, { user_b_id: userId }] },
+            select: { id: true }
+        });
+        const matchIds = userMatches.map(m => m.id);
+
+        // 6. Delete messages
+        await prisma.messages.deleteMany({
+            where: { 
+                OR: [
+                    { match_id: { in: matchIds } },
+                    { sender_id: userId },
+                    { receiver_id: userId }
+                ]
+            }
+        });
+
+        // 7. Delete matches
+        if (matchIds.length > 0) {
+            await prisma.matches.deleteMany({
+                where: { id: { in: matchIds } }
+            });
+        }
+
+        // 8. Delete reports
+        await prisma.reports.deleteMany({
+            where: { OR: [{ reporter_id: userId }, { reported_id: userId }] }
+        });
+
+        // 9. Delete transactions
+        await prisma.transactions.deleteMany({
+            where: { user_id: userId }
+        });
+
+        // 10. Finally, delete the user row itself
+        await prisma.users.delete({
+            where: { id: userId }
+        });
+
+        console.log(`✅ Successfully permanently deleted user: ${userId}`);
+        res.json({ success: true, message: "Account deleted permanently." });
+    } catch (e) {
+        console.error("Delete account error", e);
+        res.status(500).json({ error: "Failed to delete account" });
     }
 });
 

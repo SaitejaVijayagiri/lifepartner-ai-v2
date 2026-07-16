@@ -394,6 +394,21 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({ error: "Invalid email or password" });
         }
 
+        if (user.is_banned) {
+            console.log(`❌ Login failed: Banned user attempted login - ${email}`);
+            return res.status(403).json({ error: "Your account is banned." });
+        }
+
+        if (user.is_deactivated) {
+            console.log(`🔄 Reactivating deactivated user: ${user.email}`);
+            await prisma.users.update({
+                where: { id: user.id },
+                data: { is_deactivated: false, deactivated_until: null }
+            });
+            user.is_deactivated = false;
+            user.deactivated_until = null;
+        }
+
         // Enforce Email Verification
         if (!user.is_verified) {
             console.log(`❌ Login prevented: Unverified email for ${email}`);
@@ -674,6 +689,21 @@ router.post('/google', async (req, res) => {
         });
 
         if (user) {
+            if (user.is_banned) {
+                console.log(`❌ Google Login failed: Banned user - ${email}`);
+                return res.status(403).json({ error: "Your account is banned." });
+            }
+
+            if (user.is_deactivated) {
+                console.log(`🔄 Google Login: Reactivating deactivated user - ${email}`);
+                await prisma.users.update({
+                    where: { id: user.id },
+                    data: { is_deactivated: false, deactivated_until: null }
+                });
+                user.is_deactivated = false;
+                user.deactivated_until = null;
+            }
+
             // Update existing
             user = await prisma.users.update({
                 where: { id: user.id },

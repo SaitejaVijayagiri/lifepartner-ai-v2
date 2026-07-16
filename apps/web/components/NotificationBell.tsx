@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Trash2 } from 'lucide-react';
+import { Bell, Check, Trash2, Heart, Eye, Camera, MessageCircle, Sparkles } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 export const NotificationBell = () => {
     const { socket } = useSocket() as any;
+    const router = useRouter();
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
@@ -80,6 +82,43 @@ export const NotificationBell = () => {
         } catch (e) { }
     };
 
+    const handleNotificationClick = async (n: any) => {
+        if (n.id && !n.is_read) {
+            await markRead(n.id);
+        }
+
+        const fromUserId = n.fromUserId || n.data?.fromUserId;
+        const type = n.type;
+
+        setIsOpen(false);
+
+        if ((type === 'match' || type === 'connection_online') && fromUserId) {
+            router.push(`/chat/${fromUserId}?name=${encodeURIComponent(n.fromUserName || 'Member')}`);
+        } else if (type === 'view' && fromUserId) {
+            router.push(`/profile/${fromUserId}`);
+        } else if (type === 'request') {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('dashboard_active_tab', 'requests');
+                window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } }));
+            }
+            router.push('/dashboard?tab=requests');
+        } else if (type === 'like') {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('dashboard_active_tab', 'matches');
+                window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'matches' } }));
+            }
+            router.push('/dashboard?tab=matches');
+        } else if (type === 'story' && fromUserId) {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('dashboard_active_tab', 'matches');
+                window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'matches' } }));
+            }
+            router.push('/dashboard?tab=matches');
+        } else {
+            router.push('/dashboard');
+        }
+    };
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button
@@ -121,14 +160,36 @@ export const NotificationBell = () => {
                                     const dateObj = dateStr ? new Date(dateStr) : new Date();
                                     const isValidDate = !isNaN(dateObj.getTime());
 
+                                    const getNotifIcon = (type: string) => {
+                                        switch (type) {
+                                            case 'request':
+                                                return <Heart size={14} className="text-pink-500" />;
+                                            case 'like':
+                                                return <Heart size={14} className="text-rose-500 fill-rose-500" />;
+                                            case 'view':
+                                                return <Eye size={14} className="text-cyan-500" />;
+                                            case 'match':
+                                                return <Sparkles size={14} className="text-amber-500 fill-amber-500" />;
+                                            case 'connection_online':
+                                                return <Sparkles size={14} className="text-emerald-500 fill-emerald-500" />;
+                                            case 'story':
+                                                return <Camera size={14} className="text-indigo-500" />;
+                                            default:
+                                                return <Bell size={14} className="text-blue-500" />;
+                                        }
+                                    };
+
                                     return (
                                         <div
                                             key={n.id || i}
-                                            className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${!n.is_read ? 'bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}
+                                            className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${!n.is_read ? 'bg-indigo-50/30 dark:bg-indigo-900/30' : ''}`}
+                                            onClick={() => handleNotificationClick(n)}
                                         >
-                                            <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${!n.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
-                                            <div className="flex-1 min-w-0" onClick={() => n.id && !n.is_read && markRead(n.id)}>
-                                                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+                                            <div className="mt-1 flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                                                {getNotifIcon(n.type)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed font-semibold">
                                                     {n.message}
                                                 </p>
                                                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">

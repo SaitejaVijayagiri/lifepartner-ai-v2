@@ -122,19 +122,26 @@ export const initSocket = (httpServer: HttpServer) => {
                                 ? sanitizePhotoUrl(rawPhoto, name)
                                 : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=256`;
 
-                            const wittyMsgs = [
-                                `Your match ${name} just logged on! Strike a conversation while they are active! ⚡`,
-                                `${name} is online now! Send a quick hello to see what they are up to. 💬`,
-                                `Look who is online! ${name} is active now. Don't keep them waiting! 😉`,
-                                `⚡ Chemistry alert! ${name} just came online. Perfect time to ask them about their day!`
-                            ];
-
-                            const msg = wittyMsgs[Math.floor(Math.random() * wittyMsgs.length)];
-
+                            // De-duplicate target user IDs in case of multiple interaction rows between the same two users
+                            const uniqueTargetUserIds = new Set<string>();
                             for (const conn of connectionsList) {
                                 const targetUserId = conn.from_user_id === userId ? conn.to_user_id : conn.from_user_id;
-                                if (!targetUserId) continue;
+                                if (targetUserId) {
+                                    uniqueTargetUserIds.add(targetUserId);
+                                }
+                            }
+
+                            for (const targetUserId of uniqueTargetUserIds) {
                                 const targetOnlineCount = onlineUsers.get(targetUserId) || 0;
+
+                                const wittyMsgs = [
+                                    `Your match ${name} just logged on! Strike a conversation while they are active! ⚡`,
+                                    `${name} is online now! Send a quick hello to see what they are up to. 💬`,
+                                    `Look who is online! ${name} is active now. Don't keep them waiting! 😉`,
+                                    `⚡ Chemistry alert! ${name} just came online. Perfect time to ask them about their day!`
+                                ];
+                                const msg = wittyMsgs[Math.floor(Math.random() * wittyMsgs.length)];
+
                                 if (targetOnlineCount > 0) {
                                     io.to(targetUserId).emit('notification:new', {
                                         id: `conn-online-${userId}-${Date.now()}`,

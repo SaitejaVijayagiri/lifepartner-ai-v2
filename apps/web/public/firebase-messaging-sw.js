@@ -293,8 +293,34 @@ self.addEventListener('notificationclick', function(event) {
         return;
     }
 
-    // Determine target tab from payload data
+    // Connection online action or body click handler
     const type = payloadData.type;
+    if (action === 'chat_now' || type === 'connection_online') {
+        const fromUserId = payloadData.fromUserId || payloadData.senderId;
+        const fromUserName = payloadData.fromUserName || payloadData.senderName || 'Member';
+        const fromUserPhoto = payloadData.fromUserPhoto || payloadData.senderPhoto || '';
+        
+        let urlToOpen = `/dashboard?tab=connections`;
+        if (fromUserId) {
+            urlToOpen = `/chat/${fromUserId}?name=${encodeURIComponent(fromUserName)}&photo=${encodeURIComponent(fromUserPhoto)}`;
+        }
+        
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('/chat/') || client.url.includes('/dashboard')) {
+                        if ('navigate' in client) client.navigate(urlToOpen);
+                        if ('focus' in client) return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow(urlToOpen);
+            })
+        );
+        return;
+    }
+
+    // Determine target tab from payload data
     let targetTab = 'matches';
     if (type === 'request') {
         targetTab = 'requests';

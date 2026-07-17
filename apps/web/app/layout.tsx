@@ -30,15 +30,15 @@ const fontMono = Roboto_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://lifepartnerai.in'),
   title: {
-    default: "LifePartner AI | #1 Free Matrimony & Dating App in India",
-    template: "%s | LifePartner AI - Free Matrimony & Dating App"
+    default: "LifePartner AI | #1 Free Worldwide Matrimony & Dating App",
+    template: "%s | LifePartner AI - Free Worldwide Matrimony & Dating App"
   },
-  description: "Stop paying for matches. LifePartner AI is India's most advanced Free Matrimony & Dating app. 100% Verified Profiles for Telugu, Tamil, Hindi, & Kannada matchmaking. Interactive maps, secure video calls, and zero fake profiles.",
+  description: "Stop paying for matches. LifePartner AI is the world's most advanced Free Matrimony & Dating app. 100% Verified Profiles for global and NRI matchmaking. Interactive maps, secure video calls, and zero fake profiles.",
   keywords: [
     "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
-    "AI Dating", "Free Dating App", "Dating App India", "Find Love India", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
+    "AI Dating", "Free Dating App", "Dating App Worldwide", "Find Love Globally", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
     "Free Chat Matrimony", "Online Chat", "Chat with Strangers", "Video Dating",
-    "Marriage Bureau", "Safe Matrimony", "Verified Profiles",
+    "Marriage Bureau", "Safe Matrimony", "Verified Profiles", "NRI Matrimony", "Global Matchmaking",
     "No Payment Matrimony", "100% Free Matchmaking", "Free Kundli Matching", "Biodata Maker",
     "Singles Meetups", "Local Dating Events", "Offline Dating", "Meet Singles Near Me", "Verified Lounge"
   ],
@@ -47,17 +47,17 @@ export const metadata: Metadata = {
   manifest: 'https://lifepartnerai.in/manifest.json',
   openGraph: {
     type: "website",
-    locale: "en_IN",
+    locale: "en_US",
     url: "https://lifepartnerai.in",
-    title: "LifePartner AI | The Best Free Matrimony & Dating App for Indians",
-    description: "Don't just swipe. Connect. The only offline-first, AI-driven matrimony & dating platform for Verified Singles. Free Registration. Safe. Secure.",
+    title: "LifePartner AI | The Best Free Matrimony & Dating App Worldwide",
+    description: "Don't just swipe. Connect. The only offline-first, AI-driven worldwide matrimony & dating platform for Verified Singles. Free Registration. Safe. Secure.",
     siteName: "LifePartner AI",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "LifePartner AI - #1 Trusted Matrimony & Dating App",
+        alt: "LifePartner AI - #1 Trusted Worldwide Matrimony & Dating App",
       },
     ],
   },

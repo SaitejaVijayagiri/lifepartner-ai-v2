@@ -638,7 +638,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: (c.profiles?.photos || meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
+                photos: ((c.profiles?.photos as any[]) || meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
 
                 career: meta.career || {},
                 family: meta.family || {},
@@ -1016,7 +1016,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: (c.profiles?.photos || meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
+                photos: ((c.profiles?.photos as any[]) || meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},

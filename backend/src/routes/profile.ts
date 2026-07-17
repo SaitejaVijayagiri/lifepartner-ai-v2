@@ -104,7 +104,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             prompt: meta.expectations || "",  // Legacy fallback
             aboutMe: meta.aboutMe || meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
             height: meta.height || "", // Height
-            photos: user.profiles?.photos || meta.photos || [],
+            photos: (user.profiles?.photos as any[]) || meta.photos || [],
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
             is_premium: user.is_premium || false,
@@ -217,7 +217,7 @@ router.get('/public/featured', async (req, res) => {
                 age: user.age,
                 gender: user.gender,
                 photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
-                photos: (user.profiles?.photos || meta.photos || [user.avatar_url]).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
+                photos: ((user.profiles?.photos as any[]) || meta.photos || [user.avatar_url]).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
                 location: locationStr,
                 profession: meta.career?.profession || "Professional",
                 isVerified: true
@@ -384,7 +384,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             bio: meta.bio || user.profiles?.raw_prompt || "",
             expectations: meta.expectations || "",
             height: meta.height || "",
-            photos: (user.profiles?.photos || meta.photos || [user.avatar_url]).map((url: string) => sanitizePhotoUrl(url, user.full_name || user.id)),
+            photos: ((user.profiles?.photos as any[]) || meta.photos || [user.avatar_url]).map((url: string) => sanitizePhotoUrl(url, user.full_name || user.id)),
             reels: meta.reels || [],
             total_gifts: 0,
             total_likes: user._count.matches_matches_user_b_idTousers || 0,
@@ -1246,7 +1246,7 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
                 });
 
                 // Get photo
-                let rawPhotoUrl = viewer.avatar_url || viewer.profiles?.photos?.[0] || null;
+                let rawPhotoUrl = viewer.avatar_url || (viewer.profiles?.photos as any)?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }

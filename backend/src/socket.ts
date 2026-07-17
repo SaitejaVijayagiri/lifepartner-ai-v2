@@ -123,7 +123,7 @@ export const initSocket = (httpServer: HttpServer) => {
                             const name = userDetails.full_name || 'Someone';
                             const meta = (userDetails.profiles?.metadata as any) || {};
                             const { sanitizePhotoUrl } = require('./utils/photoUrl');
-                            let rawPhoto = userDetails.avatar_url || userDetails.profiles?.photos?.[0] || null;
+                            let rawPhoto = userDetails.avatar_url || (userDetails.profiles?.photos as any)?.[0] || null;
                             if (rawPhoto && rawPhoto.startsWith('data:image')) {
                                 rawPhoto = null;
                             }

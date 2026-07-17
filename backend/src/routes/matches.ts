@@ -620,8 +620,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(c.avatar_url || c.profiles?.photos?.[0] || meta.photos?.[0], c.full_name || c.id),
-                hasValidPhoto: hasValidPhoto(c.avatar_url || c.profiles?.photos?.[0] || meta.photos?.[0]),
+                photoUrl: sanitizePhotoUrl(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0], c.full_name || c.id),
+                hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
                 score: Math.max(1, Math.min(99, score)), // floor at 1 so they still appear
                 match_reasons: reasons,
                 analysis: {
@@ -1001,8 +1001,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(c.avatar_url || c.profiles?.photos?.[0] || meta.photos?.[0], c.full_name || c.id),
-                hasValidPhoto: hasValidPhoto(c.avatar_url || c.profiles?.photos?.[0] || meta.photos?.[0]),
+                photoUrl: sanitizePhotoUrl(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0], c.full_name || c.id),
+                hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
                 score: Math.max(1, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },

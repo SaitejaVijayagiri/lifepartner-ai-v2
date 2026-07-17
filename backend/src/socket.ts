@@ -93,7 +93,16 @@ export const initSocket = (httpServer: HttpServer) => {
                     try {
                         const userDetails = await prisma.users.findUnique({
                             where: { id: userId },
-                            select: { full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
+                            select: { 
+                                full_name: true, 
+                                avatar_url: true, 
+                                profiles: { 
+                                    select: { 
+                                        photos: true,
+                                        metadata: true 
+                                    } 
+                                } 
+                            }
                         });
                         
                         if (userDetails) {
@@ -114,7 +123,7 @@ export const initSocket = (httpServer: HttpServer) => {
                             const name = userDetails.full_name || 'Someone';
                             const meta = (userDetails.profiles?.metadata as any) || {};
                             const { sanitizePhotoUrl } = require('./utils/photoUrl');
-                            let rawPhoto = userDetails.avatar_url || meta.photos?.[0] || null;
+                            let rawPhoto = userDetails.avatar_url || userDetails.profiles?.photos?.[0] || null;
                             if (rawPhoto && rawPhoto.startsWith('data:image')) {
                                 rawPhoto = null;
                             }

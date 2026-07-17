@@ -336,7 +336,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     city: true,
                     location_name: true,
                     avatar_url: true,
-                    profiles: { select: { metadata: true } }
+                    profiles: { select: { photos: true, metadata: true } }
                 }
             });
             const target = await prisma.users.findUnique({
@@ -531,7 +531,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
 
                 // Get photo url
                 const { sanitizePhotoUrl } = require('../utils/photoUrl');
-                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
+                let rawPhotoUrl = user.avatar_url || user.profiles?.photos?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }
@@ -1025,7 +1025,7 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                 select: {
                     full_name: true,
                     avatar_url: true,
-                    profiles: { select: { metadata: true } }
+                    profiles: { select: { photos: true, metadata: true } }
                 }
             });
 
@@ -1046,7 +1046,7 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                 // Get photo
                 const meta = (user.profiles?.metadata as any) || {};
                 const { sanitizePhotoUrl } = require('../utils/photoUrl');
-                let rawPhotoUrl = user.avatar_url || meta.photos?.[0] || null;
+                let rawPhotoUrl = user.avatar_url || user.profiles?.photos?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }
@@ -1333,7 +1333,7 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                 select: {
                     full_name: true,
                     avatar_url: true,
-                    profiles: { select: { metadata: true } }
+                    profiles: { select: { photos: true, metadata: true } }
                 }
             });
 
@@ -1354,7 +1354,7 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                 // Get photo
                 const meta = (viewer.profiles?.metadata as any) || {};
                 const { sanitizePhotoUrl } = require('../utils/photoUrl');
-                let rawPhotoUrl = viewer.avatar_url || meta.photos?.[0] || null;
+                let rawPhotoUrl = viewer.avatar_url || viewer.profiles?.photos?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }

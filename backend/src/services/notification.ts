@@ -207,6 +207,10 @@ export class NotificationService {
                     { action: 'find_matches', title: 'Swipe Matches 🔍' },
                     { action: 'love_guru', title: 'Ask Love Guru 🤖' }
                 ];
+            } else if (data?.type === 'connection_online') {
+                webpushPayload.notification.actions = [
+                    { action: 'chat_now', title: 'Chat Now 💬' }
+                ];
             }
 
             if (bannerUrl) {

@@ -145,6 +145,24 @@ export const initSocket = (httpServer: HttpServer) => {
                                         fromUserName: name,
                                         fromUserPhoto: fromUserPhoto
                                     });
+                                } else {
+                                    // Target user is offline: Send push notification to bring them online!
+                                    try {
+                                        const { NotificationService } = require('./services/notification');
+                                        NotificationService.getInstance().sendToUser(
+                                            targetUserId,
+                                            `Match Active ⚡`,
+                                            msg,
+                                            {
+                                                type: 'connection_online',
+                                                fromUserId: userId,
+                                                fromUserName: name,
+                                                fromUserPhoto: fromUserPhoto
+                                            }
+                                        ).catch((e: any) => console.warn("Push failed for connection online alert", e));
+                                    } catch (pushErr) {
+                                        console.error("Push service error on connection online alert", pushErr);
+                                    }
                                 }
                             }
                         }

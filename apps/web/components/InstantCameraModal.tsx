@@ -222,16 +222,16 @@ export default function InstantCameraModal({
                 receiverId: recipientId || null
             });
 
-            if (res.data?.success) {
+            if (res?.success) {
                 toast.success(recipientName ? `Instant Snap sent to ${recipientName}! ⚡` : 'Instant Snap posted! ⚡');
                 onSuccess();
                 onClose();
             } else {
-                toast.error(res.data?.error || 'Failed to send Instant Snap.');
+                toast.error(res?.error || 'Failed to send Instant Snap.');
             }
         } catch (err: any) {
             console.error('[InstantCamera] Upload error:', err);
-            toast.error(err.response?.data?.error || 'Failed to send Instant Snap.');
+            toast.error(err.message || 'Failed to send Instant Snap.');
         } finally {
             setIsUploading(false);
         }

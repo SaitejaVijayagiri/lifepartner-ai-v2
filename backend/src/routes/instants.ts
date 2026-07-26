@@ -67,11 +67,17 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
         }
 
         // Insert into database using raw SQL
-        const result: any[] = await prisma.$queryRawUnsafe(`
-            INSERT INTO instants (sender_id, receiver_id, media_url, caption)
-            VALUES ($1::uuid, ${receiverId ? '$2::uuid' : 'NULL'}, $3, $4)
-            RETURNING id, sender_id, receiver_id, caption, created_at, expires_at, is_viewed;
-        `, userId, ...(receiverId ? [receiverId, finalMediaUrl, caption || ''] : [finalMediaUrl, caption || '']));
+        const result: any[] = receiverId
+            ? await prisma.$queryRawUnsafe(`
+                INSERT INTO instants (sender_id, receiver_id, media_url, caption)
+                VALUES ($1::uuid, $2::uuid, $3, $4)
+                RETURNING id, sender_id, receiver_id, caption, created_at, expires_at, is_viewed;
+            `, userId, receiverId, finalMediaUrl, caption || '')
+            : await prisma.$queryRawUnsafe(`
+                INSERT INTO instants (sender_id, receiver_id, media_url, caption)
+                VALUES ($1::uuid, NULL, $2, $3)
+                RETURNING id, sender_id, receiver_id, caption, created_at, expires_at, is_viewed;
+            `, userId, finalMediaUrl, caption || '');
 
         const createdInstant = result[0];
 

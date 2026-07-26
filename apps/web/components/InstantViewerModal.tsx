@@ -57,22 +57,22 @@ export default function InstantViewerModal({
                 const res = await api.post(`/instants/${instantId}/view`);
                 if (!isMounted) return;
 
-                if (res.data?.success && res.data?.instant?.mediaUrl) {
-                    setMediaUrl(res.data.instant.mediaUrl);
-                    setCaption(res.data.instant.caption || null);
-                    setSenderId(res.data.instant.senderId);
+                if (res?.success && res?.instant?.mediaUrl) {
+                    setMediaUrl(res.instant.mediaUrl);
+                    setCaption(res.instant.caption || null);
+                    setSenderId(res.instant.senderId);
                     if (onViewed) onViewed(instantId);
-                } else if (res.data?.error) {
-                    setError(res.data.error);
+                } else if (res?.error) {
+                    setError(res.error);
                 } else {
                     setError('This Instant snap has already been viewed or expired.');
                 }
             } catch (err: any) {
                 console.error('[InstantViewer] View error:', err);
-                if (err.response?.status === 410) {
+                if (err.status === 410) {
                     setError('This Instant snap has already been viewed and expired.');
                 } else {
-                    setError(err.response?.data?.error || 'Failed to open Instant snap.');
+                    setError(err.message || 'Failed to open Instant snap.');
                 }
             } finally {
                 if (isMounted) setLoading(false);

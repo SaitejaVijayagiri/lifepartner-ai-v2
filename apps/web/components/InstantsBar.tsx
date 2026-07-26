@@ -31,8 +31,8 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
     const fetchInstants = async () => {
         try {
             const res = await api.get('/instants/feed');
-            if (res.data?.success && Array.isArray(res.data.instants)) {
-                setInstants(res.data.instants);
+            if (res?.success && Array.isArray(res.instants)) {
+                setInstants(res.instants);
             }
         } catch (err) {
             console.warn('[InstantsBar] Failed to load instants feed:', err);

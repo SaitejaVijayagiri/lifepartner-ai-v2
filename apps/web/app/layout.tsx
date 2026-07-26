@@ -44,11 +44,24 @@ export const metadata: Metadata = {
     },
   },
   title: {
-    default: "LifePartner AI | #1 Free Worldwide Matrimony & Dating App",
-    template: "%s | LifePartner AI - Free Worldwide Matrimony & Dating App"
+    default: "LifePartner AI | Free Online Chat with Strangers, Matrimony & Dating App",
+    template: "%s | LifePartner AI - Free Online Chat & Matchmaking App"
   },
-  description: "Stop paying for matches. LifePartner AI is the world's most advanced Free Matrimony & Dating app. 100% Verified Profiles for global and NRI matchmaking. Interactive maps, secure video calls, and zero fake profiles.",
+  description: "Chat with strangers, random people & verified singles worldwide for 100% Free. LifePartner AI is the #1 Free Matrimony & Dating app. Talk to international guys, single Indian girls, and global NRI matches with zero payment, instant chat, and verified video calls.",
   keywords: [
+    // High-Volume Global Stranger Chat & International Terms
+    "online chat with strangers", "chat with random people", "chat with international guys",
+    "talk to random people online", "free random video chat", "chat with single girls online",
+    "talk to strangers free", "free international dating chat", "global chat with verified singles",
+    "random chat online free no login", "chat with foreign guys online", "worldwide single chat",
+    
+    // High-Volume Indian & NRI Matrimony / Dating Terms
+    "free matrimony chat without payment", "talk to single Indian girls", "free chat with verified girls",
+    "best online chat app for matrimony India", "free Telugu matrimony chat", "free Tamil matrimony chat",
+    "free Hindi matrimony chat", "jeevansathi free message chat alternative", "shaadi free chat app",
+    "marriage bureau online chat free", "NRI matrimony chat", "NRI dating app free",
+    
+    // Core Matrimony & Matchmaking Terms
     "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
     "AI Dating", "Free Dating App", "Dating App Worldwide", "Find Love Globally", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
     "Free Chat Matrimony", "Online Chat", "Chat with Strangers", "Video Dating",

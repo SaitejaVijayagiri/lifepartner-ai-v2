@@ -70,6 +70,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
     const COMMUNITIES = ['Brahmin', 'Iyer', 'Iyengar', 'Reddy', 'Kamma', 'Kapu', 'Ezhava', 'Nair', 'Muslim-Sunni', 'Muslim-Shia', 'Christian-Roman-Catholic', 'Sikh-Jat', 'Aggarwal', 'Baniya', 'Yadav', 'Kayastha', 'Maratha', 'Rajput', 'Jain-Digambar', 'Jain-Shwetambar'];
     const PROFESSIONS = ['Software-Engineer', 'Doctor', 'Civil-Engineer', 'Chartered-Accountant', 'IAS-IPS', 'Teacher', 'Professor', 'Lawyer', 'Architect', 'Business-Owner'];
+    const INTENTS = [
+        'online-chat-with-strangers',
+        'chat-with-random-people',
+        'chat-with-international-guys',
+        'talk-to-random-people-online',
+        'free-random-video-chat',
+        'chat-with-single-girls-online',
+        'talk-to-single-indian-girls',
+        'free-matrimony-chat-without-payment',
+        'nri-matrimony-chat',
+        'global-chat-with-verified-singles'
+    ];
 
     const cityRoutes = CITIES.map(city => ({
         url: `${baseUrl}/matrimony/location/${city.toLowerCase()}`,
@@ -90,6 +102,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
+    }));
+
+    const intentMatrimonyRoutes = INTENTS.map(intent => ({
+        url: `${baseUrl}/matrimony/intent/${intent}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.9,
     }));
 
     // Dating Programmatic SEO Routes
@@ -114,14 +133,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
     }));
 
+    const intentDatingRoutes = INTENTS.map(intent => ({
+        url: `${baseUrl}/dating/intent/${intent}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.9,
+    }));
+
     return [
         ...routes,
         ...blogRoutes,
         ...cityRoutes,
         ...communityRoutes,
         ...professionRoutes,
+        ...intentMatrimonyRoutes,
         ...cityDatingRoutes,
         ...communityDatingRoutes,
-        ...professionDatingRoutes
+        ...professionDatingRoutes,
+        ...intentDatingRoutes
     ];
 }

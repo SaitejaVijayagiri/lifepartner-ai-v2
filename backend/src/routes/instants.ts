@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
 import { ImageOptimizer } from '../services/imageOptimizer';
+import { uploadToCloudinary, deleteFromCloudinary } from '../services/cloudinaryStorage';
 
 const router = express.Router();
 
@@ -64,6 +65,14 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
 
         if (!finalMediaUrl) {
             return res.status(400).json({ error: 'Snap media content is required.' });
+        }
+
+        // Upload snap image to Cloudinary CDN
+        if (finalMediaUrl.startsWith('data:image')) {
+            const cloudinaryUrl = await uploadToCloudinary(finalMediaUrl, `instants_${userId}`);
+            if (cloudinaryUrl) {
+                finalMediaUrl = cloudinaryUrl;
+            }
         }
 
         // Insert into database using raw SQL
@@ -328,6 +337,18 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
     const { id } = req.params;
 
     try {
+        const rows: any[] = await prisma.$queryRawUnsafe(`
+            SELECT media_url FROM instants WHERE id = $1::uuid AND sender_id = $2::uuid;
+        `, id, userId);
+
+        if (rows && rows.length > 0 && rows[0].media_url?.includes('res.cloudinary.com')) {
+            const parts = rows[0].media_url.split('/upload/');
+            if (parts[1]) {
+                const publicId = parts[1].replace(/^v\d+\//, '').split('.')[0];
+                deleteFromCloudinary(publicId).catch(e => console.warn('[Cloudinary] Instant cleanup warning:', e));
+            }
+        }
+
         await prisma.$executeRawUnsafe(`
             DELETE FROM instants
             WHERE id = $1::uuid AND sender_id = $2::uuid;

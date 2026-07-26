@@ -38,6 +38,7 @@ const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr:
 const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
 const MeetSpots = dynamic(() => import('@/components/MeetSpots'));
 const FloatingLoveGuru = dynamic(() => import('@/components/FloatingLoveGuru'), { ssr: false });
+const InstantsBar = dynamic(() => import('@/components/InstantsBar'), { ssr: false });
 import { Capacitor } from '@capacitor/core';
 
 // Duplicate InteractiveMap removed
@@ -927,8 +928,10 @@ function DashboardContent() {
                 {/* Main Feed Column */}
                 <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'map' ? 'pb-0 h-full' : 'pb-32 sm:pb-24'}`}>
                     {activeTab === 'matches' && (
-                        <MatchesTab
-                            currentUser={currentUser}
+                        <>
+                            <InstantsBar />
+                            <MatchesTab
+                                currentUser={currentUser}
                             setCurrentUser={setCurrentUser}
                             matches={matches}
                             setMatches={setMatches}
@@ -947,6 +950,7 @@ function DashboardContent() {
                             setShowCoinStore={setShowCoinStore}
                             setShowSpeedDatingLobby={setShowSpeedDatingLobby}
                         />
+                    </>
                     )}
                     {activeTab === 'map' && <InteractiveMap profiles={mapProfiles} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />}
 

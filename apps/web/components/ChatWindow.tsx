@@ -5,12 +5,14 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
 import VideoCallButton from './VideoCallButton';
 import StickerPicker from './StickerPicker';
+import InstantCameraModal from './InstantCameraModal';
+import InstantViewerModal from './InstantViewerModal';
 import { useToast } from '@/components/ui/Toast';
 
 interface ChatWindowProps {
@@ -363,6 +365,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [showGame, setShowGame] = useState(false);
     const [showGiftModal, setShowGiftModal] = useState(false);
     const [showStickers, setShowStickers] = useState(false);
+    const [showInstantCamera, setShowInstantCamera] = useState(false);
+    const [viewingInstantId, setViewingInstantId] = useState<string | null>(null);
 
     // Profile View State
     const [showProfile, setShowProfile] = useState(false);
@@ -1268,7 +1272,29 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 </div>
                                             );
                                         })()}
-                                        {msg.text.startsWith('[STICKER]') ? (
+                                        {msg.text.includes('[INSTANT:') ? (() => {
+                                            const instantId = msg.text.split('[INSTANT:')[1].split(']')[0];
+                                            return (
+                                                <div className="p-3 bg-slate-950 text-white rounded-2xl border border-amber-500/40 shadow-lg flex flex-col space-y-2 min-w-[200px]">
+                                                    <div className="flex items-center space-x-1.5 text-amber-400 font-bold text-[11px]">
+                                                        <Zap className="w-3.5 h-3.5 fill-amber-400" />
+                                                        <span>INSTANT SNAP • VIEW ONCE</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400">This snap disappears once viewed.</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setViewingInstantId(instantId);
+                                                        }}
+                                                        className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer"
+                                                    >
+                                                        <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                                                        <span>Tap to View Snap ⚡</span>
+                                                    </button>
+                                                </div>
+                                            );
+                                        })() : msg.text.startsWith('[STICKER]') ? (
                                             <div className="relative group inline-block transition-all duration-300">
                                                 <img 
                                                     src={msg.text.replace('[STICKER]', '')} 
@@ -1807,6 +1833,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 >
                     <SmilePlus className="w-5 h-5" />
                 </button>
+
+                <button
+                    type="button"
+                    onClick={() => setShowInstantCamera(true)}
+                    disabled={isUploadingMedia || isRecording}
+                    className="p-2 sm:p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-300/40 dark:border-amber-500/30 rounded-lg sm:rounded-xl transition-all flex items-center justify-center space-x-1"
+                    title="Send Instant Snap (View Once)"
+                >
+                    <Zap className="w-5 h-5 fill-amber-500 text-amber-500" />
+                </button>
                 
                 <button
                     type="button"
@@ -1842,6 +1878,26 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 />
             )}
             <GiftModal isOpen={showGiftModal} onClose={() => setShowGiftModal(false)} toUserId={partner.id} toUserName={partnerInfo.name} />
+
+            {showInstantCamera && (
+                <InstantCameraModal
+                    recipientId={partner.id}
+                    recipientName={partnerInfo.name}
+                    onClose={() => setShowInstantCamera(false)}
+                    onSuccess={() => {
+                        api.chat.getHistory(partner.id).then(history => {
+                            if (Array.isArray(history)) setMessages(history);
+                        });
+                    }}
+                />
+            )}
+
+            {viewingInstantId && (
+                <InstantViewerModal
+                    instantId={viewingInstantId}
+                    onClose={() => setViewingInstantId(null)}
+                />
+            )}
             
             {/* Fullscreen Image/Video Overlay */}
             {fullscreenMedia && (

@@ -38,6 +38,7 @@ import photoRoutes from './routes/photo';
 import eventRoutes from './routes/events';
 import webhookRoutes from './routes/webhooks';
 import dateRoutes from './routes/dates';
+import instantsRoutes from './routes/instants';
 import { initAngelTimer } from './services/angelTimer';
 import path from 'path';
 
@@ -178,6 +179,8 @@ if (process.env.NODE_ENV !== 'production') {
 app.use('/photo', photoRoutes);     // Image proxy — bypasses India ISP Supabase DNS block
 app.use('/events', eventRoutes);    // Meet Spots feature
 app.use('/dates', dateRoutes);      // 1-on-1 Meet Dates feature
+app.use('/instants', instantsRoutes);  // Instants View-Once Snaps
+app.use('/api/instants', instantsRoutes); // API fallback
 app.use('/webhooks', webhookRoutes); // Webhook receiver for Resend
 
 // Debug Environment on Startup

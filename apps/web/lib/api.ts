@@ -283,5 +283,18 @@ export const api = {
             body: JSON.stringify({ documentUrl })
         }),
         getStatus: () => fetchAPI('/verification/status')
-    }
+    },
+    instants: {
+        create: (payload: any) => fetchAPI('/instants', { method: 'POST', body: JSON.stringify(payload) }),
+        getFeed: () => fetchAPI('/instants/feed'),
+        getChat: (connectionId: string) => fetchAPI(`/instants/chat/${connectionId}`),
+        view: (id: string) => fetchAPI(`/instants/${id}/view`, { method: 'POST' }),
+        delete: (id: string) => fetchAPI(`/instants/${id}`, { method: 'DELETE' })
+    },
+    get: (endpoint: string) => fetchAPI(endpoint),
+    post: (endpoint: string, data?: any) => fetchAPI(endpoint, {
+        method: 'POST',
+        body: data ? (typeof data === 'string' ? data : JSON.stringify(data)) : undefined
+    }),
+    delete: (endpoint: string) => fetchAPI(endpoint, { method: 'DELETE' })
 };

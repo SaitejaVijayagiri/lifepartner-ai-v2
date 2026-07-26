@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Zap, Lock, AlertCircle, ShieldAlert } from 'lucide-react';
+import { X, Zap, Lock, AlertCircle, ShieldAlert, Eye, Users, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
@@ -24,9 +24,27 @@ export default function InstantViewerModal({
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(100);
     const [viewerZoom, setViewerZoom] = useState<number>(1);
+    const [showViewers, setShowViewers] = useState(false);
+    const [viewersList, setViewersList] = useState<any[]>([]);
+    const [loadingViewers, setLoadingViewers] = useState(false);
     const touchDistRef = useRef<number | null>(null);
 
     const VIEW_DURATION_MS = 7000; // 7 seconds viewing time
+
+    const handleOpenViewers = async () => {
+        setShowViewers(true);
+        setLoadingViewers(true);
+        try {
+            const res = await api.instants.getViewers(instantId);
+            if (res?.success && Array.isArray(res.viewers)) {
+                setViewersList(res.viewers);
+            }
+        } catch (err) {
+            console.warn('[InstantViewer] Failed to load viewers:', err);
+        } finally {
+            setLoadingViewers(false);
+        }
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -194,10 +212,62 @@ export default function InstantViewerModal({
                 </div>
 
                 {/* Bottom Security Footer */}
-                <div className="relative z-30 px-4 py-3 bg-black/90 border-t border-slate-900 text-center text-[10px] text-slate-400 flex items-center justify-center space-x-1.5">
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                    <span>View Once Security Active • Disappears after viewing</span>
+                <div className="relative z-30 px-4 py-3 bg-black/90 border-t border-slate-900 text-center text-[10px] text-slate-400 flex items-center justify-between">
+                    <div className="flex items-center space-x-1.5">
+                        <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                        <span>View Once Security Active</span>
+                    </div>
+
+                    <button
+                        onClick={handleOpenViewers}
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors border border-slate-800"
+                    >
+                        <Eye className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Viewers</span>
+                    </button>
                 </div>
+
+                {/* Viewers Bottom Sheet Drawer */}
+                {showViewers && (
+                    <div className="absolute inset-x-0 bottom-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 rounded-t-3xl p-5 max-h-[60vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+                            <div className="flex items-center space-x-2 text-white">
+                                <Eye className="w-4 h-4 text-amber-400" />
+                                <h4 className="font-bold text-sm">Snap Viewers</h4>
+                            </div>
+                            <button
+                                onClick={() => setShowViewers(false)}
+                                className="p-1 rounded-full text-slate-400 hover:text-white"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {loadingViewers ? (
+                            <div className="py-8 text-center text-xs text-amber-400">Loading viewers...</div>
+                        ) : viewersList.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-slate-400">No views recorded yet.</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {viewersList.map(v => (
+                                    <div key={v.id} className="flex items-center justify-between py-1">
+                                        <div className="flex items-center space-x-3">
+                                            <img
+                                                src={v.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.name}`}
+                                                alt={v.name}
+                                                className="w-9 h-9 rounded-full object-cover bg-slate-800"
+                                            />
+                                            <span className="font-semibold text-xs text-slate-200">{v.name}</span>
+                                        </div>
+                                        <span className="text-[10px] text-slate-500">
+                                            {v.viewedAt ? new Date(v.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Viewed'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

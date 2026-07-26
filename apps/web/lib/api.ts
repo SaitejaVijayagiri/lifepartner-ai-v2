@@ -289,6 +289,7 @@ export const api = {
         getFeed: () => fetchAPI('/instants/feed'),
         getChat: (connectionId: string) => fetchAPI(`/instants/chat/${connectionId}`),
         view: (id: string) => fetchAPI(`/instants/${id}/view`, { method: 'POST' }),
+        getViewers: (id: string) => fetchAPI(`/instants/${id}/viewers`),
         delete: (id: string) => fetchAPI(`/instants/${id}`, { method: 'DELETE' })
     },
     get: (endpoint: string) => fetchAPI(endpoint),

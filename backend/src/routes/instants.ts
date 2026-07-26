@@ -246,12 +246,70 @@ router.post('/:id/view', authenticateToken, async (req: any, res) => {
                 senderId: instant.sender_id,
                 caption: instant.caption,
                 mediaUrl: instant.media_url,
-                hasViewed: true
+                hasViewed: true,
+                viewsCount: viewedList.length
             }
         });
     } catch (err: any) {
         console.error('[Instants] View Error:', err);
         return res.status(500).json({ error: 'Failed to view instant snap', details: err.message });
+    }
+});
+
+/**
+ * GET /api/instants/:id/viewers
+ * Get list of users who viewed an Instant snap (Only accessible by creator)
+ */
+router.get('/:id/viewers', authenticateToken, async (req: any, res) => {
+    const userId = req.user.userId;
+    const { id } = req.params;
+
+    try {
+        await ensureInstantsTable();
+
+        const rows: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id, sender_id, viewed_by
+            FROM instants
+            WHERE id = $1::uuid;
+        `, id);
+
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: 'Instant snap not found.' });
+        }
+
+        const instant = rows[0];
+        if (instant.sender_id !== userId) {
+            return res.status(403).json({ error: 'Only the snap creator can view the viewers list.' });
+        }
+
+        const rawViewers: any[] = Array.isArray(instant.viewed_by) ? instant.viewed_by : [];
+        if (rawViewers.length === 0) {
+            return res.json({ success: true, viewers: [] });
+        }
+
+        const viewerIds = rawViewers.map((v: any) => v.userId || v).filter(Boolean);
+        const users = await prisma.users.findMany({
+            where: { id: { in: viewerIds } },
+            select: { id: true, full_name: true, avatar_url: true }
+        });
+
+        const viewerMap = new Map(users.map(u => [u.id, u]));
+
+        const viewers = rawViewers.map((v: any) => {
+            const uid = v.userId || v;
+            const uInfo = viewerMap.get(uid);
+            return {
+                id: uid,
+                name: uInfo?.full_name || 'User',
+                avatarUrl: uInfo?.avatar_url,
+                viewedAt: v.viewedAt || null
+            };
+        });
+
+        return res.json({ success: true, viewers });
+    } catch (err: any) {
+        console.error('[Instants] Viewers Error:', err);
+        return res.status(500).json({ error: 'Failed to fetch viewers list', details: err.message });
     }
 });
 

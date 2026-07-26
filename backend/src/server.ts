@@ -209,6 +209,10 @@ if (require.main === module) {
             const { initWittyNotificationsCron } = require('./services/wittyNotifications');
             initWittyNotificationsCron();
 
+            // Start Female Match Reminders Cron
+            const { initFemaleMatchRemindersCron } = require('./services/femaleMatchReminders');
+            initFemaleMatchRemindersCron();
+
             // ⏰ Start Daily SEO Blog Generation
             cron.schedule('0 12 * * *', async () => {
                 const topics = [

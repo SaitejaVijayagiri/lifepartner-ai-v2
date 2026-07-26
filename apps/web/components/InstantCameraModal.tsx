@@ -39,6 +39,53 @@ export default function InstantCameraModal({
     const [selectedFilter, setSelectedFilter] = useState('none');
     const [isUploading, setIsUploading] = useState(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
+    const [zoom, setZoom] = useState<number>(1);
+
+    const touchStartDistRef = useRef<number | null>(null);
+    const touchStartZoomRef = useRef<number>(1);
+
+    // Apply hardware camera zoom if supported by device
+    useEffect(() => {
+        if (!stream) return;
+        const track = stream.getVideoTracks()[0];
+        if (track) {
+            const capabilities = (track.getCapabilities?.() || {}) as any;
+            if (capabilities.zoom) {
+                const targetZoom = Math.min(zoom, capabilities.zoom.max || 3);
+                track.applyConstraints({
+                    advanced: [{ zoom: targetZoom }]
+                } as any).catch(err => console.log('[InstantCamera] Hardware zoom constraint notice:', err));
+            }
+        }
+    }, [zoom, stream]);
+
+    // Touch pinch gesture handler
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length === 2) {
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            touchStartDistRef.current = dist;
+            touchStartZoomRef.current = zoom;
+        }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (e.touches.length === 2 && touchStartDistRef.current) {
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            const ratio = dist / touchStartDistRef.current;
+            const newZoom = Math.min(3.5, Math.max(1, touchStartZoomRef.current * ratio));
+            setZoom(Number(newZoom.toFixed(1)));
+        }
+    };
+
+    const handleTouchEnd = () => {
+        touchStartDistRef.current = null;
+    };
 
     // Initialize camera stream
     useEffect(() => {
@@ -105,13 +152,22 @@ export default function InstantCameraModal({
             ctx.filter = selectedFilter;
         }
 
+        // Calculate zoom crop box
+        const sw = canvas.width / zoom;
+        const sh = canvas.height / zoom;
+        const sx = (canvas.width - sw) / 2;
+        const sy = (canvas.height - sh) / 2;
+
+        ctx.save();
         // Handle mirror flipping for selfie camera
         if (facingMode === 'user') {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
         }
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
         setCapturedImage(dataUrl);
@@ -151,6 +207,7 @@ export default function InstantCameraModal({
         setCapturedImage(null);
         setCaption('');
         setSelectedFilter('none');
+        setZoom(1);
     };
 
     // Post / Send Instant Snap
@@ -206,7 +263,12 @@ export default function InstantCameraModal({
                 </div>
 
                 {/* View Finder / Captured Image Display */}
-                <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+                <div
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    className="relative flex-1 bg-black flex items-center justify-center overflow-hidden touch-none"
+                >
                     {capturedImage ? (
                         <div className="relative w-full h-full flex items-center justify-center bg-black">
                             <img
@@ -222,7 +284,7 @@ export default function InstantCameraModal({
                             )}
                         </div>
                     ) : (
-                        <div className="relative w-full h-full flex items-center justify-center bg-slate-900">
+                        <div className="relative w-full h-full flex items-center justify-center bg-slate-900 overflow-hidden">
                             {cameraError ? (
                                 <div className="px-6 text-center text-slate-300 space-y-4">
                                     <Camera className="w-12 h-12 mx-auto text-slate-500" />
@@ -236,14 +298,42 @@ export default function InstantCameraModal({
                                     </button>
                                 </div>
                             ) : (
-                                <video
-                                    ref={videoRef}
-                                    autoPlay
-                                    playsInline
-                                    muted
-                                    style={{ filter: selectedFilter }}
-                                    className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
-                                />
+                                <>
+                                    <video
+                                        ref={videoRef}
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        style={{
+                                            filter: selectedFilter,
+                                            transform: `${facingMode === 'user' ? 'scaleX(-1)' : ''} scale(${zoom})`,
+                                            transformOrigin: 'center center',
+                                            transition: 'transform 0.1s ease-out'
+                                        }}
+                                        className="w-full h-full object-cover"
+                                    />
+
+                                    {/* Quick Zoom Pill Selector */}
+                                    <div className="absolute bottom-4 inset-x-0 z-20 flex items-center justify-center space-x-2">
+                                        {[1, 1.5, 2, 3].map(z => (
+                                            <button
+                                                key={z}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setZoom(z);
+                                                }}
+                                                className={`w-9 h-9 rounded-full text-xs font-bold transition-all shadow-lg flex items-center justify-center ${
+                                                    zoom === z
+                                                        ? 'bg-amber-400 text-slate-950 scale-110 shadow-amber-500/30'
+                                                        : 'bg-black/60 text-white hover:bg-black/80 border border-white/20'
+                                                }`}
+                                            >
+                                                {z}x
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}

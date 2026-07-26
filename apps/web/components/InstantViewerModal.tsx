@@ -23,6 +23,8 @@ export default function InstantViewerModal({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(100);
+    const [viewerZoom, setViewerZoom] = useState<number>(1);
+    const touchDistRef = useRef<number | null>(null);
 
     const VIEW_DURATION_MS = 7000; // 7 seconds viewing time
 
@@ -146,10 +148,37 @@ export default function InstantViewerModal({
                             </button>
                         </div>
                     ) : (
-                        <div className="relative w-full h-full flex items-center justify-center">
+                        <div
+                            className="relative w-full h-full flex items-center justify-center overflow-hidden"
+                            onDoubleClick={() => setViewerZoom(prev => (prev === 1 ? 2 : 1))}
+                            onTouchStart={(e) => {
+                                if (e.touches.length === 2) {
+                                    const dist = Math.hypot(
+                                        e.touches[0].clientX - e.touches[1].clientX,
+                                        e.touches[0].clientY - e.touches[1].clientY
+                                    );
+                                    touchDistRef.current = dist;
+                                }
+                            }}
+                            onTouchMove={(e) => {
+                                if (e.touches.length === 2 && touchDistRef.current) {
+                                    const dist = Math.hypot(
+                                        e.touches[0].clientX - e.touches[1].clientX,
+                                        e.touches[0].clientY - e.touches[1].clientY
+                                    );
+                                    const scale = dist / touchDistRef.current;
+                                    setViewerZoom(Math.min(3, Math.max(1, scale)));
+                                }
+                            }}
+                            onTouchEnd={() => { touchDistRef.current = null; }}
+                        >
                             <img
                                 src={mediaUrl!}
                                 alt="Instant View Once"
+                                style={{
+                                    transform: `scale(${viewerZoom})`,
+                                    transition: 'transform 0.15s ease-out'
+                                }}
                                 className="w-full h-full object-cover select-none pointer-events-none"
                                 onContextMenu={e => e.preventDefault()}
                             />

@@ -146,13 +146,20 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
             )}
 
             {/* Viewer Modal */}
-            {viewingInstantId && (
-                <InstantViewerModal
-                    instantId={viewingInstantId}
-                    onClose={() => setViewingInstantId(null)}
-                    onViewed={handleInstantViewed}
-                />
-            )}
+            {viewingInstantId && (() => {
+                const selectedInstant = instants.find(i => i.id === viewingInstantId);
+                return (
+                    <InstantViewerModal
+                        instantId={viewingInstantId}
+                        isOwn={selectedInstant?.isOwn}
+                        onClose={() => setViewingInstantId(null)}
+                        onViewed={handleInstantViewed}
+                        onDeleted={(deletedId) => {
+                            setInstants(prev => prev.filter(i => i.id !== deletedId));
+                        }}
+                    />
+                );
+            })()}
         </div>
     );
 }

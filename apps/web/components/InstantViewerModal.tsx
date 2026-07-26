@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Zap, Lock, AlertCircle, ShieldAlert, Eye, Users, Clock } from 'lucide-react';
+import { X, Zap, Lock, AlertCircle, ShieldAlert, Eye, Users, Clock, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
@@ -9,12 +9,16 @@ interface InstantViewerModalProps {
     instantId: string;
     onClose: () => void;
     onViewed?: (instantId: string) => void;
+    onDeleted?: (instantId: string) => void;
+    isOwn?: boolean;
 }
 
 export default function InstantViewerModal({
     instantId,
     onClose,
-    onViewed
+    onViewed,
+    onDeleted,
+    isOwn
 }: InstantViewerModalProps) {
     const toast = useToast();
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
@@ -43,6 +47,23 @@ export default function InstantViewerModal({
             console.warn('[InstantViewer] Failed to load viewers:', err);
         } finally {
             setLoadingViewers(false);
+        }
+    };
+
+    const handleDeleteInstant = async () => {
+        if (!confirm('Delete this Instant snap? It will be permanently removed for everyone.')) return;
+
+        try {
+            const res = await api.instants.delete(instantId);
+            if (res?.success) {
+                toast.success('Instant snap deleted.');
+                if (onDeleted) onDeleted(instantId);
+                handleClose();
+            } else {
+                toast.error(res?.error || 'Failed to delete instant snap.');
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to delete instant snap.');
         }
     };
 
@@ -133,12 +154,24 @@ export default function InstantViewerModal({
                             </span>
                         </div>
 
-                        <button
-                            onClick={handleClose}
-                            className="p-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white transition-colors"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
+                        <div className="flex items-center space-x-2">
+                            {(isOwn || Boolean(senderId)) && (
+                                <button
+                                    onClick={handleDeleteInstant}
+                                    className="p-1.5 rounded-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 border border-rose-500/30 transition-colors"
+                                    title="Delete Instant Snap"
+                                >
+                                    <Trash2 className="w-4 h-4 text-rose-400" />
+                                </button>
+                            )}
+
+                            <button
+                                onClick={handleClose}
+                                className="p-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 

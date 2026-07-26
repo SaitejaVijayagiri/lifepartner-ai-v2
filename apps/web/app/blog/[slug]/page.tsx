@@ -70,8 +70,37 @@ export default async function BlogPostPage({ params }: Props) {
         notFound();
     }
 
+    const articleJsonLd = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post.title,
+        "description": post.excerpt || post.meta_description,
+        "datePublished": post.created_at,
+        "dateModified": post.created_at,
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": `https://lifepartnerai.in/blog/${params.slug}`
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "LifePartner AI Editorial"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "LifePartner AI",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://lifepartnerai.in/icon-512x512.png"
+            }
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+            />
             <Navbar />
 
             <main className="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 mt-16 w-full">

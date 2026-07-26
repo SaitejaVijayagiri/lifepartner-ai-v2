@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
 
-// Force Dynamic Rendering for fresh data
-export const dynamic = 'force-dynamic';
+// Incremental Static Regeneration for blazing fast Googlebot crawl speeds (revalidate daily)
+export const revalidate = 86400;
 
 interface PageProps {
     params: {
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         openGraph: {
             title,
             description,
-            images: ['/og-image.jpg'], // Ideally dynamic text on image
+            images: ['https://lifepartnerai.in/og-image.jpg'],
         },
         alternates: {
             canonical: `https://lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`,
@@ -57,28 +57,63 @@ export default async function SEOPage({ params }: PageProps) {
         console.error("SEO Page Fetch Error", e);
     }
 
-    // 3. JSON-LD SCHEMA (Structured Data)
-    const jsonLd = {
+    // 3. JSON-LD SCHEMAS (CollectionPage + BreadcrumbList)
+    const collectionLd = {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": `${displayValue} Matrimony Profiles`,
         "description": `Browse verified matrimonial profiles in ${displayValue}.`,
-        "url": `https://lifepartnerai.in/matrimony/${category}/${slug}`,
+        "url": `https://lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`,
         "numberOfItems": matches.length,
         "itemListElement": matches.map((m: any, index: number) => ({
             "@type": "Person",
             "position": index + 1,
             "name": m.name,
-            "url": `https://lifepartnerai.in/register` // Gate profile behind register
+            "url": `https://lifepartnerai.in/register`
         }))
+    };
+
+    const breadcrumbLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://lifepartnerai.in"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Matrimony",
+                "item": "https://lifepartnerai.in/matrimony"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": displayCategory,
+                "item": `https://lifepartnerai.in/matrimony/${category.toLowerCase()}`
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": displayValue,
+                "item": `https://lifepartnerai.in/matrimony/${category.toLowerCase()}/${slug.toLowerCase()}`
+            }
+        ]
     };
 
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Inject Schema */}
+            {/* Inject Structured Data Schemas */}
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
             />
 
             {/* 1. Hero Section */}

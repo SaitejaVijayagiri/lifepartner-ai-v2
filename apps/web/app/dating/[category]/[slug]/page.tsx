@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import ShareButton from '@/components/ShareButton';
 
-// Force Dynamic Rendering for fresh data
-export const dynamic = 'force-dynamic';
+// Incremental Static Regeneration for blazing fast Googlebot crawl speeds (revalidate daily)
+export const revalidate = 86400;
 
 interface PageProps {
     params: {
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         openGraph: {
             title,
             description,
-            images: ['/og-image.jpg'],
+            images: ['https://lifepartnerai.in/og-image.jpg'],
         },
         alternates: {
             canonical: `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
@@ -57,13 +57,13 @@ export default async function SEODatingPage({ params }: PageProps) {
         console.error("SEO Dating Page Fetch Error", e);
     }
 
-    // 3. JSON-LD SCHEMA (Structured Data)
-    const jsonLd = {
+    // 3. JSON-LD SCHEMAS (DatingService + BreadcrumbList)
+    const datingServiceLd = {
         "@context": "https://schema.org",
         "@type": "DatingService",
         "name": `Dating and Matchmaking in ${displayValue}`,
         "description": `Browse verified singles in ${displayValue} and start dating for free.`,
-        "url": `https://lifepartnerai.in/dating/${category}/${slug}`,
+        "url": `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
         "areaServed": displayCategory === 'Location' ? displayValue : 'IN',
         "offers": {
             "@type": "Offer",
@@ -73,12 +73,47 @@ export default async function SEODatingPage({ params }: PageProps) {
         }
     };
 
+    const breadcrumbLd = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://lifepartnerai.in"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Dating",
+                "item": "https://lifepartnerai.in/dating"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": displayCategory,
+                "item": `https://lifepartnerai.in/dating/${category.toLowerCase()}`
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": displayValue,
+                "item": `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`
+            }
+        ]
+    };
+
     return (
         <div className="min-h-screen bg-slate-50">
-            {/* Inject Schema */}
+            {/* Inject Structured Data Schemas */}
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(datingServiceLd) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
             />
 
             {/* 1. Hero Section */}

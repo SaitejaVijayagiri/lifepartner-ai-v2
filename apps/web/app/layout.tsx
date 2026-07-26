@@ -29,6 +29,20 @@ const fontMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://lifepartnerai.in'),
+  alternates: {
+    canonical: 'https://lifepartnerai.in',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   title: {
     default: "LifePartner AI | #1 Free Worldwide Matrimony & Dating App",
     template: "%s | LifePartner AI - Free Worldwide Matrimony & Dating App"
@@ -54,7 +68,7 @@ export const metadata: Metadata = {
     siteName: "LifePartner AI",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "https://lifepartnerai.in/og-image.jpg",
         width: 1200,
         height: 630,
         alt: "LifePartner AI - #1 Trusted Worldwide Matrimony & Dating App",
@@ -65,7 +79,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "LifePartner AI | Best Free Matrimony & Dating App in India",
     description: "Join 10,000+ verified singles finding love on LifePartner AI. The smarter, safer alternative to Shaadi, Jeevansathi, and dating apps.",
-    images: ["/og-image.jpg"],
+    images: ["https://lifepartnerai.in/og-image.jpg"],
   },
   category: "Dating Application",
   other: {

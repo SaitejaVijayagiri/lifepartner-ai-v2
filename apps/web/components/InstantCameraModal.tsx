@@ -181,8 +181,8 @@ export default function InstantCameraModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
-            <div className="relative w-full max-w-md h-[88vh] max-h-[850px] bg-slate-950 rounded-3xl overflow-hidden flex flex-col shadow-2xl border border-slate-800">
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200">
+            <div className="relative w-full sm:max-w-md h-full sm:h-[88vh] sm:max-h-[850px] bg-slate-950 sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl border-0 sm:border sm:border-slate-800">
                 {/* Header */}
                 <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white">
                     <div className="flex items-center space-x-2">

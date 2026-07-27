@@ -245,16 +245,16 @@ export default function MatchesTab({
 
     const renderStoriesView = () => (
         <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
 
-            <div className="flex gap-5 overflow-x-auto pb-4 no-scrollbar px-6 pt-2">
+            <div className="flex gap-3 sm:gap-5 overflow-x-auto pb-2 sm:pb-4 no-scrollbar px-2 sm:px-6 pt-1">
                 {/* My Story Upload */}
-                <div className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group">
+                <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group">
                     <label className="relative cursor-pointer">
-                        <div className="w-20 h-20 rounded-full p-[3px] border-2 border-dashed border-gray-300 dark:border-gray-700 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] sm:p-[3px] border-2 border-dashed border-gray-300 dark:border-gray-700 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
                             <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-indigo-500/30">
+                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-lg shadow-indigo-500/30">
                                     +
                                 </div>
                             </div>
@@ -262,19 +262,19 @@ export default function MatchesTab({
                         </div>
                         <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleStoryFileSelect} />
                     </label>
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
+                    <span className="text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
                 </div>
 
                 {/* My Active Story */}
                 {currentUser?.stories?.filter((s: any) => new Date(s.expiresAt) > new Date()).map((story: any, i: number) => (
-                    <div key={'me' + i} className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group" onClick={() => {
+                    <div key={'me' + i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group" onClick={() => {
                         setActiveStorySet({
                             stories: currentUser.stories.filter((s: any) => new Date(s.expiresAt) > new Date()),
                             user: { ...currentUser, id: currentUser.id || currentUser.userId, name: currentUser.full_name || currentUser.name }
                         });
                     }}>
                         <div className="relative">
-                            <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] sm:p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
                                 <div className="w-full h-full rounded-full p-[2px] bg-background">
                                     <img 
                                         src={currentUser.photos?.[0] || currentUser.photoUrl || '/avatar-fallback.svg'} 
@@ -288,11 +288,11 @@ export default function MatchesTab({
                                     />
                                 </div>
                             </div>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md">
+                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-md">
                                 You
                             </div>
                         </div>
-                        <span className="text-xs font-semibold text-foreground mt-1">Your Story</span>
+                        <span className="text-[11px] sm:text-xs font-semibold text-foreground mt-0.5">Your Story</span>
                     </div>
                 ))}
 
@@ -303,12 +303,12 @@ export default function MatchesTab({
                     return (
                         <div
                             key={feedUser.id}
-                            className="flex flex-col items-center gap-2.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
+                            className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
                             style={{ animationDelay: `${idx * 50}ms` }}
                             onClick={() => handleViewStory(feedUser)}
                         >
                             <div className="relative">
-                                <div className={`w-20 h-20 rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 ${
+                                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] sm:p-[3px] transition-all duration-300 group-hover:scale-105 ${
                                     isAllViewed 
                                         ? 'bg-slate-200 dark:bg-slate-800 shadow-sm border border-slate-300/30 dark:border-slate-700/30' 
                                         : 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40'
@@ -327,10 +327,10 @@ export default function MatchesTab({
                                     </div>
                                 </div>
                                 {!isAllViewed && (
-                                    <div className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
+                                    <div className="absolute top-0 right-0 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
                                 )}
                             </div>
-                            <span className="text-xs font-semibold text-foreground max-w-[70px] truncate text-center">{feedUser.name}</span>
+                            <span className="text-[11px] sm:text-xs font-semibold text-foreground max-w-[64px] sm:max-w-[70px] truncate text-center">{feedUser.name}</span>
                         </div>
                     );
                 })}

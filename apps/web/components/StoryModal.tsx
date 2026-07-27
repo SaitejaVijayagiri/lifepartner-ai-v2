@@ -195,13 +195,13 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const avatarUrl = user.photoUrl || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
 
     return (
-        <div className="fixed inset-0 z-[1100] bg-black flex items-center justify-center animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[3000] bg-black w-full h-[100dvh] flex items-center justify-center animate-in fade-in duration-200">
             {/* Gradient Background Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60 pointer-events-none z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/70 pointer-events-none z-10"></div>
 
             {/* Story Container */}
             <div
-                className="relative w-full h-full max-w-lg mx-auto flex flex-col"
+                className="relative w-full h-full sm:max-w-md mx-auto flex flex-col justify-between overflow-hidden sm:rounded-3xl"
                 onMouseDown={() => setIsPaused(true)}
                 onMouseUp={() => setIsPaused(false)}
                 onTouchStart={() => setIsPaused(true)}
@@ -294,13 +294,13 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     </div>
                 )}
 
-                {/* Story Content */}
-                <div className="flex-1 flex items-center justify-center">
+                {/* Story Content & Fullscreen Media */}
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
                     {story.type === 'video' ? (
                         <video
                             ref={videoRef}
                             src={story.url}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-cover select-none"
                             autoPlay
                             playsInline
                             muted={false}
@@ -316,10 +316,16 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     ) : (
                         <img
                             src={story.url}
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-cover select-none"
                             alt="Story"
                         />
                     )}
+
+                    {/* Left / Right Fullscreen Tap Navigation Overlay */}
+                    <div className="absolute inset-0 z-20 flex">
+                        <div className="w-1/3 h-full cursor-pointer select-none" onClick={goPrev} />
+                        <div className="w-2/3 h-full cursor-pointer select-none" onClick={goNext} />
+                    </div>
                     
                     {/* Dynamic Text Overlays for Video Stories (Images have text burned in) */}
                     {story.texts && Array.isArray(story.texts) && story.texts.map((t: any, i: number) => (

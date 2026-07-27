@@ -352,8 +352,8 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     };
 
     return (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black backdrop-blur-sm">
-            <div className="bg-black w-full h-full md:max-w-lg md:h-[90vh] md:rounded-3xl overflow-hidden flex flex-col relative">
+        <div className="fixed inset-0 z-[3000] w-full h-[100dvh] flex items-center justify-center bg-black backdrop-blur-sm">
+            <div className="bg-black w-full h-full sm:max-w-md mx-auto sm:rounded-3xl overflow-hidden flex flex-col relative">
                 
                 {/* Header Tools */}
                 <div className="flex justify-between items-center p-4 absolute top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/60 to-transparent">
@@ -524,7 +524,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             )}
                         </div>
                     ) : (
-                        <div className="relative h-full aspect-[9/16] max-w-full" style={{ margin: '0 auto' }}>
+                        <div className="relative w-full h-full">
                             
                             <div className="absolute inset-0">
                                 {/* @ts-ignore */}

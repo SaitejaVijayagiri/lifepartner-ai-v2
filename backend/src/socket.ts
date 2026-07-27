@@ -340,6 +340,40 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         /**
+         * REAL-TIME GAME INVITATIONS & MULTIPLAYER RELAY
+         */
+        socket.on("game_invite", ({ to, senderName, gameType }) => {
+            if (to) {
+                console.log(`Game Invite: ${userId} -> ${to} (${gameType || 'snakes'})`);
+                io.to(to).emit("game_invite", { from: userId, senderName: senderName || 'Your Match', gameType });
+            }
+        });
+
+        socket.on("game_accept", ({ to }) => {
+            if (to) {
+                io.to(to).emit("game_accept", { from: userId });
+            }
+        });
+
+        socket.on("game_move", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("game_move", { ...data, from: userId });
+            }
+        });
+
+        socket.on("game_voice", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("game_voice", { ...data, from: userId });
+            }
+        });
+
+        socket.on("game_leave", ({ to }) => {
+            if (to) {
+                io.to(to).emit("game_leave", { from: userId });
+            }
+        });
+
+        /**
          * SPEED DATING LOGIC
          */
         socket.on("join_speed_dating_lobby", () => {

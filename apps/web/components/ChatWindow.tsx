@@ -835,12 +835,30 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             setMessages(prev => prev.filter(msg => msg.id !== data.messageId));
         };
 
+        const handleGameInvite = (data: { from: string; senderName: string }) => {
+            if (data.from === partner.id) {
+                toast.success(`🎮 ${data.senderName} invited you to play Snakes & Ladders! Joining...`);
+                setShowGame(true);
+                if (socket && partner.id) {
+                    socket.emit("game_accept", { to: partner.id });
+                }
+            }
+        };
+
+        const handleGameAccept = (data: { from: string }) => {
+            if (data.from === partner.id) {
+                toast.success(`🟢 ${partner.name || 'Your partner'} joined the game session!`);
+            }
+        };
+
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("updateMessageStatus", handleStatus);
         socket.on("messageLiked", handleLiked);
         socket.on("messageReaction", handleReaction);
         socket.on("messageDeleted", handleDeleted);
+        socket.on("game_invite", handleGameInvite);
+        socket.on("game_accept", handleGameAccept);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
@@ -849,6 +867,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("messageLiked", handleLiked);
             socket.off("messageReaction", handleReaction);
             socket.off("messageDeleted", handleDeleted);
+            socket.off("game_invite", handleGameInvite);
+            socket.off("game_accept", handleGameAccept);
         };
     }, [socket, partner.id, user]);
 
@@ -1205,7 +1225,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             {showHeaderMenu && (
                                 <div className="absolute right-0 top-12 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
                                     <button
-                                        onClick={() => { setShowGame(true); setShowHeaderMenu(false); }}
+                                        onClick={() => {
+                                            setShowGame(true);
+                                            setShowHeaderMenu(false);
+                                            if (socket && partner?.id) {
+                                                socket.emit("game_invite", { to: partner.id, senderName: user?.full_name || 'Your Match', gameType: 'snakes' });
+                                            }
+                                        }}
                                         className="w-full text-left px-4 py-3 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-3 transition-colors font-semibold"
                                     >
                                         <Gamepad2 size={18} className="text-purple-500" />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, Sparkles, UserCheck, UserX } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useCall } from '@/context/CallContext';
 import { useSocket } from '@/context/SocketContext';
@@ -41,7 +41,8 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     const { socket } = useSocket();
     const { user } = useAuth();
 
-    /* Voice Chat State */
+    /* Presence & Connection State */
+    const [partnerStatus, setPartnerStatus] = useState<'connected' | 'waiting' | 'left'>('connected');
     const [isVoiceActive, setIsVoiceActive] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
 
@@ -54,13 +55,43 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     const [winner, setWinner] = useState<string | null>(null);
     const [gameLog, setGameLog] = useState<string>("Your turn! Tap 'Roll Dice' to begin.");
 
-    /* Real-Time Socket Listener for 2-Player Synced Game Moves */
+    /* Notify Partner on Mount & Unmount */
+    useEffect(() => {
+        if (!socket || !partnerId) return;
+
+        // Announce presence / invite partner
+        socket.emit("game_invite", { to: partnerId, senderName: user?.full_name || 'Your Match', gameType: 'snakes' });
+
+        return () => {
+            // Send leave event on close
+            socket.emit("game_leave", { to: partnerId });
+        };
+    }, [socket, partnerId, user?.full_name]);
+
+    /* Real-Time Socket Listeners for Invitations, Acceptance, Moves & Voice */
     useEffect(() => {
         if (!socket) return;
 
-        const handleRemoteMove = (data: { senderId: string; rolled: number; pos: number; nextPos: number; isWinner: boolean; nextTurnUserId: string }) => {
-            if (data.senderId === user?.id) return; // Ignore own echoes
+        const handleGameAccept = (data: { from: string }) => {
+            if (data.from === partnerId) {
+                setPartnerStatus('connected');
+                toast.success(`🟢 ${partnerName} joined the game session live!`);
+            }
+        };
 
+        const handleGameLeave = (data: { from: string }) => {
+            if (data.from === partnerId) {
+                setPartnerStatus('left');
+                toast.error(`🔴 ${partnerName} left the game.`);
+                setGameLog(`🔴 ${partnerName} left the game session.`);
+            }
+        };
+
+        const handleRemoteMove = (data: { from?: string; senderId?: string; rolled: number; pos: number; nextPos: number; isWinner: boolean; nextTurnUserId: string }) => {
+            const sender = data.from || data.senderId;
+            if (sender === user?.id) return; // Ignore own echoes
+
+            setPartnerStatus('connected');
             setDiceValue(data.rolled);
             setIsRolling(true);
 
@@ -87,20 +118,28 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             }, 400);
         };
 
-        const handleRemoteVoice = (data: { senderId: string; active: boolean }) => {
-            if (data.senderId !== user?.id) {
+        const handleRemoteVoice = (data: { from?: string; senderId?: string; active: boolean }) => {
+            const sender = data.from || data.senderId;
+            if (sender !== user?.id) {
                 setIsVoiceActive(data.active);
+                if (data.active) {
+                    toast.success(`🎙️ ${partnerName} turned on Voice Chat!`);
+                }
             }
         };
 
-        socket.on('snake_game_move', handleRemoteMove);
-        socket.on('snake_game_voice', handleRemoteVoice);
+        socket.on('game_accept', handleGameAccept);
+        socket.on('game_leave', handleGameLeave);
+        socket.on('game_move', handleRemoteMove);
+        socket.on('game_voice', handleRemoteVoice);
 
         return () => {
-            socket.off('snake_game_move', handleRemoteMove);
-            socket.off('snake_game_voice', handleRemoteVoice);
+            socket.off('game_accept', handleGameAccept);
+            socket.off('game_leave', handleGameLeave);
+            socket.off('game_move', handleRemoteMove);
+            socket.off('game_voice', handleRemoteVoice);
         };
-    }, [socket, user?.id, partnerName, toast]);
+    }, [socket, user?.id, partnerId, partnerName, toast]);
 
     /* Toggle Live Voice Chat for Both Users */
     const toggleVoiceChat = () => {
@@ -108,7 +147,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         setIsVoiceActive(nextState);
 
         if (socket && partnerId) {
-            socket.emit('snake_game_voice', { targetUserId: partnerId, senderId: user?.id, active: nextState });
+            socket.emit('game_voice', { to: partnerId, senderId: user?.id, active: nextState });
         }
 
         if (nextState) {
@@ -143,8 +182,8 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                 setIsMyTurn(false);
 
                 if (socket && partnerId) {
-                    socket.emit('snake_game_move', {
-                        targetUserId: partnerId,
+                    socket.emit('game_move', {
+                        to: partnerId,
                         senderId: user?.id,
                         rolled,
                         pos: myPos,
@@ -177,14 +216,13 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                 toast.success("🏆 VICTORY! Reached Square 100!");
             }
 
-            // Bonus turn on 6, else switch turn to Partner
             const keepTurn = rolled === 6 && !isWin;
             const nextTurnUser = keepTurn ? (user?.id || 'me') : (partnerId || 'partner');
             setIsMyTurn(keepTurn);
 
             if (socket && partnerId) {
-                socket.emit('snake_game_move', {
-                    targetUserId: partnerId,
+                socket.emit('game_move', {
+                    to: partnerId,
                     senderId: user?.id,
                     rolled,
                     pos: landPos,
@@ -219,7 +257,25 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                             Snakes & Ladders
                             <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">LIVE 2P</span>
                         </h1>
-                        <p className="text-[10px] sm:text-xs text-slate-400">Match: <span className="font-bold text-white">{partnerName}</span></p>
+                        <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
+                            <span>Match: <strong className="text-white">{partnerName}</strong></span>
+                            <span>•</span>
+                            {partnerStatus === 'connected' && (
+                                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> In Game
+                                </span>
+                            )}
+                            {partnerStatus === 'waiting' && (
+                                <span className="text-amber-400 font-bold flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Inviting...
+                                </span>
+                            )}
+                            {partnerStatus === 'left' && (
+                                <span className="text-red-400 font-bold flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-red-500"></span> Disconnected
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -292,7 +348,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                     </div>
                 </div>
 
-                {/* DYNAMIC RESPONSIVE BOARD GRID (PERFECT MOBILE ALIGNMENT) */}
+                {/* DYNAMIC RESPONSIVE BOARD GRID */}
                 <div className="w-full max-w-[360px] sm:max-w-[440px] aspect-square bg-slate-900 border-2 sm:border-4 border-emerald-500 rounded-2xl sm:rounded-3xl shadow-2xl p-1 sm:p-1.5 grid grid-cols-10 grid-rows-10 gap-0.5 relative shrink-0">
                     {Array.from({ length: 100 }, (_, index) => {
                         const row = Math.floor(index / 10);

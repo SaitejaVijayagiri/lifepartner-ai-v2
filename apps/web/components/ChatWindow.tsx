@@ -1193,28 +1193,24 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 Music Vibe
                             </span>
                         </button>
-
-                        <button
-                            onClick={() => setShowGame(true)}
-                            className="p-2 sm:p-2.5 text-purple-400 hover:text-white hover:bg-purple-500/20 rounded-xl transition-all relative group"
-                            title="Ludo & Carrom Arena + Voice Chat"
-                        >
-                            <Gamepad2 size={20} className="animate-pulse text-purple-400" />
-                            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap z-50">
-                                Ludo & Carrom
-                            </span>
-                        </button>
-                        
                         <div className="relative">
                             <button
                                 onClick={() => setShowHeaderMenu(!showHeaderMenu)}
                                 className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                                title="More Options"
                             >
                                 <MoreVertical size={20} />
                             </button>
 
                             {showHeaderMenu && (
-                                <div className="absolute right-0 top-12 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
+                                <div className="absolute right-0 top-12 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
+                                    <button
+                                        onClick={() => { setShowGame(true); setShowHeaderMenu(false); }}
+                                        className="w-full text-left px-4 py-3 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-3 transition-colors font-semibold"
+                                    >
+                                        <Gamepad2 size={18} className="text-purple-500" />
+                                        Ludo & Carrom Arena
+                                    </button>
                                     <button
                                         onClick={async () => { 
                                             setShowHeaderMenu(false); 

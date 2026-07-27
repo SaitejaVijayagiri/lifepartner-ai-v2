@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, Sparkles, UserCheck, UserX } from 'lucide-react';
+import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, Sparkles, UserCheck, UserX, VolumeX, Flame } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useCall } from '@/context/CallContext';
 import { useSocket } from '@/context/SocketContext';
@@ -35,6 +35,25 @@ const SNAKES: Record<number, number> = {
     98: 79
 };
 
+/* Helper to convert square number (1-100) to grid coordinates (0-9 col, 0-9 row from top) */
+function getSquareCoords(num: number): { col: number; row: number } {
+    const zeroBased = num - 1;
+    const rowFromBottom = Math.floor(zeroBased / 10);
+    const rowFromTop = 9 - rowFromBottom;
+    const colFromLeft = rowFromBottom % 2 === 0 ? (zeroBased % 10) : (9 - (zeroBased % 10));
+    return { col: colFromLeft, row: rowFromTop };
+}
+
+/* 3D Dice Face Dots Renderer */
+const DICE_DOTS: Record<number, string> = {
+    1: '⚀',
+    2: '⚁',
+    3: '⚂',
+    4: '⚃',
+    5: '⚄',
+    6: '⚅'
+};
+
 export default function GameModal({ onClose, partnerName, partnerId, onSendChatMessage }: GameModalProps) {
     const toast = useToast();
     const { startCall } = useCall();
@@ -55,27 +74,38 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     const [winner, setWinner] = useState<string | null>(null);
     const [gameLog, setGameLog] = useState<string>("Your turn! Tap 'Roll Dice' to begin.");
 
+    /* Auto-Connect WebRTC Voice Stream on Mount */
+    useEffect(() => {
+        if (!partnerId) return;
+
+        try {
+            startCall({ id: partnerId, name: partnerName }, 'audio');
+            setIsVoiceActive(true);
+            toast.success(`🎙️ Live Audio Voice Connected with ${partnerName}!`);
+        } catch (e) {
+            console.error("Auto voice call error", e);
+        }
+    }, [partnerId, partnerName, startCall, toast]);
+
     /* Notify Partner on Mount & Unmount */
     useEffect(() => {
         if (!socket || !partnerId) return;
 
-        // Announce presence / invite partner
         socket.emit("game_invite", { to: partnerId, senderName: user?.full_name || 'Your Match', gameType: 'snakes' });
 
         return () => {
-            // Send leave event on close
             socket.emit("game_leave", { to: partnerId });
         };
     }, [socket, partnerId, user?.full_name]);
 
-    /* Real-Time Socket Listeners for Invitations, Acceptance, Moves & Voice */
+    /* Real-Time Socket Listeners */
     useEffect(() => {
         if (!socket) return;
 
         const handleGameAccept = (data: { from: string }) => {
             if (data.from === partnerId) {
                 setPartnerStatus('connected');
-                toast.success(`🟢 ${partnerName} joined the game session live!`);
+                toast.success(`🟢 ${partnerName} connected live to the board!`);
             }
         };
 
@@ -89,7 +119,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
 
         const handleRemoteMove = (data: { from?: string; senderId?: string; rolled: number; pos: number; nextPos: number; isWinner: boolean; nextTurnUserId: string }) => {
             const sender = data.from || data.senderId;
-            if (sender === user?.id) return; // Ignore own echoes
+            if (sender === user?.id) return;
 
             setPartnerStatus('connected');
             setDiceValue(data.rolled);
@@ -122,9 +152,6 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             const sender = data.from || data.senderId;
             if (sender !== user?.id) {
                 setIsVoiceActive(data.active);
-                if (data.active) {
-                    toast.success(`🎙️ ${partnerName} turned on Voice Chat!`);
-                }
             }
         };
 
@@ -141,7 +168,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         };
     }, [socket, user?.id, partnerId, partnerName, toast]);
 
-    /* Toggle Live Voice Chat for Both Users */
+    /* Toggle Live Voice Chat */
     const toggleVoiceChat = () => {
         const nextState = !isVoiceActive;
         setIsVoiceActive(nextState);
@@ -151,14 +178,12 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         }
 
         if (nextState) {
-            toast.success("In-Game Voice Chat connected! Speak freely.");
+            toast.success("Voice Chat connected! Speak freely.");
             if (partnerId) {
-                try {
-                    startCall({ id: partnerId, name: partnerName }, 'audio');
-                } catch (e) { console.error(e); }
+                try { startCall({ id: partnerId, name: partnerName }, 'audio'); } catch (e) {}
             }
         } else {
-            toast.success("Voice Chat disconnected.");
+            toast.success("Voice Chat muted.");
         }
     };
 
@@ -246,73 +271,76 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     return (
         <div className="fixed inset-0 w-screen h-screen z-[3000] bg-slate-950 backdrop-blur-2xl flex flex-col justify-between text-white font-sans overflow-hidden animate-in fade-in duration-200">
 
-            {/* ─── FULL-SCREEN HEADER ─── */}
-            <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between shrink-0 shadow-lg z-20">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-xl sm:text-2xl shadow-md">
+            {/* ─── PREMIUM HEADER WITH AUDIO WAVE VISUALIZER ─── */}
+            <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0 shadow-2xl z-20">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-indigo-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-emerald-500/30 border border-emerald-400/30">
                         🐍
                     </div>
                     <div>
-                        <h1 className="text-sm sm:text-lg font-black tracking-tight flex items-center gap-1.5 leading-tight">
-                            Snakes & Ladders
-                            <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">LIVE 2P</span>
+                        <h1 className="text-sm sm:text-lg font-black tracking-tight flex items-center gap-2 leading-tight text-white">
+                            Snakes & Ladders Arena
+                            <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold shadow-sm">LIVE 2P</span>
                         </h1>
-                        <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-slate-400">
-                            <span>Match: <strong className="text-white">{partnerName}</strong></span>
+                        <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
+                            <span>Playing with <strong className="text-white font-bold">{partnerName}</strong></span>
                             <span>•</span>
-                            {partnerStatus === 'connected' && (
+                            {partnerStatus === 'connected' ? (
                                 <span className="text-emerald-400 font-bold flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> In Game
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Connected
                                 </span>
-                            )}
-                            {partnerStatus === 'waiting' && (
+                            ) : (
                                 <span className="text-amber-400 font-bold flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Inviting...
-                                </span>
-                            )}
-                            {partnerStatus === 'left' && (
-                                <span className="text-red-400 font-bold flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-red-500"></span> Disconnected
+                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Connecting...
                                 </span>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Voice Chat & Controls */}
+                {/* Seamless Voice Chat & Soundwave Visualizer */}
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleVoiceChat}
-                        className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold ${
+                        className={`px-3 sm:px-4 py-2 rounded-2xl transition-all flex items-center gap-2 text-xs font-bold ${
                             isVoiceActive
-                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 animate-pulse'
-                                : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
+                                : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                         }`}
                     >
-                        {isVoiceActive ? <Volume2 size={15} /> : <Mic size={15} />}
-                        <span className="text-[11px] sm:text-xs">{isVoiceActive ? 'Voice Live' : 'Voice Chat'}</span>
+                        {isVoiceActive ? <Volume2 size={16} className="animate-pulse" /> : <VolumeX size={16} />}
+                        <span className="hidden sm:inline">{isVoiceActive ? 'Voice Active' : 'Enable Voice'}</span>
+
+                        {/* Live Audio Wave Visualizer Bars */}
+                        {isVoiceActive && !isMuted && (
+                            <div className="flex items-end gap-0.5 h-3.5 ml-1">
+                                <span className="w-1 bg-white rounded-full animate-bounce h-full"></span>
+                                <span className="w-1 bg-white rounded-full animate-bounce [animation-delay:0.15s] h-3/4"></span>
+                                <span className="w-1 bg-white rounded-full animate-bounce [animation-delay:0.3s] h-full"></span>
+                            </div>
+                        )}
                     </button>
 
                     {isVoiceActive && (
                         <button
                             onClick={() => setIsMuted(!isMuted)}
-                            className={`p-1.5 sm:p-2 rounded-xl text-white transition-colors ${isMuted ? 'bg-red-500' : 'bg-slate-800 border border-slate-700'}`}
-                            title={isMuted ? "Unmute Mic" : "Mute Mic"}
+                            className={`p-2 rounded-2xl text-white transition-all ${isMuted ? 'bg-red-500 shadow-lg shadow-red-500/40' : 'bg-slate-800 border border-slate-700 hover:bg-slate-700'}`}
+                            title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
                         >
-                            {isMuted ? <MicOff size={15} /> : <Mic size={15} />}
+                            {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
                         </button>
                     )}
 
                     <button
                         onClick={onClose}
-                        className="p-1.5 sm:p-2 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors border border-slate-700"
+                        className="p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-2xl transition-colors border border-slate-700"
                     >
-                        <X size={18} />
+                        <X size={20} />
                     </button>
                 </div>
             </div>
 
-            {/* Voice Toast Banner */}
+            {/* Live Audio Banner */}
             {isVoiceActive && (
                 <div className="bg-emerald-500/10 px-4 py-1.5 border-b border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-400 font-bold shrink-0">
                     <div className="flex items-center gap-2">
@@ -320,36 +348,84 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        Voice Chat Active • Talk live with {partnerName}
+                        Voice Chat Connected • Speak freely with {partnerName}
                     </div>
-                    <span>{isMuted ? 'Muted' : 'Mic Active'}</span>
+                    <span className="bg-emerald-950/60 text-emerald-300 px-2 py-0.5 rounded-full text-[10px]">{isMuted ? 'Mic Muted' : 'Mic Active'}</span>
                 </div>
             )}
 
-            {/* ─── MAIN ARENA & BOARD (MOBILE ALIGNED) ─── */}
+            {/* ─── MAIN ARENA BOARD (HIGH VIBE UI) ─── */}
             <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-y-auto max-w-2xl mx-auto w-full">
 
                 {/* INLINE PLAYER SCORE & TURN BAR */}
-                <div className="w-full max-w-[360px] sm:max-w-[440px] flex items-center justify-between gap-2 mb-2">
-                    <div className={`flex-1 p-2 sm:p-2.5 rounded-2xl border transition-all flex items-center gap-2 ${isMyTurn ? 'bg-red-950/60 border-red-500 shadow-lg shadow-red-500/20' : 'bg-slate-900/60 border-slate-800 opacity-75'}`}>
-                        <span className="text-base sm:text-lg">🔴</span>
+                <div className="w-full max-w-[360px] sm:max-w-[440px] flex items-center justify-between gap-2.5 mb-2.5">
+                    <div className={`flex-1 p-2.5 rounded-2xl border transition-all flex items-center gap-2.5 ${isMyTurn ? 'bg-gradient-to-r from-red-950/80 to-slate-900 border-red-500 shadow-xl shadow-red-500/20 scale-[1.02]' : 'bg-slate-900/60 border-slate-800 opacity-75'}`}>
+                        <div className="w-8 h-8 rounded-full bg-red-600 border-2 border-white flex items-center justify-center text-sm shadow-md">
+                            🔴
+                        </div>
                         <div className="min-w-0">
-                            <div className="text-[11px] sm:text-xs font-black truncate text-white">You</div>
-                            <div className="text-[10px] sm:text-[11px] font-bold text-red-400">Sq {myPos} / 100</div>
+                            <div className="text-xs font-black truncate text-white">You</div>
+                            <div className="text-[11px] font-bold text-red-400">Square {myPos} / 100</div>
                         </div>
                     </div>
 
-                    <div className={`flex-1 p-2 sm:p-2.5 rounded-2xl border transition-all flex items-center gap-2 ${!isMyTurn ? 'bg-emerald-950/60 border-emerald-500 shadow-lg shadow-emerald-500/20' : 'bg-slate-900/60 border-slate-800 opacity-75'}`}>
-                        <span className="text-base sm:text-lg">🟢</span>
+                    <div className={`flex-1 p-2.5 rounded-2xl border transition-all flex items-center gap-2.5 ${!isMyTurn ? 'bg-gradient-to-r from-emerald-950/80 to-slate-900 border-emerald-500 shadow-xl shadow-emerald-500/20 scale-[1.02]' : 'bg-slate-900/60 border-slate-800 opacity-75'}`}>
+                        <div className="w-8 h-8 rounded-full bg-emerald-600 border-2 border-white flex items-center justify-center text-sm shadow-md">
+                            🟢
+                        </div>
                         <div className="min-w-0">
-                            <div className="text-[11px] sm:text-xs font-black truncate text-white">{partnerName}</div>
-                            <div className="text-[10px] sm:text-[11px] font-bold text-emerald-400">Sq {partnerPos} / 100</div>
+                            <div className="text-xs font-black truncate text-white">{partnerName}</div>
+                            <div className="text-[11px] font-bold text-emerald-400">Square {partnerPos} / 100</div>
                         </div>
                     </div>
                 </div>
 
-                {/* DYNAMIC RESPONSIVE BOARD GRID */}
-                <div className="w-full max-w-[360px] sm:max-w-[440px] aspect-square bg-slate-900 border-2 sm:border-4 border-emerald-500 rounded-2xl sm:rounded-3xl shadow-2xl p-1 sm:p-1.5 grid grid-cols-10 grid-rows-10 gap-0.5 relative shrink-0">
+                {/* 100-SQUARE BOARD CONTAINER WITH OVERLAY PATHS */}
+                <div className="w-full max-w-[360px] sm:max-w-[440px] aspect-square bg-slate-900 border-4 border-amber-500/80 rounded-3xl shadow-2xl p-1.5 grid grid-cols-10 grid-rows-10 gap-0.5 relative shrink-0 overflow-hidden">
+                    
+                    {/* SVG PATHS OVERLAY FOR SNAKES & LADDERS */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        {/* Ladders Paths (Glowing Emerald Lines) */}
+                        {Object.entries(LADDERS).map(([start, end]) => {
+                            const c1 = getSquareCoords(Number(start));
+                            const c2 = getSquareCoords(Number(end));
+                            const x1 = `${(c1.col + 0.5) * 10}%`;
+                            const y1 = `${(c1.row + 0.5) * 10}%`;
+                            const x2 = `${(c2.col + 0.5) * 10}%`;
+                            const y2 = `${(c2.row + 0.5) * 10}%`;
+
+                            return (
+                                <g key={`ladder-${start}`}>
+                                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#10b981" strokeWidth="4" strokeDasharray="5 3" opacity="0.8" />
+                                </g>
+                            );
+                        })}
+
+                        {/* Snakes Paths (Crimson Red Curved Lines) */}
+                        {Object.entries(SNAKES).map(([head, tail]) => {
+                            const c1 = getSquareCoords(Number(head));
+                            const c2 = getSquareCoords(Number(tail));
+                            const x1 = (c1.col + 0.5) * 10;
+                            const y1 = (c1.row + 0.5) * 10;
+                            const x2 = (c2.col + 0.5) * 10;
+                            const y2 = (c2.row + 0.5) * 10;
+                            const cx = (x1 + x2) / 2 + 10;
+                            const cy = (y1 + y2) / 2;
+
+                            return (
+                                <path
+                                    key={`snake-${head}`}
+                                    d={`M ${x1}% ${y1}% Q ${cx}% ${cy}% ${x2}% ${y2}%`}
+                                    fill="none"
+                                    stroke="#ef4444"
+                                    strokeWidth="4"
+                                    opacity="0.85"
+                                />
+                            );
+                        })}
+                    </svg>
+
+                    {/* 100 BOARD TILES */}
                     {Array.from({ length: 100 }, (_, index) => {
                         const row = Math.floor(index / 10);
                         const col = index % 10;
@@ -362,60 +438,62 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                         const isSnakeHead = SNAKES[squareNum];
                         const hasP1 = myPos === squareNum;
                         const hasP2 = partnerPos === squareNum;
+                        const isEven = (row + col) % 2 === 0;
 
                         return (
                             <div
                                 key={squareNum}
-                                className={`rounded-md sm:rounded-lg flex flex-col items-center justify-between p-0.5 text-[7px] sm:text-[9px] font-extrabold relative border ${
+                                className={`rounded-lg flex flex-col items-center justify-between p-0.5 text-[8px] sm:text-[10px] font-extrabold relative border z-10 ${
                                     squareNum === 100
-                                        ? 'bg-gradient-to-tr from-amber-400 to-yellow-500 text-slate-950 border-amber-300 shadow-md animate-pulse'
+                                        ? 'bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-500 text-slate-950 border-amber-300 shadow-xl animate-pulse'
                                         : (isLadderStart
-                                            ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300'
+                                            ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300 shadow-inner'
                                             : (isSnakeHead
-                                                ? 'bg-rose-950/80 border-rose-500/60 text-rose-300'
-                                                : 'bg-slate-850 dark:bg-slate-800/60 border-slate-800/80 text-slate-400'))
+                                                ? 'bg-rose-950/90 border-rose-500 text-rose-300 shadow-inner'
+                                                : (isEven ? 'bg-slate-900/90 border-slate-800/80 text-slate-400' : 'bg-slate-800/90 border-slate-700/80 text-slate-300')))
                                 }`}
                             >
-                                <span className="opacity-70 leading-none">{squareNum}</span>
+                                <span className="opacity-60 leading-none">{squareNum}</span>
 
-                                {isLadderStart && <span className="text-[10px] sm:text-xs text-emerald-400">🪜</span>}
-                                {isSnakeHead && <span className="text-[10px] sm:text-xs text-rose-400">🐍</span>}
-                                {squareNum === 100 && <span className="text-[10px] sm:text-xs">🏆</span>}
+                                {isLadderStart && <span className="text-[10px] sm:text-xs text-emerald-400 drop-shadow">🪜</span>}
+                                {isSnakeHead && <span className="text-[10px] sm:text-xs text-rose-400 drop-shadow">🐍</span>}
+                                {squareNum === 100 && <span className="text-[11px] sm:text-xs">🏆</span>}
 
-                                <div className="flex gap-0.5 z-10">
-                                    {hasP1 && <span className="text-[10px] sm:text-xs drop-shadow-md animate-bounce">🔴</span>}
-                                    {hasP2 && <span className="text-[10px] sm:text-xs drop-shadow-md animate-bounce">🟢</span>}
+                                <div className="flex gap-0.5 z-20">
+                                    {hasP1 && <span className="text-[11px] sm:text-xs drop-shadow-md animate-bounce">🔴</span>}
+                                    {hasP2 && <span className="text-[11px] sm:text-xs drop-shadow-md animate-bounce">🟢</span>}
                                 </div>
                             </div>
                         );
                     })}
                 </div>
 
-                {/* BOTTOM ACTION BAR & DICE ROLLER */}
-                <div className="w-full max-w-[360px] sm:max-w-[440px] mt-3 bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-xl flex flex-col items-center space-y-2">
-                    <p className="text-[11px] sm:text-xs font-semibold text-slate-300 text-center min-h-[24px]">
+                {/* BOTTOM ACTION CONTROLLER & 3D DICE CUBE */}
+                <div className="w-full max-w-[360px] sm:max-w-[440px] mt-3 bg-slate-900/90 border border-slate-800 p-3.5 rounded-3xl shadow-2xl flex flex-col items-center space-y-2.5">
+                    <p className="text-xs sm:text-sm font-semibold text-slate-200 text-center min-h-[24px]">
                         {gameLog}
                     </p>
 
                     <div className="flex items-center justify-between w-full gap-3">
-                        <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-slate-800 border-2 sm:border-4 border-emerald-500 shadow-lg flex items-center justify-center text-2xl sm:text-3xl font-black text-white ${isRolling ? 'animate-spin' : ''}`}>
-                            {diceValue !== null ? diceValue : '🎲'}
+                        {/* 3D Animated Dice Cube */}
+                        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-900 border-4 border-amber-500 shadow-2xl flex items-center justify-center text-4xl font-black text-amber-400 transition-transform ${isRolling ? 'animate-bounce scale-110' : ''}`}>
+                            {diceValue !== null ? (DICE_DOTS[diceValue] || diceValue) : '🎲'}
                         </div>
 
                         {!winner ? (
                             <Button
                                 onClick={handleRollDice}
                                 disabled={isRolling || !isMyTurn}
-                                className="flex-1 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-black text-sm sm:text-base bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-lg shadow-emerald-600/30 active:scale-95 disabled:opacity-50"
+                                className="flex-1 py-4 rounded-2xl font-black text-sm sm:text-base bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-xl shadow-emerald-600/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                             >
-                                {isRolling ? 'Rolling...' : (isMyTurn ? '🎲 Roll Dice' : `Waiting for ${partnerName}...`)}
+                                {isRolling ? 'Rolling...' : (isMyTurn ? '🎲 Roll 3D Dice' : `Waiting for ${partnerName}...`)}
                             </Button>
                         ) : (
                             <div className="flex-1 flex gap-2">
-                                <Button onClick={() => { setMyPos(1); setPartnerPos(1); setWinner(null); setIsMyTurn(true); }} variant="outline" className="flex-1 text-xs font-bold border-slate-700 text-white">
+                                <Button onClick={() => { setMyPos(1); setPartnerPos(1); setWinner(null); setIsMyTurn(true); }} variant="outline" className="flex-1 text-xs font-bold border-slate-700 text-white rounded-xl">
                                     Play Again
                                 </Button>
-                                <Button onClick={() => handleShareResult(`🐍 Played Snakes & Ladders with ${partnerName}! Winner: ${winner === 'me' ? 'Me' : partnerName} 🏆`)} className="flex-1 text-xs font-bold bg-emerald-600 text-white">
+                                <Button onClick={() => handleShareResult(`🐍 Played Snakes & Ladders with ${partnerName}! Winner: ${winner === 'me' ? 'Me' : partnerName} 🏆`)} className="flex-1 text-xs font-bold bg-emerald-600 text-white rounded-xl">
                                     Share Result
                                 </Button>
                             </div>

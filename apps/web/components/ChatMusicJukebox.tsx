@@ -410,7 +410,8 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                                     title: track.title,
                                                     artist: track.artist,
                                                     coverUrl: track.coverUrl,
-                                                    audioUrl: fullAudioUrl || track.audioUrl
+                                                    audioUrl: fullAudioUrl || track.audioUrl,
+                                                    videoUrl: fullVideoUrl || videoId || ''
                                                 });
                                             }}
                                             className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
@@ -508,7 +509,8 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                             title: activeTrack.title,
                                             artist: activeTrack.artist,
                                             coverUrl: activeTrack.coverUrl,
-                                            audioUrl: fullAudioUrl || activeTrack.audioUrl
+                                            audioUrl: fullAudioUrl || activeTrack.audioUrl,
+                                            videoUrl: fullVideoUrl || videoId || ''
                                         })}
                                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0 hover:scale-105 transition-transform"
                                     >

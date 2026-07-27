@@ -1429,12 +1429,39 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         ) : msg.text.startsWith('[IMAGE]') ? (
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: msg.text.replace('[IMAGE]', ''), type: 'image' })} />
                                         ) : msg.text.startsWith('[MUSIC_SHARE:') ? (() => {
-                                            const parts = msg.text.replace('[MUSIC_SHARE:', '').replace(']', '').split(':');
-                                            const title = parts[0] || 'Music Track';
-                                            const artist = parts[1] || 'Artist';
-                                            const coverUrl = decodeURIComponent(parts[2] || '');
-                                            const audioUrl = decodeURIComponent(parts[3] || '');
-                                            const videoUrl = parts[4] ? decodeURIComponent(parts[4]) : '';
+                                            let title = 'Music Track';
+                                            let artist = 'Artist';
+                                            let coverUrl = '';
+                                            let audioUrl = '';
+                                            let videoUrl = '';
+
+                                            const rawPayload = msg.text.slice(13, msg.text.length - 1);
+                                            try {
+                                                if (rawPayload.startsWith('{')) {
+                                                    const data = JSON.parse(rawPayload);
+                                                    title = data.title || title;
+                                                    artist = data.artist || artist;
+                                                    coverUrl = data.coverUrl || coverUrl;
+                                                    audioUrl = data.audioUrl || audioUrl;
+                                                    videoUrl = data.videoUrl || videoUrl;
+                                                } else if (rawPayload.startsWith('%7B')) {
+                                                    const data = JSON.parse(decodeURIComponent(rawPayload));
+                                                    title = data.title || title;
+                                                    artist = data.artist || artist;
+                                                    coverUrl = data.coverUrl || coverUrl;
+                                                    audioUrl = data.audioUrl || audioUrl;
+                                                    videoUrl = data.videoUrl || videoUrl;
+                                                } else {
+                                                    const parts = rawPayload.split(':');
+                                                    title = parts[0] || title;
+                                                    artist = parts[1] || artist;
+                                                    coverUrl = decodeURIComponent(parts[2] || '');
+                                                    audioUrl = decodeURIComponent(parts[3] || '');
+                                                    videoUrl = parts[4] ? decodeURIComponent(parts[4]) : '';
+                                                }
+                                            } catch (e) {
+                                                console.warn('[ChatWindow] Music payload parse error:', e);
+                                            }
 
                                             return (
                                                 <ChatSharedMediaCard
@@ -2376,9 +2403,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <ChatMusicJukebox
                     onClose={() => setShowJukebox(false)}
                     onShareTrackToChat={(track) => {
-                        const musicPayload = `[MUSIC_SHARE:${track.title}:${track.artist}:${encodeURIComponent(track.coverUrl)}:${encodeURIComponent(track.audioUrl)}]`;
+                        const payloadObj = {
+                            title: track.title,
+                            artist: track.artist,
+                            coverUrl: track.coverUrl,
+                            audioUrl: track.audioUrl,
+                            videoUrl: track.videoUrl || ''
+                        };
+                        const musicPayload = `[MUSIC_SHARE:${encodeURIComponent(JSON.stringify(payloadObj))}]`;
                         handleSend(undefined, musicPayload);
-                        toast.success('Track shared to chat!');
+                        toast.success('Track & video shared to chat!');
                     }}
                 />
             )}

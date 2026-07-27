@@ -60,56 +60,49 @@ const FILTER_PRESETS = [
 const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => {
     const [showVideo, setShowVideo] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [ytVideoId, setYtVideoId] = useState<string | null>(videoUrl && videoUrl.length === 11 ? videoUrl : null);
-    const [isResolvingVideo, setIsResolvingVideo] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const toggleAudio = () => {
-        if (!audioRef.current) {
+        if (!audioRef.current || audioRef.current.src !== audioUrl) {
+            if (audioRef.current) {
+                audioRef.current.pause();
+            }
             const audio = new Audio(audioUrl);
             audioRef.current = audio;
             audio.volume = 0.8;
             audio.onended = () => setIsPlaying(false);
+            audio.onerror = (e) => {
+                console.warn('[ChatSharedMediaCard] Audio playback error:', e);
+                setIsPlaying(false);
+            };
         }
+
         if (isPlaying) {
             audioRef.current.pause();
             setIsPlaying(false);
         } else {
-            audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            audioRef.current.play().then(() => setIsPlaying(true)).catch((err) => {
+                console.warn('[ChatSharedMediaCard] Play error:', err);
+                setIsPlaying(false);
+            });
         }
     };
 
-    const handleWatchVideo = async () => {
-        if (audioRef.current) audioRef.current.pause();
-        setIsPlaying(false);
+    const handleWatchVideo = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
         setShowVideo(true);
-
-        if (!videoUrl && !ytVideoId) {
-            setIsResolvingVideo(true);
-            try {
-                const query = `${artist} ${title} official music video`;
-                const res = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(query)}&type=video`, {
-                    signal: AbortSignal.timeout(3000)
-                });
-                const data = await res.json();
-                if (Array.isArray(data) && data[0]?.videoId) {
-                    setYtVideoId(data[0].videoId);
-                }
-            } catch (e) {
-            } finally {
-                setIsResolvingVideo(false);
-            }
-        }
     };
 
-    const resolvedVideoSrc = videoUrl && videoUrl.startsWith('http')
-        ? videoUrl
-        : (ytVideoId || (videoUrl && videoUrl.length === 11 ? videoUrl : null));
+    const isDirectVideo = videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && (videoUrl.includes('.mp4') || videoUrl.includes('.m4v') || videoUrl.includes('.webm') || videoUrl.includes('video-ssl'));
+    const isYtId = videoUrl && videoUrl.length === 11 && !videoUrl.includes('/') && !videoUrl.includes('.');
 
     return (
         <div className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none">
             <div className="flex items-center space-x-3">
-                <img src={coverUrl} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" />
+                <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" />
                 <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-xs text-white truncate">{title}</h4>
                     <p className="text-[10px] text-pink-300 truncate">{artist}</p>
@@ -121,16 +114,19 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
 
             {showVideo ? (
                 <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1 flex items-center justify-center">
-                    {isResolvingVideo ? (
-                        <div className="flex flex-col items-center space-y-2 text-pink-400 text-xs">
-                            <span className="animate-spin text-lg">⏳</span>
-                            <span>Loading video...</span>
-                        </div>
-                    ) : resolvedVideoSrc && resolvedVideoSrc.startsWith('http') ? (
-                        <video src={resolvedVideoSrc} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
+                    {isDirectVideo ? (
+                        <video src={videoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
+                    ) : isYtId ? (
+                        <iframe
+                            src={`https://www.youtube-nocookie.com/embed/${videoUrl}?autoplay=1&rel=0`}
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={title}
+                        />
                     ) : (
                         <iframe
-                            src={`https://www.youtube.com/embed/${resolvedVideoSrc || ''}?autoplay=1&enablejsapi=1&rel=0`}
+                            src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(`${artist} ${title} official video`)}&autoplay=1&rel=0`}
                             className="w-full h-full border-0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -1435,7 +1431,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             let audioUrl = '';
                                             let videoUrl = '';
 
-                                            const rawPayload = msg.text.slice(13, msg.text.length - 1);
+                                            let rawPayload = msg.text.replace(/^\[MUSIC_SHARE:/, '');
+                                            if (rawPayload.endsWith(']')) {
+                                                rawPayload = rawPayload.slice(0, -1);
+                                            }
                                             try {
                                                 if (rawPayload.startsWith('{')) {
                                                     const data = JSON.parse(rawPayload);
@@ -1444,8 +1443,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     coverUrl = data.coverUrl || coverUrl;
                                                     audioUrl = data.audioUrl || audioUrl;
                                                     videoUrl = data.videoUrl || videoUrl;
-                                                } else if (rawPayload.startsWith('%7B')) {
-                                                    const data = JSON.parse(decodeURIComponent(rawPayload));
+                                                } else if (rawPayload.includes('%7B') || rawPayload.startsWith('%7B')) {
+                                                    const decodedStr = decodeURIComponent(rawPayload);
+                                                    const data = JSON.parse(decodedStr);
                                                     title = data.title || title;
                                                     artist = data.artist || artist;
                                                     coverUrl = data.coverUrl || coverUrl;

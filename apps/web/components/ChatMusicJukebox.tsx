@@ -19,6 +19,14 @@ const JUKEBOX_MOODS = [
     { name: '🎸 Punjabi & Rap', query: 'Punjabi Hits Karan Aujla' }
 ];
 
+// Fallback Video Stream Providers for 100% uptime
+const PIPED_APIS = [
+    'https://pipedapi.kavin.rocks',
+    'https://api.piped.video',
+    'https://pipedapi.mha.fi',
+    'https://pipedapi.privacy.com.de'
+];
+
 export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMusicJukeboxProps) {
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<'audio' | 'video'>('audio');
@@ -50,7 +58,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         if (!term.trim()) return;
         setIsSearching(true);
         try {
-            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=25`);
+            const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=30`);
             const data = await res.json();
             if (data.results && Array.isArray(data.results)) {
                 const mapped: Omit<StoryMusicData, 'startOffset'>[] = data.results
@@ -69,7 +77,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     setTracks(mapped);
                     if (!activeTrack) {
                         setActiveTrack(mapped[0]);
-                        fetchVideoForTrack(mapped[0].artist, mapped[0].title);
+                        resolveVideoForTrack(mapped[0].artist, mapped[0].title);
                     }
                 }
             }
@@ -80,38 +88,77 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         }
     };
 
-    // Resolve direct MP4 stream or video ID for native in-chat video playback
-    const fetchVideoForTrack = async (artist: string, title: string) => {
+    // Multi-provider YouTube / MP4 Video Stream Resolver
+    const resolveVideoForTrack = async (artist: string, title: string) => {
         setIsVideoLoading(true);
         setVideoId(null);
         setDirectVideoUrl(null);
-        try {
-            const query = `${artist} ${title} official music video`;
-            const searchRes = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
-            const searchData = await searchRes.json();
 
-            if (Array.isArray(searchData) && searchData.length > 0 && searchData[0].videoId) {
-                const vId = searchData[0].videoId;
-                setVideoId(vId);
+        const query = `${artist} ${title} official music video`;
 
-                // Fetch direct MP4 stream URL for 100% native HTML5 video playback
-                try {
-                    const streamRes = await fetch(`https://invidious.privacydev.net/api/v1/videos/${vId}`);
-                    const streamData = await streamRes.json();
-                    if (streamData.formatStreams && Array.isArray(streamData.formatStreams)) {
-                        const mp4Stream = streamData.formatStreams.find((s: any) => s.container === 'mp4' || s.quality === '720p' || s.quality === '360p');
-                        if (mp4Stream?.url) {
-                            setDirectVideoUrl(mp4Stream.url);
-                        }
+        // Attempt Piped API instances first for direct MP4 video streams
+        for (const baseUrl of PIPED_APIS) {
+            try {
+                const searchRes = await fetch(`${baseUrl}/search?q=${encodeURIComponent(query)}&filter=videos`, {
+                    signal: AbortSignal.timeout(3000)
+                });
+                const searchData = await searchRes.json();
+                if (searchData.items && Array.isArray(searchData.items) && searchData.items.length > 0) {
+                    const item = searchData.items[0];
+                    const urlParts = item.url ? item.url.split('v=') : [];
+                    const vId = urlParts[1] || item.url?.replace('/watch?v=', '');
+
+                    if (vId) {
+                        setVideoId(vId);
+
+                        // Try to get direct MP4 stream
+                        try {
+                            const streamRes = await fetch(`${baseUrl}/streams/${vId}`, {
+                                signal: AbortSignal.timeout(3000)
+                            });
+                            const streamData = await streamRes.json();
+                            if (streamData.videoStreams && Array.isArray(streamData.videoStreams)) {
+                                const mp4 = streamData.videoStreams.find((s: any) => s.mimeType?.includes('mp4') || s.quality === '720p' || s.quality === '360p');
+                                if (mp4?.url) {
+                                    setDirectVideoUrl(mp4.url);
+                                    setIsVideoLoading(false);
+                                    return;
+                                }
+                            }
+                        } catch (e) {}
+
+                        setIsVideoLoading(false);
+                        return;
                     }
-                } catch (err) {}
+                }
+            } catch (e) {
+                // Continue to next provider on failure
             }
-        } catch (e) {
-            console.warn('[Jukebox] Video resolution error:', e);
-        } finally {
-            setIsVideoLoading(false);
         }
+
+        // Secondary Invidious Fallback
+        try {
+            const res = await fetch(`https://vid.puffyan.us/api/v1/search?q=${encodeURIComponent(query)}&type=video`, {
+                signal: AbortSignal.timeout(3000)
+            });
+            const data = await res.json();
+            if (Array.isArray(data) && data[0]?.videoId) {
+                setVideoId(data[0].videoId);
+            }
+        } catch (e) {}
+
+        setIsVideoLoading(false);
     };
+
+    // Debounced search query handler for both Audio & Video
+    useEffect(() => {
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        if (searchQuery.trim().length > 1) {
+            searchTimeoutRef.current = setTimeout(() => {
+                searchMusicAPI(searchQuery);
+            }, 300);
+        }
+    }, [searchQuery]);
 
     const handleSelectMood = (moodName: string, query: string) => {
         setSelectedMood(moodName);
@@ -121,7 +168,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
 
     const handlePlayTrack = (track: Omit<StoryMusicData, 'startOffset'>) => {
         setActiveTrack(track);
-        fetchVideoForTrack(track.artist, track.title);
+        resolveVideoForTrack(track.artist, track.title);
 
         if (audioRef.current) {
             audioRef.current.pause();
@@ -238,6 +285,9 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                         setActiveTab('video');
                         if (audioRef.current) audioRef.current.pause();
                         setIsPlaying(false);
+                        if (activeTrack) {
+                            resolveVideoForTrack(activeTrack.artist, activeTrack.title);
+                        }
                     }}
                     className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 ${
                         activeTab === 'video'
@@ -250,127 +300,125 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                 </button>
             </div>
 
+            {/* Search & Mood Chips Header (Shared across Audio and Video tabs) */}
+            <div className="p-4 pb-2 bg-slate-950 border-b border-slate-900/50">
+                <div className="relative">
+                    <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                        type="text"
+                        placeholder="Search any song or video to vibe with in chat..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-11 pr-11 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 transition-colors"
+                    />
+                    {isSearching && <Loader2 className="w-5 h-5 text-pink-400 animate-spin absolute right-3.5 top-2.5" />}
+                </div>
+
+                <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar pt-3 pb-1">
+                    {JUKEBOX_MOODS.map(chip => (
+                        <button
+                            key={chip.name}
+                            onClick={() => handleSelectMood(chip.name, chip.query)}
+                            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                                selectedMood === chip.name
+                                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg scale-105'
+                                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                            }`}
+                        >
+                            {chip.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Main Content View */}
             {activeTab === 'audio' ? (
-                <>
-                    {/* Search & Mood Chips */}
-                    <div className="p-4 pb-2 bg-slate-950">
-                        <div className="relative">
-                            <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
-                            <input
-                                type="text"
-                                placeholder="Search any song to vibe with in chat..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-11 pr-11 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 transition-colors"
-                            />
-                            {isSearching && <Loader2 className="w-5 h-5 text-pink-400 animate-spin absolute right-3.5 top-2.5" />}
-                        </div>
+                /* Audio Songs List */
+                <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-2 space-y-2.5">
+                    {tracks.map(track => {
+                        const isCurrent = activeTrack?.id === track.id;
 
-                        <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar pt-3 pb-1">
-                            {JUKEBOX_MOODS.map(chip => (
-                                <button
-                                    key={chip.name}
-                                    onClick={() => handleSelectMood(chip.name, chip.query)}
-                                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                                        selectedMood === chip.name
-                                            ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg scale-105'
-                                            : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                                    }`}
-                                >
-                                    {chip.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Songs List */}
-                    <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-2 space-y-2.5">
-                        {tracks.map(track => {
-                            const isCurrent = activeTrack?.id === track.id;
-
-                            return (
-                                <div
-                                    key={track.id}
-                                    onClick={() => handlePlayTrack(track)}
-                                    className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
-                                        isCurrent
-                                            ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
-                                            : 'bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80'
-                                    }`}
-                                >
-                                    <div className="flex items-center space-x-3.5 min-w-0">
-                                        <img
-                                            src={track.coverUrl}
-                                            alt={track.title}
-                                            className="w-14 h-14 rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
-                                        />
-                                        <div className="min-w-0">
-                                            <h4 className="font-bold text-sm text-white truncate">{track.title}</h4>
-                                            <p className="text-xs text-slate-400 truncate">{track.artist}</p>
-                                            <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
-                                                {track.mood}
-                                            </span>
-                                        </div>
+                        return (
+                            <div
+                                key={track.id}
+                                onClick={() => handlePlayTrack(track)}
+                                className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
+                                    isCurrent
+                                        ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
+                                        : 'bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80'
+                                }`}
+                            >
+                                <div className="flex items-center space-x-3.5 min-w-0">
+                                    <img
+                                        src={track.coverUrl}
+                                        alt={track.title}
+                                        className="w-14 h-14 rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                        <h4 className="font-bold text-sm text-white truncate">{track.title}</h4>
+                                        <p className="text-xs text-slate-400 truncate">{track.artist}</p>
+                                        <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
+                                            {track.mood}
+                                        </span>
                                     </div>
+                                </div>
 
-                                    <div className="flex items-center space-x-2 flex-shrink-0">
-                                        {onShareTrackToChat && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    onShareTrackToChat({
-                                                        title: track.title,
-                                                        artist: track.artist,
-                                                        coverUrl: track.coverUrl,
-                                                        audioUrl: track.audioUrl
-                                                    });
-                                                }}
-                                                className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
-                                                title="Share Song to Chat"
-                                            >
-                                                <Send className="w-4 h-4" />
-                                            </button>
-                                        )}
-
+                                <div className="flex items-center space-x-2 flex-shrink-0">
+                                    {onShareTrackToChat && (
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (isCurrent) {
-                                                    handleTogglePlay();
-                                                } else {
-                                                    handlePlayTrack(track);
-                                                }
+                                                onShareTrackToChat({
+                                                    title: track.title,
+                                                    artist: track.artist,
+                                                    coverUrl: track.coverUrl,
+                                                    audioUrl: track.audioUrl
+                                                });
                                             }}
-                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95 ${
-                                                isCurrent
-                                                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
-                                                    : 'bg-slate-800 text-slate-300 hover:text-white'
-                                            }`}
+                                            className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
+                                            title="Share Song to Chat"
                                         >
-                                            {isCurrent && isPlaying ? (
-                                                <Pause className="w-5 h-5 fill-white" />
-                                            ) : (
-                                                <Play className="w-5 h-5 fill-white ml-0.5" />
-                                            )}
+                                            <Send className="w-4 h-4" />
                                         </button>
-                                    </div>
+                                    )}
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (isCurrent) {
+                                                handleTogglePlay();
+                                            } else {
+                                                handlePlayTrack(track);
+                                            }
+                                        }}
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95 ${
+                                            isCurrent
+                                                ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
+                                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                                        }`}
+                                    >
+                                        {isCurrent && isPlaying ? (
+                                            <Pause className="w-5 h-5 fill-white" />
+                                        ) : (
+                                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                                        )}
+                                    </button>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </>
+                            </div>
+                        );
+                    })}
+                </div>
             ) : (
-                /* Native HTML5 In-Chat Music Video Player */
-                <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black relative">
+                /* Native In-Chat Video Player & Video Catalog */
+                <div className="flex-1 flex flex-col items-center justify-start p-4 bg-black overflow-y-auto no-scrollbar space-y-4">
                     {activeTrack ? (
-                        <div className="w-full max-w-2xl bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col">
+                        <div className="w-full max-w-2xl bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-shrink-0">
                             {/* Video Display Container */}
                             <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                                 {isVideoLoading ? (
-                                    <div className="flex flex-col items-center space-y-3 text-pink-400 text-xs">
+                                    <div className="flex flex-col items-center space-y-3 text-pink-400 text-xs p-6 text-center">
                                         <Loader2 className="w-8 h-8 animate-spin" />
-                                        <span>Fetching official music video stream...</span>
+                                        <span>Resolving in-chat video stream for {activeTrack.title}...</span>
                                     </div>
                                 ) : directVideoUrl ? (
                                     <video
@@ -389,7 +437,8 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                         title={activeTrack.title}
                                     />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+                                    /* High-Visualizer Audio Stage Fallback */
+                                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 w-full h-full bg-gradient-to-b from-slate-900 via-slate-950 to-black">
                                         <div className="relative">
                                             <img src={activeTrack.coverUrl} className="w-28 h-28 rounded-3xl object-cover shadow-2xl border-2 border-pink-500/50" />
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-3xl">
@@ -405,13 +454,13 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                 )}
                             </div>
 
-                            {/* Video Info Header */}
+                            {/* Video Info & Share Action */}
                             <div className="p-4 bg-slate-900 flex items-center justify-between">
                                 <div className="flex items-center space-x-3 min-w-0">
                                     <img src={activeTrack.coverUrl} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
                                     <div className="min-w-0">
                                         <h4 className="font-bold text-sm text-white truncate">{activeTrack.title}</h4>
-                                        <p className="text-xs text-slate-400 truncate">{activeTrack.artist} • In-Chat Native Video</p>
+                                        <p className="text-xs text-slate-400 truncate">{activeTrack.artist} • In-Chat Video Stage</p>
                                     </div>
                                 </div>
 
@@ -423,17 +472,72 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                             coverUrl: activeTrack.coverUrl,
                                             audioUrl: activeTrack.audioUrl
                                         })}
-                                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0"
+                                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0 hover:scale-105 transition-transform"
                                     >
                                         <Send className="w-4 h-4" />
-                                        <span>Share to Chat</span>
+                                        <span>Share Video to Chat</span>
                                     </button>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div className="text-slate-500 text-sm">Select a track to watch its music video!</div>
+                        <div className="text-slate-500 text-sm py-8">Select a track from the list to play its video!</div>
                     )}
+
+                    {/* Videos Catalog List */}
+                    <div className="w-full max-w-2xl space-y-2">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Select Video Track:</h4>
+                        {tracks.map(track => {
+                            const isCurrent = activeTrack?.id === track.id;
+
+                            return (
+                                <div
+                                    key={track.id}
+                                    onClick={() => handlePlayTrack(track)}
+                                    className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
+                                        isCurrent
+                                            ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
+                                            : 'bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80'
+                                    }`}
+                                >
+                                    <div className="flex items-center space-x-3.5 min-w-0">
+                                        <div className="relative flex-shrink-0">
+                                            <img
+                                                src={track.coverUrl}
+                                                alt={track.title}
+                                                className="w-14 h-14 rounded-2xl object-cover shadow-md bg-slate-800"
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
+                                                <Tv className="w-5 h-5 text-white drop-shadow-md" />
+                                            </div>
+                                        </div>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-sm text-white truncate">{track.title}</h4>
+                                            <p className="text-xs text-slate-400 truncate">{track.artist}</p>
+                                            <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
+                                                {track.mood}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handlePlayTrack(track);
+                                        }}
+                                        className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-transform active:scale-95 flex items-center space-x-1.5 ${
+                                            isCurrent
+                                                ? 'bg-pink-500 text-white shadow-md'
+                                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                                        }`}
+                                    >
+                                        <Play className="w-3.5 h-3.5 fill-white" />
+                                        <span>Watch</span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 

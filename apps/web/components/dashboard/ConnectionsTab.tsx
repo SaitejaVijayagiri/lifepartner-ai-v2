@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageCircle, Trash2, Bell, BellOff } from 'lucide-react';
+import { MessageCircle, Trash2, Bell, BellOff, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -139,14 +139,14 @@ export default function ConnectionsTab({
                         <Button
                             variant="ghost"
                             size="icon"
-                            title="Play Compatibility Quiz"
-                            className="text-gray-400 hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-full text-lg"
+                            title="Duo Play Arena - Play Games Together"
+                            className="text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setGameTarget({ id: conn.partner.id, name: conn.partner.name });
                             }}
                         >
-                            🎲
+                            <Gamepad2 size={18} className="text-purple-600 dark:text-purple-400" />
                         </Button>
                         <Button
                             variant="ghost"

@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -56,6 +56,76 @@ const FILTER_PRESETS = [
     { name: 'Teal & Orange 🍊', value: 'contrast(1.2) saturate(1.3) sepia(0.1) hue-rotate(-5deg) brightness(0.98)' },
     { name: 'Noir Dark 🩸', value: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
+
+const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl }: { title: string; artist: string; coverUrl: string; audioUrl: string }) => {
+    const [showVideo, setShowVideo] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const toggleAudio = () => {
+        if (!audioRef.current) {
+            const audio = new Audio(audioUrl);
+            audioRef.current = audio;
+            audio.volume = 0.8;
+            audio.onended = () => setIsPlaying(false);
+        }
+        if (isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        }
+    };
+
+    return (
+        <div className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none">
+            <div className="flex items-center space-x-3">
+                <img src={coverUrl} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" />
+                <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-xs text-white truncate">{title}</h4>
+                    <p className="text-[10px] text-pink-300 truncate">{artist}</p>
+                    <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 font-medium">
+                        🎵 Shared Music & Video
+                    </span>
+                </div>
+            </div>
+
+            {showVideo ? (
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1">
+                    <iframe
+                        src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(artist + ' ' + title + ' official music video')}&autoplay=1`}
+                        className="w-full h-full border-0"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowFullScreen
+                        title={title}
+                    />
+                </div>
+            ) : (
+                <div className="flex items-center justify-between pt-1 gap-2">
+                    <button
+                        onClick={toggleAudio}
+                        className="flex-1 py-1.5 px-3 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-transform"
+                    >
+                        {isPlaying ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
+                        <span>{isPlaying ? 'Pause' : 'Play Song'}</span>
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            if (audioRef.current) audioRef.current.pause();
+                            setIsPlaying(false);
+                            setShowVideo(true);
+                        }}
+                        className="flex-1 py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-xs flex items-center justify-center space-x-1.5 border border-pink-500/30 active:scale-95 transition-transform"
+                    >
+                        <Video size={12} />
+                        <span>Watch Video</span>
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const rotateSize = (width: number, height: number, rotation: number) => {
     const rotRad = (rotation * Math.PI) / 180;
@@ -1332,14 +1402,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             const audioUrl = decodeURIComponent(parts[3] || '');
 
                                             return (
-                                                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-gradient-to-r from-pink-500/20 via-rose-500/20 to-purple-500/20 border border-pink-500/30 backdrop-blur-md min-w-[220px] max-w-[280px] my-1">
-                                                    <img src={coverUrl} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0" />
-                                                    <div className="min-w-0 flex-1">
-                                                        <h4 className="font-bold text-xs text-slate-100 truncate">{title}</h4>
-                                                        <p className="text-[10px] text-pink-300 truncate">{artist}</p>
-                                                        <audio src={audioUrl} controls className="w-full h-7 mt-1.5 accent-pink-500" />
-                                                    </div>
-                                                </div>
+                                                <ChatSharedMediaCard
+                                                    title={title}
+                                                    artist={artist}
+                                                    coverUrl={coverUrl}
+                                                    audioUrl={audioUrl}
+                                                />
                                             );
                                         })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {
                                             const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);

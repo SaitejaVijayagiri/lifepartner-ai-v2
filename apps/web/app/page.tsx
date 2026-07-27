@@ -56,6 +56,45 @@ export default function LandingPage() {
     }
   };
 
+  const jsonLdFaq = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Is LifePartner AI 100% free for chat and matchmaking?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! LifePartner AI offers 100% free registration, browsing, instant messaging, and matchmaking with zero forced hidden subscription fees."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How is LifePartner AI different from Shaadi, Jeevansathi, and dating apps?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "LifePartner AI uses advanced AI semantic matchmaking, compatibility scoring, verified profiles, and zero paywalls for messaging, making it smarter, safer, and completely accessible."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I chat with strangers and verified singles worldwide for free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, LifePartner AI allows verified singles to connect and chat with verified matches globally, including NRI singles in USA, UK, Canada, Australia, and India."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my privacy protected on LifePartner AI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Absolutely. Profiles undergo strict photo verification, anti-spam filters, and screenshot/privacy protection controls."
+        }
+      }
+    ]
+  };
+
   return (
     <>
       <script
@@ -65,6 +104,10 @@ export default function LandingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdFaq) }}
       />
       <LandingPageClient />
     </>

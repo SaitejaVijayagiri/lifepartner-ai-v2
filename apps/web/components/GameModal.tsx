@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, Sparkles, UserCheck, UserX, VolumeX, Flame } from 'lucide-react';
+import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, VolumeX } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useCall } from '@/context/CallContext';
 import { useSocket } from '@/context/SocketContext';
@@ -35,7 +35,7 @@ const SNAKES: Record<number, number> = {
     98: 79
 };
 
-/* Helper to convert square number (1-100) to grid coordinates (0-9 col, 0-9 row from top) */
+/* Convert square number (1-100) to grid coordinates (0-9 col, 0-9 row from top) */
 function getSquareCoords(num: number): { col: number; row: number } {
     const zeroBased = num - 1;
     const rowFromBottom = Math.floor(zeroBased / 10);
@@ -65,23 +65,30 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     const [isVoiceActive, setIsVoiceActive] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
 
+    /* Turn Determination: Deterministic order so both sides agree who starts */
+    const isHost = !partnerId || (user?.id ? user.id < partnerId : true);
+
     /* ─── SNAKES & LADDERS GAME STATE ─── */
     const [myPos, setMyPos] = useState<number>(1);
     const [partnerPos, setPartnerPos] = useState<number>(1);
     const [diceValue, setDiceValue] = useState<number | null>(null);
     const [isRolling, setIsRolling] = useState(false);
-    const [isMyTurn, setIsMyTurn] = useState<boolean>(true);
+    const [isMyTurn, setIsMyTurn] = useState<boolean>(isHost);
     const [winner, setWinner] = useState<string | null>(null);
-    const [gameLog, setGameLog] = useState<string>("Your turn! Tap 'Roll Dice' to begin.");
+    const [gameLog, setGameLog] = useState<string>(
+        isHost ? "Your turn! Tap 'Roll 3D Dice' to begin." : `Waiting for ${partnerName} to roll...`
+    );
 
-    /* Auto-Connect WebRTC Voice Stream on Mount */
+    /* Guard Ref: Auto-Connect Voice Stream EXACTLY ONCE on Mount */
+    const hasAutoCalledRef = useRef(false);
     useEffect(() => {
-        if (!partnerId) return;
+        if (!partnerId || hasAutoCalledRef.current) return;
+        hasAutoCalledRef.current = true;
 
         try {
             startCall({ id: partnerId, name: partnerName }, 'audio');
             setIsVoiceActive(true);
-            toast.success(`🎙️ Live Audio Voice Connected with ${partnerName}!`);
+            toast.success(`🎙️ Voice Connected with ${partnerName}!`);
         } catch (e) {
             console.error("Auto voice call error", e);
         }
@@ -105,7 +112,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         const handleGameAccept = (data: { from: string }) => {
             if (data.from === partnerId) {
                 setPartnerStatus('connected');
-                toast.success(`🟢 ${partnerName} connected live to the board!`);
+                toast.success(`🟢 ${partnerName} joined live!`);
             }
         };
 
@@ -113,13 +120,13 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             if (data.from === partnerId) {
                 setPartnerStatus('left');
                 toast.error(`🔴 ${partnerName} left the game.`);
-                setGameLog(`🔴 ${partnerName} left the game session.`);
+                setGameLog(`🔴 ${partnerName} left the session.`);
             }
         };
 
         const handleRemoteMove = (data: { from?: string; senderId?: string; rolled: number; pos: number; nextPos: number; isWinner: boolean; nextTurnUserId: string }) => {
             const sender = data.from || data.senderId;
-            if (sender === user?.id) return;
+            if (user?.id && sender === user.id) return; // Ignore own echoes
 
             setPartnerStatus('connected');
             setDiceValue(data.rolled);
@@ -150,7 +157,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
 
         const handleRemoteVoice = (data: { from?: string; senderId?: string; active: boolean }) => {
             const sender = data.from || data.senderId;
-            if (sender !== user?.id) {
+            if (user?.id && sender !== user.id) {
                 setIsVoiceActive(data.active);
             }
         };
@@ -178,7 +185,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         }
 
         if (nextState) {
-            toast.success("Voice Chat connected! Speak freely.");
+            toast.success("Voice Chat enabled!");
             if (partnerId) {
                 try { startCall({ id: partnerId, name: partnerName }, 'audio'); } catch (e) {}
             }
@@ -201,7 +208,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             let logMsg = `🎲 Rolled a ${rolled}! Advanced to square ${nextPos}.`;
 
             if (nextPos > 100) {
-                setGameLog(`🎲 Rolled a ${rolled}. Over 100! Skipped turn.`);
+                setGameLog(`🎲 Rolled a ${rolled}. Over 100! Skip turn.`);
                 nextPos = myPos;
                 const nextTurn = partnerId || 'partner';
                 setIsMyTurn(false);
@@ -283,7 +290,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                             <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold shadow-sm">LIVE 2P</span>
                         </h1>
                         <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
-                            <span>Playing with <strong className="text-white font-bold">{partnerName}</strong></span>
+                            <span>Match: <strong className="text-white font-bold">{partnerName}</strong></span>
                             <span>•</span>
                             {partnerStatus === 'connected' ? (
                                 <span className="text-emerald-400 font-bold flex items-center gap-1">
@@ -311,7 +318,6 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                         {isVoiceActive ? <Volume2 size={16} className="animate-pulse" /> : <VolumeX size={16} />}
                         <span className="hidden sm:inline">{isVoiceActive ? 'Voice Active' : 'Enable Voice'}</span>
 
-                        {/* Live Audio Wave Visualizer Bars */}
                         {isVoiceActive && !isMuted && (
                             <div className="flex items-end gap-0.5 h-3.5 ml-1">
                                 <span className="w-1 bg-white rounded-full animate-bounce h-full"></span>
@@ -348,13 +354,13 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                         </span>
-                        Voice Chat Connected • Speak freely with {partnerName}
+                        Voice Chat Connected • Talk live with {partnerName}
                     </div>
                     <span className="bg-emerald-950/60 text-emerald-300 px-2 py-0.5 rounded-full text-[10px]">{isMuted ? 'Mic Muted' : 'Mic Active'}</span>
                 </div>
             )}
 
-            {/* ─── MAIN ARENA BOARD (HIGH VIBE UI) ─── */}
+            {/* ─── MAIN ARENA BOARD ─── */}
             <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-y-auto max-w-2xl mx-auto w-full">
 
                 {/* INLINE PLAYER SCORE & TURN BAR */}
@@ -380,45 +386,53 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                     </div>
                 </div>
 
-                {/* 100-SQUARE BOARD CONTAINER WITH OVERLAY PATHS */}
+                {/* 100-SQUARE BOARD CONTAINER WITH PIXEL-PERFECT SVG PATHS */}
                 <div className="w-full max-w-[360px] sm:max-w-[440px] aspect-square bg-slate-900 border-4 border-amber-500/80 rounded-3xl shadow-2xl p-1.5 grid grid-cols-10 grid-rows-10 gap-0.5 relative shrink-0 overflow-hidden">
                     
-                    {/* SVG PATHS OVERLAY FOR SNAKES & LADDERS */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                        {/* Ladders Paths (Glowing Emerald Lines) */}
+                    {/* PIXEL-PERFECT SVG OVERLAY (viewBox 0 0 100 100) */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        {/* Ladders Paths */}
                         {Object.entries(LADDERS).map(([start, end]) => {
                             const c1 = getSquareCoords(Number(start));
                             const c2 = getSquareCoords(Number(end));
-                            const x1 = `${(c1.col + 0.5) * 10}%`;
-                            const y1 = `${(c1.row + 0.5) * 10}%`;
-                            const x2 = `${(c2.col + 0.5) * 10}%`;
-                            const y2 = `${(c2.row + 0.5) * 10}%`;
+                            const x1 = c1.col * 10 + 5;
+                            const y1 = c1.row * 10 + 5;
+                            const x2 = c2.col * 10 + 5;
+                            const y2 = c2.row * 10 + 5;
 
                             return (
-                                <g key={`ladder-${start}`}>
-                                    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="#10b981" strokeWidth="4" strokeDasharray="5 3" opacity="0.8" />
-                                </g>
+                                <line
+                                    key={`ladder-${start}`}
+                                    x1={x1}
+                                    y1={y1}
+                                    x2={x2}
+                                    y2={y2}
+                                    stroke="#10b981"
+                                    strokeWidth="1.2"
+                                    strokeDasharray="1.5 1"
+                                    opacity="0.85"
+                                />
                             );
                         })}
 
-                        {/* Snakes Paths (Crimson Red Curved Lines) */}
+                        {/* Snakes Paths */}
                         {Object.entries(SNAKES).map(([head, tail]) => {
                             const c1 = getSquareCoords(Number(head));
                             const c2 = getSquareCoords(Number(tail));
-                            const x1 = (c1.col + 0.5) * 10;
-                            const y1 = (c1.row + 0.5) * 10;
-                            const x2 = (c2.col + 0.5) * 10;
-                            const y2 = (c2.row + 0.5) * 10;
-                            const cx = (x1 + x2) / 2 + 10;
+                            const x1 = c1.col * 10 + 5;
+                            const y1 = c1.row * 10 + 5;
+                            const x2 = c2.col * 10 + 5;
+                            const y2 = c2.row * 10 + 5;
+                            const cx = (x1 + x2) / 2 + 3;
                             const cy = (y1 + y2) / 2;
 
                             return (
                                 <path
                                     key={`snake-${head}`}
-                                    d={`M ${x1}% ${y1}% Q ${cx}% ${cy}% ${x2}% ${y2}%`}
+                                    d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
                                     fill="none"
                                     stroke="#ef4444"
-                                    strokeWidth="4"
+                                    strokeWidth="1.2"
                                     opacity="0.85"
                                 />
                             );
@@ -475,7 +489,6 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                     </p>
 
                     <div className="flex items-center justify-between w-full gap-3">
-                        {/* 3D Animated Dice Cube */}
                         <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-800 to-slate-900 border-4 border-amber-500 shadow-2xl flex items-center justify-center text-4xl font-black text-amber-400 transition-transform ${isRolling ? 'animate-bounce scale-110' : ''}`}>
                             {diceValue !== null ? (DICE_DOTS[diceValue] || diceValue) : '🎲'}
                         </div>

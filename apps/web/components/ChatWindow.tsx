@@ -1209,7 +1209,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         className="w-full text-left px-4 py-3 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-3 transition-colors font-semibold"
                                     >
                                         <Gamepad2 size={18} className="text-purple-500" />
-                                        Ludo & Carrom Arena
+                                        Couples Ludo Arena
                                     </button>
                                     <button
                                         onClick={async () => { 

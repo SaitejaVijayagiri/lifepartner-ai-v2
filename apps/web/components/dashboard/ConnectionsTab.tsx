@@ -139,7 +139,7 @@ export default function ConnectionsTab({
                         <Button
                             variant="ghost"
                             size="icon"
-                            title="Ludo & Carrom Arena + Voice Chat"
+                            title="Couples Ludo Arena + Voice Chat"
                             className="text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-full transition-all"
                             onClick={(e) => {
                                 e.stopPropagation();

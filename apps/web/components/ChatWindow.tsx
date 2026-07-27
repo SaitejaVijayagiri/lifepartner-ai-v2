@@ -57,9 +57,11 @@ const FILTER_PRESETS = [
     { name: 'Noir Dark 🩸', value: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
 
-const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl }: { title: string; artist: string; coverUrl: string; audioUrl: string }) => {
+const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => {
     const [showVideo, setShowVideo] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [ytVideoId, setYtVideoId] = useState<string | null>(videoUrl && videoUrl.length === 11 ? videoUrl : null);
+    const [isResolvingVideo, setIsResolvingVideo] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const toggleAudio = () => {
@@ -77,6 +79,33 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl }: { title: str
         }
     };
 
+    const handleWatchVideo = async () => {
+        if (audioRef.current) audioRef.current.pause();
+        setIsPlaying(false);
+        setShowVideo(true);
+
+        if (!videoUrl && !ytVideoId) {
+            setIsResolvingVideo(true);
+            try {
+                const query = `${artist} ${title} official music video`;
+                const res = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(query)}&type=video`, {
+                    signal: AbortSignal.timeout(3000)
+                });
+                const data = await res.json();
+                if (Array.isArray(data) && data[0]?.videoId) {
+                    setYtVideoId(data[0].videoId);
+                }
+            } catch (e) {
+            } finally {
+                setIsResolvingVideo(false);
+            }
+        }
+    };
+
+    const resolvedVideoSrc = videoUrl && videoUrl.startsWith('http')
+        ? videoUrl
+        : (ytVideoId || (videoUrl && videoUrl.length === 11 ? videoUrl : null));
+
     return (
         <div className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none">
             <div className="flex items-center space-x-3">
@@ -91,14 +120,23 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl }: { title: str
             </div>
 
             {showVideo ? (
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1">
-                    <iframe
-                        src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(artist + ' ' + title + ' official music video')}&autoplay=1`}
-                        className="w-full h-full border-0"
-                        allow="autoplay; encrypted-media; picture-in-picture"
-                        allowFullScreen
-                        title={title}
-                    />
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1 flex items-center justify-center">
+                    {isResolvingVideo ? (
+                        <div className="flex flex-col items-center space-y-2 text-pink-400 text-xs">
+                            <span className="animate-spin text-lg">⏳</span>
+                            <span>Loading video...</span>
+                        </div>
+                    ) : resolvedVideoSrc && resolvedVideoSrc.startsWith('http') ? (
+                        <video src={resolvedVideoSrc} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
+                    ) : (
+                        <iframe
+                            src={`https://www.youtube.com/embed/${resolvedVideoSrc || ''}?autoplay=1&enablejsapi=1&rel=0`}
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={title}
+                        />
+                    )}
                 </div>
             ) : (
                 <div className="flex items-center justify-between pt-1 gap-2">
@@ -111,11 +149,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl }: { title: str
                     </button>
 
                     <button
-                        onClick={() => {
-                            if (audioRef.current) audioRef.current.pause();
-                            setIsPlaying(false);
-                            setShowVideo(true);
-                        }}
+                        onClick={handleWatchVideo}
                         className="flex-1 py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-xs flex items-center justify-center space-x-1.5 border border-pink-500/30 active:scale-95 transition-transform"
                     >
                         <Video size={12} />
@@ -1400,6 +1434,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             const artist = parts[1] || 'Artist';
                                             const coverUrl = decodeURIComponent(parts[2] || '');
                                             const audioUrl = decodeURIComponent(parts[3] || '');
+                                            const videoUrl = parts[4] ? decodeURIComponent(parts[4]) : '';
 
                                             return (
                                                 <ChatSharedMediaCard
@@ -1407,6 +1442,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     artist={artist}
                                                     coverUrl={coverUrl}
                                                     audioUrl={audioUrl}
+                                                    videoUrl={videoUrl}
                                                 />
                                             );
                                         })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {

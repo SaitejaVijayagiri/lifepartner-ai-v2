@@ -153,8 +153,8 @@ export default function InstantViewerModal({
     };
 
     return (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center bg-black/95 backdrop-blur-lg p-0 sm:p-4 select-none animate-in fade-in duration-200">
-            <div className="relative w-full h-full sm:max-w-md sm:h-[85vh] sm:max-h-[800px] bg-black sm:rounded-3xl overflow-hidden flex flex-col justify-between shadow-2xl border border-slate-900">
+        <div className="fixed inset-0 z-[3000] w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
+            <div className="relative w-full h-full flex-1 flex flex-col justify-between bg-black overflow-hidden">
                 {/* Top Progress Bar */}
                 <div className="absolute top-0 inset-x-0 z-30 p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
                     <div className="w-full bg-white/20 h-1 rounded-full overflow-hidden mb-3">

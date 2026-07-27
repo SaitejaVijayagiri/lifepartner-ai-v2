@@ -195,13 +195,13 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const avatarUrl = user.photoUrl || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
 
     return (
-        <div className="fixed inset-0 z-[3000] bg-black w-full h-[100dvh] flex items-center justify-center animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[3000] bg-black w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200">
             {/* Gradient Background Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/70 pointer-events-none z-10"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/80 pointer-events-none z-10"></div>
 
             {/* Story Container */}
             <div
-                className="relative w-full h-full sm:max-w-md mx-auto flex flex-col justify-between overflow-hidden sm:rounded-3xl"
+                className="relative w-full h-full flex-1 flex flex-col justify-between overflow-hidden"
                 onMouseDown={() => setIsPaused(true)}
                 onMouseUp={() => setIsPaused(false)}
                 onTouchStart={() => setIsPaused(true)}

@@ -352,8 +352,8 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     };
 
     return (
-        <div className="fixed inset-0 z-[3000] w-full h-[100dvh] flex items-center justify-center bg-black backdrop-blur-sm">
-            <div className="bg-black w-full h-full sm:max-w-md mx-auto sm:rounded-3xl overflow-hidden flex flex-col relative">
+        <div className="fixed inset-0 z-[3000] w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between bg-black overflow-hidden select-none">
+            <div className="bg-black w-full h-full flex-1 flex flex-col relative overflow-hidden">
                 
                 {/* Header Tools */}
                 <div className="flex justify-between items-center p-4 absolute top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/60 to-transparent">

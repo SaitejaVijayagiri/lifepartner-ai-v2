@@ -19,6 +19,15 @@ const JUKEBOX_MOODS = [
     { name: '🎸 Punjabi & Rap', query: 'punjabi rap' }
 ];
 
+const getYoutubeId = (text: string): string | null => {
+    if (!text) return null;
+    const standardMatch = text.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
+    if (standardMatch) return standardMatch[1];
+    const shortsMatch = text.match(/youtube\.com\/shorts\/([^"&?\/ ]{11})/i);
+    if (shortsMatch) return shortsMatch[1];
+    return null;
+};
+
 export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMusicJukeboxProps) {
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<'audio' | 'video'>('audio');
@@ -399,7 +408,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                         <div className="w-full max-w-2xl bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-shrink-0">
                             {/* Video Display Container */}
                             <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-                                {activeTrack.videoUrl && activeTrack.videoUrl.startsWith('http') ? (
+                                {activeTrack.videoUrl && (activeTrack.videoUrl.startsWith('http://') || activeTrack.videoUrl.startsWith('https://')) && (activeTrack.videoUrl.includes('.mp4') || activeTrack.videoUrl.includes('.m4v') || activeTrack.videoUrl.includes('.webm') || activeTrack.videoUrl.includes('video-ssl')) ? (
                                     <video
                                         src={activeTrack.videoUrl}
                                         controls
@@ -407,14 +416,27 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                         playsInline
                                         className="w-full h-full object-contain bg-black"
                                     />
-                                ) : (
+                                ) : getYoutubeId(activeTrack.videoUrl || '') ? (
                                     <iframe
-                                        src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(`${activeTrack.artist} ${activeTrack.title} official video`)}&autoplay=1&rel=0`}
+                                        src={`https://www.youtube-nocookie.com/embed/${getYoutubeId(activeTrack.videoUrl || '')}?autoplay=1&rel=0`}
                                         className="w-full h-full border-0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                         title={activeTrack.title}
                                     />
+                                ) : (
+                                    <div className="p-4 text-center flex flex-col items-center justify-center space-y-3 h-full w-full bg-slate-950 text-white">
+                                        <Tv size={32} className="text-pink-400 animate-pulse" />
+                                        <p className="text-xs font-semibold px-2 text-slate-200">Official Music Video for "{activeTrack.title}"</p>
+                                        <a
+                                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${activeTrack.artist} ${activeTrack.title} official video`)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-lg transition-transform active:scale-95 flex items-center space-x-2"
+                                        >
+                                            <span>▶ Watch Official Video on YouTube</span>
+                                        </a>
+                                    </div>
                                 )}
                             </div>
 

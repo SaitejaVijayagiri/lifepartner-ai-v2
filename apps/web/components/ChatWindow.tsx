@@ -58,8 +58,10 @@ const FILTER_PRESETS = [
 ];
 
 const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => {
+    const toast = useToast();
     const [showVideo, setShowVideo] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [playbackError, setPlaybackError] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
@@ -77,6 +79,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
         const targetUrl = audioUrl || videoUrl || '';
         if (!targetUrl) {
             console.warn('[ChatSharedMediaCard] No audioUrl available to play');
+            toast.error('No audio stream available for this track');
             return;
         }
 
@@ -88,6 +91,8 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
             return;
         }
 
+        setPlaybackError(false);
+
         if (!audioRef.current) {
             const audio = new Audio(targetUrl);
             audioRef.current = audio;
@@ -96,6 +101,8 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
             audio.onerror = (err) => {
                 console.warn('[ChatSharedMediaCard] Audio playback error:', err);
                 setIsPlaying(false);
+                setPlaybackError(true);
+                audioRef.current = null;
             };
         }
 
@@ -104,6 +111,8 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
         }).catch((err) => {
             console.warn('[ChatSharedMediaCard] Play failed:', err);
             setIsPlaying(false);
+            setPlaybackError(true);
+            audioRef.current = null;
         });
     };
 
@@ -116,8 +125,8 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
         setShowVideo(true);
     };
 
+    const ytId = videoUrl ? getYoutubeId(videoUrl) : null;
     const isDirectVideo = videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && (videoUrl.includes('.mp4') || videoUrl.includes('.m4v') || videoUrl.includes('.webm') || videoUrl.includes('video-ssl'));
-    const isYtId = videoUrl && videoUrl.length === 11 && !videoUrl.includes('/') && !videoUrl.includes('.');
 
     return (
         <div
@@ -125,7 +134,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
             className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none"
         >
             <div className="flex items-center space-x-3">
-                <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" />
+                <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" alt={title} />
                 <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-xs text-white truncate">{title}</h4>
                     <p className="text-[10px] text-pink-300 truncate">{artist}</p>
@@ -136,32 +145,52 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
             </div>
 
             {showVideo ? (
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1 flex items-center justify-center">
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1 flex items-center justify-center flex-col">
                     {isDirectVideo ? (
                         <video src={videoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
-                    ) : isYtId ? (
+                    ) : ytId ? (
                         <iframe
-                            src={`https://www.youtube-nocookie.com/embed/${videoUrl}?autoplay=1&rel=0`}
+                            src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0`}
                             className="w-full h-full border-0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             title={title}
                         />
                     ) : (
-                        <iframe
-                            src={`https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(`${artist} ${title} official video`)}&autoplay=1&rel=0`}
-                            className="w-full h-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            title={title}
-                        />
+                        <div className="p-3 text-center flex flex-col items-center justify-center space-y-1.5 h-full w-full bg-slate-900">
+                            <Tv size={22} className="text-pink-400 animate-pulse" />
+                            <p className="text-[11px] text-slate-200 font-medium leading-tight truncate max-w-full px-1">{title}</p>
+                            <a
+                                href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${title} official video`)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="py-1 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-[10px] font-bold shadow-md transition-transform active:scale-95 flex items-center space-x-1"
+                            >
+                                <span>▶ Watch on YouTube</span>
+                            </a>
+                            <button
+                                onClick={() => setShowVideo(false)}
+                                className="text-[9px] text-slate-400 underline mt-0.5 hover:text-white"
+                            >
+                                Back to Controls
+                            </button>
+                        </div>
+                    )}
+                    {(isDirectVideo || ytId) && (
+                        <button
+                            onClick={() => setShowVideo(false)}
+                            className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-black/90 text-white rounded-full text-[10px] z-10"
+                            title="Close Video"
+                        >
+                            <X size={12} />
+                        </button>
                     )}
                 </div>
             ) : (
                 <div className="flex items-center justify-between pt-1 gap-2">
                     <button
                         onClick={toggleAudio}
-                        className="flex-1 py-1.5 px-3 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-transform"
+                        className={`flex-1 py-1.5 px-3 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-transform`}
                     >
                         {isPlaying ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
                         <span>{isPlaying ? 'Pause' : 'Play Song'}</span>
@@ -175,6 +204,9 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
                         <span>Watch Video</span>
                     </button>
                 </div>
+            )}
+            {playbackError && (
+                <p className="text-[9px] text-rose-400 text-center">Audio preview unavailable for this track.</p>
             )}
         </div>
     );
@@ -1491,32 +1523,31 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             if (rawPayload.endsWith(']')) {
                                                 rawPayload = rawPayload.slice(0, -1);
                                             }
+                                            let parsedObj: any = null;
                                             try {
-                                                if (rawPayload.startsWith('{')) {
-                                                    const data = JSON.parse(rawPayload);
-                                                    title = data.title || title;
-                                                    artist = data.artist || artist;
-                                                    coverUrl = data.coverUrl || coverUrl;
-                                                    audioUrl = data.audioUrl || audioUrl;
-                                                    videoUrl = data.videoUrl || videoUrl;
-                                                } else if (rawPayload.includes('%7B') || rawPayload.startsWith('%7B')) {
+                                                parsedObj = JSON.parse(rawPayload);
+                                            } catch {
+                                                try {
                                                     const decodedStr = decodeURIComponent(rawPayload);
-                                                    const data = JSON.parse(decodedStr);
-                                                    title = data.title || title;
-                                                    artist = data.artist || artist;
-                                                    coverUrl = data.coverUrl || coverUrl;
-                                                    audioUrl = data.audioUrl || audioUrl;
-                                                    videoUrl = data.videoUrl || videoUrl;
-                                                } else {
+                                                    parsedObj = JSON.parse(decodedStr);
+                                                } catch {
                                                     const parts = rawPayload.split(':');
-                                                    title = parts[0] || title;
-                                                    artist = parts[1] || artist;
-                                                    coverUrl = decodeURIComponent(parts[2] || '');
-                                                    audioUrl = decodeURIComponent(parts[3] || '');
-                                                    videoUrl = parts[4] ? decodeURIComponent(parts[4]) : '';
+                                                    if (parts.length >= 4) {
+                                                        title = parts[0] || title;
+                                                        artist = parts[1] || artist;
+                                                        coverUrl = decodeURIComponent(parts[2] || '');
+                                                        audioUrl = decodeURIComponent(parts[3] || '');
+                                                        videoUrl = parts[4] ? decodeURIComponent(parts[4]) : '';
+                                                    }
                                                 }
-                                            } catch (e) {
-                                                console.warn('[ChatWindow] Music payload parse error:', e);
+                                            }
+
+                                            if (parsedObj && typeof parsedObj === 'object') {
+                                                title = parsedObj.title || title;
+                                                artist = parsedObj.artist || parsedObj.subtitle || artist;
+                                                coverUrl = parsedObj.coverUrl || parsedObj.artwork || coverUrl;
+                                                audioUrl = parsedObj.audioUrl || parsedObj.url || audioUrl;
+                                                videoUrl = parsedObj.videoUrl || videoUrl;
                                             }
 
                                             return (

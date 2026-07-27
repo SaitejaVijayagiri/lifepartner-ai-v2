@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, VolumeX } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -164,12 +164,12 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     useEffect(() => {
         if (!socket || !partnerId) return;
 
-        socket.emit("game_invite", { to: partnerId, senderName: user?.full_name || 'Your Match', gameType: 'snakes' });
+        socket.emit("game_invite", { to: partnerId, senderName: user?.name || (user as any)?.full_name || 'Your Match', gameType: 'snakes' });
 
         return () => {
             socket.emit("game_leave", { to: partnerId });
         };
-    }, [socket, partnerId, user?.full_name]);
+    }, [socket, partnerId, user?.name]);
 
     /* Real-Time Socket Listeners */
     useEffect(() => {

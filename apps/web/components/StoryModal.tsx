@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -75,6 +76,12 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         'party': { name: 'Club Party Beat 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
     };
 
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const getParsedMusic = () => {
         if (!story?.music) return null;
         if (typeof story.music === 'object') return story.music;
@@ -83,7 +90,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 try { return JSON.parse(story.music); } catch (e) {}
             }
             const match = MUSIC_CATALOG.find(m => m.id === story.music);
-            if (match) return { ...match, startOffset: 15 };
+            if (match) return { ...match, startOffset: 0 };
             if (MUSIC_TRACKS[story.music]) {
                 return { title: MUSIC_TRACKS[story.music].name, artist: 'Story Music', audioUrl: MUSIC_TRACKS[story.music].url, startOffset: 0 };
             }
@@ -93,7 +100,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
 
     const parsedMusic = getParsedMusic();
 
-    // Handle Music Playback
+    // Handle Music Playback with Metadata Ready Listener
     useEffect(() => {
         if (audioRef.current) {
             audioRef.current.pause();
@@ -101,22 +108,42 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         }
 
         if (parsedMusic && parsedMusic.audioUrl) {
-            audioRef.current = new Audio(parsedMusic.audioUrl);
-            audioRef.current.currentTime = parsedMusic.startOffset || 0;
-            audioRef.current.volume = 0.5;
-            audioRef.current.loop = true;
-            
-            if (!isPaused) {
-                audioRef.current.play().catch(e => console.log('Audio autoplay prevented:', e));
-            }
-        }
+            const audio = new Audio(parsedMusic.audioUrl);
+            audio.volume = 0.8;
+            audio.loop = true;
+            audioRef.current = audio;
 
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
+            const startOffset = parsedMusic.startOffset || 0;
+
+            const handleReady = () => {
+                try {
+                    if (startOffset > 0 && audio.duration > startOffset) {
+                        audio.currentTime = startOffset;
+                    }
+                } catch (e) {}
+                if (!isPaused) {
+                    audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                }
+            };
+
+            audio.addEventListener('canplay', handleReady);
+            audio.addEventListener('loadeddata', handleReady);
+
+            audio.play().then(() => {
+                try {
+                    if (startOffset > 0 && audio.duration > startOffset) {
+                        audio.currentTime = startOffset;
+                    }
+                } catch (e) {}
+            }).catch(e => console.log('Audio play catch:', e));
+
+            return () => {
+                audio.removeEventListener('canplay', handleReady);
+                audio.removeEventListener('loadeddata', handleReady);
+                audio.pause();
                 audioRef.current = null;
-            }
-        };
+            };
+        }
     }, [story?.id, story?.music]);
 
     // Handle Pause Toggle for Music and Video
@@ -194,8 +221,15 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const displayName = user.name || user.full_name || "User";
     const avatarUrl = user.photoUrl || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
 
-    return (
-        <div className="fixed inset-0 z-[3000] bg-black w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200">
+    const modalMarkup = (
+        <div
+            className="fixed inset-0 z-[99999] bg-black w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200"
+            onClick={() => {
+                if (audioRef.current && audioRef.current.paused) {
+                    audioRef.current.play().catch(() => {});
+                }
+            }}
+        >
             {/* Gradient Background Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/80 pointer-events-none z-10"></div>
 
@@ -622,6 +656,12 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
             });
         }
     }
+
+    if (mounted && typeof document !== 'undefined') {
+        return createPortal(modalMarkup, document.body);
+    }
+
+    return modalMarkup;
 };
 
 export default StoryModal;

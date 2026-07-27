@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Zap, Lock, AlertCircle, ShieldAlert, Eye, Users, Clock, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -152,8 +153,11 @@ export default function InstantViewerModal({
         onClose();
     };
 
-    return (
-        <div className="fixed inset-0 z-[3000] w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
+    const content = (
+        <div className="fixed inset-0 z-[99999] w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
             <div className="relative w-full h-full flex-1 flex flex-col justify-between bg-black overflow-hidden">
                 {/* Top Progress Bar */}
                 <div className="absolute top-0 inset-x-0 z-30 p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
@@ -348,4 +352,9 @@ export default function InstantViewerModal({
             </div>
         </div>
     );
+
+    if (mounted && typeof document !== 'undefined') {
+        return createPortal(content, document.body);
+    }
+    return content;
 }

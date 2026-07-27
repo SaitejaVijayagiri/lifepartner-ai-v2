@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
@@ -351,8 +352,11 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-[3000] w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between bg-black overflow-hidden select-none">
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
+    const content = (
+        <div className="fixed inset-0 z-[99999] w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between bg-black overflow-hidden select-none">
             <div className="bg-black w-full h-full flex-1 flex flex-col relative overflow-hidden">
                 
                 {/* Header Tools */}
@@ -763,4 +767,9 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
             </div>
         </div>
     );
+
+    if (mounted && typeof document !== 'undefined') {
+        return createPortal(content, document.body);
+    }
+    return content;
 }

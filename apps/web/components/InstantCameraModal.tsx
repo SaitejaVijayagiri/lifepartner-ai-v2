@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, RefreshCw, X, Sparkles, Send, Upload, Image as ImageIcon, Zap, Check } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -237,8 +238,11 @@ export default function InstantCameraModal({
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-[3000] w-screen h-screen w-full h-full min-h-[100dvh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
+    const content = (
+        <div className="fixed inset-0 z-[99999] w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between bg-black overflow-hidden select-none animate-in fade-in duration-200">
             <div className="relative w-full h-full flex-1 bg-slate-950 overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white">
@@ -442,4 +446,9 @@ export default function InstantCameraModal({
             </div>
         </div>
     );
+
+    if (mounted && typeof document !== 'undefined') {
+        return createPortal(content, document.body);
+    }
+    return content;
 }

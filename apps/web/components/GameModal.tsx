@@ -321,7 +321,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                         }`}
                     >
                         {isMicOn ? <Mic size={16} className="text-white" /> : <MicOff size={16} className="text-slate-400" />}
-                        <span className="hidden sm:inline">{isMicOn ? 'Mic On (Live)' : 'Mic Off'}</span>
+                        <span className="hidden sm:inline">{isMicOn ? 'Mic ON (Live)' : 'Turn ON Mic 🎤'}</span>
 
                         {isMicOn && (
                             <div className="flex items-end gap-0.5 h-3.5 ml-1">
@@ -345,7 +345,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             <div className="bg-slate-900/60 px-4 py-1.5 border-b border-slate-800/80 flex items-center justify-between text-[11px] text-slate-300 font-bold shrink-0">
                 <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Direct Audio Channel Active • Tap Mic button anytime to speak
+                    Mic is OFF by default. Tap 'Turn ON Mic' anytime if you wish to talk!
                 </div>
                 <div className="flex items-center gap-2">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${isMicOn ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'}`}>

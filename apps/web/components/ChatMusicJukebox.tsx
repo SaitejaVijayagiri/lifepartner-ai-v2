@@ -264,7 +264,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     }`}
                 >
                     <Music className="w-4 h-4" />
-                    <span>🎶 Music Player</span>
+                    <span>Music Player</span>
                 </button>
 
                 <button
@@ -279,7 +279,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     }`}
                 >
                     <Tv className="w-4 h-4" />
-                    <span>📺 Watch In-Chat Video</span>
+                    <span>Watch In-Chat Video</span>
                 </button>
             </div>
 

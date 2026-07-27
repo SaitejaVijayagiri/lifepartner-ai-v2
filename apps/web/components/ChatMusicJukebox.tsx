@@ -12,11 +12,18 @@ interface ChatMusicJukeboxProps {
 
 const JUKEBOX_MOODS = [
     { name: '🔥 Top Hits', query: 'pop hits' },
-    { name: '💖 Romantic Vibe', query: 'love acoustic' },
-    { name: '☕ Chill Lo-Fi', query: 'chill lofi' },
-    { name: '🥁 Desi Hits', query: 'bollywood' },
+    { name: '💖 Romantic Vibe', query: 'romantic love songs' },
+    { name: '☕ Chill Lo-Fi', query: 'lofi chill' },
+    { name: '🥁 Desi Hits', query: 'bollywood hits' },
     { name: '🕺 Party Groove', query: 'dance party' },
-    { name: '🎸 Rock & Rap', query: 'rock rap' }
+    { name: '🎸 Punjabi & Rap', query: 'punjabi rap' }
+];
+
+const PIPED_HOSTS = [
+    'https://api.piped.video',
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.mha.fi',
+    'https://pipedapi.privacy.com.de'
 ];
 
 export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMusicJukeboxProps) {
@@ -30,13 +37,14 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
     const [activeTrack, setActiveTrack] = useState<Omit<StoryMusicData, 'startOffset'> | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(180);
+    const [duration, setDuration] = useState(210);
     const [isMuted, setIsMuted] = useState(false);
 
-    // Video Player State
+    // Stream State (Full-length Audio + MP4 Video)
+    const [fullAudioUrl, setFullAudioUrl] = useState<string | null>(null);
+    const [fullVideoUrl, setFullVideoUrl] = useState<string | null>(null);
     const [videoId, setVideoId] = useState<string | null>(null);
-    const [directMp4Url, setDirectMp4Url] = useState<string | null>(null);
-    const [isVideoLoading, setIsVideoLoading] = useState(false);
+    const [isStreamLoading, setIsStreamLoading] = useState(false);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +54,6 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         searchMusicAPI('pop hits');
     }, []);
 
-    // Stop audio playback when switching to Video mode to prevent double audio
     useEffect(() => {
         if (activeTab === 'video') {
             stopAudioPlayback();
@@ -67,25 +74,24 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         try {
             let mapped: Omit<StoryMusicData, 'startOffset'>[] = [];
 
-            // 1. Fetch 100% FULL-LENGTH (3-5 min) MP3 songs from Jamendo Free Music API
+            // Jamendo Free Music API for Full Songs
             try {
-                const jamendoRes = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=56d30237&format=jsonpretty&limit=25&namesearch=${encodeURIComponent(term)}&audioformat=mp32`);
-                const jamendoData = await jamendoRes.json();
-
-                if (jamendoData.results && Array.isArray(jamendoData.results) && jamendoData.results.length > 0) {
-                    mapped = jamendoData.results.map((r: any) => ({
+                const jamRes = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=56d30237&format=jsonpretty&limit=25&namesearch=${encodeURIComponent(term)}&audioformat=mp32`);
+                const jamData = await jamRes.json();
+                if (jamData.results && Array.isArray(jamData.results) && jamData.results.length > 0) {
+                    mapped = jamData.results.map((r: any) => ({
                         id: `jam_${r.id}`,
                         title: r.name,
                         artist: r.artist_name,
-                        mood: 'Full Song MP3',
+                        mood: 'Full Song',
                         coverUrl: r.image || r.album_image || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
-                        audioUrl: r.audio, // Full 3-5 minute MP3 stream!
+                        audioUrl: r.audio,
                         duration: r.duration || 210
                     }));
                 }
             } catch (e) {}
 
-            // 2. Fetch iTunes tracks as supplementary search results
+            // iTunes as secondary search
             try {
                 const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=20`);
                 const itunesData = await itunesRes.json();
@@ -99,7 +105,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                             mood: r.primaryGenreName || 'Trending',
                             coverUrl: r.artworkUrl100?.replace('100x100bb', '600x600bb') || r.artworkUrl100,
                             audioUrl: r.previewUrl,
-                            duration: Math.max(30, Math.floor((r.trackTimeMillis || 180000) / 1000))
+                            duration: Math.max(180, Math.floor((r.trackTimeMillis || 210000) / 1000))
                         }));
                     mapped = [...mapped, ...itunesMapped];
                 }
@@ -108,8 +114,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
             if (mapped.length > 0) {
                 setTracks(mapped);
                 if (!activeTrack) {
-                    setActiveTrack(mapped[0]);
-                    resolveVideoForTrack(mapped[0].artist, mapped[0].title);
+                    handlePlayTrack(mapped[0]);
                 }
             }
         } catch (e) {
@@ -119,62 +124,59 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         }
     };
 
-    // 100% Reliable Video Resolver using Piped / Invidious Stream APIs
-    const resolveVideoForTrack = async (artist: string, title: string) => {
-        setIsVideoLoading(true);
+    // Resolve 100% full-length Audio & MP4 Video stream URLs dynamically
+    const resolveFullMediaStreams = async (artist: string, title: string, fallbackAudioUrl: string) => {
+        setIsStreamLoading(true);
+        setFullAudioUrl(fallbackAudioUrl);
+        setFullVideoUrl(null);
         setVideoId(null);
-        setDirectMp4Url(null);
 
         const query = `${artist} ${title} official music video`;
 
-        // Try Piped API to get direct MP4 video stream URL
-        const pipedApis = ['https://pipedapi.kavin.rocks', 'https://api.piped.video', 'https://pipedapi.mha.fi'];
-        for (const apiHost of pipedApis) {
+        for (const host of PIPED_HOSTS) {
             try {
-                const sRes = await fetch(`${apiHost}/search?q=${encodeURIComponent(query)}&filter=videos`, {
+                const searchRes = await fetch(`${host}/search?q=${encodeURIComponent(query)}&filter=videos`, {
                     signal: AbortSignal.timeout(3000)
                 });
-                const sData = await sRes.json();
-                if (sData.items && Array.isArray(sData.items) && sData.items.length > 0) {
-                    const vId = sData.items[0].url?.replace('/watch?v=', '');
+                const searchData = await searchRes.json();
+
+                if (searchData.items && Array.isArray(searchData.items) && searchData.items.length > 0) {
+                    const vId = searchData.items[0].url?.replace('/watch?v=', '');
                     if (vId) {
                         setVideoId(vId);
 
-                        // Get stream MP4 URL
-                        try {
-                            const stRes = await fetch(`${apiHost}/streams/${vId}`, {
-                                signal: AbortSignal.timeout(3000)
-                            });
-                            const stData = await stRes.json();
-                            if (stData.videoStreams && Array.isArray(stData.videoStreams)) {
-                                const mp4 = stData.videoStreams.find((s: any) => s.mimeType?.includes('mp4') || s.quality === '720p' || s.quality === '360p');
-                                if (mp4?.url) {
-                                    setDirectMp4Url(mp4.url);
-                                    setIsVideoLoading(false);
-                                    return;
-                                }
-                            }
-                        } catch (e) {}
+                        const streamRes = await fetch(`${host}/streams/${vId}`, {
+                            signal: AbortSignal.timeout(3000)
+                        });
+                        const streamData = await streamRes.json();
 
-                        setIsVideoLoading(false);
-                        return;
+                        // Full 3-5 minute audio stream
+                        const audioObj = streamData.audioStreams?.find((a: any) => a.mimeType?.includes('audio/mp4') || a.mimeType?.includes('audio')) || streamData.audioStreams?.[0];
+                        if (audioObj?.url) {
+                            setFullAudioUrl(audioObj.url);
+                        }
+
+                        // Full HD MP4 video stream
+                        const videoObj = streamData.videoStreams?.find((v: any) => v.mimeType?.includes('video/mp4') && (v.quality === '720p' || v.quality === '360p')) || streamData.videoStreams?.find((v: any) => v.mimeType?.includes('video/mp4')) || streamData.videoStreams?.[0];
+                        if (videoObj?.url) {
+                            setFullVideoUrl(videoObj.url);
+                        }
+
+                        if (streamData.duration) {
+                            setDuration(streamData.duration);
+                        }
+
+                        setIsStreamLoading(false);
+                        return audioObj?.url || fallbackAudioUrl;
                     }
                 }
-            } catch (e) {}
+            } catch (e) {
+                // Try next host
+            }
         }
 
-        // Secondary Invidious Fallback
-        try {
-            const res = await fetch(`https://vid.puffyan.us/api/v1/search?q=${encodeURIComponent(query)}&type=video`, {
-                signal: AbortSignal.timeout(3000)
-            });
-            const data = await res.json();
-            if (Array.isArray(data) && data[0]?.videoId) {
-                setVideoId(data[0].videoId);
-            }
-        } catch (e) {}
-
-        setIsVideoLoading(false);
+        setIsStreamLoading(false);
+        return fallbackAudioUrl;
     };
 
     useEffect(() => {
@@ -192,9 +194,11 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         searchMusicAPI(query);
     };
 
-    const handlePlayTrack = (track: Omit<StoryMusicData, 'startOffset'>) => {
+    const handlePlayTrack = async (track: Omit<StoryMusicData, 'startOffset'>) => {
         setActiveTrack(track);
-        resolveVideoForTrack(track.artist, track.title);
+        setDuration(track.duration || 210);
+
+        const resolvedAudioUrl = await resolveFullMediaStreams(track.artist, track.title, track.audioUrl);
 
         if (activeTab === 'video') {
             stopAudioPlayback();
@@ -203,12 +207,12 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
 
         stopAudioPlayback();
 
-        const audio = new Audio(track.audioUrl);
+        const audio = new Audio(resolvedAudioUrl || track.audioUrl);
         audioRef.current = audio;
         audio.volume = isMuted ? 0 : 0.8;
 
         audio.onloadedmetadata = () => {
-            setDuration(audio.duration || track.duration || 180);
+            setDuration(audio.duration || track.duration || 210);
         };
 
         audio.ontimeupdate = () => {
@@ -312,7 +316,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     }`}
                 >
                     <Music className="w-4 h-4" />
-                    <span>🎶 Full Length Songs</span>
+                    <span>🎶 Full Length Audio</span>
                 </button>
 
                 <button
@@ -320,7 +324,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                         setActiveTab('video');
                         stopAudioPlayback();
                         if (activeTrack) {
-                            resolveVideoForTrack(activeTrack.artist, activeTrack.title);
+                            resolveFullMediaStreams(activeTrack.artist, activeTrack.title, activeTrack.audioUrl);
                         }
                     }}
                     className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 ${
@@ -392,7 +396,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                         <h4 className="font-bold text-sm text-white truncate">{track.title}</h4>
                                         <p className="text-xs text-slate-400 truncate">{track.artist}</p>
                                         <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
-                                            {track.mood} • {formatTime(track.duration || 180)}
+                                            {track.mood} • {formatTime(track.duration || 210)}
                                         </span>
                                     </div>
                                 </div>
@@ -406,7 +410,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                                     title: track.title,
                                                     artist: track.artist,
                                                     coverUrl: track.coverUrl,
-                                                    audioUrl: track.audioUrl
+                                                    audioUrl: fullAudioUrl || track.audioUrl
                                                 });
                                             }}
                                             className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
@@ -449,14 +453,14 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                         <div className="w-full max-w-2xl bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-shrink-0">
                             {/* Video Display Container */}
                             <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-                                {isVideoLoading ? (
+                                {isStreamLoading ? (
                                     <div className="flex flex-col items-center space-y-3 text-pink-400 text-xs p-6 text-center">
                                         <Loader2 className="w-8 h-8 animate-spin" />
-                                        <span>Loading official music video stream...</span>
+                                        <span>Loading full video stream for {activeTrack.title}...</span>
                                     </div>
-                                ) : directMp4Url ? (
+                                ) : fullVideoUrl ? (
                                     <video
-                                        src={directMp4Url}
+                                        src={fullVideoUrl}
                                         controls
                                         autoPlay
                                         playsInline
@@ -464,9 +468,9 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                     />
                                 ) : videoId ? (
                                     <iframe
-                                        src={`https://vid.puffyan.us/embed/${videoId}?autoplay=1`}
+                                        src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0`}
                                         className="w-full h-full border-0"
-                                        allow="autoplay; encrypted-media; picture-in-picture"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                         title={activeTrack.title}
                                     />
@@ -483,7 +487,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                             <h4 className="font-bold text-base text-white">{activeTrack.title}</h4>
                                             <p className="text-xs text-slate-400">{activeTrack.artist}</p>
                                         </div>
-                                        <audio src={activeTrack.audioUrl} controls autoPlay loop className="w-full max-w-sm mt-2 accent-pink-500" />
+                                        <audio src={fullAudioUrl || activeTrack.audioUrl} controls autoPlay loop className="w-full max-w-sm mt-2 accent-pink-500" />
                                     </div>
                                 )}
                             </div>
@@ -494,7 +498,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                     <img src={activeTrack.coverUrl} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
                                     <div className="min-w-0">
                                         <h4 className="font-bold text-sm text-white truncate">{activeTrack.title}</h4>
-                                        <p className="text-xs text-slate-400 truncate">{activeTrack.artist} • Official Music Video</p>
+                                        <p className="text-xs text-slate-400 truncate">{activeTrack.artist} • In-Chat Video</p>
                                     </div>
                                 </div>
 
@@ -504,7 +508,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                             title: activeTrack.title,
                                             artist: activeTrack.artist,
                                             coverUrl: activeTrack.coverUrl,
-                                            audioUrl: activeTrack.audioUrl
+                                            audioUrl: fullAudioUrl || activeTrack.audioUrl
                                         })}
                                         className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0 hover:scale-105 transition-transform"
                                     >
@@ -527,11 +531,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                             return (
                                 <div
                                     key={track.id}
-                                    onClick={() => {
-                                        setActiveTrack(track);
-                                        resolveVideoForTrack(track.artist, track.title);
-                                        stopAudioPlayback();
-                                    }}
+                                    onClick={() => handlePlayTrack(track)}
                                     className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
                                         isCurrent
                                             ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
@@ -561,9 +561,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setActiveTrack(track);
-                                            resolveVideoForTrack(track.artist, track.title);
-                                            stopAudioPlayback();
+                                            handlePlayTrack(track);
                                         }}
                                         className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-transform active:scale-95 flex items-center space-x-1.5 ${
                                             isCurrent
@@ -618,7 +616,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                         <input
                             type="range"
                             min={0}
-                            max={duration || 180}
+                            max={duration || 210}
                             step={0.5}
                             value={currentTime}
                             onChange={e => handleSeek(parseFloat(e.target.value))}

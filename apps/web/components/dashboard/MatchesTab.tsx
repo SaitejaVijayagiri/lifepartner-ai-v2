@@ -369,218 +369,230 @@ export default function MatchesTab({
             {/* Stories */}
             <div className="mb-8">{renderStoriesView()}</div>
 
-            {/* Speed Dating Banner */}
-            <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 md:p-8 mb-6 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-4 bg-white/20 backdrop-blur-md rounded-2xl hidden sm:flex items-center justify-center">
-                            <Zap className="w-8 h-8 text-white animate-pulse" />
+            {/* Hero Top Grid: Live Speed Dating + AI Matchmaker */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {/* Speed Dating Banner */}
+                <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                    <div className="relative z-10 flex flex-col justify-between h-full gap-4">
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0">
+                                <Zap className="w-7 h-7 text-white animate-pulse" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl md:text-2xl font-black italic tracking-wider flex items-center gap-2">
+                                    <Sparkles className="text-yellow-300 w-5 h-5 animate-pulse" />
+                                    Live Speed Dating
+                                </h3>
+                                <p className="text-white/90 font-medium text-xs md:text-sm mt-1">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-2xl md:text-3xl font-black italic tracking-wider flex items-center gap-2">
-                                <Sparkles className="text-yellow-300 w-6 h-6 animate-pulse" />
-                                Live Speed Dating
-                            </h3>
-                            <p className="text-white/90 font-medium text-sm md:text-base mt-2">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
+                        <button
+                            onClick={() => setShowSpeedDatingLobby(true)}
+                            className="bg-white text-purple-700 hover:bg-purple-50 active:bg-purple-100 font-bold shadow-xl border-0 px-6 py-3 rounded-2xl text-sm md:text-base hover:scale-[1.02] active:scale-100 transition-all w-full focus:outline-none focus:ring-4 focus:ring-purple-300 cursor-pointer flex items-center justify-center gap-2"
+                        >
+                            ⚡ Enter Lobby Now
+                        </button>
+                    </div>
+                </div>
+
+                {/* AI Search Bar */}
+                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden flex flex-col justify-between">
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
+
+                    <div className="relative z-10">
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5 mb-1">
+                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
+                                <Sparkles className="text-white" size={18} />
+                            </div>
+                            <span className="text-gradient">AI Matchmaker Search</span>
+                        </h2>
+                        <p className="text-xs text-gray-500 ml-9">Describe your ideal partner in plain English</p>
+                    </div>
+
+                    <div className="space-y-3 relative z-10">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                placeholder="e.g., 'Software Engineer who loves travel'..."
+                                className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-4 py-3 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-5 py-3 rounded-2xl font-bold text-xs md:text-sm hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5 shrink-0"
+                            >
+                                <Search size={16} />
+                                <span>Search</span>
+                            </button>
+                        </div>
+                        {/* Quick Prompts */}
+                        <div className="flex flex-wrap gap-1.5 text-[11px]">
+                            {['Loves Travel', 'Fitness & Yoga', 'Doctor / Healthcare', 'Music Lover'].map(prompt => (
+                                <button
+                                    key={prompt}
+                                    onClick={() => { setSearchQuery(prompt); handleSearch(); }}
+                                    className="bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full transition-colors font-medium"
+                                >
+                                    + {prompt}
+                                </button>
+                            ))}
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowSpeedDatingLobby(true)}
-                        className="bg-white text-purple-700 hover:bg-purple-50 active:bg-purple-100 font-bold shadow-xl border-0 px-8 py-4 rounded-2xl text-lg hover:scale-105 active:scale-100 transition-all w-full md:w-auto focus:outline-none focus:ring-4 focus:ring-purple-300 cursor-pointer"
-                    >
-                        ⚡ Enter Lobby
-                    </button>
                 </div>
             </div>
 
-            {/* Recent Visitors Section */}
-            {visitorsData && visitorsData.visitors?.length > 0 && (
-                <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-blue-900/20 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/30 overflow-hidden">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-200/40 to-indigo-300/40 rounded-full blur-2xl"></div>
+            {/* Insights Row: Recent Visitors & Who Liked You side-by-side */}
+            {((visitorsData && visitorsData.visitors?.length > 0) || (whoLikedMe && whoLikedMe.totalLikes > 0)) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/* Recent Visitors Section */}
+                    {visitorsData && visitorsData.visitors?.length > 0 && (
+                        <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-blue-900/20 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/30 overflow-hidden flex flex-col justify-between">
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-200/40 to-indigo-300/40 rounded-full blur-2xl"></div>
 
-                    <div className="flex items-center justify-between mb-4 relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
-                                <Eye className="text-white" size={20} />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    Recent Visitors
-                                    {!visitorsData.isPremium && (
-                                        <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                            <Crown size={10} /> PREMIUM
-                                        </span>
-                                    )}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    People who viewed your profile recently
-                                </p>
-                            </div>
-                        </div>
-                        {!visitorsData.isPremium && (
-                            <button
-                                onClick={() => setShowCoinStore(true)}
-                                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-                            >
-                                <Eye size={16} /> Unlock
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
-                        {visitorsData.visitors.map((visitor: any, idx: number) => (
-                            <div
-                                key={visitor.id || idx}
-                                className={`flex-shrink-0 w-20 text-center group cursor-pointer ${visitor.isBlurred ? 'pointer-events-none' : ''}`}
-                                onClick={() => !visitor.isBlurred && setSelectedProfile(visitor)}
-                            >
-                                <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-blue-200 ring-offset-2 ${visitor.isBlurred ? 'blur-md' : 'group-hover:ring-blue-400 transition-all'}`}>
-                                    <img
-                                        src={visitor.photoUrl || '/avatar-fallback.svg'}
-                                        alt={visitor.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => { 
-                                            const t = e.target as HTMLImageElement; 
-                                            t.onerror = null; 
-                                            t.src = '/avatar-fallback.svg'; 
-                                        }}
-                                    />
-                                    {visitor.isBlurred && (
-                                        <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                            <Lock size={20} className="text-white" />
-                                        </div>
-                                    )}
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
+                                        <Eye className="text-white" size={18} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                                            Recent Visitors
+                                            {!visitorsData.isPremium && (
+                                                <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                                                    <Crown size={9} /> PRO
+                                                </span>
+                                            )}
+                                        </h3>
+                                        <p className="text-xs text-gray-500">Viewed your profile</p>
+                                    </div>
                                 </div>
-                                <p className={`text-xs font-semibold truncate ${visitor.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'}`}>
-                                    {visitor.name}
-                                </p>
-                                {!visitor.isBlurred && (
-                                    <p className="text-[10px] text-gray-400">{visitor.age}, {visitor.location?.split(',')[0]}</p>
+                                {!visitorsData.isPremium && (
+                                    <button
+                                        onClick={() => setShowCoinStore(true)}
+                                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 hover:scale-105 transition-all flex items-center gap-1"
+                                    >
+                                        <Eye size={14} /> Unlock
+                                    </button>
                                 )}
                             </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
-            {/* Who Liked You Section */}
-            {whoLikedMe && whoLikedMe.totalLikes > 0 && (
-                <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 dark:from-pink-900/20 dark:via-rose-900/20 dark:to-pink-900/20 p-5 rounded-3xl border border-pink-100 dark:border-pink-900/30 overflow-hidden">
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
-
-                    <div className="flex items-center justify-between mb-4 relative z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
-                                <Heart className="text-white" size={20} fill="white" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    Who Liked You
-                                    {!whoLikedMe.isPremium && (
-                                        <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                                            <Crown size={10} /> PREMIUM
-                                        </span>
-                                    )}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                    {whoLikedMe.isPremium
-                                        ? `${whoLikedMe.totalLikes} people liked your profile`
-                                        : whoLikedMe.message}
-                                </p>
+                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10 py-1">
+                                {visitorsData.visitors.map((visitor: any, idx: number) => (
+                                    <div
+                                        key={visitor.id || idx}
+                                        className={`flex-shrink-0 w-16 text-center group cursor-pointer ${visitor.isBlurred ? 'pointer-events-none' : ''}`}
+                                        onClick={() => !visitor.isBlurred && setSelectedProfile(visitor)}
+                                    >
+                                        <div className={`relative w-14 h-14 mx-auto mb-1 rounded-full overflow-hidden ring-2 ring-blue-200 ring-offset-2 ${visitor.isBlurred ? 'blur-md' : 'group-hover:ring-blue-400 transition-all'}`}>
+                                            <img
+                                                src={visitor.photoUrl || '/avatar-fallback.svg'}
+                                                alt={visitor.name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { 
+                                                    const t = e.target as HTMLImageElement; 
+                                                    t.onerror = null; 
+                                                    t.src = '/avatar-fallback.svg'; 
+                                                }}
+                                            />
+                                            {visitor.isBlurred && (
+                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+                                                    <Lock size={16} className="text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className={`text-[11px] font-semibold truncate ${visitor.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-blue-600'}`}>
+                                            {visitor.name}
+                                        </p>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        {!whoLikedMe.isPremium && (
-                            <button
-                                onClick={() => setShowCoinStore(true)}
-                                className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-pink-500/30 hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
-                            >
-                                <Eye size={16} /> See All
-                            </button>
-                        )}
-                    </div>
+                    )}
 
-                    <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10">
-                        {whoLikedMe.likes?.map((like: any, idx: number) => (
-                            <div
-                                key={like.id || idx}
-                                className={`flex-shrink-0 w-20 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
-                                onClick={() => !like.isBlurred && setSelectedProfile(like)}
-                            >
-                                <div className={`relative w-16 h-16 mx-auto mb-2 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
-                                    <img
-                                        src={like.photoUrl || '/avatar-fallback.svg'}
-                                        alt={like.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => { 
-                                            const t = e.target as HTMLImageElement; 
-                                            t.onerror = null; 
-                                            t.src = '/avatar-fallback.svg'; 
-                                        }}
-                                    />
-                                    {like.isBlurred && (
-                                        <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                            <Lock size={20} className="text-white" />
-                                        </div>
-                                    )}
+                    {/* Who Liked You Section */}
+                    {whoLikedMe && whoLikedMe.totalLikes > 0 && (
+                        <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 dark:from-pink-900/20 dark:via-rose-900/20 dark:to-pink-900/20 p-5 rounded-3xl border border-pink-100 dark:border-pink-900/30 overflow-hidden flex flex-col justify-between">
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
+
+                            <div className="flex items-center justify-between mb-3 relative z-10">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
+                                        <Heart className="text-white" size={18} fill="white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                                            Who Liked You
+                                            {!whoLikedMe.isPremium && (
+                                                <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                                                    <Crown size={9} /> PRO
+                                                </span>
+                                            )}
+                                        </h3>
+                                        <p className="text-xs text-gray-500">
+                                            {whoLikedMe.isPremium ? `${whoLikedMe.totalLikes} likes` : `${whoLikedMe.totalLikes || 'Some'} people liked you`}
+                                        </p>
+                                    </div>
                                 </div>
-                                <p className={`text-xs font-semibold truncate ${like.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-pink-600 dark:group-hover:text-pink-400'}`}>
-                                    {like.name}
-                                </p>
-                                {!like.isBlurred && (
-                                    <p className="text-[10px] text-gray-400">{like.age}, {like.location?.split(',')[0]}</p>
+                                {!whoLikedMe.isPremium && (
+                                    <button
+                                        onClick={() => setShowCoinStore(true)}
+                                        className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 hover:scale-105 transition-all flex items-center gap-1"
+                                    >
+                                        <Eye size={14} /> See All
+                                    </button>
                                 )}
                             </div>
-                        ))}
 
-                        {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
-                            <div
-                                className="flex-shrink-0 w-20 text-center cursor-pointer"
-                                onClick={() => setShowCoinStore(true)}
-                            >
-                                <div className="w-16 h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-amber-100 to-yellow-100 border-2 border-dashed border-amber-300 flex items-center justify-center">
-                                    <span className="text-amber-600 font-bold text-sm">+{whoLikedMe.totalLikes - 3}</span>
-                                </div>
-                                <p className="text-xs font-semibold text-amber-600">See More</p>
+                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10 py-1">
+                                {whoLikedMe.likes?.map((like: any, idx: number) => (
+                                    <div
+                                        key={like.id || idx}
+                                        className={`flex-shrink-0 w-16 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
+                                        onClick={() => !like.isBlurred && setSelectedProfile(like)}
+                                    >
+                                        <div className={`relative w-14 h-14 mx-auto mb-1 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
+                                            <img
+                                                src={like.photoUrl || '/avatar-fallback.svg'}
+                                                alt={like.name}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { 
+                                                    const t = e.target as HTMLImageElement; 
+                                                    t.onerror = null; 
+                                                    t.src = '/avatar-fallback.svg'; 
+                                                }}
+                                            />
+                                            {like.isBlurred && (
+                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
+                                                    <Lock size={16} className="text-white" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className={`text-[11px] font-semibold truncate ${like.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-pink-600'}`}>
+                                            {like.name}
+                                        </p>
+                                    </div>
+                                ))}
+
+                                {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
+                                    <div
+                                        className="flex-shrink-0 w-16 text-center cursor-pointer"
+                                        onClick={() => setShowCoinStore(true)}
+                                    >
+                                        <div className="w-14 h-14 mx-auto mb-1 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-dashed border-amber-300 flex items-center justify-center">
+                                            <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">+{whoLikedMe.totalLikes - 3}</span>
+                                        </div>
+                                        <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">More</p>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
-
-            {/* AI Search Bar */}
-            <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
-                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
-
-                <div className="relative z-10">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3 mb-1">
-                        <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
-                            <Sparkles className="text-white" size={20} />
-                        </div>
-                        <span className="text-gradient">AI Matchmaker</span>
-                    </h2>
-                    <p className="text-sm text-gray-500 ml-12">Describe your ideal partner and let AI find the perfect match</p>
-                </div>
-
-                <div className="flex gap-3 relative z-10">
-                    <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        placeholder="e.g., 'Architect in Mumbai who loves hiking and reading'..."
-                        className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-5 py-4 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
-                    />
-                    <button
-                        onClick={handleSearch}
-                        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-8 py-4 rounded-2xl font-bold hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-2"
-                    >
-                        <Search size={18} />
-                        <span className="hidden sm:inline">Search</span>
-                    </button>
-                </div>
-            </div>
 
             {/* AI Feedback */}
             {aiFilters && (

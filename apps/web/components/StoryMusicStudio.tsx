@@ -510,6 +510,28 @@ export default function StoryMusicStudio({ currentMusic, onSelectMusic, onClose 
                         />
                     </div>
 
+                    {/* Precision Manual Start & End Time Inputs */}
+                    <div className="flex items-center space-x-3 pt-1">
+                        <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-400 font-semibold">Start Sec:</span>
+                            <input
+                                type="number"
+                                min={0}
+                                max={Math.max(0, (activeTrack.duration || 180) - 1)}
+                                value={Math.floor(startOffset)}
+                                onChange={e => handleScrubChange(Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-white text-right font-mono focus:outline-none focus:border-pink-500"
+                            />
+                        </div>
+
+                        <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl p-2 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-400 font-semibold">Mode:</span>
+                            <span className="text-xs text-pink-400 font-bold font-mono">
+                                {isFullSongMode ? 'Full Track' : '15 Sec'}
+                            </span>
+                        </div>
+                    </div>
+
                     {/* Apply Actions */}
                     <div className="flex items-center space-x-3 pt-1">
                         {currentMusic && (

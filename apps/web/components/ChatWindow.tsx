@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -13,6 +13,7 @@ import VideoCallButton from './VideoCallButton';
 import StickerPicker from './StickerPicker';
 import InstantCameraModal from './InstantCameraModal';
 import InstantViewerModal from './InstantViewerModal';
+import ChatMusicJukebox from './ChatMusicJukebox';
 import { useToast } from '@/components/ui/Toast';
 
 interface ChatWindowProps {
@@ -230,6 +231,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
     const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
+    const [showJukebox, setShowJukebox] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
@@ -1058,6 +1060,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             mode="audio"
                             className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
+                        <button
+                            onClick={() => setShowJukebox(true)}
+                            className="p-2 sm:p-2.5 text-pink-400 hover:text-white hover:bg-pink-500/20 rounded-xl transition-all relative group"
+                            title="Music & Video Vibe Jukebox"
+                        >
+                            <Music size={20} className="animate-pulse" />
+                            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap z-50">
+                                Music Vibe
+                            </span>
+                        </button>
                         
                         <div className="relative">
                             <button
@@ -1312,9 +1324,24 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             </div>
                                         ) : msg.text.startsWith('[IMAGE]') ? (
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: msg.text.replace('[IMAGE]', ''), type: 'image' })} />
-                                        ) : msg.text.startsWith('[AUDIO]') ? (
-                                            <audio src={msg.text.replace('[AUDIO]', '')} controls className="max-w-[220px] h-[40px] mt-1" />
-                                        ) : msg.text.startsWith('[STORY_REPLY:') ? (() => {
+                                        ) : msg.text.startsWith('[MUSIC_SHARE:') ? (() => {
+                                            const parts = msg.text.replace('[MUSIC_SHARE:', '').replace(']', '').split(':');
+                                            const title = parts[0] || 'Music Track';
+                                            const artist = parts[1] || 'Artist';
+                                            const coverUrl = decodeURIComponent(parts[2] || '');
+                                            const audioUrl = decodeURIComponent(parts[3] || '');
+
+                                            return (
+                                                <div className="flex items-center space-x-3 p-3 rounded-2xl bg-gradient-to-r from-pink-500/20 via-rose-500/20 to-purple-500/20 border border-pink-500/30 backdrop-blur-md min-w-[220px] max-w-[280px] my-1">
+                                                    <img src={coverUrl} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0" />
+                                                    <div className="min-w-0 flex-1">
+                                                        <h4 className="font-bold text-xs text-slate-100 truncate">{title}</h4>
+                                                        <p className="text-[10px] text-pink-300 truncate">{artist}</p>
+                                                        <audio src={audioUrl} controls className="w-full h-7 mt-1.5 accent-pink-500" />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {
                                             const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
                                             if (match) {
                                                 const [, storyUrl, storyType, textsMetadata, cId, cNameEncoded, cPhotoEncoded, replyText] = match;
@@ -2238,6 +2265,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Chat Music & Video Vibe Jukebox */}
+            {showJukebox && (
+                <ChatMusicJukebox
+                    onClose={() => setShowJukebox(false)}
+                    onShareTrackToChat={(track) => {
+                        const musicPayload = `[MUSIC_SHARE:${track.title}:${track.artist}:${encodeURIComponent(track.coverUrl)}:${encodeURIComponent(track.audioUrl)}]`;
+                        handleSend(undefined, musicPayload);
+                        toast.success('Track shared to chat!');
+                    }}
+                />
             )}
         </div>
     );

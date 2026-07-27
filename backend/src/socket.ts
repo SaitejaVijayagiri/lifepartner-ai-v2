@@ -355,6 +355,12 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
+        socket.on("game_decline", ({ to }) => {
+            if (to) {
+                io.to(to).emit("game_decline", { from: userId });
+            }
+        });
+
         socket.on("game_move", (data) => {
             if (data?.to) {
                 io.to(data.to).emit("game_move", { ...data, from: userId });
@@ -364,6 +370,12 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.on("game_voice", (data) => {
             if (data?.to) {
                 io.to(data.to).emit("game_voice", { ...data, from: userId });
+            }
+        });
+
+        socket.on("game_audio_signal", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("game_audio_signal", { ...data, from: userId });
             }
         });
 

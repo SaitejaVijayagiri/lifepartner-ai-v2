@@ -78,6 +78,37 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         isHost ? "Your turn! Tap 'Roll 3D Dice' to begin." : `Waiting for ${partnerName} to roll...`
     );
 
+    /* WebRTC Audio Peer Connection Refs */
+    const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+    const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+
+    const createPeerConnection = useCallback(() => {
+        if (peerConnectionRef.current) return peerConnectionRef.current;
+
+        const pc = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        });
+
+        pc.ontrack = (event) => {
+            if (remoteAudioRef.current && event.streams[0]) {
+                remoteAudioRef.current.srcObject = event.streams[0];
+                remoteAudioRef.current.play().catch(console.error);
+            }
+        };
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate && socket && partnerId) {
+                socket.emit('game_audio_signal', { to: partnerId, candidate: event.candidate });
+            }
+        };
+
+        peerConnectionRef.current = pc;
+        return pc;
+    }, [socket, partnerId]);
+
     /* Direct Local Microphone Stream Handler (No Phone Ringing) */
     const toggleMicrophone = async () => {
         if (!isMicOn) {
@@ -87,7 +118,14 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                 setIsMicOn(true);
                 toast.success("Microphone On - Speaking Live 🎙️");
 
+                const pc = createPeerConnection();
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
                 if (socket && partnerId) {
+                    socket.emit('game_audio_signal', { to: partnerId, sdp: pc.localDescription });
                     socket.emit('game_voice', { to: partnerId, senderId: user?.id, active: true });
                 }
             } catch (err) {
@@ -108,12 +146,16 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         }
     };
 
-    /* Cleanup Microphone Tracks on Modal Unmount */
+    /* Cleanup Microphone Tracks & Peer Connection on Modal Unmount */
     useEffect(() => {
         return () => {
             if (localStreamRef.current) {
                 localStreamRef.current.getTracks().forEach(track => track.stop());
                 localStreamRef.current = null;
+            }
+            if (peerConnectionRef.current) {
+                peerConnectionRef.current.close();
+                peerConnectionRef.current = null;
             }
         };
     }, []);
@@ -186,16 +228,41 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             }
         };
 
+        const handleAudioSignal = async (data: { from?: string; sdp?: any; candidate?: any }) => {
+            const sender = data.from;
+            if (sender !== partnerId) return;
+
+            const pc = createPeerConnection();
+            try {
+                if (data.sdp) {
+                    await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    if (data.sdp.type === 'offer') {
+                        const answer = await pc.createAnswer();
+                        await pc.setLocalDescription(answer);
+                        if (socket && partnerId) {
+                            socket.emit('game_audio_signal', { to: partnerId, sdp: pc.localDescription });
+                        }
+                    }
+                } else if (data.candidate) {
+                    await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+                }
+            } catch (err) {
+                console.error("WebRTC Audio Signal Error", err);
+            }
+        };
+
         socket.on('game_accept', handleGameAccept);
         socket.on('game_leave', handleGameLeave);
         socket.on('game_move', handleRemoteMove);
         socket.on('game_voice', handleRemoteVoice);
+        socket.on('game_audio_signal', handleAudioSignal);
 
         return () => {
             socket.off('game_accept', handleGameAccept);
             socket.off('game_leave', handleGameLeave);
             socket.off('game_move', handleRemoteMove);
             socket.off('game_voice', handleRemoteVoice);
+            socket.off('game_audio_signal', handleAudioSignal);
         };
     }, [socket, user?.id, partnerId, partnerName, toast]);
 
@@ -282,6 +349,8 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
 
     return (
         <div className="fixed inset-0 w-screen h-screen z-[3000] bg-slate-950 backdrop-blur-2xl flex flex-col justify-between text-white font-sans overflow-hidden animate-in fade-in duration-200">
+            {/* Hidden Remote Audio Element for Live Audio Stream */}
+            <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
 
             {/* ─── HEADER BAR WITH DIRECT MIC TOGGLE ─── */}
             <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0 shadow-2xl z-20">

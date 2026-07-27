@@ -98,24 +98,48 @@ function DashboardContent() {
         }
     }, []);
 
-    /* Game State - for connections list */
+    /* Game State & Consent Modal State */
     const [gameTarget, setGameTarget] = useState<{ id: string; name: string } | null>(null);
+    const [pendingGameInvite, setPendingGameInvite] = useState<{ from: string; senderName: string } | null>(null);
 
-    /* Global Game Invitation & Auto-Join Socket Listener */
+    /* Explicit Game Invitation Consent & Socket Listeners */
     useEffect(() => {
         if (!socket) return;
 
-        const handleGlobalGameInvite = (data: { from: string; senderName: string; gameType?: string }) => {
-            toast.success(`🎮 ${data.senderName} invited you to play Snakes & Ladders! Joining...`);
-            setGameTarget({ id: data.from, name: data.senderName });
-            socket.emit("game_accept", { to: data.from });
+        const handleGlobalGameInvite = (data: { from: string; senderName: string }) => {
+            setPendingGameInvite({ from: data.from, senderName: data.senderName });
+        };
+
+        const handleGameDecline = (data: { from: string }) => {
+            toast.error("Your match declined the game invitation.");
         };
 
         socket.on("game_invite", handleGlobalGameInvite);
+        socket.on("game_decline", handleGameDecline);
+
         return () => {
             socket.off("game_invite", handleGlobalGameInvite);
+            socket.off("game_decline", handleGameDecline);
         };
     }, [socket, toast]);
+
+    const handleAcceptInvite = () => {
+        if (!pendingGameInvite) return;
+        setGameTarget({ id: pendingGameInvite.from, name: pendingGameInvite.senderName });
+        if (socket) {
+            socket.emit("game_accept", { to: pendingGameInvite.from });
+        }
+        setPendingGameInvite(null);
+    };
+
+    const handleDeclineInvite = () => {
+        if (!pendingGameInvite) return;
+        if (socket) {
+            socket.emit("game_decline", { to: pendingGameInvite.from });
+        }
+        toast.info("Game invitation declined.");
+        setPendingGameInvite(null);
+    };
 
     const togglePushNotifications = async () => {
         const newState = !pushEnabled;
@@ -1369,6 +1393,31 @@ function DashboardContent() {
                     partnerName={gameTarget.name}
                     partnerId={gameTarget.id}
                 />
+            )}
+
+            {/* Explicit Consent Game Invitation Popup */}
+            {pendingGameInvite && (
+                <div className="fixed inset-0 z-[4000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl text-white">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-indigo-600 flex items-center justify-center text-3xl mx-auto shadow-lg shadow-emerald-500/30">
+                            🎮
+                        </div>
+                        <div>
+                            <h3 className="font-extrabold text-lg">Game Invitation</h3>
+                            <p className="text-xs text-slate-300 mt-1">
+                                <strong className="text-white">{pendingGameInvite.senderName}</strong> wants to play <strong className="text-emerald-400">Snakes & Ladders Arena</strong> with you!
+                            </p>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <Button onClick={handleDeclineInvite} variant="outline" className="flex-1 rounded-2xl border-slate-700 text-slate-300 hover:bg-slate-800">
+                                Decline
+                            </Button>
+                            <Button onClick={handleAcceptInvite} className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-lg">
+                                Accept & Join
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Mobile Bottom Navigation - Premium Floating */}

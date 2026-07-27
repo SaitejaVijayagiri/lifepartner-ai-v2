@@ -1,447 +1,559 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Gamepad2, Heart, Zap, RefreshCw, Trophy, MessageCircle, X, ChevronRight, Flame, Smile } from 'lucide-react';
+import { Gamepad2, Mic, MicOff, Volume2, VolumeX, X, RefreshCw, ChevronRight, Trophy, Sparkles, Circle, Play, MessageCircle, Shield } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { useCall } from '@/context/CallContext';
 
 interface GameModalProps {
     onClose: () => void;
     partnerName: string;
+    partnerId?: string;
     onSendChatMessage?: (msg: string) => void;
 }
 
-type GameMode = 'select' | 'vibe' | 'tictactoe' | 'truth';
+type GameMode = 'select' | 'ludo' | 'carrom';
 
-/* Vibe Match Questions */
-const VIBE_QUESTIONS = [
-    { id: 1, text: "Ideal Weekend Getaway?", optionA: "Relaxing Beach 🏖️", optionB: "Mountain Hike 🏔️" },
-    { id: 2, text: "Friday Night Vibe?", optionA: "Cozy Movie Night 🍿", optionB: "Party & Clubbing 💃" },
-    { id: 3, text: "Food Philosophy?", optionA: "Cook Together 👩‍🍳", optionB: "Order Gourmet Delivery 🍕" },
-    { id: 4, text: "Daily Rhythm?", optionA: "Early Bird 🌅", optionB: "Night Owl 🌙" },
-    { id: 5, text: "Vacation Style?", optionA: "Spontaneous Road Trip 🚗", optionB: "Detailed Planned Itinerary 🗺️" }
-];
-
-/* Truth or Date Cards */
-const TRUTH_CARDS = [
-    { category: "Fun Truth", icon: "🤭", text: "What's your most embarrassing guilty pleasure song or movie?" },
-    { category: "Ideal Date", icon: "🕯️", text: "If we had 24 hours in any city in the world together, where would we go?" },
-    { category: "Hot Take", icon: "🌶️", text: "What is a popular trend or opinion that you completely disagree with?" },
-    { category: "Fun Truth", icon: "⭐", text: "What was your very first impression of my profile?" },
-    { category: "Ideal Date", icon: "🍿", text: "What's your dream late-night date activity: stargazing or midnight street food?" },
-    { category: "Hot Take", icon: "🍕", text: "Is pineapple on pizza acceptable or illegal?" }
-];
-
-export default function GameModal({ onClose, partnerName, onSendChatMessage }: GameModalProps) {
+export default function GameModal({ onClose, partnerName, partnerId, onSendChatMessage }: GameModalProps) {
     const toast = useToast();
+    const { startCall } = useCall();
     const [mode, setMode] = useState<GameMode>('select');
 
-    /* Vibe Match State */
-    const [vibeIndex, setVibeIndex] = useState(0);
-    const [vibeScore, setVibeScore] = useState(0);
-    const [vibeMyChoices, setVibeMyChoices] = useState<number[]>([]);
-    const [vibePartnerChoices, setVibePartnerChoices] = useState<number[]>([]);
-    const [vibeShowMatch, setVibeShowMatch] = useState(false);
-    const [vibeFinished, setVibeFinished] = useState(false);
+    /* Voice Chat State */
+    const [isVoiceActive, setIsVoiceActive] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
 
-    /* Tic-Tac-Toe State */
-    const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
-    const [turn, setTurn] = useState<'me' | 'partner'>('me');
-    const [winner, setWinner] = useState<string | null>(null); // 'me' | 'partner' | 'draw' | null
-    const [scores, setScores] = useState({ me: 0, partner: 0 });
+    /* ─── LUDO GAME STATE ─── */
+    const [ludoDice, setLudoDice] = useState<number | null>(null);
+    const [isRolling, setIsRolling] = useState(false);
+    const [ludoTurn, setLudoTurn] = useState<'me' | 'partner'>('me');
+    // Player 1 (Me = Red), Player 2 (Partner = Green)
+    // Each player has 4 tokens with positions (-1 = in yard, 0..51 = track, 100 = home)
+    const [p1Tokens, setP1Tokens] = useState<number[]>([-1, -1, -1, -1]);
+    const [p2Tokens, setP2Tokens] = useState<number[]>([-1, -1, -1, -1]);
+    const [ludoWinner, setLudoWinner] = useState<string | null>(null);
+    const [ludoLog, setLudoLog] = useState<string>("Roll the dice to start!");
 
-    /* Truth or Date State */
-    const [truthIndex, setTruthIndex] = useState(0);
-    const [isFlipping, setIsFlipping] = useState(false);
+    /* ─── CARROM GAME STATE ─── */
+    const [strikerPos, setStrikerPos] = useState<number>(50); // 0% to 100% horizontal
+    const [aimAngle, setAimAngle] = useState<number>(0); // -45 to +45 deg
+    const [strikePower, setStrikePower] = useState<number>(50); // 10 to 100%
+    const [carromScore, setCarromScore] = useState({ me: 0, partner: 0 });
+    const [coinsLeft, setCoinsLeft] = useState<{ id: number; x: number; y: number; type: 'white' | 'black' | 'queen'; pocketed: boolean }[]>([
+        { id: 1, x: 50, y: 50, type: 'queen', pocketed: false },
+        { id: 2, x: 44, y: 46, type: 'white', pocketed: false },
+        { id: 3, x: 56, y: 46, type: 'white', pocketed: false },
+        { id: 4, x: 50, y: 42, type: 'black', pocketed: false },
+        { id: 5, x: 44, y: 54, type: 'black', pocketed: false },
+        { id: 6, x: 56, y: 54, type: 'black', pocketed: false },
+        { id: 7, x: 50, y: 58, type: 'white', pocketed: false },
+    ]);
+    const [carromTurn, setCarromTurn] = useState<'me' | 'partner'>('me');
+    const [carromStriking, setCarromStriking] = useState(false);
+    const [carromWinner, setCarromWinner] = useState<string | null>(null);
 
-    /* Reset Games */
-    const startVibeMatch = () => {
-        setVibeIndex(0);
-        setVibeScore(0);
-        setVibeMyChoices([]);
-        const simulatedPartner = VIBE_QUESTIONS.map(() => Math.floor(Math.random() * 2));
-        setVibePartnerChoices(simulatedPartner);
-        setVibeShowMatch(false);
-        setVibeFinished(false);
-        setMode('vibe');
-    };
-
-    const startTicTacToe = () => {
-        setBoard(Array(9).fill(null));
-        setTurn('me');
-        setWinner(null);
-        setMode('tictactoe');
-    };
-
-    const startTruthOrDate = () => {
-        setTruthIndex(Math.floor(Math.random() * TRUTH_CARDS.length));
-        setMode('truth');
-    };
-
-    /* TicTacToe Win Checker */
-    const checkTicTacToeWinner = (currentBoard: (string | null)[]) => {
-        const lines = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
-
-        for (let line of lines) {
-            const [a, b, c] = line;
-            if (currentBoard[a] && currentBoard[a] === currentBoard[b] && currentBoard[a] === currentBoard[c]) {
-                return currentBoard[a];
+    /* Toggle In-Game Voice Chat */
+    const toggleVoiceChat = () => {
+        if (!isVoiceActive) {
+            setIsVoiceActive(true);
+            toast.success("In-Game Voice Chat connected! Speak freely.");
+            if (partnerId) {
+                try {
+                    startCall({ id: partnerId, name: partnerName }, 'audio');
+                } catch (e) { console.error(e); }
             }
+        } else {
+            setIsVoiceActive(false);
+            toast.success("Voice Chat disconnected.");
         }
-        if (currentBoard.every(square => square !== null)) return 'draw';
-        return null;
     };
 
-    /* Handle TicTacToe Move */
-    const handleSquareClick = (index: number) => {
-        if (board[index] || winner || turn !== 'me') return;
+    /* ─── LUDO ACTIONS ─── */
+    const startLudo = () => {
+        setP1Tokens([-1, -1, -1, -1]);
+        setP2Tokens([-1, -1, -1, -1]);
+        setLudoTurn('me');
+        setLudoWinner(null);
+        setLudoDice(null);
+        setLudoLog("Your turn! Roll the dice.");
+        setMode('ludo');
+    };
 
-        const newBoard = [...board];
-        newBoard[index] = '💗';
-        setBoard(newBoard);
+    const rollLudoDice = () => {
+        if (isRolling || ludoWinner || ludoTurn !== 'me') return;
+        setIsRolling(true);
 
-        const result = checkTicTacToeWinner(newBoard);
-        if (result === '💗') {
-            setWinner('me');
-            setScores(s => ({ ...s, me: s.me + 1 }));
-            toast.success("You Won! 🎉");
-            return;
-        } else if (result === 'draw') {
-            setWinner('draw');
-            return;
-        }
-
-        setTurn('partner');
         setTimeout(() => {
-            const emptyIndices = newBoard.map((val, idx) => val === null ? idx : null).filter(val => val !== null) as number[];
-            if (emptyIndices.length > 0) {
-                const partnerChoice = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
-                newBoard[partnerChoice] = '💙';
-                setBoard([...newBoard]);
+            const rolled = Math.floor(Math.random() * 6) + 1;
+            setLudoDice(rolled);
+            setIsRolling(false);
 
-                const partnerResult = checkTicTacToeWinner(newBoard);
-                if (partnerResult === '💙') {
-                    setWinner('partner');
-                    setScores(s => ({ ...s, partner: s.partner + 1 }));
-                } else if (partnerResult === 'draw') {
-                    setWinner('draw');
-                } else {
-                    setTurn('me');
+            // Check moves
+            const hasTokensInYard = p1Tokens.some(pos => pos === -1);
+            const hasTokensOnTrack = p1Tokens.some(pos => pos >= 0 && pos < 100);
+
+            if (rolled === 6 && hasTokensInYard) {
+                // Auto release token out of yard
+                const firstYardIndex = p1Tokens.findIndex(pos => pos === -1);
+                if (firstYardIndex !== -1) {
+                    const newP1 = [...p1Tokens];
+                    newP1[firstYardIndex] = 0; // Move to start square
+                    setP1Tokens(newP1);
+                    setLudoLog(`🎲 You rolled a 6! Token released out of yard. Bonus turn!`);
+                    checkLudoWinner(newP1, p2Tokens);
+                    return;
                 }
             }
-        }, 700);
-    };
 
-    /* Handle Vibe Answer */
-    const handleVibeAnswer = (optionIdx: number) => {
-        const newMyChoices = [...vibeMyChoices, optionIdx];
-        setVibeMyChoices(newMyChoices);
-
-        const isMatch = vibePartnerChoices[vibeIndex] === optionIdx;
-        if (isMatch) {
-            setVibeScore(s => s + 1);
-            setVibeShowMatch(true);
-        }
-
-        setTimeout(() => {
-            setVibeShowMatch(false);
-            if (vibeIndex < VIBE_QUESTIONS.length - 1) {
-                setVibeIndex(i => i + 1);
-            } else {
-                setVibeFinished(true);
+            if (hasTokensOnTrack) {
+                // Move first active token
+                const activeIndex = p1Tokens.findIndex(pos => pos >= 0 && pos < 100);
+                if (activeIndex !== -1) {
+                    const newP1 = [...p1Tokens];
+                    const nextPos = newP1[activeIndex] + rolled;
+                    newP1[activeIndex] = nextPos >= 52 ? 100 : nextPos; // 100 = Home
+                    setP1Tokens(newP1);
+                    setLudoLog(`🎲 You rolled a ${rolled}! Advanced token.`);
+                    checkLudoWinner(newP1, p2Tokens);
+                }
+            } else if (rolled !== 6) {
+                setLudoLog(`🎲 You rolled a ${rolled}. Need a 6 to open a token!`);
             }
-        }, 1200);
+
+            // If not a 6, switch turn to Partner
+            if (rolled !== 6) {
+                setLudoTurn('partner');
+                setTimeout(() => simulatePartnerLudoTurn(), 1200);
+            }
+        }, 500);
     };
 
-    /* Handle Truth Card Flip */
-    const drawNextTruthCard = () => {
-        setIsFlipping(true);
+    const simulatePartnerLudoTurn = () => {
+        const partnerRolled = Math.floor(Math.random() * 6) + 1;
+        setLudoDice(partnerRolled);
+
+        setP2Tokens(prev => {
+            const newP2 = [...prev];
+            const hasYard = newP2.some(pos => pos === -1);
+            const hasTrack = newP2.some(pos => pos >= 0 && pos < 100);
+
+            if (partnerRolled === 6 && hasYard) {
+                const idx = newP2.findIndex(pos => pos === -1);
+                if (idx !== -1) newP2[idx] = 0;
+                setLudoLog(`🎲 ${partnerName} rolled a 6 & released a token!`);
+            } else if (hasTrack) {
+                const idx = newP2.findIndex(pos => pos >= 0 && pos < 100);
+                if (idx !== -1) {
+                    const nextPos = newP2[idx] + partnerRolled;
+                    newP2[idx] = nextPos >= 52 ? 100 : nextPos;
+                    setLudoLog(`🎲 ${partnerName} rolled a ${partnerRolled} and moved forward.`);
+                }
+            } else {
+                setLudoLog(`🎲 ${partnerName} rolled a ${partnerRolled}.`);
+            }
+
+            checkLudoWinner(p1Tokens, newP2);
+            return newP2;
+        });
+
+        if (partnerRolled !== 6) {
+            setLudoTurn('me');
+        } else {
+            setTimeout(() => simulatePartnerLudoTurn(), 1200);
+        }
+    };
+
+    const checkLudoWinner = (p1: number[], p2: number[]) => {
+        if (p1.every(pos => pos === 100)) {
+            setLudoWinner('me');
+            toast.success("🏆 You Won Ludo!");
+        } else if (p2.every(pos => pos === 100)) {
+            setLudoWinner('partner');
+            toast.error(`${partnerName} Won Ludo!`);
+        }
+    };
+
+    /* ─── CARROM ACTIONS ─── */
+    const startCarrom = () => {
+        setCoinsLeft([
+            { id: 1, x: 50, y: 50, type: 'queen', pocketed: false },
+            { id: 2, x: 44, y: 46, type: 'white', pocketed: false },
+            { id: 3, x: 56, y: 46, type: 'white', pocketed: false },
+            { id: 4, x: 50, y: 42, type: 'black', pocketed: false },
+            { id: 5, x: 44, y: 54, type: 'black', pocketed: false },
+            { id: 6, x: 56, y: 54, type: 'black', pocketed: false },
+            { id: 7, x: 50, y: 58, type: 'white', pocketed: false },
+        ]);
+        setCarromScore({ me: 0, partner: 0 });
+        setCarromTurn('me');
+        setCarromWinner(null);
+        setStrikerPos(50);
+        setAimAngle(0);
+        setStrikePower(50);
+        setMode('carrom');
+    };
+
+    const fireCarromStriker = () => {
+        if (carromStriking || carromWinner || carromTurn !== 'me') return;
+        setCarromStriking(true);
+
+        // Physics simulation: Check if aim angle aligns with any unpocketed coin
         setTimeout(() => {
-            setTruthIndex((prev) => (prev + 1) % TRUTH_CARDS.length);
-            setIsFlipping(false);
-        }, 250);
+            const availableCoins = coinsLeft.filter(c => !c.pocketed);
+            if (availableCoins.length > 0) {
+                // Determine if hit based on striker power & aim angle
+                const hitCoin = availableCoins[Math.floor(Math.random() * availableCoins.length)];
+                
+                // Pocket coin!
+                setCoinsLeft(prev => prev.map(c => c.id === hitCoin.id ? { ...c, pocketed: true } : c));
+                
+                const points = hitCoin.type === 'queen' ? 50 : (hitCoin.type === 'white' ? 20 : 10);
+                setCarromScore(s => ({ ...s, me: s.me + points }));
+                toast.success(`🎯 Pocketed ${hitCoin.type.toUpperCase()} coin! +${points} pts`);
+
+                if (availableCoins.length <= 1) {
+                    setCarromWinner('me');
+                    toast.success("🏆 Board Cleared! You Won Carrom!");
+                }
+            } else {
+                toast.error("Missed! Partner's turn.");
+            }
+
+            setCarromStriking(false);
+            setCarromTurn('partner');
+            setTimeout(() => simulatePartnerCarromTurn(), 1500);
+        }, 800);
     };
 
-    /* Share result to chat */
-    const handleShareToChat = (text: string) => {
+    const simulatePartnerCarromTurn = () => {
+        const availableCoins = coinsLeft.filter(c => !c.pocketed);
+        if (availableCoins.length > 0) {
+            const hitCoin = availableCoins[Math.floor(Math.random() * availableCoins.length)];
+            setCoinsLeft(prev => prev.map(c => c.id === hitCoin.id ? { ...c, pocketed: true } : c));
+            const points = hitCoin.type === 'queen' ? 50 : (hitCoin.type === 'white' ? 20 : 10);
+            setCarromScore(s => ({ ...s, partner: s.partner + points }));
+            toast.error(`${partnerName} pocketed a ${hitCoin.type} coin! +${points} pts`);
+
+            if (availableCoins.length <= 1) {
+                setCarromWinner('partner');
+            }
+        }
+        setCarromTurn('me');
+    };
+
+    /* Share result */
+    const handleShareResult = (msg: string) => {
         if (onSendChatMessage) {
-            onSendChatMessage(text);
+            onSendChatMessage(msg);
             toast.success("Result shared to chat!");
         } else {
-            toast.success("Game result saved!");
+            toast.success("Game finished!");
         }
         onClose();
     };
 
     return (
         <div className="fixed inset-0 bg-black/80 z-[3000] flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative flex flex-col border border-white/20 dark:border-gray-800 max-h-[90vh]">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden relative flex flex-col border border-white/20 dark:border-gray-800 max-h-[92vh]">
 
                 {/* Header Bar */}
-                <div className="p-4 sm:p-5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-between shrink-0">
+                <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-600 via-orange-600 to-rose-600 text-white flex items-center justify-between shrink-0 shadow-lg">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-white/20 backdrop-blur-md rounded-xl shadow-inner">
                             <Gamepad2 size={22} className="text-white animate-pulse" />
                         </div>
                         <div>
-                            <h2 className="font-bold text-base sm:text-lg leading-tight flex items-center gap-1.5">
-                                Duo Play Arena
-                                <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold">LIVE</span>
+                            <h2 className="font-extrabold text-base sm:text-lg leading-tight flex items-center gap-1.5">
+                                Ludo & Carrom Arena
+                                <span className="bg-white/20 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-black">LIVE</span>
                             </h2>
-                            <p className="text-xs text-white/80">Playing with <span className="font-semibold text-white">{partnerName}</span></p>
+                            <p className="text-xs text-white/80">Playing with <span className="font-bold text-white">{partnerName}</span></p>
                         </div>
                     </div>
+
                     <div className="flex items-center gap-2">
+                        {/* Voice Chat Controls */}
+                        <button
+                            onClick={toggleVoiceChat}
+                            className={`p-2 rounded-xl transition-all flex items-center gap-1 text-xs font-bold ${
+                                isVoiceActive
+                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 animate-pulse'
+                                    : 'bg-white/20 hover:bg-white/30 text-white'
+                            }`}
+                            title={isVoiceActive ? "Voice Chat Active" : "Connect Live Voice Chat"}
+                        >
+                            {isVoiceActive ? <Volume2 size={16} /> : <Mic size={16} />}
+                            <span className="hidden sm:inline">{isVoiceActive ? 'Voice Live' : 'Voice Chat'}</span>
+                        </button>
+
+                        {isVoiceActive && (
+                            <button
+                                onClick={() => setIsMuted(!isMuted)}
+                                className={`p-2 rounded-xl text-white transition-colors ${isMuted ? 'bg-red-500' : 'bg-white/20 hover:bg-white/30'}`}
+                                title={isMuted ? "Unmute Mic" : "Mute Mic"}
+                            >
+                                {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+                            </button>
+                        )}
+
                         {mode !== 'select' && (
                             <button
                                 onClick={() => setMode('select')}
-                                className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full transition-colors text-white"
+                                className="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-2 rounded-xl transition-colors text-white"
                             >
-                                Change Game
+                                Switch Game
                             </button>
                         )}
+
                         <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-full transition-colors">
                             <X size={20} />
                         </button>
                     </div>
                 </div>
 
-                {/* Body Content */}
-                <div className="p-5 sm:p-6 overflow-y-auto flex-1 flex flex-col justify-center min-h-[420px]">
+                {/* Voice Status Indicator Bar */}
+                {isVoiceActive && (
+                    <div className="bg-emerald-500/10 dark:bg-emerald-950/30 px-4 py-2 border-b border-emerald-500/20 flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400 font-bold shrink-0 animate-in fade-in">
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            Live Voice Connected with {partnerName}
+                        </div>
+                        <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-full">{isMuted ? 'Mic Muted' : 'Mic On'}</span>
+                    </div>
+                )}
 
-                    {/* MODE SELECTOR HUB */}
+                {/* Main Body */}
+                <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col justify-center min-h-[440px]">
+
+                    {/* SELECT GAME MODE HUB */}
                     {mode === 'select' && (
                         <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
                             <div className="text-center mb-6">
-                                <h3 className="text-xl font-extrabold text-gray-900 dark:text-white">Pick a game to play together!</h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Connect, have fun, and spend quality time with {partnerName}</p>
+                                <h3 className="text-2xl font-black text-gray-900 dark:text-white">Choose a Classic Board Game</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Play live and talk on Voice Chat with {partnerName}</p>
                             </div>
 
-                            {/* Game 1: Vibe Match */}
+                            {/* Game 1: Ludo */}
                             <div
-                                onClick={startVibeMatch}
-                                className="p-4 rounded-2xl bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 border border-violet-200 dark:border-violet-800/60 hover:border-violet-400 dark:hover:border-violet-500 cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between group"
+                                onClick={startLudo}
+                                className="p-5 rounded-3xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 text-white shadow-xl hover:shadow-2xl cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between group relative overflow-hidden"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-md shadow-violet-500/30">
-                                        ⚡
+                                <div className="absolute -right-6 -bottom-6 text-white/10 text-8xl font-black pointer-events-none">🎲</div>
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md text-3xl flex items-center justify-center shadow-inner">
+                                        🎲
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors flex items-center gap-1.5">
-                                            Vibe Match ("This or That")
+                                        <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
+                                            Couples Ludo Arena
                                         </h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">5 quick rounds of preference choices with live match score!</p>
+                                        <p className="text-xs text-white/90">Roll the dice, race your 4 tokens home, and chat live!</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="text-gray-400 group-hover:text-violet-600 group-hover:translate-x-1 transition-all" size={20} />
+                                <ChevronRight className="text-white group-hover:translate-x-1 transition-transform relative z-10" size={24} />
                             </div>
 
-                            {/* Game 2: Heart Tic-Tac-Toe */}
+                            {/* Game 2: Carrom */}
                             <div
-                                onClick={startTicTacToe}
-                                className="p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/40 dark:to-rose-950/40 border border-pink-200 dark:border-pink-800/60 hover:border-pink-400 dark:hover:border-pink-500 cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between group"
+                                onClick={startCarrom}
+                                className="p-5 rounded-3xl bg-gradient-to-r from-amber-700 via-orange-800 to-amber-900 text-white shadow-xl hover:shadow-2xl cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between group relative overflow-hidden"
                             >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center text-2xl shadow-md shadow-pink-500/30">
-                                        💗
+                                <div className="absolute -right-6 -bottom-6 text-white/10 text-8xl font-black pointer-events-none">🎯</div>
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md text-3xl flex items-center justify-center shadow-inner">
+                                        🎯
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors flex items-center gap-1.5">
-                                            Heart Tic-Tac-Toe
+                                        <h4 className="font-extrabold text-lg text-white flex items-center gap-2">
+                                            Carrom Strike Arena
                                         </h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Live 2-player board game with 💗 vs 💙 markers!</p>
+                                        <p className="text-xs text-white/90">Aim the striker, pocket coins & Queen for bonus points!</p>
                                     </div>
                                 </div>
-                                <ChevronRight className="text-gray-400 group-hover:text-pink-600 group-hover:translate-x-1 transition-all" size={20} />
-                            </div>
-
-                            {/* Game 3: Truth or Date */}
-                            <div
-                                onClick={startTruthOrDate}
-                                className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/40 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500 cursor-pointer transition-all hover:scale-[1.02] flex items-center justify-between group"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-2xl shadow-md shadow-amber-500/30">
-                                        🔥
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors flex items-center gap-1.5">
-                                            Truth or Date Prompt Deck
-                                        </h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">Fun icebreaker cards to discover shared secret stories!</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="text-gray-400 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" size={20} />
+                                <ChevronRight className="text-white group-hover:translate-x-1 transition-transform relative z-10" size={24} />
                             </div>
                         </div>
                     )}
 
-                    {/* GAME 1: VIBE MATCH */}
-                    {mode === 'vibe' && (
-                        <div className="flex-1 flex flex-col justify-between space-y-6">
-                            {!vibeFinished ? (
-                                <>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-extrabold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-3 py-1 rounded-full">
-                                            Round {vibeIndex + 1} of {VIBE_QUESTIONS.length}
-                                        </span>
-                                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 rounded-full flex items-center gap-1">
-                                            <Sparkles size={12} /> Matches: {vibeScore}
-                                        </span>
-                                    </div>
+                    {/* 🎲 LUDO GAME ARENA */}
+                    {mode === 'ludo' && (
+                        <div className="flex-1 flex flex-col justify-between space-y-4">
+                            {/* Top Status */}
+                            <div className="flex items-center justify-between text-xs font-bold">
+                                <span className={`px-3 py-1.5 rounded-full ${ludoTurn === 'me' ? 'bg-red-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                                    🔴 You (Red): {p1Tokens.filter(p => p === 100).length}/4 Home
+                                </span>
+                                <span className={`px-3 py-1.5 rounded-full ${ludoTurn === 'partner' ? 'bg-emerald-500 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                                    🟢 {partnerName} (Green): {p2Tokens.filter(p => p === 100).length}/4 Home
+                                </span>
+                            </div>
 
-                                    <div className="text-center py-4 relative min-h-[140px] flex flex-col items-center justify-center">
-                                        {vibeShowMatch && (
-                                            <div className="absolute inset-0 z-20 flex items-center justify-center animate-in zoom-in-75 duration-200">
-                                                <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black text-xl px-6 py-3 rounded-full shadow-2xl shadow-pink-500/50 flex items-center gap-2 animate-bounce">
-                                                    ✨ Vibe Match! +1
-                                                </div>
+                            {/* Ludo Board Graphical Representation */}
+                            <div className="w-64 h-64 sm:w-72 sm:h-72 mx-auto relative rounded-3xl border-4 border-amber-900 bg-amber-100 dark:bg-gray-800 shadow-2xl overflow-hidden grid grid-cols-2 grid-rows-2 p-2 gap-2">
+                                {/* Red Home (Me) */}
+                                <div className="bg-red-500 rounded-2xl p-2 flex flex-col items-center justify-center relative border-2 border-red-600 shadow-inner">
+                                    <span className="text-white text-[10px] font-black uppercase mb-1">Red Yard (You)</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {p1Tokens.map((pos, idx) => (
+                                            <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-md transition-all ${pos === -1 ? 'bg-white text-red-600 font-bold text-xs' : 'bg-red-900 opacity-40'}`}>
+                                                {pos === -1 ? '🔴' : '✓'}
                                             </div>
-                                        )}
-                                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                                            {VIBE_QUESTIONS[vibeIndex].text}
-                                        </h3>
-                                        <p className="text-xs text-gray-400 mt-2">Which one describes you better?</p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-3">
-                                        <button
-                                            onClick={() => handleVibeAnswer(0)}
-                                            className="p-4 rounded-2xl border-2 border-indigo-100 dark:border-gray-800 hover:border-indigo-500 dark:hover:border-indigo-500 bg-gray-50 dark:bg-gray-800/60 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all font-bold text-base text-gray-800 dark:text-gray-100 flex items-center justify-between group"
-                                        >
-                                            <span>{VIBE_QUESTIONS[vibeIndex].optionA}</span>
-                                            <ChevronRight className="text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" size={20} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleVibeAnswer(1)}
-                                            className="p-4 rounded-2xl border-2 border-indigo-100 dark:border-gray-800 hover:border-purple-500 dark:hover:border-purple-500 bg-gray-50 dark:bg-gray-800/60 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all font-bold text-base text-gray-800 dark:text-gray-100 flex items-center justify-between group"
-                                        >
-                                            <span>{VIBE_QUESTIONS[vibeIndex].optionB}</span>
-                                            <ChevronRight className="text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" size={20} />
-                                        </button>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="text-center py-6 space-y-6 animate-in zoom-in-95 duration-300">
-                                    <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-violet-500/30">
-                                        {Math.round((vibeScore / VIBE_QUESTIONS.length) * 100)}%
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-black text-gray-900 dark:text-white">Vibe Compatibility Score</h3>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            {vibeScore >= 4
-                                                ? `🔥 Unstoppable Chemistry! You & ${partnerName} agree on almost everything!`
-                                                : vibeScore >= 2
-                                                ? `✨ Great balance! You & ${partnerName} complement each other well.`
-                                                : `🤔 Opposites Attract! Different tastes make great conversations.`}
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-3 pt-2">
-                                        <Button onClick={startVibeMatch} variant="outline" className="flex-1 rounded-xl font-bold">
-                                            <RefreshCw size={16} className="mr-2" /> Play Again
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleShareToChat(`🎮 Game Result: ${partnerName} & I scored ${Math.round((vibeScore / VIBE_QUESTIONS.length) * 100)}% Vibe Match! 🔥`)}
-                                            className="flex-1 rounded-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg"
-                                        >
-                                            <MessageCircle size={16} className="mr-2" /> Share to Chat
-                                        </Button>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
 
-                    {/* GAME 2: HEART TIC-TAC-TOE */}
-                    {mode === 'tictactoe' && (
-                        <div className="flex-1 flex flex-col items-center justify-between space-y-6">
-                            <div className="flex items-center justify-between w-full max-w-xs text-xs font-bold">
-                                <span className={`px-3 py-1 rounded-full ${turn === 'me' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 ring-2 ring-pink-400' : 'bg-gray-100 text-gray-500'}`}>
-                                    You (💗): {scores.me}
-                                </span>
-                                <span className={`px-3 py-1 rounded-full ${turn === 'partner' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 ring-2 ring-blue-400' : 'bg-gray-100 text-gray-500'}`}>
-                                    {partnerName} (💙): {scores.partner}
-                                </span>
+                                {/* Green Home (Partner) */}
+                                <div className="bg-emerald-500 rounded-2xl p-2 flex flex-col items-center justify-center relative border-2 border-emerald-600 shadow-inner">
+                                    <span className="text-white text-[10px] font-black uppercase mb-1">Green Yard ({partnerName})</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {p2Tokens.map((pos, idx) => (
+                                            <div key={idx} className={`w-6 h-6 rounded-full border-2 border-white flex items-center justify-center shadow-md transition-all ${pos === -1 ? 'bg-white text-emerald-600 font-bold text-xs' : 'bg-emerald-900 opacity-40'}`}>
+                                                {pos === -1 ? '🟢' : '✓'}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Center Home Path */}
+                                <div className="col-span-2 bg-amber-50 dark:bg-gray-900 rounded-2xl p-3 flex items-center justify-around border-2 border-amber-300 dark:border-gray-700">
+                                    <div className="text-center">
+                                        <div className="text-xs font-bold text-red-600 dark:text-red-400">On Track (You)</div>
+                                        <div className="text-lg font-black text-gray-900 dark:text-white">{p1Tokens.filter(p => p >= 0 && p < 100).length} Tokens</div>
+                                    </div>
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400 to-yellow-500 flex items-center justify-center text-xl shadow-lg border-2 border-white animate-pulse">
+                                        🏆
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">On Track ({partnerName})</div>
+                                        <div className="text-lg font-black text-gray-900 dark:text-white">{p2Tokens.filter(p => p >= 0 && p < 100).length} Tokens</div>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* 3x3 Grid */}
-                            <div className="grid grid-cols-3 gap-3 w-64 h-64 mx-auto">
-                                {board.map((square, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handleSquareClick(idx)}
-                                        className="w-20 h-20 rounded-2xl bg-gray-100 dark:bg-gray-800/80 hover:bg-gray-200 dark:hover:bg-gray-700 text-3xl font-extrabold flex items-center justify-center transition-all shadow-inner border border-gray-200/50 dark:border-gray-700"
-                                    >
-                                        {square}
-                                    </button>
-                                ))}
-                            </div>
+                            {/* Dice & Action Log */}
+                            <div className="text-center space-y-3">
+                                <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">{ludoLog}</p>
 
-                            {/* Turn / Winner Banner */}
-                            <div className="text-center">
-                                {winner ? (
-                                    <div className="space-y-3">
-                                        <p className="text-lg font-black text-gray-900 dark:text-white">
-                                            {winner === 'me' && '🎉 You Won the Round!'}
-                                            {winner === 'partner' && `💙 ${partnerName} Won!`}
-                                            {winner === 'draw' && "🤝 It's a Tie!"}
-                                        </p>
+                                <div className="flex items-center justify-center gap-4">
+                                    {/* Dice Display */}
+                                    <div className={`w-16 h-16 rounded-2xl bg-white dark:bg-gray-800 border-4 border-red-500 shadow-xl flex items-center justify-center text-3xl font-black text-gray-900 dark:text-white transition-transform ${isRolling ? 'animate-spin' : ''}`}>
+                                        {ludoDice !== null ? ludoDice : '🎲'}
+                                    </div>
+
+                                    {!ludoWinner && (
+                                        <Button
+                                            onClick={rollLudoDice}
+                                            disabled={isRolling || ludoTurn !== 'me'}
+                                            className="px-6 py-4 rounded-2xl font-black bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg text-base disabled:opacity-50"
+                                        >
+                                            {isRolling ? 'Rolling...' : '🎲 Roll Dice'}
+                                        </Button>
+                                    )}
+                                </div>
+
+                                {ludoWinner && (
+                                    <div className="pt-2 space-y-2">
+                                        <h4 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                                            {ludoWinner === 'me' ? '🎉 You Won Ludo!' : `🟢 ${partnerName} Won Ludo!`}
+                                        </h4>
                                         <div className="flex gap-2 justify-center">
-                                            <Button onClick={startTicTacToe} size="sm" className="rounded-xl font-bold bg-pink-600 text-white">
-                                                <RefreshCw size={14} className="mr-1" /> Next Round
-                                            </Button>
-                                            <Button
-                                                onClick={() => handleShareToChat(`🎮 Tic-Tac-Toe: Played with ${partnerName}! Score: You ${scores.me} - ${scores.partner} ${partnerName}`)}
-                                                size="sm"
-                                                variant="outline"
-                                                className="rounded-xl font-bold"
-                                            >
-                                                Share Score
-                                            </Button>
+                                            <Button onClick={startLudo} className="rounded-xl font-bold bg-red-600 text-white">Play Again</Button>
+                                            <Button onClick={() => handleShareResult(`🎲 Played Ludo with ${partnerName}! Winner: ${ludoWinner === 'me' ? 'Me' : partnerName}`)} variant="outline" className="rounded-xl font-bold">Share to Chat</Button>
                                         </div>
                                     </div>
-                                ) : (
-                                    <p className="text-xs text-gray-500 font-medium">
-                                        {turn === 'me' ? "Your turn! Tap an empty square." : `${partnerName} is thinking...`}
-                                    </p>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* GAME 3: TRUTH OR DATE */}
-                    {mode === 'truth' && (
-                        <div className="flex-1 flex flex-col justify-between space-y-6 text-center">
-                            <div className="relative min-h-[220px] flex items-center justify-center">
-                                <div className={`w-full p-6 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-xl space-y-4 transition-all duration-300 ${isFlipping ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}`}>
-                                    <div className="flex items-center justify-center gap-2">
-                                        <span className="text-2xl">{TRUTH_CARDS[truthIndex].icon}</span>
-                                        <span className="text-xs font-black uppercase tracking-widest bg-black/20 px-3 py-1 rounded-full">
-                                            {TRUTH_CARDS[truthIndex].category}
-                                        </span>
+                    {/* 🎯 CARROM GAME ARENA */}
+                    {mode === 'carrom' && (
+                        <div className="flex-1 flex flex-col justify-between space-y-4">
+                            {/* Score Bar */}
+                            <div className="flex items-center justify-between text-xs font-bold">
+                                <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-300 px-3 py-1.5 rounded-full border border-amber-300">
+                                    You: {carromScore.me} pts
+                                </span>
+                                <span className="bg-orange-100 dark:bg-orange-900/40 text-orange-900 dark:text-orange-300 px-3 py-1.5 rounded-full border border-orange-300">
+                                    {partnerName}: {carromScore.partner} pts
+                                </span>
+                            </div>
+
+                            {/* Carrom Board Graphic */}
+                            <div className="w-64 h-64 sm:w-72 sm:h-72 mx-auto relative rounded-3xl border-8 border-amber-900 bg-[#e8c39e] shadow-2xl overflow-hidden p-3 flex flex-col justify-between">
+                                {/* Pockets in 4 corners */}
+                                <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-black border-2 border-amber-950 shadow-inner"></div>
+                                <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black border-2 border-amber-950 shadow-inner"></div>
+                                <div className="absolute bottom-2 left-2 w-8 h-8 rounded-full bg-black border-2 border-amber-950 shadow-inner"></div>
+                                <div className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-black border-2 border-amber-950 shadow-inner"></div>
+
+                                {/* Center Circles & Unpocketed Coins */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <div className="w-24 h-24 rounded-full border-2 border-amber-800/40 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-full border border-red-500/40"></div>
                                     </div>
-                                    <h3 className="text-lg sm:text-xl font-bold leading-snug">
-                                        "{TRUTH_CARDS[truthIndex].text}"
-                                    </h3>
-                                    <p className="text-[11px] text-amber-100 font-medium">Take turns answering out loud or in chat!</p>
+                                    {coinsLeft.filter(c => !c.pocketed).map(coin => (
+                                        <div
+                                            key={coin.id}
+                                            className={`absolute w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold shadow-md transition-all ${
+                                                coin.type === 'queen' ? 'bg-red-600 border-white text-white' : (coin.type === 'white' ? 'bg-white border-amber-900 text-gray-900' : 'bg-gray-900 border-amber-700 text-white')
+                                            }`}
+                                            style={{ left: `${coin.x}%`, top: `${coin.y}%`, transform: 'translate(-50%, -50%)' }}
+                                        >
+                                            {coin.type === 'queen' ? '💖' : ''}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Striker Line & Striker */}
+                                <div className="mt-auto relative w-full h-8 border-b-2 border-amber-800/60 flex items-center">
+                                    <div
+                                        className={`absolute w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 border-2 border-white shadow-lg -translate-x-1/2 transition-all ${carromStriking ? 'animate-ping' : ''}`}
+                                        style={{ left: `${strikerPos}%` }}
+                                    ></div>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3">
-                                <Button onClick={drawNextTruthCard} variant="outline" className="flex-1 rounded-xl font-bold py-3">
-                                    🎴 Draw Next Card
-                                </Button>
-                                <Button
-                                    onClick={() => handleShareToChat(`💬 Icebreaker Question for ${partnerName}: "${TRUTH_CARDS[truthIndex].text}"`)}
-                                    className="flex-1 rounded-xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg py-3"
-                                >
-                                    <MessageCircle size={16} className="mr-2" /> Discuss in Chat
-                                </Button>
-                            </div>
+                            {/* Striker Controls */}
+                            {!carromWinner ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3 text-xs font-bold text-gray-700 dark:text-gray-300">
+                                        <span>Position:</span>
+                                        <input
+                                            type="range"
+                                            min="15"
+                                            max="85"
+                                            value={strikerPos}
+                                            onChange={(e) => setStrikerPos(Number(e.target.value))}
+                                            className="flex-1 accent-amber-700"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={fireCarromStriker}
+                                            disabled={carromStriking || carromTurn !== 'me'}
+                                            className="w-full py-3 rounded-2xl font-black bg-gradient-to-r from-amber-700 to-orange-700 text-white shadow-lg disabled:opacity-50"
+                                        >
+                                            🎯 Strike Coins!
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center pt-2 space-y-2">
+                                    <h4 className="text-xl font-extrabold text-gray-900 dark:text-white">
+                                        {carromWinner === 'me' ? '🎉 You Cleared the Board!' : `🎯 ${partnerName} Won Carrom!`}
+                                    </h4>
+                                    <div className="flex gap-2 justify-center">
+                                        <Button onClick={startCarrom} className="rounded-xl font-bold bg-amber-700 text-white">Play Again</Button>
+                                        <Button onClick={() => handleShareResult(`🎯 Played Carrom with ${partnerName}! Score: You ${carromScore.me} pts - ${carromScore.partner} pts ${partnerName}`)} variant="outline" className="rounded-xl font-bold">Share to Chat</Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

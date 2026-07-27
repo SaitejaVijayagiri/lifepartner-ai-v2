@@ -1197,11 +1197,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         <button
                             onClick={() => setShowGame(true)}
                             className="p-2 sm:p-2.5 text-purple-400 hover:text-white hover:bg-purple-500/20 rounded-xl transition-all relative group"
-                            title="Duo Play Arena - Games Together"
+                            title="Ludo & Carrom Arena + Voice Chat"
                         >
                             <Gamepad2 size={20} className="animate-pulse text-purple-400" />
                             <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap z-50">
-                                Duo Games
+                                Ludo & Carrom
                             </span>
                         </button>
                         
@@ -2067,6 +2067,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <GameModal
                     onClose={() => setShowGame(false)}
                     partnerName={partnerInfo.name}
+                    partnerId={partner.id}
                     onSendChatMessage={(text) => handleSend(undefined, text)}
                 />
             )}

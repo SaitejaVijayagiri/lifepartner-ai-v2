@@ -62,37 +62,57 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const toggleAudio = () => {
-        if (!audioRef.current || audioRef.current.src !== audioUrl) {
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current = null;
+            }
+        };
+    }, []);
+
+    const toggleAudio = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        const targetUrl = audioUrl || videoUrl || '';
+        if (!targetUrl) {
+            console.warn('[ChatSharedMediaCard] No audioUrl available to play');
+            return;
+        }
+
+        if (isPlaying) {
             if (audioRef.current) {
                 audioRef.current.pause();
             }
-            const audio = new Audio(audioUrl);
+            setIsPlaying(false);
+            return;
+        }
+
+        if (!audioRef.current) {
+            const audio = new Audio(targetUrl);
             audioRef.current = audio;
             audio.volume = 0.8;
             audio.onended = () => setIsPlaying(false);
-            audio.onerror = (e) => {
-                console.warn('[ChatSharedMediaCard] Audio playback error:', e);
+            audio.onerror = (err) => {
+                console.warn('[ChatSharedMediaCard] Audio playback error:', err);
                 setIsPlaying(false);
             };
         }
 
-        if (isPlaying) {
-            audioRef.current.pause();
+        audioRef.current.play().then(() => {
+            setIsPlaying(true);
+        }).catch((err) => {
+            console.warn('[ChatSharedMediaCard] Play failed:', err);
             setIsPlaying(false);
-        } else {
-            audioRef.current.play().then(() => setIsPlaying(true)).catch((err) => {
-                console.warn('[ChatSharedMediaCard] Play error:', err);
-                setIsPlaying(false);
-            });
-        }
+        });
     };
 
-    const handleWatchVideo = () => {
+    const handleWatchVideo = (e: React.MouseEvent) => {
+        e.stopPropagation();
         if (audioRef.current) {
             audioRef.current.pause();
-            setIsPlaying(false);
         }
+        setIsPlaying(false);
         setShowVideo(true);
     };
 
@@ -100,7 +120,10 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
     const isYtId = videoUrl && videoUrl.length === 11 && !videoUrl.includes('/') && !videoUrl.includes('.');
 
     return (
-        <div className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none">
+        <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none"
+        >
             <div className="flex items-center space-x-3">
                 <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" />
                 <div className="min-w-0 flex-1">

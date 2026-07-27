@@ -557,6 +557,7 @@ router.post('/:connectionId/read', authenticateToken, async (req: any, res) => {
 // DELETE Chat History (Soft Delete)
 router.delete('/:connectionId/history', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params;
+    const mode = req.query.mode || req.body?.mode || 'me';
     const userId = req.user.userId;
 
     try {
@@ -574,9 +575,26 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
         });
 
         const updatePromises = msgs.map(async (msg) => {
-            const clearedBy: string[] = Array.isArray((msg as any).cleared_by) ? (msg as any).cleared_by : [];
-            if (!clearedBy.includes(userId)) {
-                clearedBy.push(userId);
+            const clearedBy: string[] = Array.isArray((msg as any).cleared_by) ? [...(msg as any).cleared_by] : [];
+            let updated = false;
+
+            if (mode === 'everyone') {
+                if (!clearedBy.includes(userId)) {
+                    clearedBy.push(userId);
+                    updated = true;
+                }
+                if (!clearedBy.includes(connectionId)) {
+                    clearedBy.push(connectionId);
+                    updated = true;
+                }
+            } else {
+                if (!clearedBy.includes(userId)) {
+                    clearedBy.push(userId);
+                    updated = true;
+                }
+            }
+
+            if (updated) {
                 return (prisma.messages as any).update({
                     where: { id: msg.id },
                     data: { cleared_by: clearedBy },
@@ -586,6 +604,15 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
         });
 
         await Promise.all(updatePromises);
+
+        if (mode === 'everyone') {
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                io.to(connectionId).emit('chatCleared', { clearedBy: userId, mode: 'everyone' });
+            } catch (_) {}
+        }
+
         res.json({ success: true, message: "Chat cleared successfully" });
     } catch (e) {
         console.error("Clear Chat Error", e);

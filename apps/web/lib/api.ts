@@ -122,7 +122,10 @@ export const api = {
     },
     chat: {
         getHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`),
-        clearHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`, { method: 'DELETE' }),
+        clearHistory: (connectionId: string, mode: 'me' | 'everyone' = 'me') => fetchAPI(`/messages/${connectionId}/history?mode=${mode}`, { 
+            method: 'DELETE',
+            body: JSON.stringify({ mode })
+        }),
         sendMessage: (connectionId: string, text: string, replyToId?: string) => fetchAPI(`/messages/${connectionId}/send`, {
             method: 'POST',
             body: JSON.stringify({ text, replyToId })

@@ -108,7 +108,7 @@ function DashboardContent() {
 
         const handleGlobalGameInvite = (data: { from: string; senderName: string }) => {
             // Ignore own invitations (User A should never see invitation popup for their own invite)
-            if (user?.id && data.from === user.id) return;
+            if (currentUser?.id && data.from === currentUser.id) return;
 
             setPendingGameInvite({ from: data.from, senderName: data.senderName });
         };

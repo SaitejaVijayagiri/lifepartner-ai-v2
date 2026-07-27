@@ -539,13 +539,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [dateLoading, setDateLoading] = useState(false);
 
     const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+    const [showClearChatModal, setShowClearChatModal] = useState(false);
 
-    const handleClearChat = async () => {
-        if (!confirm("Are you sure you want to clear this chat history? This cannot be undone.")) return;
+    const handleClearChat = async (mode: 'me' | 'everyone') => {
         try {
-            await api.chat.clearHistory(partner.id);
+            await api.chat.clearHistory(partner.id, mode);
             setMessages([]);
-            toast.success("Chat history cleared");
+            setShowClearChatModal(false);
+            toast.success(mode === 'everyone' ? "Chat cleared for everyone" : "Chat history cleared");
         } catch (e) {
             toast.error("Failed to clear chat history");
         }
@@ -883,12 +884,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             }
         };
 
+        const handleChatCleared = (data: { clearedBy: string }) => {
+            if (data.clearedBy === partner.id) {
+                setMessages([]);
+                toast.info(`${partner.name || 'Your partner'} cleared the chat history`);
+            }
+        };
+
         socket.on("receiveMessage", handleReceiveMessage);
         socket.on("typing", handleTyping);
         socket.on("updateMessageStatus", handleStatus);
         socket.on("messageLiked", handleLiked);
         socket.on("messageReaction", handleReaction);
         socket.on("messageDeleted", handleDeleted);
+        socket.on("chatCleared", handleChatCleared);
         socket.on("game_invite", handleGameInvite);
         socket.on("game_accept", handleGameAccept);
 
@@ -899,6 +908,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("messageLiked", handleLiked);
             socket.off("messageReaction", handleReaction);
             socket.off("messageDeleted", handleDeleted);
+            socket.off("chatCleared", handleChatCleared);
             socket.off("game_invite", handleGameInvite);
             socket.off("game_accept", handleGameAccept);
         };
@@ -1289,7 +1299,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         Send Gift
                                     </button>
                                     <button
-                                        onClick={() => { handleClearChat(); setShowHeaderMenu(false); }}
+                                        onClick={() => { setShowClearChatModal(true); setShowHeaderMenu(false); }}
                                         className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 transition-colors"
                                     >
                                         <Trash2 size={16} />
@@ -2419,6 +2429,43 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     </div>
                 );
             })()}
+
+            {showClearChatModal && (
+                <div className="fixed inset-0 z-[2010] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowClearChatModal(false)}>
+                    <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 text-center border-b border-gray-100 dark:border-gray-800">
+                            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                                <Trash2 size={24} />
+                            </div>
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">Clear Chat History</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+                                Choose how you want to clear chat history with <span className="font-semibold text-gray-700 dark:text-gray-300">{partner.name || 'this contact'}</span>.
+                            </p>
+                        </div>
+                        <div className="p-2.5 flex flex-col gap-1.5">
+                            <button 
+                                onClick={() => handleClearChat('me')} 
+                                className="w-full text-center p-3.5 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium transition-all"
+                            >
+                                Clear for me
+                            </button>
+                            <button 
+                                onClick={() => handleClearChat('everyone')} 
+                                className="w-full text-center p-3.5 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-bold transition-all"
+                            >
+                                Clear for everyone
+                            </button>
+                            <div className="h-px bg-gray-100 dark:bg-gray-800 my-0.5"></div>
+                            <button 
+                                onClick={() => setShowClearChatModal(false)} 
+                                className="w-full text-center p-3.5 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 font-medium transition-all"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showProfile && fullProfile && (
                 <ProfileModal

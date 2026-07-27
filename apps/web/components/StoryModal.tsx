@@ -3,6 +3,8 @@ import { useRouter } from 'next/navigation';
 import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
+import StoryMusicSticker from './StoryMusicSticker';
+import { MUSIC_CATALOG } from './StoryMusicStudio';
 
 interface Story {
     id: string;
@@ -73,6 +75,24 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         'party': { name: 'Club Party Beat 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
     };
 
+    const getParsedMusic = () => {
+        if (!story?.music) return null;
+        if (typeof story.music === 'object') return story.music;
+        if (typeof story.music === 'string') {
+            if (story.music.startsWith('{')) {
+                try { return JSON.parse(story.music); } catch (e) {}
+            }
+            const match = MUSIC_CATALOG.find(m => m.id === story.music);
+            if (match) return { ...match, startOffset: 15 };
+            if (MUSIC_TRACKS[story.music]) {
+                return { title: MUSIC_TRACKS[story.music].name, artist: 'Story Music', audioUrl: MUSIC_TRACKS[story.music].url, startOffset: 0 };
+            }
+        }
+        return null;
+    };
+
+    const parsedMusic = getParsedMusic();
+
     // Handle Music Playback
     useEffect(() => {
         if (audioRef.current) {
@@ -80,9 +100,9 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
             audioRef.current = null;
         }
 
-        if (story && story.music && MUSIC_TRACKS[story.music]) {
-            const track = MUSIC_TRACKS[story.music];
-            audioRef.current = new Audio(track.url);
+        if (parsedMusic && parsedMusic.audioUrl) {
+            audioRef.current = new Audio(parsedMusic.audioUrl);
+            audioRef.current.currentTime = parsedMusic.startOffset || 0;
             audioRef.current.volume = 0.5;
             audioRef.current.loop = true;
             
@@ -266,6 +286,13 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                         </button>
                     </div>
                 </div>
+
+                {/* Floating Instagram Style Music Badge */}
+                {parsedMusic && (
+                    <div className="absolute top-20 left-4 z-30 pointer-events-none">
+                        <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused} />
+                    </div>
+                )}
 
                 {/* Story Content */}
                 <div className="flex-1 flex items-center justify-center">

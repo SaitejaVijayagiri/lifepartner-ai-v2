@@ -4,6 +4,8 @@ import Cropper from 'react-easy-crop';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import StoryMusicStudio, { StoryMusicData } from './StoryMusicStudio';
+import StoryMusicSticker from './StoryMusicSticker';
 
 interface StoryCreatorProps {
     storyFiles: File[];
@@ -160,6 +162,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     // Music State
     const [isSelectingMusic, setIsSelectingMusic] = useState(false);
     const [selectedMusic, setSelectedMusic] = useState<string>('none');
+    const [customMusicData, setCustomMusicData] = useState<StoryMusicData | null>(null);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -179,6 +182,10 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
         if (!storyFiles || storyFiles.length === 0) return;
         setIsUploadingStory(true);
 
+        const musicPayload = customMusicData
+            ? JSON.stringify(customMusicData)
+            : (selectedMusic !== 'none' ? selectedMusic : '');
+
         try {
             let finalData: FormData | string;
 
@@ -188,12 +195,12 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                 storyFiles.forEach(file => {
                     formData.append('media', file);
                 });
-                if (selectedMusic !== 'none') formData.append('music', selectedMusic);
+                if (musicPayload) formData.append('music', musicPayload);
                 finalData = formData;
             } else if (storyFiles[0].type.startsWith('video')) {
                 const formData = new FormData();
                 formData.append('media', storyFiles[0]);
-                if (selectedMusic !== 'none') formData.append('music', selectedMusic);
+                if (musicPayload) formData.append('music', musicPayload);
                 
                 if (videoDuration > 0) {
                     formData.append('startTime', startTime.toString());
@@ -323,7 +330,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
 
                 const formData = new FormData();
                 formData.append('media', blob, storyFiles[0].name);
-                if (selectedMusic !== 'none') formData.append('music', selectedMusic);
+                if (musicPayload) formData.append('music', musicPayload);
                 finalData = formData;
             }
 
@@ -680,43 +687,29 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     </button>
                                 </div>
                             )}
+
+                {/* Floating Music Badge Preview */}
+                {customMusicData && !isAddingText && (
+                    <div className="absolute top-16 left-4 z-30 pointer-events-none">
+                        <StoryMusicSticker music={customMusicData} isPlaying={true} />
+                    </div>
+                )}
                 </div>
 
-                {/* Music Selector Panel */}
+                {/* Story Music Studio Modal */}
                 {isSelectingMusic && (
-                    <div className="absolute top-20 left-0 right-0 mx-4 bg-black/80 backdrop-blur-xl rounded-2xl p-4 z-40 border border-white/10 shadow-2xl animate-in slide-in-from-top-4">
-                        <h4 className="text-white font-bold mb-3 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                            Add Music
-                        </h4>
-                        <div className="flex flex-col gap-2 max-h-[40vh] overflow-y-auto no-scrollbar">
-                            {MUSIC_TRACKS.map(track => (
-                                <button
-                                    key={track.id}
-                                    onClick={() => {
-                                        handleMusicSelect(track.id, track.url);
-                                        if (track.id === 'none') setIsSelectingMusic(false);
-                                    }}
-                                    className={`flex items-center justify-between p-3 rounded-xl transition-all ${selectedMusic === track.id ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-400' : 'bg-white/5 hover:bg-white/10 text-white'}`}
-                                >
-                                    <span className="font-semibold">{track.name}</span>
-                                    {selectedMusic === track.id && (
-                                        <div className="flex gap-1 items-center h-4">
-                                            <div className="w-1 h-3 bg-indigo-500 animate-pulse rounded-full" style={{ animationDelay: '0ms' }} />
-                                            <div className="w-1 h-4 bg-indigo-500 animate-pulse rounded-full" style={{ animationDelay: '150ms' }} />
-                                            <div className="w-1 h-2 bg-indigo-500 animate-pulse rounded-full" style={{ animationDelay: '300ms' }} />
-                                        </div>
-                                    )}
-                                </button>
-                            ))}
-                        </div>
-                        <button 
-                            onClick={() => setIsSelectingMusic(false)}
-                            className="w-full mt-4 bg-white text-black font-bold py-2 rounded-xl"
-                        >
-                            Done
-                        </button>
-                    </div>
+                    <StoryMusicStudio
+                        currentMusic={customMusicData}
+                        onSelectMusic={(music) => {
+                            setCustomMusicData(music);
+                            if (music) {
+                                setSelectedMusic(music.id);
+                            } else {
+                                setSelectedMusic('none');
+                            }
+                        }}
+                        onClose={() => setIsSelectingMusic(false)}
+                    />
                 )}
 
                 {/* Filters & Actions Overlay */}

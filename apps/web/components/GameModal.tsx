@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, X, RefreshCw, MessageCircle, Trophy, VolumeX } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-import { useCall } from '@/context/CallContext';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -56,14 +55,14 @@ const DICE_DOTS: Record<number, string> = {
 
 export default function GameModal({ onClose, partnerName, partnerId, onSendChatMessage }: GameModalProps) {
     const toast = useToast();
-    const { startCall } = useCall();
     const { socket } = useSocket();
     const { user } = useAuth();
 
-    /* Presence & Connection State */
+    /* Presence & Microphone State */
     const [partnerStatus, setPartnerStatus] = useState<'connected' | 'waiting' | 'left'>('connected');
-    const [isVoiceActive, setIsVoiceActive] = useState(false);
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMicOn, setIsMicOn] = useState<boolean>(false);
+    const [isPartnerMicOn, setIsPartnerMicOn] = useState<boolean>(false);
+    const localStreamRef = useRef<MediaStream | null>(null);
 
     /* Turn Determination: Deterministic order so both sides agree who starts */
     const isHost = !partnerId || (user?.id ? user.id < partnerId : true);
@@ -79,20 +78,45 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         isHost ? "Your turn! Tap 'Roll 3D Dice' to begin." : `Waiting for ${partnerName} to roll...`
     );
 
-    /* Guard Ref: Auto-Connect Voice Stream EXACTLY ONCE on Mount */
-    const hasAutoCalledRef = useRef(false);
-    useEffect(() => {
-        if (!partnerId || hasAutoCalledRef.current) return;
-        hasAutoCalledRef.current = true;
+    /* Direct Local Microphone Stream Handler (No Phone Ringing) */
+    const toggleMicrophone = async () => {
+        if (!isMicOn) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStreamRef.current = stream;
+                setIsMicOn(true);
+                toast.success("Microphone On - Speaking Live 🎙️");
 
-        try {
-            startCall({ id: partnerId, name: partnerName }, 'audio');
-            setIsVoiceActive(true);
-            toast.success(`🎙️ Voice Connected with ${partnerName}!`);
-        } catch (e) {
-            console.error("Auto voice call error", e);
+                if (socket && partnerId) {
+                    socket.emit('game_voice', { to: partnerId, senderId: user?.id, active: true });
+                }
+            } catch (err) {
+                console.error("Mic access error", err);
+                toast.error("Could not access microphone.");
+            }
+        } else {
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(track => track.stop());
+                localStreamRef.current = null;
+            }
+            setIsMicOn(false);
+            toast.success("Microphone Muted 🎤");
+
+            if (socket && partnerId) {
+                socket.emit('game_voice', { to: partnerId, senderId: user?.id, active: false });
+            }
         }
-    }, [partnerId, partnerName, startCall, toast]);
+    };
+
+    /* Cleanup Microphone Tracks on Modal Unmount */
+    useEffect(() => {
+        return () => {
+            if (localStreamRef.current) {
+                localStreamRef.current.getTracks().forEach(track => track.stop());
+                localStreamRef.current = null;
+            }
+        };
+    }, []);
 
     /* Notify Partner on Mount & Unmount */
     useEffect(() => {
@@ -158,7 +182,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
         const handleRemoteVoice = (data: { from?: string; senderId?: string; active: boolean }) => {
             const sender = data.from || data.senderId;
             if (user?.id && sender !== user.id) {
-                setIsVoiceActive(data.active);
+                setIsPartnerMicOn(data.active);
             }
         };
 
@@ -174,25 +198,6 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
             socket.off('game_voice', handleRemoteVoice);
         };
     }, [socket, user?.id, partnerId, partnerName, toast]);
-
-    /* Toggle Live Voice Chat */
-    const toggleVoiceChat = () => {
-        const nextState = !isVoiceActive;
-        setIsVoiceActive(nextState);
-
-        if (socket && partnerId) {
-            socket.emit('game_voice', { to: partnerId, senderId: user?.id, active: nextState });
-        }
-
-        if (nextState) {
-            toast.success("Voice Chat enabled!");
-            if (partnerId) {
-                try { startCall({ id: partnerId, name: partnerName }, 'audio'); } catch (e) {}
-            }
-        } else {
-            toast.success("Voice Chat muted.");
-        }
-    };
 
     /* Handle Player Roll */
     const handleRollDice = () => {
@@ -278,7 +283,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
     return (
         <div className="fixed inset-0 w-screen h-screen z-[3000] bg-slate-950 backdrop-blur-2xl flex flex-col justify-between text-white font-sans overflow-hidden animate-in fade-in duration-200">
 
-            {/* ─── PREMIUM HEADER WITH AUDIO WAVE VISUALIZER ─── */}
+            {/* ─── HEADER BAR WITH DIRECT MIC TOGGLE ─── */}
             <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0 shadow-2xl z-20">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-500 to-indigo-600 flex items-center justify-center text-xl sm:text-2xl shadow-lg shadow-emerald-500/30 border border-emerald-400/30">
@@ -290,7 +295,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                             <span className="bg-emerald-500 text-white text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-extrabold shadow-sm">LIVE 2P</span>
                         </h1>
                         <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400">
-                            <span>Match: <strong className="text-white font-bold">{partnerName}</strong></span>
+                            <span>Playing with <strong className="text-white font-bold">{partnerName}</strong></span>
                             <span>•</span>
                             {partnerStatus === 'connected' ? (
                                 <span className="text-emerald-400 font-bold flex items-center gap-1">
@@ -305,20 +310,20 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                     </div>
                 </div>
 
-                {/* Seamless Voice Chat & Soundwave Visualizer */}
+                {/* Direct Microphone Toggle (No Phone Ringing) */}
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={toggleVoiceChat}
+                        onClick={toggleMicrophone}
                         className={`px-3 sm:px-4 py-2 rounded-2xl transition-all flex items-center gap-2 text-xs font-bold ${
-                            isVoiceActive
-                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
+                            isMicOn
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30 animate-pulse'
                                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
                         }`}
                     >
-                        {isVoiceActive ? <Volume2 size={16} className="animate-pulse" /> : <VolumeX size={16} />}
-                        <span className="hidden sm:inline">{isVoiceActive ? 'Voice Active' : 'Enable Voice'}</span>
+                        {isMicOn ? <Mic size={16} className="text-white" /> : <MicOff size={16} className="text-slate-400" />}
+                        <span className="hidden sm:inline">{isMicOn ? 'Mic On (Live)' : 'Mic Off'}</span>
 
-                        {isVoiceActive && !isMuted && (
+                        {isMicOn && (
                             <div className="flex items-end gap-0.5 h-3.5 ml-1">
                                 <span className="w-1 bg-white rounded-full animate-bounce h-full"></span>
                                 <span className="w-1 bg-white rounded-full animate-bounce [animation-delay:0.15s] h-3/4"></span>
@@ -326,16 +331,6 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                             </div>
                         )}
                     </button>
-
-                    {isVoiceActive && (
-                        <button
-                            onClick={() => setIsMuted(!isMuted)}
-                            className={`p-2 rounded-2xl text-white transition-all ${isMuted ? 'bg-red-500 shadow-lg shadow-red-500/40' : 'bg-slate-800 border border-slate-700 hover:bg-slate-700'}`}
-                            title={isMuted ? "Unmute Microphone" : "Mute Microphone"}
-                        >
-                            {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
-                        </button>
-                    )}
 
                     <button
                         onClick={onClose}
@@ -346,19 +341,23 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                 </div>
             </div>
 
-            {/* Live Audio Banner */}
-            {isVoiceActive && (
-                <div className="bg-emerald-500/10 px-4 py-1.5 border-b border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-400 font-bold shrink-0">
-                    <div className="flex items-center gap-2">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                        </span>
-                        Voice Chat Connected • Talk live with {partnerName}
-                    </div>
-                    <span className="bg-emerald-950/60 text-emerald-300 px-2 py-0.5 rounded-full text-[10px]">{isMuted ? 'Mic Muted' : 'Mic Active'}</span>
+            {/* In-Game Status Banner */}
+            <div className="bg-slate-900/60 px-4 py-1.5 border-b border-slate-800/80 flex items-center justify-between text-[11px] text-slate-300 font-bold shrink-0">
+                <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Direct Audio Channel Active • Tap Mic button anytime to speak
                 </div>
-            )}
+                <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${isMicOn ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'}`}>
+                        Your Mic: {isMicOn ? 'ON 🎙️' : 'OFF 🎤'}
+                    </span>
+                    {isPartnerMicOn && (
+                        <span className="bg-teal-950 text-teal-300 border border-teal-500/40 px-2 py-0.5 rounded-full text-[10px]">
+                            {partnerName}'s Mic: ON 🔊
+                        </span>
+                    )}
+                </div>
+            </div>
 
             {/* ─── MAIN ARENA BOARD ─── */}
             <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-y-auto max-w-2xl mx-auto w-full">
@@ -386,7 +385,7 @@ export default function GameModal({ onClose, partnerName, partnerId, onSendChatM
                     </div>
                 </div>
 
-                {/* 100-SQUARE BOARD CONTAINER WITH PIXEL-PERFECT SVG PATHS */}
+                {/* 100-SQUARE BOARD CONTAINER WITH SVG OVERLAY */}
                 <div className="w-full max-w-[360px] sm:max-w-[440px] aspect-square bg-slate-900 border-4 border-amber-500/80 rounded-3xl shadow-2xl p-1.5 grid grid-cols-10 grid-rows-10 gap-0.5 relative shrink-0 overflow-hidden">
                     
                     {/* PIXEL-PERFECT SVG OVERLAY (viewBox 0 0 100 100) */}

@@ -101,6 +101,22 @@ function DashboardContent() {
     /* Game State - for connections list */
     const [gameTarget, setGameTarget] = useState<{ id: string; name: string } | null>(null);
 
+    /* Global Game Invitation & Auto-Join Socket Listener */
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleGlobalGameInvite = (data: { from: string; senderName: string; gameType?: string }) => {
+            toast.success(`🎮 ${data.senderName} invited you to play Snakes & Ladders! Joining...`);
+            setGameTarget({ id: data.from, name: data.senderName });
+            socket.emit("game_accept", { to: data.from });
+        };
+
+        socket.on("game_invite", handleGlobalGameInvite);
+        return () => {
+            socket.off("game_invite", handleGlobalGameInvite);
+        };
+    }, [socket, toast]);
+
     const togglePushNotifications = async () => {
         const newState = !pushEnabled;
         setPushEnabled(newState);
@@ -1351,6 +1367,7 @@ function DashboardContent() {
                 <GameModal
                     onClose={() => setGameTarget(null)}
                     partnerName={gameTarget.name}
+                    partnerId={gameTarget.id}
                 />
             )}
 

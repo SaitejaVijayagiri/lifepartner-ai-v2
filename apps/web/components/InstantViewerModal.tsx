@@ -10,6 +10,7 @@ interface InstantViewerModalProps {
     onClose: () => void;
     onViewed?: (instantId: string) => void;
     onDeleted?: (instantId: string) => void;
+    onSnapBack?: (senderId: string, senderName: string) => void;
     isOwn?: boolean;
 }
 
@@ -18,12 +19,14 @@ export default function InstantViewerModal({
     onClose,
     onViewed,
     onDeleted,
+    onSnapBack,
     isOwn
 }: InstantViewerModalProps) {
     const toast = useToast();
     const [mediaUrl, setMediaUrl] = useState<string | null>(null);
     const [caption, setCaption] = useState<string | null>(null);
     const [senderId, setSenderId] = useState<string | null>(null);
+    const [senderName, setSenderName] = useState<string>('User');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(100);
@@ -31,6 +34,7 @@ export default function InstantViewerModal({
     const [showViewers, setShowViewers] = useState(false);
     const [viewersList, setViewersList] = useState<any[]>([]);
     const [loadingViewers, setLoadingViewers] = useState(false);
+    const [isScreenBlurred, setIsScreenBlurred] = useState(false);
     const touchDistRef = useRef<number | null>(null);
 
     const VIEW_DURATION_MS = 7000; // 7 seconds viewing time
@@ -82,6 +86,7 @@ export default function InstantViewerModal({
                     setMediaUrl(res.instant.mediaUrl);
                     setCaption(res.instant.caption || null);
                     setSenderId(res.instant.senderId);
+                    setSenderName(res.instant.senderName || 'User');
                     if (onViewed) onViewed(instantId);
                 } else if (res?.error) {
                     setError(res.error);
@@ -102,8 +107,23 @@ export default function InstantViewerModal({
 
         fetchAndViewInstant();
 
+        // Privacy Blur Guard: blur snap if window loses focus / app goes background
+        const handleBlur = () => setIsScreenBlurred(true);
+        const handleFocus = () => setIsScreenBlurred(false);
+        const handleVisibility = () => {
+            if (document.hidden) setIsScreenBlurred(true);
+            else setIsScreenBlurred(false);
+        };
+
+        window.addEventListener('blur', handleBlur);
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibility);
+
         return () => {
             isMounted = false;
+            window.removeEventListener('blur', handleBlur);
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, [instantId]);
 
@@ -230,12 +250,21 @@ export default function InstantViewerModal({
                                     transform: `scale(${viewerZoom})`,
                                     transition: 'transform 0.15s ease-out'
                                 }}
-                                className="w-full h-full object-cover select-none pointer-events-none"
+                                className={`w-full h-full object-cover select-none pointer-events-none transition-all ${isScreenBlurred ? 'blur-2xl opacity-20' : ''}`}
                                 onContextMenu={e => e.preventDefault()}
                             />
 
+                            {/* Screen Unfocused Privacy Overlay */}
+                            {isScreenBlurred && (
+                                <div className="absolute inset-0 z-40 bg-black/85 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
+                                    <ShieldAlert className="w-12 h-12 text-amber-400 mb-3 animate-pulse" />
+                                    <h4 className="text-white font-bold text-base">Snap Hidden for Privacy</h4>
+                                    <p className="text-xs text-slate-400 mt-1 max-w-xs">Return focus to this tab to resume viewing.</p>
+                                </div>
+                            )}
+
                             {/* Caption Overlay */}
-                            {caption && (
+                            {caption && !isScreenBlurred && (
                                 <div className="absolute bottom-16 inset-x-6 bg-black/70 backdrop-blur-md px-4 py-3 rounded-2xl text-center text-white text-sm font-medium border border-white/10 shadow-2xl">
                                     {caption}
                                 </div>
@@ -244,20 +273,35 @@ export default function InstantViewerModal({
                     )}
                 </div>
 
-                {/* Bottom Security Footer */}
+                {/* Bottom Security & Actions Footer */}
                 <div className="relative z-30 px-4 py-3 bg-black/90 border-t border-slate-900 text-center text-[10px] text-slate-400 flex items-center justify-between">
                     <div className="flex items-center space-x-1.5">
                         <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                        <span>View Once Security Active</span>
+                        <span>View Once Active</span>
                     </div>
 
-                    <button
-                        onClick={handleOpenViewers}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors border border-slate-800"
-                    >
-                        <Eye className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Viewers</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                        {!isOwn && senderId && onSnapBack && (
+                            <button
+                                onClick={() => {
+                                    handleClose();
+                                    onSnapBack(senderId, senderName);
+                                }}
+                                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold text-xs shadow-lg transition-transform active:scale-95"
+                            >
+                                <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                                <span>Snap Back</span>
+                            </button>
+                        )}
+
+                        <button
+                            onClick={handleOpenViewers}
+                            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors border border-slate-800"
+                        >
+                            <Eye className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Viewers</span>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Viewers Bottom Sheet Drawer */}

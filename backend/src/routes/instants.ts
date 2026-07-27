@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { uploadToCloudinary, deleteFromCloudinary } from '../services/cloudinaryStorage';
+import { getIO } from '../socket';
 
 const router = express.Router();
 
@@ -101,6 +102,16 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
                         delivery_status: 'sent'
                     }
                 });
+
+                try {
+                    const io = getIO();
+                    if (io) {
+                        io.to(receiverId).emit('instant:new', {
+                            instantId: createdInstant.id,
+                            senderId: userId
+                        });
+                    }
+                } catch (sErr) {}
             } catch (msgErr: any) {
                 console.warn('[Instants] Failed to inject chat message for instant:', msgErr.message);
             }

@@ -1896,6 +1896,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <InstantViewerModal
                     instantId={viewingInstantId}
                     onClose={() => setViewingInstantId(null)}
+                    onSnapBack={() => {
+                        setShowInstantCamera(true);
+                    }}
                 />
             )}
             

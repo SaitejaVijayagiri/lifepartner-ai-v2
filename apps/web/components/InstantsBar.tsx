@@ -28,6 +28,8 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
     const [showCamera, setShowCamera] = useState(false);
     const [viewingInstantId, setViewingInstantId] = useState<string | null>(null);
 
+    const [snapBackRecipient, setSnapBackRecipient] = useState<{ id: string; name: string } | null>(null);
+
     const fetchInstants = async () => {
         try {
             const res = await api.get('/instants/feed');
@@ -138,9 +140,15 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
             {/* Camera Modal */}
             {showCamera && (
                 <InstantCameraModal
-                    onClose={() => setShowCamera(false)}
+                    recipientId={snapBackRecipient?.id}
+                    recipientName={snapBackRecipient?.name}
+                    onClose={() => {
+                        setShowCamera(false);
+                        setSnapBackRecipient(null);
+                    }}
                     onSuccess={() => {
                         fetchInstants();
+                        setSnapBackRecipient(null);
                     }}
                 />
             )}
@@ -156,6 +164,10 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                         onViewed={handleInstantViewed}
                         onDeleted={(deletedId) => {
                             setInstants(prev => prev.filter(i => i.id !== deletedId));
+                        }}
+                        onSnapBack={(senderId, senderName) => {
+                            setSnapBackRecipient({ id: senderId, name: senderName });
+                            setShowCamera(true);
                         }}
                     />
                 );

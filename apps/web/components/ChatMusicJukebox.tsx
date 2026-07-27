@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Disc, Heart, Repeat, Share2, ExternalLink } from 'lucide-react';
+import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Disc, Heart, Repeat, Share2 } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 
 interface ChatMusicJukeboxProps {
@@ -33,8 +33,9 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
     const [duration, setDuration] = useState(30);
     const [isMuted, setIsMuted] = useState(false);
 
-    // Video Player State
+    // Native Video Player State
     const [videoId, setVideoId] = useState<string | null>(null);
+    const [directVideoUrl, setDirectVideoUrl] = useState<string | null>(null);
     const [isVideoLoading, setIsVideoLoading] = useState(false);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -79,32 +80,38 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         }
     };
 
-    // Resolve real YouTube Video ID for the selected track
+    // Resolve direct MP4 stream or video ID for native in-chat video playback
     const fetchVideoForTrack = async (artist: string, title: string) => {
         setIsVideoLoading(true);
         setVideoId(null);
+        setDirectVideoUrl(null);
         try {
             const query = `${artist} ${title} official music video`;
-            const res = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0 && data[0].videoId) {
-                setVideoId(data[0].videoId);
+            const searchRes = await fetch(`https://invidious.privacydev.net/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+            const searchData = await searchRes.json();
+
+            if (Array.isArray(searchData) && searchData.length > 0 && searchData[0].videoId) {
+                const vId = searchData[0].videoId;
+                setVideoId(vId);
+
+                // Fetch direct MP4 stream URL for 100% native HTML5 video playback
+                try {
+                    const streamRes = await fetch(`https://invidious.privacydev.net/api/v1/videos/${vId}`);
+                    const streamData = await streamRes.json();
+                    if (streamData.formatStreams && Array.isArray(streamData.formatStreams)) {
+                        const mp4Stream = streamData.formatStreams.find((s: any) => s.container === 'mp4' || s.quality === '720p' || s.quality === '360p');
+                        if (mp4Stream?.url) {
+                            setDirectVideoUrl(mp4Stream.url);
+                        }
+                    }
+                } catch (err) {}
             }
         } catch (e) {
-            console.warn('[Jukebox] Video ID fetch error:', e);
+            console.warn('[Jukebox] Video resolution error:', e);
         } finally {
             setIsVideoLoading(false);
         }
     };
-
-    useEffect(() => {
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        if (searchQuery.trim().length > 1) {
-            searchTimeoutRef.current = setTimeout(() => {
-                searchMusicAPI(searchQuery);
-            }, 300);
-        }
-    }, [searchQuery]);
 
     const handleSelectMood = (moodName: string, query: string) => {
         setSelectedMood(moodName);
@@ -184,8 +191,6 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const ytSearchUrl = activeTrack ? `https://www.youtube.com/results?search_query=${encodeURIComponent(activeTrack.artist + ' ' + activeTrack.title + ' official music video')}` : '';
-
     const modalMarkup = (
         <div className="fixed inset-0 z-[999999] w-screen h-screen w-full h-full min-h-[100vh] bg-slate-950/95 backdrop-blur-2xl flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200">
             {/* Header */}
@@ -196,10 +201,10 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     </span>
                     <div>
                         <h3 className="font-bold text-base text-white flex items-center gap-2">
-                            <span>Chat Vibe & Music Videos</span>
+                            <span>Chat Vibe Music & Video Player</span>
                             <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
                         </h3>
-                        <p className="text-xs text-slate-400">Vibe together with music & videos inside chat</p>
+                        <p className="text-xs text-slate-400">Play full audio songs & watch music videos directly in chat</p>
                     </div>
                 </div>
 
@@ -217,9 +222,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
             {/* View Mode Switcher Tabs */}
             <div className="flex items-center justify-center p-3 bg-slate-950 border-b border-slate-900 gap-3">
                 <button
-                    onClick={() => {
-                        setActiveTab('audio');
-                    }}
+                    onClick={() => setActiveTab('audio')}
                     className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 ${
                         activeTab === 'audio'
                             ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
@@ -227,7 +230,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     }`}
                 >
                     <Music className="w-4 h-4" />
-                    <span>🎶 Music Vibe Jukebox</span>
+                    <span>🎶 Full Audio Songs</span>
                 </button>
 
                 <button
@@ -243,7 +246,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     }`}
                 >
                     <Tv className="w-4 h-4" />
-                    <span>📺 Watch Music Videos</span>
+                    <span>📺 Watch In-Chat Video</span>
                 </button>
             </div>
 
@@ -358,40 +361,46 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                     </div>
                 </>
             ) : (
-                /* Watch Video Mode Player */
+                /* Native HTML5 In-Chat Music Video Player */
                 <div className="flex-1 flex flex-col items-center justify-center p-4 bg-black relative">
                     {activeTrack ? (
                         <div className="w-full max-w-2xl bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col">
                             {/* Video Display Container */}
                             <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                                 {isVideoLoading ? (
-                                    <div className="flex flex-col items-center space-y-2 text-pink-400 text-xs">
+                                    <div className="flex flex-col items-center space-y-3 text-pink-400 text-xs">
                                         <Loader2 className="w-8 h-8 animate-spin" />
-                                        <span>Loading official music video...</span>
+                                        <span>Fetching official music video stream...</span>
                                     </div>
+                                ) : directVideoUrl ? (
+                                    <video
+                                        src={directVideoUrl}
+                                        controls
+                                        autoPlay
+                                        playsInline
+                                        className="w-full h-full object-contain bg-black"
+                                    />
                                 ) : videoId ? (
                                     <iframe
                                         src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
                                         className="w-full h-full border-0"
-                                        allow="autoplay; encrypted-media"
+                                        allow="autoplay; encrypted-media; picture-in-picture"
                                         allowFullScreen
                                         title={activeTrack.title}
                                     />
                                 ) : (
-                                    <div className="flex flex-col items-center space-y-3 p-6 text-center">
-                                        <img src={activeTrack.coverUrl} className="w-20 h-20 rounded-2xl object-cover shadow-lg mb-1" />
-                                        <h4 className="font-bold text-base text-white">{activeTrack.title}</h4>
-                                        <p className="text-xs text-slate-400">{activeTrack.artist}</p>
-                                        <a
-                                            href={ytSearchUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold text-xs flex items-center space-x-2 shadow-lg hover:scale-105 transition-transform"
-                                        >
-                                            <Tv className="w-4 h-4" />
-                                            <span>Watch Official Video on YouTube</span>
-                                            <ExternalLink className="w-3.5 h-3.5" />
-                                        </a>
+                                    <div className="flex flex-col items-center justify-center p-6 text-center space-y-4">
+                                        <div className="relative">
+                                            <img src={activeTrack.coverUrl} className="w-28 h-28 rounded-3xl object-cover shadow-2xl border-2 border-pink-500/50" />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-3xl">
+                                                <Music className="w-10 h-10 text-pink-400 animate-pulse" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-base text-white">{activeTrack.title}</h4>
+                                            <p className="text-xs text-slate-400">{activeTrack.artist}</p>
+                                        </div>
+                                        <audio src={activeTrack.audioUrl} controls autoPlay loop className="w-full max-w-sm mt-2 accent-pink-500" />
                                     </div>
                                 )}
                             </div>
@@ -402,36 +411,24 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                     <img src={activeTrack.coverUrl} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
                                     <div className="min-w-0">
                                         <h4 className="font-bold text-sm text-white truncate">{activeTrack.title}</h4>
-                                        <p className="text-xs text-slate-400 truncate">{activeTrack.artist} • Official Music Video</p>
+                                        <p className="text-xs text-slate-400 truncate">{activeTrack.artist} • In-Chat Native Video</p>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center space-x-2 flex-shrink-0">
-                                    <a
-                                        href={ytSearchUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                                        title="Open in YouTube"
+                                {onShareTrackToChat && (
+                                    <button
+                                        onClick={() => onShareTrackToChat({
+                                            title: activeTrack.title,
+                                            artist: activeTrack.artist,
+                                            coverUrl: activeTrack.coverUrl,
+                                            audioUrl: activeTrack.audioUrl
+                                        })}
+                                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0"
                                     >
-                                        <ExternalLink className="w-4 h-4" />
-                                    </a>
-
-                                    {onShareTrackToChat && (
-                                        <button
-                                            onClick={() => onShareTrackToChat({
-                                                title: activeTrack.title,
-                                                artist: activeTrack.artist,
-                                                coverUrl: activeTrack.coverUrl,
-                                                audioUrl: activeTrack.audioUrl
-                                            })}
-                                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg"
-                                        >
-                                            <Send className="w-4 h-4" />
-                                            <span>Share Video to Chat</span>
-                                        </button>
-                                    )}
-                                </div>
+                                        <Send className="w-4 h-4" />
+                                        <span>Share to Chat</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ) : (

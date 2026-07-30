@@ -879,16 +879,6 @@ function DashboardContent() {
                         </button>
                     )}
 
-                    {/* ⚡ Instant Gender Speed Match Button */}
-                    <button
-                        onClick={() => setShowSpeedDatingLobby(true)}
-                        className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white px-3 py-1.5 rounded-full text-xs font-black transition-all shadow-md hover:scale-105 active:scale-95 border border-white/20 shrink-0"
-                        title="Instant 1-Click Speed Match (Male ↔ Female)"
-                    >
-                        <Zap size={14} className="fill-white text-white animate-pulse" />
-                        <span>⚡ Instant Match</span>
-                    </button>
-
 
 
 

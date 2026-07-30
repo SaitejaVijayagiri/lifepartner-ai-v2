@@ -15,16 +15,19 @@ const fontSans = DM_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 const fontHeading = Playfair_Display({
   variable: "--font-heading",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const fontMono = Roboto_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -81,10 +84,16 @@ export const metadata: Metadata = {
     siteName: "LifePartner AI",
     images: [
       {
-        url: "https://lifepartnerai.in/og-image.jpg",
+        url: "https://lifepartnerai.in/opengraph-image",
         width: 1200,
         height: 630,
         alt: "LifePartner AI - #1 Trusted Worldwide Matrimony & Dating App",
+      },
+      {
+        url: "https://lifepartnerai.in/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "LifePartner AI - #1 Matrimony & Matchmaking Platform",
       },
     ],
   },
@@ -92,7 +101,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "LifePartner AI | Best Free Matrimony & Dating App in India",
     description: "Join 10,000+ verified singles finding love on LifePartner AI. The smarter, safer alternative to Shaadi, Jeevansathi, and dating apps.",
-    images: ["https://lifepartnerai.in/og-image.jpg"],
+    images: ["https://lifepartnerai.in/opengraph-image", "https://lifepartnerai.in/og-image.jpg"],
   },
   category: "Dating Application",
   other: {
@@ -131,6 +140,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <meta name="theme-color" content="#4F46E5" />
         <meta name="google-site-verification" content="h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
@@ -141,9 +153,12 @@ export default function RootLayout({
           }
         `}</Script>
 
-        {/* Google AdSense - Real ID */}
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355"
-          crossOrigin="anonymous"></script>
+        {/* Google AdSense - Asynchronous Non-blocking strategy */}
+        <Script
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
 
         {/* Google Analytics (GA4) */}
         <Script

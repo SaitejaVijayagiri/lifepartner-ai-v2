@@ -38,7 +38,7 @@ export class SpeedDatingManager {
         }
     }
 
-    public async joinLobby(socket: Socket, userId: string) {
+    public async joinLobby(socket: Socket, userId: string, targetGender?: string) {
         if (this.activeMatches.has(userId)) {
             socket.emit('speed_date_error', { message: "You are already in an active session." });
             return;
@@ -71,15 +71,18 @@ export class SpeedDatingManager {
         } else if (gender === 'female') {
             this.femaleQueue.set(userId, queuedUser);
         } else {
-            socket.emit('speed_date_error', { message: "Gender matching restriction applies." });
-            return;
+            // Default non-binary or unassigned to male queue for matchmaking
+            this.maleQueue.set(userId, queuedUser);
         }
 
         socket.join('speed_dating_lobby');
-        socket.emit('speed_date_joined', { message: "Joined Lobby. Searching for a match..." });
+        socket.emit('speed_date_joined', { message: "Joined Lobby. Searching for an instant match..." });
         
         console.log(`[SPEED DATING] ${userId} (${gender}) joined. Lobby Stats: M:${this.maleQueue.size} F:${this.femaleQueue.size}`);
         this.broadcastLobbyStats();
+
+        // Trigger Zero-Wait Instant Matchmaking immediately
+        this.processMatchmaking();
     }
 
     public leaveLobby(socketId: string, userId?: string) {
@@ -113,9 +116,10 @@ export class SpeedDatingManager {
     private broadcastLobbyStats() {
         if (this.io) {
             const count = this.maleQueue.size + this.femaleQueue.size;
-            // Also notify dashboard?
             this.io.to('speed_dating_lobby').emit('speed_date_stats', { 
-                waitingCount: count 
+                waitingCount: count,
+                maleCount: this.maleQueue.size,
+                femaleCount: this.femaleQueue.size
             });
         }
     }

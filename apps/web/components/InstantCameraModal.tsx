@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Camera, RefreshCw, X, Sparkles, Send, Upload, Image as ImageIcon, Zap, Check } from 'lucide-react';
+import { Camera, RefreshCw, X, Sparkles, Send, Upload, Image as ImageIcon, Zap, Check, Music } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
@@ -11,6 +11,7 @@ interface InstantCameraModalProps {
     onSuccess: () => void;
     recipientId?: string;
     recipientName?: string;
+    initialMusicTrack?: { title: string; artist: string; coverUrl: string; audioUrl: string } | null;
 }
 
 const FILTERS = [
@@ -26,7 +27,8 @@ export default function InstantCameraModal({
     onClose,
     onSuccess,
     recipientId,
-    recipientName
+    recipientName,
+    initialMusicTrack = null
 }: InstantCameraModalProps) {
     const toast = useToast();
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -38,6 +40,7 @@ export default function InstantCameraModal({
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [caption, setCaption] = useState('');
     const [selectedFilter, setSelectedFilter] = useState('none');
+    const [selectedMusicTrack, setSelectedMusicTrack] = useState<{ title: string; artist: string; coverUrl: string; audioUrl: string } | null>(initialMusicTrack);
     const [isUploading, setIsUploading] = useState(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [zoom, setZoom] = useState<number>(1);
@@ -217,9 +220,13 @@ export default function InstantCameraModal({
 
         setIsUploading(true);
         try {
+            const finalCaption = selectedMusicTrack
+                ? `${caption.trim()} [🎵 ${selectedMusicTrack.title} - ${selectedMusicTrack.artist}]`.trim()
+                : caption.trim();
+
             const res = await api.post('/instants', {
                 mediaUrl: capturedImage,
-                caption: caption.trim(),
+                caption: finalCaption,
                 receiverId: recipientId || null
             });
 
@@ -265,6 +272,20 @@ export default function InstantCameraModal({
                         <X className="w-5 h-5" />
                     </button>
                 </div>
+
+                {selectedMusicTrack && (
+                    <div className="absolute top-16 left-4 z-30 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-300 text-xs font-bold shadow-lg animate-pulse">
+                        <Music size={14} className="text-amber-400" />
+                        <span className="truncate max-w-[180px]">{selectedMusicTrack.title} • {selectedMusicTrack.artist}</span>
+                        <button
+                            onClick={() => setSelectedMusicTrack(null)}
+                            className="p-0.5 hover:text-white rounded-full ml-1"
+                            title="Remove Music"
+                        >
+                            <X size={12} />
+                        </button>
+                    </div>
+                )}
 
                 {/* View Finder / Captured Image Display */}
                 <div

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Heart, X, Zap } from 'lucide-react';
+import { Heart, X, Zap, Sparkles, UserCheck } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
 
@@ -12,13 +12,16 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
     const { socket } = useSocket();
     const toast = useToast();
     const [waitingCount, setWaitingCount] = useState(0);
+    const [maleCount, setMaleCount] = useState(0);
+    const [femaleCount, setFemaleCount] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
+    const [targetGender, setTargetGender] = useState<'female' | 'male' | 'any'>('any');
 
     useEffect(() => {
         if (!socket) return;
 
         // Join Lobby
-        socket.emit('join_speed_dating_lobby');
+        socket.emit('join_speed_dating_lobby', { targetGender });
         setIsSearching(true);
 
         const handleJoined = (data: any) => {
@@ -27,7 +30,6 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
 
         const handleMatchFound = (data: { partner: any, initiator: boolean }) => {
             setIsSearching(false);
-            // Play success sound
             const audio = new Audio('/sounds/match.mp3');
             audio.play().catch(() => {});
             
@@ -35,8 +37,10 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
             onMatchFound(data.partner, data.initiator);
         };
 
-        const handleStats = (data: { waitingCount: number }) => {
+        const handleStats = (data: { waitingCount: number; maleCount?: number; femaleCount?: number }) => {
             setWaitingCount(data.waitingCount);
+            if (typeof data.maleCount === 'number') setMaleCount(data.maleCount);
+            if (typeof data.femaleCount === 'number') setFemaleCount(data.femaleCount);
         };
 
         const handleError = (data: { message: string }) => {
@@ -56,18 +60,18 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
             socket.off('speed_date_stats', handleStats);
             socket.off('speed_date_error', handleError);
         };
-    }, [socket, onClose, onMatchFound, toast]);
+    }, [socket, targetGender, onClose, onMatchFound, toast]);
 
     return (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-300">
             <button
                 onClick={onClose}
-                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-105 active:scale-95 shadow-md"
+                className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all hover:scale-105 active:scale-95 shadow-md z-20"
             >
                 <X size={24} />
             </button>
 
-            <div className="max-w-md w-full bg-gradient-to-b from-slate-900 via-slate-900 to-purple-950/20 border border-white/10 rounded-3xl p-8 text-center relative overflow-hidden shadow-2xl">
+            <div className="max-w-md w-full bg-gradient-to-b from-slate-900 via-slate-900 to-purple-950/40 border border-white/15 rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden shadow-2xl">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -81,28 +85,85 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                 )}
 
                 <div className="relative z-10">
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_35px_rgba(139,92,246,0.6)] border border-white/20">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-pink-500 via-rose-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-[0_0_35px_rgba(244,63,94,0.6)] border border-white/20">
                         <Zap size={32} className="text-white animate-pulse" />
                     </div>
 
-                    <h2 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-pink-200 mb-2 tracking-tight">Speed Dating</h2>
-                    <p className="text-gray-300 text-sm mb-8 leading-relaxed font-medium">
-                        Finding an available partner for a blind 3-minute chat...
+                    <h2 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-pink-200 mb-1 tracking-tight">Instant Speed Match</h2>
+                    <p className="text-gray-300 text-xs sm:text-sm mb-5 leading-relaxed font-medium">
+                        Instant 1-click blind connection between male & female members.
                     </p>
 
-                    <div className="bg-emerald-500/5 rounded-2xl p-6 border border-emerald-500/15 mb-8 backdrop-blur-md">
-                        <div className="flex items-center justify-center gap-3 text-emerald-400 mb-1.5">
-                            <span className="relative flex h-3.5 w-3.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
-                            </span>
-                            <span className="font-extrabold text-3xl tracking-tight drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">{waitingCount}</span>
-                        </div>
-                        <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-black">Users Online Waiting</p>
+                    {/* Gender Preference Tabs */}
+                    <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-white/10 mb-5">
+                        <button
+                            onClick={() => setTargetGender('female')}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 ${
+                                targetGender === 'female'
+                                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            <span>👩 Seek Female</span>
+                        </button>
+
+                        <button
+                            onClick={() => setTargetGender('male')}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 ${
+                                targetGender === 'male'
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            <span>👨 Seek Male</span>
+                        </button>
+
+                        <button
+                            onClick={() => setTargetGender('any')}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 ${
+                                targetGender === 'any'
+                                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            <span>💖 Any</span>
+                        </button>
                     </div>
 
-                    <p className="text-xs text-indigo-300 dark:text-indigo-400 italic bg-indigo-500/5 p-3 rounded-lg border border-indigo-500/10">
-                        ⚡ Tip: You will have exactly 180 seconds once matched. Trust your instincts!
+                    {/* Active Queue Statistics */}
+                    <div className="grid grid-cols-2 gap-3 mb-5">
+                        <div className="bg-pink-500/10 rounded-2xl p-3 border border-pink-500/20 backdrop-blur-md text-center">
+                            <span className="text-xl font-black text-pink-400">{femaleCount || 1}</span>
+                            <p className="text-[10px] font-bold text-pink-300 uppercase tracking-wider mt-0.5">Females Online</p>
+                        </div>
+                        <div className="bg-indigo-500/10 rounded-2xl p-3 border border-indigo-500/20 backdrop-blur-md text-center">
+                            <span className="text-xl font-black text-indigo-400">{maleCount || 1}</span>
+                            <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider mt-0.5">Males Online</p>
+                        </div>
+                    </div>
+
+                    {/* Instant AI Date Companion Fallback Button */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const isFemaleTarget = targetGender === 'female';
+                            onMatchFound({
+                                id: `ai_speed_date_${Date.now()}`,
+                                name: isFemaleTarget ? "Aria (AI Speed Match)" : "Alex (AI Speed Match)",
+                                photoUrl: isFemaleTarget 
+                                    ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" 
+                                    : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500",
+                                location: "Virtual Match Lounge"
+                            }, true);
+                        }}
+                        className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-white font-black text-xs shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2 border border-white/20 cursor-pointer"
+                    >
+                        <Sparkles size={16} />
+                        <span>Instant Match Now with AI Companion ✨</span>
+                    </button>
+
+                    <p className="text-[10px] text-gray-400 italic mt-3">
+                        ⚡ Tip: 3-minute blind interactive date. Real-time audio & WebRTC enabled!
                     </p>
                 </div>
             </div>

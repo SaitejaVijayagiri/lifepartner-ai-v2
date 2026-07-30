@@ -107,8 +107,9 @@ function DashboardContent() {
         if (!socket) return;
 
         const handleGlobalGameInvite = (data: { from: string; senderName: string }) => {
-            // Ignore own invitations (User A should never see invitation popup for their own invite)
+            // Ignore own invitations or if user is already in a game with this partner
             if (currentUser?.id && data.from === currentUser.id) return;
+            if (gameTarget && gameTarget.id === data.from) return;
 
             setPendingGameInvite({ from: data.from, senderName: data.senderName });
         };
@@ -877,6 +878,16 @@ function DashboardContent() {
                             <span>{currentUser.coins || 0}</span>
                         </button>
                     )}
+
+                    {/* ⚡ Instant Gender Speed Match Button */}
+                    <button
+                        onClick={() => setShowSpeedDatingLobby(true)}
+                        className="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white px-3 py-1.5 rounded-full text-xs font-black transition-all shadow-md hover:scale-105 active:scale-95 border border-white/20"
+                        title="Instant 1-Click Speed Match (Male ↔ Female)"
+                    >
+                        <Zap size={14} className="fill-white text-white animate-pulse" />
+                        <span className="hidden sm:inline">⚡ Instant Match</span>
+                    </button>
 
 
 

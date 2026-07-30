@@ -385,6 +385,30 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
+        socket.on("game_sync_request", ({ to }) => {
+            if (to) {
+                io.to(to).emit("game_sync_request", { from: userId });
+            }
+        });
+
+        socket.on("game_sync_response", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("game_sync_response", { ...data, from: userId });
+            }
+        });
+
+        socket.on("music_play_sync", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("music_play_sync", { ...data, from: userId });
+            }
+        });
+
+        socket.on("incognito_toggle", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("incognito_toggle", { ...data, from: userId });
+            }
+        });
+
         /**
          * SPEED DATING LOGIC
          */

@@ -126,9 +126,9 @@ export const api = {
             method: 'DELETE',
             body: JSON.stringify({ mode })
         }),
-        sendMessage: (connectionId: string, text: string, replyToId?: string) => fetchAPI(`/messages/${connectionId}/send`, {
+        sendMessage: (connectionId: string, text: string, replyToId?: string, isIncognito?: boolean) => fetchAPI(`/messages/${connectionId}/send`, {
             method: 'POST',
-            body: JSON.stringify({ text, replyToId })
+            body: JSON.stringify({ text, replyToId, isIncognito })
         }),
         reactToMessage: (messageId: string, emoji: string) => fetchAPI(`/messages/${messageId}/react`, {
             method: 'POST',
@@ -187,6 +187,7 @@ export const api = {
     },
     games: {
         start: (partnerId: string) => fetchAPI('/games/start', { method: 'POST', body: JSON.stringify({ partnerId }) }),
+        startScenario: (partnerId: string) => fetchAPI('/games/scenario/start', { method: 'POST', body: JSON.stringify({ partnerId }) }),
         submitAnswer: (gameId: string, questionId: number, optionIndex: number, userId: string) => fetchAPI(`/games/${gameId}/answer`, {
             method: 'POST',
             body: JSON.stringify({ questionId, optionIndex, userId })

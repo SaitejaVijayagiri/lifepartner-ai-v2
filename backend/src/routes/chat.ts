@@ -21,6 +21,7 @@ router.get('/fix-db', async (req, res) => {
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reactions JSON DEFAULT '{}';`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS cleared_by JSON DEFAULT '[]';`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id UUID;`);
+        await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_incognito BOOLEAN DEFAULT false;`);
         
         // New columns for Direct Messages
         await prisma.$executeRawUnsafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS free_direct_messages INT DEFAULT 3;`);
@@ -99,9 +100,12 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             });
         }
 
-        // Format for frontend and restore chronological order, filtering out cleared messages
+        // Format for frontend and restore chronological order, filtering out cleared & incognito messages
         const history = messages
             .filter((row: any) => {
+                if (row.is_incognito || (row.content && row.content.startsWith('[INCOGNITO]'))) {
+                    return false; // Exclude incognito from user-facing history, kept in DB for safety audit
+                }
                 const clearedBy = Array.isArray(row.cleared_by) ? row.cleared_by : [];
                 return !clearedBy.includes(userId);
             })
@@ -144,7 +148,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
 // SEND Message
 router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params; // receiverId
-    const { text, replyToId } = req.body;
+    const { text, replyToId, isIncognito } = req.body;
     const senderId = req.user.userId;
 
     if (!text) {
@@ -152,11 +156,10 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     }
 
     const cleanText = sanitizeContent(text);
+    const dbContent = isIncognito ? `[INCOGNITO]${cleanText}` : cleanText;
 
     try {
         // SECURITY FIX: Check block status FIRST before creating any message.
-        // Previous code created the message in parallel with the block check,
-        // causing a race where the socket broadcast would fire even for blocked users.
         const block = await prisma.blocks.findFirst({
             where: {
                 OR: [
@@ -170,22 +173,23 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "You cannot message this user." });
         }
 
-        let finalContent = cleanText;
+        let finalContent = dbContent;
         let newMessageRecord;
         try {
             newMessageRecord = await (prisma.messages as any).create({
                 data: {
                     sender_id: senderId,
                     receiver_id: connectionId,
-                    content: cleanText,
+                    content: dbContent,
                     delivery_status: "sent",
-                    reply_to_id: replyToId || null
+                    reply_to_id: replyToId || null,
+                    is_incognito: !!isIncognito
                 }
             });
         } catch (dbErr) {
-            console.warn("reply_to_id might not exist, falling back to legacy create");
+            console.warn("is_incognito/reply_to_id might not exist, falling back to legacy create");
             if (replyToId) {
-                finalContent = `[REPLY:${replyToId}]${cleanText}`;
+                finalContent = `[REPLY:${replyToId}]${dbContent}`;
             }
             newMessageRecord = await prisma.messages.create({
                 data: {
@@ -211,7 +215,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             senderId,
             timestamp: newMessageRecord.created_at,
             status: "sent",
-            replyToId: replyToId || null
+            replyToId: replyToId || null,
+            isIncognito: !!isIncognito
         };
 
         // Broadcast via Socket.IO (include sender details for in-app toast)

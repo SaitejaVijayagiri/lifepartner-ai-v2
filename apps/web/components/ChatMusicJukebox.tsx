@@ -2,12 +2,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2 } from 'lucide-react';
+import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 
 interface ChatMusicJukeboxProps {
     onClose: () => void;
     onShareTrackToChat?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => void;
+    onCreateStoryWithTrack?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string }) => void;
 }
 
 const JUKEBOX_MOODS = [
@@ -28,7 +29,7 @@ const getYoutubeId = (text: string): string | null => {
     return null;
 };
 
-export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMusicJukeboxProps) {
+export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreateStoryWithTrack }: ChatMusicJukeboxProps) {
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<'audio' | 'video'>('audio');
     const [searchQuery, setSearchQuery] = useState('');
@@ -69,6 +70,21 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
         setIsSearching(true);
         try {
             const mapped: (Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string })[] = [];
+
+            // 0. Direct URL / YouTube Link Parsing
+            if (term.startsWith('http://') || term.startsWith('https://')) {
+                const ytId = getYoutubeId(term);
+                mapped.push({
+                    id: `custom_${Date.now()}`,
+                    title: ytId ? 'Shared YouTube Video' : 'Custom Web Audio Track',
+                    artist: 'Web Link 🔗',
+                    mood: 'Custom Stream',
+                    coverUrl: ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+                    audioUrl: term,
+                    videoUrl: term,
+                    duration: 210
+                });
+            }
 
             // 1. iTunes Songs API for Audio
             try {
@@ -356,6 +372,26 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat }: ChatMu
                                 </div>
 
                                 <div className="flex items-center space-x-2 flex-shrink-0">
+                                    {onCreateStoryWithTrack && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                stopAudioPlayback();
+                                                onCreateStoryWithTrack({
+                                                    title: track.title,
+                                                    artist: track.artist,
+                                                    coverUrl: track.coverUrl,
+                                                    audioUrl: track.audioUrl
+                                                });
+                                                onClose();
+                                            }}
+                                            className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors"
+                                            title="Create Instant Story with this Song 📸"
+                                        >
+                                            <Camera className="w-4 h-4" />
+                                        </button>
+                                    )}
+
                                     {onShareTrackToChat && (
                                         <button
                                             onClick={(e) => {

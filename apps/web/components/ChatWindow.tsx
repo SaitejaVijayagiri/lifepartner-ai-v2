@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2 } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -57,7 +57,7 @@ const FILTER_PRESETS = [
     { name: 'Noir Dark 🩸', value: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
 
-const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => {
+const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, socket, partnerId }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string; socket?: any; partnerId?: string }) => {
     const toast = useToast();
     const [showVideo, setShowVideo] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -187,22 +187,48 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl }: { 
                     )}
                 </div>
             ) : (
-                <div className="flex items-center justify-between pt-1 gap-2">
-                    <button
-                        onClick={toggleAudio}
-                        className={`flex-1 py-1.5 px-3 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md active:scale-95 transition-transform`}
-                    >
-                        {isPlaying ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
-                        <span>{isPlaying ? 'Pause' : 'Play Song'}</span>
-                    </button>
+                <div className="flex flex-col space-y-1.5 pt-1">
+                    {isPlaying && (
+                        <div className="flex items-center justify-center gap-1 bg-pink-950/60 p-1 rounded-lg border border-pink-500/30">
+                            <span className="w-1 bg-pink-400 rounded-full animate-bounce h-3"></span>
+                            <span className="w-1 bg-pink-400 rounded-full animate-bounce [animation-delay:0.15s] h-4"></span>
+                            <span className="w-1 bg-pink-400 rounded-full animate-bounce [animation-delay:0.3s] h-2"></span>
+                            <span className="w-1 bg-pink-400 rounded-full animate-bounce [animation-delay:0.45s] h-4"></span>
+                            <span className="text-[10px] font-bold text-pink-300 ml-1">Playing Track...</span>
+                        </div>
+                    )}
+                    <div className="flex items-center justify-between gap-1.5">
+                        <button
+                            onClick={toggleAudio}
+                            className={`flex-1 py-1.5 px-2 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform`}
+                        >
+                            {isPlaying ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
+                            <span>{isPlaying ? 'Pause' : 'Play'}</span>
+                        </button>
 
-                    <button
-                        onClick={handleWatchVideo}
-                        className="flex-1 py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-xs flex items-center justify-center space-x-1.5 border border-pink-500/30 active:scale-95 transition-transform"
-                    >
-                        <Video size={12} />
-                        <span>Watch Video</span>
-                    </button>
+                        <button
+                            onClick={(e) => {
+                                toggleAudio(e);
+                                if (socket && partnerId) {
+                                    socket.emit("music_play_sync", { to: partnerId, title, artist, coverUrl, audioUrl, videoUrl });
+                                    toast.success("🎧 Synced music playback with match!");
+                                }
+                            }}
+                            className="py-1.5 px-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform"
+                            title="Listen Together in Real-Time"
+                        >
+                            <Music size={12} />
+                            <span>Listen Sync</span>
+                        </button>
+
+                        <button
+                            onClick={handleWatchVideo}
+                            className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-[10px] flex items-center justify-center space-x-1 border border-pink-500/30 active:scale-95 transition-transform"
+                        >
+                            <Video size={12} />
+                            <span>Video</span>
+                        </button>
+                    </div>
                 </div>
             )}
             {playbackError && (
@@ -382,6 +408,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         creator?: { id: string; name: string; photoUrl: string };
     } | null>(null);
     const [fullscreenYoutubeId, setFullscreenYoutubeId] = useState<string | null>(null);
+    const [stagedStoryTrack, setStagedStoryTrack] = useState<{ title: string; artist: string; coverUrl: string; audioUrl: string } | null>(null);
+    const [isIncognito, setIsIncognito] = useState(false);
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
@@ -520,6 +548,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     };
 
     const [showGame, setShowGame] = useState(false);
+    const [gameMode, setGameMode] = useState<'snakes' | 'quiz' | 'scenario'>('snakes');
     const [showGiftModal, setShowGiftModal] = useState(false);
     const [showStickers, setShowStickers] = useState(false);
     const [showInstantCamera, setShowInstantCamera] = useState(false);
@@ -868,9 +897,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             setMessages(prev => prev.filter(msg => msg.id !== data.messageId));
         };
 
-        const handleGameInvite = (data: { from: string; senderName: string }) => {
+        const handleGameInvite = (data: { from: string; senderName: string; gameType?: string }) => {
             if (data.from === partner.id) {
-                toast.success(`🎮 ${data.senderName} invited you to play Snakes & Ladders! Joining...`);
+                const mode: 'snakes' | 'quiz' | 'scenario' = data.gameType === 'quiz' ? 'quiz' : data.gameType === 'scenario' ? 'scenario' : 'snakes';
+                const name = mode === 'quiz' ? 'Couple Quiz' : mode === 'scenario' ? 'AI Scenario' : 'Snakes & Ladders';
+                toast.success(`🎮 ${data.senderName} invited you to play ${name}! Joining...`);
+                setGameMode(mode);
                 setShowGame(true);
                 if (socket && partner.id) {
                     socket.emit("game_accept", { to: partner.id });
@@ -897,9 +929,29 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         socket.on("messageLiked", handleLiked);
         socket.on("messageReaction", handleReaction);
         socket.on("messageDeleted", handleDeleted);
+        const handleMusicSync = (data: { from: string; title: string; artist: string; coverUrl: string; audioUrl: string }) => {
+            if (data.from === partner.id) {
+                toast.success(`🎧 ${partnerInfo.name} started playing "${data.title}"! Playing together...`);
+                if (data.audioUrl) {
+                    const audio = new Audio(data.audioUrl);
+                    audio.volume = 0.8;
+                    audio.play().catch(console.error);
+                }
+            }
+        };
+
+        const handleIncognitoToggle = (data: { from: string; enabled: boolean }) => {
+            if (data.from === partner.id) {
+                setIsIncognito(data.enabled);
+                toast.info(data.enabled ? `🕵️ ${partnerInfo.name} enabled Incognito Mode` : `🕵️ ${partnerInfo.name} disabled Incognito Mode`);
+            }
+        };
+
         socket.on("chatCleared", handleChatCleared);
         socket.on("game_invite", handleGameInvite);
         socket.on("game_accept", handleGameAccept);
+        socket.on("music_play_sync", handleMusicSync);
+        socket.on("incognito_toggle", handleIncognitoToggle);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
@@ -911,6 +963,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("chatCleared", handleChatCleared);
             socket.off("game_invite", handleGameInvite);
             socket.off("game_accept", handleGameAccept);
+            socket.off("music_play_sync", handleMusicSync);
+            socket.off("incognito_toggle", handleIncognitoToggle);
         };
     }, [socket, partner.id, user]);
 
@@ -999,14 +1053,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             senderId: 'me',
             timestamp: new Date(),
             status: 'sending',
-            replyTo: currentReply || undefined
+            replyTo: currentReply || undefined,
+            isIncognito: isIncognito
         };
         setMessages(prev => [...prev, tempMsg]);
         // Force scroll to bottom on send
         isUserScrollingRef.current = false;
 
         try {
-            const response = await api.chat.sendMessage(partner.id, textToSend, currentReply?.id);
+            const response = await api.chat.sendMessage(partner.id, textToSend, currentReply?.id, isIncognito);
             if (response && response.message) {
                 setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...response.message, replyTo: currentReply || undefined } : m));
             }
@@ -1255,6 +1310,27 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 Music Vibe
                             </span>
                         </button>
+                        <button
+                            onClick={() => {
+                                const nextState = !isIncognito;
+                                setIsIncognito(nextState);
+                                if (socket && partner?.id) {
+                                    socket.emit("incognito_toggle", { to: partner.id, enabled: nextState });
+                                }
+                                if (nextState) {
+                                    toast.success("🕵️ Incognito Mode Activated!");
+                                } else {
+                                    toast.info("🕵️ Incognito Mode Deactivated.");
+                                }
+                            }}
+                            className={`p-2 sm:p-2.5 rounded-xl transition-all relative group ${isIncognito ? 'bg-purple-600 text-white shadow-lg animate-pulse' : 'text-purple-300 hover:text-white hover:bg-purple-500/20'}`}
+                            title={isIncognito ? "Incognito Mode Active (Click to disable)" : "Enable Incognito Mode (Disappearing Chat)"}
+                        >
+                            <EyeOff size={20} />
+                            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap z-50">
+                                {isIncognito ? "Incognito ON" : "Incognito Mode"}
+                            </span>
+                        </button>
                         <div className="relative">
                             <button
                                 onClick={() => setShowHeaderMenu(!showHeaderMenu)}
@@ -1268,16 +1344,45 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 <div className="absolute right-0 top-12 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
                                     <button
                                         onClick={() => {
+                                            setGameMode('snakes');
                                             setShowGame(true);
                                             setShowHeaderMenu(false);
                                             if (socket && partner?.id) {
                                                 socket.emit("game_invite", { to: partner.id, senderName: user?.full_name || 'Your Match', gameType: 'snakes' });
                                             }
                                         }}
-                                        className="w-full text-left px-4 py-3 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 flex items-center gap-3 transition-colors font-semibold"
+                                        className="w-full text-left px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 flex items-center gap-3 transition-colors font-semibold"
                                     >
-                                        <Gamepad2 size={18} className="text-purple-500" />
+                                        <Gamepad2 size={18} className="text-emerald-500" />
                                         Snakes & Ladders Arena
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setGameMode('quiz');
+                                            setShowGame(true);
+                                            setShowHeaderMenu(false);
+                                            if (socket && partner?.id) {
+                                                socket.emit("game_invite", { to: partner.id, senderName: user?.full_name || 'Your Match', gameType: 'quiz' });
+                                            }
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/30 flex items-center gap-3 transition-colors font-semibold"
+                                    >
+                                        <HelpCircle size={18} className="text-pink-500" />
+                                        Couple Compatibility Quiz
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setGameMode('scenario');
+                                            setShowGame(true);
+                                            setShowHeaderMenu(false);
+                                            if (socket && partner?.id) {
+                                                socket.emit("game_invite", { to: partner.id, senderName: user?.full_name || 'Your Match', gameType: 'scenario' });
+                                            }
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 flex items-center gap-3 transition-colors font-semibold"
+                                    >
+                                        <Sparkles size={18} className="text-amber-500" />
+                                        AI Relationship Scenario
                                     </button>
                                     <button
                                         onClick={async () => { 
@@ -1316,10 +1421,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </div>
             )}
 
-            {/* In Call Mode Header (Minimal) */}
-            {isCallMode && (
-                <div className="p-3 bg-gray-100 dark:bg-gray-800 border-b dark:border-gray-700 flex justify-between items-center">
-                    <span className="font-bold text-gray-700 dark:text-white">Chat</span>
+            {/* Incognito Active Banner */}
+            {isIncognito && (
+                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 p-2.5 px-4 text-center border-b border-purple-500/30 flex items-center justify-center space-x-2 text-xs font-bold text-purple-300 shadow-md flex-shrink-0 animate-in fade-in duration-300">
+                    <EyeOff size={16} className="text-purple-400 animate-pulse shrink-0" />
+                    <span className="truncate">🕵️ Incognito Mode Active: Messages won't show in chat history after session closes</span>
                 </div>
             )}
 
@@ -1567,6 +1673,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     coverUrl={coverUrl}
                                                     audioUrl={audioUrl}
                                                     videoUrl={videoUrl}
+                                                    socket={socket}
+                                                    partnerId={partner.id}
                                                 />
                                             );
                                         })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {
@@ -1699,6 +1807,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                                         {t.text}
                                                                     </div>
                                                                 </div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Interactive Quick Story Emoji Reactions */}
+                                                        <div className="flex items-center gap-1.5 mt-2 pt-1.5 border-t border-white/10 overflow-x-auto no-scrollbar">
+                                                            {['❤️', '🔥', '😍', '👏', '🎉'].map((emoji) => (
+                                                                <button
+                                                                    key={emoji}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleSend(undefined, `${emoji} Reacted to ${creator.name}'s story`);
+                                                                        toast.success(`Reacted ${emoji} to story!`);
+                                                                    }}
+                                                                    className="px-2 py-0.5 rounded-full bg-white/15 hover:bg-white/30 text-xs transition-transform active:scale-95 shadow-sm"
+                                                                    title={`React ${emoji}`}
+                                                                >
+                                                                    {emoji}
+                                                                </button>
                                                             ))}
                                                         </div>
 
@@ -2131,6 +2258,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     onClose={() => setShowGame(false)}
                     partnerName={partnerInfo.name}
                     partnerId={partner.id}
+                    initialMode={gameMode}
                     onSendChatMessage={(text) => handleSend(undefined, text)}
                 />
             )}
@@ -2140,8 +2268,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <InstantCameraModal
                     recipientId={partner.id}
                     recipientName={partnerInfo.name}
-                    onClose={() => setShowInstantCamera(false)}
+                    initialMusicTrack={stagedStoryTrack}
+                    onClose={() => {
+                        setShowInstantCamera(false);
+                        setStagedStoryTrack(null);
+                    }}
                     onSuccess={() => {
+                        setStagedStoryTrack(null);
                         api.chat.getHistory(partner.id).then(history => {
                             if (Array.isArray(history)) setMessages(history);
                         });
@@ -2549,6 +2682,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         const musicPayload = `[MUSIC_SHARE:${encodeURIComponent(JSON.stringify(payloadObj))}]`;
                         handleSend(undefined, musicPayload);
                         toast.success('Track & video shared to chat!');
+                    }}
+                    onCreateStoryWithTrack={(track) => {
+                        setStagedStoryTrack(track);
+                        setShowInstantCamera(true);
                     }}
                 />
             )}

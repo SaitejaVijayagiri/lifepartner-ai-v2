@@ -1253,62 +1253,49 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
                     </div>
 
-                    <div className="flex flex-col gap-1 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 mr-2" onClick={handleViewProfile}>
-                        <div className="flex items-center gap-3 w-full">
-                            <div className="relative flex-shrink-0">
-                                <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
-                                    <img src={partnerInfo.photoUrl} className="w-full h-full rounded-full border-2 border-white object-cover" onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
-                                    }} />
-                                </div>
-                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                    <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 pr-2" onClick={handleViewProfile}>
+                        <div className="relative flex-shrink-0">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
+                                <img src={partnerInfo.photoUrl} className="w-full h-full rounded-full border-2 border-white object-cover" onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                    target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
+                                }} />
                             </div>
-                            <div className="min-w-0 flex-1">
-                                <h3 className="font-bold text-lg leading-tight truncate pr-1">{partnerInfo.name}</h3>
-                                <p className="text-xs text-white/70 flex items-center gap-1">
-                                    {onlineUsers?.includes(partner.id) ? (
-                                        <>
-                                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
-                                            <span className="truncate">Online now</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full flex-shrink-0"></span>
-                                            <span className="truncate">Offline</span>
-                                        </>
-                                    )}
-                                </p>
-                            </div>
+                            <div className={`absolute bottom-0 right-0 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="font-extrabold text-base sm:text-lg leading-tight truncate text-white drop-shadow-sm">{partnerInfo.name}</h3>
+                            <p className="text-[11px] sm:text-xs text-white/80 flex items-center gap-1">
+                                {onlineUsers?.includes(partner.id) ? (
+                                    <>
+                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
+                                        <span className="truncate">Online now</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="w-1.5 h-1.5 bg-gray-300 rounded-full flex-shrink-0"></span>
+                                        <span className="truncate">Offline</span>
+                                    </>
+                                )}
+                            </p>
                         </div>
                     </div>
 
-                    <div className="flex gap-1 relative z-10 flex-shrink-0 items-center">
+                    <div className="flex gap-1 sm:gap-1.5 relative z-10 flex-shrink-0 items-center">
                         <VideoCallButton
                             targetUserId={partner.id}
                             targetUserName={partnerInfo.name}
                             targetUserPhoto={partnerInfo.photoUrl}
                             showLabel={false}
-                            className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                        />
-                        <VideoCallButton
-                            targetUserId={partner.id}
-                            targetUserName={partnerInfo.name}
-                            targetUserPhoto={partnerInfo.photoUrl}
-                            showLabel={false}
-                            mode="audio"
-                            className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                            className="p-1.5 sm:p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
                         <button
                             onClick={() => setShowJukebox(true)}
-                            className="p-2 sm:p-2.5 text-pink-400 hover:text-white hover:bg-pink-500/20 rounded-xl transition-all relative group"
+                            className="p-1.5 sm:p-2 text-pink-300 hover:text-white hover:bg-pink-500/20 rounded-xl transition-all relative group"
                             title="Music & Video Vibe Jukebox"
                         >
-                            <Music size={20} className="animate-pulse" />
-                            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap z-50">
-                                Music Vibe
-                            </span>
+                            <Music size={18} className="animate-pulse" />
                         </button>
                         <button
                             onClick={() => {
@@ -1323,13 +1310,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     toast.info("🕵️ Incognito Mode Deactivated.");
                                 }
                             }}
-                            className={`p-2 sm:p-2.5 rounded-xl transition-all relative group ${isIncognito ? 'bg-purple-600 text-white shadow-lg animate-pulse' : 'text-purple-300 hover:text-white hover:bg-purple-500/20'}`}
+                            className={`p-1.5 sm:p-2 rounded-xl transition-all relative group ${isIncognito ? 'bg-purple-600 text-white shadow-lg animate-pulse' : 'text-purple-200 hover:text-white hover:bg-purple-500/20'}`}
                             title={isIncognito ? "Incognito Mode Active (Click to disable)" : "Enable Incognito Mode (Disappearing Chat)"}
                         >
-                            <EyeOff size={20} />
-                            <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded-md whitespace-nowrap z-50">
-                                {isIncognito ? "Incognito ON" : "Incognito Mode"}
-                            </span>
+                            <EyeOff size={18} />
                         </button>
                         <div className="relative">
                             <button

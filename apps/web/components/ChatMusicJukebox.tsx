@@ -379,41 +379,41 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                             <div
                                 key={track.id}
                                 onClick={() => handlePlayTrack(track)}
-                                className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
+                                className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl cursor-pointer transition-all ${
                                     isCurrent
                                         ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
                                         : 'bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80'
                                 }`}
                             >
-                                <div className="flex items-center space-x-3.5 min-w-0">
+                                <div className="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0 flex-1 pr-1.5">
                                     <img
                                         src={track.coverUrl}
                                         alt={track.title}
-                                        className="w-14 h-14 rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
+                                        className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
                                     />
-                                    <div className="min-w-0">
-                                        <h4 className="font-bold text-sm text-white truncate">{track.title}</h4>
-                                        <p className="text-xs text-slate-400 truncate">{track.artist}</p>
-                                        <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
+                                    <div className="min-w-0 flex-1">
+                                        <h4 className="font-bold text-xs sm:text-sm text-white truncate max-w-full">{track.title}</h4>
+                                        <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-full">{track.artist}</p>
+                                        <span className="inline-block mt-0.5 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
                                             {track.mood} • {formatTime(track.duration || 210)}
                                         </span>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center space-x-2 flex-shrink-0">
+                                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             toggleSaveTrack(track);
                                         }}
-                                        className={`p-2.5 rounded-full transition-colors ${
+                                        className={`p-1.5 sm:p-2.5 rounded-full transition-colors ${
                                             savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist))
                                                 ? 'bg-pink-500/20 text-pink-400'
                                                 : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'
                                         }`}
                                         title="Bookmark Song to Favorites 💖"
                                     >
-                                        <Heart className={`w-4 h-4 ${savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist)) ? 'fill-pink-400' : ''}`} />
+                                        <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist)) ? 'fill-pink-400' : ''}`} />
                                     </button>
                                     {onCreateStoryWithTrack && (
                                         <button
@@ -428,10 +428,10 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                                 });
                                                 onClose();
                                             }}
-                                            className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors"
+                                            className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors"
                                             title="Create Instant Story with this Song 📸"
                                         >
-                                            <Camera className="w-4 h-4" />
+                                            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                         </button>
                                     )}
 
@@ -447,10 +447,10 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                                     videoUrl: track.videoUrl || ''
                                                 });
                                             }}
-                                            className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
+                                            className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
                                             title="Share Song to Chat"
                                         >
-                                            <Send className="w-4 h-4" />
+                                            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                         </button>
                                     )}
 
@@ -458,21 +458,25 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             if (isCurrent) {
-                                                handleTogglePlay();
+                                                if (isPlaying) {
+                                                    stopAudioPlayback();
+                                                } else {
+                                                    handlePlayTrack(track);
+                                                }
                                             } else {
                                                 handlePlayTrack(track);
                                             }
                                         }}
-                                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95 ${
+                                        className={`p-1.5 sm:p-2.5 rounded-full transition-transform active:scale-95 ${
                                             isCurrent
                                                 ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
                                                 : 'bg-slate-800 text-slate-300 hover:text-white'
                                         }`}
                                     >
                                         {isCurrent && isPlaying ? (
-                                            <Pause className="w-5 h-5 fill-white" />
+                                            <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
                                         ) : (
-                                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                                            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white ml-0.5" />
                                         )}
                                     </button>
                                 </div>

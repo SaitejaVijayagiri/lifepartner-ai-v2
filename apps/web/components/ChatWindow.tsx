@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -410,6 +410,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [fullscreenYoutubeId, setFullscreenYoutubeId] = useState<string | null>(null);
     const [stagedStoryTrack, setStagedStoryTrack] = useState<{ title: string; artist: string; coverUrl: string; audioUrl: string } | null>(null);
     const [isIncognito, setIsIncognito] = useState(false);
+    const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
     const [activeMsgId, setActiveMsgId] = useState<string | null>(null);
     const [deleteMenuMsgId, setDeleteMenuMsgId] = useState<string | null>(null);
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
@@ -2173,66 +2174,127 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     />
                 )}
                 <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingMedia || isRecording}
-                    className="p-2 sm:p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-all disabled:opacity-50"
-                    title="Send Photo"
-                >
-                    <Camera className="w-5 h-5 sm:w-5 sm:h-5" />
-                </button>
+                {/* 📎 Paperclip Attachment Menu & AI Icebreaker Launcher */}
+                <div className="relative flex-shrink-0">
+                    {isRecording ? (
+                        <button
+                            type="button"
+                            onClick={stopRecording}
+                            className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 animate-pulse"
+                            title="Stop Recording"
+                        >
+                            <Square className="w-4 h-4" fill="currentColor" />
+                            <span className="text-[10px] sm:text-xs font-bold">{recordingTime}s</span>
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                            disabled={isUploadingMedia}
+                            className={`p-2.5 sm:p-3 rounded-full sm:rounded-2xl transition-all duration-200 ${
+                                showAttachmentMenu 
+                                    ? 'bg-purple-600 text-white shadow-lg rotate-45 scale-105' 
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            }`}
+                            title="Attach Media & AI Icebreakers 📎"
+                        >
+                            <Paperclip className="w-5 h-5" />
+                        </button>
+                    )}
 
-                {isRecording ? (
-                    <button
-                        type="button"
-                        onClick={stopRecording}
-                        className="p-2 sm:p-3 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 animate-pulse"
-                        title="Stop Recording"
-                    >
-                        <Square className="w-4 h-4" fill="currentColor" />
-                        <span className="text-[10px] sm:text-xs font-bold">{recordingTime}s</span>
-                    </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={startRecording}
-                        disabled={isUploadingMedia}
-                        className="p-2 sm:p-3 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg sm:rounded-xl transition-all disabled:opacity-50"
-                        title="Record Audio"
-                    >
-                        <Mic className="w-5 h-5" />
-                    </button>
-                )}
+                    {/* Floating Glassmorphism Attachment Options Popup */}
+                    {showAttachmentMenu && (
+                        <div className="absolute bottom-14 left-0 w-64 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-3xl p-2 shadow-2xl border border-gray-200/80 dark:border-gray-700/80 z-[3000] animate-in slide-in-from-bottom-3 duration-200 space-y-1">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAttachmentMenu(false);
+                                    if (fileInputRef.current) fileInputRef.current.click();
+                                }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
+                            >
+                                <span className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                                    <ImageIcon size={18} />
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-gray-900 dark:text-white">Photo & Video Gallery</span>
+                                    <span className="text-[10px] text-gray-400">Share pictures or videos</span>
+                                </div>
+                            </button>
 
-                <button
-                    type="button"
-                    onClick={() => setShowStickers(!showStickers)}
-                    disabled={isUploadingMedia || isRecording}
-                    className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all disabled:opacity-50 ${showStickers ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
-                    title="Send Sticker"
-                >
-                    <SmilePlus className="w-5 h-5" />
-                </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAttachmentMenu(false);
+                                    startRecording();
+                                }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-rose-50 dark:hover:bg-rose-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
+                            >
+                                <span className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                                    <Mic size={18} />
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-gray-900 dark:text-white">Voice Note Record</span>
+                                    <span className="text-[10px] text-gray-400">Record quick audio message</span>
+                                </div>
+                            </button>
 
-                <button
-                    type="button"
-                    onClick={() => setShowInstantCamera(true)}
-                    disabled={isUploadingMedia || isRecording}
-                    className="p-2 sm:p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-300/40 dark:border-amber-500/30 rounded-lg sm:rounded-xl transition-all flex items-center justify-center space-x-1"
-                    title="Send Instant Snap (View Once)"
-                >
-                    <Zap className="w-5 h-5 fill-amber-500 text-amber-500" />
-                </button>
-                
-                <button
-                    type="button"
-                    onClick={handleIcebreaker}
-                    disabled={loadingAi || isRecording || isUploadingMedia}
-                    className="hidden sm:block p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-800 rounded-2xl transition-all"
-                >
-                    <Sparkles size={18} className={loadingAi ? 'animate-spin' : ''} />
-                </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAttachmentMenu(false);
+                                    setShowInstantCamera(true);
+                                }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-amber-50 dark:hover:bg-amber-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
+                            >
+                                <span className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                                    <Zap size={18} className="fill-amber-500" />
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-gray-900 dark:text-white">Instant Snap (View Once)</span>
+                                    <span className="text-[10px] text-gray-400">Camera snap with background music</span>
+                                </div>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAttachmentMenu(false);
+                                    setShowStickers(!showStickers);
+                                }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
+                            >
+                                <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                                    <SmilePlus size={18} />
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-gray-900 dark:text-white">Stickers & Emojis</span>
+                                    <span className="text-[10px] text-gray-400">Interactive sticker packs</span>
+                                </div>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAttachmentMenu(false);
+                                    handleIcebreaker();
+                                }}
+                                disabled={loadingAi}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
+                            >
+                                <span className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
+                                    <Sparkles size={18} className={loadingAi ? 'animate-spin' : ''} />
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-indigo-600 dark:text-purple-400 flex items-center gap-1">
+                                        ✨ AI Icebreaker Suggestion
+                                    </span>
+                                    <span className="text-[10px] text-gray-400">Generate creative conversation starter</span>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 <input
                     ref={inputRef}

@@ -151,18 +151,38 @@ export default function FloatingLoveGuru() {
         setLoading(true);
 
         try {
-            const isMatchQuery = /(match|find|recommend|partner|suitable|compatible|looking for|show me|best)/i.test(userMsg);
+            const isMatchQuery = /(find.*match|best.*match|recommend.*candidate|show.*match|compatible.*partner|top.*match)/i.test(userMsg);
+            const isBioAnalysisQuery = /(analyze.*bio|profile.*analysis|improve.*profile|bio.*rate|profile.*bio)/i.test(userMsg);
+            const isIcebreakerQuery = /(icebreaker|first.*message|opener|conversation.*starter)/i.test(userMsg);
 
             let matchResults: MatchCandidate[] = [];
+            let replyText = "";
+
             if (isMatchQuery) {
                 matchResults = await computeSmartMatches(userMsg);
-            }
-
-            const res = await api.ai.chat(userMsg, messages);
-            let replyText = res.reply || "I have meditated on your query!";
-
-            if (isMatchQuery && matchResults.length > 0) {
-                replyText = `🔮 Based on your personal bio-data (${userBio?.city ? userBio.city : 'India'}, ${userBio?.occupation || 'Profession'}) and your requirements, I have analyzed our platform database and found your top most compatible matches:`;
+                if (matchResults.length > 0) {
+                    replyText = `🔮 Based on your personal bio-data (${userBio?.city ? userBio.city : 'India'}, ${userBio?.occupation || 'Profession'}) and requirements, I analyzed our platform database and found your top 3 most compatible matches:`;
+                } else {
+                    replyText = "🔮 I searched our platform database, but couldn't find exact candidate matches right now. Try updating your profile location or preferences!";
+                }
+            } else if (isBioAnalysisQuery) {
+                const bioScore = userBio?.bio ? (userBio.bio.length > 50 ? 92 : 78) : 65;
+                replyText = `💖 **Profile Bio Analysis & Optimization Report**\n\n` +
+                    `• **Profile Strength Score:** ${bioScore}/100 🌟\n` +
+                    `• **Location Alignment:** 📍 ${userBio?.city || 'Not specified (Add your city to get 3x more local matches!)'}\n` +
+                    `• **Profession Badge:** 💼 ${userBio?.occupation || 'Member'}\n\n` +
+                    `✨ **Guru's Top 3 Actionable Tips to Double Your Matches:**\n` +
+                    `1. **Add Passion Hooks:** Mention 2 favorite hobbies (e.g. coffee, hiking, vinyl records) in your bio to give matches an easy opening line.\n` +
+                    `2. **Use Clear HD Photos:** Profiles with at least 3 bright photos get 400% more connection responses!\n` +
+                    `3. **Vibe Jukebox Badge:** Share a favorite song on your profile to trigger instant music compatibility!`;
+            } else if (isIcebreakerQuery) {
+                replyText = `💬 **3 Creative First Message Openers:**\n\n` +
+                    `🌟 **1. Fun & Playful:**\n"Hey! Quick debate: Coffee date, sunset walk, or competitive arcade game first? ☕🌅🎮"\n\n` +
+                    `💡 **2. Witty & Curious:**\n"Your profile caught my eye! On a scale of 1-10, how likely are you to join a spontaneous weekend road trip? 🚗✨"\n\n` +
+                    `☕ **3. Warm & Authentic:**\n"Hey! I noticed we both share great vibes and deep conversation energy. What's been the highlight of your week so far? 😊"`;
+            } else {
+                const res = await api.ai.chat(userMsg, messages);
+                replyText = res.reply || "I have meditated on your query!";
             }
 
             setMessages(prev => [

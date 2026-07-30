@@ -1246,7 +1246,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             `}</style>
             {/* Premium Header */}
             {!isCallMode && (
-                <div className="p-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white flex justify-between items-center relative">
+                <div className={`p-3.5 sm:p-4 text-white flex justify-between items-center relative transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
                     {/* Decorative elements */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -1266,7 +1266,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
                         <div className="min-w-0 flex-1">
                             <h3 className="font-extrabold text-base sm:text-lg leading-tight truncate text-white drop-shadow-sm">{partnerInfo.name}</h3>
-                            <p className="text-[11px] sm:text-xs text-white/80 flex items-center gap-1">
+                            <div className="text-[11px] sm:text-xs text-white/80 flex items-center gap-1.5 flex-wrap">
                                 {onlineUsers?.includes(partner.id) ? (
                                     <>
                                         <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
@@ -1278,7 +1278,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         <span className="truncate">Offline</span>
                                     </>
                                 )}
-                            </p>
+                                {isIncognito && (
+                                    <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 text-[10px] font-extrabold border border-purple-400/50 flex items-center gap-1 animate-pulse shrink-0">
+                                        🕵️ Incognito
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -1415,14 +1420,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Incognito Active Banner */}
             {isIncognito && (
-                <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-purple-950 p-2.5 px-4 text-center border-b border-purple-500/30 flex items-center justify-center space-x-2 text-xs font-bold text-purple-300 shadow-md flex-shrink-0 animate-in fade-in duration-300">
-                    <EyeOff size={16} className="text-purple-400 animate-pulse shrink-0" />
-                    <span className="truncate">🕵️ Incognito Mode Active: Messages won't show in chat history after session closes</span>
+                <div className="bg-purple-950/95 text-purple-200 text-xs font-bold py-2.5 px-4 text-center border-b border-purple-500/40 flex items-center justify-center space-x-2 shadow-md flex-shrink-0 animate-in fade-in duration-300">
+                    <EyeOff size={15} className="text-purple-400 animate-pulse shrink-0" />
+                    <span className="truncate">🕵️ Disappearing Chat Mode Active — Messages won't stay in history</span>
                 </div>
             )}
 
             {/* Messages - Premium Design */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900 space-y-3" ref={scrollRef}>
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 transition-colors duration-300 ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
                 {messages.length === 0 && (
                     <div className="text-center py-16">
                         <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2232,8 +2237,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     type="text"
                     value={inputText}
                     onChange={handleInput}
-                    placeholder={replyTo ? `Reply to ${replyTo.senderName}...` : "Type..."}
-                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500 dark:text-white"
+                    placeholder={isIncognito ? "🕵️ Type a secret incognito message..." : (replyTo ? `Reply to ${replyTo.senderName}...` : "Type...")}
+                    className={`flex-1 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none transition-all ${
+                        isIncognito
+                            ? 'bg-slate-900 border border-purple-500/50 text-purple-100 placeholder:text-purple-400/60 focus:ring-2 focus:ring-purple-500/30 font-medium'
+                            : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500/20'
+                    }`}
                 />
 
                 <button

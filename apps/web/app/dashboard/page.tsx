@@ -863,7 +863,7 @@ function DashboardContent() {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
 
                     {/* Coin Balance */}
                     {currentUser && (
@@ -872,7 +872,7 @@ function DashboardContent() {
                                 setInitialStoreTab('coins');
                                 setShowCoinStore(true);
                             }}
-                            className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200"
+                            className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200 shrink-0"
                         >
                             <Coins size={14} className="fill-yellow-500 text-yellow-600" />
                             <span>{currentUser.coins || 0}</span>
@@ -882,11 +882,11 @@ function DashboardContent() {
                     {/* ⚡ Instant Gender Speed Match Button */}
                     <button
                         onClick={() => setShowSpeedDatingLobby(true)}
-                        className="flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white px-3 py-1.5 rounded-full text-xs font-black transition-all shadow-md hover:scale-105 active:scale-95 border border-white/20"
+                        className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white px-3 py-1.5 rounded-full text-xs font-black transition-all shadow-md hover:scale-105 active:scale-95 border border-white/20 shrink-0"
                         title="Instant 1-Click Speed Match (Male ↔ Female)"
                     >
                         <Zap size={14} className="fill-white text-white animate-pulse" />
-                        <span className="hidden sm:inline">⚡ Instant Match</span>
+                        <span>⚡ Instant Match</span>
                     </button>
 
 

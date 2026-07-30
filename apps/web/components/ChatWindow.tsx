@@ -1288,6 +1288,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             targetUserName={partnerInfo.name}
                             targetUserPhoto={partnerInfo.photoUrl}
                             showLabel={false}
+                            mode="audio"
+                            className="p-1.5 sm:p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                        />
+                        <VideoCallButton
+                            targetUserId={partner.id}
+                            targetUserName={partnerInfo.name}
+                            targetUserPhoto={partnerInfo.photoUrl}
+                            showLabel={false}
                             className="p-1.5 sm:p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                         />
                         <button

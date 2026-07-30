@@ -16,6 +16,19 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
     const [femaleCount, setFemaleCount] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
     const [targetGender, setTargetGender] = useState<'female' | 'male' | 'any'>('any');
+    const [searchSeconds, setSearchSeconds] = useState(0);
+
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        if (isSearching) {
+            interval = setInterval(() => {
+                setSearchSeconds(prev => prev + 1);
+            }, 1000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isSearching]);
 
     useEffect(() => {
         if (!socket) return;
@@ -90,9 +103,13 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                     </div>
 
                     <h2 className="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-pink-200 mb-1 tracking-tight">Instant Speed Match</h2>
-                    <p className="text-gray-300 text-xs sm:text-sm mb-5 leading-relaxed font-medium">
+                    <p className="text-gray-300 text-xs sm:text-sm mb-3 leading-relaxed font-medium">
                         Instant 1-click blind connection between male & female members.
                     </p>
+
+                    <div className="inline-block mb-5 px-3.5 py-1 bg-indigo-500/15 rounded-full border border-indigo-500/30 text-[10px] font-extrabold text-indigo-300 shadow-sm animate-pulse">
+                        ⏱️ Queue Timer: {Math.floor(searchSeconds / 60).toString().padStart(2, '0')}:{(searchSeconds % 60).toString().padStart(2, '0')}
+                    </div>
 
                     {/* Gender Preference Tabs */}
                     <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-white/10 mb-5">

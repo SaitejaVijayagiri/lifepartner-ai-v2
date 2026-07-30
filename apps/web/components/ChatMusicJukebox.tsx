@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera } from 'lucide-react';
+import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 
 interface ChatMusicJukeboxProps {
@@ -12,6 +12,7 @@ interface ChatMusicJukeboxProps {
 }
 
 const JUKEBOX_MOODS = [
+    { name: '🔖 Saved Tracks', query: 'SAVED' },
     { name: '🔥 Top Hits', query: 'pop hits' },
     { name: '💖 Romantic Vibe', query: 'romantic love songs' },
     { name: '☕ Chill Lo-Fi', query: 'lofi chill' },
@@ -46,10 +47,34 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    const [savedTracks, setSavedTracks] = useState<(Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string })[]>([]);
+
     useEffect(() => {
         setMounted(true);
+        try {
+            const saved = localStorage.getItem('lifepartner_saved_music');
+            if (saved) {
+                setSavedTracks(JSON.parse(saved));
+            }
+        } catch (e) {}
         searchMusicAPI('pop hits');
     }, []);
+
+    const toggleSaveTrack = (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
+        setSavedTracks(prev => {
+            const isSaved = prev.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist));
+            let updated: (Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string })[];
+            if (isSaved) {
+                updated = prev.filter(t => t.id !== track.id && !(t.title === track.title && t.artist === track.artist));
+            } else {
+                updated = [track, ...prev];
+            }
+            try {
+                localStorage.setItem('lifepartner_saved_music', JSON.stringify(updated));
+            } catch (e) {}
+            return updated;
+        });
+    };
 
     useEffect(() => {
         if (activeTab === 'video') {
@@ -157,7 +182,11 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
     const handleSelectMood = (moodName: string, query: string) => {
         setSelectedMood(moodName);
         setSearchQuery('');
-        searchMusicAPI(query);
+        if (query === 'SAVED') {
+            setTracks(savedTracks);
+        } else {
+            searchMusicAPI(query);
+        }
     };
 
     const handlePlayTrack = (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
@@ -372,6 +401,20 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                 </div>
 
                                 <div className="flex items-center space-x-2 flex-shrink-0">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleSaveTrack(track);
+                                        }}
+                                        className={`p-2.5 rounded-full transition-colors ${
+                                            savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist))
+                                                ? 'bg-pink-500/20 text-pink-400'
+                                                : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'
+                                        }`}
+                                        title="Bookmark Song to Favorites 💖"
+                                    >
+                                        <Heart className={`w-4 h-4 ${savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist)) ? 'fill-pink-400' : ''}`} />
+                                    </button>
                                     {onCreateStoryWithTrack && (
                                         <button
                                             onClick={(e) => {

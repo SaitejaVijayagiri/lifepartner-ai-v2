@@ -1420,9 +1420,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Incognito Active Banner */}
             {isIncognito && (
-                <div className="bg-purple-950/95 text-purple-200 text-xs font-bold py-2.5 px-4 text-center border-b border-purple-500/40 flex items-center justify-center space-x-2 shadow-md flex-shrink-0 animate-in fade-in duration-300">
+                <div className="bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 text-purple-200 py-2 px-3 text-center border-b border-purple-500/40 flex items-center justify-center space-x-2 shadow-md flex-shrink-0 animate-in fade-in duration-300">
                     <EyeOff size={15} className="text-purple-400 animate-pulse shrink-0" />
-                    <span className="truncate">🕵️ Disappearing Chat Mode Active — Messages won't stay in history</span>
+                    <span className="text-[11px] sm:text-xs font-bold leading-snug text-center">
+                        🕵️ Disappearing Chat Mode Active — Messages won't stay in history
+                    </span>
                 </div>
             )}
 

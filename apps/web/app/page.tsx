@@ -3,23 +3,23 @@ import LandingPageClient from '@/components/LandingPageClient';
 
 // 1. GENERATE METADATA (Server Side)
 export const metadata: Metadata = {
-  title: 'LifePartner AI | #1 Free Matrimony & Dating App Worldwide',
-  description: "The world's first AI-powered free matrimony & dating platform. 100% Verified Profiles for global matchmaking. Connect with Telugu, Tamil, Hindi, Kannada, and international singles in the USA, UK, Canada, Australia, India, and worldwide.",
+  title: 'LifePartner AI | #1 Free Worldwide Dating & Matrimony App',
+  description: "The world's first AI-powered 100% free worldwide dating and matrimony platform. Connect & chat with verified singles globally in USA, UK, Canada, Australia, India, Europe & worldwide with zero paywalls.",
   keywords: [
-    "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
-    "AI Dating", "Free Dating App", "Online Dating Worldwide", "Best Dating App", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
-    "Free Chat Matrimony", "Online Chat", "Chat with Strangers", "Video Dating",
-    "Marriage Bureau", "Safe Matrimony", "Verified Profiles", "NRI Matrimony", "Global Matchmaking",
-    "No Payment Matrimony", "100% Free Matchmaking", "Free Kundli Matching", "Biodata Maker", "Dating App Worldwide",
-    "Matrimony USA", "Matrimony Canada", "Matrimony UK", "Matrimony Australia"
+    "Worldwide Dating App", "Free Worldwide Dating", "Global Matchmaking", "NRI Dating", "Free Dating App",
+    "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Hindi Matrimony", "Best Matchmaking Site",
+    "AI Dating App", "Online Dating Worldwide", "Best Free Dating App", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
+    "Free Chat Dating App", "Online Chat with Strangers", "Video Dating App", "International Dating",
+    "Verified Single Profiles", "Global Singles", "No Subscription Dating", "100% Free Matchmaking", "Free Kundli Matching",
+    "Dating USA", "Dating UK", "Dating Canada", "Dating Australia", "NRI Matrimony"
   ],
   alternates: {
     canonical: 'https://lifepartnerai.in',
   },
   openGraph: {
-    title: 'LifePartner AI | Best Free Worldwide Matrimony & Dating App',
-    description: "Join verified singles finding love globally on LifePartner AI. The smarter, safer alternative for NRI, Indian, and international matchmaking with zero fees.",
-    images: ['/api/og?title=Find%20Your%20Forever&subtitle=The%20World\'s%20First%20AI-Powered%20Matchmaking%20Platform'],
+    title: 'LifePartner AI | Best Free Worldwide Dating & Matrimony App',
+    description: "Join verified singles finding love globally on LifePartner AI. The smarter, safer alternative for international dating & matrimony with zero hidden fees.",
+    images: ['/api/og?title=Connect%20%26%20Chat%20Free%20Worldwide&subtitle=The%20World\'s%20First%20AI-Powered%20Dating%20%26%20Matchmaking%20Platform'],
   }
 };
 
@@ -33,9 +33,9 @@ export default function LandingPage() {
     "logo": "https://lifepartnerai.in/icons/icon-512x512.png",
     "sameAs": [
       "https://twitter.com/lifepartnerai",
-      "https://www.instagram.com/lifepartnerai.in?utm_source=qr&igsh=MXVrdGhpeWd0ZHNkMw=="
+      "https://www.instagram.com/lifepartnerai.in"
     ],
-    "description": "The world's first AI-powered offline-first matrimony platform offering semantic search and verified connections.",
+    "description": "The world's first AI-powered worldwide dating & matrimony platform offering semantic search, AI wingman, and verified connections with zero subscription paywalls.",
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Hyderabad",
@@ -62,34 +62,34 @@ export default function LandingPage() {
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "Is LifePartner AI 100% free for chat and matchmaking?",
+        "name": "Is LifePartner AI 100% free for worldwide dating and matrimony chat?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! LifePartner AI offers 100% free registration, browsing, instant messaging, and matchmaking with zero forced hidden subscription fees."
+          "text": "Yes! LifePartner AI offers 100% free registration, profile browsing, instant messaging, and matchmaking worldwide with zero paywalls or forced subscription fees."
         }
       },
       {
         "@type": "Question",
-        "name": "How is LifePartner AI different from Shaadi, Jeevansathi, and dating apps?",
+        "name": "How does LifePartner AI support both Worldwide Dating and Matrimony?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "LifePartner AI uses advanced AI semantic matchmaking, compatibility scoring, verified profiles, and zero paywalls for messaging, making it smarter, safer, and completely accessible."
+          "text": "LifePartner AI allows users to set their intent — whether seeking worldwide dating, international matchmaking, or traditional serious matrimony — ensuring you only connect with like-minded singles."
         }
       },
       {
         "@type": "Question",
-        "name": "Can I chat with strangers and verified singles worldwide for free?",
+        "name": "Can I chat with verified singles in the USA, UK, Canada, Australia, and India for free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, LifePartner AI allows verified singles to connect and chat with verified matches globally, including NRI singles in USA, UK, Canada, Australia, and India."
+          "text": "Yes, LifePartner AI connects verified singles globally. You can search by country, city, interest, or language and chat instantly for free."
         }
       },
       {
         "@type": "Question",
-        "name": "Is my privacy protected on LifePartner AI?",
+        "name": "How does AI verification prevent fake profiles and catfishing?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Absolutely. Profiles undergo strict photo verification, anti-spam filters, and screenshot/privacy protection controls."
+          "text": "Profiles undergo bank-grade photo and biometric verification, anti-spam filters, and privacy protection controls to guarantee authentic human matches."
         }
       }
     ]

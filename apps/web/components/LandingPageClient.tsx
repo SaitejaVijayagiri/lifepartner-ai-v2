@@ -17,6 +17,12 @@ export default function LandingPageClient() {
   const [bottomRow, setBottomRow] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Quick Match Finder State
+  const [quickGender, setQuickGender] = useState('Male');
+  const [quickLookingFor, setQuickLookingFor] = useState('Female');
+  const [quickIntent, setQuickIntent] = useState<'dating' | 'matrimony'>('dating');
+  const [quickCountry, setQuickCountry] = useState('Worldwide');
+
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem('token');
@@ -88,7 +94,7 @@ export default function LandingPageClient() {
       <SocialProofToasts />
 
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-32 lg:pt-44 pb-20 lg:pb-32 overflow-hidden min-h-screen flex items-center">
+      <section className="relative pt-28 lg:pt-36 pb-16 lg:pb-28 overflow-hidden min-h-screen flex items-center">
         {/* Pastel Aurora Background */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 bg-slate-50 dark:bg-gray-900">
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-200/50 rounded-full mix-blend-multiply filter blur-[100px] opacity-70 animate-blob"></div>
@@ -98,40 +104,123 @@ export default function LandingPageClient() {
 
         <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
           <div className="text-left relative">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 text-indigo-700 text-xs font-bold mb-8 shadow-sm backdrop-blur-md uppercase tracking-widest hover:shadow-md transition-all cursor-default">
-              <Sparkles size={12} className="text-indigo-500" />
-              <span>Next-Gen Matchmaking</span>
+
+            {/* Dual Intent Selector Pills */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              <button
+                onClick={() => setQuickIntent('dating')}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
+                  quickIntent === 'dating'
+                    ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white ring-2 ring-pink-300 shadow-md scale-105'
+                    : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:border-pink-300'
+                }`}
+              >
+                <Sparkles size={14} className={quickIntent === 'dating' ? 'text-white' : 'text-pink-500'} />
+                <span>🌍 Worldwide Dating Mode</span>
+              </button>
+              <button
+                onClick={() => setQuickIntent('matrimony')}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all shadow-sm ${
+                  quickIntent === 'matrimony'
+                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white ring-2 ring-indigo-300 shadow-md scale-105'
+                    : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:border-indigo-300'
+                }`}
+              >
+                <Heart size={14} className={quickIntent === 'matrimony' ? 'text-white' : 'text-indigo-500'} />
+                <span>💍 Serious Matrimony Mode</span>
+              </button>
             </div>
 
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-6 lg:mb-8 leading-[0.95]">
-              Find Your <br />
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-4 leading-[1.02]">
+              Connect & Chat <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-pulse-slow">
-                Forever.
-              </span>
-              <br />
-              <span className="text-2xl md:text-3xl font-sans font-bold text-gray-400 dark:text-gray-500 tracking-normal block mt-4">
-                100% Free Matrimony & Dating App
+                Free Worldwide.
               </span>
             </h1>
 
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-12 leading-relaxed font-light">
-              Experience the future of matrimony & dating. Our <span className="font-semibold text-indigo-700">AI-driven algorithm</span> connects you with compatible partners based on deep personality insights, values, and life goals.
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-8 leading-relaxed font-light">
+              The world's #1 AI platform built for both <span className="font-semibold text-pink-600">Worldwide Dating</span> & <span className="font-semibold text-indigo-600">Serious Matrimony</span>. Instant direct chat, verified profiles, zero forced subscriptions.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-5">
-              <Link href="/register?new=true">
-                <button className="relative h-14 px-10 rounded-full bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-200 overflow-hidden group">
-                  <span className="relative flex items-center gap-2">Join the Future <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></span>
-                </button>
-              </Link>
-              <Link href="#app-features">
-                <button className="h-14 px-10 rounded-full bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-800 dark:text-gray-200 font-bold text-lg hover:bg-gray-50 dark:bg-gray-900 hover:border-gray-300 dark:border-gray-700 transition-all shadow-sm hover:shadow-md">
-                  Explore Features
+            {/* Interactive Quick Match Search Widget */}
+            <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800">
+              <div className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 flex items-center gap-1.5">
+                <BrainCircuit size={14} className="text-indigo-500" />
+                <span>Quick Match Search</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">I am a</label>
+                  <select
+                    value={quickGender}
+                    onChange={(e) => setQuickGender(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Male">Man</option>
+                    <option value="Female">Woman</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">Looking for</label>
+                  <select
+                    value={quickLookingFor}
+                    onChange={(e) => setQuickLookingFor(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Female">Woman</option>
+                    <option value="Male">Man</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">Goal</label>
+                  <select
+                    value={quickIntent}
+                    onChange={(e) => setQuickIntent(e.target.value as any)}
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="dating">Worldwide Dating</option>
+                    <option value="matrimony">Matrimony</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">Location</label>
+                  <select
+                    value={quickCountry}
+                    onChange={(e) => setQuickCountry(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Worldwide">Worldwide</option>
+                    <option value="USA">USA</option>
+                    <option value="India">India</option>
+                    <option value="UK">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                  </select>
+                </div>
+              </div>
+
+              <Link href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}>
+                <button className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2">
+                  <span>Find Matches Free</span>
+                  <ArrowRight size={18} />
                 </button>
               </Link>
             </div>
 
-            <div className="mt-16 flex items-center gap-6">
+            {/* High Conversion Trust Bar */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-8">
+              <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                <CheckCircle size={14} /> 100% Free Direct Chat
+              </span>
+              <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+                <ShieldCheck size={14} /> Verified Human Profiles
+              </span>
+              <span className="flex items-center gap-1 text-pink-600 dark:text-pink-400">
+                <MapPin size={14} /> Global & NRI Reach
+              </span>
+            </div>
+
+            <div className="flex items-center gap-6">
               <div className="flex -space-x-4">
                 {[
                   "/images/avatars/user-1.jpg",
@@ -139,17 +228,17 @@ export default function LandingPageClient() {
                   "/images/avatars/user-3.jpg",
                   "/images/avatars/user-4.jpg"
                 ].map((src, i) => (
-                  <div key={i} className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
+                  <div key={i} className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-900 shadow-md bg-gray-200 flex items-center justify-center overflow-hidden hover:z-10 hover:scale-110 transition-transform duration-300">
                     <img src={src} alt={`Verified Single Dating Profile ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
-                <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">
-                  +2k
+                <div className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-900 shadow-md bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">
+                  +10k
                 </div>
               </div>
               <div className="flex flex-col">
                 <div className="flex text-yellow-500 mb-1 gap-0.5"><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /><Star size={14} fill="currentColor" /></div>
-                <span className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium">TrustScore 4.9/5</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">TrustScore 4.9/5 • 100k+ Connections</span>
               </div>
             </div>
           </div>

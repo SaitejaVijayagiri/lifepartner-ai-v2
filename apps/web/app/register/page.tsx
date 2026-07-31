@@ -20,6 +20,9 @@ function RegisterForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const referralCodeParam = searchParams.get('code');
+    const intentParam = searchParams.get('intent') || 'dating';
+    const isDating = intentParam.toLowerCase() === 'dating';
+
     const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '' });
     const [loading, setLoading] = useState(false);
     const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -274,24 +277,27 @@ function RegisterForm() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-200/50 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 animate-blob animation-delay-2000"></div>
             </div>
 
-            {/* Left Panel: Real Matrimony Image */}
+            {/* Left Panel: Dynamic Hero Image & Tagline */}
             <div className="hidden lg:block w-full lg:w-5/12 h-64 lg:h-full relative flex-shrink-0 lg:border-r border-gray-200 dark:border-gray-800 overflow-hidden group">
                 <div className="absolute inset-0 bg-purple-900/10 mix-blend-multiply z-10"></div>
                 <img
-                    src="/images/register-hero-wiki.jpg"
-                    alt="Wedding Promise"
+                    src={isDating ? "/images/orbital.jpg" : "/images/register-hero-wiki.jpg"}
+                    alt={isDating ? "Worldwide Dating" : "Wedding Promise"}
                     className="absolute inset-0 w-full h-full object-cover grayscale-[0%] group-hover:scale-105 transition-all duration-[20000ms]"
                 />
 
                 {/* Gradient Overlay for Text Readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8 lg:p-12 text-white z-20">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex flex-col justify-end p-8 lg:p-12 text-white z-20">
                     <div className="mb-4 lg:mb-8">
                         <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center mb-4 border border-white/30">
                             <Sparkles size={20} className="text-white" />
                         </div>
                         <h1 className="text-2xl lg:text-4xl font-extrabold tracking-tight mb-2 lg:mb-4 drop-shadow-md">LifePartner AI</h1>
-                        <p className="text-sm lg:text-xl text-indigo-100 font-light mb-6 opacity-90 hidden lg:block">
-                            "Where tradition meets technology. Find your perfect match today."
+                        <p className="text-sm lg:text-xl text-indigo-100 font-light mb-6 opacity-90 hidden lg:block leading-relaxed">
+                            {isDating
+                                ? '"Connect with verified singles worldwide. Instant free direct chat & real connections."'
+                                : '"Where tradition meets technology. Find your perfect match today."'
+                            }
                         </p>
 
                         {/* Scrolling Testimonials - Vertical Marquee */}
@@ -321,7 +327,9 @@ function RegisterForm() {
                 <div className="max-w-sm w-full bg-white dark:bg-gray-950 p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in slide-in-from-right-8 duration-700 ring-1 ring-gray-100">
                     <div className="text-center">
                         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Create Account</h2>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2 text-sm font-medium">Begin your journey to a happy marriage.</p>
+                        <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm font-medium">
+                            {isDating ? '100% Free Worldwide Dating • Instant Free Messaging.' : 'Begin your journey to a happy marriage.'}
+                        </p>
                     </div>
 
                     <div className="space-y-4">

@@ -57,34 +57,31 @@ export const NotificationBell = () => {
         }
     }, [socket]);
 
-    const markRead = async (id: string) => {
-        try {
-            await api.notifications.markRead(id);
-            setNotifications((prev: any[]) => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-            setUnreadCount((prev: number) => Math.max(0, prev - 1));
-        } catch (e) { }
+    const markRead = (id: string) => {
+        // Instant 0ms optimistic update
+        setNotifications((prev: any[]) => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        setUnreadCount((prev: number) => Math.max(0, prev - 1));
+        api.notifications.markRead(id).catch(() => {});
     };
 
-    const deleteNotif = async (id: string) => {
-        try {
-            await api.notifications.remove(id);
-            const wasUnread = notifications.find((n: any) => n.id === id && !n.is_read);
-            setNotifications((prev: any[]) => prev.filter(n => n.id !== id));
-            if (wasUnread) setUnreadCount((prev: number) => Math.max(0, prev - 1));
-        } catch (e) { console.error('Delete failed', e); }
+    const deleteNotif = (id: string) => {
+        // Instant 0ms optimistic update
+        const wasUnread = notifications.find((n: any) => n.id === id && !n.is_read);
+        setNotifications((prev: any[]) => prev.filter(n => n.id !== id));
+        if (wasUnread) setUnreadCount((prev: number) => Math.max(0, prev - 1));
+        api.notifications.remove(id).catch(e => console.error('Delete failed', e));
     };
 
-    const markAllRead = async () => {
-        try {
-            await api.notifications.markAllRead();
-            setNotifications((prev: any[]) => prev.map(n => ({ ...n, is_read: true })));
-            setUnreadCount(0);
-        } catch (e) { }
+    const markAllRead = () => {
+        // Instant 0ms optimistic update
+        setNotifications((prev: any[]) => prev.map(n => ({ ...n, is_read: true })));
+        setUnreadCount(0);
+        api.notifications.markAllRead().catch(() => {});
     };
 
-    const handleNotificationClick = async (n: any) => {
+    const handleNotificationClick = (n: any) => {
         if (n.id && !n.is_read) {
-            await markRead(n.id);
+            markRead(n.id);
         }
 
         const fromUserId = n.fromUserId || n.data?.fromUserId;

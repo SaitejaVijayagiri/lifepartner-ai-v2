@@ -114,10 +114,11 @@ export default function NotificationDropdown() {
         return () => clearInterval(interval);
     }, []);
 
-    const markAllRead = async () => {
-        await api.notifications.markAllRead();
+    const markAllRead = () => {
+        // Instant 0ms optimistic UI update
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         setUnreadCount(0);
+        api.notifications.markAllRead().catch(e => console.error('Mark all read sync error:', e));
     };
 
     const handleDelete = (id: string) => {

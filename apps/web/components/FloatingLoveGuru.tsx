@@ -434,12 +434,17 @@ export default function FloatingLoveGuru() {
                         animate={{ y: [0, -8, 0] }}
                         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                     >
-                        <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-pink-500 via-rose-400 to-purple-500 opacity-50 blur-lg group-hover:opacity-100 transition duration-1000 animate-pulse"></div>
+                        <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 blur-xl group-hover:opacity-100 transition duration-1000 animate-pulse"></div>
                         <button
                             onClick={() => setIsOpen(true)}
-                            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 text-white shadow-xl shadow-rose-500/40 transition-transform duration-300 hover:scale-110 active:scale-95 border border-white/20 cursor-pointer"
+                            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white shadow-2xl shadow-purple-500/50 transition-all duration-300 hover:scale-110 active:scale-95 border-2 border-white/30 cursor-pointer"
+                            title="LifePartner AI Guru Matchmaker"
                         >
-                            <span className="text-2xl drop-shadow-md">🔮</span>
+                            <Sparkles className="w-6 h-6 text-yellow-300 drop-shadow-md animate-pulse" fill="currentColor" />
+                            <Heart className="w-3.5 h-3.5 text-pink-300 absolute -top-1 -right-1 fill-pink-500 animate-bounce" />
+                            <span className="absolute -bottom-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 text-[8px] font-black text-indigo-300 uppercase tracking-widest border border-white/20 shadow-sm">
+                                GURU
+                            </span>
                         </button>
                     </motion.div>
                 )}
@@ -448,16 +453,21 @@ export default function FloatingLoveGuru() {
             {/* ── MOBILE: FAB button (shown when closed) ───────────────────── */}
             {!isOpen && (
                 <motion.div
-                    className="md:hidden fixed bottom-28 right-4 z-[1005] group"
+                    className="md:hidden fixed bottom-24 right-4 z-[1005] group"
                     animate={{ y: [0, -6, 0] }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-pink-500 via-rose-400 to-purple-500 opacity-60 blur-md transition duration-1000 animate-pulse"></div>
+                    <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 blur-md transition duration-1000 animate-pulse"></div>
                     <button
                         onClick={() => setIsOpen(true)}
-                        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 via-rose-500 to-purple-600 text-white shadow-xl shadow-rose-500/40 transition-transform duration-300 active:scale-95 border border-white/20 cursor-pointer"
+                        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white shadow-2xl shadow-purple-500/50 transition-transform duration-300 active:scale-95 border-2 border-white/30 cursor-pointer"
+                        title="LifePartner AI Guru Matchmaker"
                     >
-                        <span className="text-2xl drop-shadow-md">🔮</span>
+                        <Sparkles className="w-6 h-6 text-yellow-300 drop-shadow-md animate-pulse" fill="currentColor" />
+                        <Heart className="w-3.5 h-3.5 text-pink-300 absolute -top-1 -right-1 fill-pink-500 animate-bounce" />
+                        <span className="absolute -bottom-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 text-[8px] font-black text-indigo-300 uppercase tracking-widest border border-white/20 shadow-sm">
+                            GURU
+                        </span>
                     </button>
                 </motion.div>
             )}

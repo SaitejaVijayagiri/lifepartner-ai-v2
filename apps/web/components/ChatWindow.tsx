@@ -548,6 +548,23 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
+    const handleSaveStickerToLibrary = async (url: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const me = await api.profile.getMe();
+            const currentSaved: string[] = me.savedStickers || [];
+            if (currentSaved.includes(url)) {
+                toast.success("Sticker is already in your library!");
+                return;
+            }
+            const updated = [url, ...currentSaved];
+            await api.profile.updateProfile({ savedStickers: updated });
+            toast.success("Sticker saved to your library!");
+        } catch (err: any) {
+            toast.error("Failed to save sticker to library");
+        }
+    };
+
     const [showGame, setShowGame] = useState(false);
     const [gameMode, setGameMode] = useState<'snakes' | 'quiz' | 'scenario'>('snakes');
     const [showGiftModal, setShowGiftModal] = useState(false);
@@ -1614,17 +1631,27 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             <div className="relative group inline-block transition-all duration-300">
                                                 <img 
                                                     src={msg.text.replace('[STICKER]', '')} 
-                                                    className="w-32 h-32 object-contain drop-shadow-lg select-none transition-all duration-300 transform animate-wiggle cursor-pointer" 
+                                                    className="w-32 h-32 object-contain drop-shadow-lg select-none transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer" 
                                                     alt="sticker" 
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => handleDownloadWebpChat(msg.text.replace('[STICKER]', ''), e)}
-                                                    className="absolute -top-1 -right-1 p-2 bg-slate-950/80 border border-white/10 hover:bg-slate-900 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center cursor-pointer z-10 backdrop-blur-md"
-                                                    title="Download Sticker"
-                                                >
-                                                    <Download size={12} />
-                                                </button>
+                                                <div className="absolute -top-1 -right-1 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => handleSaveStickerToLibrary(msg.text.replace('[STICKER]', ''), e)}
+                                                        className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
+                                                        title="Save to My Stickers Library"
+                                                    >
+                                                        <PlusCircle size={12} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => handleDownloadWebpChat(msg.text.replace('[STICKER]', ''), e)}
+                                                        className="p-1.5 bg-slate-950/80 border border-white/10 hover:bg-slate-900 text-white rounded-full transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
+                                                        title="Download WebP File"
+                                                    >
+                                                        <Download size={12} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         ) : msg.text.startsWith('[IMAGE]') ? (
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: msg.text.replace('[IMAGE]', ''), type: 'image' })} />

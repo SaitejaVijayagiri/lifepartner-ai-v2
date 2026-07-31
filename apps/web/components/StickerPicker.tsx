@@ -87,6 +87,7 @@ const LazySticker = ({ url, isSaved, isDragging }: { url: string; isSaved?: bool
 
 export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: string) => void, onClose: () => void }) {
     const [activeTab, setActiveTab] = useState<'mine' | 'store'>('mine');
+    const [storeCategory, setStoreCategory] = useState<'all' | 'love' | 'funny' | 'cute' | 'party'>('all');
     const [savedStickers, setSavedStickers] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isArrangeMode, setIsArrangeMode] = useState(false);
@@ -217,6 +218,28 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
         }
     };
 
+    // Filter stickers by category
+    const filteredStoreStickers = DEMO_STICKER_STORE.filter(url => {
+        if (storeCategory === 'all') return true;
+        if (storeCategory === 'love') {
+            return url.includes('1f970') || url.includes('1f498') || url.includes('1f60d') || url.includes('1f618') || 
+                   url.includes('1f49e') || url.includes('1f496') || url.includes('1f49d') || url.includes('1f9e1') || url.includes('1f48b');
+        }
+        if (storeCategory === 'funny') {
+            return url.includes('1f602') || url.includes('1f92a') || url.includes('1f621') || url.includes('1f923') || 
+                   url.includes('1f92c') || url.includes('1fae0') || url.includes('1f60e') || url.includes('1f92f') || url.includes('1f60f');
+        }
+        if (storeCategory === 'cute') {
+            return url.includes('1f431') || url.includes('1f984') || url.includes('1f47b') || url.includes('1f47d') || 
+                   url.includes('1f916') || url.includes('1f917') || url.includes('1f649') || url.includes('1f648');
+        }
+        if (storeCategory === 'party') {
+            return url.includes('1f389') || url.includes('1f973') || url.includes('1f525') || url.includes('1f680') || 
+                   url.includes('1f4af') || url.includes('1f4e3') || url.includes('1f485');
+        }
+        return true;
+    });
+
     return (
         <div className="absolute bottom-20 right-4 left-4 md:left-auto md:w-80 bg-white dark:bg-gray-900 shadow-2xl rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden z-[110] animate-in slide-in-from-bottom-5">
             {/* Header / Tabs */}
@@ -247,8 +270,30 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                 </button>
             </div>
 
-            {/* Sub-Header / Arrange Mode Console */}
-            {activeTab === 'mine' && savedStickers.length > 0 && (
+            {/* Sub-Header / Category Selector or Arrange Mode Console */}
+            {activeTab === 'store' ? (
+                <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-100/70 dark:bg-gray-800/60 border-b border-gray-200/50 dark:border-gray-700/50 overflow-x-auto no-scrollbar">
+                    {[
+                        { id: 'all', label: 'All' },
+                        { id: 'love', label: '❤️ Love' },
+                        { id: 'funny', label: '😂 Funny' },
+                        { id: 'cute', label: '🐱 Cute' },
+                        { id: 'party', label: '🎉 Party' }
+                    ].map((cat) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => setStoreCategory(cat.id as any)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                                storeCategory === cat.id
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                            }`}
+                        >
+                            {cat.label}
+                        </button>
+                    ))}
+                </div>
+            ) : savedStickers.length > 0 ? (
                 <div className="flex items-center justify-between px-3 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-indigo-100/50 dark:border-indigo-900/30 text-[11px] select-none">
                     <span className="font-semibold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
                         <Move size={12} className={isArrangeMode ? "animate-pulse" : ""} />
@@ -266,7 +311,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                         {isArrangeMode ? "Done" : "Arrange"}
                     </button>
                 </div>
-            )}
+            ) : null}
 
             {/* Grid Area */}
             <div className="h-64 overflow-y-auto p-3 bg-gray-50 dark:bg-gray-800/30">
@@ -368,7 +413,7 @@ export default function StickerPicker({ onSelect, onClose }: { onSelect: (url: s
                 ) : (
                     // Store Tab
                     <div className="grid grid-cols-4 gap-3">
-                        {DEMO_STICKER_STORE.map((url, i) => {
+                        {filteredStoreStickers.map((url, i) => {
                             const isSaved = savedStickers.includes(url);
                             return (
                                 <div

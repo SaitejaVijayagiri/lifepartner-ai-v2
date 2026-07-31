@@ -41,7 +41,7 @@ export const FALLBACK_CATALOG: Omit<StoryMusicData, 'startOffset'>[] = [
         artist: 'Coke Studio Desi',
         mood: 'Desi',
         coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500&auto=format&fit=crop&q=80',
-        audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
+        audioUrl: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3',
         duration: 240
     },
     {

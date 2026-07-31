@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
+import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
@@ -47,6 +47,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const [isSending, setIsSending] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
+    const [isAudioMuted, setIsAudioMuted] = useState(false);
     const story = (stories && stories[currentIndex]) ? (stories[currentIndex] as any) : null;
 
     // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
@@ -64,16 +65,16 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         'upbeat': { name: 'Upbeat Pop 🕺', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3' },
         'cinematic': { name: 'Epic Vibe 🎬', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
         'acoustic': { name: 'Acoustic Guitar 🎸', url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3' },
-        'electronic': { name: 'Electronic 🎧', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-        'bollywood': { name: 'Desi Beats 🥁', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+        'electronic': { name: 'Electronic 🎧', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3' },
+        'bollywood': { name: 'Desi Beats 🥁', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
         'devotional': { name: 'Devotional Flute 🕉️', url: 'https://cdn.pixabay.com/download/audio/2022/01/26/audio_9bc6b3a0cc.mp3' },
-        'pop': { name: 'Summer Pop ☀️', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-        'jazz': { name: 'Midnight Jazz 🎷', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
-        'retro': { name: 'Synthwave Retro ⚡', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
-        'classical': { name: 'Symphony Classic 🎻', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
-        'rock': { name: 'Energetic Rock 🎸', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
-        'chillout': { name: 'Ambient Chillout 🌊', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3' },
-        'party': { name: 'Club Party Beat 🔥', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' }
+        'pop': { name: 'Summer Pop ☀️', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3' },
+        'jazz': { name: 'Midnight Jazz 🎷', url: 'https://cdn.pixabay.com/download/audio/2022/02/10/audio_fc48af67b2.mp3' },
+        'retro': { name: 'Synthwave Retro ⚡', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' },
+        'classical': { name: 'Symphony Classic 🎻', url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3' },
+        'rock': { name: 'Energetic Rock 🎸', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3' },
+        'chillout': { name: 'Ambient Chillout 🌊', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3' },
+        'party': { name: 'Club Party Beat 🔥', url: 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3' }
     };
 
     const [mounted, setMounted] = useState(false);
@@ -299,7 +300,28 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             </div>
                         );
                     })()}
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
+                        {parsedMusic && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (audioRef.current) {
+                                        if (audioRef.current.paused) {
+                                            audioRef.current.play().then(() => setIsAudioMuted(false)).catch(() => {});
+                                        } else {
+                                            audioRef.current.pause();
+                                            setIsAudioMuted(true);
+                                        }
+                                    }
+                                }}
+                                className={`p-2.5 rounded-full text-white backdrop-blur-md transition-all flex items-center justify-center cursor-pointer ${
+                                    isAudioMuted ? 'bg-rose-500/80 animate-bounce' : 'bg-white/20 hover:bg-white/30'
+                                }`}
+                                title={isAudioMuted ? "Click to play song" : "Mute song"}
+                            >
+                                {isAudioMuted ? <VolumeX size={18} /> : <Volume2 size={18} className="animate-pulse" />}
+                            </button>
+                        )}
                         {isOwner && (
                             <button
                                 onClick={() => {

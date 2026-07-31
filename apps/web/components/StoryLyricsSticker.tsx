@@ -1,17 +1,25 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import Draggable from 'react-draggable';
-import { Sparkles, Languages, Type, ZoomIn, ZoomOut, Palette, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, Languages, Type, ZoomIn, ZoomOut, Palette, SlidersHorizontal, ChevronDown, ChevronUp, Move } from 'lucide-react';
 
 export interface LyricLine {
     time: number; // in seconds
     text: string;
 }
 
-export type LanguageCode = 'hindi' | 'telugu' | 'tamil' | 'punjabi' | 'english_hinglish';
+export type LanguageCode =
+    | 'hindi'
+    | 'telugu'
+    | 'tamil'
+    | 'punjabi'
+    | 'malayalam'
+    | 'kannada'
+    | 'marathi'
+    | 'bengali'
+    | 'english_hinglish';
 
-// Exact Phonetic Sung Lines Catalog across All Native Scripts
+// Exact Phonetic Sung Lines Catalog across Native Scripts
 export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>> = {
     'kesariya': {
         'hindi': [
@@ -41,18 +49,38 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 11, text: "தின் பீதே சாரா தேரி ஃபிக்ர் மே 🌅" },
             { time: 15, text: "ரைன் சாரி தேரி கைர் மனாவூன் 🌙" },
             { time: 19, text: "கேசரியா தேரா இஷ்க் ஹை பியா..." },
-            { time: 24, text: "ஹர் துவா மே மைனே துஜே மாங்கா வை 🙏" },
-            { time: 28, text: "தூ ஹி மேரா சைன், தூ ஹி மேரி ராஹத் 💫" }
+            { time: 24, text: "ஹர் துவா மே மைனே துஜே மாங்கா வை 🙏" }
         ],
         'punjabi': [
             { time: 0, text: "ਮੁਝਕੋ ਕਿਤਨਾ ਪਿਆਰ ਹੈ ਤੁਮਸੇ... 💖" },
             { time: 3, text: "ਕੇਸਰੀਆ ਤੇਰਾ ਇਸ਼ਕ ਹੈ ਪਿਆ 💖" },
             { time: 7, text: "ਰੰਗ ਜਾਵਾਂ ਜੋ ਮੈਂ ਹੱਥ ਲਗਾਵਾਂ ✨" },
             { time: 11, text: "ਦਿਨ ਬੀਤੇ ਸਾਰਾ ਤੇਰੀ ਫ਼ਿਕਰ ਵਿੱਚ 🌅" },
-            { time: 15, text: "ਰੈਣ ਸਾਰੀ ਤੇਰੀ ਖ਼ੈਰ ਮਨਾਵਾਂ 🌙" },
-            { time: 19, text: "ਕੇਸਰੀਆ ਤੇਰਾ ਇਸ਼ਕ ਹੈ ਪਿਆ..." },
-            { time: 24, text: "ਹਰ ਦੁਆ ਵਿੱਚ ਮੈਂ ਤੈਨੂੰ ਮੰਗਿਆ 🙏" },
-            { time: 28, text: "ਤੂੰ ਹੀ ਮੇਰਾ ਚੈਨ, ਤੂੰ ਹੀ ਮੇਰੀ ਰਾਹਤ 💫" }
+            { time: 15, text: "ਰੈਣ ਸਾਰੀ ਤੇਰੀ ਖ਼ੈਰ ਮਨਾਵਾਂ 🌙" }
+        ],
+        'malayalam': [
+            { time: 0, text: "മുജ്കോ കിത്നാ പ്യാർ ഹൈ തുമ്സേ... 💖" },
+            { time: 3, text: "കേസരിയാ തേരാ ഇഷ്ക് ഹൈ പിയാ 💖" },
+            { time: 7, text: "രംഗ് ജാഊൻ ജോ മൈ ഹാത് ലഗാഊൻ ✨" },
+            { time: 11, text: "ദിൻ ബീതേ സാരാ തേരി ഫികർ മേ 🌅" }
+        ],
+        'kannada': [
+            { time: 0, text: "ಮುಜ್ಕೋ ಕಿತ್ನಾ ಪ್ಯಾರ್ ಹೈ ತುಮ್ಸೆ... 💖" },
+            { time: 3, text: "ಕೇಸರಿಯಾ ತೇರಾ ಇಷ್ಕ್ ಹೈ ಪಿಯಾ 💖" },
+            { time: 7, text: "ರಂಗ್ ಜಾವೂನ್ ಜೋ ಮೈ ಹಾಥ್ ಲಗಾವೂನ್ ✨" },
+            { time: 11, text: "ದಿನ್ ಬೀತೆ ಸಾರಾ ತೇರೀ ಫಿಕ್ರ್ ಮೇ 🌅" }
+        ],
+        'marathi': [
+            { time: 0, text: "मुझको कितना प्यार है तुमसे... 💖" },
+            { time: 3, text: "केसरिया तेरा इश्क है पिया 💖" },
+            { time: 7, text: "रंग जाऊं जो मैं हाथ लगाऊं ✨" },
+            { time: 11, text: "दिन बीते सारा तेरी फिक्र में 🌅" }
+        ],
+        'bengali': [
+            { time: 0, text: "মুঝকো কিতনা পেয়ার হ্যায় তুমসে... 💖" },
+            { time: 3, text: "কেসরিয়া তোরা ইশক হ্যায় পিয়া 💖" },
+            { time: 7, text: "রং জাওঁ জো মে হাথ লগাওঁ ✨" },
+            { time: 11, text: "দিন বীতে তারা তোর ফিকর মে 🌅" }
         ],
         'english_hinglish': [
             { time: 0, text: "Mujhko kitna pyar hai tumse..." },
@@ -60,9 +88,7 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 7, text: "Rang jaaun jo main haath lagaun ✨" },
             { time: 11, text: "Din beete saara teri fikr mein 🌅" },
             { time: 15, text: "Rain saari teri khair manaun 🌙" },
-            { time: 19, text: "Kesariya tera ishq hai piya..." },
-            { time: 24, text: "Har dua mein maine tujhe maanga hai 🙏" },
-            { time: 28, text: "Tu hi mera chain, tu hi meri raahat 💫" }
+            { time: 19, text: "Kesariya tera ishq hai piya..." }
         ]
     },
     'romantic': {
@@ -70,15 +96,13 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 0, text: "तुम ही हो अब तुम ही हो... 💖" },
             { time: 3, text: "ज़िंदगी अब तुम ही हो ✨" },
             { time: 7, text: "चैन भी, मेरा दर्द भी 🌅" },
-            { time: 11, text: "मेरी आवारगी तुम ही हो 🌙" },
-            { time: 15, text: "तेरे लिए ही जिया मैं 💫" }
+            { time: 11, text: "मेरी आशिकी तुम ही हो 🌙" }
         ],
         'telugu': [
             { time: 0, text: "తుమ్ హీ హో అబ్ తుమ్ హీ హో... 💖" },
             { time: 3, text: "జిందగీ అబ్ తుమ్ హీ హో ✨" },
             { time: 7, text: "చైన్ భీ, మేరా దర్ద్ భీ 🌅" },
-            { time: 11, text: "మేరీ ఆవారగీ తుమ్ హీ హో 🌙" },
-            { time: 15, text: "తేరే లియే హీ జియా మై 💫" }
+            { time: 11, text: "మేరీ ఆషికి తుమ్ హీ హో 🌙" }
         ],
         'tamil': [
             { time: 0, text: "தும் ஹி ஹோ அப தும் ஹி ஹோ... 💖" },
@@ -89,9 +113,26 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 0, text: "ਤੂੰ ਹੀ ਹੋ ਅਬ ਤੂੰ ਹੀ ਹੋ... 💖" },
             { time: 3, text: "ਜ਼ਿੰਦਗੀ ਅਬ ਤੂੰ ਹੀ ਹੋ ✨" }
         ],
+        'malayalam': [
+            { time: 0, text: "തും ഹി ഹോ അബ് തും ഹി ഹോ... 💖" },
+            { time: 3, text: "ജിന്ദഗി അബ് തും ഹി ഹോ ✨" }
+        ],
+        'kannada': [
+            { time: 0, text: "ತುಮ್ ಹೀ ಹೋ ಅಬ್ ತುಮ್ ಹೀ ಹೋ... 💖" },
+            { time: 3, text: "ಜಿಂದಗೀ ಅಬ್ ತುಮ್ ಹೀ ಹೋ ✨" }
+        ],
+        'marathi': [
+            { time: 0, text: "तुम ही हो अब तुम ही हो... 💖" },
+            { time: 3, text: "जिंदगी अब तुम ही हो ✨" }
+        ],
+        'bengali': [
+            { time: 0, text: "তুমি হি হো আব তুমি হি হো... 💖" },
+            { time: 3, text: "জিন্দগি আব তুমি হি হো ✨" }
+        ],
         'english_hinglish': [
             { time: 0, text: "Tum hi ho ab tum hi ho... 💖" },
-            { time: 3, text: "Zindagi ab tum hi ho ✨" }
+            { time: 3, text: "Zindagi ab tum hi ho ✨" },
+            { time: 7, text: "Chain bhi, mera dard bhi 🌅" }
         ]
     },
     'bollywood': {
@@ -102,16 +143,31 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
         ],
         'telugu': [
             { time: 0, text: "అప్నా బనా లే ముజే అప్నా బనా లే పియా... 🌹" },
-            { time: 4, text: "దిల్ కే సఫర్ మే తూ మేరా హమ్రాహీ బనే ✨" }
+            { time: 4, text: "దిల్ కే సఫర్ మే తూ మేరా హమ్రాహీ బనే ✨" },
+            { time: 8, text: "తేరీ బాహోం మే సుకూన్ మిలే 💖" }
         ],
         'tamil': [
-            { time: 0, text: "அப்னா பனா லே முஜே அப்னா பனா லே பியா... 🌹" }
+            { time: 0, text: "அப்னா பனா லே முஜே அப்னா பனா லே பியா... 🌹" },
+            { time: 4, text: "தில் கே சஃபர் மே தூ மேரா ஹம்ராஹி பனே ✨" }
         ],
         'punjabi': [
             { time: 0, text: "ਅਪਣਾ ਬਣਾ ਲੈ ਮੈਨੂੰ ਅਪਣਾ ਬਣਾ ਲੈ ਪਿਆ... 🌹" }
         ],
+        'malayalam': [
+            { time: 0, text: "അപ്നാ ബനാ ലേ മുജേ അപ്നാ ബനാ ലേ പിയാ... 🌹" }
+        ],
+        'kannada': [
+            { time: 0, text: "అప్నా బనా లే ముజే అప్నా బనా లే పియా... 🌹" }
+        ],
+        'marathi': [
+            { time: 0, text: "अपना बना ले मुझे अपना बना ले पिया... 🌹" }
+        ],
+        'bengali': [
+            { time: 0, text: "আপনা বনা লে আমাকে আপনা বনা লে পিয়া... 🌹" }
+        ],
         'english_hinglish': [
-            { time: 0, text: "Apna bana le mujhe apna bana le piya... 🌹" }
+            { time: 0, text: "Apna bana le mujhe apna bana le piya... 🌹" },
+            { time: 4, text: "Dil ke safar mein tu mera hamraahi bane ✨" }
         ]
     },
     'lofi': {
@@ -130,13 +186,91 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
         'punjabi': [
             { time: 0, text: "ਦੇਰ ਰਾਤ ਦੀ ਖ਼ਾਮੋਸ਼ੀ ਤੇ ਤੇਰੀਆਂ ਯਾਦਾਂ ☕" }
         ],
+        'malayalam': [
+            { time: 0, text: "ദേർ രാത് കീ കാമോഷീ ഔർ തേരി യാദേം ☕" }
+        ],
+        'kannada': [
+            { time: 0, text: "ದೇರ್ ರಾತ್ ಕೀ ಖಾಮೋಶೀ ಔರ್ ತೇರೀ ಯಾದೇಂ ☕" }
+        ],
+        'marathi': [
+            { time: 0, text: "देर रात की ख़ामोशी और तेरी यादें ☕" }
+        ],
+        'bengali': [
+            { time: 0, text: "দের রাত কি খামোশী আর তোর ইয়াদেঁ ☕" }
+        ],
         'english_hinglish': [
-            { time: 0, text: "Late night silence & sweet lofi vibes ☕" }
+            { time: 0, text: "Late night silence & sweet lofi vibes ☕" },
+            { time: 4, text: "Watching the stars shine together ✨" }
+        ]
+    },
+    'upbeat': {
+        'hindi': [
+            { time: 0, text: "सुबह होने न दे, साथ खोने न दे... 🕺" },
+            { time: 4, text: "एक दूसरे को हम सोने न दे ✨" },
+            { time: 8, text: "डांस करो पूरे दिल से आज ⚡" }
+        ],
+        'telugu': [
+            { time: 0, text: "సుబహ్ హోనే న దే, సాథ్ ఖోనే న దే... 🕺" },
+            { time: 4, text: "ఏక్ దూస్రే కో హమ్ సోనే న దే ✨" }
+        ],
+        'tamil': [
+            { time: 0, text: "சுபஹ் ஹோனே ந தே, சாத் கோனே ந தே... 🕺" }
+        ],
+        'punjabi': [
+            { time: 0, text: "ਸੁਬਹ ਹੋਣੇ ਨਾ ਦੇ, ਸਾਥ ਖੋਣੇ ਨਾ ਦੇ... 🕺" }
+        ],
+        'malayalam': [
+            { time: 0, text: "സുബഹ് ഹോനേ ന ദേ, സാത് ഖോനേ ന ദേ... 🕺" }
+        ],
+        'kannada': [
+            { time: 0, text: "ಸುಬಹ್ ಹೋನೇ ನ ದೇ, ಸಾಥ್ ಖೋನೇ ನ ದೇ... 🕺" }
+        ],
+        'marathi': [
+            { time: 0, text: "सुबह होने न दे, साथ खोने न दे... 🕺" }
+        ],
+        'bengali': [
+            { time: 0, text: "সুবহ হোনে না দে, সাথ খোনে না দে... 🕺" }
+        ],
+        'english_hinglish': [
+            { time: 0, text: "Subha hone na de, saath khone na de... 🕺" },
+            { time: 4, text: "Dance like nobody is watching tonight ⚡" }
+        ]
+    },
+    'acoustic': {
+        'hindi': [
+            { time: 0, text: "रातां लंबियां लंबियां रे कटे तेरे संगियां... 🎸" },
+            { time: 4, text: "तेरी यादों में खो जाऊं मैं ✨" },
+            { time: 8, text: "दिल दीयां गल्लां करांगे नाल बह के 💖" }
+        ],
+        'telugu': [
+            { time: 0, text: "రాతాం లంబియాం లంబియాం రే... 🎸" },
+            { time: 4, text: "తేరీ యాదోం మే ఖో జావూన్ మై ✨" }
+        ],
+        'tamil': [
+            { time: 0, text: "ராதான் லம்பியான் லம்பியான் ரே... 🎸" }
+        ],
+        'punjabi': [
+            { time: 0, text: "ਰਾਤਾਂ ਲੰਬੀਆਂ ਲੰਬੀਆਂ ਰੇ ਕੱਟੇ ਤੇਰੇ ਸੰਗੀਆਂ... 🎸" }
+        ],
+        'malayalam': [
+            { time: 0, text: "രാതാം ലംബിയാം ലംബിയാം റേ... 🎸" }
+        ],
+        'kannada': [
+            { time: 0, text: "ರಾತಾಂ ಲಂಬಿಯಾಂ ಲಂಬಿಯಾಂ ರೇ... 🎸" }
+        ],
+        'marathi': [
+            { time: 0, text: "रातां लंबियां लंबियां रे कटे तेरे संगियां... 🎸" }
+        ],
+        'bengali': [
+            { time: 0, text: "রাতাঁ লম্বিয়াঁ লম্বিয়াঁ রে কাটে তোর সঙ্গিয়াঁ... 🎸" }
+        ],
+        'english_hinglish': [
+            { time: 0, text: "Raataan lambiyan lambiyan re kate tere sangiyan... 🎸" },
+            { time: 4, text: "Acoustic guitar melodies & soft love ✨" }
         ]
     }
 };
 
-// Color Palettes
 const COLOR_PALETTES = [
     { id: 'gold', name: 'Gold Glow', gradient: 'from-amber-200 via-yellow-300 to-rose-300', glow: 'rgba(251,191,36,0.95)' },
     { id: 'white', name: 'Pure White', gradient: 'from-white via-slate-100 to-white', glow: 'rgba(255,255,255,0.9)' },
@@ -203,6 +337,26 @@ export function getFallbackLyrics(title: string, lang: LanguageCode): LyricLine[
             { time: 3, text: "ਦਿਲ ਦੀ ਧੜਕਣ ਵਿੱਚ ਤੇਰਾ ਹੀ ਨਾਂ 💖" },
             { time: 7, text: "ਹਰ ਪਲ ਤੇਰੇ ਨਾਲ ਖ਼ਾਸ ਹੈ ✨" }
         ];
+    } else if (lang === 'malayalam') {
+        return [
+            { time: 0, text: `🎵 ${cleanTitle}` },
+            { time: 3, text: "ദിൽ കീ ധഡ്കൻ മേ തേരാ ഹി നാം 💖" }
+        ];
+    } else if (lang === 'kannada') {
+        return [
+            { time: 0, text: `🎵 ${cleanTitle}` },
+            { time: 3, text: "ದಿಲ್ ಕೀ ಧಡ್ಕನ್ ಮೇ ತೇರಾ ಹೀ ನಾಮ್ 💖" }
+        ];
+    } else if (lang === 'marathi') {
+        return [
+            { time: 0, text: `🎵 ${cleanTitle}` },
+            { time: 3, text: "दिल की धड़कन में तेरा ही नाम 💖" }
+        ];
+    } else if (lang === 'bengali') {
+        return [
+            { time: 0, text: `🎵 ${cleanTitle}` },
+            { time: 3, text: "দিল কি ধড়কন মে তোর হি নাম 💖" }
+        ];
     }
     
     return [
@@ -238,7 +392,11 @@ export default function StoryLyricsSticker({
 }: StoryLyricsStickerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const activeLineRef = useRef<HTMLDivElement>(null);
-    const draggableNodeRef = useRef<HTMLDivElement>(null);
+
+    // Buttery Smooth Custom Drag Pointer State
+    const [pos, setPos] = useState({ x: 0, y: 0 });
+    const isDraggingRef = useRef(false);
+    const dragStartRef = useRef({ x: 0, y: 0, initialX: 0, initialY: 0 });
 
     const [selectedLang, setSelectedLang] = useState<LanguageCode>(language);
     const [currentFontIdx, setCurrentFontIdx] = useState(0);
@@ -276,11 +434,56 @@ export default function StoryLyricsSticker({
     const activeFont = FONTS_LIST[currentFontIdx].family;
     const activeColor = COLOR_PALETTES[selectedColorIdx];
 
-    const stickerMarkup = (
-        <div className="select-none flex flex-col items-center max-w-md mx-auto pointer-events-auto">
+    // Buttery Smooth Native Pointer Drag Handlers
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isDraggable) return;
+        if ((e.target as HTMLElement).closest('button, input, select, .no-drag')) return;
+        
+        isDraggingRef.current = true;
+        dragStartRef.current = {
+            x: e.clientX,
+            y: e.clientY,
+            initialX: pos.x,
+            initialY: pos.y
+        };
+        try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        } catch (err) {}
+    };
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isDraggingRef.current) return;
+        const dx = e.clientX - dragStartRef.current.x;
+        const dy = e.clientY - dragStartRef.current.y;
+        setPos({
+            x: dragStartRef.current.initialX + dx,
+            y: dragStartRef.current.initialY + dy
+        });
+    };
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (isDraggingRef.current) {
+            isDraggingRef.current = false;
+            try {
+                (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+            } catch (err) {}
+        }
+    };
+
+    return (
+        <div
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            style={{
+                transform: `translate(${pos.x}px, ${pos.y}px)`,
+                touchAction: 'none'
+            }}
+            className="select-none flex flex-col items-center max-w-md mx-auto pointer-events-auto cursor-grab active:cursor-grabbing z-40 relative touch-none"
+        >
             {/* SLEEK COLLAPSIBLE CONTROLLER TOOLBAR */}
             {showControls && (
-                <div className="flex flex-col items-center mb-2 z-50 pointer-events-auto">
+                <div className="flex flex-col items-center mb-2 z-50 pointer-events-auto no-drag">
                     {/* Tiny Collapsible Trigger Pill */}
                     <button
                         type="button"
@@ -299,13 +502,17 @@ export default function StoryLyricsSticker({
                     {/* EXPANDABLE CONTROL PANEL */}
                     {isControlsOpen && (
                         <div className="mt-1.5 flex flex-col items-center gap-2 bg-slate-950/95 backdrop-blur-xl p-2.5 rounded-2xl border border-white/25 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
-                            {/* Row 1: Native Script Language Buttons */}
-                            <div className="flex flex-wrap items-center justify-center gap-1">
+                            {/* Row 1: Native Script Language Buttons (9 Languages!) */}
+                            <div className="flex flex-wrap items-center justify-center gap-1 max-w-xs">
                                 {[
                                     { code: 'hindi', label: '🇮🇳 हिंदी' },
                                     { code: 'telugu', label: '🇮🇳 తెలుగు' },
                                     { code: 'tamil', label: '🇮🇳 தமிழ்' },
                                     { code: 'punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
+                                    { code: 'malayalam', label: '🇮🇳 മലയാളം' },
+                                    { code: 'kannada', label: '🇮🇳 ಕನ್ನಡ' },
+                                    { code: 'marathi', label: '🇮🇳 मराठी' },
+                                    { code: 'bengali', label: '🇮🇳 বাংলা' },
                                     { code: 'english_hinglish', label: '🇬🇧 Eng' }
                                 ].map(l => (
                                     <button
@@ -449,23 +656,4 @@ export default function StoryLyricsSticker({
             </div>
         </div>
     );
-
-    if (isDraggable) {
-        return (
-            <Draggable
-                nodeRef={draggableNodeRef as any}
-                cancel="button, input, select, .no-drag"
-            >
-                <div
-                    ref={draggableNodeRef}
-                    className="cursor-move inline-block z-40 touch-none select-none"
-                    style={{ touchAction: 'none' }}
-                >
-                    {stickerMarkup}
-                </div>
-            </Draggable>
-        );
-    }
-
-    return stickerMarkup;
 }

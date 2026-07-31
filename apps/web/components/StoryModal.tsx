@@ -5,6 +5,7 @@ import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, Me
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
+import StoryLyricsSticker from './StoryLyricsSticker';
 import { MUSIC_CATALOG } from './StoryMusicStudio';
 
 interface Story {
@@ -48,6 +49,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
+    const [audioCurrentTime, setAudioCurrentTime] = useState(0);
     const story = (stories && stories[currentIndex]) ? (stories[currentIndex] as any) : null;
 
     // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
@@ -115,6 +117,10 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
             audioRef.current = audio;
 
             const startOffset = parsedMusic.startOffset || 0;
+
+            audio.ontimeupdate = () => {
+                setAudioCurrentTime(audio.currentTime);
+            };
 
             const handleReady = () => {
                 try {
@@ -343,11 +349,20 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     </div>
                 </div>
 
-                {/* Floating Instagram Style Music Badge */}
+                {/* Floating Instagram Style Music & Synchronized Lyrics Badge */}
                 {parsedMusic && (
-                    <div className="absolute top-20 left-4 z-30 pointer-events-none">
-                        <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused} />
-                    </div>
+                    <>
+                        <div className="absolute top-20 left-4 z-30 pointer-events-none">
+                            <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused} />
+                        </div>
+                        <div className="absolute inset-x-4 bottom-28 z-30 pointer-events-none">
+                            <StoryLyricsSticker
+                                songId={parsedMusic.id || story.music}
+                                songTitle={parsedMusic.title || parsedMusic.name}
+                                currentTime={audioCurrentTime}
+                            />
+                        </div>
+                    </>
                 )}
 
                 {/* Story Content & Fullscreen Media */}

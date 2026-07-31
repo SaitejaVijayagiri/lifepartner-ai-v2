@@ -165,20 +165,39 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     const [isSelectingMusic, setIsSelectingMusic] = useState(false);
     const [selectedMusic, setSelectedMusic] = useState<string>('none');
     const [customMusicData, setCustomMusicData] = useState<StoryMusicData | null>(null);
+    const [audioCurrentTime, setAudioCurrentTime] = useState(0);
     
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const handleMusicSelect = (trackId: string, trackUrl: string) => {
-        setSelectedMusic(trackId);
+    // Play selected music in Story Creator preview
+    useEffect(() => {
         if (audioRef.current) {
             audioRef.current.pause();
+            audioRef.current = null;
         }
-        if (trackUrl) {
-            audioRef.current = new Audio(trackUrl);
-            audioRef.current.volume = 0.5;
-            audioRef.current.play().catch(e => console.log("Audio play prevented", e));
+
+        if (customMusicData && customMusicData.audioUrl) {
+            const audio = new Audio(customMusicData.audioUrl);
+            audio.volume = 0.8;
+            audio.loop = true;
+            audioRef.current = audio;
+
+            if (customMusicData.startOffset > 0) {
+                try { audio.currentTime = customMusicData.startOffset; } catch (e) {}
+            }
+
+            audio.ontimeupdate = () => {
+                setAudioCurrentTime(audio.currentTime);
+            };
+
+            audio.play().catch(e => console.log("StoryCreator audio play error:", e));
+
+            return () => {
+                audio.pause();
+                audioRef.current = null;
+            };
         }
-    };
+    }, [customMusicData]);
 
     const applyFilterAndUpload = async () => {
         if (!storyFiles || storyFiles.length === 0) return;
@@ -699,13 +718,15 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                         <div className="absolute top-16 left-4 z-30 pointer-events-none">
                             <StoryMusicSticker music={customMusicData} isPlaying={true} />
                         </div>
-                        <div className="absolute inset-x-4 bottom-28 z-30 pointer-events-none">
-                            <StoryLyricsSticker
-                                songId={customMusicData.id}
-                                songTitle={customMusicData.title}
-                                currentTime={0}
-                            />
-                        </div>
+                        {customMusicData.showLyrics && (
+                            <div className="absolute inset-x-4 top-28 z-30 pointer-events-none">
+                                <StoryLyricsSticker
+                                    songId={customMusicData.id}
+                                    songTitle={customMusicData.title}
+                                    currentTime={audioCurrentTime}
+                                />
+                            </div>
+                        )}
                     </>
                 )}
                 </div>

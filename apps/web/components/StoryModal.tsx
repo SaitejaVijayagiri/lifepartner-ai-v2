@@ -104,6 +104,13 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
 
     const parsedMusic = getParsedMusic();
 
+    // Auto-enable lyrics if parsedMusic has lyrics flag or by default when music exists
+    useEffect(() => {
+        if (parsedMusic) {
+            setShowLyrics(parsedMusic.showLyrics !== undefined ? parsedMusic.showLyrics : true);
+        }
+    }, [story?.id]);
+
     // Handle Music Playback with Metadata Ready Listener
     useEffect(() => {
         if (audioRef.current) {
@@ -130,7 +137,12 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     }
                 } catch (e) {}
                 if (!isPaused) {
-                    audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                    audio.play()
+                        .then(() => setIsAudioMuted(false))
+                        .catch(e => {
+                            console.log('Audio autoplay prevented:', e);
+                            setIsAudioMuted(true);
+                        });
                 }
             };
 
@@ -143,7 +155,11 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                         audio.currentTime = startOffset;
                     }
                 } catch (e) {}
-            }).catch(e => console.log('Audio play catch:', e));
+                setIsAudioMuted(false);
+            }).catch(e => {
+                console.log('Audio play catch:', e);
+                setIsAudioMuted(true);
+            });
 
             return () => {
                 audio.removeEventListener('canplay', handleReady);

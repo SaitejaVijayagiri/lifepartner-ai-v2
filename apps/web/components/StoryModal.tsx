@@ -389,11 +389,15 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused} />
                         </div>
                         {showLyrics && (
-                            <div className="absolute inset-x-4 top-28 z-40 pointer-events-none">
+                            <div className="absolute inset-x-4 top-28 z-40 flex justify-center">
                                 <StoryLyricsSticker
                                     songId={parsedMusic.id || story.music}
                                     songTitle={parsedMusic.title || parsedMusic.name}
                                     currentTime={audioCurrentTime}
+                                    language={(parsedMusic.lyricsLang as any) || 'hindi'}
+                                    onLanguageChange={(newLang) => {
+                                        if (parsedMusic) parsedMusic.lyricsLang = newLang;
+                                    }}
                                 />
                             </div>
                         )}

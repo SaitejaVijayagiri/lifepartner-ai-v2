@@ -719,11 +719,16 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             <StoryMusicSticker music={customMusicData} isPlaying={true} />
                         </div>
                         {customMusicData.showLyrics && (
-                            <div className="absolute inset-x-4 top-28 z-30 pointer-events-none">
+                            <div className="absolute inset-x-4 top-28 z-30 flex justify-center">
                                 <StoryLyricsSticker
                                     songId={customMusicData.id}
                                     songTitle={customMusicData.title}
                                     currentTime={audioCurrentTime}
+                                    language={(customMusicData.lyricsLang as any) || 'hindi'}
+                                    isDraggable={true}
+                                    onLanguageChange={(newLang) => {
+                                        setCustomMusicData(prev => prev ? { ...prev, lyricsLang: newLang } : null);
+                                    }}
                                 />
                             </div>
                         )}

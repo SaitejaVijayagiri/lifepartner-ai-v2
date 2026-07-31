@@ -15,6 +15,7 @@ export interface StoryMusicData {
     startOffset: number; // Selected start time in seconds
     isFullSong?: boolean; // Whether user wants full song playback
     showLyrics?: boolean; // Whether to display live scrolling lyrics
+    lyricsLang?: string; // Language code e.g. hindi, telugu, tamil, punjabi, english_hinglish
 }
 
 export const FALLBACK_CATALOG: Omit<StoryMusicData, 'startOffset'>[] = [

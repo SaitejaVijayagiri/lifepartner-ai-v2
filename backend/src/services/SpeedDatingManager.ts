@@ -5,6 +5,7 @@ interface QueuedUser {
     socketId: string;
     userId: string;
     gender: string;
+    targetGender: string;
     name: string;
     photoUrl: string;
     location: string;
@@ -56,10 +57,13 @@ export class SpeedDatingManager {
         }
 
         const gender = user.gender.toLowerCase();
+        const effectiveTargetGender = targetGender || (gender === 'male' ? 'female' : 'male');
+
         const queuedUser: QueuedUser = {
             socketId: socket.id,
             userId: userId,
             gender: gender,
+            targetGender: effectiveTargetGender,
             name: user.full_name,
             photoUrl: user.avatar_url || '',
             location: user.city || user.location_name || 'Unknown Location',
@@ -78,7 +82,7 @@ export class SpeedDatingManager {
         socket.join('speed_dating_lobby');
         socket.emit('speed_date_joined', { message: "Joined Lobby. Searching for an instant match..." });
         
-        console.log(`[SPEED DATING] ${userId} (${gender}) joined. Lobby Stats: M:${this.maleQueue.size} F:${this.femaleQueue.size}`);
+        console.log(`[SPEED DATING] ${userId} (${gender}, seeking ${effectiveTargetGender}) joined. Lobby Stats: M:${this.maleQueue.size} F:${this.femaleQueue.size}`);
         this.broadcastLobbyStats();
 
         // Trigger Zero-Wait Instant Matchmaking immediately
@@ -127,53 +131,53 @@ export class SpeedDatingManager {
     private processMatchmaking() {
         if (!this.io) return;
 
-        // Try to pair male and female
-        // In a real system you might sort by `joinedAt` to match the longest waiters first
         const males = Array.from(this.maleQueue.values());
         const females = Array.from(this.femaleQueue.values());
 
-        const pairsToMatch = Math.min(males.length, females.length);
+        for (const maleUser of males) {
+            // Find a matching female whose target preference is compatible
+            const candidateIndex = females.findIndex(f => 
+                (maleUser.targetGender === 'any' || maleUser.targetGender === 'female') &&
+                (f.targetGender === 'any' || f.targetGender === 'male')
+            );
 
-        for (let i = 0; i < pairsToMatch; i++) {
-            const maleUser = males[i];
-            const femaleUser = females[i];
+            if (candidateIndex > -1) {
+                const femaleUser = females.splice(candidateIndex, 1)[0];
 
-            // Remove from queue
-            this.maleQueue.delete(maleUser.userId);
-            this.femaleQueue.delete(femaleUser.userId);
+                // Remove from queue
+                this.maleQueue.delete(maleUser.userId);
+                this.femaleQueue.delete(femaleUser.userId);
 
-            // Add to active matches
-            this.activeMatches.add(maleUser.userId);
-            this.activeMatches.add(femaleUser.userId);
+                // Add to active matches
+                this.activeMatches.add(maleUser.userId);
+                this.activeMatches.add(femaleUser.userId);
 
-            // Notify both they found a match
-            console.log(`[SPEED DATING] Matched ${maleUser.userId} with ${femaleUser.userId}`);
+                console.log(`[SPEED DATING] Matched ${maleUser.userId} (seeking ${maleUser.targetGender}) with ${femaleUser.userId} (seeking ${femaleUser.targetGender})`);
 
-            // To Male
-            this.io.to(maleUser.socketId).emit('speed_date_match_found', {
-                partner: {
-                    id: femaleUser.userId,
-                    name: "Mystery Date", // Blind match!
-                    photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + femaleUser.userId,
-                    location: femaleUser.location
-                },
-                initiator: true // one side must initiate WebRTC
-            });
+                // To Male
+                this.io.to(maleUser.socketId).emit('speed_date_match_found', {
+                    partner: {
+                        id: femaleUser.userId,
+                        name: "Mystery Date", // Blind match!
+                        photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + femaleUser.userId,
+                        location: femaleUser.location
+                    },
+                    initiator: true // one side must initiate WebRTC
+                });
 
-            // To Female
-            this.io.to(femaleUser.socketId).emit('speed_date_match_found', {
-                partner: {
-                    id: maleUser.userId,
-                    name: "Mystery Date", // Blind match!
-                    photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + maleUser.userId,
-                    location: maleUser.location
-                },
-                initiator: false
-            });
-        }
-        
-        if (pairsToMatch > 0) {
-            this.broadcastLobbyStats();
+                // To Female
+                this.io.to(femaleUser.socketId).emit('speed_date_match_found', {
+                    partner: {
+                        id: maleUser.userId,
+                        name: "Mystery Date", // Blind match!
+                        photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + maleUser.userId,
+                        location: maleUser.location
+                    },
+                    initiator: false
+                });
+
+                this.broadcastLobbyStats();
+            }
         }
     }
 }

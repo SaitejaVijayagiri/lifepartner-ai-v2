@@ -412,8 +412,8 @@ export const initSocket = (httpServer: HttpServer) => {
         /**
          * SPEED DATING LOGIC
          */
-        socket.on("join_speed_dating_lobby", () => {
-            if (userId) SpeedDatingManager.getInstance().joinLobby(socket, userId);
+        socket.on("join_speed_dating_lobby", (data?: { targetGender?: string }) => {
+            if (userId) SpeedDatingManager.getInstance().joinLobby(socket, userId, data?.targetGender);
         });
 
         socket.on("leave_speed_dating_lobby", () => {

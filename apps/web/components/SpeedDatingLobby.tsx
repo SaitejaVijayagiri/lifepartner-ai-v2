@@ -15,8 +15,21 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
     const [maleCount, setMaleCount] = useState(0);
     const [femaleCount, setFemaleCount] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
-    const [targetGender, setTargetGender] = useState<'female' | 'male' | 'any'>('any');
+    const [targetGender, setTargetGender] = useState<'female' | 'male'>('female');
     const [searchSeconds, setSearchSeconds] = useState(0);
+
+    // Auto-detect user's gender on mount and default to opposite gender
+    useEffect(() => {
+        import('@/lib/api').then(({ api }) => {
+            api.profile.getMe().then((me) => {
+                if (me?.gender?.toLowerCase() === 'female' || me?.gender?.toLowerCase() === 'woman') {
+                    setTargetGender('male');
+                } else {
+                    setTargetGender('female');
+                }
+            }).catch(() => {});
+        });
+    }, []);
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
@@ -122,7 +135,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                                 setTargetGender('female');
                                 toast.info("Searching for Female matches...");
                             }}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                                 targetGender === 'female'
                                     ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md scale-[1.02]'
                                     : 'text-gray-400 hover:text-white'
@@ -136,27 +149,13 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                                 setTargetGender('male');
                                 toast.info("Searching for Male matches...");
                             }}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                                 targetGender === 'male'
                                     ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md scale-[1.02]'
                                     : 'text-gray-400 hover:text-white'
                             }`}
                         >
                             <span>👨 Seek Male</span>
-                        </button>
-
-                        <button
-                            onClick={() => {
-                                setTargetGender('any');
-                                toast.info("Searching for Any matches...");
-                            }}
-                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
-                                targetGender === 'any'
-                                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md scale-[1.02]'
-                                    : 'text-gray-400 hover:text-white'
-                            }`}
-                        >
-                            <span>💖 Any</span>
                         </button>
                     </div>
 
@@ -168,7 +167,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                                 Searching Live Queue:
                             </span>
                             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                {targetGender === 'female' ? '👩 Females Only' : targetGender === 'male' ? '👨 Males Only' : '💖 Open Match'}
+                                {targetGender === 'female' ? '👩 Females Only' : '👨 Males Only'}
                             </span>
                         </div>
 

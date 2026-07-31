@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Draggable from 'react-draggable';
-import { Sparkles, Languages } from 'lucide-react';
+import { Sparkles, Languages, Type, ZoomIn, ZoomOut, Move } from 'lucide-react';
 
 export interface LyricLine {
     time: number; // in seconds
@@ -136,6 +136,13 @@ export function getFallbackLyrics(title: string, lang: LanguageCode): LyricLine[
     ];
 }
 
+const FONTS_LIST = [
+    { name: 'Sans', family: 'sans-serif' },
+    { name: 'Serif', family: 'Georgia, serif' },
+    { name: 'Cursive', family: 'cursive' },
+    { name: 'Mono', family: 'monospace' }
+];
+
 interface StoryLyricsStickerProps {
     songId?: string;
     songTitle?: string;
@@ -144,6 +151,7 @@ interface StoryLyricsStickerProps {
     fontFamily?: string;
     scale?: number; // Size multiplier e.g. 0.8, 1.0, 1.2
     isDraggable?: boolean;
+    showControls?: boolean;
     onLanguageChange?: (lang: LanguageCode) => void;
 }
 
@@ -154,16 +162,23 @@ export default function StoryLyricsSticker({
     language = 'hindi',
     fontFamily = 'sans-serif',
     scale = 1.0,
-    isDraggable = false,
+    isDraggable = true,
+    showControls = true,
     onLanguageChange
 }: StoryLyricsStickerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const activeLineRef = useRef<HTMLDivElement>(null);
     const [selectedLang, setSelectedLang] = useState<LanguageCode>(language);
+    const [currentFontIdx, setCurrentFontIdx] = useState(0);
+    const [lyricsScale, setLyricsScale] = useState<number>(scale);
 
     useEffect(() => {
         setSelectedLang(language);
     }, [language]);
+
+    useEffect(() => {
+        setLyricsScale(scale);
+    }, [scale]);
 
     // Fetch lines for selected language & song
     const songEntry = MULTI_LANG_LYRICS[songId];
@@ -185,12 +200,19 @@ export default function StoryLyricsSticker({
         }
     }, [activeIndex]);
 
+    const activeFont = FONTS_LIST[currentFontIdx].family;
+
     const stickerMarkup = (
-        <div className="select-none pointer-events-auto flex flex-col items-center">
-            {/* Native Language Switcher Bar */}
-            {onLanguageChange && (
-                <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md p-1 rounded-full border border-white/20 mb-2 shadow-lg z-50">
-                    <Languages size={12} className="text-amber-300 ml-1.5 shrink-0" />
+        <div className="select-none flex flex-col items-center max-w-md mx-auto">
+            {/* Interactive Control Panel (Language, Font Style, Size Resizer) */}
+            {showControls && (
+                <div className="flex flex-wrap items-center justify-center gap-1.5 bg-slate-950/80 backdrop-blur-md p-1.5 rounded-2xl border border-white/20 mb-2 shadow-2xl z-50 pointer-events-auto">
+                    {/* Drag Indicator */}
+                    <span className="text-[10px] text-amber-300 font-extrabold flex items-center gap-0.5 px-1">
+                        <Move size={11} className="animate-pulse" /> Drag
+                    </span>
+
+                    {/* Native Language Buttons */}
                     {[
                         { code: 'hindi', label: '🇮🇳 हिंदी' },
                         { code: 'telugu', label: '🇮🇳 తెలుగు' },
@@ -203,27 +225,72 @@ export default function StoryLyricsSticker({
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
+                                e.preventDefault();
                                 const newLang = l.code as LanguageCode;
                                 setSelectedLang(newLang);
-                                onLanguageChange(newLang);
+                                if (onLanguageChange) onLanguageChange(newLang);
                             }}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                            className={`px-2 py-0.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
                                 selectedLang === l.code
-                                    ? 'bg-gradient-to-r from-amber-400 to-rose-400 text-slate-950 font-black shadow-sm'
-                                    : 'text-white/70 hover:text-white'
+                                    ? 'bg-gradient-to-r from-amber-400 via-rose-400 to-pink-400 text-slate-950 font-black shadow-md scale-105'
+                                    : 'bg-white/10 text-white/80 hover:bg-white/20'
                             }`}
                         >
                             {l.label}
                         </button>
                     ))}
+
+                    <div className="h-3 w-px bg-white/20 mx-0.5" />
+
+                    {/* Font Style Cycle Button */}
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setCurrentFontIdx(prev => (prev + 1) % FONTS_LIST.length);
+                        }}
+                        className="px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1 cursor-pointer border border-white/20"
+                        title="Change Lyrics Font"
+                    >
+                        <Type size={11} className="text-amber-300" />
+                        <span>{FONTS_LIST[currentFontIdx].name}</span>
+                    </button>
+
+                    {/* Size Reducer / Enlarger Buttons */}
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setLyricsScale(prev => Math.max(0.6, parseFloat((prev - 0.15).toFixed(2))));
+                        }}
+                        className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer"
+                        title="Reduce Size"
+                    >
+                        <ZoomOut size={12} />
+                    </button>
+                    <span className="text-[10px] text-amber-300 font-mono font-bold">{Math.round(lyricsScale * 100)}%</span>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setLyricsScale(prev => Math.min(2.0, parseFloat((prev + 0.15).toFixed(2))));
+                        }}
+                        className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer"
+                        title="Increase Size"
+                    >
+                        <ZoomIn size={12} />
+                    </button>
                 </div>
             )}
 
-            {/* 100% TRANSPARENT BACKGROUND - NO BOX HIDING FILTERS OR IMAGE */}
-            <div className="w-full max-w-sm text-center">
+            {/* 100% TRANSPARENT LYRICS DISPLAY - NO BLACK BOX HIDING FILTERS */}
+            <div className="w-full text-center pointer-events-auto">
                 <div
                     ref={containerRef}
-                    className="max-h-32 overflow-y-auto no-scrollbar py-1 text-center flex flex-col items-center space-y-1.5 transition-all duration-300"
+                    className="max-h-36 overflow-y-auto no-scrollbar py-1 text-center flex flex-col items-center space-y-1.5 transition-all duration-300"
                 >
                     {lines.map((line, idx) => {
                         const isActive = idx === activeIndex;
@@ -243,13 +310,13 @@ export default function StoryLyricsSticker({
                             >
                                 <span
                                     style={{
-                                        fontFamily: fontFamily,
-                                        fontSize: `${1.1 * scale}rem`,
+                                        fontFamily: activeFont,
+                                        fontSize: `${1.15 * lyricsScale}rem`,
                                         textShadow: isActive
-                                            ? '0 2px 10px rgba(0,0,0,0.9), 0 0 15px rgba(251,191,36,0.9), 0 0 25px rgba(244,63,94,0.7)'
-                                            : '0 2px 8px rgba(0,0,0,0.8)'
+                                            ? '0 2px 10px rgba(0,0,0,0.95), 0 0 15px rgba(251,191,36,0.9), 0 0 25px rgba(244,63,94,0.7)'
+                                            : '0 2px 8px rgba(0,0,0,0.85)'
                                     }}
-                                    className={`inline-block px-2 py-0.5 leading-snug transition-all ${
+                                    className={`inline-block px-2.5 py-0.5 leading-snug transition-all ${
                                         isActive
                                             ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-rose-300 font-black scale-105'
                                             : 'text-white/80 font-bold'
@@ -268,7 +335,7 @@ export default function StoryLyricsSticker({
     if (isDraggable) {
         return (
             /* @ts-ignore */
-            <Draggable bounds="parent">
+            <Draggable bounds="parent" cancel="button, input, select, .no-drag">
                 <div className="cursor-move inline-block z-40">
                     {stickerMarkup}
                 </div>

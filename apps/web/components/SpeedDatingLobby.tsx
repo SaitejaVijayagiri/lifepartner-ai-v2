@@ -184,31 +184,9 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                         </div>
                     </div>
 
-                    {/* Instant AI Date Companion Fallback Button */}
-                    <div className="pt-1">
-                        <p className="text-[10px] text-gray-400 mb-1.5 font-medium">Can't wait for a human match?</p>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const isFemaleTarget = targetGender === 'female';
-                                onMatchFound({
-                                    id: `ai_speed_date_${Date.now()}`,
-                                    name: isFemaleTarget ? "Aria (AI Companion)" : "Alex (AI Companion)",
-                                    photoUrl: isFemaleTarget 
-                                        ? "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500" 
-                                        : "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500",
-                                    location: "Virtual Match Lounge"
-                                }, true);
-                            }}
-                            className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-white font-extrabold text-xs shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center space-x-2 border border-white/20 cursor-pointer"
-                        >
-                            <Sparkles size={15} />
-                            <span>Instant Match with AI Companion ✨</span>
-                        </button>
-                    </div>
-
-                    <p className="text-[10px] text-gray-400 italic mt-3">
-                        ⚡ Tip: 3-minute blind interactive date with audio & WebRTC support.
+                    {/* Tip Footer */}
+                    <p className="text-[11px] text-gray-300 font-medium italic mt-4">
+                        ⚡ 3-minute blind interactive date. Searching for real verified members...
                     </p>
                 </div>
             </div>

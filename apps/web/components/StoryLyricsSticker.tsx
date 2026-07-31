@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Sparkles, Languages, Type, ZoomIn, ZoomOut, Palette, SlidersHorizontal, ChevronDown, ChevronUp, Move } from 'lucide-react';
+import { Sparkles, Languages, Type, ZoomIn, ZoomOut, Palette, SlidersHorizontal, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
 export interface LyricLine {
     time: number; // in seconds
@@ -19,7 +19,7 @@ export type LanguageCode =
     | 'bengali'
     | 'english_hinglish';
 
-// Exact Phonetic Sung Lines Catalog across Native Scripts
+// Exact Phonetic Sung Lines Catalog across All Native Scripts
 export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>> = {
     'kesariya': {
         'hindi': [
@@ -118,7 +118,7 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 3, text: "ജിന്ദഗി അബ് തും ഹി ഹോ ✨" }
         ],
         'kannada': [
-            { time: 0, text: "ತುಮ್ ಹೀ ಹೋ ಅಬ್ ತುಮ್ ಹೀ ಹೋ... 💖" },
+            { time: 0, text: "ತುಮ್ ಹೀ హో అబ్ తుమ్ ಹೀ హో... 💖" },
             { time: 3, text: "ಜಿಂದಗೀ ಅಬ್ ತುಮ್ ಹೀ ಹೋ ✨" }
         ],
         'marathi': [
@@ -223,7 +223,7 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 0, text: "സുബഹ് ഹോനേ ന ദേ, സാത് ഖോനേ ന ദേ... 🕺" }
         ],
         'kannada': [
-            { time: 0, text: "ಸುಬಹ್ ಹೋನೇ ನ ದೇ, ಸಾಥ್ ಖೋನೇ ನ ದೇ... 🕺" }
+            { time: 0, text: "ಸುಬಹ್ హోనే న దే, సాథ్ ఖోనే న దే... 🕺" }
         ],
         'marathi': [
             { time: 0, text: "सुबह होने न दे, साथ खोने न दे... 🕺" }
@@ -290,81 +290,41 @@ const FONTS_LIST = [
 export function resolveLyrics(songId: string, songTitle: string, lang: LanguageCode): LyricLine[] {
     const sId = (songId || '').toLowerCase().trim();
     const sTitle = (songTitle || '').toLowerCase().trim();
+    const combinedKey = `${sId} ${sTitle}`;
 
-    if (MULTI_LANG_LYRICS[sId]) {
-        return MULTI_LANG_LYRICS[sId][lang] || MULTI_LANG_LYRICS[sId]['english_hinglish'];
-    }
-
+    // Direct or Substring match in MULTI_LANG_LYRICS
     for (const key of Object.keys(MULTI_LANG_LYRICS)) {
-        if (sId.includes(key) || sTitle.includes(key)) {
-            return MULTI_LANG_LYRICS[key][lang] || MULTI_LANG_LYRICS[key]['english_hinglish'];
+        if (sId.includes(key) || sTitle.includes(key) || key.includes(sId) || key.includes(sTitle) || combinedKey.includes(key)) {
+            const entry = MULTI_LANG_LYRICS[key];
+            if (entry) {
+                const lines = entry[lang] || entry['telugu'] || entry['hindi'] || entry['english_hinglish'];
+                if (lines && lines.length > 0) return lines;
+            }
         }
     }
 
-    if (sTitle.includes('kesariya') || sTitle.includes('arijit')) {
-        return MULTI_LANG_LYRICS['kesariya'][lang] || MULTI_LANG_LYRICS['kesariya']['english_hinglish'];
+    // Title Phrase Fallbacks
+    if (combinedKey.includes('kesariya') || combinedKey.includes('arijit') || combinedKey.includes('sunset')) {
+        return MULTI_LANG_LYRICS['kesariya'][lang] || MULTI_LANG_LYRICS['kesariya']['telugu'] || MULTI_LANG_LYRICS['kesariya']['hindi'];
+    }
+    if (combinedKey.includes('tum hi ho') || combinedKey.includes('piano') || combinedKey.includes('romantic')) {
+        return MULTI_LANG_LYRICS['romantic'][lang] || MULTI_LANG_LYRICS['romantic']['telugu'] || MULTI_LANG_LYRICS['romantic']['hindi'];
+    }
+    if (combinedKey.includes('apna bana le') || combinedKey.includes('bollywood') || combinedKey.includes('desi')) {
+        return MULTI_LANG_LYRICS['bollywood'][lang] || MULTI_LANG_LYRICS['bollywood']['telugu'] || MULTI_LANG_LYRICS['bollywood']['hindi'];
+    }
+    if (combinedKey.includes('lofi') || combinedKey.includes('coffee') || combinedKey.includes('chill')) {
+        return MULTI_LANG_LYRICS['lofi'][lang] || MULTI_LANG_LYRICS['lofi']['telugu'] || MULTI_LANG_LYRICS['lofi']['hindi'];
+    }
+    if (combinedKey.includes('upbeat') || combinedKey.includes('pop') || combinedKey.includes('dance')) {
+        return MULTI_LANG_LYRICS['upbeat'][lang] || MULTI_LANG_LYRICS['upbeat']['telugu'] || MULTI_LANG_LYRICS['upbeat']['hindi'];
+    }
+    if (combinedKey.includes('raataan') || combinedKey.includes('acoustic') || combinedKey.includes('guitar')) {
+        return MULTI_LANG_LYRICS['acoustic'][lang] || MULTI_LANG_LYRICS['acoustic']['telugu'] || MULTI_LANG_LYRICS['acoustic']['hindi'];
     }
 
-    return getFallbackLyrics(songTitle, lang);
-}
-
-export function getFallbackLyrics(title: string, lang: LanguageCode): LyricLine[] {
-    const cleanTitle = title.replace(/[^\w\s]/gi, '').trim() || "Love & Music";
-    
-    if (lang === 'hindi') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "दिल की धड़कन में तेरा ही नाम 💖" },
-            { time: 7, text: "हर लम्हा तेरे संग खास है ✨" },
-            { time: 11, text: "तू ही मेरी मंज़िल, तू ही मेरा प्यार 💫" }
-        ];
-    } else if (lang === 'telugu') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "దిల్ కీ ధడ్కన్ మే తేరా హీ నామ్ 💖" },
-            { time: 7, text: "హర్ లమ్హా తేరే సంగ్ ఖాస్ హై ✨" },
-            { time: 11, text: "తూ హీ మేరీ మంజిల్, తూ హీ మేరా ప్యార్ 💫" }
-        ];
-    } else if (lang === 'tamil') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "தில் கி தட்கன் மே தேரா ஹி நாம் 💖" },
-            { time: 7, text: "ஹர் லம்பா தேரே சங் காஸ் ஹை ✨" }
-        ];
-    } else if (lang === 'punjabi') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "ਦਿਲ ਦੀ ਧੜਕਣ ਵਿੱਚ ਤੇਰਾ ਹੀ ਨਾਂ 💖" },
-            { time: 7, text: "ਹਰ ਪਲ ਤੇਰੇ ਨਾਲ ਖ਼ਾਸ ਹੈ ✨" }
-        ];
-    } else if (lang === 'malayalam') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "ദിൽ കീ ധഡ്കൻ മേ തേരാ ഹി നാം 💖" }
-        ];
-    } else if (lang === 'kannada') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "ದಿಲ್ ಕೀ ಧಡ್ಕನ್ ಮೇ ತೇರಾ ಹೀ ನಾಮ್ 💖" }
-        ];
-    } else if (lang === 'marathi') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "दिल की धड़कन में तेरा ही नाम 💖" }
-        ];
-    } else if (lang === 'bengali') {
-        return [
-            { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "দিল কি ধড়কন মে তোর হি নাম 💖" }
-        ];
-    }
-    
-    return [
-        { time: 0, text: `🎵 ${cleanTitle}` },
-        { time: 3, text: "Feel the music in your heartbeat 💖" },
-        { time: 7, text: "Moments made forever special ✨" },
-        { time: 11, text: "Life & Love in harmony 💫" }
-    ];
+    // Default to Kesariya exact phonetic lines if no key matches
+    return MULTI_LANG_LYRICS['kesariya'][lang] || MULTI_LANG_LYRICS['kesariya']['telugu'] || MULTI_LANG_LYRICS['kesariya']['hindi'];
 }
 
 interface StoryLyricsStickerProps {
@@ -412,7 +372,7 @@ export default function StoryLyricsSticker({
         setLyricsScale(scale);
     }, [scale]);
 
-    // Smartly resolve exact phonetic sung lines
+    // Smartly resolve exact phonetic sung lines across all songs & native languages
     const lines: LyricLine[] = resolveLyrics(songId, songTitle, selectedLang);
 
     // Determine current active index
@@ -481,10 +441,42 @@ export default function StoryLyricsSticker({
             }}
             className="select-none flex flex-col items-center max-w-md mx-auto pointer-events-auto cursor-grab active:cursor-grabbing z-40 relative touch-none"
         >
-            {/* SLEEK COLLAPSIBLE CONTROLLER TOOLBAR */}
+            {/* PROMINENT ALWAYS-VISIBLE COLOR SWATCHES BAR */}
             {showControls && (
-                <div className="flex flex-col items-center mb-2 z-50 pointer-events-auto no-drag">
-                    {/* Tiny Collapsible Trigger Pill */}
+                <div className="flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/25 shadow-2xl mb-2 z-50 pointer-events-auto no-drag">
+                    <Palette size={13} className="text-amber-300 mr-0.5 shrink-0" />
+                    <span className="text-[10px] font-extrabold text-white/90 uppercase tracking-wider mr-1 hidden sm:inline">Text Glow:</span>
+                    {COLOR_PALETTES.map((c, idx) => (
+                        <button
+                            key={c.id}
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setSelectedColorIdx(idx);
+                            }}
+                            className={`w-6 h-6 rounded-full transition-all cursor-pointer border flex items-center justify-center ${
+                                selectedColorIdx === idx
+                                    ? 'scale-125 border-white ring-2 ring-amber-400 shadow-lg'
+                                    : 'border-white/40 opacity-80 hover:opacity-100 hover:scale-110'
+                            }`}
+                            style={{
+                                background: c.id === 'gold' ? 'linear-gradient(135deg, #fef08a, #f59e0b)'
+                                          : c.id === 'white' ? 'linear-gradient(135deg, #ffffff, #cbd5e1)'
+                                          : c.id === 'pink' ? 'linear-gradient(135deg, #f472b6, #e11d48)'
+                                          : c.id === 'cyan' ? 'linear-gradient(135deg, #67e8f9, #0d9488)'
+                                          : c.id === 'sunset' ? 'linear-gradient(135deg, #fdba74, #dc2626)'
+                                          : 'linear-gradient(135deg, #d8b4fe, #7e22ce)'
+                            }}
+                            title={c.name}
+                        >
+                            {selectedColorIdx === idx && <Check size={12} className="text-slate-950 stroke-[3]" />}
+                        </button>
+                    ))}
+
+                    <div className="h-3.5 w-px bg-white/25 mx-1" />
+
+                    {/* Tiny Collapsible Language/Font Pill */}
                     <button
                         type="button"
                         onClick={(e) => {
@@ -492,126 +484,100 @@ export default function StoryLyricsSticker({
                             e.preventDefault();
                             setIsControlsOpen(prev => !prev);
                         }}
-                        className="px-3 py-1 bg-slate-950/85 hover:bg-slate-900 text-amber-300 rounded-full border border-amber-400/40 text-[10px] font-black flex items-center gap-1.5 shadow-xl backdrop-blur-md transition-all cursor-pointer hover:scale-105"
+                        className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-full text-[10px] font-black flex items-center gap-1 shadow-md transition-all cursor-pointer hover:scale-105"
                     >
-                        <SlidersHorizontal size={11} className="text-amber-300" />
-                        <span>🎨 Customize Lyrics (Font, Color, Language)</span>
+                        <Languages size={12} />
+                        <span>Lang & Font</span>
                         {isControlsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </button>
-
-                    {/* EXPANDABLE CONTROL PANEL */}
-                    {isControlsOpen && (
-                        <div className="mt-1.5 flex flex-col items-center gap-2 bg-slate-950/95 backdrop-blur-xl p-2.5 rounded-2xl border border-white/25 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200">
-                            {/* Row 1: Native Script Language Buttons (9 Languages!) */}
-                            <div className="flex flex-wrap items-center justify-center gap-1 max-w-xs">
-                                {[
-                                    { code: 'hindi', label: '🇮🇳 हिंदी' },
-                                    { code: 'telugu', label: '🇮🇳 తెలుగు' },
-                                    { code: 'tamil', label: '🇮🇳 தமிழ்' },
-                                    { code: 'punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
-                                    { code: 'malayalam', label: '🇮🇳 മലയാളം' },
-                                    { code: 'kannada', label: '🇮🇳 ಕನ್ನಡ' },
-                                    { code: 'marathi', label: '🇮🇳 मराठी' },
-                                    { code: 'bengali', label: '🇮🇳 বাংলা' },
-                                    { code: 'english_hinglish', label: '🇬🇧 Eng' }
-                                ].map(l => (
-                                    <button
-                                        key={l.code}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            const newLang = l.code as LanguageCode;
-                                            setSelectedLang(newLang);
-                                            if (onLanguageChange) onLanguageChange(newLang);
-                                        }}
-                                        className={`px-2 py-0.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
-                                            selectedLang === l.code
-                                                ? 'bg-gradient-to-r from-amber-400 via-rose-400 to-pink-400 text-slate-950 font-black shadow-md scale-105'
-                                                : 'bg-white/10 text-white/80 hover:bg-white/20'
-                                        }`}
-                                    >
-                                        {l.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Row 2: Font Style & Color Palette Picker & Resizer */}
-                            <div className="flex items-center gap-2 pt-1 border-t border-white/15 w-full justify-between">
-                                {/* Font Style */}
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        e.preventDefault();
-                                        setCurrentFontIdx(prev => (prev + 1) % FONTS_LIST.length);
-                                    }}
-                                    className="px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1 cursor-pointer border border-white/20"
-                                    title="Change Font Style"
-                                >
-                                    <Type size={11} className="text-amber-300" />
-                                    <span>{FONTS_LIST[currentFontIdx].name}</span>
-                                </button>
-
-                                {/* Color Palette Swatches */}
-                                <div className="flex items-center gap-1">
-                                    {COLOR_PALETTES.map((c, idx) => (
-                                        <button
-                                            key={c.id}
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                e.preventDefault();
-                                                setSelectedColorIdx(idx);
-                                            }}
-                                            className={`w-4 h-4 rounded-full transition-all cursor-pointer border ${
-                                                selectedColorIdx === idx
-                                                    ? 'scale-125 border-white ring-2 ring-amber-400'
-                                                    : 'border-white/30 opacity-70 hover:opacity-100'
-                                            }`}
-                                            style={{
-                                                background: c.id === 'gold' ? '#f59e0b' : c.id === 'white' ? '#ffffff' : c.id === 'pink' ? '#ec4899' : c.id === 'cyan' ? '#06b6d4' : c.id === 'sunset' ? '#f97316' : '#a855f7'
-                                            }}
-                                            title={c.name}
-                                        />
-                                    ))}
-                                </div>
-
-                                {/* Size Reducer & Enlarger */}
-                                <div className="flex items-center gap-1">
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            setLyricsScale(prev => Math.max(0.6, parseFloat((prev - 0.15).toFixed(2))));
-                                        }}
-                                        className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer"
-                                        title="Reduce Size"
-                                    >
-                                        <ZoomOut size={11} />
-                                    </button>
-                                    <span className="text-[10px] text-amber-300 font-mono font-bold">{Math.round(lyricsScale * 100)}%</span>
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            setLyricsScale(prev => Math.min(2.0, parseFloat((prev + 0.15).toFixed(2))));
-                                        }}
-                                        className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer"
-                                        title="Increase Size"
-                                    >
-                                        <ZoomIn size={11} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
 
-            {/* 100% CLEAN TRANSPARENT LYRICS DISPLAY */}
+            {/* EXPANDABLE CONTROL PANEL FOR LANGUAGES & FONTS */}
+            {showControls && isControlsOpen && (
+                <div className="mb-2 flex flex-col items-center gap-2 bg-slate-950/95 backdrop-blur-xl p-2.5 rounded-2xl border border-white/25 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 no-drag pointer-events-auto">
+                    {/* Row 1: Native Script Language Buttons (9 Languages!) */}
+                    <div className="flex flex-wrap items-center justify-center gap-1 max-w-xs">
+                        {[
+                            { code: 'hindi', label: '🇮🇳 हिंदी' },
+                            { code: 'telugu', label: '🇮🇳 తెలుగు' },
+                            { code: 'tamil', label: '🇮🇳 தமிழ்' },
+                            { code: 'punjabi', label: '🇮🇳 ਪੰਜਾਬੀ' },
+                            { code: 'malayalam', label: '🇮🇳 മലയാളം' },
+                            { code: 'kannada', label: '🇮🇳 ಕನ್ನಡ' },
+                            { code: 'marathi', label: '🇮🇳 मराठी' },
+                            { code: 'bengali', label: '🇮🇳 বাংলা' },
+                            { code: 'english_hinglish', label: '🇬🇧 Eng' }
+                        ].map(l => (
+                            <button
+                                key={l.code}
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    const newLang = l.code as LanguageCode;
+                                    setSelectedLang(newLang);
+                                    if (onLanguageChange) onLanguageChange(newLang);
+                                }}
+                                className={`px-2 py-0.5 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                                    selectedLang === l.code
+                                        ? 'bg-gradient-to-r from-amber-400 via-rose-400 to-pink-400 text-slate-950 font-black shadow-md scale-105'
+                                        : 'bg-white/10 text-white/80 hover:bg-white/20'
+                                }`}
+                            >
+                                {l.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Row 2: Font Style & Resizer */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-white/15 w-full justify-between">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setCurrentFontIdx(prev => (prev + 1) % FONTS_LIST.length);
+                            }}
+                            className="px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-[10px] font-bold flex items-center gap-1 cursor-pointer border border-white/20"
+                            title="Change Font Style"
+                        >
+                            <Type size={11} className="text-amber-300" />
+                            <span>{FONTS_LIST[currentFontIdx].name}</span>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    setLyricsScale(prev => Math.max(0.6, parseFloat((prev - 0.15).toFixed(2))));
+                                }}
+                                className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer"
+                                title="Reduce Size"
+                            >
+                                <ZoomOut size={11} />
+                            </button>
+                            <span className="text-[10px] text-amber-300 font-mono font-bold">{Math.round(lyricsScale * 100)}%</span>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    setLyricsScale(prev => Math.min(2.0, parseFloat((prev + 0.15).toFixed(2))));
+                                }}
+                                className="p-1 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer"
+                                title="Increase Size"
+                            >
+                                <ZoomIn size={11} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 100% CLEAN TRANSPARENT LYRICS DISPLAY WITH SELECTED GLOW COLOR */}
             <div className="w-full text-center pointer-events-auto">
                 <div
                     ref={containerRef}
@@ -638,7 +604,7 @@ export default function StoryLyricsSticker({
                                         fontFamily: activeFont,
                                         fontSize: `${1.15 * lyricsScale}rem`,
                                         textShadow: isActive
-                                            ? `0 2px 10px rgba(0,0,0,0.95), 0 0 15px ${activeColor.glow}`
+                                            ? `0 2px 10px rgba(0,0,0,0.95), 0 0 18px ${activeColor.glow}`
                                             : '0 2px 8px rgba(0,0,0,0.85)'
                                     }}
                                     className={`inline-block px-2.5 py-0.5 leading-snug transition-all ${

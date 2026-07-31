@@ -50,6 +50,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const [localLikes, setLocalLikes] = useState(0);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
+    const [showLyrics, setShowLyrics] = useState(false);
     const story = (stories && stories[currentIndex]) ? (stories[currentIndex] as any) : null;
 
     // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
@@ -308,25 +309,41 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     })()}
                     <div className="flex items-center gap-2">
                         {parsedMusic && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (audioRef.current) {
-                                        if (audioRef.current.paused) {
-                                            audioRef.current.play().then(() => setIsAudioMuted(false)).catch(() => {});
-                                        } else {
-                                            audioRef.current.pause();
-                                            setIsAudioMuted(true);
+                            <>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowLyrics(prev => !prev);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center justify-center cursor-pointer border ${
+                                        showLyrics
+                                            ? 'bg-gradient-to-r from-amber-400 to-rose-400 text-slate-950 border-amber-300 font-black shadow-lg scale-105'
+                                            : 'bg-white/10 hover:bg-white/20 text-white border-white/20'
+                                    }`}
+                                    title={showLyrics ? "Hide lyrics" : "Show live lyrics"}
+                                >
+                                    📜 {showLyrics ? 'Lyrics ON' : 'Lyrics'}
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (audioRef.current) {
+                                            if (audioRef.current.paused) {
+                                                audioRef.current.play().then(() => setIsAudioMuted(false)).catch(() => {});
+                                            } else {
+                                                audioRef.current.pause();
+                                                setIsAudioMuted(true);
+                                            }
                                         }
-                                    }
-                                }}
-                                className={`p-2.5 rounded-full text-white backdrop-blur-md transition-all flex items-center justify-center cursor-pointer ${
-                                    isAudioMuted ? 'bg-rose-500/80 animate-bounce' : 'bg-white/20 hover:bg-white/30'
-                                }`}
-                                title={isAudioMuted ? "Click to play song" : "Mute song"}
-                            >
-                                {isAudioMuted ? <VolumeX size={18} /> : <Volume2 size={18} className="animate-pulse" />}
-                            </button>
+                                    }}
+                                    className={`p-2.5 rounded-full text-white backdrop-blur-md transition-all flex items-center justify-center cursor-pointer ${
+                                        isAudioMuted ? 'bg-rose-500/80 animate-bounce' : 'bg-white/20 hover:bg-white/30'
+                                    }`}
+                                    title={isAudioMuted ? "Click to play song" : "Mute song"}
+                                >
+                                    {isAudioMuted ? <VolumeX size={18} /> : <Volume2 size={18} className="animate-pulse" />}
+                                </button>
+                            </>
                         )}
                         {isOwner && (
                             <button
@@ -355,13 +372,15 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                         <div className="absolute top-20 left-4 z-30 pointer-events-none">
                             <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused} />
                         </div>
-                        <div className="absolute inset-x-4 bottom-28 z-30 pointer-events-none">
-                            <StoryLyricsSticker
-                                songId={parsedMusic.id || story.music}
-                                songTitle={parsedMusic.title || parsedMusic.name}
-                                currentTime={audioCurrentTime}
-                            />
-                        </div>
+                        {showLyrics && (
+                            <div className="absolute inset-x-4 top-28 z-40 pointer-events-none">
+                                <StoryLyricsSticker
+                                    songId={parsedMusic.id || story.music}
+                                    songTitle={parsedMusic.title || parsedMusic.name}
+                                    currentTime={audioCurrentTime}
+                                />
+                            </div>
+                        )}
                     </>
                 )}
 

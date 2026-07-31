@@ -11,7 +11,7 @@ export interface LyricLine {
 
 export type LanguageCode = 'hindi' | 'telugu' | 'tamil' | 'punjabi' | 'english_hinglish';
 
-// Multi-Language Native Script Lyrics Catalog
+// Exact Phonetic Pronunciation Lyrics Catalog across Native Scripts
 export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>> = {
     'kesariya': {
         'hindi': [
@@ -25,30 +25,34 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
             { time: 28, text: "तू ही मेरा चैन, तू ही मेरी राहत 💫" }
         ],
         'telugu': [
-            { time: 0, text: "నీతోనే నా ప్రతి అడుగు... 💖" },
-            { time: 3, text: "కేసరియా నీ ప్రేమే ప్రియా ✨" },
-            { time: 7, text: "మదిలో నిండిన మధురమైన కళ 🌅" },
-            { time: 11, text: "ప్రతి క్షణం నీ ధ్యానమే 🌙" },
-            { time: 15, text: "నా ఆశలకి నువ్వే వెలుగు 💫" },
-            { time: 19, text: "కేసరియా నీ ప్రేమే ప్రియా..." },
-            { time: 24, text: "ప్రతి ప్రార్థనలో నిన్నే కోరుకున్నా 🙏" },
-            { time: 28, text: "నువ్వే నా శాంతి, నువ్వే నా ఊపిరి 🌹" }
+            { time: 0, text: "ముజ్కో కిత్నా ప్యార్ హై తుమ్సే... 💖" },
+            { time: 3, text: "కేసరియా తేరా ఇష్క్ హై పియా 💖" },
+            { time: 7, text: "రంగ్ జావూన్ జో మై హాథ్ లగావూన్ ✨" },
+            { time: 11, text: "దిన్ బీతే సారా తేరీ ఫిక్ర్ మే 🌅" },
+            { time: 15, text: "రైన్ సారీ తేరీ ఖైర్ మనావూన్ 🌙" },
+            { time: 19, text: "కేసరియా తేరా ఇష్క్ హై పియా..." },
+            { time: 24, text: "హర్ దువా మే మైనే తుజే మాంగా హై 🙏" },
+            { time: 28, text: "తూ హీ మేరా చైన్, తూ హీ మేరీ రాహత్ 💫" }
         ],
         'tamil': [
-            { time: 0, text: "உன்னோடு வாழும் ஒவ்வொரு நொடியும்... 💖" },
-            { time: 3, text: "கேசரியா உன் காதலே பிரியா ✨" },
-            { time: 7, text: "மனதில் நிறைந்து வழியும் கவிதை 🌅" },
-            { time: 11, text: "நாள் முழுவதும் உன் நினைவே 🌙" },
-            { time: 15, text: "என் இரவின் வெளிச்சம் நீயே 💫" },
-            { time: 19, text: "கேசரியா உன் காதலே பிரியா..." },
-            { time: 24, text: "என் ஒவ்வொரு பிரார்த்தனையிலும் நீ 🙏" }
+            { time: 0, text: "முஜ்கோ கித்னா பியார் ஹை தும்ஸே... 💖" },
+            { time: 3, text: "கேசரியா தேரா இஷ்க் ஹை பியா 💖" },
+            { time: 7, text: "ரங் ஜாவூன் ஜோ மை ஹாத் லாகாவூன் ✨" },
+            { time: 11, text: "தின் பீதே சாரா தேரி ஃபிக்ர் மே 🌅" },
+            { time: 15, text: "ரைன் சாரி தேரி கைர் மனாவூன் 🌙" },
+            { time: 19, text: "கேசரியா தேரா இஷ்க் ஹை பியா..." },
+            { time: 24, text: "ஹர் துவா மே மைனே துஜே மாங்கா ஹை 🙏" },
+            { time: 28, text: "தூ ஹி மேரா சைன், தூ ஹி மேரி ராஹத் 💫" }
         ],
         'punjabi': [
-            { time: 0, text: "ਤੇਰੇ ਨਾਲ ਹੀ ਮੇਰੀ ਦੁਨੀਆਂ 💖" },
-            { time: 3, text: "ਕੇਸਰੀਆ ਤੇਰਾ ਇਸ਼ਕ ਹੈ ਪਿਆ 🌹" },
-            { time: 7, text: "ਦਿਲ ਵਿੱਚ ਵੱਸਦੀ ਏ ਤੇਰੀ ਯਾਦ ✨" },
-            { time: 11, text: "ਦਿਨ ਬੀਤੇ ਤੇਰੇ ਖ਼ਿਆਲਾਂ ਵਿੱਚ 🌅" },
-            { time: 15, text: "ਤੂੰ ਹੀ ਮੇਰਾ ਸੁਫ਼ਨਾ, ਤੂੰ ਹੀ ਚੈਨ 💫" }
+            { time: 0, text: "ਮੁਝਕੋ ਕਿਤਨਾ ਪਿਆਰ ਹੈ ਤੁਮਸੇ... 💖" },
+            { time: 3, text: "ਕੇਸਰੀਆ ਤੇਰਾ ਇਸ਼ਕ ਹੈ ਪਿਆ 💖" },
+            { time: 7, text: "ਰੰਗ ਜਾਵਾਂ ਜੋ ਮੈਂ ਹੱਥ ਲਗਾਵਾਂ ✨" },
+            { time: 11, text: "ਦਿਨ ਬੀਤੇ ਸਾਰਾ ਤੇਰੀ ਫ਼ਿਕਰ ਵਿੱਚ 🌅" },
+            { time: 15, text: "ਰੈਣ ਸਾਰੀ ਤੇਰੀ ਖ਼ੈਰ ਮਨਾਵਾਂ 🌙" },
+            { time: 19, text: "ਕੇਸਰੀਆ ਤੇਰਾ ਇਸ਼ਕ ਹੈ ਪਿਆ..." },
+            { time: 24, text: "ਹਰ ਦੁਆ ਵਿੱਚ ਮੈਂ ਤੈਨੂੰ ਮੰਗਿਆ 🙏" },
+            { time: 28, text: "ਤੂੰ ਹੀ ਮੇਰਾ ਚੈਨ, ਤੂੰ ਹੀ ਮੇਰੀ ਰਾਹਤ 💫" }
         ],
         'english_hinglish': [
             { time: 0, text: "Mujhko kitna pyar hai tumse..." },
@@ -63,26 +67,29 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
     },
     'lofi_chill': {
         'hindi': [
-            { time: 0, text: "देर रात की कॉफी और ख़ामोश ख्याल ☕" },
-            { time: 4, text: "तारों से सजा आसमां ✨" },
-            { time: 8, text: "धीमी सी लो-फाई धुन 🎧" },
-            { time: 12, text: "सिर्फ तुम्हारी बातें और यादें 💭" },
-            { time: 16, text: "सुकून भरे ये हसीन पल 🌊" }
+            { time: 0, text: "लेट नाइट कॉफी एंड क्वायट थॉट्स ☕" },
+            { time: 4, text: "वाचिंग द स्टार्स शाइन ब्राइट ✨" },
+            { time: 8, text: "सॉफ्ट लो-फाई बीट्स इन द बैकग्राउंड 🎧" },
+            { time: 12, text: "थिंकिंग अबाउट यू ऑल नाइट लॉन्ग 💭" },
+            { time: 16, text: "पीसफुल मोमेंट्स, क्वायट सोल 🌊" }
         ],
         'telugu': [
-            { time: 0, text: "రాత్రి కాఫీ & ప్రశాంతమైన ఆలోచనలు ☕" },
-            { time: 4, text: "మిలమిల మెరిసే నక్షత్రాలు ✨" },
-            { time: 8, text: "మధురమైన లోఫై సంగీతం 🎧" },
-            { time: 12, text: "నీ తీపి జ్ఞాపకాలు 💭" }
+            { time: 0, text: "లేట్ నైట్ కాఫీ అండ్ క్వైట్ థాట్స్ ☕" },
+            { time: 4, text: "వాచింగ్ ద స్టార్స్ షైన్ బ్రైట్ ✨" },
+            { time: 8, text: "సాఫ్ట్ లో-ఫై బీట్స్ ఇన్ ద బ్యాక్‌గ్రౌండ్ 🎧" },
+            { time: 12, text: "థింకింగ్ అబౌట్ యూ ఆల్ నైట్ లాంగ్ 💭" },
+            { time: 16, text: "పీస్‌ఫుల్ మోమెంట్స్, క్వైట్ సోల్ 🌊" }
         ],
         'tamil': [
-            { time: 0, text: "இரவு காபி மற்றும் அமைதியான எண்ணங்கள் ☕" },
-            { time: 4, text: "மின்னு நட்சத்திரங்கள் ✨" },
-            { time: 8, text: "மெல்லிய இசை 🎧" }
+            { time: 0, text: "லேட் நைட் காபி அண்ட் குவாட் தாட்ஸ் ☕" },
+            { time: 4, text: "வாட்சிங் தி ஸ்டார்ஸ் ஷைன் பிரைட் ✨" },
+            { time: 8, text: "சாப்ட் லோ-ஃபை பீட்ஸ் 🎧" },
+            { time: 12, text: "திங்கிங் அபௌட் யூ ஆல் நைட் லாங் 💭" }
         ],
         'punjabi': [
-            { time: 0, text: "ਰਾਤ ਦੀ ਕੌਫ਼ੀ ਤੇ ਤੇਰੀਆਂ ਯਾਦਾਂ ☕" },
-            { time: 4, text: "ਤਾਰਿਆਂ ਦੀ ਛਾਂ ਹੇਠ ✨" }
+            { time: 0, text: "ਲੇਟ ਨਾਈਟ ਕੌਫ਼ੀ ਐਂਡ ਕੁਆਇਟ ਥੋਟਸ ☕" },
+            { time: 4, text: "ਵਾਚਿੰਗ ਦ ਸਟਾਰਸ ਸ਼ਾਈਨ ਬ੍ਰਾਈਟ ✨" },
+            { time: 8, text: "ਸੋਫ਼ਟ ਲੋ-ਫ਼ਾਈ ਬੀਟਸ 🎧" }
         ],
         'english_hinglish': [
             { time: 0, text: "Late night coffee & quiet thoughts ☕" },
@@ -94,36 +101,39 @@ export const MULTI_LANG_LYRICS: Record<string, Record<LanguageCode, LyricLine[]>
     }
 };
 
-// Generic Fallback Generator for any track
+// Generic Fallback Generator for any track (Phonetic Sung Rhythm)
 export function getFallbackLyrics(title: string, lang: LanguageCode): LyricLine[] {
     const cleanTitle = title.replace(/[^\w\s]/gi, '').trim() || "Love & Music";
     
     if (lang === 'hindi') {
         return [
             { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "संगीत की हर धड़कन में तेरा नाम 💖" },
-            { time: 7, text: "यह हसीन पल हमेशा खास रहेंगे ✨" },
-            { time: 11, text: "दिल से निकली हर लकीर 🌊" },
-            { time: 15, text: "साथ बिताए ये खूबसूरत लम्हे 💫" }
+            { time: 3, text: "दिल की धड़कन में तेरा ही नाम 💖" },
+            { time: 7, text: "हर लम्हा तेरे संग खास है ✨" },
+            { time: 11, text: "तेरे बिना जीना भी क्या जीना 🌅" },
+            { time: 15, text: "तू ही मेरी मंज़िल, तू ही मेरा प्यार 💫" }
         ];
     } else if (lang === 'telugu') {
         return [
             { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "ప్రతి గుండె చప్పుడులో నీ నామమే 💖" },
-            { time: 7, text: "ఈ క్షణాలు ఎప్పటికీ మరువలేనివి ✨" },
-            { time: 11, text: "మనసులో నిండిన మధురమైన జ్ఞాపకం 🌊" }
+            { time: 3, text: "దిల్ కీ ధడ్కన్ మే తేరా హీ నామ్ 💖" },
+            { time: 7, text: "హర్ లమ్హా తేరే సంగ్ ఖాస్ హై ✨" },
+            { time: 11, text: "తేరే బినా జీనా భీ క్యా జీనా 🌅" },
+            { time: 15, text: "తూ హీ మేరీ మంజిల్, తూ హీ మేరా ప్యార్ 💫" }
         ];
     } else if (lang === 'tamil') {
         return [
             { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "ஒவ்வொரு இசைத் துடிப்பிலும் நீ 💖" },
-            { time: 7, text: "இந்த அழகான தருணங்கள் என்றென்றும் ✨" }
+            { time: 3, text: "தில் கி தட்கன் மே தேரா ஹி நாம் 💖" },
+            { time: 7, text: "ஹர் லம்பா தேரே சங் காஸ் ஹை ✨" },
+            { time: 11, text: "தேரே பினா ஜீனா பி க்யா ஜீனா 🌅" }
         ];
     } else if (lang === 'punjabi') {
         return [
             { time: 0, text: `🎵 ${cleanTitle}` },
-            { time: 3, text: "ਹਰ ਧੜਕਣ ਵਿੱਚ ਤੇਰੀ ਹੀ ਆਵਾਜ਼ 💖" },
-            { time: 7, text: "ਇਹ ਪਲ ਹਮੇਸ਼ਾ ਯਾਦ ਰਹਿਣਗੇ ✨" }
+            { time: 3, text: "ਦਿਲ ਦੀ ਧੜਕਣ ਵਿੱਚ ਤੇਰਾ ਹੀ ਨਾਂ 💖" },
+            { time: 7, text: "ਹਰ ਪਲ ਤੇਰੇ ਨਾਲ ਖ਼ਾਸ ਹੈ ✨" },
+            { time: 11, text: "ਤੇਰੇ ਬਿਨਾਂ ਜੀਣਾ ਵੀ ਕੀ ਜੀਣਾ 🌅" }
         ];
     }
     
@@ -212,7 +222,7 @@ export default function StoryLyricsSticker({
                         <Move size={11} className="animate-pulse" /> Drag
                     </span>
 
-                    {/* Native Language Buttons */}
+                    {/* Native Script Phonetic Buttons */}
                     {[
                         { code: 'hindi', label: '🇮🇳 हिंदी' },
                         { code: 'telugu', label: '🇮🇳 తెలుగు' },

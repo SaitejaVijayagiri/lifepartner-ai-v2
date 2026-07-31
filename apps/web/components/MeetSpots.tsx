@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 
 const CATEGORIES = [
     { id: 'All', label: 'All', emoji: '✨' },
-    { id: 'Women Only', label: 'Women Only', emoji: '👩' },
+    { id: 'Female Social', label: 'Female Social', emoji: '👩' },
     { id: 'Coffee Meetup', label: 'Coffee', emoji: '☕' },
     { id: 'Speed Dating', label: 'Speed Date', emoji: '⚡' },
     { id: 'Group Activity', label: 'Activity', emoji: '🎯' },
@@ -16,7 +16,7 @@ const CATEGORIES = [
     { id: 'Other', label: 'Other', emoji: '🌟' },
 ];
 const CATEGORY_COLORS: Record<string, string> = {
-    'Women Only':     'from-pink-500 via-rose-500 to-purple-600',
+    'Female Social':  'from-pink-500 via-rose-500 to-purple-600',
     'Coffee Meetup':  'from-amber-400 to-orange-400',
     'Speed Dating':   'from-rose-500 to-pink-500',
     'Group Activity': 'from-green-500 to-emerald-500',
@@ -218,8 +218,8 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
     const handleRSVP = async (eventId: string) => {
         const targetEv = events.find(e => e.id === eventId);
-        if (targetEv && targetEv.category === 'Women Only' && currentUser?.gender?.toLowerCase() === 'male') {
-            toast.error('This meetup is reserved for women-only safety & comfort.');
+        if (targetEv && (targetEv.category === 'Female Social' || targetEv.category === 'Women Only') && currentUser?.gender?.toLowerCase() === 'male') {
+            toast.error('This meetup is reserved for female social safety & comfort.');
             return;
         }
         try {

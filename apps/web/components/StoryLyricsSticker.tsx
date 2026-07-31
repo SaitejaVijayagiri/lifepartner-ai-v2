@@ -94,40 +94,52 @@ export default function StoryLyricsSticker({
     }, [activeIndex]);
 
     return (
-        <div className="w-full max-w-xs mx-auto my-2 select-none pointer-events-none">
-            {/* Live Lyrics Scrolling Container */}
-            <div
-                ref={containerRef}
-                className="max-h-36 overflow-y-auto no-scrollbar py-8 px-4 text-center flex flex-col items-center space-y-3 transition-all duration-300"
-            >
-                {lines.map((line, idx) => {
-                    const isActive = idx === activeIndex;
-                    const isPast = idx < activeIndex;
+        <div className="w-full max-w-sm mx-auto select-none pointer-events-none px-2">
+            {/* Live Lyrics Scrolling Container with Glassmorphism Card */}
+            <div className="bg-slate-950/80 backdrop-blur-md rounded-2xl border border-white/20 p-3 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-2">
+                    <span className="text-[10px] font-extrabold text-amber-300 flex items-center gap-1 uppercase tracking-wider">
+                        <Sparkles size={11} className="animate-spin" />
+                        Live Synchronized Lyrics
+                    </span>
+                    <span className="text-[9px] font-bold text-white/70 truncate max-w-[130px]">
+                        {songTitle}
+                    </span>
+                </div>
 
-                    return (
-                        <div
-                            key={idx}
-                            ref={isActive ? activeLineRef : null}
-                            className={`transition-all duration-300 transform ${
-                                isActive
-                                    ? 'scale-110 font-extrabold text-amber-300 drop-shadow-[0_0_12px_rgba(252,211,77,0.9)] opacity-100'
-                                    : isPast
-                                    ? 'scale-95 text-white/50 opacity-40 font-medium'
-                                    : 'scale-95 text-white/70 opacity-60 font-medium'
-                            }`}
-                        >
-                            <span
-                                className={`inline-block px-3 py-1 rounded-xl text-sm sm:text-base leading-snug ${
+                <div
+                    ref={containerRef}
+                    className="max-h-28 overflow-y-auto no-scrollbar py-1 text-center flex flex-col items-center space-y-2 transition-all duration-300"
+                >
+                    {lines.map((line, idx) => {
+                        const isActive = idx === activeIndex;
+                        const isPast = idx < activeIndex;
+
+                        return (
+                            <div
+                                key={idx}
+                                ref={isActive ? activeLineRef : null}
+                                className={`transition-all duration-300 transform ${
                                     isActive
-                                        ? 'bg-black/60 backdrop-blur-md border border-amber-400/40 text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-rose-200 to-pink-300'
-                                        : ''
+                                        ? 'scale-105 opacity-100'
+                                        : isPast
+                                        ? 'scale-95 text-white/40 opacity-40 font-medium'
+                                        : 'scale-95 text-white/60 opacity-60 font-medium'
                                 }`}
                             >
-                                {line.text}
-                            </span>
-                        </div>
-                    );
-                })}
+                                <span
+                                    className={`inline-block px-3 py-1 rounded-xl text-xs sm:text-sm leading-snug transition-all ${
+                                        isActive
+                                            ? 'bg-gradient-to-r from-amber-400 via-rose-300 to-pink-400 text-slate-950 font-black shadow-lg scale-105'
+                                            : 'text-white/80 font-semibold'
+                                    }`}
+                                >
+                                    {line.text}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

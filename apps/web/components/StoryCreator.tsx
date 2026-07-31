@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import StoryMusicStudio, { StoryMusicData } from './StoryMusicStudio';
 import StoryMusicSticker from './StoryMusicSticker';
+import StoryLyricsSticker from './StoryLyricsSticker';
 
 interface StoryCreatorProps {
     storyFiles: File[];
@@ -692,11 +693,20 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                 </div>
                             )}
 
-                {/* Floating Music Badge Preview */}
+                {/* Floating Music Badge & Synchronized Lyrics Preview */}
                 {customMusicData && !isAddingText && (
-                    <div className="absolute top-16 left-4 z-30 pointer-events-none">
-                        <StoryMusicSticker music={customMusicData} isPlaying={true} />
-                    </div>
+                    <>
+                        <div className="absolute top-16 left-4 z-30 pointer-events-none">
+                            <StoryMusicSticker music={customMusicData} isPlaying={true} />
+                        </div>
+                        <div className="absolute inset-x-4 bottom-28 z-30 pointer-events-none">
+                            <StoryLyricsSticker
+                                songId={customMusicData.id}
+                                songTitle={customMusicData.title}
+                                currentTime={0}
+                            />
+                        </div>
+                    </>
                 )}
                 </div>
 

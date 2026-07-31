@@ -68,21 +68,25 @@ export default function Footer() {
                 <div>
                     <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Matrimony by City</h5>
                     <ul className="space-y-1.5">
+                        <li><Link href="/matrimony/location/london" className="hover:text-indigo-400 transition-colors">London NRI Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/new-york" className="hover:text-indigo-400 transition-colors">New York Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/toronto" className="hover:text-indigo-400 transition-colors">Toronto NRI Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/sydney" className="hover:text-indigo-400 transition-colors">Sydney Matrimony</Link></li>
+                        <li><Link href="/matrimony/location/dubai" className="hover:text-indigo-400 transition-colors">Dubai NRI Matrimony</Link></li>
                         <li><Link href="/matrimony/location/bangalore" className="hover:text-indigo-400 transition-colors">Bangalore Matrimony</Link></li>
-                        <li><Link href="/matrimony/location/mumbai" className="hover:text-indigo-400 transition-colors">Mumbai Matrimony</Link></li>
-                        <li><Link href="/matrimony/location/delhi" className="hover:text-indigo-400 transition-colors">Delhi Matrimony</Link></li>
                         <li><Link href="/matrimony/location/hyderabad" className="hover:text-indigo-400 transition-colors">Hyderabad Matrimony</Link></li>
-                        <li><Link href="/matrimony/location/chennai" className="hover:text-indigo-400 transition-colors">Chennai Matrimony</Link></li>
                     </ul>
                 </div>
                 <div>
-                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Dating by City</h5>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Worldwide Dating</h5>
                     <ul className="space-y-1.5">
-                        <li><Link href="/dating/location/bangalore" className="hover:text-indigo-400 transition-colors">Dating in Bangalore</Link></li>
-                        <li><Link href="/dating/location/mumbai" className="hover:text-indigo-400 transition-colors">Dating in Mumbai</Link></li>
-                        <li><Link href="/dating/location/delhi" className="hover:text-indigo-400 transition-colors">Dating in Delhi</Link></li>
-                        <li><Link href="/dating/location/hyderabad" className="hover:text-indigo-400 transition-colors">Dating in Hyderabad</Link></li>
-                        <li><Link href="/dating/location/chennai" className="hover:text-indigo-400 transition-colors">Dating in Chennai</Link></li>
+                        <li><Link href="/dating/location/london" className="hover:text-pink-400 transition-colors">Dating in London</Link></li>
+                        <li><Link href="/dating/location/new-york" className="hover:text-pink-400 transition-colors">Dating in New York</Link></li>
+                        <li><Link href="/dating/location/toronto" className="hover:text-pink-400 transition-colors">Dating in Toronto</Link></li>
+                        <li><Link href="/dating/location/sydney" className="hover:text-pink-400 transition-colors">Dating in Sydney</Link></li>
+                        <li><Link href="/dating/location/singapore" className="hover:text-pink-400 transition-colors">Dating in Singapore</Link></li>
+                        <li><Link href="/dating/location/bangalore" className="hover:text-pink-400 transition-colors">Dating in Bangalore</Link></li>
+                        <li><Link href="/dating/location/mumbai" className="hover:text-pink-400 transition-colors">Dating in Mumbai</Link></li>
                     </ul>
                 </div>
                 <div>
@@ -92,6 +96,7 @@ export default function Footer() {
                         <li><Link href="/dating/community/kamma" className="hover:text-indigo-400 transition-colors">Kamma Dating</Link></li>
                         <li><Link href="/matrimony/community/brahmin" className="hover:text-indigo-400 transition-colors">Brahmin Matrimony</Link></li>
                         <li><Link href="/dating/community/nair" className="hover:text-indigo-400 transition-colors">Nair Dating & Chat</Link></li>
+                        <li><Link href="/matrimony/community/iyer" className="hover:text-indigo-400 transition-colors">Iyer Matrimony</Link></li>
                     </ul>
                 </div>
                 <div>
@@ -100,16 +105,18 @@ export default function Footer() {
                         <li><Link href="/dating/profession/software-engineer" className="hover:text-indigo-400 transition-colors">Software Engineer Dating</Link></li>
                         <li><Link href="/matrimony/profession/doctor" className="hover:text-indigo-400 transition-colors">Doctor Matrimony</Link></li>
                         <li><Link href="/dating/profession/ias-ips" className="hover:text-indigo-400 transition-colors">IAS/IPS Matches</Link></li>
-                        <li><Link href="/matrimony/profession/teacher" className="hover:text-indigo-400 transition-colors">Teacher Matrimony</Link></li>
+                        <li><Link href="/matrimony/profession/chartered-accountant" className="hover:text-indigo-400 transition-colors">CA Matrimony</Link></li>
+                        <li><Link href="/dating/profession/business-owner" className="hover:text-indigo-400 transition-colors">Entrepreneur Dating</Link></li>
                     </ul>
                 </div>
                 <div>
-                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Trending Dating</h5>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Global Intent SEO</h5>
                     <ul className="space-y-1.5">
-                        <li><Link href="/dating/location/pune" className="hover:text-indigo-400 transition-colors">Dating in Pune</Link></li>
-                        <li><Link href="/dating/location/kolkata" className="hover:text-indigo-400 transition-colors">Dating in Kolkata</Link></li>
-                        <li><Link href="/dating/location/jaipur" className="hover:text-indigo-400 transition-colors">Dating in Jaipur</Link></li>
-                        <li><Link href="/dating/location/lucknow" className="hover:text-indigo-400 transition-colors">Dating in Lucknow</Link></li>
+                        <li><Link href="/dating/intent/global-chat-with-verified-singles" className="hover:text-indigo-400 transition-colors">Global Singles Chat</Link></li>
+                        <li><Link href="/matrimony/intent/nri-matrimony-chat" className="hover:text-indigo-400 transition-colors">NRI Matrimony Chat</Link></li>
+                        <li><Link href="/dating/intent/chat-with-international-guys" className="hover:text-indigo-400 transition-colors">International Dating</Link></li>
+                        <li><Link href="/matrimony/intent/free-matrimony-chat-without-payment" className="hover:text-indigo-400 transition-colors">Free Direct Chat</Link></li>
+                        <li><Link href="/dating/intent/free-random-video-chat" className="hover:text-indigo-400 transition-colors">Free Video Dating</Link></li>
                     </ul>
                 </div>
             </div>

@@ -32,14 +32,14 @@ export default function AboutPage() {
                             <h3 className="text-3xl font-bold mb-6 text-indigo-900 dark:text-indigo-400">Why I Built This</h3>
                             <div className="space-y-6 text-lg text-gray-750 dark:text-gray-300 leading-relaxed">
                                 <p>
-                                    Like many declared "eligible bachelors/spinsters", I was frustrated with the current state of dating and matrimony apps.
-                                    They are crowded with fake profiles, swipe fatigue, scammers, and expensive subscription models that charge you just to say "Hi".
+                                    Like many individuals seeking a life partner, I was frustrated with traditional matrimony sites and dating apps.
+                                    They are crowded with fake profiles, paywalls charging thousands of rupees just to unlock contact details, and endless swiping without real intent.
                                 </p>
                                 <p>
-                                    <b>LifePartner AI is different.</b>
+                                    <b>LifePartner AI is built to fix this.</b>
                                 </p>
                                 <p>
-                                    I built this platform with a single goal: To use advanced technology to connect real people for meaningful dating, serious relationships, and marriage—without the corporate greed.
+                                    I built this platform with a clear mission: To leverage modern AI technology and human verification to connect real people for serious matrimony and long-term marriage—completely free, transparent, and without paywalls.
                                 </p>
                                 <div className="bg-indigo-50 dark:bg-indigo-950/30 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/50">
                                     <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-2">My Promise to You:</h4>

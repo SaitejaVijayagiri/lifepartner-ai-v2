@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar } from 'lucide-react';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
@@ -20,7 +20,7 @@ export default function LandingPageClient() {
   // Quick Match Finder State
   const [quickGender, setQuickGender] = useState('Male');
   const [quickLookingFor, setQuickLookingFor] = useState('Female');
-  const [quickIntent, setQuickIntent] = useState<'dating' | 'matrimony'>('dating');
+  const [quickIntent, setQuickIntent] = useState<'dating' | 'matrimony'>('matrimony');
   const [quickCountry, setQuickCountry] = useState('Worldwide');
 
   useEffect(() => {
@@ -43,6 +43,22 @@ export default function LandingPageClient() {
     };
     fetchProfiles();
   }, []);
+
+  const handleShareMatrimony = async () => {
+    const shareData = {
+      title: 'LifePartner AI | 100% Free Matrimony & Matchmaking',
+      text: 'Find your life partner on LifePartner AI Matrimony! 100% verified profiles, zero paywalls, direct chat, and smart AI matchmaking.',
+      url: 'https://lifepartnerai.in/matrimony'
+    };
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (e) {}
+    } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(shareData.url);
+      alert('Matrimony share link copied to clipboard!');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 overflow-x-hidden selection:bg-indigo-100 selection:text-indigo-900 relative scroll-smooth">
@@ -349,23 +365,27 @@ export default function LandingPageClient() {
         <div className="max-w-4xl mx-auto px-6">
 
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wide mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wide mb-6">
               <Zap size={14} /> Founder's Message
             </div>
             <h2 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Matches made by AI.<br />Verified by Humans.</h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-              "Hi, I'm Saiteja. I built LifePartner AI because I was tired of dating apps and matrimony sites filled with fake profiles, paywalls, and endless swiping.
-              My mission is simple: <b>Zero fake profiles. Zero cost. Genuine connections.</b>"
+              "Hi, I'm Saiteja. I built LifePartner AI with a single mission: to revolutionize serious matrimony and matchmaking. Traditional matrimony sites lock messaging behind expensive paywalls and are filled with unverified profiles. My promise to you is simple: <b>100% Free Matrimony, Zero Fake Profiles, Direct Verification, and AI-Powered Compatibility</b> so you can find your true life partner safely and transparently."
             </p>
 
-
-
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4 items-center">
               <Link href="/about">
                 <button className="px-8 py-3 rounded-full bg-gray-900 text-white font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl">
                   Read Our Story
                 </button>
               </Link>
+              <button
+                onClick={handleShareMatrimony}
+                className="px-8 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
+              >
+                <Share2 size={18} />
+                Share Matrimony App
+              </button>
             </div>
           </div>
         </div>

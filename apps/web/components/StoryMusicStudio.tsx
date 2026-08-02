@@ -14,8 +14,6 @@ export interface StoryMusicData {
     duration: number;
     startOffset: number; // Selected start time in seconds
     isFullSong?: boolean; // Whether user wants full song playback
-    showLyrics?: boolean; // Whether to display live scrolling lyrics
-    lyricsLang?: string; // Language code e.g. hindi, telugu, tamil, punjabi, english_hinglish
 }
 
 export const FALLBACK_CATALOG: Omit<StoryMusicData, 'startOffset'>[] = [
@@ -94,7 +92,6 @@ export default function StoryMusicStudio({ currentMusic, onSelectMusic, onClose 
     const [savedMusicList, setSavedMusicList] = useState<Omit<StoryMusicData, 'startOffset'>[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isFullSongMode, setIsFullSongMode] = useState<boolean>(currentMusic?.isFullSong ?? true);
-    const [showLyrics, setShowLyrics] = useState<boolean>(currentMusic?.showLyrics ?? false);
 
     const [activeTrack, setActiveTrack] = useState<Omit<StoryMusicData, 'startOffset'> | null>(
         currentMusic ? {
@@ -271,8 +268,7 @@ export default function StoryMusicStudio({ currentMusic, onSelectMusic, onClose 
             onSelectMusic({
                 ...activeTrack,
                 startOffset: startOffset,
-                isFullSong: isFullSongMode,
-                showLyrics: showLyrics
+                isFullSong: isFullSongMode
             });
         }
         onClose();
@@ -474,20 +470,6 @@ export default function StoryMusicStudio({ currentMusic, onSelectMusic, onClose 
                         </div>
 
                         <div className="flex items-center gap-2">
-                            {/* Live Lyrics Toggle */}
-                            <button
-                                type="button"
-                                onClick={() => setShowLyrics(prev => !prev)}
-                                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1 ${
-                                    showLyrics
-                                        ? 'bg-gradient-to-r from-amber-400 to-pink-500 text-slate-950 shadow-md font-black'
-                                        : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-                                }`}
-                                title="Toggle live scrolling lyrics display"
-                            >
-                                <span>📜 Lyrics: {showLyrics ? 'ON ✨' : 'OFF'}</span>
-                            </button>
-
                             {/* Full Song vs 15s Snippet Mode Toggle */}
                             <button
                                 type="button"

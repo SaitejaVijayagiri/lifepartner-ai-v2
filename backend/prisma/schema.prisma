@@ -307,6 +307,7 @@ model users {
   @@index([is_verified], map: "idx_users_verified")
   // Optimization: Composite index for faster match filtering
   @@index([gender, age, is_verified, location_name], map: "idx_users_match_composite")
+  @@index([is_banned, is_deactivated, is_verified], map: "idx_users_active_status")
 }
 
 model blog_posts {

@@ -86,7 +86,7 @@ export const initSocket = (httpServer: HttpServer) => {
             // Notify OTHERS that this user is online ONLY if they just came online
             if (currentCount === 0) {
                 socket.broadcast.emit('userOnline', userId);
-                io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
+                io.to('public_updates').emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
 
                 // Find active connections to send witty online alerts
                 (async () => {

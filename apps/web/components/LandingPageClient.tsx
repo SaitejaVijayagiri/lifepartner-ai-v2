@@ -308,57 +308,7 @@ export default function LandingPageClient() {
       {/* --- AI MATCHMAKER DEMO SECTION --- */}
       <AnimatedSearchSection />
 
-      {/* --- INFINITE MARQUEE --- */}
-      <section className="py-12 border-y border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 relative overflow-hidden z-20">
-        <div className="absolute inset-y-0 left-0 w-4 sm:w-16 bg-gradient-to-r from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute inset-y-0 right-0 w-4 sm:w-16 bg-gradient-to-l from-white dark:from-gray-950 to-transparent z-10 pointer-events-none"></div>
-        
-        {/* We have two different scrolling blocks here: One for text tags and the new one for Public Profiles! */}
-        
-        {/* Tag Marquee */}
-        <div className="flex w-[200%] animate-scroll mb-10">
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className="flex-shrink-0 mx-12 flex items-center gap-4 text-gray-400 dark:text-gray-500 font-bold uppercase tracking-[0.2em] text-sm hover:text-indigo-600 transition-colors cursor-default">
-              <ShieldCheck size={18} /> Secure • Verified • Honest •
-            </div>
-          ))}
-        </div>
 
-        {/* Profiles Marquee */}
-        {(topRow.length > 0 || bottomRow.length > 0) && (
-          <div className="w-full relative overflow-hidden py-4">
-              {/* First Row: Scrolls Left */}
-              {topRow.length > 0 && (
-                <div 
-                  className="animate-scroll-cards"
-                  style={{ 
-                    '--card-count': topRow.length,
-                    animation: `scrollCards ${Math.max(20, topRow.length * 8)}s linear infinite`
-                  } as React.CSSProperties}
-                >
-                  {[...topRow, ...topRow.map(p => ({...p, id: p.id+"_dup"}))].map((profile, i) => (
-                    <PublicMatchCard key={`row1_${profile.id}_${i}`} match={profile} />
-                  ))}
-                </div>
-              )}
-
-              {/* Second Row: Scrolls Right (Opposite Direction) */}
-              {bottomRow.length > 0 && (
-                <div 
-                  className="animate-scroll-cards-reverse mt-6"
-                  style={{ 
-                    '--card-count': bottomRow.length,
-                    animation: `scrollCardsReverse ${Math.max(20, bottomRow.length * 8)}s linear infinite`
-                  } as React.CSSProperties}
-                >
-                  {[...bottomRow, ...bottomRow.map(p => ({...p, id: p.id+"_dup_rev"}))].map((profile, i) => (
-                    <PublicMatchCard key={`row2_${profile.id}_${i}`} match={profile} />
-                  ))}
-                </div>
-              )}
-          </div>
-        )}
-      </section>
 
       {/* --- MEET THE FOUNDER / TRUST SECTION --- */}
       <section className="py-24 bg-white dark:bg-gray-950 relative overflow-hidden border-b border-gray-100 dark:border-gray-800">

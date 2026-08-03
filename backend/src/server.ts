@@ -102,28 +102,20 @@ app.use(globalLimiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Global Request Logger (runs after parsers so req.body is available)
+// Global Request Logger — lightweight non-blocking logger
 app.use((req, res, next) => {
-    console.log(`📨 [${req.method}] ${req.url}`);
-    if (req.method === 'POST' || req.method === 'PUT') {
-        try {
-            // Sanitize body before logging — strip base64 blobs to prevent memory bloat on Render
-            const sanitized = JSON.parse(JSON.stringify(req.body || {}));
-            if (sanitized.photoUrl && typeof sanitized.photoUrl === 'string' && sanitized.photoUrl.startsWith('data:')) {
-                sanitized.photoUrl = `[base64 image, ${Math.round(sanitized.photoUrl.length / 1024)}KB]`;
-            }
-            if (Array.isArray(sanitized.photos)) {
-                sanitized.photos = sanitized.photos.map((p: string) =>
-                    typeof p === 'string' && p.startsWith('data:') ? `[base64 image, ${Math.round(p.length / 1024)}KB]` : p
-                );
-            }
-            console.log('📦 Body:', JSON.stringify(sanitized, null, 2));
-        } catch (_) { /* ignore logging errors */ }
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`📨 [${req.method}] ${req.url}`);
     }
     next();
 });
 
-app.use('/uploads', express.static('uploads'));
+// Serve uploads with 7-day browser caching for fast image loading
+app.use('/uploads', express.static('uploads', {
+    maxAge: '7d',
+    etag: true,
+    immutable: true
+}));
 
 app.use('/ai', aiRoutes);
 

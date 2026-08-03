@@ -127,9 +127,17 @@ router.get('/me', authenticateToken, async (req: any, res) => {
     }
 });
 
+let featuredCache: { data: any, timestamp: number } | null = null;
+
 // Get Featured Public Profiles (For Landing Page)
 router.get('/public/featured', async (req, res) => {
     try {
+        const now = Date.now();
+        if (featuredCache && (now - featuredCache.timestamp < 60000)) {
+            res.setHeader('Cache-Control', 'public, max-age=60');
+            return res.json(featuredCache.data);
+        }
+
         const targetNames = ['vinay', 'awais anwer', 'gautam v reddy', 'vimal', 'gautam', 'sunny dharod', 'hamoudi', 'sunny', 'giridhar', 'gk'];
         const orConditions = targetNames.map(name => ({
             full_name: { contains: name, mode: 'insensitive' as const }
@@ -229,7 +237,11 @@ router.get('/public/featured', async (req, res) => {
         const topRow = allProfiles.slice(0, mid);
         const bottomRow = allProfiles.slice(mid);
 
-        res.json({ success: true, topRow, bottomRow });
+        const responseData = { success: true, topRow, bottomRow };
+        featuredCache = { data: responseData, timestamp: now };
+
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        res.json(responseData);
 
 
     } catch (e) {

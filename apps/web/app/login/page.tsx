@@ -45,6 +45,8 @@ export default function LoginPage() {
             if (res.token) {
                 localStorage.setItem('token', res.token);
             }
+            // Clear old cached matches so user gets fresh recommendations immediately
+            localStorage.removeItem('matches_cache_v2');
             if (res.isNewUser || res.requiresOnboarding) {
                 router.replace('/onboarding');
             } else {

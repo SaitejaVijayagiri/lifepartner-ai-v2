@@ -104,6 +104,7 @@ export default function OnboardingPage() {
             // Clear saved onboarding data from localStorage after successful save
             localStorage.removeItem('lifepartner_onboarding_data');
             localStorage.removeItem('lifepartner_onboarding_step');
+            localStorage.removeItem('matches_cache_v2');
 
             // Minimal delay just to ensure the success animation renders smoothly
             await new Promise(r => setTimeout(r, 400));

@@ -125,6 +125,7 @@ function RegisterForm() {
                     localStorage.setItem('pendingVerificationEmail', form.email);
                     setShowOtp(true);
                 } else if (res.token) {
+                    localStorage.removeItem('matches_cache_v2');
                     localStorage.setItem('userId', res.userId);
                     localStorage.setItem('token', res.token);
                     router.replace('/onboarding');
@@ -152,6 +153,7 @@ function RegisterForm() {
             const res = await api.auth.verifyOtp({ email: form.email, otp });
             if (res.token) {
                 localStorage.removeItem('pendingVerificationEmail');
+                localStorage.removeItem('matches_cache_v2');
                 localStorage.setItem('userId', res.userId);
                 localStorage.setItem('token', res.token);
                 router.replace('/onboarding');

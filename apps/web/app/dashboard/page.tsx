@@ -1005,14 +1005,36 @@ function DashboardContent() {
                             onNavigateTab={(tab) => setActiveTab(tab)}
                             onSelectProfile={setSelectedProfile}
                             onSelectKundli={setSelectedKundli}
-                            onJoinLiveRoom={() => setShowSpeedDatingLobby(true)}
+                            onJoinLiveRoom={(event?: any) => {
+                                if (event && (event.host_name || event.host_id)) {
+                                    startCall({
+                                        id: event.host_id || event.id,
+                                        name: event.host_name,
+                                        photoUrl: event.host_avatar,
+                                        _speedDateInitiator: true
+                                    }, 'speed_date');
+                                } else {
+                                    setShowSpeedDatingLobby(true);
+                                }
+                            }}
                             onOpenStory={(storySet) => setActiveStorySet(storySet)}
                         />
                     )}
 
                     {activeTab === 'live_events' && (
                         <LiveVideoEventsHub
-                            onJoinLive={() => setShowSpeedDatingLobby(true)}
+                            onJoinLive={(event?: any) => {
+                                if (event && (event.host_name || event.host_id)) {
+                                    startCall({
+                                        id: event.host_id || event.id,
+                                        name: event.host_name,
+                                        photoUrl: event.host_avatar,
+                                        _speedDateInitiator: true
+                                    }, 'speed_date');
+                                } else {
+                                    setShowSpeedDatingLobby(true);
+                                }
+                            }}
                         />
                     )}
 

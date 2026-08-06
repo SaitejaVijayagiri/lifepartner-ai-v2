@@ -153,7 +153,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         avatar_url: true,
                         city: true,
                         location_name: true,
-                        profiles: { select: { metadata: true } }
+                        profiles: { select: { stories: true, metadata: true } }
                     }
                 },
                 users_interactions_to_user_idTousers: {
@@ -163,7 +163,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         avatar_url: true,
                         city: true,
                         location_name: true,
-                        profiles: { select: { metadata: true } }
+                        profiles: { select: { stories: true, metadata: true } }
                     }
                 }
             }
@@ -185,6 +185,12 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
 
             if (!uniqueConnections.has(partner.id)) {
                 partnerIds.push(partner.id);
+                const directStories: any[] = (partner.profiles?.stories as any[]) || [];
+                const metaStories: any[] = (partner.profiles as any)?.metadata?.stories || [];
+                const allIds = new Set(directStories.map((s: any) => s.id));
+                const allStories = [...directStories, ...metaStories.filter((s: any) => !allIds.has(s.id))];
+                const activeStories = allStories.filter((s: any) => new Date(s.expiresAt) > new Date());
+
                 uniqueConnections.set(partner.id, {
                     interactionId: r.id,
                     partner: {
@@ -192,7 +198,8 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         name: partner.full_name,
                         photoUrl: sanitizePhotoUrl(partner.avatar_url, partner.full_name || partner.id),
                         role: (partner.profiles?.metadata as any)?.career?.profession || "Member",
-                        location: getLocationString(partner)
+                        location: getLocationString(partner),
+                        stories: activeStories
                     },
                     timestamp: r.created_at,
                     unreadCount: 0 // Default

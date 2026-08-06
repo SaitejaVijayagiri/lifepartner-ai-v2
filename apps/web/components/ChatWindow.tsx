@@ -1273,13 +1273,31 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                     <div className="flex items-center gap-2.5 sm:gap-3 relative z-10 cursor-pointer hover:opacity-90 transition-opacity min-w-0 flex-1 pr-2" onClick={handleViewProfile}>
                         <div className="relative flex-shrink-0">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500">
-                                <img src={partnerInfo.photoUrl} className="w-full h-full rounded-full border-2 border-white object-cover" onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                                    target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
-                                }} />
-                            </div>
+                            {(() => {
+                                const partnerStories: any[] = (partnerInfo as any).stories || (partner as any).stories || [];
+                                const activePartnerStories = partnerStories.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date());
+                                const hasPartnerStories = activePartnerStories.length > 0;
+                                const currentUserId = user?.id || user?.userId;
+                                const isPartnerStoriesViewed = hasPartnerStories && activePartnerStories.every((s: any) => s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId));
+
+                                return (
+                                    <div className={
+                                        hasPartnerStories
+                                            ? isPartnerStoriesViewed
+                                                ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2.5px] bg-slate-300 dark:bg-slate-700 transition-all'
+                                                : 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-md shadow-orange-500/30 animate-pulse transition-all'
+                                            : 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500'
+                                    }>
+                                        <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-800">
+                                            <img src={partnerInfo.photoUrl} className="w-full h-full rounded-full object-cover shrink-0" onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                                target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerInfo.name || 'User')}`;
+                                            }} />
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             <div className={`absolute bottom-0 right-0 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                         </div>
                         <div className="min-w-0 flex-1">

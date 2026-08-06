@@ -29,6 +29,7 @@ import { fetchAPI } from '@/lib/api';
 const HomeTab = dynamic(() => import('@/components/dashboard/HomeTab'), { ssr: false });
 const LiveVideoEventsHub = dynamic(() => import('@/components/LiveVideoEventsHub'), { ssr: false });
 const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'), { ssr: false });
+const StoryModal = dynamic(() => import('@/components/StoryModal'), { ssr: false });
 const ConnectionsTab = dynamic(() => import('@/components/dashboard/ConnectionsTab'), { ssr: false });
 const RequestsTab = dynamic(() => import('@/components/dashboard/RequestsTab'), { ssr: false });
 const KundliModal = dynamic(() => import('@/components/KundliModal'));
@@ -98,6 +99,7 @@ function DashboardContent() {
     const [pushEnabled, setPushEnabled] = useState<boolean>(true);
     const [streakData, setStreakData] = useState<any>(null);
     const [showStreakModal, setShowStreakModal] = useState(false);
+    const [activeStorySet, setActiveStorySet] = useState<{ user: any; stories: any[] } | null>(null);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -1053,6 +1055,7 @@ function DashboardContent() {
                             openChat={openChat}
                             setGameTarget={setGameTarget}
                             setUnreadMessageCount={setUnreadMessageCount}
+                            onOpenStory={(storySet) => setActiveStorySet(storySet)}
                         />
                     )}
                     {activeTab === 'events' && <MeetSpots currentUser={currentUser} />}
@@ -1481,6 +1484,17 @@ function DashboardContent() {
                         if (currentUser) setCurrentUser({ ...currentUser, coins: newBal });
                         setStreakData((prev: any) => ({ ...prev, canClaimToday: false, streakCount: newStreak }));
                     }}
+                />
+            )}
+
+            {activeStorySet && (
+                <StoryModal
+                    stories={activeStorySet.stories}
+                    initialIndex={0}
+                    user={activeStorySet.user}
+                    currentUser={currentUser}
+                    onClose={() => setActiveStorySet(null)}
+                    onDelete={() => {}}
                 />
             )}
 

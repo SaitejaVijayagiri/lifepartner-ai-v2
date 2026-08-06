@@ -14,6 +14,7 @@ interface ConnectionsTabProps {
     openChat: (conn: any) => void;
     setGameTarget: React.Dispatch<React.SetStateAction<{ id: string; name: string } | null>>;
     setUnreadMessageCount: React.Dispatch<React.SetStateAction<number>>;
+    onOpenStory?: (storySet: { user: any; stories: any[] }) => void;
 }
 
 export default function ConnectionsTab({
@@ -24,7 +25,8 @@ export default function ConnectionsTab({
     onlineUsers,
     openChat,
     setGameTarget,
-    setUnreadMessageCount
+    setUnreadMessageCount,
+    onOpenStory
 }: ConnectionsTabProps) {
     const toast = useToast();
 
@@ -32,6 +34,8 @@ export default function ConnectionsTab({
     const onlineConns = connections.filter(c => c.partner && onlineUsers.includes(c.partner.id));
     const offlineConns = connections.filter(c => c.partner && !onlineUsers.includes(c.partner.id));
     const sortedConnections = [...onlineConns, ...offlineConns];
+
+    const currentUserId = currentUser?.id || currentUser?.userId;
 
     const handleDeleteConnection = async (e: React.MouseEvent, conn: any) => {
         e.stopPropagation();
@@ -74,28 +78,52 @@ export default function ConnectionsTab({
             {sortedConnections.length === 0 && (
                 <div className="text-center py-20 text-gray-500 dark:text-gray-400">No connections yet</div>
             )}
-            {sortedConnections.map((conn: any) => (
-                <div
-                    key={conn.interactionId}
-                    className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md group"
-                >
+            {sortedConnections.map((conn: any) => {
+                const stories: any[] = conn.partner?.stories || [];
+                const activeStories = stories.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date());
+                const hasStories = activeStories.length > 0;
+                const isAllViewed = hasStories && activeStories.every((s: any) => s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId));
+
+                return (
                     <div
-                        className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
-                        onClick={() => openChat(conn)}
+                        key={conn.interactionId}
+                        className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 transition-all hover:shadow-md group"
                     >
-                        <div className="relative">
-                            <img 
-                                src={conn.partner.photoUrl || '/avatar-fallback.svg'} 
-                                className="w-14 h-14 rounded-full object-cover border-2 border-gray-100 dark:border-gray-700 shrink-0" 
-                                alt={conn.partner.name || 'User'}
-                                onError={(e) => { 
-                                    const t = e.target as HTMLImageElement; 
-                                    t.onerror = null; 
-                                    t.src = '/avatar-fallback.svg'; 
-                                }} 
-                            />
-                            <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                        </div>
+                        <div
+                            className="flex items-center gap-4 flex-1 cursor-pointer w-full sm:w-auto"
+                            onClick={() => openChat(conn)}
+                        >
+                            <div
+                                className="relative shrink-0"
+                                onClick={(e) => {
+                                    if (hasStories && onOpenStory) {
+                                        e.stopPropagation();
+                                        onOpenStory({ user: conn.partner, stories: activeStories });
+                                    }
+                                }}
+                            >
+                                <div className={
+                                    hasStories
+                                        ? isAllViewed
+                                            ? 'w-14 h-14 rounded-full p-[2.5px] bg-slate-300 dark:bg-slate-700 transition-all cursor-pointer'
+                                            : 'w-14 h-14 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-md shadow-orange-500/30 transition-all cursor-pointer hover:scale-105'
+                                        : 'w-14 h-14 rounded-full'
+                                }>
+                                    <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-800">
+                                        <img 
+                                            src={conn.partner.photoUrl || '/avatar-fallback.svg'} 
+                                            className="w-full h-full rounded-full object-cover shrink-0" 
+                                            alt={conn.partner.name || 'User'}
+                                            onError={(e) => { 
+                                                const t = e.target as HTMLImageElement; 
+                                                t.onerror = null; 
+                                                t.src = '/avatar-fallback.svg'; 
+                                            }} 
+                                        />
+                                    </div>
+                                </div>
+                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                            </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                                 <h4 className="font-bold text-lg text-gray-900 dark:text-white truncate">
@@ -158,7 +186,8 @@ export default function ConnectionsTab({
                         </Button>
                     </div>
                 </div>
-            ))}
+            );
+        })}
         </div>
     );
 }

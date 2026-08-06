@@ -193,6 +193,9 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                     onEventCreated={(evt) => {
                         toast.success('🎉 Your Live Video room is now LIVE!');
                         fetchLiveEvents();
+                        if (onJoinLive) {
+                            onJoinLive(evt);
+                        }
                     }}
                 />
             )}

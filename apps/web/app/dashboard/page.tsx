@@ -456,17 +456,21 @@ function DashboardContent() {
 
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
-    const navItems = [
+    const primaryNavItems = [
         { id: 'home', label: 'Home', icon: Home },
         { id: 'matches', label: 'Matches', icon: Heart },
         { id: 'live_events', label: 'Live Video', icon: Radio, highlight: true },
-        { id: 'map', label: 'Live Map', icon: MapPin },
-        { id: 'events', label: 'Meetups', icon: Calendar },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
-        { id: 'community', label: 'Lounge', icon: Coffee },
-        { id: 'profile', label: 'Profile', icon: User },
     ];
+
+    const secondaryNavItems = [
+        { id: 'map', label: 'Live Map', icon: MapPin },
+        { id: 'events', label: 'Meetups', icon: Calendar },
+        { id: 'community', label: 'Lounge', icon: Coffee },
+    ];
+
+    const navItems = [...primaryNavItems, ...secondaryNavItems];
 
     // Fetch data based on active tab — guard against repeated re-fetches on tab switch
     // FIX: These refs prevent double-fetching within a single session, but reset on
@@ -840,7 +844,7 @@ function DashboardContent() {
             <div className="max-w-7xl mx-auto px-4 h-16 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Premium Logo */}
-                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setActiveTab('matches')}>
+                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setActiveTab('home')}>
                         <div className="relative">
                             <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
                                 <Sparkles size={20} fill="white" />
@@ -856,29 +860,29 @@ function DashboardContent() {
                         </div>
                     </div>
 
-                    <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-                        {navItems.map(item => (
+                    <nav className="hidden md:flex items-center gap-1 p-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-full border border-gray-200/60 dark:border-gray-700/60 shadow-sm overflow-x-auto no-scrollbar">
+                        {navItems.map((item: any) => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id)}
                                 className={`
-                                    px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-all
+                                    px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition-all whitespace-nowrap
                                     ${'highlight' in item && item.highlight
                                         ? activeTab === item.id
                                             ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
                                             : 'bg-gradient-to-r from-violet-100 to-indigo-100 dark:from-violet-900/40 dark:to-indigo-900/40 text-violet-700 dark:text-violet-300 hover:from-violet-200 hover:to-indigo-200'
                                         : activeTab === item.id
-                                            ? 'bg-primary/10 text-primary dark:text-indigo-400'
-                                            : 'text-muted-foreground hover:bg-secondary/50 dark:hover:bg-gray-700 hover:text-foreground md:dark:hover:text-gray-200'}
+                                            ? 'bg-indigo-600 text-white shadow-md'
+                                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-white'}
                                 `}
                             >
-                                <item.icon size={18} />
-                                {item.label}
+                                <item.icon size={16} />
+                                <span>{item.label}</span>
                                 {'highlight' in item && item.highlight && activeTab !== item.id && (
                                     <span className="inline-flex w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
                                 )}
                                 {item.badge ? (
-                                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{item.badge}</span>
+                                    <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{item.badge}</span>
                                 ) : null}
                             </button>
                         ))}

@@ -9,7 +9,7 @@ import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
 import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
-import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar, ShieldAlert } from 'lucide-react';
+import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar, ShieldAlert, Home, Radio } from 'lucide-react';
 
 import { Notifications } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
@@ -26,6 +26,8 @@ import DailyStreakModal from '@/components/DailyStreakModal';
 import { fetchAPI } from '@/lib/api';
 
 // Performance: Lazy-load heavy components that aren't needed on first paint
+const HomeTab = dynamic(() => import('@/components/dashboard/HomeTab'), { ssr: false });
+const LiveVideoEventsHub = dynamic(() => import('@/components/LiveVideoEventsHub'), { ssr: false });
 const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'), { ssr: false });
 const ConnectionsTab = dynamic(() => import('@/components/dashboard/ConnectionsTab'), { ssr: false });
 const RequestsTab = dynamic(() => import('@/components/dashboard/RequestsTab'), { ssr: false });
@@ -75,7 +77,7 @@ function DashboardContent() {
     const [connections, setConnections] = useState<any[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('matches');
+    const [activeTab, setActiveTab] = useState('home');
     const [requestsCount, setRequestsCount] = useState(0);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [showCoinStore, setShowCoinStore] = useState(false);
@@ -453,9 +455,11 @@ function DashboardContent() {
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
     const navItems = [
+        { id: 'home', label: 'Home', icon: Home },
         { id: 'matches', label: 'Matches', icon: Heart },
+        { id: 'live_events', label: 'Live Video', icon: Radio, highlight: true },
         { id: 'map', label: 'Live Map', icon: MapPin },
-        { id: 'events', label: 'Meetups', icon: Calendar, highlight: true },
+        { id: 'events', label: 'Meetups', icon: Calendar },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
         { id: 'community', label: 'Lounge', icon: Coffee },
@@ -987,6 +991,23 @@ function DashboardContent() {
             <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'map' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-3 sm:pt-6 px-3 sm:px-4'}`}>
                 {/* Main Feed Column */}
                 <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'map' ? 'pb-0 h-full' : 'pb-28 sm:pb-24'}`}>
+                    {activeTab === 'home' && (
+                        <HomeTab
+                            currentUser={currentUser}
+                            matches={matches}
+                            onNavigateTab={(tab) => setActiveTab(tab)}
+                            onSelectProfile={setSelectedProfile}
+                            onSelectKundli={setSelectedKundli}
+                            onJoinLiveRoom={() => setShowSpeedDatingLobby(true)}
+                        />
+                    )}
+
+                    {activeTab === 'live_events' && (
+                        <LiveVideoEventsHub
+                            onJoinLive={() => setShowSpeedDatingLobby(true)}
+                        />
+                    )}
+
                     {activeTab === 'matches' && (
                         <>
                             <InstantsBar />

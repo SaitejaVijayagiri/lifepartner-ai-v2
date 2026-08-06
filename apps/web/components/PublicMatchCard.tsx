@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatLocationString } from '@/lib/utils';
+import { trackImageFailure } from '@/lib/analytics';
 
 interface PublicMatchCardProps {
     match: any;
@@ -35,14 +36,15 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
             {/* Background Image (Immersive) */}
             <div className="absolute inset-0">
                 <img
-                    src={photos[currentPhotoIndex] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`}
+                    src={photos[currentPhotoIndex] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'User')}`}
                     alt={match.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="lazy"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.onerror = null; 
-                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`;
+                        trackImageFailure(target.src, 'PublicMatchCard', match.id);
+                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'User')}`;
                     }}
                 />
 

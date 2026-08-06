@@ -12,6 +12,7 @@ import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
 import { formatLocationString } from '@/lib/utils';
+import { trackImageFailure } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
 const CompatibilityModal = dynamic(() => import('./CompatibilityModal'), { ssr: false });
@@ -183,9 +184,9 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     loading="eager"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        // Stage 1: Try local SVG (guaranteed to work even offline/mobile)
+                        trackImageFailure(target.src, 'MatchCard', match.id);
                         target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id)}`;
+                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Match')}`;
                     }}
                 />
 

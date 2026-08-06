@@ -148,7 +148,7 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                             const isMe = msg.sender.id === currentUser?.id;
                             return (
                                 <div key={idx} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2`}>
-                                    <img src={msg.sender.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender.id}`} className="w-8 h-8 rounded-full border border-gray-200 self-end mb-1" />
+                                    <img src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} className="w-8 h-8 rounded-full border border-gray-200 self-end mb-1" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
                                     <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]`}>
                                         {!isMe && (
                                             <span className="text-[10px] text-gray-500 ml-1 mb-0.5 flex items-center gap-1 font-bold">
@@ -242,7 +242,7 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                             <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
                                 <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0">
                                     {u.photo ? (
-                                        <img src={u.photo} className="w-full h-full object-cover" />
+                                        <img src={u.photo} className="w-full h-full object-cover" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold">
                                             {u.name[0]}

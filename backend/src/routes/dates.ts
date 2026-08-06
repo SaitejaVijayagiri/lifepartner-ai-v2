@@ -341,4 +341,120 @@ router.post('/:id/sos', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Live Hosted Speed Dating Events Store
+interface LiveSpeedDateEvent {
+    id: string;
+    title: string;
+    description: string;
+    host_id: string;
+    host_name: string;
+    host_avatar?: string;
+    target_gender: 'all' | 'female' | 'male';
+    status: 'live' | 'upcoming' | 'ended';
+    participant_count: number;
+    max_participants: number;
+    created_at: string;
+}
+
+const liveEventsStore: LiveSpeedDateEvent[] = [
+    {
+        id: 'live_event_default',
+        title: '🔥 Live Night Singles Roulette',
+        description: '3-Minute Instant Speed Dates with Verified Singles!',
+        host_id: 'system_host',
+        host_name: 'LifePartner Matchmaker',
+        target_gender: 'all',
+        status: 'live',
+        participant_count: 14,
+        max_participants: 50,
+        created_at: new Date().toISOString()
+    }
+];
+
+/**
+ * POST /api/dates/events/create
+ * Host a new Live Speed Dating Event
+ */
+router.post('/events/create', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { title, description, target_gender, max_participants } = req.body;
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({ error: 'Event title is required' });
+        }
+
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { full_name: true, avatar_url: true }
+        });
+
+        const newEvent: LiveSpeedDateEvent = {
+            id: `evt_live_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+            title: title.trim(),
+            description: description ? description.trim() : 'Live 3-Minute Speed Dating Roulette',
+            host_id: userId,
+            host_name: user?.full_name || 'Host User',
+            host_avatar: user?.avatar_url || undefined,
+            target_gender: target_gender || 'all',
+            status: 'live',
+            participant_count: 1,
+            max_participants: max_participants || 50,
+            created_at: new Date().toISOString()
+        };
+
+        liveEventsStore.unshift(newEvent);
+
+        console.log(`[Live Event] 🔴 New Live Speed Dating Hosted by ${newEvent.host_name}: "${newEvent.title}"`);
+
+        return res.status(201).json({
+            success: true,
+            event: newEvent,
+            message: '🎉 Your Live Speed Dating event is now LIVE!'
+        });
+    } catch (e: any) {
+        console.error('Failed to create live event', e);
+        return res.status(500).json({ error: 'Failed to create live event' });
+    }
+});
+
+/**
+ * GET /api/dates/events/active
+ * Returns active live speed dating events for top dashboard banner
+ */
+router.get('/events/active', async (req, res) => {
+    try {
+        const activeEvents = liveEventsStore.filter(e => e.status === 'live');
+        return res.json({
+            success: true,
+            activeCount: activeEvents.length,
+            events: activeEvents
+        });
+    } catch (e: any) {
+        return res.status(500).json({ error: 'Failed to fetch active events' });
+    }
+});
+
+/**
+ * POST /api/dates/events/join
+ * Join a live speed dating event queue
+ */
+router.post('/events/join', authenticateToken, async (req: any, res) => {
+    try {
+        const { event_id } = req.body;
+        const targetEvent = liveEventsStore.find(e => e.id === event_id);
+
+        if (targetEvent) {
+            targetEvent.participant_count += 1;
+        }
+
+        return res.json({
+            success: true,
+            message: 'Joined live event queue successfully'
+        });
+    } catch (e: any) {
+        return res.status(500).json({ error: 'Failed to join live event' });
+    }
+});
+
 export default router;

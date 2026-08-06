@@ -294,4 +294,69 @@ router.get('/campaign-stats', authenticateToken, async (req: any, res) => {
     }
 });
 
+/**
+ * GET /api/notifications/smart-reengagement
+ * Dynamic re-engagement notification generator for active user sessions
+ */
+router.get('/smart-reengagement', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const [user, profile, activeMatch] = await Promise.all([
+            prisma.users.findUnique({ where: { id: userId }, select: { full_name: true, coins: true } }),
+            prisma.profiles.findUnique({ where: { user_id: userId }, select: { metadata: true } }),
+            prisma.users.findFirst({
+                where: { id: { not: userId }, avatar_url: { not: null } },
+                select: { full_name: true, city: true }
+            })
+        ]);
+
+        const meta: any = profile?.metadata || {};
+        const streakData = meta.daily_streak || { last_claimed_date: null };
+        const todayStr = new Date().toISOString().split('T')[0];
+        const canClaimStreak = streakData.last_claimed_date !== todayStr;
+
+        const prompts = [];
+
+        if (canClaimStreak) {
+            prompts.push({
+                id: 'prompt_streak',
+                type: 'streak',
+                title: '🎁 Unclaimed Daily Coins Waiting!',
+                message: 'Claim your daily login reward to unlock free Super Likes & Profile Boosts.',
+                actionText: 'Claim Reward',
+                actionUrl: '/dashboard'
+            });
+        }
+
+        if (activeMatch) {
+            prompts.push({
+                id: 'prompt_match',
+                type: 'match_alert',
+                title: `✨ High Compatibility Match Active!`,
+                message: `${activeMatch.full_name || 'A verified single'} in ${activeMatch.city || 'your area'} is currently active!`,
+                actionText: 'View Match',
+                actionUrl: '/dashboard'
+            });
+        }
+
+        prompts.push({
+            id: 'prompt_speed_date',
+            type: 'speed_date',
+            title: '🔴 Live Speed Dating Roulette',
+            message: 'Singles are waiting in the 3-minute quick date queue. Jump in now!',
+            actionText: 'Join Live',
+            actionUrl: '/dashboard'
+        });
+
+        return res.json({
+            success: true,
+            count: prompts.length,
+            notifications: prompts
+        });
+    } catch (e: any) {
+        return res.status(500).json({ error: 'Failed to generate re-engagement notifications' });
+    }
+});
+
 export default router;

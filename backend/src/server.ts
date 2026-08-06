@@ -39,6 +39,7 @@ import eventRoutes from './routes/events';
 import webhookRoutes from './routes/webhooks';
 import dateRoutes from './routes/dates';
 import instantsRoutes from './routes/instants';
+import analyticsRoutes from './routes/analytics';
 import { initAngelTimer } from './services/angelTimer';
 import path from 'path';
 
@@ -173,6 +174,8 @@ app.use('/events', eventRoutes);    // Meet Spots feature
 app.use('/dates', dateRoutes);      // 1-on-1 Meet Dates feature
 app.use('/instants', instantsRoutes);  // Instants View-Once Snaps
 app.use('/api/instants', instantsRoutes); // API fallback
+app.use('/analytics', analyticsRoutes); // User drop-off & telemetry analytics
+app.use('/api/analytics', analyticsRoutes);
 app.use('/webhooks', webhookRoutes); // Webhook receiver for Resend
 
 // Debug Environment on Startup

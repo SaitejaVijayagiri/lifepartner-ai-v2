@@ -21,6 +21,9 @@ import { BottomNav } from '@/components/BottomNav';
 import InteractiveMap from '@/components/InteractiveMap';
 import SpeedDatingLobby from '@/components/SpeedDatingLobby';
 import SpeedDateFeedbackModal from '@/components/SpeedDateFeedbackModal';
+import AppExperienceFeedback from '@/components/AppExperienceFeedback';
+import DailyStreakModal from '@/components/DailyStreakModal';
+import { fetchAPI } from '@/lib/api';
 
 // Performance: Lazy-load heavy components that aren't needed on first paint
 const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'), { ssr: false });
@@ -91,12 +94,25 @@ function DashboardContent() {
     const [showSpeedDatingLobby, setShowSpeedDatingLobby] = useState(false);
 
     const [pushEnabled, setPushEnabled] = useState<boolean>(true);
+    const [streakData, setStreakData] = useState<any>(null);
+    const [showStreakModal, setShowStreakModal] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setPushEnabled(localStorage.getItem('push_notifications_enabled') !== 'false');
         }
     }, []);
+
+    useEffect(() => {
+        if (currentUser?.id) {
+            fetchAPI('/wallet/streak').then((res) => {
+                if (res && res.canClaimToday) {
+                    setStreakData(res);
+                    setShowStreakModal(true);
+                }
+            }).catch(() => {});
+        }
+    }, [currentUser?.id]);
 
     /* Game State & Consent Modal State */
     const [gameTarget, setGameTarget] = useState<{ id: string; name: string } | null>(null);
@@ -1334,7 +1350,7 @@ function DashboardContent() {
             {showSpeedDatingLobby && (
                 <SpeedDatingLobby
                     onClose={() => setShowSpeedDatingLobby(false)}
-                    onMatchFound={(partner, initiator) => {
+                    onMatchFound={(partner: any, initiator: boolean) => {
                         setShowSpeedDatingLobby(false);
                         // Both sides open the modal immediately.
                         // Initiator: no incomingCall → calls callUser() to send WebRTC offer
@@ -1435,7 +1451,18 @@ function DashboardContent() {
             </div>
 
             {activeTab === 'matches' && <FloatingLoveGuru />}
+            <AppExperienceFeedback userId={currentUser?.id} userName={currentUser?.full_name} autoPrompt={true} />
 
+            {showStreakModal && streakData && (
+                <DailyStreakModal
+                    streakData={streakData}
+                    onClose={() => setShowStreakModal(false)}
+                    onClaimSuccess={(newBal, newStreak) => {
+                        if (currentUser) setCurrentUser({ ...currentUser, coins: newBal });
+                        setStreakData((prev: any) => ({ ...prev, canClaimToday: false, streakCount: newStreak }));
+                    }}
+                />
+            )}
 
             {/* End of Main Content - Duplicate Block Removed */}
         </div >

@@ -11,6 +11,8 @@ import { FilterState } from '@/components/FilterModal';
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
 const StoryModal = dynamic(() => import('@/components/StoryModal'));
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
+const LiveEventBanner = dynamic(() => import('@/components/LiveEventBanner'), { ssr: false });
+const HostSpeedDateModal = dynamic(() => import('@/components/HostSpeedDateModal'), { ssr: false });
 
 interface MatchesTabProps {
     currentUser: any;
@@ -58,6 +60,7 @@ export default function MatchesTab({
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [aiFilters, setAiFilters] = useState<any>(null);
+    const [showHostModal, setShowHostModal] = useState(false);
 
     /* Story State */
     const [storyFeed, setStoryFeed] = useState<any[]>([]);
@@ -366,6 +369,12 @@ export default function MatchesTab({
 
     return (
         <div className="w-full space-y-8">
+            {/* Live Speed Dating Prominent Event Banner */}
+            <LiveEventBanner
+                onJoinLive={() => setShowSpeedDatingLobby(true)}
+                onHostLive={() => setShowHostModal(true)}
+            />
+
             {/* Stories */}
             <div className="mb-8">{renderStoriesView()}</div>
 
@@ -765,6 +774,12 @@ export default function MatchesTab({
                         const me = await api.profile.getMe();
                         setCurrentUser(me);
                     }}
+                />
+            )}
+            {showHostModal && (
+                <HostSpeedDateModal
+                    onClose={() => setShowHostModal(false)}
+                    onEventCreated={() => toast.success('🎉 Your Live Speed Dating event is now LIVE!')}
                 />
             )}
         </div>

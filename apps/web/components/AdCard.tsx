@@ -38,7 +38,12 @@ export default function AdCard({ ad, isActive }: { ad: AdItem, isActive: boolean
 
                 {/* Advertiser Info */}
                 <div className="flex flex-col items-center mb-4">
-                    <img src={ad.advertiserAvatar} alt={ad.advertiserName} className="w-16 h-16 rounded-full border-2 border-yellow-500 mb-2 shadow-lg" />
+                    <img 
+                        src={ad.advertiserAvatar || '/avatar-fallback.svg'} 
+                        alt={ad.advertiserName} 
+                        className="w-16 h-16 rounded-full border-2 border-yellow-500 mb-2 shadow-lg object-cover" 
+                        onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} 
+                    />
                     <h3 className="text-xl font-bold text-white">{ad.advertiserName}</h3>
                     <p className="text-sm text-gray-300 max-w-[80%]">{ad.description}</p>
                 </div>

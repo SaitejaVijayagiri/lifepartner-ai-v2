@@ -71,6 +71,7 @@ export default function MatchesTab({
     /* Visitors & Likes State */
     const [visitorsData, setVisitorsData] = useState<any>(null);
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
+    const [activeInsightModal, setActiveInsightModal] = useState<'visitors' | 'likes' | null>(null);
 
     // Fetch story feed and visitors on mount
     useEffect(() => {
@@ -417,152 +418,149 @@ export default function MatchesTab({
                     </div>
                 </div>
 
-            {/* Insights Row: Recent Visitors & Who Liked You side-by-side */}
+            {/* Compact Insights Row: Visitors & Likes Pills */}
             {((visitorsData && visitorsData.visitors?.length > 0) || (whoLikedMe && whoLikedMe.totalLikes > 0)) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    {/* Recent Visitors Section */}
+                <div className="flex flex-wrap items-center gap-3 mb-5">
                     {visitorsData && visitorsData.visitors?.length > 0 && (
-                        <div className="relative bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-blue-900/20 p-5 rounded-3xl border border-blue-100 dark:border-blue-900/30 overflow-hidden flex flex-col justify-between">
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-200/40 to-indigo-300/40 rounded-full blur-2xl"></div>
+                        <button
+                            onClick={() => setActiveInsightModal('visitors')}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 hover:scale-105 transition-all text-xs font-extrabold shadow-sm group"
+                        >
+                            <Eye size={15} className="text-blue-500 group-hover:animate-pulse" />
+                            <span>Recent Visitors ({visitorsData.visitors.length})</span>
+                            <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold ml-1">Full View →</span>
+                        </button>
+                    )}
 
-                            <div className="flex items-center justify-between mb-3 relative z-10">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
-                                        <Eye className="text-white" size={18} />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                                            Recent Visitors
-                                            {!visitorsData.isPremium && (
-                                                <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
-                                                    <Crown size={9} /> PRO
-                                                </span>
-                                            )}
-                                        </h3>
-                                        <p className="text-xs text-gray-500">Viewed your profile</p>
-                                    </div>
-                                </div>
-                                {!visitorsData.isPremium && (
-                                    <button
-                                        onClick={() => setShowCoinStore(true)}
-                                        className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 hover:scale-105 transition-all flex items-center gap-1"
-                                    >
-                                        <Eye size={14} /> Unlock
-                                    </button>
+                    {whoLikedMe && whoLikedMe.totalLikes > 0 && (
+                        <button
+                            onClick={() => setActiveInsightModal('likes')}
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/40 dark:to-rose-950/40 border border-pink-200/60 dark:border-pink-800/40 text-pink-700 dark:text-pink-300 hover:scale-105 transition-all text-xs font-extrabold shadow-sm group"
+                        >
+                            <Heart size={15} className="text-pink-500 fill-pink-500 group-hover:animate-bounce" />
+                            <span>Who Liked You ({whoLikedMe.totalLikes})</span>
+                            <span className="text-[10px] bg-pink-500/10 text-pink-600 dark:text-pink-400 px-2 py-0.5 rounded-full font-bold ml-1">Full View →</span>
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {/* Full View Modal for Visitors / Likes */}
+            {activeInsightModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[3000] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl relative space-y-4 max-h-[85vh] flex flex-col">
+                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                            <h3 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                                {activeInsightModal === 'visitors' ? (
+                                    <>
+                                        <Eye className="text-blue-500" size={20} />
+                                        <span>Recent Profile Visitors ({visitorsData?.visitors?.length || 0})</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Heart className="text-pink-500 fill-pink-500" size={20} />
+                                        <span>Who Liked You ({whoLikedMe?.totalLikes || 0})</span>
+                                    </>
                                 )}
-                            </div>
+                            </h3>
+                            <button
+                                onClick={() => setActiveInsightModal(null)}
+                                className="p-2 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
 
-                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10 py-1">
-                                {visitorsData.visitors.map((visitor: any, idx: number) => (
+                        <div className="overflow-y-auto no-scrollbar space-y-3 flex-1 pr-1">
+                            {activeInsightModal === 'visitors' && (
+                                visitorsData?.visitors?.map((visitor: any, idx: number) => (
                                     <div
                                         key={visitor.id || idx}
-                                        className={`flex-shrink-0 w-16 text-center group cursor-pointer ${visitor.isBlurred ? 'pointer-events-none' : ''}`}
-                                        onClick={() => !visitor.isBlurred && setSelectedProfile(visitor)}
+                                        onClick={() => {
+                                            if (!visitor.isBlurred) {
+                                                setActiveInsightModal(null);
+                                                setSelectedProfile(visitor);
+                                            }
+                                        }}
+                                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                                            visitor.isBlurred
+                                                ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 opacity-80'
+                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-400 cursor-pointer shadow-sm'
+                                        }`}
                                     >
-                                        <div className={`relative w-14 h-14 mx-auto mb-1 rounded-full overflow-hidden ring-2 ring-blue-200 ring-offset-2 ${visitor.isBlurred ? 'blur-md' : 'group-hover:ring-blue-400 transition-all'}`}>
-                                            <img
-                                                src={visitor.photoUrl || '/avatar-fallback.svg'}
-                                                alt={visitor.name}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => { 
-                                                    const t = e.target as HTMLImageElement; 
-                                                    t.onerror = null; 
-                                                    t.src = '/avatar-fallback.svg'; 
-                                                }}
-                                            />
-                                            {visitor.isBlurred && (
-                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                                    <Lock size={16} className="text-white" />
-                                                </div>
-                                            )}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`relative w-12 h-12 rounded-full overflow-hidden shrink-0 ${visitor.isBlurred ? 'blur-md' : ''}`}>
+                                                <img
+                                                    src={visitor.photoUrl || '/avatar-fallback.svg'}
+                                                    className="w-full h-full object-cover"
+                                                    alt=""
+                                                    onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-sm text-gray-900 dark:text-white">{visitor.name}</h4>
+                                                <p className="text-xs text-gray-500">{visitor.location || 'Member'}</p>
+                                            </div>
                                         </div>
-                                        <p className={`text-[11px] font-semibold truncate ${visitor.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-blue-600'}`}>
-                                            {visitor.name}
-                                        </p>
+                                        {visitor.isBlurred ? (
+                                            <button
+                                                onClick={() => { setActiveInsightModal(null); setShowCoinStore(true); }}
+                                                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-sm flex items-center gap-1"
+                                            >
+                                                <Crown size={12} /> Unlock
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">View Profile →</span>
+                                        )}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                                ))
+                            )}
 
-                    {/* Who Liked You Section */}
-                    {whoLikedMe && whoLikedMe.totalLikes > 0 && (
-                        <div className="relative bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 dark:from-pink-900/20 dark:via-rose-900/20 dark:to-pink-900/20 p-5 rounded-3xl border border-pink-100 dark:border-pink-900/30 overflow-hidden flex flex-col justify-between">
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-200/40 to-rose-300/40 rounded-full blur-2xl"></div>
-
-                            <div className="flex items-center justify-between mb-3 relative z-10">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl shadow-lg shadow-pink-500/30">
-                                        <Heart className="text-white" size={18} fill="white" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                                            Who Liked You
-                                            {!whoLikedMe.isPremium && (
-                                                <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-0.5">
-                                                    <Crown size={9} /> PRO
-                                                </span>
-                                            )}
-                                        </h3>
-                                        <p className="text-xs text-gray-500">
-                                            {whoLikedMe.isPremium ? `${whoLikedMe.totalLikes} likes` : `${whoLikedMe.totalLikes || 'Some'} people liked you`}
-                                        </p>
-                                    </div>
-                                </div>
-                                {!whoLikedMe.isPremium && (
-                                    <button
-                                        onClick={() => setShowCoinStore(true)}
-                                        className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 hover:scale-105 transition-all flex items-center gap-1"
-                                    >
-                                        <Eye size={14} /> See All
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex gap-3 overflow-x-auto no-scrollbar relative z-10 py-1">
-                                {whoLikedMe.likes?.map((like: any, idx: number) => (
+                            {activeInsightModal === 'likes' && (
+                                whoLikedMe?.likes?.map((like: any, idx: number) => (
                                     <div
                                         key={like.id || idx}
-                                        className={`flex-shrink-0 w-16 text-center group cursor-pointer ${like.isBlurred ? 'pointer-events-none' : ''}`}
-                                        onClick={() => !like.isBlurred && setSelectedProfile(like)}
+                                        onClick={() => {
+                                            if (!like.isBlurred) {
+                                                setActiveInsightModal(null);
+                                                setSelectedProfile(like);
+                                            }
+                                        }}
+                                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                                            like.isBlurred
+                                                ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 opacity-80'
+                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-rose-400 cursor-pointer shadow-sm'
+                                        }`}
                                     >
-                                        <div className={`relative w-14 h-14 mx-auto mb-1 rounded-full overflow-hidden ring-2 ring-pink-200 ring-offset-2 ${like.isBlurred ? 'blur-md' : 'group-hover:ring-pink-400 transition-all'}`}>
-                                            <img
-                                                src={like.photoUrl || '/avatar-fallback.svg'}
-                                                alt={like.name}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => { 
-                                                    const t = e.target as HTMLImageElement; 
-                                                    t.onerror = null; 
-                                                    t.src = '/avatar-fallback.svg'; 
-                                                }}
-                                            />
-                                            {like.isBlurred && (
-                                                <div className="absolute inset-0 bg-gray-900/50 flex items-center justify-center">
-                                                    <Lock size={16} className="text-white" />
-                                                </div>
-                                            )}
+                                        <div className="flex items-center gap-3">
+                                            <div className={`relative w-12 h-12 rounded-full overflow-hidden shrink-0 ${like.isBlurred ? 'blur-md' : ''}`}>
+                                                <img
+                                                    src={like.photoUrl || '/avatar-fallback.svg'}
+                                                    className="w-full h-full object-cover"
+                                                    alt=""
+                                                    onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-sm text-gray-900 dark:text-white">{like.name}</h4>
+                                                <p className="text-xs text-gray-500">Liked your profile</p>
+                                            </div>
                                         </div>
-                                        <p className={`text-[11px] font-semibold truncate ${like.isBlurred ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200 group-hover:text-pink-600'}`}>
-                                            {like.name}
-                                        </p>
+                                        {like.isBlurred ? (
+                                            <button
+                                                onClick={() => { setActiveInsightModal(null); setShowCoinStore(true); }}
+                                                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold text-xs shadow-sm flex items-center gap-1"
+                                            >
+                                                <Crown size={12} /> Unlock
+                                            </button>
+                                        ) : (
+                                            <span className="text-xs font-bold text-rose-600 dark:text-rose-400">View Profile →</span>
+                                        )}
                                     </div>
-                                ))}
-
-                                {!whoLikedMe.isPremium && whoLikedMe.totalLikes > 3 && (
-                                    <div
-                                        className="flex-shrink-0 w-16 text-center cursor-pointer"
-                                        onClick={() => setShowCoinStore(true)}
-                                    >
-                                        <div className="w-14 h-14 mx-auto mb-1 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-dashed border-amber-300 flex items-center justify-center">
-                                            <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">+{whoLikedMe.totalLikes - 3}</span>
-                                        </div>
-                                        <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">More</p>
-                                    </div>
-                                )}
-                            </div>
+                                ))
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
 

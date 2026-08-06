@@ -356,46 +356,7 @@ interface LiveSpeedDateEvent {
     created_at: string;
 }
 
-const liveEventsStore: LiveSpeedDateEvent[] = [
-    {
-        id: 'live_event_1',
-        title: '🎥 Bollywood Night Video Dates',
-        description: '3-Minute Video Matches & Music Vibes with Verified Singles!',
-        host_id: 'host_ananya',
-        host_name: 'Ananya Sharma',
-        host_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400',
-        target_gender: 'all',
-        status: 'live',
-        participant_count: 18,
-        max_participants: 50,
-        created_at: new Date().toISOString()
-    },
-    {
-        id: 'live_event_2',
-        title: '🔥 Live Speed Dating Roulette',
-        description: 'Instant 1-on-1 Blind Video & Audio Dates',
-        host_id: 'system_host',
-        host_name: 'LifePartner AI Host',
-        target_gender: 'all',
-        status: 'live',
-        participant_count: 24,
-        max_participants: 100,
-        created_at: new Date(Date.now() - 3600000).toISOString()
-    },
-    {
-        id: 'live_event_3',
-        title: '☕ Late Night Coffee & Chit-Chat',
-        description: 'Relaxed evening conversations for serious relationships',
-        host_id: 'host_priya',
-        host_name: 'Priya Verma',
-        host_avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400',
-        target_gender: 'male',
-        status: 'live',
-        participant_count: 12,
-        max_participants: 30,
-        created_at: new Date(Date.now() - 1800000).toISOString()
-    }
-];
+const liveEventsStore: LiveSpeedDateEvent[] = [];
 
 /**
  * POST /api/dates/events/create

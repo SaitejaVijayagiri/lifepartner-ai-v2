@@ -79,10 +79,10 @@ export default function AppExperienceFeedback({ userId, userName, autoPrompt = f
 
     return (
         <>
-            {/* Floating Trigger Button (Bottom Right) */}
+            {/* Floating Trigger Button (Bottom Left - Prevents overlap with LoveGuru & Mobile BottomNav) */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 text-white font-medium text-xs sm:text-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 group border border-white/20"
+                className="fixed bottom-24 sm:bottom-6 left-4 sm:left-6 z-[1005] sm:z-40 flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 text-white font-medium text-xs sm:text-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 group border border-white/20"
                 aria-label="App Experience Feedback"
             >
                 <MessageSquareHeart size={18} className="animate-bounce text-pink-200 group-hover:scale-110 transition-transform" />

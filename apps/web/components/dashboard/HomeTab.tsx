@@ -4,6 +4,7 @@ import React from 'react';
 import { Sparkles, Heart, Zap, Radio, ArrowRight, ShieldCheck, Star } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import LiveVideoEventsHub from '@/components/LiveVideoEventsHub';
+import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
 
@@ -105,6 +106,9 @@ export default function HomeTab({
                     </div>
                 )}
             </div>
+
+            {/* Clean Inline App Feedback Banner */}
+            <AppExperienceFeedback userId={currentUser?.id} userName={currentUser?.full_name} variant="card" />
         </div>
     );
 }

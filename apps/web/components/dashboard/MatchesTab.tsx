@@ -368,47 +368,11 @@ export default function MatchesTab({
     }
 
     return (
-        <div className="w-full space-y-8">
-            {/* Live Speed Dating Prominent Event Banner */}
-            <LiveEventBanner
-                onJoinLive={() => setShowSpeedDatingLobby(true)}
-                onHostLive={() => setShowHostModal(true)}
-            />
-
-            {/* Stories */}
-            <div className="mb-8">{renderStoriesView()}</div>
-
-            {/* Hero Top Grid: Live Speed Dating + AI Matchmaker */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                {/* Speed Dating Banner */}
-                <div className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                    <div className="relative z-10 flex flex-col justify-between h-full gap-4">
-                        <div className="flex items-start gap-4">
-                            <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0">
-                                <Zap className="w-7 h-7 text-white animate-pulse" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl md:text-2xl font-black italic tracking-wider flex items-center gap-2">
-                                    <Sparkles className="text-yellow-300 w-5 h-5 animate-pulse" />
-                                    Live Speed Dating
-                                </h3>
-                                <p className="text-white/90 font-medium text-xs md:text-sm mt-1">Jump into a 3-minute blind audio chat with local singles. Will you feel a spark?</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowSpeedDatingLobby(true)}
-                            className="bg-white text-purple-700 hover:bg-purple-50 active:bg-purple-100 font-bold shadow-xl border-0 px-6 py-3 rounded-2xl text-sm md:text-base hover:scale-[1.02] active:scale-100 transition-all w-full focus:outline-none focus:ring-4 focus:ring-purple-300 cursor-pointer flex items-center justify-center gap-2"
-                        >
-                            ⚡ Enter Lobby Now
-                        </button>
-                    </div>
-                </div>
-
-                {/* AI Search Bar */}
-                <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden flex flex-col justify-between">
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
-                    <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
+        <div className="w-full space-y-6">
+            {/* AI Matchmaker Search & Filters Bar */}
+            <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
+                <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
 
                     <div className="relative z-10">
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5 mb-1">
@@ -452,7 +416,6 @@ export default function MatchesTab({
                         </div>
                     </div>
                 </div>
-            </div>
 
             {/* Insights Row: Recent Visitors & Who Liked You side-by-side */}
             {((visitorsData && visitorsData.visitors?.length > 0) || (whoLikedMe && whoLikedMe.totalLikes > 0)) && (

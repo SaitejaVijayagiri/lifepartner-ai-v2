@@ -1472,7 +1472,6 @@ function DashboardContent() {
             </div>
 
             {activeTab === 'matches' && <FloatingLoveGuru />}
-            <AppExperienceFeedback userId={currentUser?.id} userName={currentUser?.full_name} autoPrompt={true} />
 
             {showStreakModal && streakData && (
                 <DailyStreakModal

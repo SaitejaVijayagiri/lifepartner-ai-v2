@@ -9,9 +9,10 @@ interface AppExperienceFeedbackProps {
     userId?: string;
     userName?: string;
     autoPrompt?: boolean;
+    variant?: 'floating' | 'card' | 'inline';
 }
 
-export default function AppExperienceFeedback({ userId, userName, autoPrompt = false }: AppExperienceFeedbackProps) {
+export default function AppExperienceFeedback({ userId, userName, autoPrompt = false, variant = 'card' }: AppExperienceFeedbackProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [rating, setRating] = useState<number>(5);
     const [hoverRating, setHoverRating] = useState<number>(0);
@@ -33,12 +34,13 @@ export default function AppExperienceFeedback({ userId, userName, autoPrompt = f
     // Optional auto-prompt trigger after user has interacted with the app for 60 seconds
     useEffect(() => {
         if (!autoPrompt) return;
-        const promptDismissed = localStorage.getItem('lp_feedback_prompt_dismissed');
-        if (promptDismissed) return;
+        const dismissed = localStorage.getItem('lp_feedback_prompt_dismissed');
+        if (dismissed === 'true') return;
 
         const timer = setTimeout(() => {
             setIsOpen(true);
-        }, 45000); // 45 seconds into session
+            trackDropOff('feedback_modal', 'auto_prompted');
+        }, 60000);
 
         return () => clearTimeout(timer);
     }, [autoPrompt]);
@@ -51,7 +53,7 @@ export default function AppExperienceFeedback({ userId, userName, autoPrompt = f
             rating,
             category: selectedCategory,
             feedback_text: feedbackText,
-            user_name: userName || 'User',
+            user_name: userName,
             prompt_context: autoPrompt ? 'auto_prompt' : 'manual'
         });
 
@@ -59,7 +61,7 @@ export default function AppExperienceFeedback({ userId, userName, autoPrompt = f
 
         if (result.success) {
             setIsSubmitted(true);
-            toast.success('Thank you for helping us improve LifePartner AI! ❤️');
+            toast.success('Thank you for rating LifePartner AI!');
             localStorage.setItem('lp_feedback_prompt_dismissed', 'true');
             setTimeout(() => {
                 setIsOpen(false);
@@ -79,16 +81,39 @@ export default function AppExperienceFeedback({ userId, userName, autoPrompt = f
 
     return (
         <>
-            {/* Floating Trigger Button (Bottom Left - Prevents overlap with LoveGuru & Mobile BottomNav) */}
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-24 sm:bottom-6 left-4 sm:left-6 z-[1005] sm:z-40 flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 text-white font-medium text-xs sm:text-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 group border border-white/20"
-                aria-label="App Experience Feedback"
-            >
-                <MessageSquareHeart size={18} className="animate-bounce text-pink-200 group-hover:scale-110 transition-transform" />
-                <span className="hidden sm:inline font-bold">Feedback & Rating</span>
-                <span className="sm:hidden font-bold">Feedback</span>
-            </button>
+            {/* Inline Card Trigger */}
+            {variant === 'card' && (
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-gray-900 via-purple-950 to-slate-900 border border-purple-500/30 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-2xl bg-rose-500/20 text-rose-300 shrink-0">
+                            <MessageSquareHeart size={24} />
+                        </div>
+                        <div>
+                            <h4 className="font-extrabold text-sm text-white">How's your LifePartner AI experience?</h4>
+                            <p className="text-xs text-gray-300 mt-0.5">Your feedback helps us improve match accuracy & features!</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-xs font-black text-white shadow-lg transition-transform hover:scale-105 active:scale-95 shrink-0"
+                    >
+                        Rate & Feedback ⭐
+                    </button>
+                </div>
+            )}
+
+            {/* Floating Trigger Button */}
+            {variant === 'floating' && (
+                <button
+                    onClick={() => setIsOpen(true)}
+                    className="fixed bottom-24 sm:bottom-6 left-4 sm:left-6 z-[1005] sm:z-40 flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-rose-500 via-purple-600 to-indigo-600 text-white font-medium text-xs sm:text-sm shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 group border border-white/20"
+                    aria-label="App Experience Feedback"
+                >
+                    <MessageSquareHeart size={18} className="animate-bounce text-pink-200 group-hover:scale-110 transition-transform" />
+                    <span className="hidden sm:inline font-bold">Feedback & Rating</span>
+                    <span className="sm:hidden font-bold">Feedback</span>
+                </button>
+            )}
 
             {/* Modal Overlay */}
             {isOpen && (

@@ -172,8 +172,8 @@ export default function LandingPageClient() {
                     onChange={(e) => setQuickGender(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
-                    <option value="Male">Man</option>
-                    <option value="Female">Woman</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
                   </select>
                 </div>
                 <div>
@@ -183,8 +183,8 @@ export default function LandingPageClient() {
                     onChange={(e) => setQuickLookingFor(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
-                    <option value="Female">Woman</option>
-                    <option value="Male">Man</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
                   </select>
                 </div>
                 <div>

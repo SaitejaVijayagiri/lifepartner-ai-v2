@@ -118,8 +118,8 @@ export default function HostSpeedDateModal({ onClose, onEventCreated }: HostSpee
                                 className="w-full px-3 py-2.5 rounded-xl bg-gray-800 border border-white/10 text-xs text-white focus:outline-none focus:border-rose-500"
                             >
                                 <option value="all">Everyone (All)</option>
-                                <option value="female">Women Singles</option>
-                                <option value="male">Men Singles</option>
+                                <option value="female">Female</option>
+                                <option value="male">Male</option>
                             </select>
                         </div>
 

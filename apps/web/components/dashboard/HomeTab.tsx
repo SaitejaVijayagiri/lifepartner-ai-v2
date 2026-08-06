@@ -6,29 +6,35 @@ import dynamic from 'next/dynamic';
 import LiveVideoEventsHub from '@/components/LiveVideoEventsHub';
 import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 
+import StoriesFeed from '@/components/StoriesFeed';
+
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
 
 interface HomeTabProps {
     currentUser: any;
+    setCurrentUser: React.Dispatch<React.SetStateAction<any>>;
     matches: any[];
     onNavigateTab: (tab: string) => void;
     onSelectProfile: (profile: any) => void;
     onSelectKundli: (kundli: any) => void;
     onJoinLiveRoom: (event?: any) => void;
+    onOpenStory: (storySet: { user: any; stories: any[] }) => void;
 }
 
 export default function HomeTab({
     currentUser,
+    setCurrentUser,
     matches,
     onNavigateTab,
     onSelectProfile,
     onSelectKundli,
-    onJoinLiveRoom
+    onJoinLiveRoom,
+    onOpenStory
 }: HomeTabProps) {
     const topMatches = matches.slice(0, 4);
 
     return (
-        <div className="w-full space-y-10 animate-in fade-in duration-300">
+        <div className="w-full space-y-8 animate-in fade-in duration-300">
             {/* Hero Welcome Banner */}
             <div className="relative rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-500 p-6 sm:p-8 text-white shadow-2xl overflow-hidden">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
@@ -65,6 +71,13 @@ export default function HomeTab({
                     </div>
                 </div>
             </div>
+
+            {/* Active Stories & Moments Feed Section */}
+            <StoriesFeed
+                currentUser={currentUser}
+                setCurrentUser={setCurrentUser}
+                onOpenStory={onOpenStory}
+            />
 
             {/* Live Video Events Broadcast Hub Section */}
             <LiveVideoEventsHub onJoinLive={onJoinLiveRoom} />

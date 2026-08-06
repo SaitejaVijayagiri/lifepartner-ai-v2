@@ -996,11 +996,13 @@ function DashboardContent() {
                     {activeTab === 'home' && (
                         <HomeTab
                             currentUser={currentUser}
+                            setCurrentUser={setCurrentUser}
                             matches={matches}
                             onNavigateTab={(tab) => setActiveTab(tab)}
                             onSelectProfile={setSelectedProfile}
                             onSelectKundli={setSelectedKundli}
                             onJoinLiveRoom={() => setShowSpeedDatingLobby(true)}
+                            onOpenStory={(storySet) => setActiveStorySet(storySet)}
                         />
                     )}
 

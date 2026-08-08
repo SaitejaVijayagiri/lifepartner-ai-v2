@@ -740,7 +740,13 @@ export default function MatchesTab({
             {showHostModal && (
                 <HostSpeedDateModal
                     onClose={() => setShowHostModal(false)}
-                    onEventCreated={() => toast.success('🎉 Your Live Speed Dating event is now LIVE!')}
+                    onEventCreated={(evt) => {
+                        if (evt?.status === 'upcoming' || evt?.scheduled_at) {
+                            toast.success('📅 Live Speed Dating event scheduled successfully!');
+                        } else {
+                            toast.success('🎉 Your Live Speed Dating event is now LIVE!');
+                        }
+                    }}
                 />
             )}
         </div>

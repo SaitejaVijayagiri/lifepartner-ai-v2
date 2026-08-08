@@ -309,10 +309,14 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                 <HostSpeedDateModal
                     onClose={() => setShowHostModal(false)}
                     onEventCreated={(evt) => {
-                        toast.success('🎉 Your Live Video room is now LIVE!');
                         fetchLiveEvents();
-                        if (onJoinLive) {
-                            onJoinLive(evt);
+                        if (evt?.status === 'upcoming' || evt?.scheduled_at) {
+                            toast.success('📅 Live Speed Dating event scheduled successfully!');
+                        } else {
+                            toast.success('🎉 Your Live Video room is now LIVE!');
+                            if (onJoinLive) {
+                                onJoinLive(evt);
+                            }
                         }
                     }}
                 />

@@ -364,6 +364,75 @@ interface LiveSpeedDateEvent {
 
 const liveEventsStore: LiveSpeedDateEvent[] = [];
 
+// Helper: Ensure PostgreSQL table exists for Live & Scheduled Events
+async function ensureLiveEventsTable() {
+    try {
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS live_speed_date_events (
+                id VARCHAR(100) PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                host_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                target_gender VARCHAR(20) DEFAULT 'all',
+                status VARCHAR(50) DEFAULT 'live',
+                scheduled_at TIMESTAMP(6),
+                participant_count INT DEFAULT 1,
+                max_participants INT DEFAULT 50,
+                created_at TIMESTAMP(6) DEFAULT now()
+            );
+        `);
+    } catch (e: any) {
+        console.warn('[LiveEvents] DB init warning:', e.message);
+    }
+}
+ensureLiveEventsTable().catch(console.error);
+
+async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
+    try {
+        await ensureLiveEventsTable();
+        
+        // Auto-promote upcoming events in DB if start time reached
+        await prisma.$executeRawUnsafe(`
+            UPDATE live_speed_date_events
+            SET status = 'live'
+            WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= now();
+        `);
+
+        const rows: any[] = await prisma.$queryRawUnsafe(`
+            SELECT e.id, e.title, e.description, e.host_id, e.target_gender, e.status, 
+                   e.scheduled_at, e.participant_count, e.max_participants, e.created_at,
+                   u.full_name as host_name, u.avatar_url as host_avatar
+            FROM live_speed_date_events e
+            JOIN users u ON e.host_id = u.id
+            WHERE e.status IN ('live', 'upcoming')
+            ORDER BY e.created_at DESC;
+        `);
+
+        const dbEvents: LiveSpeedDateEvent[] = (rows || []).map(r => ({
+            id: r.id,
+            title: r.title,
+            description: r.description || '',
+            host_id: r.host_id,
+            host_name: r.host_name || 'Host User',
+            host_avatar: r.host_avatar || undefined,
+            target_gender: (r.target_gender || 'all') as any,
+            status: r.status as any,
+            scheduled_at: r.scheduled_at ? new Date(r.scheduled_at).toISOString() : undefined,
+            participant_count: Number(r.participant_count || 1),
+            max_participants: Number(r.max_participants || 50),
+            created_at: new Date(r.created_at).toISOString()
+        }));
+
+        liveEventsStore.length = 0;
+        liveEventsStore.push(...dbEvents);
+
+        return dbEvents;
+    } catch (e: any) {
+        console.error('Failed to sync live events from DB:', e);
+        return liveEventsStore;
+    }
+}
+
 /**
  * POST /api/dates/events/create
  * Host a new Live Speed Dating Event (Instant or Scheduled)
@@ -408,6 +477,17 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             created_at: new Date().toISOString()
         };
 
+        // Persist to PostgreSQL DB
+        try {
+            await ensureLiveEventsTable();
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO live_speed_date_events (id, title, description, host_id, target_gender, status, scheduled_at, participant_count, max_participants)
+                VALUES ($1, $2, $3, $4::uuid, $5, $6, $7, $8, $9);
+            `, newEvent.id, newEvent.title, newEvent.description, userId, newEvent.target_gender, status, scheduledIso ? new Date(scheduledIso) : null, 1, newEvent.max_participants);
+        } catch (dbErr) {
+            console.error('Failed to persist live event to DB:', dbErr);
+        }
+
         liveEventsStore.unshift(newEvent);
 
         try {
@@ -441,15 +521,7 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
  */
 router.get('/events/active', async (req, res) => {
     try {
-        const now = new Date();
-        // Auto-promote upcoming events to live if scheduled time has passed
-        liveEventsStore.forEach(e => {
-            if (e.status === 'upcoming' && e.scheduled_at && new Date(e.scheduled_at) <= now) {
-                e.status = 'live';
-            }
-        });
-
-        const activeEvents = liveEventsStore.filter(e => e.status === 'live' || e.status === 'upcoming');
+        const activeEvents = await syncLiveEventsFromDB();
         return res.json({
             success: true,
             activeCount: activeEvents.length,
@@ -537,22 +609,36 @@ router.post('/events/end', authenticateToken, async (req: any, res) => {
         const { event_id } = req.body;
 
         const eventIndex = liveEventsStore.findIndex(e => (e.id === event_id || e.host_id === userId) && e.status === 'live');
+        let endedEvent: LiveSpeedDateEvent | null = null;
         if (eventIndex !== -1) {
-            const endedEvent = liveEventsStore.splice(eventIndex, 1)[0];
+            endedEvent = liveEventsStore.splice(eventIndex, 1)[0];
             endedEvent.status = 'ended';
-
-            try {
-                const { getIO } = require('../socket');
-                const io = getIO();
-                if (io) {
-                    io.emit('live_event_ended', endedEvent);
-                }
-            } catch (e) {}
-
-            return res.json({ success: true, message: 'Live event ended successfully' });
         }
 
-        return res.json({ success: true, message: 'Event already closed' });
+        try {
+            await ensureLiveEventsTable();
+            if (event_id) {
+                await prisma.$executeRawUnsafe(`
+                    UPDATE live_speed_date_events SET status = 'ended' WHERE id = $1 AND host_id = $2::uuid;
+                `, event_id, userId);
+            } else {
+                await prisma.$executeRawUnsafe(`
+                    UPDATE live_speed_date_events SET status = 'ended' WHERE host_id = $1::uuid AND status = 'live';
+                `, userId);
+            }
+        } catch (dbErr) {
+            console.error('Failed to update ended event in DB:', dbErr);
+        }
+
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io && endedEvent) {
+                io.emit('live_event_ended', endedEvent);
+            }
+        } catch (e) {}
+
+        return res.json({ success: true, message: 'Live event ended successfully' });
     } catch (e: any) {
         console.error('Error ending live event:', e);
         return res.status(500).json({ error: 'Failed to end live event' });
@@ -579,11 +665,13 @@ router.put('/events/:id', authenticateToken, async (req: any, res) => {
         if (target_gender) event.target_gender = target_gender;
         if (max_participants) event.max_participants = Number(max_participants);
 
+        let scheduledIso: Date | null = null;
         if (scheduled_at) {
             const schedDate = new Date(scheduled_at);
             if (!isNaN(schedDate.getTime()) && schedDate > new Date()) {
                 event.status = 'upcoming';
                 event.scheduled_at = schedDate.toISOString();
+                scheduledIso = schedDate;
             } else {
                 event.status = 'live';
                 event.scheduled_at = undefined;
@@ -591,6 +679,17 @@ router.put('/events/:id', authenticateToken, async (req: any, res) => {
         } else if (scheduled_at === null) {
             event.status = 'live';
             event.scheduled_at = undefined;
+        }
+
+        try {
+            await ensureLiveEventsTable();
+            await prisma.$executeRawUnsafe(`
+                UPDATE live_speed_date_events
+                SET title = $1, description = $2, target_gender = $3, max_participants = $4, status = $5, scheduled_at = $6
+                WHERE id = $7 AND host_id = $8::uuid;
+            `, event.title, event.description, event.target_gender, event.max_participants, event.status, scheduledIso, id, userId);
+        } catch (dbErr) {
+            console.error('Failed to update live event in DB:', dbErr);
         }
 
         try {
@@ -622,18 +721,26 @@ router.delete('/events/:id', authenticateToken, async (req: any, res) => {
         const { id } = req.params;
 
         const index = liveEventsStore.findIndex(e => e.id === id && e.host_id === userId);
-        if (index === -1) {
-            return res.status(404).json({ error: 'Live event not found or unauthorized' });
+        let deletedEvent: LiveSpeedDateEvent | null = null;
+        if (index !== -1) {
+            deletedEvent = liveEventsStore.splice(index, 1)[0];
+            deletedEvent.status = 'ended';
         }
 
-        const deletedEvent = liveEventsStore.splice(index, 1)[0];
-        deletedEvent.status = 'ended';
+        try {
+            await ensureLiveEventsTable();
+            await prisma.$executeRawUnsafe(`
+                DELETE FROM live_speed_date_events WHERE id = $1 AND host_id = $2::uuid;
+            `, id, userId);
+        } catch (dbErr) {
+            console.error('Failed to delete live event from DB:', dbErr);
+        }
 
         try {
             const { getIO } = require('../socket');
             const io = getIO();
             if (io) {
-                io.emit('live_event_ended', deletedEvent);
+                io.emit('live_event_ended', deletedEvent || { id });
             }
         } catch (e) {}
 

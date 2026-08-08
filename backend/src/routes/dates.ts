@@ -504,4 +504,36 @@ router.post('/events/join', authenticateToken, async (req: any, res) => {
     }
 });
 
+/**
+ * POST /api/dates/events/end
+ * End an active Live Speed Dating Event hosted by current user
+ */
+router.post('/events/end', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { event_id } = req.body;
+
+        const eventIndex = liveEventsStore.findIndex(e => (e.id === event_id || e.host_id === userId) && e.status === 'live');
+        if (eventIndex !== -1) {
+            const endedEvent = liveEventsStore.splice(eventIndex, 1)[0];
+            endedEvent.status = 'ended';
+
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.emit('live_event_ended', endedEvent);
+                }
+            } catch (e) {}
+
+            return res.json({ success: true, message: 'Live event ended successfully' });
+        }
+
+        return res.json({ success: true, message: 'Event already closed' });
+    } catch (e: any) {
+        console.error('Error ending live event:', e);
+        return res.status(500).json({ error: 'Failed to end live event' });
+    }
+});
+
 export default router;

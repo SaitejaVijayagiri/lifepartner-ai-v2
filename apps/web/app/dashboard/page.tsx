@@ -1008,7 +1008,13 @@ function DashboardContent() {
                             onJoinLiveRoom={async (event?: any) => {
                                 if (event && (event.host_name || event.host_id)) {
                                     if (currentUser?.id && event.host_id === currentUser.id) {
-                                        toast.info("👑 Your Live Video Room is active! Participants who join will connect with you directly.");
+                                        startCall({
+                                            id: currentUser.id,
+                                            name: event.title || 'Your Live Broadcast',
+                                            photoUrl: currentUser.avatar_url || event.host_avatar,
+                                            _isHostRoom: true,
+                                            eventId: event.id
+                                        }, 'speed_date');
                                     } else {
                                         // Validate gender & capacity limits on backend
                                         try {
@@ -1044,7 +1050,13 @@ function DashboardContent() {
                             onJoinLive={async (event?: any) => {
                                 if (event && (event.host_name || event.host_id)) {
                                     if (currentUser?.id && event.host_id === currentUser.id) {
-                                        toast.info("👑 Your Live Video Room is active! Participants who join will connect with you directly.");
+                                        startCall({
+                                            id: currentUser.id,
+                                            name: event.title || 'Your Live Broadcast',
+                                            photoUrl: currentUser.avatar_url || event.host_avatar,
+                                            _isHostRoom: true,
+                                            eventId: event.id
+                                        }, 'speed_date');
                                     } else {
                                         // Validate gender & capacity limits on backend
                                         try {

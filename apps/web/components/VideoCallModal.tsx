@@ -185,8 +185,9 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     // Determine Call Type and Partner
     const isSpeedDate = mode === 'speed_date';
-    const isSpeedDateInitiator = isSpeedDate && !!(initialPartner as any)?._speedDateInitiator;
-    const isVideo = (mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate;
+    const isHostRoom = !!(initialPartner as any)?._isHostRoom;
+    const isSpeedDateInitiator = isSpeedDate && !isHostRoom && !!(initialPartner as any)?._speedDateInitiator;
+    const isVideo = ((mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate) || isHostRoom;
     const partner = initialPartner || {
         id: incomingCall?.from || 'unknown',
         name: incomingCall?.name || 'Unknown User',
@@ -232,10 +233,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     };
 
     useEffect(() => {
-        console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode);
+        console.log("VideoCallModal Mounted. Incoming:", !!incomingCall, "Mode:", mode, "HostRoom:", isHostRoom);
+        if (isHostRoom) {
+            setStatus("🔴 You are LIVE! Waiting for singles to join...");
+        }
     }, []);
-
-
 
     const myVideo = useRef<HTMLVideoElement>(null);
     const userVideo = useRef<HTMLVideoElement>(null);
@@ -262,7 +264,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             interval = setInterval(() => {
                 setCallDuration(prev => {
                     const next = prev + 1;
-                    if (isSpeedDate && next >= 180) {
+                    if (isSpeedDate && !isHostRoom && next >= 180) {
                         leaveCall(true); // Hard cut-off at 3 minutes for speed dating
                     }
                     return next;
@@ -270,7 +272,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [callAccepted, callEnded, isSpeedDate]);
+    }, [callAccepted, callEnded, isSpeedDate, isHostRoom]);
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -291,7 +293,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         const player = ringtonePlayerRef.current;
         if (!player) return;
 
-        const shouldRing = !isSpeedDate && !callEnded && !callAccepted && (
+        const shouldRing = !isSpeedDate && !isHostRoom && !callEnded && !callAccepted && (
             (incomingCall && !callAnswered) || 
             status.includes("Calling") ||
             status.includes("Dialing")
@@ -302,7 +304,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         } else {
             player.stop();
         }
-    }, [incomingCall, callAnswered, callAccepted, callEnded, status, isSpeedDate]);
+    }, [incomingCall, callAnswered, callAccepted, callEnded, status, isSpeedDate, isHostRoom]);
 
     // Initialize Local Stream
     useEffect(() => {
@@ -316,7 +318,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     myVideo.current.srcObject = currentStream;
                 }
 
-                const shouldCall = isSpeedDate ? isSpeedDateInitiator : !incomingCall;
+                const shouldCall = isHostRoom ? false : (isSpeedDate ? isSpeedDateInitiator : !incomingCall);
                 if (shouldCall) {
                     callUser(currentStream);
                 }
@@ -712,7 +714,16 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
         // Safely emit socket signals and post call log
         try {
-            if (emitEvent && socket) {
+            if (isHostRoom && (initialPartner as any)?.eventId) {
+                import('@/lib/api').then(({ fetchAPI }) => {
+                    fetchAPI('/dates/events/end', {
+                        method: 'POST',
+                        body: JSON.stringify({ event_id: (initialPartner as any)?.eventId })
+                    }).catch(console.error);
+                });
+            }
+
+            if (emitEvent && socket && !isHostRoom) {
                 const targetId = incomingCall ? incomingCall.from : partner.id;
                 if (targetId && targetId !== 'unknown') {
                     console.log("[VideoCallModal] Emitting endCall to:", targetId);

@@ -60,11 +60,17 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
             setEvents(prev => prev.map(e => e.id === updatedEvent.id ? { ...e, ...updatedEvent } : e));
         };
 
+        const handleLiveEventEnded = (endedEvent: any) => {
+            setEvents(prev => prev.filter(e => e.id !== endedEvent.id));
+        };
+
         socket.on('live_event_created', handleLiveEventCreated);
         socket.on('live_event_updated', handleLiveEventUpdated);
+        socket.on('live_event_ended', handleLiveEventEnded);
         return () => {
             socket.off('live_event_created', handleLiveEventCreated);
             socket.off('live_event_updated', handleLiveEventUpdated);
+            socket.off('live_event_ended', handleLiveEventEnded);
         };
     }, [socket, toast]);
 

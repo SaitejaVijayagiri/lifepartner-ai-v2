@@ -4,8 +4,13 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
 
-// 1. DB Patching Endpoint
-router.get('/fix-db', async (req, res) => {
+// 1. DB Patching Endpoint — disabled in production to prevent unauthorized DDL execution
+router.get('/fix-db', (req, res, next) => {
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'Database patch routes are disabled in production' });
+    }
+    next();
+}, async (req, res) => {
     try {
         await prisma.$executeRawUnsafe(`
             CREATE TABLE IF NOT EXISTS meet_events (

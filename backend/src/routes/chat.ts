@@ -14,8 +14,13 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KE
 
 const router = express.Router();
 
-// TEMPORARY: Database fix endpoint
-router.get('/fix-db', async (req, res) => {
+// SECURITY: /fix-db is a dev-only database patch route — disabled in production to prevent unauthorized DDL execution
+router.get('/fix-db', (req, res, next) => {
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'Database patch routes are disabled in production' });
+    }
+    next();
+}, async (req, res) => {
     try {
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_liked BOOLEAN DEFAULT false;`);
         await prisma.$executeRawUnsafe(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reactions JSON DEFAULT '{}';`);

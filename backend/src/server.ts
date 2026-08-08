@@ -2,11 +2,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Fix: Disable TLS cert rejection on Render (OpenSSL cert verification fails with Supabase)
-// Connection is still encrypted; this only skips certificate chain verification.
-if (process.env.NODE_ENV === 'production') {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-}
+// SECURITY: Strict TLS certificate verification is enforced in production.
+// Do NOT disable NODE_TLS_REJECT_UNAUTHORIZED globally as it opens outbound HTTPS calls to MITM attacks.
 
 // SECURITY: Fail fast if critical secrets are missing — prevents running with insecure defaults
 if (!process.env.JWT_SECRET) {

@@ -65,6 +65,7 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
     }, []);
 
     const fetchLiveEvents = async () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
         try {
             const res = await fetchAPI('/dates/events/active');
             if (res.success && res.events) {
@@ -81,7 +82,7 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
 
     useEffect(() => {
         fetchLiveEvents();
-        const interval = setInterval(fetchLiveEvents, 12000);
+        const interval = setInterval(fetchLiveEvents, 20000); // 20s interval
         return () => clearInterval(interval);
     }, []);
 

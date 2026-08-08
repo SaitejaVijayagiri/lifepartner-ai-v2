@@ -15,26 +15,22 @@ export default function LiveEventBanner({ onJoinLive, onHostLive }: LiveEventBan
 
     useEffect(() => {
         const fetchEvents = async () => {
+            if (typeof document !== 'undefined' && document.hidden) return;
             try {
                 const res = await fetchAPI('/dates/events/active');
                 if (res.success && res.events && res.events.length > 0) {
                     setActiveEvent(res.events[0]);
                     setParticipantCount(res.events[0].participant_count || 14);
+                } else {
+                    setActiveEvent(null);
                 }
             } catch {
-                // Fallback default active event
-                setActiveEvent({
-                    id: 'live_default',
-                    title: '🔥 Live Night Speed Dating Roulette',
-                    description: '3-Minute Instant Video & Audio Dates with Singles!',
-                    host_name: 'LifePartner Host',
-                    participant_count: 14
-                });
+                setActiveEvent(null);
             }
         };
 
         fetchEvents();
-        const interval = setInterval(fetchEvents, 15000); // refresh every 15s
+        const interval = setInterval(fetchEvents, 20000); // refresh every 20s
         return () => clearInterval(interval);
     }, []);
 

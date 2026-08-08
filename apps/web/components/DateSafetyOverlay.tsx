@@ -20,9 +20,12 @@ export default function DateSafetyOverlay() {
     }, []);
 
     const fetchActiveDate = async () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        if (!token) return;
         try {
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/active`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             }).then(r => r.json());
             
             if (res.success && res.dates) {

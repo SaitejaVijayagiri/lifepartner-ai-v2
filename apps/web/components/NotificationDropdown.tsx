@@ -99,6 +99,8 @@ export default function NotificationDropdown() {
     const [unreadCount, setUnreadCount] = useState(0);
 
     const fetchNotifications = async () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        if (typeof window !== 'undefined' && !localStorage.getItem('token')) return;
         try {
             const data = await api.notifications.getAll();
             setNotifications(data.notifications || []);

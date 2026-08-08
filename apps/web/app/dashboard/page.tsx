@@ -1005,14 +1005,32 @@ function DashboardContent() {
                             onNavigateTab={(tab) => setActiveTab(tab)}
                             onSelectProfile={setSelectedProfile}
                             onSelectKundli={setSelectedKundli}
-                            onJoinLiveRoom={(event?: any) => {
+                            onJoinLiveRoom={async (event?: any) => {
                                 if (event && (event.host_name || event.host_id)) {
-                                    startCall({
-                                        id: event.host_id || event.id,
-                                        name: event.host_name,
-                                        photoUrl: event.host_avatar,
-                                        _speedDateInitiator: true
-                                    }, 'speed_date');
+                                    if (currentUser?.id && event.host_id === currentUser.id) {
+                                        toast.info("👑 Your Live Video Room is active! Participants who join will connect with you directly.");
+                                    } else {
+                                        // Validate gender & capacity limits on backend
+                                        try {
+                                            const res = await fetchAPI('/dates/events/join', {
+                                                method: 'POST',
+                                                body: JSON.stringify({ event_id: event.id })
+                                            });
+                                            if (res && res.error) {
+                                                toast.error(res.error);
+                                                return;
+                                            }
+                                        } catch (e: any) {
+                                            toast.error(e.message || "Failed to join live event");
+                                            return;
+                                        }
+                                        startCall({
+                                            id: event.host_id || event.id,
+                                            name: event.host_name,
+                                            photoUrl: event.host_avatar,
+                                            _speedDateInitiator: true
+                                        }, 'speed_date');
+                                    }
                                 } else {
                                     setShowSpeedDatingLobby(true);
                                 }
@@ -1023,14 +1041,32 @@ function DashboardContent() {
 
                     {activeTab === 'live_events' && (
                         <LiveVideoEventsHub
-                            onJoinLive={(event?: any) => {
+                            onJoinLive={async (event?: any) => {
                                 if (event && (event.host_name || event.host_id)) {
-                                    startCall({
-                                        id: event.host_id || event.id,
-                                        name: event.host_name,
-                                        photoUrl: event.host_avatar,
-                                        _speedDateInitiator: true
-                                    }, 'speed_date');
+                                    if (currentUser?.id && event.host_id === currentUser.id) {
+                                        toast.info("👑 Your Live Video Room is active! Participants who join will connect with you directly.");
+                                    } else {
+                                        // Validate gender & capacity limits on backend
+                                        try {
+                                            const res = await fetchAPI('/dates/events/join', {
+                                                method: 'POST',
+                                                body: JSON.stringify({ event_id: event.id })
+                                            });
+                                            if (res && res.error) {
+                                                toast.error(res.error);
+                                                return;
+                                            }
+                                        } catch (e: any) {
+                                            toast.error(e.message || "Failed to join live event");
+                                            return;
+                                        }
+                                        startCall({
+                                            id: event.host_id || event.id,
+                                            name: event.host_name,
+                                            photoUrl: event.host_avatar,
+                                            _speedDateInitiator: true
+                                        }, 'speed_date');
+                                    }
                                 } else {
                                     setShowSpeedDatingLobby(true);
                                 }

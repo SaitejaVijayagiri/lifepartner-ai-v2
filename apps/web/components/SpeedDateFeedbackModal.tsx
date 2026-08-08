@@ -49,7 +49,7 @@ export default function SpeedDateFeedbackModal({ partnerId, onClose }: SpeedDate
 
     if (result === 'MATCH') {
         return (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4">
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 p-4">
                 <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden animate-in zoom-in duration-500 border border-white/20">
                     <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay"></div>
                     <div className="relative z-10">
@@ -76,7 +76,7 @@ export default function SpeedDateFeedbackModal({ partnerId, onClose }: SpeedDate
     }
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-300">
             <div className="bg-gradient-to-br from-slate-900 via-purple-950/20 to-slate-900 rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-white/10 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl pointer-events-none" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart } from 'lucide-react';
+import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown } from 'lucide-react';
 import { fetchAPI } from '@/lib/api';
 import HostSpeedDateModal from './HostSpeedDateModal';
 import { useToast } from '@/components/ui/Toast';
+import { useSocket } from '@/context/SocketContext';
 
 interface LiveVideoEventsHubProps {
     onJoinLive: (event?: any) => void;
@@ -15,8 +16,16 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
     const [loading, setLoading] = useState(true);
     const [showHostModal, setShowHostModal] = useState(false);
     const [previewEvent, setPreviewEvent] = useState<any | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const toast = useToast();
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setCurrentUserId(localStorage.getItem('userId'));
+        }
+    }, []);
 
     const fetchLiveEvents = async () => {
         try {
@@ -38,6 +47,26 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
         const interval = setInterval(fetchLiveEvents, 12000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleLiveEventCreated = (newEvent: any) => {
+            setEvents(prev => [newEvent, ...prev.filter(e => e.id !== newEvent.id)]);
+            toast.info(`🔴 New Live Stream: "${newEvent.title}" by ${newEvent.host_name}`);
+        };
+
+        const handleLiveEventUpdated = (updatedEvent: any) => {
+            setEvents(prev => prev.map(e => e.id === updatedEvent.id ? { ...e, ...updatedEvent } : e));
+        };
+
+        socket.on('live_event_created', handleLiveEventCreated);
+        socket.on('live_event_updated', handleLiveEventUpdated);
+        return () => {
+            socket.off('live_event_created', handleLiveEventCreated);
+            socket.off('live_event_updated', handleLiveEventUpdated);
+        };
+    }, [socket, toast]);
 
     return (
         <div className="w-full space-y-6 animate-in fade-in duration-300">
@@ -89,13 +118,20 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/20 pointer-events-none" />
 
                                 {/* Top Badges */}
-                                <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md animate-pulse">
-                                        🔴 LIVE STREAM
-                                    </span>
+                                <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 gap-1 flex-wrap">
+                                    <div className="flex items-center gap-1">
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md animate-pulse">
+                                            🔴 LIVE
+                                        </span>
+                                        {event.target_gender && event.target_gender !== 'all' && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-600/90 text-white text-[10px] font-extrabold shadow-md border border-purple-400/30">
+                                                {event.target_gender === 'female' ? '👩 Females Only' : '👨 Males Only'}
+                                            </span>
+                                        )}
+                                    </div>
 
                                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-bold border border-white/20">
-                                        <Users size={12} className="text-emerald-400" /> {event.participant_count || 1} Viewers
+                                        <Users size={12} className="text-emerald-400" /> {event.participant_count || 1}/{event.max_participants || 50}
                                     </span>
                                 </div>
 
@@ -146,10 +182,23 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                     </button>
                                     <button
                                         onClick={() => onJoinLive(event)}
-                                        className="flex-1 py-2.5 px-3 rounded-2xl bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-rose-500/20 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1"
+                                        className={`flex-1 py-2.5 px-3 rounded-2xl text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1 ${
+                                            currentUserId && event.host_id === currentUserId
+                                                ? 'bg-gradient-to-r from-amber-500 to-rose-600 shadow-amber-500/20'
+                                                : 'bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 shadow-rose-500/20'
+                                        }`}
                                     >
-                                        <span>Join Room</span>
-                                        <ArrowRight size={14} />
+                                        {currentUserId && event.host_id === currentUserId ? (
+                                            <>
+                                                <Crown size={14} />
+                                                <span>Your Live Room</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>Join Room</span>
+                                                <ArrowRight size={14} />
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>

@@ -392,6 +392,16 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
 
         liveEventsStore.unshift(newEvent);
 
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                io.emit('live_event_created', newEvent);
+            }
+        } catch (err) {
+            console.error('Failed to emit live_event_created socket event:', err);
+        }
+
         console.log(`[Live Event] 🔴 New Live Speed Dating Hosted by ${newEvent.host_name}: "${newEvent.title}"`);
 
         return res.status(201).json({
@@ -428,18 +438,63 @@ router.get('/events/active', async (req, res) => {
  */
 router.post('/events/join', authenticateToken, async (req: any, res) => {
     try {
+        const userId = req.user.userId;
         const { event_id } = req.body;
-        const targetEvent = liveEventsStore.find(e => e.id === event_id);
 
-        if (targetEvent) {
-            targetEvent.participant_count += 1;
+        const targetEvent = liveEventsStore.find(e => e.id === event_id);
+        if (!targetEvent) {
+            return res.status(404).json({ success: false, error: 'Live event room not found or has ended' });
         }
+
+        // 1. Capacity check
+        if (targetEvent.max_participants && targetEvent.participant_count >= targetEvent.max_participants) {
+            return res.status(400).json({
+                success: false,
+                error: `This live room has reached maximum capacity (${targetEvent.max_participants} participants)`
+            });
+        }
+
+        // 2. Target gender check
+        if (targetEvent.target_gender && targetEvent.target_gender !== 'all') {
+            const joiningUser = await prisma.users.findUnique({
+                where: { id: userId },
+                select: { gender: true }
+            });
+            const userGender = (joiningUser?.gender || '').toLowerCase();
+
+            if (targetEvent.target_gender === 'female' && !(userGender === 'female' || userGender === 'woman')) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'This live room is restricted to Female participants only'
+                });
+            }
+
+            if (targetEvent.target_gender === 'male' && !(userGender === 'male' || userGender === 'man')) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'This live room is restricted to Male participants only'
+                });
+            }
+        }
+
+        targetEvent.participant_count += 1;
+
+        // Broadcast update via socket
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                io.emit('live_event_updated', targetEvent);
+            }
+        } catch (e) {}
 
         return res.json({
             success: true,
+            event: targetEvent,
             message: 'Joined live event queue successfully'
         });
     } catch (e: any) {
+        console.error('Error joining live event:', e);
         return res.status(500).json({ error: 'Failed to join live event' });
     }
 });

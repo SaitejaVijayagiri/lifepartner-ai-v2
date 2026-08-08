@@ -559,4 +559,92 @@ router.post('/events/end', authenticateToken, async (req: any, res) => {
     }
 });
 
+/**
+ * PUT /api/dates/events/:id
+ * Edit an existing Live or Scheduled Speed Dating Event
+ */
+router.put('/events/:id', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+        const { title, description, target_gender, max_participants, scheduled_at } = req.body;
+
+        const event = liveEventsStore.find(e => e.id === id && e.host_id === userId);
+        if (!event) {
+            return res.status(404).json({ error: 'Live event not found or unauthorized' });
+        }
+
+        if (title && title.trim()) event.title = title.trim();
+        if (description !== undefined) event.description = description.trim();
+        if (target_gender) event.target_gender = target_gender;
+        if (max_participants) event.max_participants = Number(max_participants);
+
+        if (scheduled_at) {
+            const schedDate = new Date(scheduled_at);
+            if (!isNaN(schedDate.getTime()) && schedDate > new Date()) {
+                event.status = 'upcoming';
+                event.scheduled_at = schedDate.toISOString();
+            } else {
+                event.status = 'live';
+                event.scheduled_at = undefined;
+            }
+        } else if (scheduled_at === null) {
+            event.status = 'live';
+            event.scheduled_at = undefined;
+        }
+
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                io.emit('live_event_updated', event);
+            }
+        } catch (e) {}
+
+        return res.json({
+            success: true,
+            event,
+            message: 'Live event updated successfully'
+        });
+    } catch (e: any) {
+        console.error('Error updating live event:', e);
+        return res.status(500).json({ error: 'Failed to update live event' });
+    }
+});
+
+/**
+ * DELETE /api/dates/events/:id
+ * Delete or Cancel a Live or Scheduled Speed Dating Event
+ */
+router.delete('/events/:id', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+
+        const index = liveEventsStore.findIndex(e => e.id === id && e.host_id === userId);
+        if (index === -1) {
+            return res.status(404).json({ error: 'Live event not found or unauthorized' });
+        }
+
+        const deletedEvent = liveEventsStore.splice(index, 1)[0];
+        deletedEvent.status = 'ended';
+
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                io.emit('live_event_ended', deletedEvent);
+            }
+        } catch (e) {}
+
+        return res.json({
+            success: true,
+            message: 'Live event deleted successfully'
+        });
+    } catch (e: any) {
+        console.error('Error deleting live event:', e);
+        return res.status(500).json({ error: 'Failed to delete live event' });
+    }
+});
+
 export default router;

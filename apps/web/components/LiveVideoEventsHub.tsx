@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown, Calendar, Bell, Clock } from 'lucide-react';
+import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown, Calendar, Bell, Clock, Edit3, Trash2 } from 'lucide-react';
 import { fetchAPI } from '@/lib/api';
 import HostSpeedDateModal from './HostSpeedDateModal';
 import { useToast } from '@/components/ui/Toast';
@@ -32,11 +32,27 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
     const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showHostModal, setShowHostModal] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<any | null>(null);
     const [previewEvent, setPreviewEvent] = useState<any | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const toast = useToast();
     const { socket } = useSocket();
+
+    const handleDeleteEvent = async (eventId: string) => {
+        if (!confirm("Are you sure you want to cancel and delete this live event?")) return;
+        try {
+            const res = await fetchAPI(`/dates/events/${eventId}`, { method: 'DELETE' });
+            if (res.success) {
+                toast.success("🗑️ Live event deleted successfully!");
+                setEvents(prev => prev.filter(e => e.id !== eventId));
+            } else {
+                toast.error(res.error || "Failed to delete event");
+            }
+        } catch (e: any) {
+            toast.error(e.message || "Failed to delete event");
+        }
+    };
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -233,7 +249,7 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                 <div className="pt-2 flex gap-2">
                                     <button
                                         onClick={() => setPreviewEvent(event)}
-                                        className="flex-1 py-2.5 px-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-1"
+                                        className="py-2.5 px-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-center gap-1"
                                     >
                                         <Eye size={14} /> Preview
                                     </button>
@@ -278,6 +294,26 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                             )}
                                         </button>
                                     )}
+
+                                    {/* Host Controls: Edit & Delete */}
+                                    {currentUserId && event.host_id === currentUserId && (
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                onClick={() => setEditingEvent(event)}
+                                                className="p-2.5 rounded-2xl bg-gray-800 hover:bg-gray-700 text-amber-400 hover:text-amber-300 border border-gray-700 transition-colors"
+                                                title="Edit Scheduled Event"
+                                            >
+                                                <Edit3 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteEvent(event.id)}
+                                                className="p-2.5 rounded-2xl bg-gray-800 hover:bg-rose-900/60 text-rose-400 hover:text-rose-300 border border-gray-700 transition-colors"
+                                                title="Cancel / Delete Event"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -304,7 +340,7 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                 </div>
             )}
 
-            {/* Host Modal */}
+            {/* Host Modal (Create) */}
             {showHostModal && (
                 <HostSpeedDateModal
                     onClose={() => setShowHostModal(false)}
@@ -318,6 +354,18 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                 onJoinLive(evt);
                             }
                         }
+                    }}
+                />
+            )}
+
+            {/* Host Modal (Edit) */}
+            {editingEvent && (
+                <HostSpeedDateModal
+                    initialEvent={editingEvent}
+                    onClose={() => setEditingEvent(null)}
+                    onEventCreated={(updatedEvt) => {
+                        fetchLiveEvents();
+                        setEditingEvent(null);
                     }}
                 />
             )}

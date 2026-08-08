@@ -8,20 +8,32 @@ import { useToast } from '@/components/ui/Toast';
 interface HostSpeedDateModalProps {
     onClose: () => void;
     onEventCreated: (event: any) => void;
+    initialEvent?: any;
 }
 
-export default function HostSpeedDateModal({ onClose, onEventCreated }: HostSpeedDateModalProps) {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [targetGender, setTargetGender] = useState<'all' | 'female' | 'male'>('all');
-    const [maxParticipants, setMaxParticipants] = useState<number>(30);
-    const [isScheduled, setIsScheduled] = useState(false);
+export default function HostSpeedDateModal({ onClose, onEventCreated, initialEvent }: HostSpeedDateModalProps) {
+    const isEditMode = !!initialEvent;
+    const [title, setTitle] = useState(initialEvent?.title || '');
+    const [description, setDescription] = useState(initialEvent?.description || '');
+    const [targetGender, setTargetGender] = useState<'all' | 'female' | 'male'>(initialEvent?.target_gender || 'all');
+    const [maxParticipants, setMaxParticipants] = useState<number>(initialEvent?.max_participants || 30);
+    const [isScheduled, setIsScheduled] = useState(!!initialEvent?.scheduled_at || initialEvent?.status === 'upcoming');
     const [scheduledDate, setScheduledDate] = useState(() => {
+        if (initialEvent?.scheduled_at) {
+            const d = new Date(initialEvent.scheduled_at);
+            return d.toISOString().split('T')[0];
+        }
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         return tomorrow.toISOString().split('T')[0];
     });
-    const [scheduledTime, setScheduledTime] = useState('20:00');
+    const [scheduledTime, setScheduledTime] = useState(() => {
+        if (initialEvent?.scheduled_at) {
+            const d = new Date(initialEvent.scheduled_at);
+            return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        }
+        return '20:00';
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const toast = useToast();
@@ -49,8 +61,11 @@ export default function HostSpeedDateModal({ onClose, onEventCreated }: HostSpee
 
         setIsSubmitting(true);
         try {
-            const res = await fetchAPI('/dates/events/create', {
-                method: 'POST',
+            const endpoint = isEditMode ? `/dates/events/${initialEvent.id}` : '/dates/events/create';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            const res = await fetchAPI(endpoint, {
+                method,
                 body: JSON.stringify({
                     title: title.trim(),
                     description: description.trim(),
@@ -61,14 +76,14 @@ export default function HostSpeedDateModal({ onClose, onEventCreated }: HostSpee
             });
 
             if (res.success) {
-                toast.success(isScheduled ? '📅 Live event scheduled successfully!' : '🎉 Your Live Speed Dating event is now LIVE!');
+                toast.success(isEditMode ? '✏️ Live event updated successfully!' : (isScheduled ? '📅 Live event scheduled successfully!' : '🎉 Your Live Speed Dating event is now LIVE!'));
                 onEventCreated(res.event);
                 onClose();
             } else {
-                toast.error(res.error || 'Failed to create live event');
+                toast.error(res.error || 'Failed to save live event');
             }
         } catch (e: any) {
-            toast.error(e.message || 'Error creating live event');
+            toast.error(e.message || 'Error saving live event');
         } finally {
             setIsSubmitting(false);
         }

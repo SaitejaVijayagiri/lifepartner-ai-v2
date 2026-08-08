@@ -43,7 +43,7 @@ export default function HomeTab({
                     <div className="space-y-2">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-black uppercase tracking-wider">
                             <Sparkles size={14} className="text-yellow-300 animate-pulse" />
-                            Welcome Back, {currentUser?.full_name?.split(' ')[0] || 'User'}!
+                            Welcome Back, {(currentUser?.full_name || currentUser?.name || 'User').split(' ')[0]}!
                         </div>
                         <h1 className="text-2xl sm:text-4xl font-black italic tracking-tight">
                             Find Your Life Partner with AI Matchmaking

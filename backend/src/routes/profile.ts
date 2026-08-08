@@ -76,6 +76,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
         const profile = {
             userId: user.id || userId,
             name: user.full_name,
+            full_name: user.full_name,
             email: user.email,
             age: user.age, // Added Age
             gender: user.gender,

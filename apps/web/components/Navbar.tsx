@@ -96,7 +96,7 @@ export default function Navbar() {
                                     <img src={user.avatar_url} className="w-full h-full object-cover" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.full_name || 'User')}`;
+                                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.full_name || user.name || 'User')}`;
                                     }} />
                                 ) : (
                                     <User size={16} />
@@ -104,7 +104,7 @@ export default function Navbar() {
                             </div>
                             <div className="flex flex-col text-left">
                                 <span className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1">
-                                    {user.full_name?.split(' ')[0] || 'Dashboard'}
+                                    {(user.full_name || user.name || 'Dashboard').split(' ')[0]}
                                     {user.is_verified && <VerificationBadge size={12} />}
                                 </span>
                             </div>

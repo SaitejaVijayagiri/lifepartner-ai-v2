@@ -7,6 +7,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Static Pages
     const routes = [
         '',
+        '/stranger-chat',
+        '/omegle-alternative',
         '/about',
         '/contact',
         '/blog',
@@ -18,8 +20,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ].map((route) => ({
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
-        changeFrequency: 'monthly' as const,
-        priority: route === '' ? 1 : 0.8,
+        changeFrequency: 'weekly' as const,
+        priority: route === '' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
     }));
 
     // Dynamic Blog Posts (fallback to static data, try to fetch from API)

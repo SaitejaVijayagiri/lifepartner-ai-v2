@@ -1,11 +1,28 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown } from 'lucide-react';
+import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown, Calendar, Bell, Clock } from 'lucide-react';
 import { fetchAPI } from '@/lib/api';
 import HostSpeedDateModal from './HostSpeedDateModal';
 import { useToast } from '@/components/ui/Toast';
 import { useSocket } from '@/context/SocketContext';
+
+const formatScheduledTime = (isoString?: string) => {
+    if (!isoString) return '';
+    try {
+        const d = new Date(isoString);
+        return d.toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    } catch (e) {
+        return isoString;
+    }
+};
 
 interface LiveVideoEventsHubProps {
     onJoinLive: (event?: any) => void;
@@ -123,12 +140,18 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
 
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/20 pointer-events-none" />
 
-                                {/* Top Badges */}
+                                 {/* Top Badges */}
                                 <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 gap-1 flex-wrap">
                                     <div className="flex items-center gap-1">
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md animate-pulse">
-                                            🔴 LIVE
-                                        </span>
+                                        {event.status === 'upcoming' ? (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
+                                                <Calendar size={11} /> SCHEDULED
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md animate-pulse">
+                                                🔴 LIVE
+                                            </span>
+                                        )}
                                         {event.target_gender && event.target_gender !== 'all' && (
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-600/90 text-white text-[10px] font-extrabold shadow-md border border-purple-400/30">
                                                 {event.target_gender === 'female' ? '👩 Females Only' : '👨 Males Only'}
@@ -178,6 +201,13 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                     </p>
                                 </div>
 
+                                {event.scheduled_at && (
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-950/60 border border-indigo-500/30 rounded-xl text-[11px] font-bold text-indigo-300">
+                                        <Calendar size={13} className="text-indigo-400 shrink-0" />
+                                        <span>Starts: {formatScheduledTime(event.scheduled_at)}</span>
+                                    </div>
+                                )}
+
                                 {/* Action Buttons */}
                                 <div className="pt-2 flex gap-2">
                                     <button
@@ -186,26 +216,47 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                     >
                                         <Eye size={14} /> Preview
                                     </button>
-                                    <button
-                                        onClick={() => onJoinLive(event)}
-                                        className={`flex-1 py-2.5 px-3 rounded-2xl text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1 ${
-                                            currentUserId && event.host_id === currentUserId
-                                                ? 'bg-gradient-to-r from-amber-500 to-rose-600 shadow-amber-500/20'
-                                                : 'bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 shadow-rose-500/20'
-                                        }`}
-                                    >
-                                        {currentUserId && event.host_id === currentUserId ? (
-                                            <>
+
+                                    {event.status === 'upcoming' ? (
+                                        currentUserId && event.host_id === currentUserId ? (
+                                            <button
+                                                onClick={() => onJoinLive(event)}
+                                                className="flex-1 py-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1"
+                                            >
                                                 <Crown size={14} />
-                                                <span>Your Live Room</span>
-                                            </>
+                                                <span>Start Live Now</span>
+                                            </button>
                                         ) : (
-                                            <>
-                                                <span>Join Room</span>
-                                                <ArrowRight size={14} />
-                                            </>
-                                        )}
-                                    </button>
+                                            <button
+                                                onClick={() => toast.success(`🔔 Reminder set! We will notify you when ${event.host_name} goes live on ${formatScheduledTime(event.scheduled_at)}.`)}
+                                                className="flex-1 py-2.5 px-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1"
+                                            >
+                                                <Bell size={14} />
+                                                <span>Remind Me</span>
+                                            </button>
+                                        )
+                                    ) : (
+                                        <button
+                                            onClick={() => onJoinLive(event)}
+                                            className={`flex-1 py-2.5 px-3 rounded-2xl text-white font-bold text-xs shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-1 ${
+                                                currentUserId && event.host_id === currentUserId
+                                                    ? 'bg-gradient-to-r from-amber-500 to-rose-600 shadow-amber-500/20'
+                                                    : 'bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 shadow-rose-500/20'
+                                            }`}
+                                        >
+                                            {currentUserId && event.host_id === currentUserId ? (
+                                                <>
+                                                    <Crown size={14} />
+                                                    <span>Your Live Room</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>Join Room</span>
+                                                    <ArrowRight size={14} />
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -356,6 +356,7 @@ interface LiveSpeedDateEvent {
     host_avatar?: string;
     target_gender: 'all' | 'female' | 'male';
     status: 'live' | 'upcoming' | 'ended';
+    scheduled_at?: string; // ISO date string if scheduled for future
     participant_count: number;
     max_participants: number;
     created_at: string;
@@ -365,12 +366,12 @@ const liveEventsStore: LiveSpeedDateEvent[] = [];
 
 /**
  * POST /api/dates/events/create
- * Host a new Live Speed Dating Event
+ * Host a new Live Speed Dating Event (Instant or Scheduled)
  */
 router.post('/events/create', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-        const { title, description, target_gender, max_participants } = req.body;
+        const { title, description, target_gender, max_participants, scheduled_at } = req.body;
 
         if (!title || !title.trim()) {
             return res.status(400).json({ error: 'Event title is required' });
@@ -381,6 +382,17 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             select: { full_name: true, avatar_url: true }
         });
 
+        let status: 'live' | 'upcoming' = 'live';
+        let scheduledIso: string | undefined = undefined;
+
+        if (scheduled_at) {
+            const schedDate = new Date(scheduled_at);
+            if (!isNaN(schedDate.getTime()) && schedDate > new Date()) {
+                status = 'upcoming';
+                scheduledIso = schedDate.toISOString();
+            }
+        }
+
         const newEvent: LiveSpeedDateEvent = {
             id: `evt_live_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
             title: title.trim(),
@@ -389,7 +401,8 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             host_name: user?.full_name || 'Host User',
             host_avatar: user?.avatar_url || undefined,
             target_gender: target_gender || 'all',
-            status: 'live',
+            status,
+            scheduled_at: scheduledIso,
             participant_count: 1,
             max_participants: max_participants || 50,
             created_at: new Date().toISOString()
@@ -407,12 +420,14 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             console.error('Failed to emit live_event_created socket event:', err);
         }
 
-        console.log(`[Live Event] 🔴 New Live Speed Dating Hosted by ${newEvent.host_name}: "${newEvent.title}"`);
+        console.log(`[Live Event] ${status === 'upcoming' ? '📅 Scheduled' : '🔴 Live'} Speed Dating Hosted by ${newEvent.host_name}: "${newEvent.title}"`);
 
         return res.status(201).json({
             success: true,
             event: newEvent,
-            message: '🎉 Your Live Speed Dating event is now LIVE!'
+            message: status === 'upcoming'
+                ? '📅 Your Live Speed Dating event has been scheduled successfully!'
+                : '🎉 Your Live Speed Dating event is now LIVE!'
         });
     } catch (e: any) {
         console.error('Failed to create live event', e);
@@ -422,11 +437,19 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
 
 /**
  * GET /api/dates/events/active
- * Returns active live speed dating events for top dashboard banner
+ * Returns active & scheduled live speed dating events
  */
 router.get('/events/active', async (req, res) => {
     try {
-        const activeEvents = liveEventsStore.filter(e => e.status === 'live');
+        const now = new Date();
+        // Auto-promote upcoming events to live if scheduled time has passed
+        liveEventsStore.forEach(e => {
+            if (e.status === 'upcoming' && e.scheduled_at && new Date(e.scheduled_at) <= now) {
+                e.status = 'live';
+            }
+        });
+
+        const activeEvents = liveEventsStore.filter(e => e.status === 'live' || e.status === 'upcoming');
         return res.json({
             success: true,
             activeCount: activeEvents.length,

@@ -1007,11 +1007,12 @@ function DashboardContent() {
                             onSelectKundli={setSelectedKundli}
                             onJoinLiveRoom={async (event?: any) => {
                                 if (event && (event.host_name || event.host_id)) {
-                                    if (currentUser?.id && event.host_id === currentUser.id) {
+                                    const myUserId = currentUser?.id || currentUser?.userId;
+                                    if (myUserId && event.host_id === myUserId) {
                                         startCall({
-                                            id: currentUser.id,
+                                            id: myUserId,
                                             name: event.title || 'Your Live Broadcast',
-                                            photoUrl: currentUser.avatar_url || event.host_avatar,
+                                            photoUrl: currentUser.avatar_url || currentUser.photoUrl || event.host_avatar,
                                             _isHostRoom: true,
                                             eventId: event.id
                                         }, 'speed_date');
@@ -1049,11 +1050,12 @@ function DashboardContent() {
                         <LiveVideoEventsHub
                             onJoinLive={async (event?: any) => {
                                 if (event && (event.host_name || event.host_id)) {
-                                    if (currentUser?.id && event.host_id === currentUser.id) {
+                                    const myUserId = currentUser?.id || currentUser?.userId;
+                                    if (myUserId && event.host_id === myUserId) {
                                         startCall({
-                                            id: currentUser.id,
+                                            id: myUserId,
                                             name: event.title || 'Your Live Broadcast',
-                                            photoUrl: currentUser.avatar_url || event.host_avatar,
+                                            photoUrl: currentUser.avatar_url || currentUser.photoUrl || event.host_avatar,
                                             _isHostRoom: true,
                                             eventId: event.id
                                         }, 'speed_date');

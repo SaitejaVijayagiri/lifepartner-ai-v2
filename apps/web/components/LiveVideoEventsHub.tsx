@@ -40,7 +40,27 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            setCurrentUserId(localStorage.getItem('userId'));
+            let storedId = localStorage.getItem('userId');
+            if (!storedId) {
+                try {
+                    const uStr = localStorage.getItem('user');
+                    if (uStr) {
+                        const parsed = JSON.parse(uStr);
+                        storedId = parsed.id || parsed.userId;
+                    }
+                } catch (e) {}
+            }
+            if (!storedId) {
+                fetchAPI('/profile/me').then(p => {
+                    if (p && (p.id || p.userId)) {
+                        const uid = p.id || p.userId;
+                        setCurrentUserId(uid);
+                        localStorage.setItem('userId', uid);
+                    }
+                }).catch(() => {});
+            } else {
+                setCurrentUserId(storedId);
+            }
         }
     }, []);
 

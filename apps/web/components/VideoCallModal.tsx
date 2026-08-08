@@ -345,7 +345,22 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         
         socket.on("callEnded", () => {
             console.log("Peer ended call");
-            leaveCall(false); // Don't emit endCall back
+            if (isHostRoom) {
+                // Host room stays active for next participant! Teardown remote peer & return to live status.
+                try {
+                    if (connectionRef.current) {
+                        connectionRef.current.destroy();
+                        connectionRef.current = null;
+                    }
+                } catch (e) {}
+                setRemoteStream(null);
+                setCallAccepted(false);
+                setCallAnswered(false);
+                setStatus("🔴 You are LIVE! Waiting for next single...");
+                toast.info("Participant left. Your room is still LIVE for next singles!");
+            } else {
+                leaveCall(false); // Don't emit endCall back
+            }
         });
         
         socket.on("callError", (data: any) => { 
@@ -645,13 +660,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     };
 
-    // Auto-answer Speed Dates
+    // Auto-answer Speed Dates & Host Rooms
     useEffect(() => {
-        if (incomingCall && isSpeedDate && stream && !callAnswered) {
-             console.log("Auto-answering speed date...");
+        if (incomingCall && (isSpeedDate || isHostRoom) && stream && !callAnswered) {
+             console.log("Auto-answering incoming participant for live room...");
              answerCall();
         }
-    }, [incomingCall, isSpeedDate, stream, callAnswered]);
+    }, [incomingCall, isSpeedDate, isHostRoom, stream, callAnswered]);
 
     const leaveCall = (emitEvent = true) => {
         console.log("[VideoCallModal] leaveCall initiated, emitEvent:", emitEvent);

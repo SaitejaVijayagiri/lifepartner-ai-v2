@@ -74,6 +74,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 
         // Transform User + Profile into the specific Frontend Shape
         const profile = {
+            id: user.id || userId,
             userId: user.id || userId,
             name: user.full_name,
             full_name: user.full_name,

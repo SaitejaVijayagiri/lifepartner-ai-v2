@@ -229,7 +229,6 @@ export default function RootLayout({
             <PageViewTracker />
             <NetworkStatus />
             {children}
-            <GlobalViewsBadge />
             <StickyCTA />
             <ThemeToggle />
             <MessageToastBanner />

@@ -5,6 +5,7 @@ import { Sparkles, Heart, Zap, Radio, ArrowRight, Star, Users, Video } from 'luc
 import dynamic from 'next/dynamic';
 import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 import StoriesFeed from '@/components/StoriesFeed';
+import GlobalViewsBadge from '@/components/GlobalViewsBadge';
 
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
 
@@ -35,7 +36,14 @@ export default function HomeTab({
     return (
         <div className="w-full space-y-8 animate-in fade-in duration-300">
             
-            {/* 1. Hero Welcome Header */}
+            {/* 1. Stories Feed Arranged at the Very Top of Home Screen */}
+            <StoriesFeed
+                currentUser={currentUser}
+                setCurrentUser={setCurrentUser}
+                onOpenStory={onOpenStory}
+            />
+
+            {/* 2. Hero Welcome Header */}
             <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-2xl border border-indigo-500/20 overflow-hidden">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
@@ -55,7 +63,7 @@ export default function HomeTab({
                 </div>
             </div>
 
-            {/* 2. Clear & Distinct Feature Selection Cards (3-Column Grid) */}
+            {/* 3. Clear & Distinct Feature Selection Cards (3-Column Grid) */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <div>
@@ -158,13 +166,6 @@ export default function HomeTab({
                 </div>
             </div>
 
-            {/* 3. Active Stories & Moments Feed */}
-            <StoriesFeed
-                currentUser={currentUser}
-                setCurrentUser={setCurrentUser}
-                onOpenStory={onOpenStory}
-            />
-
             {/* 4. Top AI Recommended Matches Section */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -203,7 +204,10 @@ export default function HomeTab({
                 )}
             </div>
 
-            {/* 5. Clean Inline App Feedback Banner */}
+            {/* 5. Global Site Views Badge (Rendered ONLY at bottom of Home page) */}
+            <GlobalViewsBadge className="my-4" />
+
+            {/* 6. Clean Inline App Feedback Banner */}
             <AppExperienceFeedback userId={currentUser?.id} userName={currentUser?.full_name} variant="card" />
         </div>
     );

@@ -572,6 +572,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [showInstantCamera, setShowInstantCamera] = useState(false);
     const [viewingInstantId, setViewingInstantId] = useState<string | null>(null);
     const [viewingInstantUrl, setViewingInstantUrl] = useState<string | null>(null);
+    const [viewingInstantIsOwn, setViewingInstantIsOwn] = useState<boolean>(false);
 
     // Profile View State
     const [showProfile, setShowProfile] = useState(false);
@@ -1642,6 +1643,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                             e.stopPropagation();
                                                             setViewingInstantId(instantId);
                                                             setViewingInstantUrl(initialUrl);
+                                                            setViewingInstantIsOwn(isMe);
                                                         }}
                                                         className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer"
                                                     >
@@ -2401,9 +2403,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <InstantViewerModal
                     instantId={viewingInstantId}
                     initialMediaUrl={viewingInstantUrl}
+                    isOwn={viewingInstantIsOwn}
                     onClose={() => {
                         setViewingInstantId(null);
                         setViewingInstantUrl(null);
+                        setViewingInstantIsOwn(false);
                     }}
                     onSnapBack={() => {
                         setShowInstantCamera(true);

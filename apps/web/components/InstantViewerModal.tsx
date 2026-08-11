@@ -38,7 +38,21 @@ export default function InstantViewerModal({
     const [viewersList, setViewersList] = useState<any[]>([]);
     const [loadingViewers, setLoadingViewers] = useState(false);
     const [isScreenBlurred, setIsScreenBlurred] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const touchDistRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        const cachedId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+        if (cachedId) setCurrentUserId(cachedId);
+        import('@/lib/api').then(({ api }) => {
+            api.profile.getMe().then((res: any) => {
+                const uid = res?.id || res?.user?.id || res?.userId;
+                if (uid) setCurrentUserId(uid);
+            }).catch(() => {});
+        });
+    }, []);
+
+    const isCreator = Boolean(isOwn) || (Boolean(senderId) && Boolean(currentUserId) && senderId === currentUserId);
 
     const VIEW_DURATION_MS = 7000; // 7 seconds viewing time
 
@@ -191,7 +205,7 @@ export default function InstantViewerModal({
                         </div>
 
                         <div className="flex items-center space-x-2">
-                            {(isOwn || Boolean(senderId)) && (
+                            {isCreator && (
                                 <button
                                     onClick={handleDeleteInstant}
                                     className="p-1.5 rounded-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-400 border border-rose-500/30 transition-colors"

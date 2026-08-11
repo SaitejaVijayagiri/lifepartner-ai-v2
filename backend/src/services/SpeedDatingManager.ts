@@ -119,11 +119,13 @@ export class SpeedDatingManager {
 
     private broadcastLobbyStats() {
         if (this.io) {
-            const count = this.maleQueue.size + this.femaleQueue.size;
+            const maleCount = this.maleQueue.size;
+            const femaleCount = this.femaleQueue.size;
+            const waitingCount = maleCount + femaleCount;
             this.io.to('speed_dating_lobby').emit('speed_date_stats', { 
-                waitingCount: Math.max(count, 12),
-                maleCount: Math.max(this.maleQueue.size, 7),
-                femaleCount: Math.max(this.femaleQueue.size, 5)
+                waitingCount,
+                maleCount,
+                femaleCount
             });
         }
     }

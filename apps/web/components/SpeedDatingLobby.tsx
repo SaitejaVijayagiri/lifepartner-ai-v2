@@ -200,12 +200,12 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                         {/* Active Queue Statistics */}
                         <div className="grid grid-cols-2 gap-2 pt-1">
                             <div className="bg-pink-500/10 rounded-xl p-2.5 border border-pink-500/20 text-center">
-                                <span className="text-lg font-black text-pink-400">{femaleCount || 1}</span>
-                                <p className="text-[9px] font-bold text-pink-300 uppercase tracking-wider">Females Online</p>
+                                <span className="text-lg font-black text-pink-400">{femaleCount}</span>
+                                <p className="text-[9px] font-bold text-pink-300 uppercase tracking-wider">Females in Queue</p>
                             </div>
                             <div className="bg-indigo-500/10 rounded-xl p-2.5 border border-indigo-500/20 text-center">
-                                <span className="text-lg font-black text-indigo-400">{maleCount || 1}</span>
-                                <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider">Males Online</p>
+                                <span className="text-lg font-black text-indigo-400">{maleCount}</span>
+                                <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-wider">Males in Queue</p>
                             </div>
                         </div>
                     </div>

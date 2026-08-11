@@ -117,7 +117,7 @@ export default function StrangerChatLandingPage() {
             </section>
 
             {/* LIVE VIEWS BADGE */}
-            <GlobalViewsBadge />
+            <GlobalViewsBadge className="mb-6" />
 
             {/* 2. FEATURES GRID */}
             <section className="py-16 px-4 sm:px-6 max-w-6xl mx-auto">

@@ -62,6 +62,13 @@ export default function HomeTab({
                             <span>Browse Matches</span>
                         </button>
                         <button
+                            onClick={() => onJoinLiveRoom()}
+                            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 text-white font-extrabold text-xs shadow-lg hover:brightness-110 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
+                        >
+                            <Zap size={16} className="text-yellow-300 fill-yellow-300 animate-bounce" />
+                            <span>⚡ 1-on-1 Speed Dating</span>
+                        </button>
+                        <button
                             onClick={() => onNavigateTab('live_events')}
                             className="px-5 py-3 rounded-2xl bg-black/40 backdrop-blur-md border border-white/30 text-white font-extrabold text-xs shadow-lg hover:bg-black/60 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
@@ -78,6 +85,28 @@ export default function HomeTab({
                 setCurrentUser={setCurrentUser}
                 onOpenStory={onOpenStory}
             />
+
+            {/* Instant Random Speed Dating Card */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 border border-rose-500/30 p-6 shadow-xl text-white flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="space-y-2 text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-black uppercase tracking-wider">
+                        <Zap size={14} className="text-amber-400 fill-amber-400 animate-pulse" /> Random Audio & Video Speed Dating
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white">
+                        Connect Randomly (Male ↔ Female)
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-300 max-w-lg">
+                        Match instantly in 3-minute 1-on-1 blind audio or video speed dates with real verified opposite-gender members!
+                    </p>
+                </div>
+                <button
+                    onClick={() => onJoinLiveRoom()}
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white font-black text-xs shadow-xl shadow-rose-500/30 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                >
+                    <Zap size={18} className="text-yellow-300 fill-yellow-300 animate-bounce" />
+                    <span>Start Live Speed Date Now</span>
+                </button>
+            </div>
 
             {/* Live Video Events Broadcast Hub Section */}
             <LiveVideoEventsHub onJoinLive={onJoinLiveRoom} />

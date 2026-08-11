@@ -3,7 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { Globe, Eye, TrendingUp, Users } from 'lucide-react';
 
-export default function GlobalViewsBadge() {
+interface GlobalViewsBadgeProps {
+    className?: string;
+}
+
+export default function GlobalViewsBadge({ className = '' }: GlobalViewsBadgeProps) {
     const [stats, setStats] = useState({
         total_views: 158400,
         today_views: 4250,
@@ -33,7 +37,7 @@ export default function GlobalViewsBadge() {
     }, []);
 
     return (
-        <div className="w-full max-w-7xl mx-auto px-4 py-3 my-4">
+        <div className={`w-full max-w-7xl mx-auto px-4 py-3 mt-4 mb-28 md:mb-6 ${className}`}>
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/20 p-3 sm:p-4 text-white shadow-lg">
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm font-semibold">
                     

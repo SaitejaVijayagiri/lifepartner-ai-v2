@@ -94,11 +94,12 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
         // Also if receiverId is set, create a chat message referencing this instant
         if (receiverId && createdInstant?.id) {
             try {
+                const encodedMedia = encodeURIComponent(finalMediaUrl || '');
                 await prisma.messages.create({
                     data: {
                         sender_id: userId,
                         receiver_id: receiverId,
-                        content: `[INSTANT:${createdInstant.id}] View-Once Snap ⚡`,
+                        content: `[INSTANT:${createdInstant.id}:${encodedMedia}] View-Once Snap ⚡`,
                         delivery_status: 'sent'
                     }
                 });
@@ -231,11 +232,18 @@ router.post('/:id/view', authenticateToken, async (req: any, res) => {
     try {
         await ensureInstantsTable();
 
-        const rows: any[] = await prisma.$queryRawUnsafe(`
-            SELECT id, sender_id, receiver_id, media_url, caption, viewed_by, is_viewed, expires_at
-            FROM instants
-            WHERE id = $1::uuid AND expires_at > now();
-        `, id);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        const rows: any[] = isUuid
+            ? await prisma.$queryRawUnsafe(`
+                SELECT id, sender_id, receiver_id, media_url, caption, viewed_by, is_viewed, expires_at
+                FROM instants
+                WHERE id = $1::uuid AND expires_at > now();
+            `, id)
+            : await prisma.$queryRawUnsafe(`
+                SELECT id, sender_id, receiver_id, media_url, caption, viewed_by, is_viewed, expires_at
+                FROM instants
+                WHERE id::text = $1 AND expires_at > now();
+            `, id);
 
         if (!rows || rows.length === 0) {
             return res.status(404).json({ error: 'Instant snap not found or expired.' });

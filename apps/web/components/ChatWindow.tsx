@@ -571,6 +571,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [showStickers, setShowStickers] = useState(false);
     const [showInstantCamera, setShowInstantCamera] = useState(false);
     const [viewingInstantId, setViewingInstantId] = useState<string | null>(null);
+    const [viewingInstantUrl, setViewingInstantUrl] = useState<string | null>(null);
 
     // Profile View State
     const [showProfile, setShowProfile] = useState(false);
@@ -1624,7 +1625,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             );
                                         })()}
                                         {msg.text.includes('[INSTANT:') ? (() => {
-                                            const instantId = msg.text.split('[INSTANT:')[1].split(']')[0];
+                                            const rawPayload = msg.text.split('[INSTANT:')[1].split(']')[0];
+                                            const parts = rawPayload.split(':');
+                                            const instantId = parts[0];
+                                            const initialUrl = parts[1] ? decodeURIComponent(parts[1]) : null;
                                             return (
                                                 <div className="p-3 bg-slate-950 text-white rounded-2xl border border-amber-500/40 shadow-lg flex flex-col space-y-2 min-w-[200px]">
                                                     <div className="flex items-center space-x-1.5 text-amber-400 font-bold text-[11px]">
@@ -1637,6 +1641,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setViewingInstantId(instantId);
+                                                            setViewingInstantUrl(initialUrl);
                                                         }}
                                                         className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center space-x-1.5 cursor-pointer"
                                                     >
@@ -2395,7 +2400,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {viewingInstantId && (
                 <InstantViewerModal
                     instantId={viewingInstantId}
-                    onClose={() => setViewingInstantId(null)}
+                    initialMediaUrl={viewingInstantUrl}
+                    onClose={() => {
+                        setViewingInstantId(null);
+                        setViewingInstantUrl(null);
+                    }}
                     onSnapBack={() => {
                         setShowInstantCamera(true);
                     }}

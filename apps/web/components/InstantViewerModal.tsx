@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 
 interface InstantViewerModalProps {
     instantId: string;
+    initialMediaUrl?: string | null;
     onClose: () => void;
     onViewed?: (instantId: string) => void;
     onDeleted?: (instantId: string) => void;
@@ -17,6 +18,7 @@ interface InstantViewerModalProps {
 
 export default function InstantViewerModal({
     instantId,
+    initialMediaUrl,
     onClose,
     onViewed,
     onDeleted,
@@ -24,11 +26,11 @@ export default function InstantViewerModal({
     isOwn
 }: InstantViewerModalProps) {
     const toast = useToast();
-    const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+    const [mediaUrl, setMediaUrl] = useState<string | null>(initialMediaUrl || null);
     const [caption, setCaption] = useState<string | null>(null);
     const [senderId, setSenderId] = useState<string | null>(null);
     const [senderName, setSenderName] = useState<string>('User');
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!initialMediaUrl);
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(100);
     const [viewerZoom, setViewerZoom] = useState<number>(1);
@@ -77,7 +79,7 @@ export default function InstantViewerModal({
 
         async function fetchAndViewInstant() {
             try {
-                setLoading(true);
+                if (!initialMediaUrl) setLoading(true);
                 setError(null);
 
                 const res = await api.post(`/instants/${instantId}/view`);
@@ -90,13 +92,23 @@ export default function InstantViewerModal({
                     setSenderName(res.instant.senderName || 'User');
                     if (onViewed) onViewed(instantId);
                 } else if (res?.error) {
-                    setError(res.error);
+                    if (initialMediaUrl) {
+                        setMediaUrl(initialMediaUrl);
+                    } else {
+                        setError(res.error);
+                    }
                 } else {
-                    setError('This Instant snap has already been viewed or expired.');
+                    if (initialMediaUrl) {
+                        setMediaUrl(initialMediaUrl);
+                    } else {
+                        setError('This Instant snap has already been viewed or expired.');
+                    }
                 }
             } catch (err: any) {
                 console.error('[InstantViewer] View error:', err);
-                if (err.status === 410) {
+                if (initialMediaUrl) {
+                    setMediaUrl(initialMediaUrl);
+                } else if (err.status === 410) {
                     setError('This Instant snap has already been viewed and expired.');
                 } else {
                     setError(err.message || 'Failed to open Instant snap.');

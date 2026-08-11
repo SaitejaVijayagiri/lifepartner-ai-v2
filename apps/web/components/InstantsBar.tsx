@@ -159,6 +159,7 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                 return (
                     <InstantViewerModal
                         instantId={viewingInstantId}
+                        initialMediaUrl={selectedInstant?.mediaUrl}
                         isOwn={selectedInstant?.isOwn}
                         onClose={() => setViewingInstantId(null)}
                         onViewed={handleInstantViewed}

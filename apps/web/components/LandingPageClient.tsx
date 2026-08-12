@@ -137,7 +137,7 @@ export default function LandingPageClient() {
                 }`}
               >
                 <Sparkles size={14} className={quickIntent === 'dating' ? 'text-white' : 'text-pink-500'} />
-                <span>🌍 Worldwide Dating Mode</span>
+                <span>🌍 {t('heroDatingPill')}</span>
               </button>
               <button
                 onClick={() => setQuickIntent('matrimony')}
@@ -148,30 +148,30 @@ export default function LandingPageClient() {
                 }`}
               >
                 <Heart size={14} className={quickIntent === 'matrimony' ? 'text-white' : 'text-indigo-500'} />
-                <span>💍 Serious Matrimony Mode</span>
+                <span>💍 {t('heroMatrimonyPill')}</span>
               </button>
             </div>
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-4 leading-[1.02]">
-              Connect & Chat <br />
+              {t('heroTitlePrefix')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-pulse-slow">
-                Free Worldwide.
+                {t('heroTitleGradient')}
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-8 leading-relaxed font-light">
-              The world's #1 AI platform built for both <span className="font-semibold text-pink-600">Worldwide Dating</span> & <span className="font-semibold text-indigo-600">Serious Matrimony</span>. Instant direct chat, verified profiles, zero forced subscriptions.
+              {t('heroSub')}
             </p>
 
             {/* Interactive Quick Match Search Widget */}
             <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800">
               <div className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 flex items-center gap-1.5">
                 <BrainCircuit size={14} className="text-indigo-500" />
-                <span>Quick Match Search</span>
+                <span>{t('quickSearchTitle')}</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">I am a</label>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('iAmA')}</label>
                   <select
                     value={quickGender}
                     onChange={(e) => setQuickGender(e.target.value)}
@@ -182,7 +182,7 @@ export default function LandingPageClient() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">Looking for</label>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('lookingFor')}</label>
                   <select
                     value={quickLookingFor}
                     onChange={(e) => setQuickLookingFor(e.target.value)}
@@ -193,7 +193,7 @@ export default function LandingPageClient() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">Goal</label>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('goal')}</label>
                   <select
                     value={quickIntent}
                     onChange={(e) => setQuickIntent(e.target.value as any)}
@@ -204,7 +204,7 @@ export default function LandingPageClient() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">Location</label>
+                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('location')}</label>
                   <select
                     value={quickCountry}
                     onChange={(e) => setQuickCountry(e.target.value)}
@@ -222,7 +222,7 @@ export default function LandingPageClient() {
 
               <Link href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}>
                 <button className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2">
-                  <span>Find Matches Free</span>
+                  <span>{t('findMatchesBtn')}</span>
                   <ArrowRight size={18} />
                 </button>
               </Link>
@@ -231,13 +231,13 @@ export default function LandingPageClient() {
             {/* High Conversion Trust Bar */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-8">
               <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                <CheckCircle size={14} /> 100% Free Direct Chat
+                <CheckCircle size={14} /> {t('trust100Free')}
               </span>
               <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
-                <ShieldCheck size={14} /> Verified Human Profiles
+                <ShieldCheck size={14} /> {t('trustVerified')}
               </span>
               <span className="flex items-center gap-1 text-pink-600 dark:text-pink-400">
-                <MapPin size={14} /> Global & NRI Reach
+                <MapPin size={14} /> {t('trustGlobal')}
               </span>
             </div>
 

@@ -483,9 +483,27 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<LanguageCode>('en');
 
   useEffect(() => {
+    // 1. Check URL query parameter ?lang=...
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const langParam = urlParams.get('lang') as LanguageCode;
+      if (langParam && TRANSLATIONS[langParam]) {
+        setLanguageState(langParam);
+        localStorage.setItem('lp_lang', langParam);
+        document.documentElement.lang = langParam;
+        const langObj = SUPPORTED_LANGUAGES.find(l => l.code === langParam);
+        document.documentElement.dir = langObj?.dir || 'ltr';
+        return;
+      }
+    }
+
+    // 2. Check localStorage
     const saved = localStorage.getItem('lp_lang') as LanguageCode;
     if (saved && TRANSLATIONS[saved]) {
       setLanguageState(saved);
+      document.documentElement.lang = saved;
+      const langObj = SUPPORTED_LANGUAGES.find(l => l.code === saved);
+      document.documentElement.dir = langObj?.dir || 'ltr';
     } else if (typeof navigator !== 'undefined') {
       const browserLang = navigator.language.slice(0, 2).toLowerCase();
       if (TRANSLATIONS[browserLang as LanguageCode]) {

@@ -42,7 +42,7 @@ export default function FeatureShowcaseSection() {
             }`}
           >
             <Camera size={18} />
-            <span>⚡ Instant Snaps</span>
+            <span>⚡ {t('snapTitle')}</span>
           </button>
           <button
             onClick={() => setActiveTab('stories')}
@@ -53,7 +53,7 @@ export default function FeatureShowcaseSection() {
             }`}
           >
             <Flame size={18} />
-            <span>📸 24h Stories</span>
+            <span>📸 {t('storiesTitle')}</span>
           </button>
           <button
             onClick={() => setActiveTab('music')}
@@ -64,7 +64,7 @@ export default function FeatureShowcaseSection() {
             }`}
           >
             <Music size={18} />
-            <span>🎵 Music Vibe Match</span>
+            <span>🎵 {t('musicTitle')}</span>
           </button>
         </div>
 

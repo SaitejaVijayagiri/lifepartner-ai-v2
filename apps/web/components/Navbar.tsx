@@ -7,12 +7,16 @@ import VerificationBadge from './VerificationBadge';
 import { useSocket } from '../context/SocketContext';
 import { useTheme } from 'next-themes';
 
+import LanguageSelector from './LanguageSelector';
+import { useLanguage } from '@/context/LanguageContext';
+
 export default function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     const { theme, setTheme } = useTheme();
     const isDark = mounted && theme === 'dark';
+    const { t } = useLanguage();
 
     const [user, setUser] = useState<any>(null);
     const { publicStats } = useSocket();
@@ -24,7 +28,6 @@ export default function Navbar() {
         };
         window.addEventListener('scroll', handleScroll);
 
-        // Check Auth using localStorage (Simple version)
         const checkAuth = () => {
             try {
                 const userData = localStorage.getItem('user');
@@ -34,7 +37,6 @@ export default function Navbar() {
             } catch (e) { console.error(e); }
         };
         checkAuth();
-        // Listen for storage events (login/logout sync)
         window.addEventListener('storage', checkAuth);
 
         return () => {
@@ -69,26 +71,33 @@ export default function Navbar() {
                 )}
 
                 {/* Desktop Navigation */}
-                <div className="hidden md:flex space-x-8 items-center">
-                    {['Success Stories', 'How it Works', 'App Features'].map((item) => (
-                        <Link
-                            key={item}
-                            href={`/#${item.toLowerCase().replace(/ /g, '-')}`}
-                            className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
-                        >
-                            {item}
-                        </Link>
-                    ))}
-                    <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
-                        Blog <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">SEO</span>
+                <div className="hidden md:flex space-x-6 lg:space-x-8 items-center">
+                    <Link
+                        href="#app-features"
+                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
+                    >
+                        {t('navFeatures')}
                     </Link>
-                    <Link href="/community" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
-                        Community <span className="bg-indigo-100 text-indigo-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">New</span>
+                    <Link
+                        href="#stories-snaps-music"
+                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1"
+                    >
+                        {t('navStories')} <span className="bg-pink-100 text-pink-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
+                    </Link>
+                    <Link
+                        href="#how-life-partner-connects"
+                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
+                    >
+                        {t('navWorkflow')}
+                    </Link>
+                    <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
+                        {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">SEO</span>
                     </Link>
                 </div>
 
-                {/* Desktop Actions */}
-                <div className="hidden md:flex items-center gap-4">
+                {/* Desktop Actions + Language Selector */}
+                <div className="hidden md:flex items-center gap-3">
+                    <LanguageSelector />
                     {user ? (
                         <Link href="/dashboard" className="flex items-center gap-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
                             <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
@@ -112,12 +121,12 @@ export default function Navbar() {
                     ) : (
                         <>
                             <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">
-                                Log In
+                                {t('navLogin')}
                             </Link>
                             <Link href="/register">
-                                <button className="group relative px-6 py-2.5 font-bold text-white rounded-full bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-indigo-500/30 transition-all active:scale-95">
-                                    <span className="relative flex items-center gap-2 text-sm uppercase tracking-wide">
-                                        Get Started <ArrowRight size={14} />
+                                <button className="group relative px-5 py-2 font-bold text-white rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-indigo-500/30 transition-all active:scale-95">
+                                    <span className="relative flex items-center gap-1.5 text-xs uppercase tracking-wide">
+                                        {t('navGetStarted')} <ArrowRight size={14} />
                                     </span>
                                 </button>
                             </Link>
@@ -125,14 +134,15 @@ export default function Navbar() {
                     )}
                 </div>
 
-                {/* Mobile Controls: Theme Toggle + Hamburger */}
+                {/* Mobile Controls: Language + Theme Toggle + Hamburger */}
                 <div className="md:hidden flex items-center gap-2">
+                    <LanguageSelector />
                     <button
                         onClick={() => setTheme(isDark ? 'light' : 'dark')}
                         className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         aria-label="Toggle theme"
                     >
-                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                        {isDark ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
                     <button
                         className="p-2 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors"
@@ -147,54 +157,48 @@ export default function Navbar() {
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
                 <div className="md:hidden absolute top-20 left-0 w-full bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-xl animate-in slide-in-from-top-5 duration-200">
-                    <div className="px-6 py-8 flex flex-col gap-6">
-                        {['Success Stories', 'How it Works', 'App Features'].map((item) => (
-                            <Link
-                                key={item}
-                                href={`/#${item.toLowerCase().replace(/ /g, '-')}`}
-                                className="text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                {item}
-                            </Link>
-                        ))}
-
-                        {/* Mobile Live Stats */}
-                        {publicStats.onlineCount > 0 && (
-                            <div className="flex items-center gap-2 px-0 py-2">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                </span>
-                                <span className="text-sm font-bold text-green-700">{publicStats.onlineCount} People Live Now</span>
-                            </div>
-                        )}
-
+                    <div className="px-6 py-6 flex flex-col gap-5">
+                        <LanguageSelector isMobile={true} />
+                        <hr className="border-gray-100 dark:border-gray-800" />
                         <Link
-                            href="/blog"
-                            className="text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
+                            href="#app-features"
+                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            Read our SEO Blog <span className="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Top Articles</span>
+                            {t('navFeatures')}
                         </Link>
                         <Link
-                            href="/community"
-                            className="text-lg font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
+                            href="#stories-snaps-music"
+                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            Community <span className="bg-indigo-100 text-indigo-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">New</span>
+                            {t('navStories')} <span className="bg-pink-100 text-pink-600 text-[9px] px-2 py-0.5 rounded font-bold uppercase">Snaps & Music</span>
+                        </Link>
+                        <Link
+                            href="#how-life-partner-connects"
+                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            {t('navWorkflow')}
+                        </Link>
+                        <Link
+                            href="/blog"
+                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Top Articles</span>
                         </Link>
                         <hr className="border-gray-100 dark:border-gray-800" />
                         <Link
                             href="/login"
-                            className="text-lg font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600"
+                            className="text-base font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            Log In
+                            {t('navLogin')}
                         </Link>
                         <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                            <button className="w-full py-4 font-bold text-white rounded-xl bg-indigo-600 hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">
-                                Get Started Free
+                            <button className="w-full py-3.5 font-bold text-white rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg active:scale-95 transition-all">
+                                {t('navGetStarted')}
                             </button>
                         </Link>
                     </div>

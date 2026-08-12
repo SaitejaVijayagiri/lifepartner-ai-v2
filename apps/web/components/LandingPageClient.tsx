@@ -3,16 +3,21 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2 } from 'lucide-react';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
 import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 import PublicMatchCard from '@/components/PublicMatchCard';
 import SocialProofToasts from '@/components/SocialProofToasts';
+import FeatureShowcaseSection from '@/components/FeatureShowcaseSection';
+import ConnectionWorkflowSection from '@/components/ConnectionWorkflowSection';
+import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
+import { useLanguage } from '@/context/LanguageContext';
 import { api } from '@/lib/api';
 
 export default function LandingPageClient() {
+  const { t } = useLanguage();
   const [topRow, setTopRow] = useState<any[]>([]);
   const [bottomRow, setBottomRow] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -305,10 +310,17 @@ export default function LandingPageClient() {
         </div>
       </section>
 
+      {/* --- GLOBAL OVERVIEW & 3-FACT INFOGRAPHIC --- */}
+      <GlobalOverviewBanner />
+
       {/* --- AI MATCHMAKER DEMO SECTION --- */}
       <AnimatedSearchSection />
 
+      {/* --- SNAPS, STORIES & MUSIC FEATURE SHOWCASE --- */}
+      <FeatureShowcaseSection />
 
+      {/* --- HOW LIFE PARTNER GETS CONNECTED WORKFLOW --- */}
+      <ConnectionWorkflowSection />
 
       {/* --- MEET THE FOUNDER / TRUST SECTION --- */}
       <section className="py-24 bg-white dark:bg-gray-950 relative overflow-hidden border-b border-gray-100 dark:border-gray-800">

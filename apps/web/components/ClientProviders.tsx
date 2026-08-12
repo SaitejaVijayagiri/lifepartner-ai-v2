@@ -8,6 +8,8 @@ import { CallProvider } from '@/context/CallContext';
 import GlobalCallUI from '@/components/GlobalCallUI';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 
+import { LanguageProvider } from '@/context/LanguageContext';
+
 function ProvidersContent({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
 
@@ -35,10 +37,12 @@ function ProvidersContent({ children }: { children: React.ReactNode }) {
 
 export default function ClientProviders({ children }: { children: React.ReactNode }) {
     return (
-        <AuthProvider>
-            <ProvidersContent>
-                {children}
-            </ProvidersContent>
-        </AuthProvider>
+        <LanguageProvider>
+            <AuthProvider>
+                <ProvidersContent>
+                    {children}
+                </ProvidersContent>
+            </AuthProvider>
+        </LanguageProvider>
     );
 }

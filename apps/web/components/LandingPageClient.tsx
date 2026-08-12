@@ -323,31 +323,90 @@ export default function LandingPageClient() {
       <ConnectionWorkflowSection />
 
       {/* --- MEET THE FOUNDER / TRUST SECTION --- */}
-      <section className="py-24 bg-white dark:bg-gray-950 relative overflow-hidden border-b border-gray-100 dark:border-gray-800">
-        <div className="max-w-4xl mx-auto px-6">
+      <section className="py-16 md:py-24 bg-gradient-to-b from-white via-indigo-50/30 to-white dark:from-gray-950 dark:via-indigo-950/20 dark:to-gray-950 relative overflow-hidden border-b border-gray-100 dark:border-gray-800">
+        {/* Background glow circle */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-200/20 dark:bg-indigo-900/10 rounded-full blur-3xl pointer-events-none"></div>
 
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wide mb-6">
-              <Zap size={14} /> Founder's Message
+        <div className="max-w-5xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider mb-4 border border-indigo-200/50 dark:border-indigo-800/50 shadow-sm">
+              <Zap size={14} /> Founder's Personal Message
             </div>
-            <h2 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 dark:text-gray-100 mb-6">Matches made by AI.<br />Verified by Humans.</h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-              "Hi, I'm Saiteja. I built LifePartner AI with a single mission: to revolutionize serious matrimony and matchmaking. Traditional matrimony sites lock messaging behind expensive paywalls and are filled with unverified profiles. My promise to you is simple: <b>100% Free Matrimony, Zero Fake Profiles, Direct Verification, and AI-Powered Compatibility</b> so you can find your true life partner safely and transparently."
-            </p>
+            <h2 className="text-3xl md:text-5xl font-heading font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+              Matches Made by AI.<br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">Verified by Humans.</span>
+            </h2>
+          </div>
 
-            <div className="flex flex-wrap gap-4 items-center">
-              <Link href="/about">
-                <button className="px-8 py-3 rounded-full bg-gray-900 text-white font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl">
-                  Read Our Story
-                </button>
-              </Link>
-              <button
-                onClick={handleShareMatrimony}
-                className="px-8 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2 cursor-pointer"
-              >
-                <Share2 size={18} />
-                Share Matrimony App
-              </button>
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-indigo-100 dark:border-indigo-900/40 shadow-2xl relative">
+            <div className="grid md:grid-cols-12 gap-8 items-center">
+
+              {/* Founder Avatar & Badge */}
+              <div className="md:col-span-4 flex flex-col items-center text-center">
+                <div className="relative group mb-4">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+                  <div className="relative w-36 h-36 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-indigo-100 dark:bg-gray-800 flex items-center justify-center">
+                    <img
+                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Saiteja&eyebrows=default&style=circle&hair=shortCombover"
+                      alt="Saiteja Vijayagiri - Founder & CEO of LifePartner AI"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute bottom-1 right-1 bg-green-500 text-white p-1.5 rounded-full border-2 border-white dark:border-gray-900 shadow-md" title="Verified Founder & Lead Architect">
+                    <ShieldCheck size={18} />
+                  </div>
+                </div>
+
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Saiteja Vijayagiri</h3>
+                <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">Founder & Lead Developer</p>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-full text-green-700 dark:text-green-300 text-xs font-medium">
+                  <CheckCircle size={13} className="text-green-500" />
+                  Direct Founder Verification
+                </div>
+              </div>
+
+              {/* Founder Message Content */}
+              <div className="md:col-span-8 flex flex-col justify-center">
+                <blockquote className="text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed italic mb-6 relative pl-4 border-l-4 border-indigo-600">
+                  "Hi, I'm Saiteja. I built LifePartner AI with a single mission: to revolutionize serious matrimony and matchmaking. Traditional matrimony platforms lock messaging behind expensive paywalls and are filled with unverified profiles. My promise to you is simple: <b>100% Free Matrimony, Zero Fake Profiles, Direct Human Verification, and AI-Powered Compatibility</b> so you can find your true life partner safely and transparently."
+                </blockquote>
+
+                {/* Core Trust Pillars */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+                  <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center">
+                    <div className="text-indigo-600 dark:text-indigo-400 font-extrabold text-sm">100% Free</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Zero Paywalls</div>
+                  </div>
+                  <div className="p-3 bg-green-50/70 dark:bg-green-950/40 rounded-xl border border-green-100 dark:border-green-900/30 text-center">
+                    <div className="text-green-600 dark:text-green-400 font-extrabold text-sm">Verified Humans</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Zero Fake Accounts</div>
+                  </div>
+                  <div className="p-3 bg-purple-50/70 dark:bg-purple-950/40 rounded-xl border border-purple-100 dark:border-purple-900/30 text-center">
+                    <div className="text-purple-600 dark:text-purple-400 font-extrabold text-sm">Protected Snaps</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Screenshot-Proof</div>
+                  </div>
+                  <div className="p-3 bg-pink-50/70 dark:bg-pink-950/40 rounded-xl border border-pink-100 dark:border-pink-900/30 text-center">
+                    <div className="text-pink-600 dark:text-pink-400 font-extrabold text-sm">AI Match</div>
+                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Smart Vibe Check</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-4 items-center">
+                  <Link href="/about">
+                    <button className="px-7 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold hover:bg-black dark:hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl text-sm">
+                      Read Our Full Story
+                    </button>
+                  </Link>
+                  <button
+                    onClick={handleShareMatrimony}
+                    className="px-7 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl text-sm flex items-center gap-2 cursor-pointer"
+                  >
+                    <Share2 size={16} />
+                    Share Matrimony App
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>

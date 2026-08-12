@@ -152,30 +152,30 @@ export default function LandingPageClient() {
               </button>
             </div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-4 leading-[1.02]">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-4 leading-[1.05]">
               {t('heroTitlePrefix')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 animate-pulse-slow">
                 {t('heroTitleGradient')}
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-8 leading-relaxed font-light">
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-xl mb-6 sm:mb-8 leading-relaxed font-light">
               {t('heroSub')}
             </p>
 
             {/* Interactive Quick Match Search Widget */}
-            <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800">
+            <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-4 sm:p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800">
               <div className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 flex items-center gap-1.5">
                 <BrainCircuit size={14} className="text-indigo-500" />
                 <span>{t('quickSearchTitle')}</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4">
                 <div>
                   <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('iAmA')}</label>
                   <select
                     value={quickGender}
                     onChange={(e) => setQuickGender(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
@@ -186,7 +186,7 @@ export default function LandingPageClient() {
                   <select
                     value={quickLookingFor}
                     onChange={(e) => setQuickLookingFor(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="Female">Female</option>
                     <option value="Male">Male</option>
@@ -197,7 +197,7 @@ export default function LandingPageClient() {
                   <select
                     value={quickIntent}
                     onChange={(e) => setQuickIntent(e.target.value as any)}
-                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="dating">Worldwide Dating</option>
                     <option value="matrimony">Matrimony</option>
@@ -208,7 +208,7 @@ export default function LandingPageClient() {
                   <select
                     value={quickCountry}
                     onChange={(e) => setQuickCountry(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                   >
                     <option value="Worldwide">Worldwide</option>
                     <option value="USA">USA</option>

@@ -93,40 +93,111 @@ export default function LandingPage() {
     }
   };
 
+  const jsonLdBreadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://lifepartnerai.in"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Free Matrimony & Matchmaking",
+        "item": "https://lifepartnerai.in/matrimony"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": "Worldwide Dating & Chat",
+        "item": "https://lifepartnerai.in/stranger-chat"
+      }
+    ]
+  };
+
+  const jsonLdOfferCatalog = {
+    "@context": "https://schema.org",
+    "@type": "OfferCatalog",
+    "name": "Free Matrimony & Matchmaking Services",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "100% Free Direct Chat Matrimony",
+          "description": "Send unlimited direct messages and chat with verified matrimony matches without paying forced subscription fees."
+        },
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Screenshot Protected Ephemeral Snaps",
+          "description": "Share photo snaps with screenshot protection and watermarks for complete female privacy and safety."
+        },
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "NRI & Worldwide Matchmaking",
+          "description": "Connect with verified single Indian girls, NRI guys, and international singles in USA, UK, Canada, Australia, and worldwide."
+        },
+        "price": "0",
+        "priceCurrency": "INR"
+      }
+    ]
+  };
+
   const jsonLdFaq = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "Is LifePartner AI 100% free for worldwide dating and matrimony chat?",
+        "name": "Is LifePartner AI 100% free for matrimony chat and matchmaking without payment?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! LifePartner AI offers 100% free registration, instant direct messaging, voice notes, video calls, Snaps, and Stories worldwide with zero hidden paywalls or subscription fees."
+          "text": "Yes! LifePartner AI is 100% free with zero paywalls. You can register, browse verified single profiles, send direct messages, share voice notes, and make HD video calls without forced subscriptions or credit card requirements."
         }
       },
       {
         "@type": "Question",
-        "name": "What are the Snap, Stories, and Music features on LifePartner AI?",
+        "name": "How is LifePartner AI better than traditional matrimony sites like Jeevansathi or Shaadi?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "LifePartner AI includes instant ephemeral Snaps with screenshot protection, 24-hour video/photo Stories to share daily moments, and Spotify/Apple Music playlist integration to match soulmates based on shared music taste."
+          "text": "Traditional matrimony platforms charge thousands of rupees just to unlock contact numbers and are flooded with unverified agent profiles. LifePartner AI provides 100% free messaging, human + AI identity verification, screenshot-proof Snaps, and Spotify music vibe matching."
         }
       },
       {
         "@type": "Question",
-        "name": "How does LifePartner AI connect life partners worldwide easily?",
+        "name": "How does LifePartner AI protect photo privacy and prevent screenshots?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "LifePartner AI combines AI semantic compatibility, daily Snaps & Stories vibe checks, zero-paywall direct chat, and verified local meetups to make finding a real life partner simple, transparent, and safe."
+          "text": "LifePartner AI implements instant ephemeral Snaps with built-in screenshot protection, photo blur controls, and watermarks to ensure complete privacy, especially for women."
         }
       },
       {
         "@type": "Question",
-        "name": "Can I switch languages on LifePartner AI?",
+        "name": "Can NRI singles in USA, UK, Canada, and Australia find Indian matrimony matches for free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, LifePartner AI supports multi-language switching for 11 global languages including English, Spanish, Hindi, Telugu, Tamil, French, German, Arabic, Chinese, Japanese, and Portuguese."
+          "text": "Yes! LifePartner AI supports NRI matchmaking across 190+ countries including USA, UK, Canada, Australia, UAE, Singapore, and Europe with multi-language support in English, Telugu, Hindi, Tamil, and 7 other languages."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does the AI Wingman and Cosmic Matching work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Our context-aware AI analyzes deep personal values, lifestyle habits, Vedic astrology compatibility, and shared music tastes to suggest highest quality soulmate matches."
         }
       }
     ]
@@ -141,6 +212,14 @@ export default function LandingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdBreadcrumb) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOfferCatalog) }}
       />
       <script
         type="application/ld+json"

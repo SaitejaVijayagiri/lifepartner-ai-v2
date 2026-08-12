@@ -339,72 +339,61 @@ export default function LandingPageClient() {
           </div>
 
           <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-indigo-100 dark:border-indigo-900/40 shadow-2xl relative">
-            <div className="grid md:grid-cols-12 gap-8 items-center">
+            <div className="flex flex-col justify-center">
 
-              {/* Founder Avatar & Badge */}
-              <div className="md:col-span-4 flex flex-col items-center text-center">
-                <div className="relative group mb-4">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
-                  <div className="relative w-36 h-36 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl bg-indigo-100 dark:bg-gray-800 flex items-center justify-center">
-                    <img
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Saiteja&eyebrows=default&style=circle&hair=shortCombover"
-                      alt="Saiteja Vijayagiri - Founder & CEO of LifePartner AI"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="absolute bottom-1 right-1 bg-green-500 text-white p-1.5 rounded-full border-2 border-white dark:border-gray-900 shadow-md" title="Verified Founder & Lead Architect">
-                    <ShieldCheck size={18} />
-                  </div>
+              {/* Founder Header Badge (No Avatar) */}
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-100 dark:border-gray-800">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    Saiteja
+                    <ShieldCheck size={20} className="text-green-500" title="Verified Founder & Lead Architect" />
+                  </h3>
+                  <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Founder & Lead Developer</p>
                 </div>
-
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Saiteja Vijayagiri</h3>
-                <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">Founder & Lead Developer</p>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-full text-green-700 dark:text-green-300 text-xs font-medium">
-                  <CheckCircle size={13} className="text-green-500" />
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 rounded-full text-green-700 dark:text-green-300 text-xs font-semibold">
+                  <CheckCircle size={14} className="text-green-500" />
                   Direct Founder Verification
                 </div>
               </div>
 
-              {/* Founder Message Content */}
-              <div className="md:col-span-8 flex flex-col justify-center">
-                <blockquote className="text-base md:text-lg text-gray-700 dark:text-gray-300 leading-relaxed italic mb-6 relative pl-4 border-l-4 border-indigo-600">
-                  "Hi, I'm Saiteja. I built LifePartner AI with a single mission: to revolutionize serious matrimony and matchmaking. Traditional matrimony platforms lock messaging behind expensive paywalls and are filled with unverified profiles. My promise to you is simple: <b>100% Free Matrimony, Zero Fake Profiles, Direct Human Verification, and AI-Powered Compatibility</b> so you can find your true life partner safely and transparently."
-                </blockquote>
+              {/* Founder Message Quote */}
+              <blockquote className="text-base md:text-xl text-gray-700 dark:text-gray-300 leading-relaxed italic mb-8 relative pl-5 border-l-4 border-indigo-600">
+                "Hi, I'm Saiteja. I built LifePartner AI with a single mission: to revolutionize serious matrimony and matchmaking. Traditional matrimony platforms lock messaging behind expensive paywalls and are filled with unverified profiles. My promise to you is simple: <b>100% Free Matrimony, Zero Fake Profiles, Direct Human Verification, and AI-Powered Compatibility</b> so you can find your true life partner safely and transparently."
+              </blockquote>
 
-                {/* Core Trust Pillars */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-                  <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/30 text-center">
-                    <div className="text-indigo-600 dark:text-indigo-400 font-extrabold text-sm">100% Free</div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Zero Paywalls</div>
-                  </div>
-                  <div className="p-3 bg-green-50/70 dark:bg-green-950/40 rounded-xl border border-green-100 dark:border-green-900/30 text-center">
-                    <div className="text-green-600 dark:text-green-400 font-extrabold text-sm">Verified Humans</div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Zero Fake Accounts</div>
-                  </div>
-                  <div className="p-3 bg-purple-50/70 dark:bg-purple-950/40 rounded-xl border border-purple-100 dark:border-purple-900/30 text-center">
-                    <div className="text-purple-600 dark:text-purple-400 font-extrabold text-sm">Protected Snaps</div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Screenshot-Proof</div>
-                  </div>
-                  <div className="p-3 bg-pink-50/70 dark:bg-pink-950/40 rounded-xl border border-pink-100 dark:border-pink-900/30 text-center">
-                    <div className="text-pink-600 dark:text-pink-400 font-extrabold text-sm">AI Match</div>
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">Smart Vibe Check</div>
-                  </div>
+              {/* Core Trust Pillars */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/40 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 text-center">
+                  <div className="text-indigo-600 dark:text-indigo-400 font-extrabold text-sm md:text-base">100% Free</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Zero Paywalls</div>
                 </div>
+                <div className="p-4 bg-green-50/70 dark:bg-green-950/40 rounded-2xl border border-green-100 dark:border-green-900/30 text-center">
+                  <div className="text-green-600 dark:text-green-400 font-extrabold text-sm md:text-base">Verified Humans</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Zero Fake Accounts</div>
+                </div>
+                <div className="p-4 bg-purple-50/70 dark:bg-purple-950/40 rounded-2xl border border-purple-100 dark:border-purple-900/30 text-center">
+                  <div className="text-purple-600 dark:text-purple-400 font-extrabold text-sm md:text-base">Protected Snaps</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Screenshot-Proof</div>
+                </div>
+                <div className="p-4 bg-pink-50/70 dark:bg-pink-950/40 rounded-2xl border border-pink-100 dark:border-pink-900/30 text-center">
+                  <div className="text-pink-600 dark:text-pink-400 font-extrabold text-sm md:text-base">AI Match</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Smart Vibe Check</div>
+                </div>
+              </div>
 
-                <div className="flex flex-wrap gap-4 items-center">
-                  <Link href="/about">
-                    <button className="px-7 py-3 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold hover:bg-black dark:hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl text-sm">
-                      Read Our Full Story
-                    </button>
-                  </Link>
-                  <button
-                    onClick={handleShareMatrimony}
-                    className="px-7 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl text-sm flex items-center gap-2 cursor-pointer"
-                  >
-                    <Share2 size={16} />
-                    Share Matrimony App
+              <div className="flex flex-wrap gap-4 items-center">
+                <Link href="/about">
+                  <button className="px-8 py-3.5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold hover:bg-black dark:hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl text-sm">
+                    Read Our Full Story
                   </button>
-                </div>
+                </Link>
+                <button
+                  onClick={handleShareMatrimony}
+                  className="px-8 py-3.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl text-sm flex items-center gap-2 cursor-pointer"
+                >
+                  <Share2 size={16} />
+                  Share Matrimony App
+                </button>
               </div>
 
             </div>

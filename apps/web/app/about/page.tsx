@@ -18,7 +18,7 @@ export default function AboutPage() {
     const jsonLdFounder = {
         "@context": "https://schema.org",
         "@type": "Person",
-        "name": "Saiteja Vijayagiri",
+        "name": "Saiteja",
         "jobTitle": "Founder & Lead Developer",
         "worksFor": {
             "@type": "Organization",
@@ -58,34 +58,20 @@ export default function AboutPage() {
 
                     {/* Founder Card Showcase */}
                     <div className="mb-16 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/80 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950/40 p-8 md:p-12 rounded-3xl border border-indigo-100 dark:border-indigo-900/40 shadow-xl">
-                        <div className="flex flex-col md:flex-row items-center gap-8 mb-8">
-                            <div className="relative group shrink-0">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
-                                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-2xl bg-indigo-100 dark:bg-gray-800 flex items-center justify-center">
-                                    <img
-                                        src="https://api.dicebear.com/7.x/avataaars/svg?seed=Saiteja&eyebrows=default&style=circle&hair=shortCombover"
-                                        alt="Saiteja Vijayagiri - Founder of LifePartner AI"
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-                                <div className="absolute bottom-1 right-1 bg-green-500 text-white p-1.5 rounded-full border-2 border-white dark:border-gray-900 shadow-md">
-                                    <ShieldCheck size={18} />
-                                </div>
-                            </div>
-                            <div className="text-center md:text-left">
-                                <span className="inline-block px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-2">
-                                    Message From The Founder
-                                </span>
-                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                                    Saiteja Vijayagiri
-                                </h2>
-                                <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3">
-                                    Founder & Lead Architect, LifePartner AI
-                                </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 max-w-xl leading-relaxed">
-                                    "I created LifePartner AI to empower verified singles worldwide to find meaningful relationships without financial barriers or privacy risks."
-                                </p>
-                            </div>
+                        <div className="mb-6 pb-6 border-b border-gray-200/60 dark:border-gray-800">
+                            <span className="inline-block px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold uppercase tracking-wider mb-2">
+                                Message From The Founder
+                            </span>
+                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+                                Saiteja
+                                <ShieldCheck size={22} className="text-green-500" title="Verified Founder & Lead Architect" />
+                            </h2>
+                            <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3">
+                                Founder & Lead Architect, LifePartner AI
+                            </p>
+                            <p className="text-base text-gray-600 dark:text-gray-300 leading-relaxed italic">
+                                "I created LifePartner AI to empower verified singles worldwide to find meaningful relationships without financial barriers or privacy risks."
+                            </p>
                         </div>
 
                         {/* Founder Story Paragraphs */}

@@ -55,48 +55,6 @@ export default function GlobalOverviewBanner() {
           </div>
         </div>
 
-        {/* 2. WOMEN-FIRST SAFETY & TRUST SHIELD (Special Priority) */}
-        <div className="bg-gradient-to-br from-pink-900 via-purple-900 to-slate-950 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl mb-16 relative overflow-hidden border border-pink-500/20">
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="relative z-10 max-w-4xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-pink-500/20 border border-pink-400/30 text-pink-300 text-xs font-bold uppercase tracking-wider mb-4">
-              <ShieldCheck size={14} className="text-pink-400" /> Women-First Safety & Privacy Pledge
-            </div>
-            <h3 className="text-3xl md:text-5xl font-heading font-black tracking-tight mb-4">
-              Built for Women's Peace of Mind. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-rose-300 to-purple-300">
-                100% Control, Privacy & Verified Respect.
-              </span>
-            </h3>
-            <p className="text-slate-300 text-base md:text-lg leading-relaxed mb-8 font-light">
-              We prioritize women's safety first. With zero creep tolerance, screenshot-protected photo snaps, photo blur options, and AI facial verification, women feel confident and empowered to find genuine love.
-            </p>
-
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-slate-900/80 border border-pink-500/20 p-4 rounded-2xl">
-                <Lock className="text-pink-400 mb-2" size={22} />
-                <h5 className="font-bold text-sm text-white mb-1">Message Control</h5>
-                <p className="text-xs text-slate-400">Women decide who can connect or start a chat.</p>
-              </div>
-              <div className="bg-slate-900/80 border border-pink-500/20 p-4 rounded-2xl">
-                <UserCheck className="text-purple-400 mb-2" size={22} />
-                <h5 className="font-bold text-sm text-white mb-1">100% ID Verified</h5>
-                <p className="text-xs text-slate-400">Strict AI identity checks eliminate fake profiles & bots.</p>
-              </div>
-              <div className="bg-slate-900/80 border border-pink-500/20 p-4 rounded-2xl">
-                <Camera className="text-amber-400 mb-2" size={22} />
-                <h5 className="font-bold text-sm text-white mb-1">Screenshot-Proof</h5>
-                <p className="text-xs text-slate-400">Watermarked View-Once snaps prevent saving.</p>
-              </div>
-              <div className="bg-slate-900/80 border border-pink-500/20 p-4 rounded-2xl">
-                <ShieldAlert className="text-green-400 mb-2" size={22} />
-                <h5 className="font-bold text-sm text-white mb-1">One-Tap Safety</h5>
-                <p className="text-xs text-slate-400">Instant safety overlay & date protection tools.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* 3. Visual 3-Fact Infographic Cards */}
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-400 mb-3">

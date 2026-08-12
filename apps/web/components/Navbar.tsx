@@ -134,9 +134,11 @@ export default function Navbar() {
                     )}
                 </div>
 
-                {/* Mobile Controls: Language + Theme Toggle + Hamburger */}
-                <div className="md:hidden flex items-center gap-2">
-                    <LanguageSelector />
+                {/* Mobile Controls: Theme Toggle + Hamburger */}
+                <div className="md:hidden flex items-center gap-1.5">
+                    <div className="hidden sm:block">
+                        <LanguageSelector />
+                    </div>
                     <button
                         onClick={() => setTheme(isDark ? 'light' : 'dark')}
                         className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -145,7 +147,7 @@ export default function Navbar() {
                         {isDark ? <Sun size={18} /> : <Moon size={18} />}
                     </button>
                     <button
-                        className="p-2 text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors"
+                        className="p-2.5 text-gray-700 dark:text-gray-200 hover:text-indigo-600 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         aria-label="Toggle menu"
                     >
@@ -154,53 +156,120 @@ export default function Navbar() {
                 </div>
             </div>
 
-            {/* Mobile Menu */}
+            {/* Mobile Menu Drawer (Scrollable & Complete Links) */}
             {isMobileMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 w-full bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-xl animate-in slide-in-from-top-5 duration-200">
-                    <div className="px-6 py-6 flex flex-col gap-5">
+                <div className="md:hidden absolute top-20 left-0 w-full max-h-[calc(100vh-5rem)] overflow-y-auto bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-2xl animate-in slide-in-from-top-5 duration-200 z-50">
+                    <div className="px-5 py-6 flex flex-col gap-4">
+                        {/* Language Selector in Drawer */}
                         <LanguageSelector isMobile={true} />
-                        <hr className="border-gray-100 dark:border-gray-800" />
+                        <hr className="border-gray-100 dark:border-gray-800 my-1" />
+
+                        <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">
+                            Navigation & Features
+                        </div>
+
                         <Link
                             href="#app-features"
-                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             {t('navFeatures')}
                         </Link>
                         <Link
                             href="#stories-snaps-music"
-                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            {t('navStories')} <span className="bg-pink-100 text-pink-600 text-[9px] px-2 py-0.5 rounded font-bold uppercase">Snaps & Music</span>
+                            <span>{t('navStories')}</span>
+                            <span className="bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-pink-200 dark:border-pink-800">Snaps & Music</span>
                         </Link>
                         <Link
                             href="#how-life-partner-connects"
-                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             {t('navWorkflow')}
                         </Link>
                         <Link
-                            href="/blog"
-                            className="text-base font-medium text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center gap-2"
+                            href="#meet-spots"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase">Top Articles</span>
+                            <span>Offline Meetups</span>
+                            <span className="bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-indigo-200 dark:border-indigo-800">📍 Real Life</span>
                         </Link>
-                        <hr className="border-gray-100 dark:border-gray-800" />
                         <Link
-                            href="/login"
-                            className="text-base font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600"
+                            href="/stranger-chat"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
-                            {t('navLogin')}
+                            <span>Stranger Chat</span>
+                            <span className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-green-200 dark:border-green-800">🔥 Free Video</span>
                         </Link>
-                        <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
-                            <button className="w-full py-3.5 font-bold text-white rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg active:scale-95 transition-all">
-                                {t('navGetStarted')}
-                            </button>
+
+                        <hr className="border-gray-100 dark:border-gray-800 my-1" />
+
+                        <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">
+                            Company & Community
+                        </div>
+
+                        <Link
+                            href="/about"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            <span>About & Founder Story</span>
+                            <span className="bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-purple-200 dark:border-purple-800">✨ Founder</span>
                         </Link>
+                        <Link
+                            href="/blog"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            <span>{t('navBlog')}</span>
+                            <span className="bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-rose-200 dark:border-rose-800">📚 Articles</span>
+                        </Link>
+                        <Link
+                            href="/community"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 px-1 py-1"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            {t('navCommunity')}
+                        </Link>
+                        <Link
+                            href="/contact"
+                            className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 px-1 py-1"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            Contact & Support
+                        </Link>
+
+                        <hr className="border-gray-100 dark:border-gray-800 my-1" />
+
+                        {/* Account Actions */}
+                        {user ? (
+                            <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                                <button className="w-full py-3.5 font-bold text-white rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg active:scale-95 transition-all text-center">
+                                    Go to Dashboard
+                                </button>
+                            </Link>
+                        ) : (
+                            <div className="flex flex-col gap-3 pt-1 pb-4">
+                                <Link
+                                    href="/login"
+                                    className="w-full py-3 text-center text-base font-bold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-900 rounded-xl hover:bg-gray-200 transition-colors"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    {t('navLogin')}
+                                </Link>
+                                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                                    <button className="w-full py-3.5 font-bold text-white rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                                        <span>{t('navGetStarted')}</span>
+                                        <ArrowRight size={16} />
+                                    </button>
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

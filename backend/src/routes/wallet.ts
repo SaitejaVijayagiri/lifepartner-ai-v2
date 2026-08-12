@@ -157,6 +157,21 @@ const STREAK_REWARDS: Record<number, number> = {
 };
 
 /**
+ * Helper: Calculate exact calendar day difference between two date strings (YYYY-MM-DD)
+ */
+function getCalendarDayDiff(lastClaimedStr: string | null, todayStr: string): number {
+    if (!lastClaimedStr) return 999;
+    try {
+        const d1 = new Date(lastClaimedStr.slice(0, 10) + 'T00:00:00.000Z').getTime();
+        const d2 = new Date(todayStr.slice(0, 10) + 'T00:00:00.000Z').getTime();
+        const msPerDay = 1000 * 60 * 60 * 24;
+        return Math.round((d2 - d1) / msPerDay);
+    } catch (e) {
+        return 999;
+    }
+}
+
+/**
  * GET /api/wallet/streak
  * Returns user's login streak status & eligibility for today
  */
@@ -179,14 +194,12 @@ router.get('/streak', authenticateToken, async (req: any, res) => {
         let currentStreak = streakData.streak_count || 0;
 
         if (lastClaimed) {
-            const lastDate = new Date(lastClaimed);
-            const currentDate = new Date(todayStr);
-            const diffDays = Math.floor((currentDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+            const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
 
             if (diffDays === 0) {
                 canClaimToday = false; // Already claimed today
             } else if (diffDays > 1) {
-                // Streak broken — reset to Day 0
+                // Streak broken — reset streak count to 0 so nextDay becomes 1
                 currentStreak = 0;
             }
         }
@@ -227,10 +240,7 @@ router.post('/streak/claim', authenticateToken, async (req: any, res) => {
         const lastClaimed = streakData.last_claimed_date;
 
         if (lastClaimed) {
-            const lastDate = new Date(lastClaimed);
-            const currentDate = new Date(todayStr);
-            const diffDays = Math.floor((currentDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
-
+            const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
             if (diffDays === 0) {
                 return res.status(400).json({ error: 'You have already claimed today\'s streak reward!' });
             }
@@ -238,11 +248,9 @@ router.post('/streak/claim', authenticateToken, async (req: any, res) => {
 
         let newStreak = (streakData.streak_count || 0) + 1;
         if (lastClaimed) {
-            const lastDate = new Date(lastClaimed);
-            const currentDate = new Date(todayStr);
-            const diffDays = Math.floor((currentDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+            const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
             if (diffDays > 1) {
-                newStreak = 1; // Missed a day
+                newStreak = 1; // Missed a day — reset streak to Day 1
             }
         }
 

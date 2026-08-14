@@ -68,12 +68,32 @@ function parseStoryReplyText(text: string) {
 
     if (parts.length < 2) return null;
 
-    const storyUrl = parts[0] || '';
-    const storyType = parts[1] === 'video' ? 'video' : 'image';
-    const textsMetadata = parts[2] || '';
-    const cId = parts[3] || '';
-    const cNameEncoded = parts[4] || '';
-    const cPhotoEncoded = parts[5] || '';
+    let storyUrl = '';
+    let storyType = 'image';
+    let textsMetadata = '';
+    let cId = '';
+    let cNameEncoded = '';
+    let cPhotoEncoded = '';
+
+    if (parts[0] === 'http' || parts[0] === 'https') {
+        storyUrl = `${parts[0]}:${parts[1]}`;
+        storyType = parts[2] === 'video' ? 'video' : 'image';
+        textsMetadata = parts[3] || '';
+        cId = parts[4] || '';
+        cNameEncoded = parts[5] || '';
+        cPhotoEncoded = parts[6] || '';
+    } else {
+        try {
+            storyUrl = decodeURIComponent(parts[0] || '');
+        } catch (e) {
+            storyUrl = parts[0] || '';
+        }
+        storyType = parts[1] === 'video' ? 'video' : 'image';
+        textsMetadata = parts[2] || '';
+        cId = parts[3] || '';
+        cNameEncoded = parts[4] || '';
+        cPhotoEncoded = parts[5] || '';
+    }
 
     return {
         storyUrl,

@@ -57,6 +57,35 @@ const FILTER_PRESETS = [
     { name: 'Noir Dark 🩸', value: 'contrast(1.6) grayscale(1) brightness(0.9)' }
 ];
 
+function parseStoryReplyText(text: string) {
+    if (!text || typeof text !== 'string' || !text.startsWith('[STORY_REPLY:')) return null;
+    const endIdx = text.indexOf(']');
+    if (endIdx === -1) return null;
+
+    const inner = text.substring(13, endIdx);
+    const replyText = text.substring(endIdx + 1);
+    const parts = inner.split(':');
+
+    if (parts.length < 2) return null;
+
+    const storyUrl = parts[0] || '';
+    const storyType = parts[1] === 'video' ? 'video' : 'image';
+    const textsMetadata = parts[2] || '';
+    const cId = parts[3] || '';
+    const cNameEncoded = parts[4] || '';
+    const cPhotoEncoded = parts[5] || '';
+
+    return {
+        storyUrl,
+        storyType,
+        textsMetadata,
+        cId,
+        cNameEncoded,
+        cPhotoEncoded,
+        replyText
+    };
+}
+
 const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, socket, partnerId }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string; socket?: any; partnerId?: string }) => {
     const toast = useToast();
     const [showVideo, setShowVideo] = useState(false);
@@ -1597,8 +1626,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 ? '🎭 Sticker' 
                                                 : replyMsg.text?.startsWith('[STORY_REPLY:') 
                                                 ? (() => {
-                                                    const match = replyMsg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
-                                                    return match ? `📸 Story Reply: ${match[7]}` : '📸 Story Reply';
+                                                    const parsed = parseStoryReplyText(replyMsg.text);
+                                                    return parsed ? `📸 Story Reply: ${parsed.replyText}` : '📸 Story Reply';
                                                   })()
                                                 : replyMsg.text;
                                             return (
@@ -1730,9 +1759,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 />
                                             );
                                         })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {
-                                            const match = msg.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
-                                            if (match) {
-                                                const [, storyUrl, storyType, textsMetadata, cId, cNameEncoded, cPhotoEncoded, replyText] = match;
+                                            const parsed = parseStoryReplyText(msg.text);
+                                            if (parsed) {
+                                                const { storyUrl, storyType, textsMetadata, cId, cNameEncoded, cPhotoEncoded, replyText } = parsed;
                                                 const isVideo = storyType === 'video';
                                                 
                                                 // Extract story_texts (bracket parameter or url query parameter fallback)
@@ -1752,13 +1781,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 }
 
                                                 // Determine creator:
-                                                // 1. If we have the encoded creator metadata, use it directly!
-                                                // 2. Otherwise fall back to the dynamic evaluation.
                                                 let creator: { id: string; name: string; photoUrl: string };
-                                                if (cId && cNameEncoded && cPhotoEncoded) {
-                                                    const nameDecoded = decodeURIComponent(cNameEncoded);
-                                                    const photoDecoded = decodeURIComponent(cPhotoEncoded);
-                                                    // Map 'You' to their actual full name if they are the current user
+                                                if (cId && (cNameEncoded || cPhotoEncoded)) {
+                                                    const nameDecoded = cNameEncoded ? decodeURIComponent(cNameEncoded) : 'User';
+                                                    const photoDecoded = cPhotoEncoded ? decodeURIComponent(cPhotoEncoded) : '';
                                                     const myId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
                                                     const isMeCreator = cId === 'me' || (!!myId && cId === myId);
                                                     creator = {
@@ -1790,6 +1816,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                                 return (
                                                     <div className="flex flex-col gap-2 w-[180px] sm:w-[200px] mt-1 select-none">
+                                                        {/* Explicit Story Reply Header Bar */}
+                                                        <div className="flex items-center gap-1.5 text-xs font-extrabold pb-1 border-b border-white/20">
+                                                            <span className="text-amber-400">📸</span>
+                                                            <span>{isMe ? `Replied to ${creator.name}'s story` : `Replied to your story`}</span>
+                                                        </div>
+
                                                         {/* Instagram-style Tall Story Mini Card */}
                                                         <div 
                                                             className="relative aspect-[9/16] w-full rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-neutral-900 cursor-pointer shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all group"
@@ -2117,8 +2149,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 ? '🎭 Sticker' 
                                 : replyTo.text?.startsWith('[STORY_REPLY:') 
                                 ? (() => {
-                                    const match = replyTo.text.match(/^\[STORY_REPLY:([\s\S]+?):(video|image)(?::([\s\S]*?))?(?::([a-zA-Z0-9_-]+):([\s\S]*?):([\s\S]*?))?\]([\s\S]*)$/);
-                                    return match ? `📸 Story Reply: ${match[7]}` : '📸 Story Reply';
+                                    const parsed = parseStoryReplyText(replyTo.text);
+                                    return parsed ? `📸 Story Reply: ${parsed.replyText}` : '📸 Story Reply';
                                   })()
                                 : replyTo.text}
                         </p>

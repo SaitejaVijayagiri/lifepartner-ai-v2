@@ -16,6 +16,7 @@ interface StoriesFeedProps {
 
 export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }: StoriesFeedProps) {
     const [storyFeed, setStoryFeed] = useState<any[]>([]);
+    const [viewedStoryIds, setViewedStoryIds] = useState<Set<string>>(new Set());
     const [storyFiles, setStoryFiles] = useState<File[] | null>(null);
     const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
     const toast = useToast();
@@ -32,6 +33,10 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
     useEffect(() => {
         fetchStories();
     }, []);
+
+    const markStoryViewed = (storyId: string) => {
+        setViewedStoryIds(prev => new Set(prev).add(storyId));
+    };
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -107,17 +112,22 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                         const activeStories = feedUser.stories?.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date()) || [];
                         if (activeStories.length === 0) return null;
 
-                        const isAllViewed = currentUserId && activeStories.every((s: any) => s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId));
+                        const isAllViewed = currentUserId && activeStories.every((s: any) => 
+                            viewedStoryIds.has(s.id) || s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId)
+                        );
 
                         return (
                             <div
                                 key={feedUser.id}
                                 className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
                                 style={{ animationDelay: `${idx * 40}ms` }}
-                                onClick={() => onOpenStory({ user: feedUser, stories: activeStories })}
+                                onClick={() => {
+                                    activeStories.forEach((s: any) => markStoryViewed(s.id));
+                                    onOpenStory({ user: feedUser, stories: activeStories });
+                                }}
                             >
                                 <div className="relative">
-                                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2.5px] transition-transform group-hover:scale-105 ${
+                                    <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2.5px] transition-all duration-300 ease-in-out group-hover:scale-105 ${
                                         isAllViewed
                                             ? 'bg-slate-300 dark:bg-slate-700 shadow-sm'
                                             : 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-md shadow-orange-500/30'

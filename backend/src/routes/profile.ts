@@ -1162,7 +1162,10 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
 
         if (likerId === targetUserId) return res.json({ success: true, ignored: true });
 
-        const liker = await prisma.users.findUnique({ where: { id: likerId } });
+        const liker = await prisma.users.findUnique({
+            where: { id: likerId },
+            include: { profiles: true }
+        });
         if (!liker) return res.status(404).json({ error: 'Liker not found' });
 
         const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
@@ -1178,6 +1181,52 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
         if (liked) {
             if (!likes.some((l: any) => l.userId === likerId)) {
                 likes.push({ userId: likerId, name: liker.full_name, likedAt: new Date().toISOString() });
+            }
+
+            // Trigger real-time notification to the story owner
+            try {
+                const likerName = liker.full_name || "Someone";
+                const msg = `${likerName} liked your story! ❤️`;
+
+                const dbNotif = await prisma.notifications.create({
+                    data: {
+                        user_id: targetUserId,
+                        type: 'story_like',
+                        message: msg,
+                        data: { fromUserId: likerId, storyId }
+                    }
+                });
+
+                let rawPhotoUrl = liker.avatar_url || (liker.profiles as any)?.photos?.[0] || null;
+                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                    rawPhotoUrl = null;
+                }
+                const fromUserPhoto = rawPhotoUrl
+                    ? sanitizePhotoUrl(rawPhotoUrl, likerName)
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(likerName)}&background=random&color=fff&size=256`;
+
+                const { getIO } = require('../socket');
+                const io = getIO();
+                io.to(targetUserId).emit('notification:new', {
+                    id: dbNotif.id,
+                    type: 'story_like',
+                    message: msg,
+                    fromUserName: likerName,
+                    fromUserPhoto: fromUserPhoto,
+                    fromUserId: likerId,
+                    storyId,
+                    timestamp: new Date()
+                });
+
+                const { NotificationService } = require('../services/notification');
+                NotificationService.getInstance().sendToUser(
+                    targetUserId,
+                    "New Story Like! ❤️",
+                    msg,
+                    { type: 'story_like', fromUserId: likerId, storyId }
+                ).catch((e: any) => console.warn("Push failed for story like alert", e));
+            } catch (notifErr) {
+                console.error("Failed to notify story owner of like:", notifErr);
             }
         } else {
             likes = likes.filter((l: any) => l.userId !== likerId);

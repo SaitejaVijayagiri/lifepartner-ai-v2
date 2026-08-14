@@ -346,7 +346,7 @@ export default function LandingPageClient() {
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     Saiteja
-                    <ShieldCheck size={20} className="text-green-500" title="Verified Founder & Lead Architect" />
+                    <span title="Verified Founder & Lead Architect"><ShieldCheck size={20} className="text-green-500" /></span>
                   </h3>
                   <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Founder & Lead Developer</p>
                 </div>

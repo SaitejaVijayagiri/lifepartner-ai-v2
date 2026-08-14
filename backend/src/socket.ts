@@ -409,6 +409,18 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
+        socket.on("storyLike", ({ to, storyId }) => {
+            if (to && userId) {
+                io.to(to).emit("storyLike", { from: userId, storyId });
+            }
+        });
+
+        socket.on("storyView", ({ to, storyId }) => {
+            if (to && userId) {
+                io.to(to).emit("storyView", { from: userId, storyId });
+            }
+        });
+
         /**
          * SPEED DATING LOGIC
          */

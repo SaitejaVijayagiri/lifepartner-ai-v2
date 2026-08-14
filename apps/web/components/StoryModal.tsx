@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
 import { MUSIC_CATALOG } from './StoryMusicStudio';
+import { useToast } from '@/components/ui/Toast';
 
 interface Story {
     id: string;
@@ -28,16 +29,18 @@ interface User {
 
 interface StoryModalProps {
     stories: Story[];
-    initialIndex: number;
+    initialIndex?: number;
     user: User;
     currentUser: any;
     onClose: () => void;
-    onDelete: (storyId: string) => void;
+    onDelete?: (storyId: string) => void;
     onViewProfile?: (userId: string, userName?: string, userPhotoUrl?: string) => void;
+    onStoryViewed?: (storyId: string, targetUserId: string) => void;
 }
 
-const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser, onDelete, onViewProfile }: StoryModalProps) => {
+const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser, onDelete, onViewProfile, onStoryViewed }: StoryModalProps) => {
     const router = useRouter();
+    const toast = useToast();
     const { socket, onlineUsers } = useSocket() as any;
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [progress, setProgress] = useState(0);
@@ -194,11 +197,47 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         return () => clearInterval(timer);
     }, [currentIndex, isPaused, story?.type]);
 
+    // Asset Preloader for Next Story Item (reduces transition lag)
+    useEffect(() => {
+        if (stories && stories.length > currentIndex + 1) {
+            const nextStory = stories[currentIndex + 1];
+            if (nextStory?.url) {
+                if (nextStory.type === 'video') {
+                    const video = document.createElement('video');
+                    video.src = nextStory.url;
+                    video.preload = 'auto';
+                } else {
+                    const img = new Image();
+                    img.src = nextStory.url;
+                }
+            }
+        }
+    }, [currentIndex, stories]);
+
     // Track View when Story Changes
     useEffect(() => {
         if (!story || !story.id) return;
         setIsViewsOpen(false); // Close views panel if story changes
         if (currentUser && !isOwner) {
+            // Optimistically update views array locally for instant UI response
+            if (currentUserId) {
+                if (!story.views) story.views = [];
+                if (!story.views.some((v: any) => (v.userId || v.user_id) === currentUserId)) {
+                    story.views.push({
+                        userId: currentUserId,
+                        name: currentUser.full_name || currentUser.name || 'You',
+                        photoUrl: currentUser.photoUrl || currentUser.avatar_url || '',
+                        viewedAt: new Date().toISOString()
+                    });
+                }
+            }
+            if (onStoryViewed) {
+                onStoryViewed(story.id, user.id);
+            }
+            // Emit real-time socket view event
+            if (socket) {
+                socket.emit('storyView', { to: user.id, storyId: story.id });
+            }
             api.profile.trackStoryView(user.id, story.id).catch(console.error);
         }
     }, [story?.id, user.id, currentUserId]);
@@ -340,7 +379,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             <button
                                 onClick={() => {
                                     if (window.confirm('Are you sure you want to delete this story?')) {
-                                        onDelete(story.id);
+                                        onDelete?.(story.id);
                                     }
                                 }}
                                 className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors"
@@ -654,16 +693,12 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
             await api.interactions.sendDirectMessage(user.id, storyContext);
 
             setReplyText('');
-            // Show brief success feedback
+            toast.success('Reply sent! 🚀');
             setTimeout(() => setIsSending(false), 500);
         } catch (error: any) {
             console.error('Failed to send reply:', error);
             setIsSending(false);
-            if (error.message) {
-                alert(error.message); // Show the "Limit Reached" message
-            } else {
-                alert('Failed to send reply. Please try again.');
-            }
+            toast.error(error.message || 'Failed to send reply. Please try again.');
         }
     }
 

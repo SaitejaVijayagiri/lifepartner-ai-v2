@@ -722,46 +722,33 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
             const isOnline = isUserOnline(toUserId);
 
-            if (!isAlreadyConnected) {
-                // Persist
-                await prisma.notifications.create({
-                    data: {
-                        user_id: toUserId,
-                        type: isStoryReply ? 'story_reply' : 'direct_message',
-                        message: msg,
-                        data: { fromUserId: userId }
-                    }
-                });
-
-                // Realtime Notification
-                getIO().to(toUserId).emit('notification:new', {
+            // Always create persistent DB notification and emit real-time alert
+            await prisma.notifications.create({
+                data: {
+                    user_id: toUserId,
                     type: isStoryReply ? 'story_reply' : 'direct_message',
                     message: msg,
-                    timestamp: new Date()
-                });
-
-                // Realtime Push via Service Worker / FCM
-                const pushData = { type: 'chat', from: userId, screen: 'connections' };
-                const { NotificationService } = await import('../services/notification');
-                NotificationService.getInstance().sendToUser(
-                    toUserId, 
-                    isStoryReply ? "New Story Reply! 📸" : "New Direct Message! 💌", 
-                    msg,
-                    pushData
-                ).catch(e => console.warn("Push failed in direct msg", e));
-            } else {
-                // Already connected. Only send push notification if offline.
-                if (!isOnline) {
-                    const pushData = { type: 'chat', from: userId, screen: 'connections' };
-                    const { NotificationService } = await import('../services/notification');
-                    NotificationService.getInstance().sendToUser(
-                        toUserId, 
-                        isStoryReply ? "New Story Reply! 📸" : "New Direct Message! 💌", 
-                        msg,
-                        pushData
-                    ).catch(e => console.warn("Push failed in direct msg for connected user", e));
+                    data: { fromUserId: userId }
                 }
-            }
+            });
+
+            // Realtime Socket Notification
+            getIO().to(toUserId).emit('notification:new', {
+                type: isStoryReply ? 'story_reply' : 'direct_message',
+                message: msg,
+                fromUserId: userId,
+                timestamp: new Date()
+            });
+
+            // Push Notification
+            const pushData = { type: 'chat', from: userId, screen: 'connections' };
+            const { NotificationService } = await import('../services/notification');
+            NotificationService.getInstance().sendToUser(
+                toUserId, 
+                isStoryReply ? "New Story Reply! 📸" : "New Direct Message! 💌", 
+                msg,
+                pushData
+            ).catch(e => console.warn("Push failed in direct message", e));
 
             // Realtime Message Broadcast
             const senderPhoto = sanitizePhotoUrl(user.avatar_url, myName);

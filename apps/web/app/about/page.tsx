@@ -64,7 +64,7 @@ export default function AboutPage() {
                             </span>
                             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
                                 Saiteja
-                                <ShieldCheck size={22} className="text-green-500" title="Verified Founder & Lead Architect" />
+                                <span title="Verified Founder & Lead Architect"><ShieldCheck size={22} className="text-green-500" /></span>
                             </h2>
                             <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-3">
                                 Founder & Lead Architect, LifePartner AI

@@ -701,6 +701,22 @@ export default function MatchesTab({
                         api.profile.getMe().then(setCurrentUser);
                         api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
                     }}
+                    onStoryViewed={(storyId) => {
+                        setActiveStorySet((prev: any) => {
+                            if (!prev) return null;
+                            const uid = currentUser?.id || currentUser?.userId;
+                            const updatedStories = prev.stories.map((s: any) => {
+                                if (s.id === storyId) {
+                                    const views = s.views || [];
+                                    if (uid && !views.some((v: any) => (v.userId || v.user_id) === uid)) {
+                                        return { ...s, views: [...views, { userId: uid, name: currentUser?.full_name || currentUser?.name || 'You', photoUrl: currentUser?.photoUrl || '', viewedAt: new Date().toISOString() }] };
+                                    }
+                                }
+                                return s;
+                            });
+                            return { ...prev, stories: updatedStories };
+                        });
+                    }}
                     onViewProfile={async (userId: string, userName?: string, userPhotoUrl?: string) => {
                         setActiveStorySet(null);
                         const existingMatch = matches.find((m: any) => m.id === userId);

@@ -1573,6 +1573,22 @@ function DashboardContent() {
                     currentUser={currentUser}
                     onClose={() => setActiveStorySet(null)}
                     onDelete={() => {}}
+                    onStoryViewed={(storyId) => {
+                        setActiveStorySet(prev => {
+                            if (!prev) return null;
+                            const uid = currentUser?.id || currentUser?.userId;
+                            const updatedStories = prev.stories.map((s: any) => {
+                                if (s.id === storyId) {
+                                    const views = s.views || [];
+                                    if (uid && !views.some((v: any) => (v.userId || v.user_id) === uid)) {
+                                        return { ...s, views: [...views, { userId: uid, name: currentUser?.full_name || currentUser?.name || 'You', photoUrl: currentUser?.photoUrl || '', viewedAt: new Date().toISOString() }] };
+                                    }
+                                }
+                                return s;
+                            });
+                            return { ...prev, stories: updatedStories };
+                        });
+                    }}
                 />
             )}
 

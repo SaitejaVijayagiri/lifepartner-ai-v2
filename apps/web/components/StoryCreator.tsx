@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock } from 'lucide-react';
+import { Trash2, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock, Eye, EyeOff } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { api } from '@/lib/api';
@@ -166,6 +166,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
     const [isSelectingSticker, setIsSelectingSticker] = useState(false);
     const [isDraggingSticker, setIsDraggingSticker] = useState(false);
+    const [showMusicSticker, setShowMusicSticker] = useState(true);
     
     // Drag State for Trash Zone
     const [isDraggingText, setIsDraggingText] = useState(false);
@@ -223,8 +224,8 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
         setIsUploadingStory(true);
 
         const musicPayload = customMusicData
-            ? JSON.stringify(customMusicData)
-            : (selectedMusic !== 'none' ? selectedMusic : '');
+            ? JSON.stringify({ ...customMusicData, hideSticker: !showMusicSticker })
+            : (selectedMusic !== 'none' ? JSON.stringify({ id: selectedMusic, title: selectedMusic, hideSticker: !showMusicSticker }) : '');
 
         try {
             let finalData: FormData | string;
@@ -499,10 +500,22 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                     
-                    <div className="flex gap-4">
+                    <div className="flex items-center gap-3">
+                        {(customMusicData || selectedMusic !== 'none') && (
+                            <button
+                                onClick={() => setShowMusicSticker(prev => !prev)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md ${
+                                    showMusicSticker ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 border border-indigo-400/30' : 'bg-black/60 text-white/70 border border-white/20'
+                                }`}
+                                title="Toggle Song Title Badge Visibility"
+                            >
+                                {showMusicSticker ? <Eye size={14} /> : <EyeOff size={14} />}
+                                <span>{showMusicSticker ? 'Song Badge On' : 'Song Badge Off'}</span>
+                            </button>
+                        )}
                         <button 
                             onClick={() => setIsSelectingMusic(!isSelectingMusic)}
-                            className={`text-white p-2 rounded-full transition-all ${selectedMusic !== 'none' || isSelectingMusic ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
+                            className={`text-white p-2 rounded-full transition-all ${selectedMusic !== 'none' || customMusicData || isSelectingMusic ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
                             title="Add Background Music"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
@@ -702,6 +715,12 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             </div>
                         </div>
                     )}
+                    {/* Music Badge Preview on Stage */}
+                    {customMusicData && showMusicSticker && (
+                        <div className="absolute top-20 left-4 z-30 pointer-events-none">
+                            <StoryMusicSticker music={customMusicData} isPlaying={true} />
+                        </div>
+                    )}
 
                     {/* Draggable Texts Layer */}
                             {!isAddingText && texts.map((t, i) => (
@@ -819,32 +838,38 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                                         key={corner}
                                                         className={`resize-handle absolute w-6 h-6 rounded-full bg-[#e1306c] border-2 border-white shadow-xl z-50 hover:scale-150 active:scale-125 transition-all flex items-center justify-center ${posClass}`}
                                                         onPointerDown={(pe) => {
-                                                            pe.stopPropagation();
-                                                            pe.preventDefault();
-                                                            const startX = pe.clientX;
-                                                            const startY = pe.clientY;
-                                                            const startScale = s.scale || 1;
+                                                             pe.stopPropagation();
+                                                             pe.preventDefault();
+                                                             const handleEl = pe.currentTarget as HTMLElement;
+                                                             const stickerContainer = handleEl.parentElement;
+                                                             if (!stickerContainer) return;
 
-                                                            const onPointerMove = (moveEv: PointerEvent) => {
-                                                                const dx = moveEv.clientX - startX;
-                                                                const dy = moveEv.clientY - startY;
-                                                                const distance = Math.sqrt(dx * dx + dy * dy) * (corner.includes('top') ? -0.015 : 0.015);
-                                                                const updatedScale = Math.max(0.3, Math.min(4.5, startScale + distance));
-                                                                setStickers(prev => {
-                                                                    const updated = [...prev];
-                                                                    if (updated[i]) updated[i] = { ...updated[i], scale: parseFloat(updatedScale.toFixed(2)) };
-                                                                    return updated;
-                                                                });
-                                                            };
+                                                             const rect = stickerContainer.getBoundingClientRect();
+                                                             const centerX = rect.left + rect.width / 2;
+                                                             const centerY = rect.top + rect.height / 2;
+                                                             
+                                                             const initialDist = Math.hypot(pe.clientX - centerX, pe.clientY - centerY) || 1;
+                                                             const startScale = s.scale || 1;
 
-                                                            const onPointerUp = () => {
-                                                                window.removeEventListener('pointermove', onPointerMove);
-                                                                window.removeEventListener('pointerup', onPointerUp);
-                                                            };
+                                                             const onPointerMove = (moveEv: PointerEvent) => {
+                                                                 const currentDist = Math.hypot(moveEv.clientX - centerX, moveEv.clientY - centerY);
+                                                                 const scaleFactor = currentDist / initialDist;
+                                                                 const updatedScale = Math.max(0.3, Math.min(5.0, startScale * scaleFactor));
+                                                                 setStickers(prev => {
+                                                                     const updated = [...prev];
+                                                                     if (updated[i]) updated[i] = { ...updated[i], scale: parseFloat(updatedScale.toFixed(2)) };
+                                                                     return updated;
+                                                                 });
+                                                             };
 
-                                                            window.addEventListener('pointermove', onPointerMove);
-                                                            window.addEventListener('pointerup', onPointerUp);
-                                                        }}
+                                                             const onPointerUp = () => {
+                                                                 window.removeEventListener('pointermove', onPointerMove);
+                                                                 window.removeEventListener('pointerup', onPointerUp);
+                                                             };
+
+                                                             window.addEventListener('pointermove', onPointerMove);
+                                                             window.addEventListener('pointerup', onPointerUp);
+                                                         }}
                                                     >
                                                         <div className="w-1.5 h-1.5 rounded-full bg-white" />
                                                     </div>
@@ -856,59 +881,21 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     {/* Quick Controls Bar Above Active Sticker */}
                                     {isActive && (
                                         <div 
-                                            className="absolute -top-14 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-xl border border-white/20 text-white px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2.5 z-50 animate-in fade-in slide-in-from-bottom-2"
+                                            className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-xl border border-white/20 text-white px-2.5 py-1 rounded-full shadow-2xl flex items-center gap-2 z-50 animate-in fade-in slide-in-from-bottom-2"
                                             onClick={(e) => e.stopPropagation()}
                                             onMouseDown={(e) => e.stopPropagation()}
                                             onTouchStart={(e) => e.stopPropagation()}
                                         >
                                             <button 
                                                 onClick={() => {
-                                                    const newStickers = [...stickers];
-                                                    newStickers[i] = { ...newStickers[i], scale: Math.max(0.4, (newStickers[i].scale || 1) - 0.2) };
-                                                    setStickers(newStickers);
-                                                }}
-                                                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center transition-all"
-                                                title="Zoom Out"
-                                            >
-                                                -
-                                            </button>
-                                            
-                                            <input
-                                                type="range"
-                                                min="0.4"
-                                                max="4.0"
-                                                step="0.1"
-                                                value={s.scale || 1}
-                                                onChange={(e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    const newStickers = [...stickers];
-                                                    newStickers[i] = { ...newStickers[i], scale: val };
-                                                    setStickers(newStickers);
-                                                }}
-                                                className="w-20 accent-[#e1306c] bg-white/20 h-1.5 rounded-lg appearance-none cursor-pointer"
-                                            />
-
-                                            <button 
-                                                onClick={() => {
-                                                    const newStickers = [...stickers];
-                                                    newStickers[i] = { ...newStickers[i], scale: Math.min(4.0, (newStickers[i].scale || 1) + 0.2) };
-                                                    setStickers(newStickers);
-                                                }}
-                                                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center transition-all"
-                                                title="Zoom In"
-                                            >
-                                                +
-                                            </button>
-
-                                            <button 
-                                                onClick={() => {
                                                     setStickers(stickers.filter(st => st.id !== s.id));
                                                     setActiveStickerId(null);
                                                 }}
-                                                className="w-7 h-7 rounded-full bg-red-500/30 hover:bg-red-500/50 text-red-300 font-bold text-xs flex items-center justify-center transition-all"
-                                                title="Delete"
+                                                className="px-2.5 py-1 rounded-full bg-red-500/30 hover:bg-red-500/50 text-red-300 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+                                                title="Delete Sticker"
                                             >
-                                                <Trash2 size={14} />
+                                                <Trash2 size={13} />
+                                                <span>Remove</span>
                                             </button>
                                         </div>
                                     )}

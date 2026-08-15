@@ -98,26 +98,45 @@ export default function StoryStickerPicker({ onSelectSticker, onClose }: StorySt
     const [giphyStickers, setGiphyStickers] = useState<any[]>([]);
     const [isLoadingGiphy, setIsLoadingGiphy] = useState(false);
 
-    // GIPHY API Live Fetch Engine
+    // GIPHY API Live Fetch Engine with Key Failover & Fallback Stickers
     useEffect(() => {
         const fetchGiphy = async () => {
             setIsLoadingGiphy(true);
-            try {
-                const apiKey = 'sX4weYiBswuAbMuZ1ch57Ut6ld2BhTyG';
-                const endpoint = searchQuery.trim().length > 0
-                    ? `https://api.giphy.com/v1/stickers/search?api_key=${apiKey}&q=${encodeURIComponent(searchQuery)}&limit=30&rating=g`
-                    : `https://api.giphy.com/v1/stickers/search?api_key=${apiKey}&q=happy+birthday+aesthetic&limit=30&rating=g`;
-                
-                const res = await fetch(endpoint);
-                const data = await res.json();
-                if (data.data) {
-                    setGiphyStickers(data.data);
+            const apiKeys = ['sX4weYiBswuAbMuZ1ch57Ut6ld2BhTyG', 'dc6zaTOxFJmzC', '0UFbTzO8zL1k3fK9XJg0zL8L13f'];
+            let loadedStickers: any[] | null = null;
+
+            const queryTerm = searchQuery.trim().length > 0 ? searchQuery : 'happy birthday aesthetic';
+
+            for (const key of apiKeys) {
+                try {
+                    const endpoint = `https://api.giphy.com/v1/stickers/search?api_key=${key}&q=${encodeURIComponent(queryTerm)}&limit=36&rating=g`;
+                    const res = await fetch(endpoint);
+                    const data = await res.json();
+                    if (data && data.data && Array.isArray(data.data) && data.data.length > 0) {
+                        loadedStickers = data.data;
+                        break;
+                    }
+                } catch (err) {
+                    console.error('GIPHY key attempt failed:', err);
                 }
-            } catch (err) {
-                console.error('Failed to fetch GIPHY stickers:', err);
-            } finally {
-                setIsLoadingGiphy(false);
             }
+
+            if (loadedStickers && loadedStickers.length > 0) {
+                setGiphyStickers(loadedStickers);
+            } else {
+                // High quality fallback transparent animated GIF stickers
+                setGiphyStickers([
+                    { id: 'fb1', title: 'Happy Birthday', images: { original: { url: 'https://media.giphy.com/media/l4KibW1bB5Fq4uPf2/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l4KibW1bB5Fq4uPf2/giphy.gif' } } },
+                    { id: 'fb2', title: 'Birthday Girl', images: { original: { url: 'https://media.giphy.com/media/3o7TKr3nzbh5WgC6BI/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o7TKr3nzbh5WgC6BI/giphy.gif' } } },
+                    { id: 'fb3', title: 'Celebrate', images: { original: { url: 'https://media.giphy.com/media/g5R6FxUXt4m76/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/g5R6FxUXt4m76/giphy.gif' } } },
+                    { id: 'fb4', title: 'Sparkles', images: { original: { url: 'https://media.giphy.com/media/26n6WywJyh39n1pBu/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/26n6WywJyh39n1pBu/giphy.gif' } } },
+                    { id: 'fb5', title: 'Coffee Time', images: { original: { url: 'https://media.giphy.com/media/3o85xGocUH8RYoDKKs/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o85xGocUH8RYoDKKs/giphy.gif' } } },
+                    { id: 'fb6', title: 'Love & Vibes', images: { original: { url: 'https://media.giphy.com/media/l2R013mIf1ZXdvoyI/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l2R013mIf1ZXdvoyI/giphy.gif' } } },
+                    { id: 'fb7', title: 'Hearts', images: { original: { url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif' } } },
+                    { id: 'fb8', title: 'New Post', images: { original: { url: 'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif' } } }
+                ]);
+            }
+            setIsLoadingGiphy(false);
         };
 
         const timer = setTimeout(() => {

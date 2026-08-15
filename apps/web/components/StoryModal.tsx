@@ -440,12 +440,14 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (audioRef.current) {
-                                        if (audioRef.current.paused) {
-                                            audioRef.current.play().then(() => setIsAudioMuted(false)).catch(() => {});
-                                        } else {
+                                        const nextMuteState = !isAudioMuted;
+                                        audioRef.current.muted = nextMuteState;
+                                        if (nextMuteState) {
                                             audioRef.current.pause();
-                                            setIsAudioMuted(true);
+                                        } else {
+                                            audioRef.current.play().catch(err => console.log('Audio play error:', err));
                                         }
+                                        setIsAudioMuted(nextMuteState);
                                     }
                                 }}
                                 className={`p-2.5 rounded-full text-white backdrop-blur-md transition-all flex items-center justify-center cursor-pointer ${
@@ -501,9 +503,9 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 </div>
 
                 {/* Floating Music Badge */}
-                {parsedMusic && (
+                {parsedMusic && !parsedMusic.hideSticker && (
                     <div className="absolute top-20 left-4 z-30 pointer-events-none">
-                        <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused} />
+                        <StoryMusicSticker music={parsedMusic} isPlaying={!isPaused && !isAudioMuted} />
                     </div>
                 )}
 

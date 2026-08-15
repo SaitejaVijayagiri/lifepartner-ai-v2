@@ -1481,21 +1481,41 @@ router.post('/stories/:storyId/highlight', authenticateToken, async (req: any, r
         const myProfile = await prisma.profiles.findUnique({ where: { user_id: userId } });
         if (!myProfile) return res.status(404).json({ error: 'Profile not found' });
 
-        const stories = (myProfile.stories as any[]) || [];
-        const storyIndex = stories.findIndex(s => s.id === storyId);
-        if (storyIndex === -1) return res.status(404).json({ error: 'Story not found' });
+        const directStories = (myProfile.stories as any[]) || [];
+        const metadataObj: any = (myProfile.metadata as any) || {};
+        const metaStories: any[] = metadataObj?.stories || [];
+        
+        const allStories = [...directStories, ...metaStories];
+        const storyToToggle = allStories.find(s => String(s.id) === String(storyId));
+        
+        if (!storyToToggle) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
 
-        const currentStatus = Boolean(stories[storyIndex].isHighlight);
-        const newStatus = !currentStatus;
-        stories[storyIndex].isHighlight = newStatus;
+        const newStatus = !Boolean(storyToToggle.isHighlight);
+        
+        const updatedDirect = directStories.map((s: any) => 
+            String(s.id) === String(storyId) ? { ...s, isHighlight: newStatus } : s
+        );
+        const updatedMeta = metaStories.map((s: any) => 
+            String(s.id) === String(storyId) ? { ...s, isHighlight: newStatus } : s
+        );
+
+        if (metadataObj && metadataObj.stories) {
+            metadataObj.stories = updatedMeta;
+        }
 
         await prisma.profiles.update({
             where: { user_id: userId },
-            data: { stories: stories as any }
+            data: { 
+                stories: updatedDirect,
+                metadata: metadataObj
+            }
         });
 
         res.json({ success: true, isHighlight: newStatus });
     } catch (e: any) {
+        console.error("Highlight Error:", e);
         res.status(500).json({ error: 'Failed to toggle story highlight', details: e.message });
     }
 });

@@ -69,7 +69,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }
     };
 
-    const TABS = ['about', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'];
+    const TABS = ['about', 'highlights', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'];
     
     const handleDragStart = (e: React.TouchEvent) => {
         dragStartY[1](e.touches[0].clientY);
@@ -377,6 +377,73 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Scrollable Content — extra bottom padding for breathing room */}
                     <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10 min-h-0">
+                        {activeTab === 'highlights' && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="bg-gradient-to-br from-amber-500/10 via-purple-500/10 to-pink-500/10 p-6 rounded-3xl border border-amber-500/20 shadow-xl space-y-4">
+                                    <div className="flex items-center gap-2 text-amber-500 font-black text-sm uppercase tracking-widest">
+                                        <Star size={18} fill="currentColor" />
+                                        <span>Story Highlights</span>
+                                    </div>
+
+                                    {(() => {
+                                        const highlightedStories = (profile.stories || []).filter((s: any) => s.isHighlight);
+                                        if (highlightedStories.length === 0) {
+                                            const isOwner = currentUser && (String(currentUser.id || currentUser.userId) === String(profile.id || profile.user_id));
+                                            return (
+                                                <div className="text-center py-8 px-4 bg-white/70 dark:bg-gray-800/70 backdrop-blur rounded-2xl border border-dashed border-amber-300 dark:border-amber-700/50 space-y-3">
+                                                    <div className="text-3xl">⭐</div>
+                                                    <h4 className="font-bold text-gray-900 dark:text-white text-base">
+                                                        {isOwner ? "No Saved Highlights Yet" : "No Highlights Available"}
+                                                    </h4>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+                                                        {isOwner 
+                                                            ? "Pin your favorite active stories to your profile! Open your story in the viewer and tap the ⭐ Star button to save it here permanently."
+                                                            : "This profile has not saved any active stories to their highlights reel yet."
+                                                        }
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                                {highlightedStories.map((hStory: any, idx: number) => (
+                                                    <div
+                                                        key={hStory.id || idx}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveHighlightSet({
+                                                                stories: highlightedStories,
+                                                                initialIndex: idx,
+                                                                user: {
+                                                                    id: profile.id,
+                                                                    name: profile.name || profile.full_name || 'User',
+                                                                    photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                                }
+                                                            });
+                                                        }}
+                                                        className="flex flex-col items-center gap-2 cursor-pointer group"
+                                                    >
+                                                        <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-lg group-hover:scale-105 transition-all">
+                                                            <div className="w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                                {hStory.type === 'video' ? (
+                                                                    <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                                ) : (
+                                                                    <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate max-w-[80px]">
+                                                            Highlight {idx + 1}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        )}
 
                         {activeTab === 'ai insight' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">

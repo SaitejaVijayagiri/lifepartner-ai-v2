@@ -61,6 +61,7 @@ export default function MatchesTab({
     const [isSearching, setIsSearching] = useState(false);
     const [aiFilters, setAiFilters] = useState<any>(null);
     const [showHostModal, setShowHostModal] = useState(false);
+    const [showHighlightsOnly, setShowHighlightsOnly] = useState(false);
 
     /* Story State */
     const [storyFeed, setStoryFeed] = useState<any[]>([]);
@@ -245,7 +246,10 @@ export default function MatchesTab({
         });
     };
 
-    const displayMatches = activeFilters ? filterMatches(matches) : matches;
+    const baseMatches = activeFilters ? filterMatches(matches) : matches;
+    const displayMatches = showHighlightsOnly
+        ? baseMatches.filter(m => (m.stories || []).some((s: any) => s.isHighlight))
+        : baseMatches;
 
     const renderStoriesView = () => (
         <div className="relative">
@@ -403,8 +407,20 @@ export default function MatchesTab({
                                 <span>Search</span>
                             </button>
                         </div>
-                        {/* Quick Prompts */}
-                        <div className="flex flex-wrap gap-1.5 text-[11px]">
+                        {/* Quick Prompts & Highlights Filter */}
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <button
+                                onClick={() => setShowHighlightsOnly(!showHighlightsOnly)}
+                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border ${
+                                    showHighlightsOnly
+                                        ? 'bg-amber-500 text-white border-amber-400 shadow-md shadow-amber-500/20 scale-105'
+                                        : 'bg-amber-50/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
+                                }`}
+                            >
+                                <span>⭐</span>
+                                <span>{showHighlightsOnly ? 'Showing ⭐ Highlights' : '⭐ Story Highlights'}</span>
+                            </button>
+
                             {['Loves Travel', 'Fitness & Yoga', 'Doctor / Healthcare', 'Music Lover'].map(prompt => (
                                 <button
                                     key={prompt}

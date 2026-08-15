@@ -355,15 +355,79 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                 {/* 2. Tabbed Content Area */}
                 <Tabs defaultValue="about" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-8 h-14 p-1 bg-gray-100/80 backdrop-blur-md rounded-2xl">
-                        <TabsTrigger value="about" className="rounded-xl text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">About</TabsTrigger>
-                        <TabsTrigger value="details" className="rounded-xl text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">Details</TabsTrigger>
-                        {profile.summary && (
-                            <TabsTrigger value="ai" className="rounded-xl text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md">
-                                ✨ AI Insight
-                            </TabsTrigger>
-                        )}
+                    <TabsList className="grid w-full grid-cols-4 mb-8 h-14 p-1 bg-gray-100/80 backdrop-blur-md rounded-2xl">
+                        <TabsTrigger value="about" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">About</TabsTrigger>
+                        <TabsTrigger value="highlights" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-amber-500 data-[state=active]:shadow-sm">⭐ Highlights</TabsTrigger>
+                        <TabsTrigger value="details" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">Details</TabsTrigger>
+                        <TabsTrigger value="ai" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md">
+                            ✨ AI
+                        </TabsTrigger>
                     </TabsList>
+
+                    {/* Tab: Highlights */}
+                    <TabsContent value="highlights" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+                            <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <span className="p-2 bg-amber-50 rounded-xl text-amber-500 text-lg">⭐</span> Story Highlights
+                            </h3>
+                            {(() => {
+                                const highlightedStories = (profile?.stories || []).filter((s: any) => s.isHighlight);
+                                if (highlightedStories.length === 0) {
+                                    const isOwner = user && (String(user.id || user.userId) === String(profile.id || profile.user_id));
+                                    return (
+                                        <div className="text-center py-10 px-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-dashed border-amber-200 dark:border-amber-800/40 space-y-3">
+                                            <div className="text-4xl">⭐</div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white text-base">
+                                                {isOwner ? "No Saved Highlights Yet" : "No Highlights Available"}
+                                            </h4>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+                                                {isOwner 
+                                                    ? "Pin your favorite active stories to your profile! Open your story in the viewer and tap the ⭐ Star button to save it here permanently."
+                                                    : "This profile has not saved any active stories to their highlights reel yet."
+                                                }
+                                            </p>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pt-2">
+                                        {highlightedStories.map((hStory: any, idx: number) => (
+                                            <div
+                                                key={hStory.id || idx}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveHighlightSet({
+                                                        stories: highlightedStories,
+                                                        initialIndex: idx,
+                                                        user: {
+                                                            id: profile.id,
+                                                            name: profile.name || profile.full_name || 'User',
+                                                            photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                        }
+                                                    });
+                                                }}
+                                                className="flex flex-col items-center gap-2 cursor-pointer group"
+                                            >
+                                                <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-lg group-hover:scale-105 transition-all">
+                                                    <div className="w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                        {hStory.type === 'video' ? (
+                                                            <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                        ) : (
+                                                            <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate max-w-[80px]">
+                                                    Highlight {idx + 1}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </TabsContent>
 
                     {/* Tab: About */}
                     <TabsContent value="about" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

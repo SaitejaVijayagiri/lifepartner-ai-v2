@@ -1128,31 +1128,44 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
 
         // Fetch user profile
         const profile = await prisma.profiles.findUnique({ where: { user_id: userId } });
-        const currentStories = (profile?.stories as any[]) || [];
-        
-        const storyToDelete = currentStories.find((s: any) => s.id === storyId);
-        if (!storyToDelete) {
-            return res.status(404).json({ error: "Story not found" });
+        if (!profile) {
+            return res.status(404).json({ error: "Profile not found" });
         }
 
-        // Delete from Storage to save space
-        if (storyToDelete.publicId) {
-            await deleteFromCloudinary(storyToDelete.publicId);
-        } else if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
-            const oldPath = storyToDelete.url.split('stories/')[1];
-            if (oldPath) {
-                supabase.storage.from('stories').remove([oldPath]).catch(e => console.error("Storage delete error", e));
+        const directStories: any[] = (profile.stories as any[]) || [];
+        const metadataObj: any = (profile.metadata as any) || {};
+        const metaStories: any[] = metadataObj?.stories || [];
+        
+        // Delete from Storage if publicId exists
+        const storyToDelete = [...directStories, ...metaStories].find((s: any) => String(s.id) === String(storyId));
+        if (storyToDelete) {
+            if (storyToDelete.publicId) {
+                await deleteFromCloudinary(storyToDelete.publicId).catch(e => console.error("Cloudinary delete error", e));
+            } else if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
+                const oldPath = storyToDelete.url.split('stories/')[1];
+                if (oldPath) {
+                    supabase.storage.from('stories').remove([oldPath]).catch(e => console.error("Storage delete error", e));
+                }
             }
         }
 
-        const updatedStories = currentStories.filter((s: any) => s.id !== storyId);
+        // Filter out deleted story using loose string comparison
+        const updatedDirect = directStories.filter((s: any) => String(s.id) !== String(storyId));
+        const updatedMeta = metaStories.filter((s: any) => String(s.id) !== String(storyId));
+
+        if (metadataObj && metadataObj.stories) {
+            metadataObj.stories = updatedMeta;
+        }
 
         await prisma.profiles.update({
             where: { user_id: userId },
-            data: { stories: updatedStories }
+            data: { 
+                stories: updatedDirect,
+                metadata: metadataObj
+            }
         });
 
-        res.json({ success: true, message: "Story deleted" });
+        res.json({ success: true, message: "Story deleted successfully" });
 
     } catch (e) {
         console.error("Delete Story Error", e);

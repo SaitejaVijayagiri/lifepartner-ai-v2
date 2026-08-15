@@ -52,9 +52,15 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const [isSending, setIsSending] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
+    const [storiesList, setStoriesList] = useState<Story[]>(stories);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
-    const story = (stories && stories[currentIndex]) ? (stories[currentIndex] as any) : null;
+
+    useEffect(() => {
+        setStoriesList(stories);
+    }, [stories]);
+
+    const story = (storiesList && storiesList[currentIndex]) ? (storiesList[currentIndex] as any) : null;
     const [isHighlighted, setIsHighlighted] = useState(Boolean(story?.isHighlight));
     const [flyingReactions, setFlyingReactions] = useState<{ id: number, emoji: string, left: number }[]>([]);
 
@@ -94,7 +100,9 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const isOwner = Boolean(
         (currentUserId && storyUserId && String(currentUserId) === String(storyUserId)) ||
         storyUserId === 'me' ||
-        currentUserId === 'me'
+        currentUserId === 'me' ||
+        user?.name === 'You' ||
+        (currentUser && (user?.name === currentUser?.name || user?.name === currentUser?.full_name))
     );
     
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -984,9 +992,25 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             <button
                                 onClick={async () => {
                                     setIsConfirmingDelete(false);
-                                    if (onDelete && story?.id) {
-                                        await onDelete(story.id);
-                                        toast.success('Story deleted! 🗑️');
+                                    if (story?.id) {
+                                        try {
+                                            if (onDelete) {
+                                                await onDelete(story.id);
+                                            } else {
+                                                await api.profile.deleteStory(story.id);
+                                            }
+                                            toast.success('Story deleted! 🗑️');
+                                            
+                                            const remaining = storiesList.filter(s => String(s.id) !== String(story.id));
+                                            if (remaining.length > 0) {
+                                                setStoriesList(remaining);
+                                                setCurrentIndex(prev => Math.min(prev, remaining.length - 1));
+                                            } else {
+                                                onClose();
+                                            }
+                                        } catch (err: any) {
+                                            toast.error(err.message || 'Failed to delete story');
+                                        }
                                     }
                                 }}
                                 className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-red-500/30 cursor-pointer"

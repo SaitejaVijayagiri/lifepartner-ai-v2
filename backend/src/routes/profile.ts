@@ -898,7 +898,7 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
             // Merge and deduplicate by id, prefer directStories
             const allIds = new Set(directStories.map((s: any) => s.id));
             const stories = [...directStories, ...metaStories.filter((s: any) => !allIds.has(s.id))];
-            const activeStories = stories.filter((s: any) => new Date(s.expiresAt) > now);
+            const activeStories = stories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > now);
             if (activeStories.length > 0) {
                 feed.push({
                     id: user.id,
@@ -946,7 +946,7 @@ router.post('/stories', authenticateToken, (req, res, next) => {
 
         // AUTO-CLEANUP: Filter out expired stories
         const now = new Date();
-        const validStories = currentStories.filter((s: any) => new Date(s.expiresAt) > now);
+        const validStories = currentStories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > now);
 
         let publicUrl = '';
         let publicId = '';
@@ -1522,6 +1522,8 @@ router.post('/stories/:storyId/highlight', authenticateToken, async (req: any, r
                 metadata: metadataObj
             }
         });
+
+        try { require('./matches').matchCache.clear(); } catch(e) {}
 
         res.json({ success: true, isHighlight: newStatus });
     } catch (e: any) {

@@ -907,6 +907,11 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                                 src={s.imageUrl} 
                                                 alt={s.content} 
                                                 className="max-w-[180px] max-h-[180px] object-contain filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.6)] pointer-events-none select-none"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.onerror = null;
+                                                    target.src = 'https://media.giphy.com/media/l4KibW1bB5Fq4uPf2/giphy.gif';
+                                                }}
                                             />
                                         )}
 

@@ -296,7 +296,11 @@ export default function StoryStickerPicker({ onSelectSticker, onClose }: StorySt
                             ) : (
                                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                                     {giphyStickers.map((item) => {
-                                        const imgUrl = item.images?.fixed_height?.url || item.images?.original?.url || item.images?.fixed_width_small?.url;
+                                        const rawUrl = item.images?.fixed_height?.url || item.images?.original?.url;
+                                        const imgUrl = (item.id && !item.id.startsWith('fb')) 
+                                            ? `https://i.giphy.com/media/${item.id}/giphy.gif` 
+                                            : (rawUrl || item.imageUrl);
+
                                         if (!imgUrl) return null;
                                         return (
                                             <button
@@ -316,6 +320,11 @@ export default function StoryStickerPicker({ onSelectSticker, onClose }: StorySt
                                                     alt={item.title || 'Sticker'} 
                                                     className="max-w-full max-h-full object-contain filter drop-shadow-md group-hover:drop-shadow-xl"
                                                     loading="lazy"
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.onerror = null;
+                                                        if (rawUrl) target.src = rawUrl;
+                                                    }}
                                                 />
                                             </button>
                                         );

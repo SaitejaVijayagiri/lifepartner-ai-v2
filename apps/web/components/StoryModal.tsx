@@ -38,9 +38,10 @@ interface StoryModalProps {
     onDelete?: (storyId: string) => void;
     onViewProfile?: (userId: string, userName?: string, userPhotoUrl?: string) => void;
     onStoryViewed?: (storyId: string, targetUserId: string) => void;
+    onHighlightToggle?: (storyId: string, isHighlight: boolean) => void;
 }
 
-const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser, onDelete, onViewProfile, onStoryViewed }: StoryModalProps) => {
+const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser, onDelete, onViewProfile, onStoryViewed, onHighlightToggle }: StoryModalProps) => {
     const router = useRouter();
     const toast = useToast();
     const { socket, onlineUsers } = useSocket() as any;
@@ -468,6 +469,9 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                             if (res?.success) {
                                                 setIsHighlighted(res.isHighlight);
                                                 story.isHighlight = res.isHighlight;
+                                                if (onHighlightToggle) {
+                                                    onHighlightToggle(story.id, res.isHighlight);
+                                                }
                                                 toast.success(res.isHighlight ? 'Added to Profile Highlights ⭐' : 'Removed from Highlights');
                                             }
                                         } catch (err: any) {

@@ -6,6 +6,7 @@ import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline } from '../socket';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { mergeStoriesHelper } from './profile';
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
@@ -1030,7 +1031,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 stories: (() => {
                     const direct: any[] = (c.profiles?.stories as any[]) || [];
                     const metaStories: any[] = (meta?.stories as any[]) || [];
-                    const combined = [...direct, ...metaStories.filter(m => !direct.some(d => String(d.id) === String(m.id)))];
+                    const combined = mergeStoriesHelper(direct, metaStories);
                     return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
                 })(),
                 phone: me.is_premium ? (c.phone || meta.phone) : null,

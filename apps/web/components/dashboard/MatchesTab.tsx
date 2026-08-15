@@ -709,7 +709,19 @@ export default function MatchesTab({
                     currentUser={currentUser}
                     onClose={() => {
                         setActiveStorySet(null);
-                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
+                        api.profile.getMe().then(setCurrentUser).catch(() => {});
+                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || [])).catch(() => {});
+                    }}
+                    onHighlightToggle={(storyId, isHighlight) => {
+                        setCurrentUser((prev: any) => {
+                            if (!prev) return prev;
+                            const updated = (prev.stories || []).map((s: any) => 
+                                String(s.id) === String(storyId) ? { ...s, isHighlight } : s
+                            );
+                            return { ...prev, stories: updated };
+                        });
+                        api.profile.getMe().then(setCurrentUser).catch(() => {});
+                        fetchMatches(page).catch(() => {});
                     }}
                     onDelete={async (deletedId) => {
                         try {

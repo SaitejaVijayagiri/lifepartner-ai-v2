@@ -18,6 +18,34 @@ import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
 
+export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[] = []) {
+    const storyMap = new Map<string, any>();
+    
+    for (const s of (metaStories || [])) {
+        if (s && s.id) {
+            storyMap.set(String(s.id), { ...s });
+        }
+    }
+    
+    for (const s of (directStories || [])) {
+        if (s && s.id) {
+            const sid = String(s.id);
+            const existing = storyMap.get(sid);
+            if (existing) {
+                storyMap.set(sid, {
+                    ...existing,
+                    ...s,
+                    isHighlight: Boolean(s.isHighlight ?? existing.isHighlight)
+                });
+            } else {
+                storyMap.set(sid, { ...s });
+            }
+        }
+    }
+    
+    return Array.from(storyMap.values());
+}
+
 
 
 /**
@@ -122,7 +150,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             stories: (() => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (meta?.stories as any[]) || [];
-                const combined = [...direct, ...metaStories.filter(m => !direct.some(d => String(d.id) === String(m.id)))];
+                const combined = mergeStoriesHelper(direct, metaStories);
                 return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
             })()
         };
@@ -422,7 +450,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             stories: (() => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (meta?.stories as any[]) || [];
-                const combined = [...direct, ...metaStories.filter(m => !direct.some(d => String(d.id) === String(m.id)))];
+                const combined = mergeStoriesHelper(direct, metaStories);
                 return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
             })(),
             match_status: matchStatus,
@@ -896,8 +924,7 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
             const directStories: any[] = (user.profiles?.stories as any[]) || [];
             const metaStories: any[] = (user.profiles as any)?.metadata?.stories || [];
             // Merge and deduplicate by id, prefer directStories
-            const allIds = new Set(directStories.map((s: any) => s.id));
-            const stories = [...directStories, ...metaStories.filter((s: any) => !allIds.has(s.id))];
+            const stories = mergeStoriesHelper(directStories, metaStories);
             const activeStories = stories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > now);
             if (activeStories.length > 0) {
                 feed.push({
@@ -1495,7 +1522,7 @@ router.post('/stories/:storyId/highlight', authenticateToken, async (req: any, r
         const metadataObj: any = (myProfile.metadata as any) || {};
         const metaStories: any[] = metadataObj?.stories || [];
         
-        const allStories = [...directStories, ...metaStories];
+        const allStories = mergeStoriesHelper(directStories, metaStories);
         const storyToToggle = allStories.find(s => String(s.id) === String(storyId));
         
         if (!storyToToggle) {
@@ -1504,21 +1531,18 @@ router.post('/stories/:storyId/highlight', authenticateToken, async (req: any, r
 
         const newStatus = !Boolean(storyToToggle.isHighlight);
         
-        const updatedDirect = directStories.map((s: any) => 
-            String(s.id) === String(storyId) ? { ...s, isHighlight: newStatus } : s
-        );
-        const updatedMeta = metaStories.map((s: any) => 
+        const updatedStories = allStories.map((s: any) => 
             String(s.id) === String(storyId) ? { ...s, isHighlight: newStatus } : s
         );
 
-        if (metadataObj && metadataObj.stories) {
-            metadataObj.stories = updatedMeta;
+        if (metadataObj) {
+            metadataObj.stories = updatedStories;
         }
 
         await prisma.profiles.update({
             where: { user_id: userId },
             data: { 
-                stories: updatedDirect,
+                stories: updatedStories,
                 metadata: metadataObj
             }
         });

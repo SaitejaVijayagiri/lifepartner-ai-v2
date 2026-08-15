@@ -837,6 +837,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     user={activeHighlightSet.user}
                     currentUser={currentUser}
                     onClose={() => setActiveHighlightSet(null)}
+                    onHighlightToggle={(storyId, isHighlight) => {
+                        if (profile && profile.stories) {
+                            profile.stories = profile.stories.map((s: any) => 
+                                String(s.id) === String(storyId) ? { ...s, isHighlight } : s
+                            );
+                        }
+                    }}
                 />
             )}
         </div>

@@ -5,6 +5,7 @@ import { getIO, isUserOnline } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
+import { mergeStoriesHelper } from './profile';
 
 
 const router = express.Router();
@@ -187,8 +188,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                 partnerIds.push(partner.id);
                 const directStories: any[] = (partner.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (partner.profiles as any)?.metadata?.stories || [];
-                const allIds = new Set(directStories.map((s: any) => s.id));
-                const allStories = [...directStories, ...metaStories.filter((s: any) => !allIds.has(s.id))];
+                const allStories = mergeStoriesHelper(directStories, metaStories);
                 const activeStories = allStories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
 
                 uniqueConnections.set(partner.id, {

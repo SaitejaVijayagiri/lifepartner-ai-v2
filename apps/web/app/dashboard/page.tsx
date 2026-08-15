@@ -1571,7 +1571,8 @@ function DashboardContent() {
                     initialIndex={0}
                     user={activeStorySet.user}
                     currentUser={currentUser}
-                    onDelete={async (deletedId) => {
+                    onClose={() => setActiveStorySet(null)}
+                    onDelete={async (deletedId: string) => {
                         try {
                             await api.profile.deleteStory(deletedId);
                             // Update currentUser stories locally
@@ -1580,15 +1581,14 @@ function DashboardContent() {
                                 setCurrentUser({ ...currentUser, stories: remainingStories });
                             }
                             // Update activeStorySet locally
-                            setActiveStorySet(prev => {
+                            setActiveStorySet((prev: any) => {
                                 if (!prev) return null;
                                 const remaining = prev.stories.filter((s: any) => String(s.id) !== String(deletedId));
                                 if (remaining.length === 0) return null;
                                 return { ...prev, stories: remaining };
                             });
-                            // Re-fetch me & story feed
+                            // Re-fetch me
                             api.profile.getMe().then(res => { if (res) setCurrentUser(res); });
-                            api.profile.getStoryFeed().then(data => { if (data?.feed) setStoryFeed(data.feed); });
                         } catch (e: any) {
                             console.error('Delete Story Error:', e);
                         }

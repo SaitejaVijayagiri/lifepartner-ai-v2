@@ -702,7 +702,7 @@ export default function MatchesTab({
                                 const remainingStories = currentUser.stories.filter((s: any) => String(s.id) !== String(deletedId));
                                 setCurrentUser({ ...currentUser, stories: remainingStories });
                             }
-                            setActiveStorySet(prev => {
+                            setActiveStorySet((prev: any) => {
                                 if (!prev) return null;
                                 const remaining = prev.stories.filter((s: any) => String(s.id) !== String(deletedId));
                                 if (remaining.length === 0) return null;

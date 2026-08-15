@@ -124,7 +124,7 @@ export default function StoryStickerPicker({ onSelectSticker, onClose }: StorySt
             if (loadedStickers && loadedStickers.length > 0) {
                 setGiphyStickers(loadedStickers);
             } else {
-                // High quality fallback transparent animated GIF stickers
+                // Expanded high quality transparent animated GIF stickers collection
                 setGiphyStickers([
                     { id: 'fb1', title: 'Happy Birthday', images: { original: { url: 'https://media.giphy.com/media/l4KibW1bB5Fq4uPf2/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l4KibW1bB5Fq4uPf2/giphy.gif' } } },
                     { id: 'fb2', title: 'Birthday Girl', images: { original: { url: 'https://media.giphy.com/media/3o7TKr3nzbh5WgC6BI/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o7TKr3nzbh5WgC6BI/giphy.gif' } } },
@@ -133,7 +133,14 @@ export default function StoryStickerPicker({ onSelectSticker, onClose }: StorySt
                     { id: 'fb5', title: 'Coffee Time', images: { original: { url: 'https://media.giphy.com/media/3o85xGocUH8RYoDKKs/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o85xGocUH8RYoDKKs/giphy.gif' } } },
                     { id: 'fb6', title: 'Love & Vibes', images: { original: { url: 'https://media.giphy.com/media/l2R013mIf1ZXdvoyI/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l2R013mIf1ZXdvoyI/giphy.gif' } } },
                     { id: 'fb7', title: 'Hearts', images: { original: { url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif' } } },
-                    { id: 'fb8', title: 'New Post', images: { original: { url: 'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif' } } }
+                    { id: 'fb8', title: 'New Post', images: { original: { url: 'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/xT0xezQGU5xCDJuCPe/giphy.gif' } } },
+                    { id: 'fb9', title: 'Party Time', images: { original: { url: 'https://media.giphy.com/media/26tP3M3i03hoIyl6o/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/26tP3M3i03hoIyl6o/giphy.gif' } } },
+                    { id: 'fb10', title: 'Gold Crown', images: { original: { url: 'https://media.giphy.com/media/l4FGBOiK78uPIx3wI/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l4FGBOiK78uPIx3wI/giphy.gif' } } },
+                    { id: 'fb11', title: 'Dancing', images: { original: { url: 'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l3q2K5jinAlChoCLS/giphy.gif' } } },
+                    { id: 'fb12', title: 'Glowing Stars', images: { original: { url: 'https://media.giphy.com/media/3o6Zt8b8J5xG1o56lW/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o6Zt8b8J5xG1o56lW/giphy.gif' } } },
+                    { id: 'fb13', title: 'Pink Heart', images: { original: { url: 'https://media.giphy.com/media/l0HlVJ1fG75mX3Jpm/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/l0HlVJ1fG75mX3Jpm/giphy.gif' } } },
+                    { id: 'fb14', title: 'Weekend Vibes', images: { original: { url: 'https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/3o7TKDkDbIDJieKbVm/giphy.gif' } } },
+                    { id: 'fb15', title: 'Fireworks', images: { original: { url: 'https://media.giphy.com/media/26tPqYCMw50EwTp72/giphy.gif' }, fixed_height: { url: 'https://media.giphy.com/media/26tPqYCMw50EwTp72/giphy.gif' } } }
                 ]);
             }
             setIsLoadingGiphy(false);
@@ -243,13 +250,29 @@ export default function StoryStickerPicker({ onSelectSticker, onClose }: StorySt
                     {/* Quick Search Chips */}
                     {activeTab === 'giphy' && (
                         <div className="flex gap-2 overflow-x-auto mt-3 no-scrollbar pb-1">
-                            {['happy birthday aesthetic', 'gladdest', '@chxrrypie', 'doodle', 'coffee', 'new post', 'birthday girl'].map(chip => (
+                            {[
+                                { label: '🎂 Birthday', query: 'happy birthday aesthetic' },
+                                { label: '❤️ Love', query: 'love heart aesthetic' },
+                                { label: '🔥 Vibes', query: 'vibe aesthetic' },
+                                { label: '✨ Sparkles', query: 'sparkles glow' },
+                                { label: '☕ Coffee', query: 'coffee morning' },
+                                { label: '🎉 Party', query: 'party celebrate' },
+                                { label: '👑 Luxury', query: 'gold crown luxury' },
+                                { label: '🌸 Doodles', query: 'cute doodles' },
+                                { label: '💃 Dancing', query: 'dancing vibe' },
+                                { label: '📸 New Post', query: 'new post' },
+                                { label: '🏖️ Summer', query: 'summer beach' }
+                            ].map(chip => (
                                 <button
-                                    key={chip}
-                                    onClick={() => setSearchQuery(chip)}
-                                    className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-[11px] font-bold px-3 py-1 rounded-full whitespace-nowrap transition-all border border-white/10"
+                                    key={chip.label}
+                                    onClick={() => setSearchQuery(chip.query)}
+                                    className={`text-[11px] font-bold px-3 py-1 rounded-full whitespace-nowrap transition-all border ${
+                                        searchQuery === chip.query
+                                            ? 'bg-[#e1306c] text-white border-[#e1306c] shadow-lg scale-105'
+                                            : 'bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border-white/10'
+                                    }`}
                                 >
-                                    {chip}
+                                    {chip.label}
                                 </button>
                             ))}
                         </div>

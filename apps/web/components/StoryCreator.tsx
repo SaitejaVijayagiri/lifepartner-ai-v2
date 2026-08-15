@@ -823,7 +823,6 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     {/* Active Highlight Bounding Box & Corner Scale Handles */}
                                     {isActive && (
                                         <>
-                                            <div className="absolute -inset-3 border-2 border-dashed border-[#e1306c] rounded-2xl pointer-events-none animate-pulse" />
                                             
                                             {/* 4 Corner Resize Drag Handles */}
                                             {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => {
@@ -1143,7 +1142,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             )}
 
                 {/* Floating Music Badge */}
-                {customMusicData && !isAddingText && (
+                {customMusicData && showMusicSticker && !isAddingText && (
                     <div className="absolute top-16 left-4 z-30 pointer-events-none">
                         <StoryMusicSticker music={customMusicData} isPlaying={true} />
                     </div>

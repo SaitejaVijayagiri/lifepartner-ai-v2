@@ -373,7 +373,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                             {(() => {
                                 const highlightedStories = (profile?.stories || []).filter((s: any) => s.isHighlight);
                                 if (highlightedStories.length === 0) {
-                                    const isOwner = user && (String(user.id || user.userId) === String(profile.id || profile.user_id));
+                                    const isOwner = user && (String(user.id || (user as any)?.userId) === String(profile.id || profile.user_id));
                                     return (
                                         <div className="text-center py-10 px-4 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-dashed border-amber-200 dark:border-amber-800/40 space-y-3">
                                             <div className="text-4xl">⭐</div>

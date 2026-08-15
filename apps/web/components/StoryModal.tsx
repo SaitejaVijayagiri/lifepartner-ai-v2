@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye } from 'lucide-react';
+import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye, Star } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
@@ -15,8 +15,10 @@ interface Story {
     createdAt: string;
     expiresAt?: string;
     music?: string;
+    isHighlight?: boolean;
     views?: { userId: string, name: string, photoUrl: string, viewedAt: string }[];
     likes?: { userId: string, name: string, likedAt: string }[];
+    reactions?: { userId: string, name: string, emoji: string, reactedAt: string }[];
 }
 
 interface User {
@@ -53,6 +55,38 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
     const story = (stories && stories[currentIndex]) ? (stories[currentIndex] as any) : null;
+    const [isHighlighted, setIsHighlighted] = useState(Boolean(story?.isHighlight));
+    const [flyingReactions, setFlyingReactions] = useState<{ id: number, emoji: string, left: number }[]>([]);
+
+    useEffect(() => {
+        if (story) {
+            setIsHighlighted(Boolean(story.isHighlight));
+        }
+    }, [story?.id]);
+
+    const triggerReaction = async (emoji: string) => {
+        const id = Date.now() + Math.random();
+        const left = Math.floor(Math.random() * 60) + 20;
+        setFlyingReactions(prev => [...prev, { id, emoji, left }]);
+
+        setTimeout(() => {
+            setFlyingReactions(prev => prev.filter(r => r.id !== id));
+        }, 1500);
+
+        try {
+            await api.profile.reactToStory(user.id, story.id, emoji);
+            toast.success(`Reacted ${emoji}`);
+        } catch (e) {}
+
+        if (socket) {
+            socket.emit('storyReaction', {
+                to: user.id,
+                from: currentUser?.id || currentUser?.userId,
+                storyId: story.id,
+                emoji
+            });
+        }
+    };
 
     // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
     const currentUserId = currentUser?.id || currentUser?.userId;
@@ -197,21 +231,27 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         return () => clearInterval(timer);
     }, [currentIndex, isPaused, story?.type]);
 
-    // Asset Preloader for Next Story Item (reduces transition lag)
+    // Advanced Multi-Asset Preloader Engine (Pre-fetches +1 and +2 story assets)
     useEffect(() => {
-        if (stories && stories.length > currentIndex + 1) {
-            const nextStory = stories[currentIndex + 1];
-            if (nextStory?.url) {
-                if (nextStory.type === 'video') {
+        if (!stories || stories.length === 0) return;
+
+        [1, 2].forEach(offset => {
+            const targetStory = stories[currentIndex + offset];
+            if (targetStory?.url) {
+                if (targetStory.type === 'video') {
                     const video = document.createElement('video');
-                    video.src = nextStory.url;
+                    video.src = targetStory.url;
                     video.preload = 'auto';
+                    video.load();
                 } else {
                     const img = new Image();
-                    img.src = nextStory.url;
+                    img.src = targetStory.url;
+                    if ('decode' in img) {
+                        img.decode().catch(() => {});
+                    }
                 }
             }
-        }
+        });
     }, [currentIndex, stories]);
 
     // Track View when Story Changes
@@ -376,16 +416,39 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             </button>
                         )}
                         {isOwner && (
-                            <button
-                                onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this story?')) {
-                                        onDelete?.(story.id);
-                                    }
-                                }}
-                                className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors"
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                            <>
+                                <button
+                                    onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                            const res = await api.profile.toggleStoryHighlight(story.id);
+                                            if (res?.success) {
+                                                setIsHighlighted(res.isHighlight);
+                                                story.isHighlight = res.isHighlight;
+                                                toast.success(res.isHighlight ? 'Added to Profile Highlights ⭐' : 'Removed from Highlights');
+                                            }
+                                        } catch (err: any) {
+                                            toast.error(err.message || 'Failed to update highlight');
+                                        }
+                                    }}
+                                    className={`p-2.5 rounded-full backdrop-blur-md transition-all ${
+                                        isHighlighted ? 'bg-amber-400 text-black shadow-[0_0_15px_rgba(251,191,36,0.6)]' : 'bg-white/10 hover:bg-white/20 text-white'
+                                    }`}
+                                    title={isHighlighted ? "Remove from Highlights" : "Save to Profile Highlights ⭐"}
+                                >
+                                    <Star size={18} fill={isHighlighted ? 'currentColor' : 'none'} />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm('Are you sure you want to delete this story?')) {
+                                            onDelete?.(story.id);
+                                        }
+                                    }}
+                                    className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </>
                         )}
                         <button
                             onClick={onClose}
@@ -404,31 +467,42 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 )}
 
                 {/* Story Content & Fullscreen Media */}
-                <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden">
-                    {story.type === 'video' ? (
-                        <video
-                            ref={videoRef}
-                            src={story.url}
-                            className="w-full h-full object-cover select-none"
-                            autoPlay
-                            playsInline
-                            muted={false}
-                            onTimeUpdate={(e) => {
-                                const t = e.currentTarget.currentTime;
-                                const d = e.currentTarget.duration;
-                                if (d > 0) setProgress((t / d) * 100);
-                            }}
-                            onEnded={() => {
-                                setProgress(100);
-                            }}
-                        />
-                    ) : (
-                        <img
-                            src={story.url}
-                            className="w-full h-full object-cover select-none"
-                            alt="Story"
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden bg-black">
+                    {/* Ambient Blurred Background */}
+                    {story.url && story.type !== 'video' && (
+                        <div
+                            className="absolute inset-0 bg-cover bg-center blur-3xl opacity-45 scale-110 pointer-events-none transition-all duration-500"
+                            style={{ backgroundImage: `url(${story.url})` }}
                         />
                     )}
+
+                    {/* Centered Media Container */}
+                    <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
+                        {story.type === 'video' ? (
+                            <video
+                                ref={videoRef}
+                                src={story.url}
+                                className="max-w-full max-h-full object-contain select-none shadow-2xl"
+                                autoPlay
+                                playsInline
+                                muted={false}
+                                onTimeUpdate={(e) => {
+                                    const t = e.currentTarget.currentTime;
+                                    const d = e.currentTarget.duration;
+                                    if (d > 0) setProgress((t / d) * 100);
+                                }}
+                                onEnded={() => {
+                                    setProgress(100);
+                                }}
+                            />
+                        ) : (
+                            <img
+                                src={story.url}
+                                className="max-w-full max-h-full object-contain select-none shadow-2xl"
+                                alt="Story"
+                            />
+                        )}
+                    </div>
 
                     {/* Left / Right Fullscreen Tap Navigation Overlay */}
                     <div className="absolute inset-0 z-20 flex">
@@ -486,6 +560,23 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     )}
                 </div>
 
+                {/* Flying Emoji Micro-Animations Container */}
+                <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+                    {flyingReactions.map(r => (
+                        <div
+                            key={r.id}
+                            className="absolute bottom-24 text-4xl animate-bounce drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] transition-all duration-1000 ease-out"
+                            style={{
+                                left: `${r.left}%`,
+                                transform: 'translateY(-120px) scale(1.4)',
+                                opacity: 0.95
+                            }}
+                        >
+                            {r.emoji}
+                        </div>
+                    ))}
+                </div>
+
                 {/* Bottom Actions (for other users' stories) */}
                 {!isOwner && (
                     <div 
@@ -498,6 +589,22 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                         onMouseUp={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {/* Quick Story Emoji Reactions */}
+                        <div className="flex items-center justify-center gap-3 mb-2.5">
+                            {['❤️', '🔥', '😂', '😮', '👏'].map(emoji => (
+                                <button
+                                    key={emoji}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        triggerReaction(emoji);
+                                    }}
+                                    className="w-10 h-10 rounded-full bg-black/50 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-xl hover:scale-125 active:scale-95 transition-all shadow-lg border border-white/10 cursor-pointer"
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="flex items-center gap-3">
                             <input
                                 type="text"

@@ -414,20 +414,29 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                     ref={previewContainerRef}
                 >
                     {isSlideshow ? (
-                        <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
-                            {/* Slideshow Preview Animation */}
-                            {storyPreviewUrls.map((url, index) => (
-                                <img
-                                    key={index}
-                                    src={url}
-                                    className="absolute w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out"
-                                    style={{ 
-                                        opacity: currentSlideIndex === index ? 1 : 0,
-                                        zIndex: currentSlideIndex === index ? 10 : 1
-                                    }}
-                                    alt={`Slide ${index}`}
+                        <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden">
+                            {/* Ambient Blur Backdrop */}
+                            {storyPreviewUrls[currentSlideIndex] && (
+                                <div
+                                    className="absolute inset-0 bg-cover bg-center blur-3xl opacity-40 scale-110 pointer-events-none transition-all duration-500"
+                                    style={{ backgroundImage: `url(${storyPreviewUrls[currentSlideIndex]})` }}
                                 />
-                            ))}
+                            )}
+                            {/* Slideshow Preview Animation */}
+                            <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
+                                {storyPreviewUrls.map((url, index) => (
+                                    <img
+                                        key={index}
+                                        src={url}
+                                        className="absolute max-w-full max-h-full object-contain transition-opacity duration-[1500ms] ease-in-out shadow-2xl"
+                                        style={{ 
+                                            opacity: currentSlideIndex === index ? 1 : 0,
+                                            zIndex: currentSlideIndex === index ? 10 : 1
+                                        }}
+                                        alt={`Slide ${index}`}
+                                    />
+                                ))}
+                            </div>
                             {/* Slideshow Indicator */}
                             <div className="absolute top-24 left-0 right-0 flex justify-center gap-1.5 z-[100] px-4">
                                 {storyPreviewUrls.map((_, i) => (
@@ -447,35 +456,38 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             }} />
                         </div>
                     ) : storyFiles[0].type.startsWith('video') ? (
-                        <div className="w-full h-full flex flex-col relative">
-                            <video 
-                                ref={videoRef}
-                                src={storyPreviewUrls[0]} 
-                                autoPlay 
-                                playsInline
-                                className="w-full h-full object-cover" 
-                                onLoadedMetadata={(e) => {
-                                    const duration = e.currentTarget.duration;
-                                    setVideoDuration(duration);
-                                    setEndTime(Math.min(duration, 60));
-                                    e.currentTarget.play().catch(() => setIsPlaying(false));
-                                }}
-                                onCanPlay={(e) => {
-                                    if (videoDuration === 0) {
+                        <div className="w-full h-full flex flex-col items-center justify-center relative bg-black overflow-hidden">
+                            {/* Centered Video Container */}
+                            <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
+                                <video 
+                                    ref={videoRef}
+                                    src={storyPreviewUrls[0]} 
+                                    autoPlay 
+                                    playsInline
+                                    className="max-w-full max-h-full object-contain shadow-2xl" 
+                                    onLoadedMetadata={(e) => {
                                         const duration = e.currentTarget.duration;
                                         setVideoDuration(duration);
                                         setEndTime(Math.min(duration, 60));
-                                    }
-                                }}
-                                onTimeUpdate={() => {
-                                    if (videoRef.current && videoRef.current.currentTime >= endTime) {
-                                        videoRef.current.currentTime = startTime;
-                                        if (isPlaying) videoRef.current.play().catch(() => setIsPlaying(false));
-                                    }
-                                }}
-                                onPlay={() => setIsPlaying(true)}
-                                onPause={() => setIsPlaying(false)}
-                            />
+                                        e.currentTarget.play().catch(() => setIsPlaying(false));
+                                    }}
+                                    onCanPlay={(e) => {
+                                        if (videoDuration === 0) {
+                                            const duration = e.currentTarget.duration;
+                                            setVideoDuration(duration);
+                                            setEndTime(Math.min(duration, 60));
+                                        }
+                                    }}
+                                    onTimeUpdate={() => {
+                                        if (videoRef.current && videoRef.current.currentTime >= endTime) {
+                                            videoRef.current.currentTime = startTime;
+                                            if (isPlaying) videoRef.current.play().catch(() => setIsPlaying(false));
+                                        }
+                                    }}
+                                    onPlay={() => setIsPlaying(true)}
+                                    onPause={() => setIsPlaying(false)}
+                                />
+                            </div>
                             
                             {/* Play/Pause Overlay Button */}
                             <button 

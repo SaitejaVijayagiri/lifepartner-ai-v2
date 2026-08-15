@@ -250,7 +250,7 @@ export default function InstantViewerModal({
                         </div>
                     ) : (
                         <div
-                            className="relative w-full h-full flex items-center justify-center overflow-hidden"
+                            className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black"
                             onDoubleClick={() => setViewerZoom(prev => (prev === 1 ? 2 : 1))}
                             onTouchStart={(e) => {
                                 if (e.touches.length === 2) {
@@ -273,16 +273,27 @@ export default function InstantViewerModal({
                             }}
                             onTouchEnd={() => { touchDistRef.current = null; }}
                         >
-                            <img
-                                src={mediaUrl!}
-                                alt="Instant View Once"
-                                style={{
-                                    transform: `scale(${viewerZoom})`,
-                                    transition: 'transform 0.15s ease-out'
-                                }}
-                                className={`w-full h-full object-cover select-none pointer-events-none transition-all ${isScreenBlurred ? 'blur-2xl opacity-20' : ''}`}
-                                onContextMenu={e => e.preventDefault()}
-                            />
+                            {/* Ambient Blur Backdrop */}
+                            {mediaUrl && (
+                                <div
+                                    className="absolute inset-0 bg-cover bg-center blur-3xl opacity-40 scale-110 pointer-events-none transition-all duration-500"
+                                    style={{ backgroundImage: `url(${mediaUrl})` }}
+                                />
+                            )}
+
+                            {/* Main Centered Snap Container */}
+                            <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
+                                <img
+                                    src={mediaUrl!}
+                                    alt="Instant View Once"
+                                    style={{
+                                        transform: `scale(${viewerZoom})`,
+                                        transition: 'transform 0.15s ease-out'
+                                    }}
+                                    className={`max-w-full max-h-full object-contain select-none pointer-events-none transition-all shadow-2xl ${isScreenBlurred ? 'blur-2xl opacity-20' : ''}`}
+                                    onContextMenu={e => e.preventDefault()}
+                                />
+                            </div>
 
                             {/* Screen Unfocused Privacy Overlay */}
                             {isScreenBlurred && (

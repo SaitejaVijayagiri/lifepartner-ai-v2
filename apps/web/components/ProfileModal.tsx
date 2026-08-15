@@ -287,6 +287,42 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
 
 
+                    {/* Story Highlights Reel */}
+                    {(() => {
+                        const highlightedStories = (profile.stories || []).filter((s: any) => s.isHighlight);
+                        if (highlightedStories.length === 0) return null;
+
+                        return (
+                            <div className="px-4 md:px-8 py-3 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-amber-50/50 via-purple-50/30 to-pink-50/50 dark:from-gray-800/40 dark:to-gray-800/20">
+                                <div className="flex items-center gap-1.5 text-xs font-extrabold text-gray-800 dark:text-gray-200 mb-2 tracking-wide uppercase">
+                                    <span className="text-amber-500">⭐</span>
+                                    <span>Profile Highlights</span>
+                                </div>
+                                <div className="flex items-center gap-3.5 overflow-x-auto no-scrollbar pb-1">
+                                    {highlightedStories.map((hStory: any, idx: number) => (
+                                        <div
+                                            key={hStory.id || idx}
+                                            className="flex flex-col items-center gap-1 cursor-pointer group flex-shrink-0"
+                                        >
+                                            <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-purple-500 to-pink-500 shadow-md group-hover:scale-105 transition-transform">
+                                                <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                    {hStory.type === 'video' ? (
+                                                        <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                    ) : (
+                                                        <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-400 truncate max-w-[60px]">
+                                                Highlight {idx + 1}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
+
                     {/* Sticky Tabs — with inline close button so X never overlaps */}
                     <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-40 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-0">

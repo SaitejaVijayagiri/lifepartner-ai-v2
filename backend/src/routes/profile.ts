@@ -1357,6 +1357,129 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
     }
 });
 
+// 6.6 POST /stories/:targetUserId/:storyId/react (Story Quick Reactions)
+router.post('/stories/:targetUserId/:storyId/react', authenticateToken, async (req: any, res) => {
+    try {
+        const reactorId = req.user.userId;
+        const { targetUserId, storyId } = req.params;
+        const { emoji } = req.body;
+
+        if (!emoji) return res.status(400).json({ error: 'Emoji is required' });
+        if (reactorId === targetUserId) return res.json({ success: true, ignored: true });
+
+        const reactor = await prisma.users.findUnique({
+            where: { id: reactorId },
+            include: { profiles: true }
+        });
+        if (!reactor) return res.status(404).json({ error: 'Reactor not found' });
+
+        const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
+        if (!targetProfile) return res.status(404).json({ error: 'Target profile not found' });
+
+        const stories = (targetProfile.stories as any[]) || [];
+        const storyIndex = stories.findIndex(s => s.id === storyId);
+        if (storyIndex === -1) return res.status(404).json({ error: 'Story not found' });
+
+        const story = stories[storyIndex];
+        let reactions: any[] = story.reactions || [];
+
+        // Remove existing reaction from this user if present, then push new one
+        reactions = reactions.filter((r: any) => r.userId !== reactorId);
+        reactions.push({
+            userId: reactorId,
+            name: reactor.full_name,
+            emoji,
+            reactedAt: new Date().toISOString()
+        });
+
+        stories[storyIndex].reactions = reactions;
+
+        await prisma.profiles.update({
+            where: { user_id: targetUserId },
+            data: { stories: stories as any }
+        });
+
+        // Trigger real-time notification to the story owner
+        try {
+            const reactorName = reactor.full_name || "Someone";
+            const msg = `${reactorName} reacted ${emoji} to your story!`;
+
+            const dbNotif = await prisma.notifications.create({
+                data: {
+                    user_id: targetUserId,
+                    type: 'story_reaction',
+                    message: msg,
+                    data: { fromUserId: reactorId, storyId, emoji }
+                }
+            });
+
+            let rawPhotoUrl = reactor.avatar_url || (reactor.profiles as any)?.photos?.[0] || null;
+            if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+                rawPhotoUrl = null;
+            }
+            const fromUserPhoto = rawPhotoUrl
+                ? sanitizePhotoUrl(rawPhotoUrl, reactorName)
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(reactorName)}&background=random&color=fff&size=256`;
+
+            const { getIO } = require('../socket');
+            const io = getIO();
+            io.to(targetUserId).emit('notification:new', {
+                id: dbNotif.id,
+                type: 'story_reaction',
+                message: msg,
+                fromUserName: reactorName,
+                fromUserPhoto: fromUserPhoto,
+                fromUserId: reactorId,
+                storyId,
+                emoji,
+                timestamp: new Date()
+            });
+
+            const { NotificationService } = require('../services/notification');
+            NotificationService.getInstance().sendToUser(
+                targetUserId,
+                "Story Reaction! ✨",
+                msg,
+                { type: 'story_reaction', fromUserId: reactorId, storyId, emoji }
+            ).catch((e: any) => console.warn("Push failed for story reaction alert", e));
+        } catch (notifErr) {
+            console.error("Failed to notify story owner of reaction:", notifErr);
+        }
+
+        res.json({ success: true, reactions: reactions.length });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to record story reaction', details: e.message });
+    }
+});
+
+// 6.7 POST /stories/:storyId/highlight (Toggle Story Highlight status)
+router.post('/stories/:storyId/highlight', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { storyId } = req.params;
+
+        const myProfile = await prisma.profiles.findUnique({ where: { user_id: userId } });
+        if (!myProfile) return res.status(404).json({ error: 'Profile not found' });
+
+        const stories = (myProfile.stories as any[]) || [];
+        const storyIndex = stories.findIndex(s => s.id === storyId);
+        if (storyIndex === -1) return res.status(404).json({ error: 'Story not found' });
+
+        const currentStatus = Boolean(stories[storyIndex].isHighlight);
+        const newStatus = !currentStatus;
+        stories[storyIndex].isHighlight = newStatus;
+
+        await prisma.profiles.update({
+            where: { user_id: userId },
+            data: { stories: stories as any }
+        });
+
+        res.json({ success: true, isHighlight: newStatus });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to toggle story highlight', details: e.message });
+    }
+});
+
 // 7. CLAIM PROFILE COMPLETION REWARD
 router.post('/claim-completion', authenticateToken, async (req: any, res) => {
     try {

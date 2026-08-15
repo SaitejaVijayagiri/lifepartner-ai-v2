@@ -539,24 +539,30 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             {s.type === 'emoji' ? (
                                 <div 
                                     style={{ 
-                                        transform: 'translate(-50%, -50%)',
-                                        fontSize: `clamp(${2 * (s.scale || 1)}rem, ${8 * (s.scale || 1)}vw, ${4.5 * (s.scale || 1)}rem)`,
-                                        filter: 'drop-shadow(0px 4px 10px rgba(0,0,0,0.5))',
-                                        userSelect: 'none'
+                                        transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
+                                        fontSize: '3.5rem',
+                                        filter: 'drop-shadow(0px 4px 12px rgba(0,0,0,0.6))',
+                                        userSelect: 'none',
+                                        lineHeight: 1
                                     }}
                                 >
                                     {s.content}
                                 </div>
                             ) : (
                                 <div 
-                                    className={`px-4 py-2 rounded-2xl shadow-xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/20`}
+                                    className={`p-3 px-5 rounded-2xl shadow-2xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/30 flex flex-col justify-center items-center text-center`}
                                     style={{ 
                                         transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
                                         whiteSpace: 'nowrap',
                                         userSelect: 'none'
                                     }}
                                 >
-                                    {s.content}
+                                    <span className="text-sm font-extrabold tracking-wide drop-shadow-md">{s.content}</span>
+                                    {s.subtext && (
+                                        <span className="text-[10px] opacity-80 font-medium tracking-widest uppercase mt-0.5 drop-shadow-sm">
+                                            {s.subtext}
+                                        </span>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -153,6 +153,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
         id: string;
         type: 'emoji' | 'badge';
         content: string;
+        subtext?: string;
         bgColor?: string;
         textColor?: string;
         x: number;
@@ -160,6 +161,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
         scale: number;
     }
     const [stickers, setStickers] = useState<StickerOverlay[]>([]);
+    const [activeStickerId, setActiveStickerId] = useState<string | null>(null);
     const [isSelectingSticker, setIsSelectingSticker] = useState(false);
     const [isDraggingSticker, setIsDraggingSticker] = useState(false);
     
@@ -726,54 +728,139 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             ))}
 
                     {/* Draggable Stickers Layer */}
-                    {!isAddingText && stickers.map((s, i) => (
-                        /* @ts-ignore */
-                        <Draggable
-                            key={s.id}
-                            defaultPosition={{ x: s.x, y: s.y }}
-                            onStart={() => setIsDraggingSticker(true)}
-                            onStop={(e, data) => {
-                                setIsDraggingSticker(false);
-                                const newStickers = [...stickers];
-                                newStickers[i] = { ...newStickers[i], x: data.x, y: data.y };
-                                
-                                if (previewContainerRef.current) {
-                                    const containerRect = previewContainerRef.current.getBoundingClientRect();
-                                    if (data.y > (containerRect.height / 2) - (containerRect.height * 0.2)) {
-                                        setStickers(stickers.filter(st => st.id !== s.id));
-                                        return;
+                    {!isAddingText && stickers.map((s, i) => {
+                        const isActive = activeStickerId === s.id;
+                        return (
+                            /* @ts-ignore */
+                            <Draggable
+                                key={s.id}
+                                defaultPosition={{ x: s.x, y: s.y }}
+                                onStart={() => {
+                                    setIsDraggingSticker(true);
+                                    setActiveStickerId(s.id);
+                                }}
+                                onStop={(e, data) => {
+                                    setIsDraggingSticker(false);
+                                    const newStickers = [...stickers];
+                                    newStickers[i] = { ...newStickers[i], x: data.x, y: data.y };
+                                    
+                                    if (previewContainerRef.current) {
+                                        const containerRect = previewContainerRef.current.getBoundingClientRect();
+                                        if (data.y > (containerRect.height / 2) - (containerRect.height * 0.2)) {
+                                            setStickers(stickers.filter(st => st.id !== s.id));
+                                            if (activeStickerId === s.id) setActiveStickerId(null);
+                                            return;
+                                        }
                                     }
-                                }
-                                setStickers(newStickers);
-                            }}
-                        >
-                            <div className="absolute top-1/2 left-1/2 cursor-move inline-block" style={{ zIndex: 22 }}>
-                                {s.type === 'emoji' ? (
-                                    <div 
-                                        style={{ 
-                                            transform: 'translate(-50%, -50%)',
-                                            fontSize: `clamp(${2 * s.scale}rem, ${8 * s.scale}vw, ${4.5 * s.scale}rem)`,
-                                            filter: 'drop-shadow(0px 4px 10px rgba(0,0,0,0.5))',
-                                            userSelect: 'none'
-                                        }}
-                                    >
-                                        {s.content}
-                                    </div>
-                                ) : (
-                                    <div 
-                                        className={`px-4 py-2 rounded-2xl shadow-xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/20`}
-                                        style={{ 
-                                            transform: `translate(-50%, -50%) scale(${s.scale})`,
-                                            whiteSpace: 'nowrap',
-                                            userSelect: 'none'
-                                        }}
-                                    >
-                                        {s.content}
-                                    </div>
-                                )}
-                            </div>
-                        </Draggable>
-                    ))}
+                                    setStickers(newStickers);
+                                }}
+                            >
+                                <div 
+                                    className="absolute top-1/2 left-1/2 cursor-move inline-block group"
+                                    style={{ zIndex: isActive ? 40 : 22 }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveStickerId(s.id);
+                                    }}
+                                >
+                                    {/* Active Highlight Ring */}
+                                    {isActive && (
+                                        <div className="absolute -inset-3 border-2 border-dashed border-pink-400 rounded-3xl pointer-events-none animate-pulse" />
+                                    )}
+
+                                    {/* Floating Zoom & Action Control Bar */}
+                                    {isActive && (
+                                        <div 
+                                            className="absolute -top-14 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-xl border border-white/20 text-white px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2.5 z-50 animate-in fade-in slide-in-from-bottom-2"
+                                            onClick={(e) => e.stopPropagation()}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onTouchStart={(e) => e.stopPropagation()}
+                                        >
+                                            <button 
+                                                onClick={() => {
+                                                    const newStickers = [...stickers];
+                                                    newStickers[i] = { ...newStickers[i], scale: Math.max(0.4, (newStickers[i].scale || 1) - 0.2) };
+                                                    setStickers(newStickers);
+                                                }}
+                                                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center transition-all"
+                                                title="Zoom Out"
+                                            >
+                                                -
+                                            </button>
+                                            
+                                            <input
+                                                type="range"
+                                                min="0.4"
+                                                max="3.5"
+                                                step="0.1"
+                                                value={s.scale || 1}
+                                                onChange={(e) => {
+                                                    const val = parseFloat(e.target.value);
+                                                    const newStickers = [...stickers];
+                                                    newStickers[i] = { ...newStickers[i], scale: val };
+                                                    setStickers(newStickers);
+                                                }}
+                                                className="w-20 accent-pink-500 bg-white/20 h-1.5 rounded-lg appearance-none cursor-pointer"
+                                            />
+
+                                            <button 
+                                                onClick={() => {
+                                                    const newStickers = [...stickers];
+                                                    newStickers[i] = { ...newStickers[i], scale: Math.min(3.5, (newStickers[i].scale || 1) + 0.2) };
+                                                    setStickers(newStickers);
+                                                }}
+                                                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center transition-all"
+                                                title="Zoom In"
+                                            >
+                                                +
+                                            </button>
+
+                                            <button 
+                                                onClick={() => {
+                                                    setStickers(stickers.filter(st => st.id !== s.id));
+                                                    setActiveStickerId(null);
+                                                }}
+                                                className="w-7 h-7 rounded-full bg-red-500/30 hover:bg-red-500/50 text-red-300 font-bold text-xs flex items-center justify-center transition-all"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {s.type === 'emoji' ? (
+                                        <div 
+                                            style={{ 
+                                                transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
+                                                fontSize: '3.5rem',
+                                                filter: 'drop-shadow(0px 4px 12px rgba(0,0,0,0.6))',
+                                                userSelect: 'none',
+                                                lineHeight: 1
+                                            }}
+                                        >
+                                            {s.content}
+                                        </div>
+                                    ) : (
+                                        <div 
+                                            className={`p-3 px-5 rounded-2xl shadow-2xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/30 flex flex-col justify-center items-center text-center`}
+                                            style={{ 
+                                                transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
+                                                whiteSpace: 'nowrap',
+                                                userSelect: 'none'
+                                            }}
+                                        >
+                                            <span className="text-sm font-extrabold tracking-wide drop-shadow-md">{s.content}</span>
+                                            {s.subtext && (
+                                                <span className="text-[10px] opacity-80 font-medium tracking-widest uppercase mt-0.5 drop-shadow-sm">
+                                                    {s.subtext}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </Draggable>
+                        );
+                    })}
 
                     {/* Trash Zone */}
                     {(isDraggingText || isDraggingSticker) && (
@@ -897,12 +984,14 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                 {isSelectingSticker && (
                     <StoryStickerPicker
                         onSelectSticker={(item: StickerItem) => {
+                            const newStickerId = Date.now().toString();
                             setStickers([
                                 ...stickers,
                                 {
-                                    id: Date.now().toString(),
+                                    id: newStickerId,
                                     type: item.type,
                                     content: item.content,
+                                    subtext: item.subtext,
                                     bgColor: item.bgColor,
                                     textColor: item.textColor,
                                     x: 0,
@@ -910,6 +999,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     scale: 1
                                 }
                             ]);
+                            setActiveStickerId(newStickerId);
                             setIsSelectingSticker(false);
                         }}
                         onClose={() => setIsSelectingSticker(false)}

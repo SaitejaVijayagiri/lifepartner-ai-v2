@@ -696,10 +696,23 @@ export default function MatchesTab({
                         api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
                     }}
                     onDelete={async (deletedId) => {
-                        await api.profile.deleteStory(deletedId);
-                        setActiveStorySet(null);
-                        api.profile.getMe().then(setCurrentUser);
-                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
+                        try {
+                            await api.profile.deleteStory(deletedId);
+                            if (currentUser && currentUser.stories) {
+                                const remainingStories = currentUser.stories.filter((s: any) => String(s.id) !== String(deletedId));
+                                setCurrentUser({ ...currentUser, stories: remainingStories });
+                            }
+                            setActiveStorySet(prev => {
+                                if (!prev) return null;
+                                const remaining = prev.stories.filter((s: any) => String(s.id) !== String(deletedId));
+                                if (remaining.length === 0) return null;
+                                return { ...prev, stories: remaining };
+                            });
+                            api.profile.getMe().then(setCurrentUser);
+                            api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
+                        } catch (e: any) {
+                            console.error('Delete Story Error:', e);
+                        }
                     }}
                     onStoryViewed={(storyId) => {
                         setActiveStorySet((prev: any) => {

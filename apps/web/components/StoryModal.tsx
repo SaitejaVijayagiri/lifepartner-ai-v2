@@ -570,6 +570,22 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     {story.stickers && Array.isArray(story.stickers) && story.stickers.map((s: any, i: number) => (
                         <div key={i} className="absolute top-1/2 left-1/2 pointer-events-none" style={{ zIndex: 22, transform: `translate(${s.x}px, ${s.y}px)` }}>
                             <div style={{ transform: `translate(-50%, -50%) scale(${s.scale || 1})`, transformOrigin: 'center center' }}>
+                                {/* Transparent GIPHY / Image Sticker */}
+                                {(s.type === 'giphy' || s.type === 'image') && s.imageUrl && (
+                                    <img 
+                                        src={s.imageUrl} 
+                                        alt={s.content} 
+                                        className="max-w-[180px] max-h-[180px] object-contain filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.6)]"
+                                    />
+                                )}
+
+                                {/* Aesthetic Calligraphy / Hand-Drawn Quote Sticker */}
+                                {s.type === 'aesthetic_text' && (
+                                    <div className={`text-2xl font-bold ${s.textColor || 'text-white'} ${s.extraData?.font || 'font-serif'} ${s.extraData?.style || 'normal'} drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-wide whitespace-nowrap`}>
+                                        {s.content}
+                                    </div>
+                                )}
+
                                 {/* Pure Emoji */}
                                 {s.type === 'emoji' && (
                                     <div 

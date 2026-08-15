@@ -151,12 +151,13 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     // Sticker Overlay State
     interface StickerOverlay {
         id: string;
-        type: 'emoji' | 'location' | 'question' | 'slider' | 'countdown' | 'addyours' | 'mention' | 'hashtag' | 'time' | 'badge';
+        type: 'giphy' | 'aesthetic_text' | 'doodle' | 'image' | 'emoji' | 'location' | 'question' | 'slider' | 'countdown' | 'addyours' | 'mention' | 'hashtag' | 'time' | 'badge';
         content: string;
         subtext?: string;
         bgColor?: string;
         textColor?: string;
         extraData?: any;
+        imageUrl?: string;
         x: number;
         y: number;
         scale: number;
@@ -382,11 +383,31 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
 
-                    stickers.forEach(s => {
+                    for (const s of stickers) {
                         const canvasX = (canvas.width / 2) + (s.x * scaleX);
                         const canvasY = (canvas.height / 2) + (s.y * scaleY);
                         
-                        if (s.type === 'emoji') {
+                        if (s.type === 'giphy' || s.type === 'image') {
+                            if (s.imageUrl) {
+                                try {
+                                    const img = new Image();
+                                    img.crossOrigin = 'anonymous';
+                                    img.src = s.imageUrl;
+                                    await new Promise((res) => { img.onload = res; img.onerror = res; });
+                                    const imgWidth = Math.floor(canvas.width * 0.3 * (s.scale || 1));
+                                    const imgHeight = (img.height / img.width) * imgWidth || imgWidth;
+                                    ctx.drawImage(img, canvasX - imgWidth / 2, canvasY - imgHeight / 2, imgWidth, imgHeight);
+                                } catch (e) {}
+                            }
+                        } else if (s.type === 'aesthetic_text') {
+                            const baseFontSize = Math.floor(canvas.width * 0.07);
+                            const fontSize = baseFontSize * (s.scale || 1);
+                            ctx.font = `italic bold ${fontSize}px Georgia, serif`;
+                            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                            ctx.shadowBlur = 12;
+                            ctx.fillStyle = s.textColor?.includes('pink') ? '#f472b6' : (s.textColor?.includes('amber') || s.textColor?.includes('gold') ? '#fcd34d' : '#ffffff');
+                            ctx.fillText(s.content, canvasX, canvasY);
+                        } else if (s.type === 'emoji') {
                             const baseFontSize = Math.floor(canvas.width * 0.12);
                             const fontSize = baseFontSize * (s.scale || 1);
                             ctx.font = `${fontSize}px sans-serif`;
@@ -429,7 +450,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             ctx.shadowColor = 'transparent';
                             ctx.fillText(s.content, canvasX, canvasY);
                         }
-                    });
+                    }
                 }
                 
                 // Extract blob
@@ -894,6 +915,22 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
 
                                     {/* Sticker Rendering Layer */}
                                     <div style={{ transform: `translate(-50%, -50%) scale(${s.scale || 1})`, transformOrigin: 'center center' }}>
+                                        {/* Transparent GIPHY / Image Sticker */}
+                                        {(s.type === 'giphy' || s.type === 'image') && s.imageUrl && (
+                                            <img 
+                                                src={s.imageUrl} 
+                                                alt={s.content} 
+                                                className="max-w-[180px] max-h-[180px] object-contain filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.6)] pointer-events-none select-none"
+                                            />
+                                        )}
+
+                                        {/* Aesthetic Calligraphy / Hand-Drawn Quote Sticker */}
+                                        {s.type === 'aesthetic_text' && (
+                                            <div className={`text-2xl font-bold ${s.textColor || 'text-white'} ${s.extraData?.font || 'font-serif'} ${s.extraData?.style || 'normal'} drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-wide whitespace-nowrap`}>
+                                                {s.content}
+                                            </div>
+                                        )}
+
                                         {/* Pure Emoji */}
                                         {s.type === 'emoji' && (
                                             <div 
@@ -1157,6 +1194,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     bgColor: item.bgColor,
                                     textColor: item.textColor,
                                     extraData: item.extraData,
+                                    imageUrl: item.imageUrl,
                                     x: 0,
                                     y: 0,
                                     scale: 1

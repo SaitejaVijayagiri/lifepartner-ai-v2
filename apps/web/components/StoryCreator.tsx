@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import StoryMusicStudio, { StoryMusicData } from './StoryMusicStudio';
 import StoryMusicSticker from './StoryMusicSticker';
+import StoryStickerPicker, { StickerItem } from './StoryStickerPicker';
 
 interface StoryCreatorProps {
     storyFiles: File[];
@@ -147,6 +148,21 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     const [currentBgStyle, setCurrentBgStyle] = useState<'plain' | 'highlight' | 'neon'>('plain');
     const [currentScale, setCurrentScale] = useState(1);
     
+    // Sticker Overlay State
+    interface StickerOverlay {
+        id: string;
+        type: 'emoji' | 'badge';
+        content: string;
+        bgColor?: string;
+        textColor?: string;
+        x: number;
+        y: number;
+        scale: number;
+    }
+    const [stickers, setStickers] = useState<StickerOverlay[]>([]);
+    const [isSelectingSticker, setIsSelectingSticker] = useState(false);
+    const [isDraggingSticker, setIsDraggingSticker] = useState(false);
+    
     // Drag State for Trash Zone
     const [isDraggingText, setIsDraggingText] = useState(false);
     
@@ -228,6 +244,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                 }
                 
                 if (texts.length > 0) formData.append('texts', JSON.stringify(texts));
+                if (stickers.length > 0) formData.append('stickers', JSON.stringify(stickers));
                 
                 finalData = formData;
             } else {
@@ -289,7 +306,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                         const canvasX = (canvas.width / 2) + (t.x * scaleX);
                         const canvasY = (canvas.height / 2) + (t.y * scaleY);
                         
-                        const lines = t.text.split('\\n');
+                        const lines = t.text.split('\n');
                         const baseFontSize = Math.floor(canvas.width * 0.08); // Base font size
                         const fontSize = baseFontSize * t.scale;
                         ctx.font = `bold ${fontSize}px ${t.fontFamily}`;
@@ -340,6 +357,74 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             lines.forEach((line, index) => {
                                 ctx.fillText(line, canvasX, startY + (index * lineHeight));
                             });
+                        }
+                    });
+                }
+
+                // Draw Sticker Overlays
+                if (stickers.length > 0 && previewContainerRef.current) {
+                    const containerRect = previewContainerRef.current.getBoundingClientRect();
+                    let viewWidth = containerRect.width;
+                    let viewHeight = containerRect.height;
+                    
+                    if (viewWidth / viewHeight > 9 / 16) {
+                        viewWidth = viewHeight * (9 / 16);
+                    } else {
+                        viewHeight = viewWidth / (9 / 16);
+                    }
+
+                    const scaleX = canvas.width / viewWidth;
+                    const scaleY = canvas.height / viewHeight;
+
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    stickers.forEach(s => {
+                        const canvasX = (canvas.width / 2) + (s.x * scaleX);
+                        const canvasY = (canvas.height / 2) + (s.y * scaleY);
+                        
+                        if (s.type === 'emoji') {
+                            const baseFontSize = Math.floor(canvas.width * 0.12);
+                            const fontSize = baseFontSize * (s.scale || 1);
+                            ctx.font = `${fontSize}px sans-serif`;
+                            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                            ctx.shadowBlur = 10;
+                            ctx.shadowOffsetX = 0;
+                            ctx.shadowOffsetY = 4;
+                            ctx.fillText(s.content, canvasX, canvasY);
+                        } else {
+                            const baseFontSize = Math.floor(canvas.width * 0.045);
+                            const fontSize = baseFontSize * (s.scale || 1);
+                            ctx.font = `bold ${fontSize}px sans-serif`;
+                            const metrics = ctx.measureText(s.content);
+                            const paddingX = fontSize * 0.8;
+                            const paddingY = fontSize * 0.4;
+                            
+                            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                            ctx.shadowBlur = 15;
+                            ctx.fillStyle = s.bgColor?.includes('purple') ? '#9333ea' : 
+                                            (s.bgColor?.includes('amber') || s.bgColor?.includes('yellow') ? '#f59e0b' : 
+                                            (s.bgColor?.includes('blue') || s.bgColor?.includes('cyan') ? '#2563eb' : 
+                                            (s.bgColor?.includes('emerald') || s.bgColor?.includes('teal') ? '#059669' : '#ec4899')));
+                            
+                            const rectWidth = metrics.width + (paddingX * 2);
+                            const rectHeight = fontSize + (paddingY * 2);
+                            const rectX = canvasX - (rectWidth / 2);
+                            const rectY = canvasY - (rectHeight / 2);
+                            const radius = rectHeight / 2;
+
+                            const ctxAny = ctx as any;
+                            ctxAny.beginPath();
+                            if (typeof ctxAny.roundRect === 'function') {
+                                ctxAny.roundRect(rectX, rectY, rectWidth, rectHeight, radius);
+                            } else {
+                                ctxAny.rect(rectX, rectY, rectWidth, rectHeight);
+                            }
+                            ctxAny.fill();
+
+                            ctx.fillStyle = s.textColor?.includes('black') ? '#000000' : '#ffffff';
+                            ctx.shadowColor = 'transparent';
+                            ctx.fillText(s.content, canvasX, canvasY);
                         }
                     });
                 }
@@ -394,16 +479,27 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                         <button 
                             onClick={() => setIsSelectingMusic(!isSelectingMusic)}
                             className={`text-white p-2 rounded-full transition-all ${selectedMusic !== 'none' || isSelectingMusic ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
+                            title="Add Background Music"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
                         </button>
                         {!isSlideshow && (
-                            <button 
-                                onClick={() => setIsAddingText(!isAddingText)}
-                                className={`text-white p-2 rounded-full transition-all font-serif font-bold text-xl leading-none w-10 h-10 flex items-center justify-center ${isAddingText || texts.length > 0 ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
-                            >
-                                Aa
-                            </button>
+                            <>
+                                <button 
+                                    onClick={() => setIsSelectingSticker(!isSelectingSticker)}
+                                    className={`text-white p-2 rounded-full transition-all text-xl w-10 h-10 flex items-center justify-center ${isSelectingSticker || stickers.length > 0 ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
+                                    title="Add Emojis & Stickers"
+                                >
+                                    😊
+                                </button>
+                                <button 
+                                    onClick={() => setIsAddingText(!isAddingText)}
+                                    className={`text-white p-2 rounded-full transition-all font-serif font-bold text-xl leading-none w-10 h-10 flex items-center justify-center ${isAddingText || texts.length > 0 ? 'bg-indigo-500' : 'bg-black/40 hover:bg-white/20'}`}
+                                    title="Add Text"
+                                >
+                                    Aa
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -629,12 +725,62 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                 </Draggable>
                             ))}
 
-                            {/* Trash Zone */}
-                            {isDraggingText && (
-                                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-red-500/90 backdrop-blur-md text-white p-4 rounded-full shadow-[0_0_30px_rgba(239,68,68,0.8)] z-50 animate-in fade-in slide-in-from-bottom-10 pointer-events-none">
-                                    <Trash2 size={32} />
-                                </div>
-                            )}
+                    {/* Draggable Stickers Layer */}
+                    {!isAddingText && stickers.map((s, i) => (
+                        /* @ts-ignore */
+                        <Draggable
+                            key={s.id}
+                            defaultPosition={{ x: s.x, y: s.y }}
+                            onStart={() => setIsDraggingSticker(true)}
+                            onStop={(e, data) => {
+                                setIsDraggingSticker(false);
+                                const newStickers = [...stickers];
+                                newStickers[i] = { ...newStickers[i], x: data.x, y: data.y };
+                                
+                                if (previewContainerRef.current) {
+                                    const containerRect = previewContainerRef.current.getBoundingClientRect();
+                                    if (data.y > (containerRect.height / 2) - (containerRect.height * 0.2)) {
+                                        setStickers(stickers.filter(st => st.id !== s.id));
+                                        return;
+                                    }
+                                }
+                                setStickers(newStickers);
+                            }}
+                        >
+                            <div className="absolute top-1/2 left-1/2 cursor-move inline-block" style={{ zIndex: 22 }}>
+                                {s.type === 'emoji' ? (
+                                    <div 
+                                        style={{ 
+                                            transform: 'translate(-50%, -50%)',
+                                            fontSize: `clamp(${2 * s.scale}rem, ${8 * s.scale}vw, ${4.5 * s.scale}rem)`,
+                                            filter: 'drop-shadow(0px 4px 10px rgba(0,0,0,0.5))',
+                                            userSelect: 'none'
+                                        }}
+                                    >
+                                        {s.content}
+                                    </div>
+                                ) : (
+                                    <div 
+                                        className={`px-4 py-2 rounded-2xl shadow-xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/20`}
+                                        style={{ 
+                                            transform: `translate(-50%, -50%) scale(${s.scale})`,
+                                            whiteSpace: 'nowrap',
+                                            userSelect: 'none'
+                                        }}
+                                    >
+                                        {s.content}
+                                    </div>
+                                )}
+                            </div>
+                        </Draggable>
+                    ))}
+
+                    {/* Trash Zone */}
+                    {(isDraggingText || isDraggingSticker) && (
+                        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-red-500/90 backdrop-blur-md text-white p-4 rounded-full shadow-[0_0_30px_rgba(239,68,68,0.8)] z-50 animate-in fade-in slide-in-from-bottom-10 pointer-events-none">
+                            <Trash2 size={32} />
+                        </div>
+                    )}
 
                             {/* Text Editing Mode */}
                             {isAddingText && (
@@ -744,6 +890,29 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             }
                         }}
                         onClose={() => setIsSelectingMusic(false)}
+                    />
+                )}
+
+                {/* Story Sticker & Emoji Picker Modal */}
+                {isSelectingSticker && (
+                    <StoryStickerPicker
+                        onSelectSticker={(item: StickerItem) => {
+                            setStickers([
+                                ...stickers,
+                                {
+                                    id: Date.now().toString(),
+                                    type: item.type,
+                                    content: item.content,
+                                    bgColor: item.bgColor,
+                                    textColor: item.textColor,
+                                    x: 0,
+                                    y: 0,
+                                    scale: 1
+                                }
+                            ]);
+                            setIsSelectingSticker(false);
+                        }}
+                        onClose={() => setIsSelectingSticker(false)}
                     />
                 )}
 

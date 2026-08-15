@@ -1003,6 +1003,13 @@ router.post('/stories', authenticateToken, (req, res, next) => {
                 console.error("Failed to parse story texts", e);
             }
         }
+        if (req.body.stickers) {
+            try {
+                newStory.stickers = JSON.parse(req.body.stickers);
+            } catch(e) {
+                console.error("Failed to parse story stickers", e);
+            }
+        }
 
         const finalStories = [...validStories, newStory];
 

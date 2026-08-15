@@ -532,6 +532,35 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             </div>
                         </div>
                     ))}
+
+                    {/* Dynamic Sticker & Emoji Overlays */}
+                    {story.stickers && Array.isArray(story.stickers) && story.stickers.map((s: any, i: number) => (
+                        <div key={i} className="absolute top-1/2 left-1/2 pointer-events-none" style={{ zIndex: 22, transform: `translate(${s.x}px, ${s.y}px)` }}>
+                            {s.type === 'emoji' ? (
+                                <div 
+                                    style={{ 
+                                        transform: 'translate(-50%, -50%)',
+                                        fontSize: `clamp(${2 * (s.scale || 1)}rem, ${8 * (s.scale || 1)}vw, ${4.5 * (s.scale || 1)}rem)`,
+                                        filter: 'drop-shadow(0px 4px 10px rgba(0,0,0,0.5))',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    {s.content}
+                                </div>
+                            ) : (
+                                <div 
+                                    className={`px-4 py-2 rounded-2xl shadow-xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/20`}
+                                    style={{ 
+                                        transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
+                                        whiteSpace: 'nowrap',
+                                        userSelect: 'none'
+                                    }}
+                                >
+                                    {s.content}
+                                </div>
+                            )}
+                        </div>
+                    ))}
                 </div>
 
                 {/* Navigation Tap Zones */}

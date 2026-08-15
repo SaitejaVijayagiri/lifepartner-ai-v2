@@ -15,6 +15,7 @@ import { api } from '@/lib/api';
 const KundliModal = dynamic(() => import('./KundliModal'), { ssr: false });
 const CoinStoreModal = dynamic(() => import('./CoinStoreModal'), { ssr: false });
 const CompatibilityModal = dynamic(() => import('./CompatibilityModal'), { ssr: false });
+const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
 interface ProfileModalProps {
     profile: any;
@@ -33,6 +34,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [showCoinStore, setShowCoinStore] = useState(false);
     const [showKundli, setShowKundli] = useState(false);
     const [showCosmicReport, setShowCosmicReport] = useState(false);
+    const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [sheetExpanded, setSheetExpanded] = useState(false);
     const dragStartY = useState(0);
@@ -302,6 +304,18 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     {highlightedStories.map((hStory: any, idx: number) => (
                                         <div
                                             key={hStory.id || idx}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveHighlightSet({
+                                                    stories: highlightedStories,
+                                                    initialIndex: idx,
+                                                    user: {
+                                                        id: profile.id,
+                                                        name: profile.name || profile.full_name || 'User',
+                                                        photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                    }
+                                                });
+                                            }}
                                             className="flex flex-col items-center gap-1 cursor-pointer group flex-shrink-0"
                                         >
                                             <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-purple-500 to-pink-500 shadow-md group-hover:scale-105 transition-transform">
@@ -748,7 +762,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
                 );
             })()}
-        </div >
+
+            {activeHighlightSet && (
+                <StoryModal
+                    stories={activeHighlightSet.stories}
+                    initialIndex={activeHighlightSet.initialIndex || 0}
+                    user={activeHighlightSet.user}
+                    currentUser={currentUser}
+                    onClose={() => setActiveHighlightSet(null)}
+                />
+            )}
+        </div>
     );
 }
 

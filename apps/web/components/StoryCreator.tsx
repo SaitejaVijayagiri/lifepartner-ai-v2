@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash2 } from 'lucide-react';
+import { Trash2, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import Draggable, { DraggableData, DraggableEvent } from 'react-draggable';
 import { api } from '@/lib/api';
@@ -151,11 +151,12 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     // Sticker Overlay State
     interface StickerOverlay {
         id: string;
-        type: 'emoji' | 'badge';
+        type: 'emoji' | 'location' | 'question' | 'slider' | 'countdown' | 'addyours' | 'mention' | 'hashtag' | 'time' | 'badge';
         content: string;
         subtext?: string;
         bgColor?: string;
         textColor?: string;
+        extraData?: any;
         x: number;
         y: number;
         scale: number;
@@ -756,19 +757,79 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                 }}
                             >
                                 <div 
-                                    className="absolute top-1/2 left-1/2 cursor-move inline-block group"
-                                    style={{ zIndex: isActive ? 40 : 22 }}
+                                    className="absolute top-1/2 left-1/2 cursor-move inline-block group select-none transition-transform duration-75"
+                                    style={{ zIndex: isActive ? 40 : 22, willChange: 'transform' }}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setActiveStickerId(s.id);
                                     }}
+                                    onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        const nextScale = (s.scale || 1) >= 2.5 ? 1.0 : (s.scale || 1) + 0.5;
+                                        const newStickers = [...stickers];
+                                        newStickers[i] = { ...newStickers[i], scale: nextScale };
+                                        setStickers(newStickers);
+                                    }}
+                                    onWheel={(e) => {
+                                        e.stopPropagation();
+                                        const delta = e.deltaY < 0 ? 0.1 : -0.1;
+                                        const newScale = Math.max(0.4, Math.min(4.0, (s.scale || 1) + delta));
+                                        const newStickers = [...stickers];
+                                        newStickers[i] = { ...newStickers[i], scale: parseFloat(newScale.toFixed(2)) };
+                                        setStickers(newStickers);
+                                    }}
                                 >
-                                    {/* Active Highlight Ring */}
+                                    {/* Active Highlight Bounding Box & Corner Scale Handles */}
                                     {isActive && (
-                                        <div className="absolute -inset-3 border-2 border-dashed border-pink-400 rounded-3xl pointer-events-none animate-pulse" />
+                                        <>
+                                            <div className="absolute -inset-3 border-2 border-dashed border-[#e1306c] rounded-2xl pointer-events-none animate-pulse" />
+                                            
+                                            {/* 4 Corner Resize Drag Handles */}
+                                            {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map((corner) => {
+                                                const posClass = 
+                                                    corner === 'top-left' ? '-top-4 -left-4 cursor-nwse-resize' :
+                                                    corner === 'top-right' ? '-top-4 -right-4 cursor-nesw-resize' :
+                                                    corner === 'bottom-left' ? '-bottom-4 -left-4 cursor-nesw-resize' :
+                                                    '-bottom-4 -right-4 cursor-nwse-resize';
+                                                
+                                                return (
+                                                    <div
+                                                        key={corner}
+                                                        className={`absolute w-5 h-5 rounded-full bg-[#e1306c] border-2 border-white shadow-lg z-50 hover:scale-150 transition-all ${posClass}`}
+                                                        onPointerDown={(pe) => {
+                                                            pe.stopPropagation();
+                                                            pe.preventDefault();
+                                                            const startX = pe.clientX;
+                                                            const startY = pe.clientY;
+                                                            const startScale = s.scale || 1;
+
+                                                            const onPointerMove = (moveEv: PointerEvent) => {
+                                                                const dx = moveEv.clientX - startX;
+                                                                const dy = moveEv.clientY - startY;
+                                                                const distance = Math.sqrt(dx * dx + dy * dy) * (corner.includes('top') ? -0.01 : 0.01);
+                                                                const updatedScale = Math.max(0.3, Math.min(4.5, startScale + distance));
+                                                                setStickers(prev => {
+                                                                    const updated = [...prev];
+                                                                    if (updated[i]) updated[i] = { ...updated[i], scale: parseFloat(updatedScale.toFixed(2)) };
+                                                                    return updated;
+                                                                });
+                                                            };
+
+                                                            const onPointerUp = () => {
+                                                                window.removeEventListener('pointermove', onPointerMove);
+                                                                window.removeEventListener('pointerup', onPointerUp);
+                                                            };
+
+                                                            window.addEventListener('pointermove', onPointerMove);
+                                                            window.addEventListener('pointerup', onPointerUp);
+                                                        }}
+                                                    />
+                                                );
+                                            })}
+                                        </>
                                     )}
 
-                                    {/* Floating Zoom & Action Control Bar */}
+                                    {/* Quick Controls Bar Above Active Sticker */}
                                     {isActive && (
                                         <div 
                                             className="absolute -top-14 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-xl border border-white/20 text-white px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2.5 z-50 animate-in fade-in slide-in-from-bottom-2"
@@ -791,7 +852,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                             <input
                                                 type="range"
                                                 min="0.4"
-                                                max="3.5"
+                                                max="4.0"
                                                 step="0.1"
                                                 value={s.scale || 1}
                                                 onChange={(e) => {
@@ -800,13 +861,13 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                                     newStickers[i] = { ...newStickers[i], scale: val };
                                                     setStickers(newStickers);
                                                 }}
-                                                className="w-20 accent-pink-500 bg-white/20 h-1.5 rounded-lg appearance-none cursor-pointer"
+                                                className="w-20 accent-[#e1306c] bg-white/20 h-1.5 rounded-lg appearance-none cursor-pointer"
                                             />
 
                                             <button 
                                                 onClick={() => {
                                                     const newStickers = [...stickers];
-                                                    newStickers[i] = { ...newStickers[i], scale: Math.min(3.5, (newStickers[i].scale || 1) + 0.2) };
+                                                    newStickers[i] = { ...newStickers[i], scale: Math.min(4.0, (newStickers[i].scale || 1) + 0.2) };
                                                     setStickers(newStickers);
                                                 }}
                                                 className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center transition-all"
@@ -828,35 +889,133 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                         </div>
                                     )}
 
-                                    {s.type === 'emoji' ? (
-                                        <div 
-                                            style={{ 
-                                                transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
-                                                fontSize: '3.5rem',
-                                                filter: 'drop-shadow(0px 4px 12px rgba(0,0,0,0.6))',
-                                                userSelect: 'none',
-                                                lineHeight: 1
-                                            }}
-                                        >
-                                            {s.content}
-                                        </div>
-                                    ) : (
-                                        <div 
-                                            className={`p-3 px-5 rounded-2xl shadow-2xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/30 flex flex-col justify-center items-center text-center`}
-                                            style={{ 
-                                                transform: `translate(-50%, -50%) scale(${s.scale || 1})`,
-                                                whiteSpace: 'nowrap',
-                                                userSelect: 'none'
-                                            }}
-                                        >
-                                            <span className="text-sm font-extrabold tracking-wide drop-shadow-md">{s.content}</span>
-                                            {s.subtext && (
-                                                <span className="text-[10px] opacity-80 font-medium tracking-widest uppercase mt-0.5 drop-shadow-sm">
-                                                    {s.subtext}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
+                                    {/* Sticker Rendering Layer */}
+                                    <div style={{ transform: `translate(-50%, -50%) scale(${s.scale || 1})`, transformOrigin: 'center center' }}>
+                                        {/* Pure Emoji */}
+                                        {s.type === 'emoji' && (
+                                            <div 
+                                                style={{ 
+                                                    fontSize: '3.5rem',
+                                                    filter: 'drop-shadow(0px 6px 14px rgba(0,0,0,0.6))',
+                                                    lineHeight: 1
+                                                }}
+                                            >
+                                                {s.content}
+                                            </div>
+                                        )}
+
+                                        {/* 📍 Location Sticker */}
+                                        {s.type === 'location' && (
+                                            <div className="bg-white text-[#e1306c] px-4 py-2 rounded-full font-black text-sm flex items-center gap-2 shadow-2xl border border-pink-100 whitespace-nowrap">
+                                                <MapPin size={18} fill="currentColor" />
+                                                <span className="tracking-wide uppercase">{s.content}</span>
+                                            </div>
+                                        )}
+
+                                        {/* 💬 Question Box Widget */}
+                                        {s.type === 'question' && (
+                                            <div className="w-[240px] rounded-2xl overflow-hidden shadow-2xl border border-white/30 whitespace-normal">
+                                                <div className={`bg-gradient-to-r ${s.bgColor || 'from-[#833ab4] via-[#fd1d1d] to-[#fcb045]'} p-3 text-white font-extrabold text-xs text-center flex flex-col items-center gap-1`}>
+                                                    <MessageSquareText size={18} />
+                                                    <span>{s.content}</span>
+                                                </div>
+                                                <div className="bg-white p-2.5 text-center text-gray-400 text-[11px] font-semibold">
+                                                    {s.subtext || 'Type something...'}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 😍 Emoji Reaction Slider Widget */}
+                                        {s.type === 'slider' && (
+                                            <div className="w-[240px] bg-gradient-to-r from-pink-600 via-rose-500 to-amber-500 p-3 rounded-2xl text-white shadow-2xl border border-white/30 flex flex-col gap-2">
+                                                <div className="font-extrabold text-xs text-center">{s.content}</div>
+                                                <div className="bg-black/30 backdrop-blur-md rounded-full h-6 px-2 flex items-center relative">
+                                                    <div className="w-full bg-white/30 h-1.5 rounded-full relative">
+                                                        <div className="absolute right-2 -top-2.5 text-lg">
+                                                            {s.extraData?.emoji || '😍'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* ⏳ Countdown Widget */}
+                                        {s.type === 'countdown' && (
+                                            <div className="w-[240px] bg-[#1a1a24] text-white p-3 rounded-2xl border border-white/30 shadow-2xl flex flex-col items-center gap-2">
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-pink-400">
+                                                    <Hourglass size={14} className="animate-spin" />
+                                                    <span>{s.content}</span>
+                                                </div>
+                                                <div className="flex gap-2 text-center">
+                                                    <div className="bg-white/10 px-2 py-1 rounded-lg">
+                                                        <div className="font-extrabold text-xs text-white">{s.extraData?.days || '02'}</div>
+                                                        <div className="text-[8px] text-white/50">DAYS</div>
+                                                    </div>
+                                                    <div className="text-white/40 self-center font-bold text-xs">:</div>
+                                                    <div className="bg-white/10 px-2 py-1 rounded-lg">
+                                                        <div className="font-extrabold text-xs text-white">{s.extraData?.hours || '14'}</div>
+                                                        <div className="text-[8px] text-white/50">HRS</div>
+                                                    </div>
+                                                    <div className="text-white/40 self-center font-bold text-xs">:</div>
+                                                    <div className="bg-white/10 px-2 py-1 rounded-lg">
+                                                        <div className="font-extrabold text-xs text-white">{s.extraData?.mins || '35'}</div>
+                                                        <div className="text-[8px] text-white/50">MINS</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 📸 Add Yours Widget */}
+                                        {s.type === 'addyours' && (
+                                            <div className="bg-black/70 backdrop-blur-xl border border-white/40 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2.5 whitespace-nowrap">
+                                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-yellow-400 via-rose-500 to-purple-600 flex items-center justify-center text-white">
+                                                    <Camera size={16} />
+                                                </div>
+                                                <div className="text-left">
+                                                    <div className="font-extrabold text-xs">{s.content}</div>
+                                                    <div className="text-[10px] text-white/60">{s.subtext}</div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 🏷️ Mention Sticker */}
+                                        {s.type === 'mention' && (
+                                            <div className={`bg-gradient-to-r ${s.bgColor || 'from-pink-500 to-rose-600'} text-white px-4 py-2 rounded-xl font-extrabold text-sm shadow-2xl flex items-center gap-1 border border-white/20 whitespace-nowrap`}>
+                                                <AtSign size={16} />
+                                                <span>{s.content.replace('@', '')}</span>
+                                            </div>
+                                        )}
+
+                                        {/* # Hashtag Sticker */}
+                                        {s.type === 'hashtag' && (
+                                            <div className="bg-[#262626] text-white px-4 py-2 rounded-xl font-black text-sm shadow-2xl border border-white/30 flex items-center gap-1 whitespace-nowrap">
+                                                <Hash size={16} className="text-pink-500" />
+                                                <span>{s.content.replace('#', '')}</span>
+                                            </div>
+                                        )}
+
+                                        {/* ⏰ Time Stamp */}
+                                        {s.type === 'time' && (
+                                            <div className="bg-black/70 backdrop-blur-md text-white px-4 py-2 rounded-xl font-mono font-black text-lg shadow-2xl border border-white/30 flex items-center gap-2 whitespace-nowrap">
+                                                <Clock size={18} className="text-amber-400" />
+                                                <span>{s.content}</span>
+                                            </div>
+                                        )}
+
+                                        {/* Badge / Fallback */}
+                                        {s.type === 'badge' && (
+                                            <div 
+                                                className={`p-3 px-5 rounded-2xl shadow-2xl ${s.bgColor || 'bg-pink-500'} ${s.textColor || 'text-white'} font-bold border border-white/30 flex flex-col justify-center items-center text-center whitespace-nowrap`}
+                                            >
+                                                <span className="text-sm font-extrabold tracking-wide drop-shadow-md">{s.content}</span>
+                                                {s.subtext && (
+                                                    <span className="text-[10px] opacity-80 font-medium tracking-widest uppercase mt-0.5 drop-shadow-sm">
+                                                        {s.subtext}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </Draggable>
                         );
@@ -994,6 +1153,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     subtext: item.subtext,
                                     bgColor: item.bgColor,
                                     textColor: item.textColor,
+                                    extraData: item.extraData,
                                     x: 0,
                                     y: 0,
                                     scale: 1

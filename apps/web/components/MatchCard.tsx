@@ -16,6 +16,7 @@ import { trackImageFailure } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
 const CompatibilityModal = dynamic(() => import('./CompatibilityModal'), { ssr: false });
+const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
 interface MatchCardProps {
     match: any;
@@ -51,6 +52,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [dmText, setDmText] = useState("");
     const [sendingDM, setSendingDM] = useState(false);
     const [showCosmicReport, setShowCosmicReport] = useState(false);
+    const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
 
     // Counts
     const [likeCount, setLikeCount] = useState(match.total_likes || 0);
@@ -234,14 +236,55 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
             {/* Status Stack: Stories, Voice Bio */}
             <div className={`absolute z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
-                {/* 1. Story Badge */}
-                {match.stories && match.stories.length > 0 && (
-                    <div className="pointer-events-auto" onClick={(e) => { e.stopPropagation(); if (onStoryClick) onStoryClick(); }}>
-                        <div className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 animate-pulse">
-                            <span>📸 New Story</span>
+                {/* 1. Story & Highlight Badges */}
+                {match.stories && match.stories.length > 0 && (() => {
+                    const highlightedStories = match.stories.filter((s: any) => s.isHighlight);
+                    return (
+                        <div className="pointer-events-auto flex items-center gap-1.5 flex-wrap">
+                            {highlightedStories.length > 0 && (
+                                <div 
+                                    className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 text-white text-[10px] font-black uppercase tracking-wide shadow-xl border-2 border-white/30 hover:scale-105 transition-transform"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveHighlightSet({
+                                            stories: highlightedStories,
+                                            initialIndex: 0,
+                                            user: {
+                                                id: match.id,
+                                                name: match.name,
+                                                photoUrl: match.photoUrl
+                                            }
+                                        });
+                                    }}
+                                >
+                                    <span>⭐ Highlights ({highlightedStories.length})</span>
+                                </div>
+                            )}
+
+                            <div 
+                                className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 hover:scale-105 transition-transform"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onStoryClick) {
+                                        onStoryClick();
+                                    } else {
+                                        setActiveHighlightSet({
+                                            stories: match.stories,
+                                            initialIndex: 0,
+                                            user: {
+                                                id: match.id,
+                                                name: match.name,
+                                                photoUrl: match.photoUrl
+                                            }
+                                        });
+                                    }
+                                }}
+                            >
+                                <span>📸 Story</span>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
 
                 {/* 3. Voice Bio */}
                 {match.voiceBioUrl && (
@@ -475,6 +518,15 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     onClose={() => setShowCosmicReport(false)}
                     targetUserId={match.id}
                     targetName={match.name}
+                />
+            )}
+            {activeHighlightSet && (
+                <StoryModal
+                    stories={activeHighlightSet.stories}
+                    initialIndex={activeHighlightSet.initialIndex || 0}
+                    user={activeHighlightSet.user}
+                    currentUser={currentUser}
+                    onClose={() => setActiveHighlightSet(null)}
                 />
             )}
         </div>

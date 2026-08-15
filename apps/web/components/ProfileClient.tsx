@@ -10,8 +10,10 @@ import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import Link from 'next/link';
-
+import dynamic from 'next/dynamic';
 import { formatLocationString } from '@/lib/utils';
+
+const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
 interface ProfileClientProps {
     initialProfile: any;
@@ -53,6 +55,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     const [likeCount, setLikeCount] = useState<number>(profile?.total_likes || 0);
     const [loadingInterest, setLoadingInterest] = useState<boolean>(false);
     const [loadingLike, setLoadingLike] = useState<boolean>(false);
+    const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
 
     useEffect(() => {
         if (profile) {
@@ -302,6 +305,54 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     </div>
                 </div>
 
+                {/* Profile Highlights Reel */}
+                {(() => {
+                    const highlightedStories = (profile?.stories || []).filter((s: any) => s.isHighlight);
+                    if (highlightedStories.length === 0) return null;
+
+                    return (
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl border border-white/60 space-y-3">
+                            <div className="flex items-center gap-2 text-xs font-black text-amber-500 uppercase tracking-widest">
+                                <Star size={16} fill="currentColor" />
+                                <span>Profile Highlights</span>
+                            </div>
+                            <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-1">
+                                {highlightedStories.map((hStory: any, idx: number) => (
+                                    <div
+                                        key={hStory.id || idx}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveHighlightSet({
+                                                stories: highlightedStories,
+                                                initialIndex: idx,
+                                                user: {
+                                                    id: profile.id,
+                                                    name: profile.name || profile.full_name || 'User',
+                                                    photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                }
+                                            });
+                                        }}
+                                        className="flex flex-col items-center gap-1.5 cursor-pointer group flex-shrink-0"
+                                    >
+                                        <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 transition-transform">
+                                            <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                {hStory.type === 'video' ? (
+                                                    <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                ) : (
+                                                    <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[64px]">
+                                            Highlight {idx + 1}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 {/* 2. Tabbed Content Area */}
                 <Tabs defaultValue="about" className="w-full">
                     <TabsList className="grid w-full grid-cols-3 mb-8 h-14 p-1 bg-gray-100/80 backdrop-blur-md rounded-2xl">
@@ -506,6 +557,16 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     </div>
                 )}
             </div>
+
+            {activeHighlightSet && (
+                <StoryModal
+                    stories={activeHighlightSet.stories}
+                    initialIndex={activeHighlightSet.initialIndex || 0}
+                    user={activeHighlightSet.user}
+                    currentUser={user}
+                    onClose={() => setActiveHighlightSet(null)}
+                />
+            )}
         </div>
     );
 }

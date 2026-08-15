@@ -1027,7 +1027,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
-                stories: meta.stories || [],
+                stories: (() => {
+                    const direct: any[] = (c.profiles?.stories as any[]) || [];
+                    const metaStories: any[] = (meta?.stories as any[]) || [];
+                    const combined = [...direct, ...metaStories.filter(m => !direct.some(d => String(d.id) === String(m.id)))];
+                    return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+                })(),
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,

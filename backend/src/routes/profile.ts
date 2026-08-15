@@ -118,8 +118,13 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             premium_expiry: user.premium_expiry, // Added Premium Expiry
             is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
             muted_users: meta.muted_users || [],
-            // Stories logic
-            stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()) // Only return active stories
+            // Stories logic (combine direct stories + metadata stories; include highlighted stories permanently)
+            stories: (() => {
+                const direct: any[] = (user.profiles?.stories as any[]) || [];
+                const metaStories: any[] = (meta?.stories as any[]) || [];
+                const combined = [...direct, ...metaStories.filter(m => !direct.some(d => String(d.id) === String(m.id)))];
+                return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+            })()
         };
 
         res.json(profile);
@@ -414,7 +419,12 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             dob: meta.dob || null,
             interests: meta.interests || [],
             summary: meta.summary || "",
-            stories: ((user.profiles?.stories as any[]) || []).filter((s: any) => new Date(s.expiresAt) > new Date()),
+            stories: (() => {
+                const direct: any[] = (user.profiles?.stories as any[]) || [];
+                const metaStories: any[] = (meta?.stories as any[]) || [];
+                const combined = [...direct, ...metaStories.filter(m => !direct.some(d => String(d.id) === String(m.id)))];
+                return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+            })(),
             match_status: matchStatus,
             is_liked: isLiked,
             ...contactInfo,

@@ -735,6 +735,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                             /* @ts-ignore */
                             <Draggable
                                 key={s.id}
+                                cancel=".resize-handle, button, input"
                                 defaultPosition={{ x: s.x, y: s.y }}
                                 onStart={() => {
                                     setIsDraggingSticker(true);
@@ -795,7 +796,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                                 return (
                                                     <div
                                                         key={corner}
-                                                        className={`absolute w-5 h-5 rounded-full bg-[#e1306c] border-2 border-white shadow-lg z-50 hover:scale-150 transition-all ${posClass}`}
+                                                        className={`resize-handle absolute w-6 h-6 rounded-full bg-[#e1306c] border-2 border-white shadow-xl z-50 hover:scale-150 active:scale-125 transition-all flex items-center justify-center ${posClass}`}
                                                         onPointerDown={(pe) => {
                                                             pe.stopPropagation();
                                                             pe.preventDefault();
@@ -806,7 +807,7 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                                             const onPointerMove = (moveEv: PointerEvent) => {
                                                                 const dx = moveEv.clientX - startX;
                                                                 const dy = moveEv.clientY - startY;
-                                                                const distance = Math.sqrt(dx * dx + dy * dy) * (corner.includes('top') ? -0.01 : 0.01);
+                                                                const distance = Math.sqrt(dx * dx + dy * dy) * (corner.includes('top') ? -0.015 : 0.015);
                                                                 const updatedScale = Math.max(0.3, Math.min(4.5, startScale + distance));
                                                                 setStickers(prev => {
                                                                     const updated = [...prev];
@@ -823,7 +824,9 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                                             window.addEventListener('pointermove', onPointerMove);
                                                             window.addEventListener('pointerup', onPointerUp);
                                                         }}
-                                                    />
+                                                    >
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                                    </div>
                                                 );
                                             })}
                                         </>

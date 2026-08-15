@@ -89,9 +89,15 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     };
 
     // Resolve currentUser's ID — backend /profile/me returns 'userId', not 'id'
-    const currentUserId = currentUser?.id || currentUser?.userId;
-    // isOwner = true when this story belongs to the logged-in user
-    const isOwner = !!currentUserId && (user.id === currentUserId);
+    const currentUserId = currentUser?.id || currentUser?.userId || currentUser?._id;
+    const storyUserId = user?.id || (user as any)?.userId || (user as any)?._id || story?.userId || story?.user_id;
+    const isOwner = Boolean(
+        (currentUserId && storyUserId && String(currentUserId) === String(storyUserId)) ||
+        storyUserId === 'me' ||
+        currentUserId === 'me'
+    );
+    
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     
     // Audio and Video Refs
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -217,19 +223,46 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         }
     }, [isPaused]);
 
-    // Auto-advance Timer (Only for Images)
+    // Auto-advance Timer for Images (Syncs with music audio if music is present)
     useEffect(() => {
         if (!story || isPaused || story.type === 'video') return;
 
-        const timer = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) return 100;
-                return prev + 1;
-            });
-        }, 40);
+        const parsedMusic = getParsedMusic();
 
-        return () => clearInterval(timer);
-    }, [currentIndex, isPaused, story?.type]);
+        if (parsedMusic) {
+            const audio = audioRef.current;
+            if (!audio) return;
+
+            const handleTimeUpdate = () => {
+                if (audio.duration > 0) {
+                    const pct = (audio.currentTime / audio.duration) * 100;
+                    setProgress(Math.min(100, pct));
+                }
+            };
+
+            const handleEnded = () => {
+                setProgress(100);
+            };
+
+            audio.addEventListener('timeupdate', handleTimeUpdate);
+            audio.addEventListener('ended', handleEnded);
+
+            return () => {
+                audio.removeEventListener('timeupdate', handleTimeUpdate);
+                audio.removeEventListener('ended', handleEnded);
+            };
+        } else {
+            // Normal image story without music (7 seconds total viewing duration)
+            const timer = setInterval(() => {
+                setProgress((prev) => {
+                    if (prev >= 100) return 100;
+                    return prev + 1.4;
+                });
+            }, 100);
+
+            return () => clearInterval(timer);
+        }
+    }, [currentIndex, isPaused, story?.type, story?.id, story?.music]);
 
     // Advanced Multi-Asset Preloader Engine (Pre-fetches +1 and +2 story assets)
     useEffect(() => {
@@ -439,12 +472,12 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                     <Star size={18} fill={isHighlighted ? 'currentColor' : 'none'} />
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        if (window.confirm('Are you sure you want to delete this story?')) {
-                                            onDelete?.(story.id);
-                                        }
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsConfirmingDelete(true);
                                     }}
-                                    className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors"
+                                    className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-full text-white backdrop-blur-sm transition-colors cursor-pointer"
+                                    title="Delete Story"
                                 >
                                     <Trash2 size={18} />
                                 </button>
@@ -907,6 +940,44 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                 );
                             })
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isConfirmingDelete && (
+                <div 
+                    className="absolute inset-0 bg-black/80 backdrop-blur-md z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="bg-[#1e1e24] border border-white/20 p-6 rounded-3xl max-w-xs w-full text-center space-y-4 shadow-2xl">
+                        <div className="w-14 h-14 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto border border-red-500/30">
+                            <Trash2 size={28} />
+                        </div>
+                        <div>
+                            <h3 className="text-white font-extrabold text-lg">Delete Story?</h3>
+                            <p className="text-white/60 text-xs mt-1">This story will be permanently removed from your profile and feed.</p>
+                        </div>
+                        <div className="flex gap-3 pt-2">
+                            <button
+                                onClick={() => setIsConfirmingDelete(false)}
+                                className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setIsConfirmingDelete(false);
+                                    if (onDelete && story?.id) {
+                                        await onDelete(story.id);
+                                        toast.success('Story deleted! 🗑️');
+                                    }
+                                }}
+                                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-red-500/30 cursor-pointer"
+                            >
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

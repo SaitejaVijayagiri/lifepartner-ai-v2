@@ -23,7 +23,10 @@ export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[]
     
     for (const s of (metaStories || [])) {
         if (s && s.id) {
-            storyMap.set(String(s.id), { ...s });
+            storyMap.set(String(s.id), {
+                ...s,
+                isHighlight: Boolean(s.isHighlight || s.is_highlight)
+            });
         }
     }
     
@@ -31,14 +34,18 @@ export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[]
         if (s && s.id) {
             const sid = String(s.id);
             const existing = storyMap.get(sid);
+            const isH = Boolean(s.isHighlight || s.is_highlight || existing?.isHighlight);
             if (existing) {
                 storyMap.set(sid, {
                     ...existing,
                     ...s,
-                    isHighlight: Boolean(s.isHighlight ?? existing.isHighlight)
+                    isHighlight: isH
                 });
             } else {
-                storyMap.set(sid, { ...s });
+                storyMap.set(sid, {
+                    ...s,
+                    isHighlight: isH
+                });
             }
         }
     }

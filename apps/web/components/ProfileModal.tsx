@@ -182,6 +182,34 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Gradient Overlay for Text Readability (Subtler) */}
                     <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end p-6 z-20 pointer-events-none">
+                        {/* Highlight Badge on Cover */}
+                        {(() => {
+                            const highlights = (profile.stories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
+                            if (highlights.length === 0) return null;
+                            return (
+                                <div className="pointer-events-auto mb-2 flex items-center">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveHighlightSet({
+                                                stories: highlights,
+                                                initialIndex: 0,
+                                                user: {
+                                                    id: profile.id,
+                                                    name: profile.name || profile.full_name || 'User',
+                                                    photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                }
+                                            });
+                                        }}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 text-white text-[11px] font-black uppercase tracking-wide shadow-xl border border-white/30 hover:scale-105 transition-transform"
+                                    >
+                                        <span>⭐ Highlights ({highlights.length})</span>
+                                    </button>
+                                </div>
+                            );
+                        })()}
+
                         <div className="flex items-center gap-2 mb-1">
                             <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-center gap-2">
                                 {profile.name}, {profile.age}
@@ -291,7 +319,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Story Highlights Reel */}
                     {(() => {
-                        const highlightedStories = (profile.stories || []).filter((s: any) => s.isHighlight);
+                        const highlightedStories = (profile.stories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
                         if (highlightedStories.length === 0) return null;
 
                         return (

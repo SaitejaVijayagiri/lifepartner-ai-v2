@@ -652,7 +652,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
 
-                stories: meta.stories || [],
+                stories: mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []),
                 total_likes: c._count.matches_matches_user_b_idTousers || 0,
                 total_gifts: giftMap.get(c.id) || 0,
                 match_status: matchStatus,

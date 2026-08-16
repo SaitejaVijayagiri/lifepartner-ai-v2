@@ -307,7 +307,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                 {/* Profile Highlights Reel */}
                 {(() => {
-                    const highlightedStories = (profile?.stories || []).filter((s: any) => s.isHighlight);
+                    const highlightedStories = (profile?.stories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
                     if (highlightedStories.length === 0) return null;
 
                     return (
@@ -371,7 +371,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                 <span className="p-2 bg-amber-50 rounded-xl text-amber-500 text-lg">⭐</span> Story Highlights
                             </h3>
                             {(() => {
-                                const highlightedStories = (profile?.stories || []).filter((s: any) => s.isHighlight);
+                                const highlightedStories = (profile?.stories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
                                 if (highlightedStories.length === 0) {
                                     const isOwner = user && (String(user.id || (user as any)?.userId) === String(profile.id || profile.user_id));
                                     return (

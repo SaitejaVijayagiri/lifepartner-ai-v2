@@ -62,17 +62,6 @@ export default function Navbar() {
                     </span>
                 </Link>
 
-                {/* Live Stats (Visible to All) */}
-                {publicStats.onlineCount > 0 && (
-                    <div className="hidden lg:flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full border border-green-100 ml-4 animate-in fade-in zoom-in duration-500">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                        <span className="text-xs font-bold text-green-700">{publicStats.onlineCount} Online</span>
-                    </div>
-                )}
-
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex space-x-6 lg:space-x-8 items-center">
                     <Link
@@ -145,16 +134,7 @@ export default function Navbar() {
                 </div>
 
                 {/* Mobile Controls: Hamburger Menu */}
-                <div className="md:hidden flex items-center gap-2">
-                    {publicStats.onlineCount > 0 && (
-                        <div className="flex items-center gap-1 bg-green-50 dark:bg-green-950/60 px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                            </span>
-                            <span className="text-[10px] font-bold text-green-700 dark:text-green-300">{publicStats.onlineCount} Online</span>
-                        </div>
-                    )}
+                <div className="md:hidden flex items-center">
                     <button
                         className="p-2 text-gray-700 dark:text-gray-200 hover:text-indigo-600 transition-colors rounded-xl bg-gray-100/80 dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

@@ -232,16 +232,14 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
         }
     }, [isPaused]);
 
-    // Auto-advance Timer for Images (Syncs with music audio if music is present)
+    // Auto-advance Timer for Images (Syncs with music audio if music is present, falls back to 7s timer)
     useEffect(() => {
         if (!story || isPaused || story.type === 'video') return;
 
         const parsedMusic = getParsedMusic();
+        const audio = audioRef.current;
 
-        if (parsedMusic) {
-            const audio = audioRef.current;
-            if (!audio) return;
-
+        if (parsedMusic && audio) {
             const handleTimeUpdate = () => {
                 if (audio.duration > 0) {
                     const pct = (audio.currentTime / audio.duration) * 100;
@@ -261,7 +259,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 audio.removeEventListener('ended', handleEnded);
             };
         } else {
-            // Normal image story without music (7 seconds total viewing duration)
+            // Normal image story (7 seconds total viewing duration)
             const timer = setInterval(() => {
                 setProgress((prev) => {
                     if (prev >= 100) return 100;
@@ -271,7 +269,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
 
             return () => clearInterval(timer);
         }
-    }, [currentIndex, isPaused, story?.type, story?.id, story?.music]);
+    }, [currentIndex, isPaused, story?.type, story?.id, story?.music, audioRef.current]);
 
     // Advanced Multi-Asset Preloader Engine (Pre-fetches +1 and +2 story assets)
     useEffect(() => {

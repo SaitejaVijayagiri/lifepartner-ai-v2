@@ -137,6 +137,9 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                     </div>
                 </div>
 
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 h-full md:h-auto">
+
                     {activeTab === 'highlights' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
                             {/* Key Highlights Card */}

@@ -117,8 +117,24 @@ export default function LoginPage() {
 
                 <div className="max-w-md w-full bg-white dark:bg-gray-950 p-10 rounded-3xl shadow-xl space-y-8 relative z-20 border border-gray-100 dark:border-gray-800 animate-in fade-in slide-in-from-right-8 duration-700">
                     <div className="text-center">
+                        <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-6 border border-gray-200 dark:border-gray-800">
+                            <button
+                                type="button"
+                                className="flex-1 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md transition-all"
+                            >
+                                Sign In
+                            </button>
+                            <Link href="/register?new=true" className="flex-1">
+                                <button
+                                    type="button"
+                                    className="w-full py-2.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+                                >
+                                    Create New Account
+                                </button>
+                            </Link>
+                        </div>
                         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Welcome Back</h2>
-                        <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-2 text-sm font-medium">Please enter your details to sign in.</p>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm font-medium">Please enter your details to sign in.</p>
                     </div>
 
                     <div className="space-y-5">
@@ -199,9 +215,15 @@ export default function LoginPage() {
                         </button>
                     </div>
 
-                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 pt-2">
+                    <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2">
                         Don't have an account? <Link href="/register?new=true" className="text-indigo-600 font-bold hover:text-indigo-800 transition-colors hover:underline decoration-indigo-200 underline-offset-4">Create one for free</Link>
                     </p>
+
+                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-4 text-[11px] text-gray-400 font-medium">
+                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-bold">🔒 256-Bit SSL Secured</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold">🛡️ Verified Profiles</span>
+                    </div>
                 </div>
             </div>
         </div>

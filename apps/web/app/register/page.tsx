@@ -328,6 +328,22 @@ function RegisterForm() {
             <div className="w-full lg:w-7/12 flex items-center justify-center p-4 relative z-10">
                 <div className="max-w-sm w-full bg-white dark:bg-gray-950 p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in slide-in-from-right-8 duration-700 ring-1 ring-gray-100">
                     <div className="text-center">
+                        <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-6 border border-gray-200 dark:border-gray-800">
+                            <Link href="/login" className="flex-1">
+                                <button
+                                    type="button"
+                                    className="w-full py-2.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+                                >
+                                    Sign In
+                                </button>
+                            </Link>
+                            <button
+                                type="button"
+                                className="flex-1 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md transition-all"
+                            >
+                                Create New Account
+                            </button>
+                        </div>
                         <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Create Account</h2>
                         <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm font-medium">
                             {isDating ? '100% Free Worldwide Dating • Instant Free Messaging.' : 'Begin your journey to a happy marriage.'}

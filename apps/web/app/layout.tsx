@@ -12,6 +12,7 @@ import NotificationToastBanner from '@/components/NotificationToastBanner';
 import DateSafetyOverlay from '@/components/DateSafetyOverlay';
 import PageViewTracker from '@/components/PageViewTracker';
 import GlobalViewsBadge from '@/components/GlobalViewsBadge';
+import AppModeHandler from '@/components/AppModeHandler';
 
 const fontSans = DM_Sans({
   variable: "--font-sans",
@@ -226,6 +227,7 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ClientProviders>
+            <AppModeHandler />
             <PageViewTracker />
             <NetworkStatus />
             {children}

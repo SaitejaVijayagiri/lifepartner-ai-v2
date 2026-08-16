@@ -63,6 +63,53 @@ export default function MessageToastBanner() {
                 text: preview,
             };
 
+            // Play audio notification chime
+            try {
+                const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 note
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5 note
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch (e) {
+                // Fallback to audio element if available
+                try {
+                    const audio = new Audio('/sounds/ringtone.wav');
+                    audio.volume = 0.5;
+                    audio.play().catch(() => {});
+                } catch (err) {}
+            }
+
+            // Fire native browser / device push notification if tab is hidden or backgrounded
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    try {
+                        const notif = new Notification(newToast.senderName, {
+                            body: preview,
+                            icon: newToast.senderPhoto || '/icon-192x192.png',
+                            badge: '/icon-192x192.png',
+                            tag: `chat-${newToast.senderId}`,
+                        });
+                        notif.onclick = () => {
+                            window.focus();
+                            router.push(`/chat/${newToast.senderId}`);
+                            notif.close();
+                        };
+                    } catch (e) {
+                        console.error('Native notification error:', e);
+                    }
+                } else if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+            }
+
             setToasts(prev => {
                 // Max 3 toasts at once, replace existing toast from same sender
                 const updated = [...prev.filter(t => t.senderId !== msg.senderId), newToast];

@@ -511,12 +511,21 @@ export default function LandingPageClient() {
                         onChange={(e) => setQuickCountry(e.target.value)}
                         className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                       >
-                        <option value="Worldwide">Worldwide</option>
-                        <option value="USA">USA</option>
-                        <option value="India">India</option>
-                        <option value="UK">United Kingdom</option>
-                        <option value="Canada">Canada</option>
-                        <option value="Australia">Australia</option>
+                        <option value="Worldwide">Worldwide (190+ Countries)</option>
+                        <option value="Japan">Japan 🇯🇵</option>
+                        <option value="South Korea">South Korea 🇰🇷</option>
+                        <option value="China">China / Hong Kong 🇨🇳</option>
+                        <option value="Philippines">Philippines 🇵🇭</option>
+                        <option value="Indonesia">Indonesia 🇮🇩</option>
+                        <option value="Malaysia">Malaysia 🇲🇾</option>
+                        <option value="Vietnam">Vietnam 🇻🇳</option>
+                        <option value="Venezuela">Venezuela 🇻🇪</option>
+                        <option value="Brazil">Brazil 🇧🇷</option>
+                        <option value="Africa">Africa (Nigeria, Kenya, SA) 🌍</option>
+                        <option value="USA">USA & Canada 🇺🇸🇨🇦</option>
+                        <option value="UK">United Kingdom & Europe 🇬🇧🇪🇺</option>
+                        <option value="India">India 🇮🇳</option>
+                        <option value="Australia">Australia 🇦🇺</option>
                       </select>
                     </div>
                   </div>

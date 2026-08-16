@@ -67,8 +67,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // --- Programmatic SEO Routes ---
     const CITIES = [
         'Bangalore', 'Mumbai', 'Chennai', 'Delhi', 'Hyderabad', 'Pune', 'Kolkata', 'Ahmedabad', 'Surat', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Patna', 'Vadodara', 'Ghaziabad',
-        // Worldwide / NRI Cities
-        'London', 'New-York', 'Los-Angeles', 'Chicago', 'Houston', 'Dallas', 'San-Francisco', 'San-Jose', 'Seattle', 'Toronto', 'Vancouver', 'Sydney', 'Melbourne', 'Dubai', 'Singapore'
+        // Worldwide / International Cities & Country Hubs
+        'London', 'New-York', 'Los-Angeles', 'Chicago', 'Houston', 'Dallas', 'San-Francisco', 'San-Jose', 'Seattle', 'Toronto', 'Vancouver', 'Sydney', 'Melbourne', 'Dubai', 'Singapore',
+        'Tokyo', 'Osaka', 'Seoul', 'Beijing', 'Shanghai', 'Hong-Kong', 'Manila', 'Jakarta', 'Kuala-Lumpur', 'Ho-Chi-Minh', 'Bangkok',
+        'Caracas', 'Sao-Paulo', 'Rio-de-Janeiro', 'Mexico-City', 'Buenos-Aires',
+        'Lagos', 'Nairobi', 'Johannesburg', 'Cairo', 'Paris', 'Berlin', 'Madrid', 'Rome'
     ];
     const COMMUNITIES = ['Brahmin', 'Iyer', 'Iyengar', 'Reddy', 'Kamma', 'Kapu', 'Ezhava', 'Nair', 'Muslim-Sunni', 'Muslim-Shia', 'Christian-Roman-Catholic', 'Sikh-Jat', 'Aggarwal', 'Baniya', 'Yadav', 'Kayastha', 'Maratha', 'Rajput', 'Jain-Digambar', 'Jain-Shwetambar'];
     const PROFESSIONS = ['Software-Engineer', 'Doctor', 'Civil-Engineer', 'Chartered-Accountant', 'IAS-IPS', 'Teacher', 'Professor', 'Lawyer', 'Architect', 'Business-Owner'];
@@ -82,7 +85,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'talk-to-single-indian-girls',
         'free-matrimony-chat-without-payment',
         'nri-matrimony-chat',
-        'global-chat-with-verified-singles'
+        'global-chat-with-verified-singles',
+        'chat-with-singles-japan',
+        'chat-with-singles-korea',
+        'chat-with-singles-philippines',
+        'chat-with-singles-indonesia',
+        'chat-with-singles-vietnam',
+        'chat-with-singles-venezuela',
+        'chat-with-singles-africa',
+        'safe-dating-app-for-women'
     ];
 
     const cityRoutes = CITIES.map(city => ({

@@ -4,41 +4,53 @@ import LandingPageClient from '@/components/LandingPageClient';
 // 1. GENERATE METADATA FOR GLOBAL BROWSER RANKINGS (Server Side)
 export const metadata: Metadata = {
   title: 'LifePartner AI | #1 Free Worldwide Dating, Matrimony & Snaps App',
-  description: "The world's first AI-powered 100% free worldwide dating and matrimony platform. Experience Snaps, 24h Stories, Music Vibe matching & instant direct chat with verified singles in USA, UK, Canada, Australia, India, Europe & worldwide with zero paywalls.",
+  description: "The world's first AI-powered 100% free worldwide dating and matrimony platform. Connect & chat with verified singles in USA, UK, Japan, Korea, China, Philippines, Indonesia, Malaysia, Vietnam, Venezuela, Africa, India, Europe & worldwide with zero paywalls.",
   keywords: [
-    // Worldwide Dating & Chat Keywords
-    "Worldwide Dating App", "Free Worldwide Dating", "Global Matchmaking", "NRI Dating App", "Free Dating App Worldwide",
+    // Global & Multi-Country Target Keywords
+    "Worldwide Dating App", "Free Worldwide Dating", "Global Matchmaking App", "NRI Dating App", "Free Dating App Worldwide",
+    "Japan Dating App", "Tokyo Matchmaking", "South Korea Dating App", "Seoul Matchmaking", "China Dating App",
+    "Philippines Dating App", "Manila Singles Chat", "Indonesia Dating App", "Aplikasi Cari Jodoh Gratis",
+    "Malaysia Dating App", "Vietnam Dating App", "App Hẹn Hò Miễn Phí", "Venezuela Dating App", "Citas Gratis Venezuela",
+    "Africa Dating App", "Nigeria Matchmaking", "Kenya Singles", "Latin America Dating", "International Singles Chat",
+    
+    // Snaps, Stories & Music Features
     "Instant Photo Snaps Dating", "24h Stories Dating App", "Music Match Dating App", "Spotify Playlist Dating",
-    "Online Dating USA", "Online Dating UK", "Online Dating Canada", "Online Dating Australia", "International Singles Chat",
+    "Screenshot Proof Snaps", "Safe Dating App for Women", "Verified Single Profiles",
     
     // Matrimony & Marriage Keywords
-    "Matrimony", "Free Matrimony App", "NRI Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Hindi Matrimony", "Best Matchmaking Site",
-    "AI Dating App", "Free Chat Matrimony", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony Alternative",
-    "100% Free Matchmaking", "Direct Chat Matrimony", "No Subscription Dating", "Verified Single Profiles",
+    "Free Matrimony App", "Global Matrimony", "NRI Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Hindi Matrimony", "Best Matchmaking Site",
+    "AI Dating App", "Free Chat Matrimony", "Jeevansathi Alternative", "Shaadi Alternative", "Bumble Alternative",
+    "100% Free Matchmaking", "Direct Chat Matrimony", "No Subscription Dating",
     
     // Multilingual & Multi-region Terms
-    "Dating App USA", "Dating App India", "Dating App UK", "Dating App Europe", "Citas Gratis en Todo el Mundo",
-    "फ्री डेटिंग ऐप", "ఉచిత మ్యాట్రిమోనీ చాట్", "இலவச டேட்டிங் ஆப்", "App de Rencontres Gratuite", "Kostenlose Dating App"
+    "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
+    "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "婚恋交友", "App de Rencontres Gratuite"
   ],
   alternates: {
     canonical: 'https://lifepartnerai.in',
     languages: {
       'en': 'https://lifepartnerai.in',
       'es': 'https://lifepartnerai.in?lang=es',
+      'ja': 'https://lifepartnerai.in?lang=ja',
+      'ko': 'https://lifepartnerai.in?lang=ko',
+      'zh': 'https://lifepartnerai.in?lang=zh',
+      'tl': 'https://lifepartnerai.in?lang=tl',
+      'id': 'https://lifepartnerai.in?lang=id',
+      'ms': 'https://lifepartnerai.in?lang=ms',
+      'vi': 'https://lifepartnerai.in?lang=vi',
+      'th': 'https://lifepartnerai.in?lang=th',
       'hi': 'https://lifepartnerai.in?lang=hi',
       'te': 'https://lifepartnerai.in?lang=te',
       'ta': 'https://lifepartnerai.in?lang=ta',
       'fr': 'https://lifepartnerai.in?lang=fr',
       'de': 'https://lifepartnerai.in?lang=de',
-      'ar': 'https://lifepartnerai.in?lang=ar',
-      'zh': 'https://lifepartnerai.in?lang=zh',
-      'ja': 'https://lifepartnerai.in?lang=ja',
       'pt': 'https://lifepartnerai.in?lang=pt',
+      'ar': 'https://lifepartnerai.in?lang=ar',
     }
   },
   openGraph: {
     title: 'LifePartner AI | #1 Free Worldwide Dating, Matrimony & Snaps App',
-    description: "Connect & chat with verified singles globally on LifePartner AI. Featuring Snaps, 24h Stories, Music Vibe matching, and zero subscription paywalls.",
+    description: "Connect & chat with verified singles globally on LifePartner AI. Safe & 100% Free for women & men in Japan, Korea, China, Philippines, Indonesia, Venezuela, USA, UK, India & worldwide.",
     url: 'https://lifepartnerai.in',
     siteName: 'LifePartner AI',
     locale: 'en_US',

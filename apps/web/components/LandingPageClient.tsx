@@ -512,6 +512,7 @@ export default function LandingPageClient() {
                         className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
                       >
                         <option value="Worldwide">Worldwide (190+ Countries)</option>
+                        <option value="Russia">Russia 🇷🇺 (Moscow, St. Petersburg)</option>
                         <option value="Japan">Japan 🇯🇵</option>
                         <option value="South Korea">South Korea 🇰🇷</option>
                         <option value="China">China / Hong Kong 🇨🇳</option>

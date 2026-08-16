@@ -4,10 +4,11 @@ import LandingPageClient from '@/components/LandingPageClient';
 // 1. GENERATE METADATA FOR GLOBAL BROWSER RANKINGS (Server Side)
 export const metadata: Metadata = {
   title: 'LifePartner AI | #1 Free Worldwide Dating, Matrimony & Snaps App',
-  description: "The world's first AI-powered 100% free worldwide dating and matrimony platform. Connect & chat with verified singles in USA, UK, Japan, Korea, China, Philippines, Indonesia, Malaysia, Vietnam, Venezuela, Africa, India, Europe & worldwide with zero paywalls.",
+  description: "The world's first AI-powered 100% free worldwide dating and matrimony platform. Connect & chat with verified singles in Russia (Moscow, St. Petersburg), USA, UK, Japan, Korea, China, Philippines, Indonesia, Malaysia, Vietnam, Venezuela, Africa, India, Europe & worldwide with zero paywalls.",
   keywords: [
     // Global & Multi-Country Target Keywords
     "Worldwide Dating App", "Free Worldwide Dating", "Global Matchmaking App", "NRI Dating App", "Free Dating App Worldwide",
+    "Russia Dating App", "Moscow Matchmaking", "Saint Petersburg Singles", "Знакомства в России", "Бесплатный Сайт Знакомств", "Матримония Россия",
     "Japan Dating App", "Tokyo Matchmaking", "South Korea Dating App", "Seoul Matchmaking", "China Dating App",
     "Philippines Dating App", "Manila Singles Chat", "Indonesia Dating App", "Aplikasi Cari Jodoh Gratis",
     "Malaysia Dating App", "Vietnam Dating App", "App Hẹn Hò Miễn Phí", "Venezuela Dating App", "Citas Gratis Venezuela",
@@ -23,13 +24,14 @@ export const metadata: Metadata = {
     "100% Free Matchmaking", "Direct Chat Matrimony", "No Subscription Dating",
     
     // Multilingual & Multi-region Terms
-    "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
-    "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "婚恋交友", "App de Rencontres Gratuite"
+    "Dating App Russia", "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
+    "Знакомства Онлайн", "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "婚恋交友", "App de Rencontres Gratuite"
   ],
   alternates: {
     canonical: 'https://lifepartnerai.in',
     languages: {
       'en': 'https://lifepartnerai.in',
+      'ru': 'https://lifepartnerai.in?lang=ru',
       'es': 'https://lifepartnerai.in?lang=es',
       'ja': 'https://lifepartnerai.in?lang=ja',
       'ko': 'https://lifepartnerai.in?lang=ko',

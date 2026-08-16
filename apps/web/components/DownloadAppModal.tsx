@@ -57,8 +57,8 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-purple-500/20 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
+      <div className="relative w-full max-w-md my-auto bg-white dark:bg-gray-900 border border-purple-500/30 rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
         
         {/* Header Gradient */}
         <div className="bg-gradient-to-r from-purple-700 via-indigo-600 to-pink-600 p-5 sm:p-6 text-white relative shrink-0">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Smartphone, Sparkles, X, CheckCircle, ShieldCheck, Zap, QrCode, RefreshCw } from 'lucide-react';
+import { Download, Smartphone, Sparkles, X, CheckCircle, ShieldCheck, Zap, RefreshCw, ArrowRight } from 'lucide-react';
 
 interface DownloadAppModalProps {
   isOpen: boolean;
@@ -12,7 +12,6 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [downloadingApk, setDownloadingApk] = useState(false);
-  const [activeTab, setActiveTab] = useState<'apk' | 'pwa'>('apk');
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -33,7 +32,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
 
   if (!isOpen) return null;
 
-  const handleInstallPWA = async () => {
+  const handleInstallShortcut = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
@@ -42,7 +41,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
       }
       setDeferredPrompt(null);
     } else {
-      alert("To install the web app, tap your browser menu (⋮ or share icon) and select 'Add to Home Screen'.");
+      alert("To add LifePartner to your Home Screen: Tap your browser menu (⋮ or Share icon) and select 'Add to Home Screen'.");
     }
   };
 
@@ -54,147 +53,116 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => setDownloadingApk(false), 2000);
+    setTimeout(() => setDownloadingApk(false), 2500);
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-white dark:bg-gray-900 border border-purple-500/20 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
         
         {/* Header Gradient */}
-        <div className="bg-gradient-to-r from-purple-700 via-indigo-600 to-pink-600 p-6 text-white relative">
+        <div className="bg-gradient-to-r from-purple-700 via-indigo-600 to-pink-600 p-5 sm:p-6 text-white relative shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all cursor-pointer"
+            aria-label="Close"
           >
             <X size={18} />
           </button>
           
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-lg">
-              <Smartphone size={24} className="text-white" />
+          <div className="flex items-center gap-3 mb-1">
+            <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-md shrink-0">
+              <Smartphone size={22} className="text-white" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1 text-[11px] font-bold bg-white/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider text-pink-100">
-                <Sparkles size={11} /> #1 Free Dating & Matrimony App
+              <div className="inline-flex items-center gap-1 text-[10px] font-bold bg-white/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider text-pink-100">
+                <Sparkles size={10} /> Official Android App
               </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Download LifePartner App</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">Download LifePartner</h2>
             </div>
           </div>
-          <p className="text-xs text-purple-100/90 leading-relaxed">
-            Get instant real-time message notifications, screenshot-proof Snaps, & continuous dynamic app updates.
+          <p className="text-xs text-purple-100/90 leading-relaxed mt-1">
+            Real-time chat alerts, screenshot protection, & automatic live feature updates.
           </p>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6">
-          {/* Tab Selector */}
-          <div className="flex bg-gray-100 dark:bg-gray-800/60 p-1 rounded-2xl mb-5 border border-gray-200/60 dark:border-gray-700/60">
+        {/* Modal Scrollable Body */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+          
+          {/* Direct APK Download Card */}
+          <div className="p-4 rounded-2xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/40 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <ShieldCheck size={20} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-xs font-bold text-gray-900 dark:text-white">Option 1: Download Android App (.apk)</h3>
+                <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                  Official 5.2 MB installer with instant push notifications & automatic background updates.
+                </p>
+              </div>
+            </div>
+
             <button
-              onClick={() => setActiveTab('apk')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'apk'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
-              }`}
+              onClick={handleDownloadApk}
+              disabled={downloadingApk}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-xs sm:text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Smartphone size={14} />
-              <span>Android APK Direct</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('pwa')}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === 'pwa'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'
-              }`}
-            >
-              <Zap size={14} />
-              <span>Web App (PWA)</span>
+              {downloadingApk ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Downloading LifePartner.apk...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} />
+                  <span>Download Android App (5.2 MB)</span>
+                </>
+              )}
             </button>
           </div>
 
-          {activeTab === 'apk' ? (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/30 flex items-start gap-3">
-                <ShieldCheck size={22} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-purple-950 dark:text-purple-200">100% Safe Direct Download</h4>
-                  <p className="text-[11px] text-purple-800/80 dark:text-purple-300/80">
-                    Official Android APK file (`LifePartner.apk`). Built with instant notification support and automated live updates.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={handleDownloadApk}
-                disabled={downloadingApk}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-xl shadow-purple-200 dark:shadow-none flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {downloadingApk ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Starting APK Download...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download size={18} />
-                    <span>Download Android APK (5.2 MB)</span>
-                  </>
-                )}
-              </button>
-
-              <div className="text-[11px] text-gray-500 dark:text-gray-400 space-y-1.5 pt-1">
-                <div className="font-bold text-gray-700 dark:text-gray-300">How to install APK:</div>
-                <div className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold flex items-center justify-center">1</span>
-                  <span>Tap Download APK and accept browser prompt if requested.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold flex items-center justify-center">2</span>
-                  <span>Open downloaded `LifePartner.apk` and tap <strong>Install</strong>.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold flex items-center justify-center">3</span>
-                  <span>Launch app! You will automatically skip landing page and land right into Login/Dashboard.</span>
-                </div>
+          {/* Option 2: Add to Home Screen (Instant App) */}
+          <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700/60 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Zap size={18} className="text-amber-500 shrink-0" />
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">Option 2: Add to Home Screen</h4>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Instant 1-tap mobile shortcut</p>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 flex items-start gap-3">
-                <Zap size={22} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-indigo-950 dark:text-indigo-200">Instant Progressive Web App (PWA)</h4>
-                  <p className="text-[11px] text-indigo-800/80 dark:text-indigo-300/80">
-                    No storage space required! Instantly installs to your home screen with zero app store delays.
-                  </p>
-                </div>
+            
+            <button
+              onClick={handleInstallShortcut}
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-bold text-xs border border-gray-300 dark:border-gray-700 hover:bg-gray-100 transition-all shrink-0 cursor-pointer"
+            >
+              {isPwaInstalled ? 'Installed' : 'Add Shortcut'}
+            </button>
+          </div>
+
+          {/* Easy Step-by-Step Installation Guide */}
+          <div className="bg-slate-50 dark:bg-gray-950 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-2">
+            <div className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Quick Installation Steps:</div>
+            <div className="space-y-1.5 text-[11px] text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
+                <span>Tap <strong>Download Android App</strong>.</span>
               </div>
-
-              {isPwaInstalled ? (
-                <div className="p-4 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 rounded-2xl text-center">
-                  <CheckCircle size={24} className="text-green-600 dark:text-green-400 mx-auto mb-1" />
-                  <span className="text-xs font-bold text-green-700 dark:text-green-300">LifePartner App is already installed!</span>
-                </div>
-              ) : (
-                <button
-                  onClick={handleInstallPWA}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Smartphone size={18} />
-                  <span>Add to Home Screen / Install PWA</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                <span>Open downloaded <strong className="text-gray-800 dark:text-gray-200">LifePartner.apk</strong> & tap Install.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 rounded-full bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                <span>Open app! Direct login/dashboard with zero landing page delays.</span>
+              </div>
             </div>
-          )}
+          </div>
 
-          {/* Live Auto-Update Info Badge */}
-          <div className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px] text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
-              <RefreshCw size={12} className="animate-spin" /> Live Auto-Updates Active
+          {/* Footer Sync Badge */}
+          <div className="pt-2 flex items-center justify-between text-[10px] text-gray-400 border-t border-gray-100 dark:border-gray-800">
+            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
+              <RefreshCw size={11} className="animate-spin" /> Automatic Live Updates
             </span>
-            <span>v2.4.0 • Zero Reinstall Required</span>
+            <span>Version 2.4.0</span>
           </div>
 
         </div>

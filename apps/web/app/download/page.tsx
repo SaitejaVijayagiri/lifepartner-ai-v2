@@ -92,7 +92,7 @@ export default function DownloadPage() {
                   ) : (
                     <>
                       <Download size={18} className="text-purple-700" />
-                      <span>Download Android APK (5.2 MB)</span>
+                      <span>Download Android App (.apk)</span>
                     </>
                   )}
                 </button>
@@ -102,7 +102,7 @@ export default function DownloadPage() {
                   className="px-6 py-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/30 text-white font-bold text-sm hover:bg-white/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Zap size={18} className="text-yellow-300" />
-                  <span>{isPwaInstalled ? 'PWA Installed' : 'Add to Home Screen (PWA)'}</span>
+                  <span>{isPwaInstalled ? 'App Installed' : 'Add Shortcut to Home Screen'}</span>
                 </button>
               </div>
             </div>

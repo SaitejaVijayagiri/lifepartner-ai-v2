@@ -144,24 +144,23 @@ export default function Navbar() {
                     )}
                 </div>
 
-                {/* Mobile Controls: Theme Toggle + Hamburger */}
-                <div className="md:hidden flex items-center gap-1.5">
-                    <div className="hidden sm:block">
-                        <LanguageSelector />
-                    </div>
+                {/* Mobile Controls: Hamburger Menu */}
+                <div className="md:hidden flex items-center gap-2">
+                    {publicStats.onlineCount > 0 && (
+                        <div className="flex items-center gap-1 bg-green-50 dark:bg-green-950/60 px-2.5 py-1 rounded-full border border-green-200 dark:border-green-800">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            <span className="text-[10px] font-bold text-green-700 dark:text-green-300">{publicStats.onlineCount} Online</span>
+                        </div>
+                    )}
                     <button
-                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                        className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                        aria-label="Toggle theme"
-                    >
-                        {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                    </button>
-                    <button
-                        className="p-2.5 text-gray-700 dark:text-gray-200 hover:text-indigo-600 transition-colors rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="p-2 text-gray-700 dark:text-gray-200 hover:text-indigo-600 transition-colors rounded-xl bg-gray-100/80 dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         aria-label="Toggle menu"
                     >
-                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
                     </button>
                 </div>
             </div>
@@ -170,8 +169,18 @@ export default function Navbar() {
             {isMobileMenuOpen && (
                 <div className="md:hidden absolute top-20 left-0 w-full max-h-[calc(100vh-5rem)] overflow-y-auto bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-2xl animate-in slide-in-from-top-5 duration-200 z-50">
                     <div className="px-5 py-6 flex flex-col gap-4">
-                        {/* Language Selector in Drawer */}
-                        <LanguageSelector isMobile={true} />
+                        {/* Theme Toggle & Language Selector in Drawer */}
+                        <div className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-900 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-800">
+                            <LanguageSelector isMobile={true} />
+                            <button
+                                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-gray-800 text-xs font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 flex items-center gap-1.5 shrink-0"
+                                aria-label="Toggle theme"
+                            >
+                                {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                                <span>{isDark ? 'Light' : 'Dark'}</span>
+                            </button>
+                        </div>
                         <hr className="border-gray-100 dark:border-gray-800 my-1" />
 
                         <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">

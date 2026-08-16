@@ -256,6 +256,13 @@ function DashboardContent() {
 
     useEffect(() => {
         setMounted(true);
+
+        const handleOpenStore = () => {
+            setInitialStoreTab('coins');
+            setShowCoinStore(true);
+        };
+        window.addEventListener('open_coin_store', handleOpenStore);
+        return () => window.removeEventListener('open_coin_store', handleOpenStore);
     }, []);
 
     useEffect(() => {
@@ -843,20 +850,19 @@ function DashboardContent() {
         <header className={`sticky top-0 z-40 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-b border-gray-100/50 dark:border-gray-800/50 shadow-sm transition-all duration-300 ${activeTab === 'map' ? 'hidden sm:block' : ''}`}>
             <div className="max-w-7xl mx-auto px-4 h-16 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
-                    {/* Premium Logo */}
-                    <div className="flex items-center gap-2.5 group cursor-pointer" onClick={() => setActiveTab('home')}>
+                    {/* Premium Logo (Compact on mobile for max header space) */}
+                    <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setActiveTab('home')}>
                         <div className="relative">
-                            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-purple-500/20 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105 border border-purple-500/30 bg-gray-950 flex items-center justify-center">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md shadow-purple-500/20 group-hover:scale-105 transition-all duration-300 border border-purple-500/30 bg-gray-950 flex items-center justify-center shrink-0">
                                 <img src="/icon.png" alt="LifePartner AI Logo" className="w-full h-full object-cover" />
                             </div>
-                            {/* Glow effect */}
                             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-40 blur-lg transition-opacity pointer-events-none"></div>
                         </div>
-                        <div className="block">
-                            <span className="text-lg sm:text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <div className="hidden sm:block">
+                            <span className="text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                                 LifePartner
                             </span>
-                            <span className="text-lg sm:text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
+                            <span className="text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
                         </div>
                     </div>
 
@@ -889,19 +895,20 @@ function DashboardContent() {
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
 
-                    {/* Coin Balance */}
+                    {/* Always Visible Coin Balance Badge */}
                     {currentUser && (
                         <button
                             onClick={() => {
                                 setInitialStoreTab('coins');
                                 setShowCoinStore(true);
                             }}
-                            className="flex items-center gap-1 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-2 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-yellow-200 shrink-0"
+                            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/10 to-yellow-500/20 hover:from-amber-500/20 hover:to-yellow-500/30 text-amber-700 dark:text-amber-300 px-2.5 py-1.5 rounded-full text-xs font-black transition-all border border-amber-300/80 dark:border-amber-700/60 shadow-sm shrink-0 active:scale-95"
+                            title="Coins Balance - Click to add coins"
                         >
-                            <Coins size={14} className="fill-yellow-500 text-yellow-600" />
-                            <span>{currentUser.coins || 0}</span>
+                            <Coins size={15} className="fill-amber-400 text-amber-600 dark:text-amber-300 shrink-0" />
+                            <span className="font-extrabold">{currentUser.coins || 0}</span>
                         </button>
                     )}
 

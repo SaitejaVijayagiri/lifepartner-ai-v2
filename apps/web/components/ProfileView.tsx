@@ -4,7 +4,7 @@ import { formatLocationString } from '@/lib/utils';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Edit, Shield, X } from 'lucide-react';
+import { Play, Edit, Shield, X, Coins } from 'lucide-react';
 import RequestVerificationButton from '@/components/RequestVerificationButton';
 import Link from 'next/link';
 
@@ -137,6 +137,34 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                     {activeTab === 'about' && (
                         <div className="space-y-6 animate-in fade-in duration-300">
+                            
+                            {/* Wallet & Coins Balance Card */}
+                            <div className="bg-gradient-to-r from-amber-500/10 via-yellow-500/15 to-amber-600/10 p-5 rounded-2xl border border-amber-300/60 dark:border-amber-700/50 flex items-center justify-between gap-4 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-600 dark:text-amber-300 shrink-0 shadow-inner">
+                                        <Coins size={24} className="fill-amber-400 text-amber-600" />
+                                    </div>
+                                    <div>
+                                        <div className="text-[11px] font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">My Coin Balance</div>
+                                        <div className="text-2xl font-black text-amber-900 dark:text-amber-100 flex items-center gap-1.5">
+                                            <span>{profile.coins || 0}</span>
+                                            <span className="text-xs font-bold text-amber-700 dark:text-amber-300">Coins</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (typeof window !== 'undefined') {
+                                            const event = new CustomEvent('open_coin_store');
+                                            window.dispatchEvent(event);
+                                        }
+                                    }}
+                                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-black text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                                >
+                                    <span>+ Add Coins</span>
+                                </button>
+                            </div>
+
                             <div className="bg-gradient-to-br from-indigo-50/90 to-blue-50/80 dark:from-indigo-950/20 dark:to-blue-950/10 p-6 rounded-2xl border border-indigo-100/50 dark:border-indigo-900/30 shadow-sm backdrop-blur-sm relative overflow-hidden">
                                 <div className="absolute top-2 right-4 text-6xl text-indigo-200/40 dark:text-indigo-800/20 font-serif pointer-events-none select-none">“</div>
                                 <h3 className="font-extrabold text-indigo-950 dark:text-indigo-100 mb-3 text-sm uppercase tracking-wider flex items-center gap-1.5">

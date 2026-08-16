@@ -844,19 +844,19 @@ function DashboardContent() {
             <div className="max-w-7xl mx-auto px-4 h-16 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Premium Logo */}
-                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setActiveTab('home')}>
+                    <div className="flex items-center gap-2.5 group cursor-pointer" onClick={() => setActiveTab('home')}>
                         <div className="relative">
-                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
-                                <Sparkles size={20} fill="white" />
+                            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-purple-500/20 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105 border border-purple-500/30 bg-gray-950 flex items-center justify-center">
+                                <img src="/icon.png" alt="LifePartner AI Logo" className="w-full h-full object-cover" />
                             </div>
                             {/* Glow effect */}
-                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-50 blur-xl transition-opacity"></div>
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-40 blur-lg transition-opacity pointer-events-none"></div>
                         </div>
-                        <div className="hidden sm:block">
-                            <span className="text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <div className="block">
+                            <span className="text-lg sm:text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                                 LifePartner
                             </span>
-                            <span className="text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
+                            <span className="text-lg sm:text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
                         </div>
                     </div>
 

@@ -630,11 +630,20 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     currentUser={user}
                     onClose={() => setActiveHighlightSet(null)}
                     onHighlightToggle={(storyId, isHighlight) => {
-                        if (profile && profile.stories) {
-                            profile.stories = profile.stories.map((s: any) => 
+                        setProfile((prev: any) => {
+                            if (!prev || !prev.stories) return prev;
+                            const updatedStories = prev.stories.map((s: any) => 
                                 String(s.id) === String(storyId) ? { ...s, isHighlight } : s
                             );
-                        }
+                            return { ...prev, stories: updatedStories };
+                        });
+                        setActiveHighlightSet((prev: any) => {
+                            if (!prev || !prev.stories) return prev;
+                            const updatedStories = prev.stories.map((s: any) => 
+                                String(s.id) === String(storyId) ? { ...s, isHighlight } : s
+                            );
+                            return { ...prev, stories: updatedStories };
+                        });
                     }}
                 />
             )}

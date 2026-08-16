@@ -423,14 +423,6 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                         <span>•</span>
                                         <span>{currentIndex + 1}/{stories.length}</span>
                                     </div>
-                                    {story.music && MUSIC_TRACKS[story.music] && (
-                                        <div className="flex items-center gap-1 text-[10px] text-white mt-0.5 overflow-hidden w-32">
-                                            <span className="animate-pulse">🎵</span>
-                                            <div className="whitespace-nowrap animate-[marquee_5s_linear_infinite]">
-                                                {MUSIC_TRACKS[story.music].name}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         );

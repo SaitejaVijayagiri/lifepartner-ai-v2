@@ -1609,6 +1609,22 @@ function DashboardContent() {
                             return { ...prev, stories: updatedStories };
                         });
                     }}
+                    onHighlightToggle={(storyId, isHighlight) => {
+                        setCurrentUser((prev: any) => {
+                            if (!prev) return prev;
+                            const updated = (prev.stories || []).map((s: any) => 
+                                String(s.id) === String(storyId) ? { ...s, isHighlight } : s
+                            );
+                            return { ...prev, stories: updated };
+                        });
+                        setActiveStorySet((prev: any) => {
+                            if (!prev || !prev.stories) return prev;
+                            const updated = prev.stories.map((s: any) => 
+                                String(s.id) === String(storyId) ? { ...s, isHighlight } : s
+                            );
+                            return { ...prev, stories: updated };
+                        });
+                    }}
                 />
             )}
 

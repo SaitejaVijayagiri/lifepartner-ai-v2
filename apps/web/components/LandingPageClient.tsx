@@ -1,12 +1,12 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe, Eye, EyeOff, UserPlus } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
+import FloatingMobileSignupBar from '@/components/FloatingMobileSignupBar';
 import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 import PublicMatchCard from '@/components/PublicMatchCard';
 import SocialProofToasts from '@/components/SocialProofToasts';
@@ -14,19 +14,132 @@ import FeatureShowcaseSection from '@/components/FeatureShowcaseSection';
 import ConnectionWorkflowSection from '@/components/ConnectionWorkflowSection';
 import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 
 export default function LandingPageClient() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const toast = useToast();
+
   const [topRow, setTopRow] = useState<any[]>([]);
   const [bottomRow, setBottomRow] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Hero Dual Tab (Signup vs Search)
+  const [heroTab, setHeroTab] = useState<'signup' | 'search'>('signup');
+  const [signupForm, setSignupForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    gender: 'Male',
+    looking_for: 'Female',
+    intent: 'matrimony'
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [signupLoading, setSignupLoading] = useState(false);
+  const [signupOtpStep, setSignupOtpStep] = useState(false);
+  const [signupOtp, setSignupOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Quick Match Finder State
   const [quickGender, setQuickGender] = useState('Male');
   const [quickLookingFor, setQuickLookingFor] = useState('Female');
   const [quickIntent, setQuickIntent] = useState<'dating' | 'matrimony'>('matrimony');
   const [quickCountry, setQuickCountry] = useState('Worldwide');
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleInstantRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupForm.full_name || !signupForm.email || !signupForm.password) {
+      toast.error("Please fill in your name, email, and password.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signupForm.email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (signupForm.password.length < 8) {
+      toast.error("Password must be at least 8 characters long.");
+      return;
+    }
+
+    setSignupLoading(true);
+    try {
+      const res = await api.auth.register({
+        ...signupForm,
+        email: signupForm.email.trim().toLowerCase(),
+        password: signupForm.password.trim()
+      });
+
+      if (res.requiresVerification) {
+        setSignupOtpStep(true);
+        setResendCooldown(60);
+        toast.success(`Verification code sent to ${signupForm.email}!`);
+      } else if (res.token) {
+        localStorage.removeItem('matches_cache_v2');
+        localStorage.setItem('userId', res.userId);
+        localStorage.setItem('token', res.token);
+        toast.success("Account created successfully! Welcome 🎉");
+        router.push('/onboarding');
+      }
+    } catch (err: any) {
+      console.error("Instant registration error:", err);
+      const msg = err.message || "Registration failed. Please check details.";
+      if (msg.includes("already exists")) {
+        toast.error("An account with this email already exists. Please log in!");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setSignupLoading(false);
+    }
+  };
+
+  const handleInstantVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signupOtp || signupOtp.length < 6) {
+      toast.error("Please enter the 6-digit verification code.");
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const res = await api.auth.verifyOtp({ email: signupForm.email, otp: signupOtp });
+      if (res.token) {
+        localStorage.removeItem('matches_cache_v2');
+        localStorage.setItem('userId', res.userId);
+        localStorage.setItem('token', res.token);
+        toast.success("Email verified! Welcome to LifePartner AI 🎉");
+        router.push('/onboarding');
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Invalid OTP code. Please check and try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendHeroOtp = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupForm.email })
+      });
+      setResendCooldown(60);
+      toast.success('A new 6-digit code has been sent!');
+    } catch (e) {
+      toast.error('Failed to resend code. Please try again.');
+    }
+  };
 
   useEffect(() => {
     // Check if user is already logged in
@@ -163,69 +276,259 @@ export default function LandingPageClient() {
               {t('heroSub')}
             </p>
 
-            {/* Interactive Quick Match Search Widget */}
-            <div className="bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-4 sm:p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800">
-              <div className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3 flex items-center gap-1.5">
-                <BrainCircuit size={14} className="text-indigo-500" />
-                <span>{t('quickSearchTitle')}</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4">
-                <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('iAmA')}</label>
-                  <select
-                    value={quickGender}
-                    onChange={(e) => setQuickGender(e.target.value)}
-                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('lookingFor')}</label>
-                  <select
-                    value={quickLookingFor}
-                    onChange={(e) => setQuickLookingFor(e.target.value)}
-                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="Female">Female</option>
-                    <option value="Male">Male</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('goal')}</label>
-                  <select
-                    value={quickIntent}
-                    onChange={(e) => setQuickIntent(e.target.value as any)}
-                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="dating">Worldwide Dating</option>
-                    <option value="matrimony">Matrimony</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('location')}</label>
-                  <select
-                    value={quickCountry}
-                    onChange={(e) => setQuickCountry(e.target.value)}
-                    className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="Worldwide">Worldwide</option>
-                    <option value="USA">USA</option>
-                    <option value="India">India</option>
-                    <option value="UK">United Kingdom</option>
-                    <option value="Canada">Canada</option>
-                    <option value="Australia">Australia</option>
-                  </select>
-                </div>
+            {/* Interactive Dual-Tab Hero Widget: Instant Signup vs Match Search */}
+            <div id="hero-signup-widget" className="bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800 transition-all">
+              
+              {/* Tab Selector */}
+              <div className="flex items-center p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-4 border border-gray-200/60 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setHeroTab('signup')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                    heroTab === 'signup'
+                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <UserPlus size={14} />
+                  <span>⚡ Instant Free Sign Up</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeroTab('search')}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                    heroTab === 'search'
+                      ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <BrainCircuit size={14} />
+                  <span>🔍 Filter Matches First</span>
+                </button>
               </div>
 
-              <Link href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}>
-                <button className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2">
-                  <span>{t('findMatchesBtn')}</span>
-                  <ArrowRight size={18} />
-                </button>
-              </Link>
+              {heroTab === 'signup' ? (
+                signupOtpStep ? (
+                  /* OTP Step inside Hero Widget */
+                  <form onSubmit={handleInstantVerifyOtp} className="space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 rounded-full text-[11px] font-bold mb-1">
+                        <Sparkles size={12} /> Email Verification Sent
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Enter 6-digit code sent to <span className="font-bold text-gray-800 dark:text-gray-200">{signupForm.email}</span>
+                      </p>
+                    </div>
+
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={signupOtp}
+                      onChange={(e) => setSignupOtp(e.target.value.replace(/\D/g, ''))}
+                      placeholder="0 0 0 0 0 0"
+                      className="w-full text-center text-2xl font-mono tracking-[0.5em] h-13 px-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white font-bold focus:outline-none focus:border-indigo-500 shadow-inner"
+                      autoFocus
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={otpLoading || signupOtp.length < 6}
+                      className="w-full h-12 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {otpLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Verifying Code...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Verify & Start Finding Matches</span>
+                          <ArrowRight size={16} />
+                        </>
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-between text-[11px] pt-1">
+                      {resendCooldown > 0 ? (
+                        <span className="text-gray-400">Resend in {resendCooldown}s</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendHeroOtp}
+                          className="font-bold text-indigo-600 hover:underline"
+                        >
+                          Resend Code
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setSignupOtpStep(false)}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        Edit Details
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  /* Instant Quick Registration Form */
+                  <form onSubmit={handleInstantRegister} className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Your Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={signupForm.full_name}
+                          onChange={(e) => setSignupForm({ ...signupForm, full_name: e.target.value })}
+                          placeholder="e.g. Ananya Sharma"
+                          className="w-full h-11 px-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          required
+                          value={signupForm.email}
+                          onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
+                          placeholder="name@gmail.com"
+                          className="w-full h-11 px-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <div className="sm:col-span-1">
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            value={signupForm.password}
+                            onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
+                            placeholder="Min 8 chars"
+                            className="w-full h-11 pl-3.5 pr-8 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">I am a</label>
+                        <select
+                          value={signupForm.gender}
+                          onChange={(e) => setSignupForm({ ...signupForm, gender: e.target.value, looking_for: e.target.value === 'Male' ? 'Female' : 'Male' })}
+                          className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">My Goal</label>
+                        <select
+                          value={signupForm.intent}
+                          onChange={(e) => setSignupForm({ ...signupForm, intent: e.target.value })}
+                          className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                        >
+                          <option value="matrimony">Serious Matrimony</option>
+                          <option value="dating">Worldwide Dating</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={signupLoading}
+                      className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                    >
+                      {signupLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Creating Account...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Create Free Account in 10s 🚀</span>
+                          <ArrowRight size={18} />
+                        </>
+                      )}
+                    </button>
+                    <p className="text-[11px] text-center text-gray-400 dark:text-gray-500 font-medium">
+                      🔒 100% Free Forever • Zero Subscription Fees • No Credit Card Required
+                    </p>
+                  </form>
+                )
+              ) : (
+                /* Tab 2: Filter Matches Widget */
+                <div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4">
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('iAmA')}</label>
+                      <select
+                        value={quickGender}
+                        onChange={(e) => setQuickGender(e.target.value)}
+                        className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('lookingFor')}</label>
+                      <select
+                        value={quickLookingFor}
+                        onChange={(e) => setQuickLookingFor(e.target.value)}
+                        className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('goal')}</label>
+                      <select
+                        value={quickIntent}
+                        onChange={(e) => setQuickIntent(e.target.value as any)}
+                        className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="dating">Worldwide Dating</option>
+                        <option value="matrimony">Matrimony</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-500 block mb-1">{t('location')}</label>
+                      <select
+                        value={quickCountry}
+                        onChange={(e) => setQuickCountry(e.target.value)}
+                        className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="Worldwide">Worldwide</option>
+                        <option value="USA">USA</option>
+                        <option value="India">India</option>
+                        <option value="UK">United Kingdom</option>
+                        <option value="Canada">Canada</option>
+                        <option value="Australia">Australia</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <Link href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}>
+                    <button className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2">
+                      <span>{t('findMatchesBtn')}</span>
+                      <ArrowRight size={18} />
+                    </button>
+                  </Link>
+                </div>
+              )}
             </div>
 
             {/* High Conversion Trust Bar */}
@@ -692,6 +995,10 @@ export default function LandingPageClient() {
         </div>
       </section>
 
+      <FloatingMobileSignupBar onSignupClick={() => {
+        const el = document.getElementById('hero-signup-widget');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }} />
       <Footer />
     </div>
   );

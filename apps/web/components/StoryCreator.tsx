@@ -181,13 +181,20 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
     }, []);
     const previewContainerRef = useRef<HTMLDivElement>(null);
 
-    // Music State
     const [isSelectingMusic, setIsSelectingMusic] = useState(false);
     const [selectedMusic, setSelectedMusic] = useState<string>('none');
     const [customMusicData, setCustomMusicData] = useState<StoryMusicData | null>(null);
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
-    
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const activeMusic = customMusicData || (selectedMusic !== 'none' ? {
+        id: selectedMusic,
+        title: MUSIC_TRACKS.find(m => m.id === selectedMusic)?.name || selectedMusic,
+        artist: 'Story Music',
+        audioUrl: MUSIC_TRACKS.find(m => m.id === selectedMusic)?.url || '',
+        startOffset: 0,
+        hideSticker: !showMusicSticker
+    } : null);
 
     // Play selected music in Story Creator preview
     useEffect(() => {
@@ -196,14 +203,14 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
             audioRef.current = null;
         }
 
-        if (customMusicData && customMusicData.audioUrl) {
-            const audio = new Audio(customMusicData.audioUrl);
+        if (activeMusic && activeMusic.audioUrl) {
+            const audio = new Audio(activeMusic.audioUrl);
             audio.volume = 0.8;
             audio.loop = true;
             audioRef.current = audio;
 
-            if (customMusicData.startOffset > 0) {
-                try { audio.currentTime = customMusicData.startOffset; } catch (e) {}
+            if (activeMusic.startOffset > 0) {
+                try { audio.currentTime = activeMusic.startOffset; } catch (e) {}
             }
 
             audio.ontimeupdate = () => {
@@ -217,15 +224,15 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                 audioRef.current = null;
             };
         }
-    }, [customMusicData]);
+    }, [activeMusic?.id, activeMusic?.audioUrl, activeMusic?.startOffset]);
 
     const applyFilterAndUpload = async () => {
         if (!storyFiles || storyFiles.length === 0) return;
         setIsUploadingStory(true);
 
-        const musicPayload = customMusicData
-            ? JSON.stringify({ ...customMusicData, hideSticker: !showMusicSticker })
-            : (selectedMusic !== 'none' ? JSON.stringify({ id: selectedMusic, title: selectedMusic, hideSticker: !showMusicSticker }) : '');
+        const musicPayload = activeMusic
+            ? JSON.stringify({ ...activeMusic, hideSticker: !showMusicSticker })
+            : '';
 
         try {
             let finalData: FormData | string;
@@ -716,9 +723,9 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                         </div>
                     )}
                     {/* Music Badge Preview on Stage */}
-                    {customMusicData && showMusicSticker && (
+                    {activeMusic && showMusicSticker && !isAddingText && (
                         <div className="absolute top-20 left-4 z-30 pointer-events-none">
-                            <StoryMusicSticker music={customMusicData} isPlaying={true} />
+                            <StoryMusicSticker music={activeMusic} isPlaying={true} />
                         </div>
                     )}
 
@@ -1145,13 +1152,6 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     </button>
                                 </div>
                             )}
-
-                {/* Floating Music Badge */}
-                {customMusicData && showMusicSticker && !isAddingText && (
-                    <div className="absolute top-16 left-4 z-30 pointer-events-none">
-                        <StoryMusicSticker music={customMusicData} isPlaying={true} />
-                    </div>
-                )}
                 </div>
 
                 {/* Story Music Studio Modal */}

@@ -843,6 +843,13 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 String(s.id) === String(storyId) ? { ...s, isHighlight } : s
                             );
                         }
+                        setActiveHighlightSet((prev: any) => {
+                            if (!prev || !prev.stories) return prev;
+                            const updatedStories = prev.stories.map((s: any) => 
+                                String(s.id) === String(storyId) ? { ...s, isHighlight } : s
+                            );
+                            return { ...prev, stories: updatedStories };
+                        });
                     }}
                 />
             )}

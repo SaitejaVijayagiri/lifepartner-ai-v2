@@ -37,10 +37,8 @@ export default function SocialProofToasts() {
     };
 
     return (
-        // On mobile: sit above the bottom nav (bottom-20). On desktop: bottom-6.
-        // Left padding reduced on mobile so it doesn't clip narrow screens.
-        // max-w capped smaller so it never overflow a 360px wide phone.
-        <div className="fixed bottom-28 md:bottom-6 left-3 md:left-6 z-50 pointer-events-none">
+        // On mobile: sit cleanly at top-20 left-3 away from bottom CTAs & modals. On desktop: bottom-6 left-6.
+        <div className="fixed top-20 md:top-auto md:bottom-6 left-3 md:left-6 z-30 pointer-events-none">
             <AnimatePresence>
                 {isVisible && currentEventIndex >= 0 && (
                     <motion.div

@@ -53,11 +53,11 @@ export default function Navbar() {
             }`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md shadow-indigo-200">
-                        <Sparkles size={18} fill="white" />
+                <Link href="/" className="flex items-center gap-2.5 group">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform duration-300 border border-purple-500/30 flex items-center justify-center bg-gray-950">
+                        <img src="/icon.png" alt="LifePartner AI Logo" className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 to-purple-700 tracking-tight">
+                    <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600 tracking-tight">
                         LifePartner AI
                     </span>
                 </Link>

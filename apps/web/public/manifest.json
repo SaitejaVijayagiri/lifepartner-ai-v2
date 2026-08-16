@@ -1,21 +1,30 @@
 {
-    "name": "LifePartner AI",
+    "name": "LifePartner AI | Free Matrimony & Dating App",
     "short_name": "LifePartner",
-    "description": "Find your perfect match with AI.",
+    "description": "World's #1 Free Matrimony, Dating & Snaps App. Connect & chat with verified singles globally with zero paywalls.",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "orientation": "portrait",
+    "background_color": "#0f172a",
     "theme_color": "#4f46e5",
+    "categories": [
+        "lifestyle",
+        "social",
+        "entertainment"
+    ],
     "icons": [
         {
             "src": "/icon-192x192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         },
         {
             "src": "/icon-512x512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any maskable"
         }
     ]
 }

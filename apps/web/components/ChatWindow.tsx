@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -2124,6 +2124,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </div>
                     </div>
                 )}
+            {/* Floating Scroll to Bottom Button */}
+            {isUserScrollingRef.current && (
+                <button
+                    onClick={() => {
+                        isUserScrollingRef.current = false;
+                        if (scrollRef.current) {
+                            scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+                        }
+                    }}
+                    className="absolute bottom-20 right-6 z-40 p-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center border border-white/30 cursor-pointer animate-bounce"
+                    title="Scroll to latest messages"
+                >
+                    <ChevronDown size={20} />
+                </button>
+            )}
             </div>
 
             {/* AI Icebreaker Suggestions */}

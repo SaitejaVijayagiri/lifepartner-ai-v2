@@ -55,7 +55,34 @@ import { Capacitor } from '@capacitor/core';
 
 export default function Dashboard() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>}>
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-50 dark:bg-gray-950 p-4 sm:p-8 max-w-7xl mx-auto space-y-6 animate-pulse">
+                <div className="h-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 shadow-sm">
+                    <div className="w-36 h-8 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full" />
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="h-96 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+                        <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                        <div className="w-3/4 h-6 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                        <div className="w-1/2 h-4 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                    </div>
+                    <div className="h-96 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+                        <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                        <div className="w-3/4 h-6 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                        <div className="w-1/2 h-4 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                    </div>
+                    <div className="h-96 bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 space-y-4">
+                        <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-2xl" />
+                        <div className="w-3/4 h-6 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                        <div className="w-1/2 h-4 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+                    </div>
+                </div>
+            </div>
+        }>
             <DashboardContent />
         </Suspense>
     );

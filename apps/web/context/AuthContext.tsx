@@ -94,6 +94,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         init();
+
+        // 4. Background Token Auto-Refresh (Every 25 minutes to prevent session expiration)
+        const refreshInterval = setInterval(async () => {
+            try {
+                if (localStorage.getItem('token') || localStorage.getItem('userId')) {
+                    const res = await api.auth.getToken();
+                    if (res?.token) {
+                        localStorage.setItem('token', res.token);
+                    }
+                }
+            } catch (err) {
+                console.warn("Background token refresh skipped", err);
+            }
+        }, 25 * 60 * 1000);
+
+        return () => clearInterval(refreshInterval);
     }, []);
 
     const login = (userData: User, token: string) => {

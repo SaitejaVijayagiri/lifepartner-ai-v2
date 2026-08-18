@@ -4,7 +4,7 @@ import { formatLocationString } from '@/lib/utils';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Edit, Shield, X, Coins, Star, Trash2 } from 'lucide-react';
+import { Play, Edit, Shield, X, Coins, Star, Trash2, Share2 } from 'lucide-react';
 import RequestVerificationButton from '@/components/RequestVerificationButton';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -122,6 +122,34 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                             <RequestVerificationButton />
                         )}
 
+                        <Button
+                            onClick={async () => {
+                                const shareUrl = `${window.location.origin}/profile/${profile.id || profile.user_id}`;
+                                if (navigator.share) {
+                                    try {
+                                        await navigator.share({
+                                            title: `${profile.name} on LifePartner AI`,
+                                            text: `Check out ${profile.name}'s profile on LifePartner AI!`,
+                                            url: shareUrl
+                                        });
+                                        return;
+                                    } catch (e) {}
+                                }
+                                try {
+                                    await navigator.clipboard.writeText(shareUrl);
+                                    toast.success("Profile link copied to clipboard!");
+                                } catch (e) {
+                                    toast.error("Failed to copy link");
+                                }
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            title="Share Profile Link"
+                        >
+                            <Share2 size={15} />
+                            <span className="hidden sm:inline">Share</span>
+                        </Button>
 
                         <Button onClick={onEdit} variant="outline" size="sm" className="gap-2 border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
                             <Edit size={16} /> Edit Profile

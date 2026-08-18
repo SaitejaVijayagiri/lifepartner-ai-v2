@@ -671,27 +671,32 @@ export default function MatchesTab({
                 </div>
             )}
 
-            {/* Empty State */}
+            {/* Enhanced Empty State & Smart Fallbacks */}
             {displayMatches.length === 0 && (
-                <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-gray-100">
-                    <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                        <Search className="text-gray-300" size={40} />
+                <div className="text-center py-16 px-4 bg-white/70 dark:bg-gray-800/70 backdrop-blur-md rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 rounded-full flex items-center justify-center mx-auto shadow-inner border border-indigo-100/50">
+                        <Search className="text-indigo-500" size={36} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                        {activeFilters ? 'No matches with these filters' : 'No Matches Found'}
-                    </h3>
-                    <p className="text-gray-500 max-w-sm mx-auto">
-                        {activeFilters
-                            ? 'Try adjusting your filter criteria to see more profiles.'
-                            : 'Try adjusting your search criteria or check back later for new recommendations.'}
-                    </p>
+                    <div className="space-y-1">
+                        <h3 className="text-lg font-extrabold text-gray-900 dark:text-white">
+                            {activeFilters ? 'No matches match all your active filters' : 'No Recommendations Found'}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
+                            {activeFilters
+                                ? 'Your criteria might be slightly too strict. Try expanding your age, religion, or location preferences.'
+                                : 'Try broadening your preferences or check back soon for new profiles!'}
+                        </p>
+                    </div>
+
                     {activeFilters && (
-                        <button
-                            onClick={() => setActiveFilters(null)}
-                            className="mt-4 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition-colors"
-                        >
-                            Clear Filters
-                        </button>
+                        <div className="pt-2 flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto">
+                            <button
+                                onClick={() => setActiveFilters(null)}
+                                className="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer"
+                            >
+                                ✨ Clear All Filters & Show All Matches
+                            </button>
+                        </div>
                     )}
                 </div>
             )}

@@ -32,12 +32,19 @@ export default function DownloadPage() {
 
   const handleDownloadApk = () => {
     setDownloading(true);
-    const link = document.createElement('a');
-    link.href = '/LifePartner.apk';
-    link.download = 'LifePartner.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const link = document.createElement('a');
+      link.href = '/LifePartner.apk';
+      link.download = 'LifePartner.apk';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Link download failed", e);
+    }
+    setTimeout(() => {
+      window.location.href = '/LifePartner.apk';
+    }, 100);
     setTimeout(() => setDownloading(false), 2000);
   };
 

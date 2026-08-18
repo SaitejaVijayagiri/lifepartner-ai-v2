@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, Star, CheckCircle, Shield, Share2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, Star, CheckCircle, Shield, Share2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/Toast';
@@ -390,6 +390,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                     );
                                 }
 
+                                const isOwner = user && (String(user.id || (user as any)?.userId) === String(profile.id || profile.user_id));
                                 return (
                                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pt-2">
                                         {highlightedStories.map((hStory: any, idx: number) => (
@@ -407,9 +408,9 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                         }
                                                     });
                                                 }}
-                                                className="flex flex-col items-center gap-2 cursor-pointer group"
+                                                className="relative flex flex-col items-center gap-2 cursor-pointer group"
                                             >
-                                                <div className="w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-lg group-hover:scale-105 transition-all">
+                                                <div className="relative w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-lg group-hover:scale-105 transition-all">
                                                     <div className="w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
                                                         {hStory.type === 'video' ? (
                                                             <video src={hStory.url} className="w-full h-full object-cover" muted />
@@ -417,6 +418,57 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                             <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
                                                         )}
                                                     </div>
+
+                                                    {isOwner && (
+                                                        <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[1px]">
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        const res = await api.profile.toggleStoryHighlight(hStory.id);
+                                                                        if (res?.success) {
+                                                                            setProfile((prev: any) => {
+                                                                                if (!prev?.stories) return prev;
+                                                                                const updated = prev.stories.map((s: any) =>
+                                                                                    String(s.id) === String(hStory.id) ? { ...s, isHighlight: false, is_highlight: false } : s
+                                                                                );
+                                                                                return { ...prev, stories: updated };
+                                                                            });
+                                                                            toast.success("Removed from highlights");
+                                                                        }
+                                                                    } catch (err: any) {
+                                                                        toast.error("Failed to unhighlight story");
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 rounded-full bg-amber-500/90 text-white hover:bg-amber-600 shadow-md transition-transform hover:scale-110"
+                                                                title="Remove from Highlights"
+                                                            >
+                                                                <Star size={12} fill="currentColor" />
+                                                            </button>
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (confirm("Delete this story permanently?")) {
+                                                                        try {
+                                                                            await api.profile.deleteStory(hStory.id);
+                                                                            setProfile((prev: any) => {
+                                                                                if (!prev?.stories) return prev;
+                                                                                const remaining = prev.stories.filter((s: any) => String(s.id) !== String(hStory.id));
+                                                                                return { ...prev, stories: remaining };
+                                                                            });
+                                                                            toast.success("Story deleted!");
+                                                                        } catch (err: any) {
+                                                                            toast.error("Failed to delete story");
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 rounded-full bg-red-600/90 text-white hover:bg-red-700 shadow-md transition-transform hover:scale-110"
+                                                                title="Delete Story Permanently"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate max-w-[80px]">
                                                     Highlight {idx + 1}
@@ -629,6 +681,20 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     user={activeHighlightSet.user}
                     currentUser={user}
                     onClose={() => setActiveHighlightSet(null)}
+                    onDelete={async (storyId) => {
+                        await api.profile.deleteStory(storyId);
+                        setProfile((prev: any) => {
+                            if (!prev || !prev.stories) return prev;
+                            const remaining = prev.stories.filter((s: any) => String(s.id) !== String(storyId));
+                            return { ...prev, stories: remaining };
+                        });
+                        setActiveHighlightSet((prev: any) => {
+                            if (!prev || !prev.stories) return prev;
+                            const remaining = prev.stories.filter((s: any) => String(s.id) !== String(storyId));
+                            return remaining.length > 0 ? { ...prev, stories: remaining } : null;
+                        });
+                        toast.success("Story deleted!");
+                    }}
                     onHighlightToggle={(storyId, isHighlight) => {
                         setProfile((prev: any) => {
                             if (!prev || !prev.stories) return prev;

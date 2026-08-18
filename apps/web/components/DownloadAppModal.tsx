@@ -47,12 +47,21 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
 
   const handleDownloadApk = () => {
     setDownloadingApk(true);
-    const link = document.createElement('a');
-    link.href = '/LifePartner.apk';
-    link.download = 'LifePartner.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const link = document.createElement('a');
+      link.href = '/LifePartner.apk';
+      link.download = 'LifePartner.apk';
+      link.target = '_self';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Link download failed, falling back to direct navigation", e);
+    }
+    // Mobile browser direct navigation fallback
+    setTimeout(() => {
+      window.location.href = '/LifePartner.apk';
+    }, 100);
     setTimeout(() => setDownloadingApk(false), 2500);
   };
 
@@ -101,10 +110,13 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
               </div>
             </div>
 
-            <button
-              onClick={handleDownloadApk}
-              disabled={downloadingApk}
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-xs sm:text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            <a
+              href="/LifePartner.apk"
+              download="LifePartner.apk"
+              onClick={(e) => {
+                handleDownloadApk();
+              }}
+              className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-xs sm:text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer ${downloadingApk ? 'opacity-50 pointer-events-none' : ''}`}
             >
               {downloadingApk ? (
                 <>
@@ -117,7 +129,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
                   <span>Download Android App (5.2 MB)</span>
                 </>
               )}
-            </button>
+            </a>
           </div>
 
           {/* Option 2: Add to Home Screen (Instant App) */}

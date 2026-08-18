@@ -2,11 +2,16 @@
 import { getZodiacSymbol, getReligionSymbol } from '@/lib/religionUtils';
 import { formatLocationString } from '@/lib/utils';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Edit, Shield, X, Coins } from 'lucide-react';
+import { Play, Edit, Shield, X, Coins, Star, Trash2 } from 'lucide-react';
 import RequestVerificationButton from '@/components/RequestVerificationButton';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { api } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
+
+const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
 interface ProfileViewProps {
     profile: any;
@@ -14,9 +19,16 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState('highlights');
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [localStories, setLocalStories] = useState<any[]>(profile.stories || []);
+    const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
+
+    useEffect(() => {
+        setLocalStories(profile.stories || []);
+    }, [profile.stories]);
 
     // Ensure we have an array
     const photos: string[] = profile.photos?.length > 0
@@ -193,17 +205,111 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 </button>
                             </div>
 
-                            {/* Story Highlights Reel Preview */}
-                            <div className="p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 space-y-3">
+                            {/* Story Highlights Reel */}
+                            <div className="p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/40 space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h4 className="text-xs font-extrabold text-purple-900 dark:text-purple-200 uppercase tracking-wider flex items-center gap-1.5">
-                                        <span>📸</span> Story Highlights Reel
+                                        <span>⭐</span> My Profile Highlights Reel
                                     </h4>
-                                    <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">Permanent Pin</span>
+                                    <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">Saved Moments</span>
                                 </div>
-                                <p className="text-xs text-purple-800/80 dark:text-purple-300/80 leading-relaxed">
-                                    Pin active stories to your profile highlights reel so matches can view your favorite moments anytime.
-                                </p>
+
+                                {(() => {
+                                    const highlightedStories = (localStories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
+                                    if (highlightedStories.length === 0) {
+                                        return (
+                                            <div className="text-center py-6 px-4 bg-white/70 dark:bg-gray-800/70 rounded-xl border border-dashed border-purple-200 dark:border-purple-800 space-y-2">
+                                                <div className="text-2xl">⭐</div>
+                                                <h5 className="font-bold text-xs text-gray-800 dark:text-gray-200">No Highlights Pinned Yet</h5>
+                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                                                    When you post a 24-hour story, open it and tap the Star (⭐) button to pin it permanently to your profile highlights reel!
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pt-1">
+                                            {highlightedStories.map((hStory: any, idx: number) => (
+                                                <div
+                                                    key={hStory.id || idx}
+                                                    className="relative flex flex-col items-center gap-1.5 group cursor-pointer"
+                                                    onClick={() => {
+                                                        setActiveHighlightSet({
+                                                            stories: highlightedStories,
+                                                            initialIndex: idx,
+                                                            user: {
+                                                                id: profile.id,
+                                                                name: profile.name || 'My Profile',
+                                                                photoUrl: photos[0]
+                                                            }
+                                                        });
+                                                    }}
+                                                >
+                                                    <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 transition-all">
+                                                        <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                            {hStory.type === 'video' ? (
+                                                                <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                            ) : (
+                                                                <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                            )}
+                                                        </div>
+
+                                                        {/* Direct Unhighlight / Delete Action Overlays */}
+                                                        <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[1px]">
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    try {
+                                                                        const res = await api.profile.toggleStoryHighlight(hStory.id);
+                                                                        if (res?.success) {
+                                                                            const updated = localStories.map((s: any) =>
+                                                                                String(s.id) === String(hStory.id) ? { ...s, isHighlight: false, is_highlight: false } : s
+                                                                            );
+                                                                            setLocalStories(updated);
+                                                                            profile.stories = updated;
+                                                                            toast.success("Removed from highlights");
+                                                                        }
+                                                                    } catch (err: any) {
+                                                                        toast.error("Failed to unhighlight story");
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 rounded-full bg-amber-500/90 text-white hover:bg-amber-600 shadow-md transition-transform hover:scale-110"
+                                                                title="Remove from Highlights"
+                                                            >
+                                                                <Star size={12} fill="currentColor" />
+                                                            </button>
+
+                                                            <button
+                                                                onClick={async (e) => {
+                                                                    e.stopPropagation();
+                                                                    if (confirm("Delete this story permanently from your profile?")) {
+                                                                        try {
+                                                                            await api.profile.deleteStory(hStory.id);
+                                                                            const remaining = localStories.filter((s: any) => String(s.id) !== String(hStory.id));
+                                                                            setLocalStories(remaining);
+                                                                            profile.stories = remaining;
+                                                                            toast.success("Story deleted!");
+                                                                        } catch (err: any) {
+                                                                            toast.error("Failed to delete story");
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 rounded-full bg-red-600/90 text-white hover:bg-red-700 shadow-md transition-transform hover:scale-110"
+                                                                title="Delete Story Permanently"
+                                                            >
+                                                                <Trash2 size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[70px]">
+                                                        Highlight {idx + 1}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}
@@ -371,6 +477,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
             </div>
 
             {/* Fullscreen Image Overlay (Zoom) */}
+            {/* Fullscreen Image Overlay (Zoom) */}
             {isFullscreen && (
                 <div
                     className="fixed inset-0 z-[20000] bg-black flex items-center justify-center animate-in fade-in zoom-in duration-200"
@@ -396,6 +503,31 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                         }}
                     />
                 </div>
+            )}
+
+            {/* Story Highlight Viewer Modal */}
+            {activeHighlightSet && (
+                <StoryModal
+                    stories={activeHighlightSet.stories}
+                    initialIndex={activeHighlightSet.initialIndex}
+                    user={activeHighlightSet.user}
+                    currentUser={profile}
+                    onClose={() => setActiveHighlightSet(null)}
+                    onDelete={async (storyId) => {
+                        await api.profile.deleteStory(storyId);
+                        const remaining = localStories.filter((s: any) => String(s.id) !== String(storyId));
+                        setLocalStories(remaining);
+                        profile.stories = remaining;
+                        toast.success("Story deleted!");
+                    }}
+                    onHighlightToggle={async (storyId, isHighlight) => {
+                        const updated = localStories.map((s: any) =>
+                            String(s.id) === String(storyId) ? { ...s, isHighlight, is_highlight: isHighlight } : s
+                        );
+                        setLocalStories(updated);
+                        profile.stories = updated;
+                    }}
+                />
             )}
         </div>
     );

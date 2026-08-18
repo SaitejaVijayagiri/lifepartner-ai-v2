@@ -238,7 +238,20 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             <div className={`absolute z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
                 {/* 1. Story & Highlight Badges */}
                 {match.stories && match.stories.length > 0 && (() => {
-                    const highlightedStories = match.stories.filter((s: any) => s.isHighlight);
+                    const now = new Date();
+                    const highlightedStories = match.stories.filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
+                    const active24hStories = match.stories.filter((s: any) => {
+                        const isH = Boolean(s.isHighlight || s.is_highlight);
+                        if (isH) return false;
+                        const expDate = s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) : null;
+                        const createdDate = s.createdAt || s.created_at ? new Date(s.createdAt || s.created_at) : null;
+                        if (expDate) return expDate > now;
+                        if (createdDate) return (now.getTime() - createdDate.getTime()) < 24 * 60 * 60 * 1000;
+                        return true;
+                    });
+
+                    if (highlightedStories.length === 0 && active24hStories.length === 0) return null;
+
                     return (
                         <div className="pointer-events-auto flex items-center gap-1.5 flex-wrap">
                             {highlightedStories.length > 0 && (
@@ -261,27 +274,29 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 </div>
                             )}
 
-                            <div 
-                                className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 hover:scale-105 transition-transform"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onStoryClick) {
-                                        onStoryClick();
-                                    } else {
-                                        setActiveHighlightSet({
-                                            stories: match.stories,
-                                            initialIndex: 0,
-                                            user: {
-                                                id: match.id,
-                                                name: match.name,
-                                                photoUrl: match.photoUrl
-                                            }
-                                        });
-                                    }
-                                }}
-                            >
-                                <span>📸 Story</span>
-                            </div>
+                            {active24hStories.length > 0 && (
+                                <div 
+                                    className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 hover:scale-105 transition-transform"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onStoryClick) {
+                                            onStoryClick();
+                                        } else {
+                                            setActiveHighlightSet({
+                                                stories: active24hStories,
+                                                initialIndex: 0,
+                                                user: {
+                                                    id: match.id,
+                                                    name: match.name,
+                                                    photoUrl: match.photoUrl
+                                                }
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <span>📸 Story ({active24hStories.length})</span>
+                                </div>
+                            )}
                         </div>
                     );
                 })()}

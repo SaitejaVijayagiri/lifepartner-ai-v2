@@ -34,6 +34,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
     const toast = useToast();
 
     const [isSearching, setIsSearching] = useState(true);
+    const [waitingStatus, setWaitingStatus] = useState('');
     const [partner, setPartner] = useState<AnonymousPartner | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
@@ -113,11 +114,18 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
             ]);
         };
 
+        const handleSpeedDateWaiting = (data: { message?: string }) => {
+            if (data?.message) {
+                setWaitingStatus(data.message);
+            }
+        };
+
         socket.on('speed_date_match_found', handleMatchFound);
         socket.on('anonymous_chat_partner_skipped', handlePartnerSkipped);
         socket.on('anonymous_chat_reveal_requested', handleRevealRequested);
         socket.on('anonymous_chat_identity_revealed', handleIdentityRevealed);
         socket.on('anonymous_chat_message', handleAnonymousMessage);
+        socket.on('speed_date_waiting', handleSpeedDateWaiting);
 
         return () => {
             socket.off('speed_date_match_found', handleMatchFound);
@@ -125,6 +133,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
             socket.off('anonymous_chat_reveal_requested', handleRevealRequested);
             socket.off('anonymous_chat_identity_revealed', handleIdentityRevealed);
             socket.off('anonymous_chat_message', handleAnonymousMessage);
+            socket.off('speed_date_waiting', handleSpeedDateWaiting);
             socket.emit('leave_speed_dating_lobby');
         };
     }, [socket, currentUser]);
@@ -233,16 +242,26 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
 
                 {/* SEARCHING RADAR SCREEN */}
                 {isSearching ? (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
-                        <div className="w-24 h-24 rounded-full border-4 border-indigo-500/30 flex items-center justify-center animate-ping mb-6" style={{ animationDuration: '2s' }}>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center relative overflow-hidden space-y-4">
+                        <div className="w-24 h-24 rounded-full border-4 border-indigo-500/30 flex items-center justify-center animate-ping" style={{ animationDuration: '2s' }}>
                             <Sparkles className="w-10 h-10 text-indigo-400 animate-pulse" />
                         </div>
-                        <h4 className="text-xl font-bold text-white mb-1">
-                            Searching {currentUser?.gender?.toLowerCase() === 'female' ? 'Single Male ♂️' : 'Single Female ♀️'}...
-                        </h4>
-                        <p className="text-xs text-indigo-200/70 max-w-xs leading-relaxed">
-                            Connecting with verified single members on LifePartner-AI. Location & age are displayed while real identity & photos stay 100% masked!
-                        </p>
+                        <div>
+                            <h4 className="text-xl font-bold text-white mb-1">
+                                Searching {currentUser?.gender?.toLowerCase() === 'female' ? 'Single Male ♂️' : 'Single Female ♀️'}...
+                            </h4>
+                            <p className="text-xs text-indigo-200/80 max-w-sm leading-relaxed">
+                                {waitingStatus || `Right now no opposite-gender members are online in the lobby. You will be matched instantly as soon as someone joins!`}
+                            </p>
+                        </div>
+                        <div className="pt-2">
+                            <button
+                                onClick={onClose}
+                                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs font-semibold text-white transition-all cursor-pointer"
+                            >
+                                Exit Lobby
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     /* CHAT MESSAGES BODY */

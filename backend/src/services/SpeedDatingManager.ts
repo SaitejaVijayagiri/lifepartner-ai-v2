@@ -189,49 +189,15 @@ export class SpeedDatingManager {
             }
         }
 
-        // 2. Fast Fallback Match (If user waited > 3 seconds, pair with a verified real single member from DB)
-        const now = Date.now();
+        // Notify remaining queued users if lobby is empty of opposite gender
         const allQueued = [...Array.from(this.maleQueue.values()), ...Array.from(this.femaleQueue.values())];
-
         for (const queued of allQueued) {
-            if (now - queued.joinedAt >= 3000) {
-                if (queued.gender === 'male') this.maleQueue.delete(queued.userId);
-                else this.femaleQueue.delete(queued.userId);
-
-                this.activeMatches.add(queued.userId);
-
-                try {
-                    const realOppositeUser = await prisma.users.findFirst({
-                        where: {
-                            gender: { equals: queued.targetGender, mode: 'insensitive' },
-                            id: { not: queued.userId }
-                        },
-                        select: { id: true, full_name: true, avatar_url: true, city: true, state: true, location_name: true, age: true, gender: true }
-                    });
-
-                    const partnerId = realOppositeUser?.id || `speed_partner_${Date.now()}`;
-                    const locString = realOppositeUser?.city ? (realOppositeUser.state ? `${realOppositeUser.city}, ${realOppositeUser.state}` : realOppositeUser.city) : (realOppositeUser?.location_name || "Verified Location");
-
-                    console.log(`[SPEED DATING] Real Member Match for ${queued.userId} -> ${partnerId}`);
-
-                    this.io.to(queued.socketId).emit('speed_date_match_found', {
-                        partner: {
-                            id: partnerId,
-                            name: "Anonymous Stranger",
-                            photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + partnerId,
-                            location: locString,
-                            age: realOppositeUser?.age || 24,
-                            gender: realOppositeUser?.gender || queued.targetGender,
-                            realName: realOppositeUser?.full_name || "Verified Single",
-                            realPhotoUrl: realOppositeUser?.avatar_url || ""
-                        },
-                        initiator: true
-                    });
-                } catch (err) {
-                    console.error("[SPEED DATING] Fallback Error", err);
-                }
-
-                this.broadcastLobbyStats();
+            const hasOppositeInQueue = queued.gender === 'male' ? this.femaleQueue.size > 0 : this.maleQueue.size > 0;
+            if (!hasOppositeInQueue) {
+                const targetLabel = queued.targetGender === 'female' ? 'Single Females' : 'Single Males';
+                this.io.to(queued.socketId).emit('speed_date_waiting', {
+                    message: `Right now no ${targetLabel} are online in the lobby. Staying in queue...`
+                });
             }
         }
     }

@@ -97,34 +97,53 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
     let score = 0;
     const missingSections: Array<{ key: string; label: string; points: number; actionUrl: string }> = [];
 
-    // 1. Basic Identity (25 points)
+    // 1. Basic Identity (20 points)
     if (user?.full_name && user?.age && user?.gender && (user?.location_name || meta?.location?.city)) {
-        score += 25;
+        score += 20;
     } else {
         missingSections.push({
             key: 'identity',
             label: 'Basic Info (Age, Gender, City)',
-            points: 25,
-            actionUrl: '/onboarding'
-        });
-    }
-
-    // 2. Photos (20 points)
-    const validPhotos = (photos && photos.length > 0) || user?.avatar_url;
-    if (validPhotos) {
-        score += 20;
-    } else {
-        missingSections.push({
-            key: 'photos',
-            label: 'Upload Profile Photo (+50 Coins)',
             points: 20,
             actionUrl: '/onboarding'
         });
     }
 
-    // 3. Career & Education (15 points)
-    if (meta?.career?.profession || meta?.career?.education || meta?.career?.income) {
+    // 2. Photos (25 points) — Requires real photos beyond default fallback
+    const photoCount = Array.isArray(photos) ? photos.length : 0;
+    const hasAvatar = user?.avatar_url && !user.avatar_url.includes('dicebear');
+    if (photoCount >= 2 || (photoCount >= 1 && hasAvatar)) {
+        score += 25;
+    } else if (photoCount >= 1 || hasAvatar) {
         score += 15;
+        missingSections.push({
+            key: 'photos',
+            label: 'Upload 2+ Profile Photos (+50 Coins)',
+            points: 10,
+            actionUrl: '/onboarding'
+        });
+    } else {
+        missingSections.push({
+            key: 'photos',
+            label: 'Upload Profile Photos (+50 Coins)',
+            points: 25,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    // 3. Career & Education (15 points)
+    const hasProfession = Boolean(meta?.career?.profession);
+    const hasEduOrIncome = Boolean(meta?.career?.education || meta?.career?.income);
+    if (hasProfession && hasEduOrIncome) {
+        score += 15;
+    } else if (hasProfession || hasEduOrIncome) {
+        score += 8;
+        missingSections.push({
+            key: 'career',
+            label: 'Add Education & Income Range',
+            points: 7,
+            actionUrl: '/onboarding'
+        });
     } else {
         missingSections.push({
             key: 'career',
@@ -135,8 +154,18 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
     }
 
     // 4. Religion & Community (15 points)
-    if (meta?.religion?.religion || meta?.motherTongue || meta?.religion?.caste) {
+    const hasReligion = Boolean(meta?.religion?.religion || meta?.religion?.faith);
+    const hasCasteOrLang = Boolean(meta?.motherTongue || meta?.religion?.caste);
+    if (hasReligion && hasCasteOrLang) {
         score += 15;
+    } else if (hasReligion || hasCasteOrLang) {
+        score += 8;
+        missingSections.push({
+            key: 'religion',
+            label: 'Add Caste & Mother Tongue',
+            points: 7,
+            actionUrl: '/onboarding'
+        });
     } else {
         missingSections.push({
             key: 'religion',
@@ -147,8 +176,18 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
     }
 
     // 5. Family & Lifestyle (15 points)
-    if (meta?.family?.type || meta?.lifestyle?.diet || (meta?.interests && meta?.interests.length > 0)) {
+    const hasFamily = Boolean(meta?.family?.type || meta?.family?.values);
+    const hasLifestyle = Boolean(meta?.lifestyle?.diet || (meta?.interests && meta?.interests.length > 0));
+    if (hasFamily && hasLifestyle) {
         score += 15;
+    } else if (hasFamily || hasLifestyle) {
+        score += 8;
+        missingSections.push({
+            key: 'lifestyle',
+            label: 'Family Values & Lifestyle Details',
+            points: 7,
+            actionUrl: '/onboarding'
+        });
     } else {
         missingSections.push({
             key: 'lifestyle',
@@ -159,7 +198,8 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
     }
 
     // 6. About Me & Expectations (10 points)
-    if (meta?.aboutMe || meta?.bio || user?.profiles?.raw_prompt || meta?.expectations) {
+    const bioText = meta?.aboutMe || meta?.bio || user?.profiles?.raw_prompt || meta?.expectations || "";
+    if (bioText.trim().length >= 15) {
         score += 10;
     } else {
         missingSections.push({
@@ -170,15 +210,21 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
         });
     }
 
+    // Badge Level Requirements:
+    // Gold Verified requires BOTH 90%+ completeness AND user profile verification flag!
+    const isUserVerified = Boolean(user?.is_verified);
     let badgeLevel = 'Basic';
-    if (score >= 80) badgeLevel = 'Gold Verified';
-    else if (score >= 50) badgeLevel = 'Silver';
+    if (score >= 90 && isUserVerified) {
+        badgeLevel = 'Gold Verified';
+    } else if (score >= 70) {
+        badgeLevel = 'Silver';
+    }
 
     return {
         completenessScore: score,
         missingSections,
         badgeLevel,
-        isComplete: score >= 80
+        isComplete: score >= 90
     };
 }
 

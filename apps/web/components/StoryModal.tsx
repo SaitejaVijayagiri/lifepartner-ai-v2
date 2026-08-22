@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye, Star, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
+import { getProfilePhotoUrl } from '@/lib/utils';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
 import { MUSIC_CATALOG } from './StoryMusicStudio';
@@ -353,7 +354,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     if (!story) return null;
 
     const displayName = user.name || user.full_name || "User";
-    const avatarUrl = user.photoUrl || user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
+    const avatarUrl = getProfilePhotoUrl(user) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id || 'User'}`;
 
     const modalMarkup = (
         <div

@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
-import { formatLocationString } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
 import { trackImageFailure } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
@@ -303,7 +303,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                             user: {
                                                 id: match.id,
                                                 name: match.name,
-                                                photoUrl: match.photoUrl
+                                                photoUrl: getProfilePhotoUrl(match)
                                             }
                                         });
                                     }}
@@ -326,7 +326,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                                 user: {
                                                     id: match.id,
                                                     name: match.name,
-                                                    photoUrl: match.photoUrl
+                                                    photoUrl: getProfilePhotoUrl(match)
                                                 }
                                             });
                                         }

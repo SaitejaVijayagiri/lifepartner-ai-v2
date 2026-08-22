@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { formatLocationString } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
 
 const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
@@ -328,7 +328,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                 user: {
                                                     id: profile.id,
                                                     name: profile.name || profile.full_name || 'User',
-                                                    photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                    photoUrl: getProfilePhotoUrl(profile)
                                                 }
                                             });
                                         }}
@@ -404,7 +404,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                         user: {
                                                             id: profile.id,
                                                             name: profile.name || profile.full_name || 'User',
-                                                            photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                            photoUrl: getProfilePhotoUrl(profile)
                                                         }
                                                     });
                                                 }}

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
 import dynamic from 'next/dynamic';
-import { formatLocationString } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 
@@ -424,7 +424,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                                 user: {
                                                                     id: profile.id,
                                                                     name: profile.name || profile.full_name || 'User',
-                                                                    photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                                    photoUrl: getProfilePhotoUrl(profile)
                                                                 }
                                                             });
                                                         }}

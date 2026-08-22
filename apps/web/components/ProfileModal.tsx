@@ -152,12 +152,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-screen h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-screen h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
-                {/* Close button REMOVED from fixed — now lives inside the content panel header */}
-
-                {/* LEFT: Photo */}
-                <div className="w-full md:w-[45%] h-72 sm:h-80 md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
+                {/* LEFT: Photo (Full-height hero on mobile, sticky 45% column on desktop) */}
+                <div className="w-full md:w-[45%] h-[420px] sm:h-[460px] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
 
                     {/* Main Image */}
                     <img
@@ -747,7 +745,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         const isAlreadyConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (matchStatus === 'accepted' || matchStatus === 'connected');
                         const isPendingRequest = matchStatus === 'pending';
                         return (
-                            <div className="w-full p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 md:static md:bg-gray-50 dark:md:bg-gray-900 z-[210] pb-safe">
+                            <div className="fixed md:static bottom-0 inset-x-0 w-full p-3 sm:p-4 bg-slate-900/95 dark:bg-gray-900/95 md:bg-gray-50 dark:md:bg-gray-900 backdrop-blur-xl border-t border-slate-800/80 dark:border-gray-800 z-[210] pb-safe shadow-2xl">
                                 {isAlreadyConnected && (
                                     <div className="flex items-center justify-center gap-1.5 mb-1.5 py-0.5 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
                                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>

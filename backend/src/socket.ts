@@ -474,6 +474,12 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
+        socket.on("anonymous_chat_reveal_decline", (data: { partnerId: string }) => {
+            if (userId && data?.partnerId) {
+                io.to(data.partnerId).emit("anonymous_chat_reveal_declined", { fromUserId: userId });
+            }
+        });
+
         socket.on("anonymous_chat_message", ({ to, text }: { to: string; text: string }) => {
             if (userId && to && text) {
                 io.to(to).emit("anonymous_chat_message", {

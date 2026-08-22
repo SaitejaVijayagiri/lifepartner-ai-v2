@@ -38,7 +38,8 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
     const [partner, setPartner] = useState<AnonymousPartner | null>(null);
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
-    const [revealRequested, setRevealRequested] = useState(false);
+    const [revealRequestedByMe, setRevealRequestedByMe] = useState(false);
+    const [revealRequestedByPartner, setRevealRequestedByPartner] = useState(false);
     const [isRevealed, setIsRevealed] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,13 +58,15 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
 
         // Auto-join stranger queue
         const targetGender = currentUser?.gender?.toLowerCase() === 'female' ? 'male' : 'female';
-        const targetLabel = targetGender === 'female' ? 'Single Female' : 'Single Male';
         socket.emit('join_speed_dating_lobby', { targetGender });
         setIsSearching(true);
 
         const handleMatchFound = (data: { partner: AnonymousPartner; initiator: boolean }) => {
             setIsSearching(false);
             setPartner(data.partner);
+            setRevealRequestedByMe(false);
+            setRevealRequestedByPartner(false);
+            setIsRevealed(false);
             const genderLabel = (data.partner.gender?.toLowerCase() === 'female' || data.partner.gender?.toLowerCase() === 'woman') ? 'Female ♀️' : 'Male ♂️';
             setMessages([
                 {
@@ -81,17 +84,44 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
             setPartner(null);
             setMessages([]);
             setIsRevealed(false);
-            setRevealRequested(false);
+            setRevealRequestedByMe(false);
+            setRevealRequestedByPartner(false);
             setIsSearching(true);
             socket.emit('join_speed_dating_lobby', { targetGender });
         };
 
         const handleRevealRequested = () => {
-            toast.info("🤝 Stranger requested to Reveal Identity! Tap 'Reveal & Connect' to agree.");
+            setRevealRequestedByPartner(true);
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: `sys_req_${Date.now()}`,
+                    senderId: 'system',
+                    text: `🤝 Stranger requested to Connect & Reveal Profiles! Tap 'Accept & Connect' below to agree.`,
+                    timestamp: Date.now()
+                }
+            ]);
+            toast.info("🤝 Stranger requested to Connect & Reveal Profiles!");
+        };
+
+        const handleRevealDeclined = () => {
+            setRevealRequestedByMe(false);
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: `sys_dec_${Date.now()}`,
+                    senderId: 'system',
+                    text: `🔒 Stranger preferred to stay anonymous for now. You can keep chatting!`,
+                    timestamp: Date.now()
+                }
+            ]);
+            toast.info("Stranger preferred to stay anonymous for now.");
         };
 
         const handleIdentityRevealed = (data: { realUser: any }) => {
             setIsRevealed(true);
+            setRevealRequestedByMe(false);
+            setRevealRequestedByPartner(false);
             if (data.realUser) {
                 setPartner(prev => prev ? {
                     ...prev,
@@ -99,7 +129,16 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                     photoUrl: data.realUser.avatar_url || prev.photoUrl
                 } : null);
             }
-            toast.success("🎉 Identities Revealed! Connection created in your Saved Matches.");
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: `sys_rev_${Date.now()}`,
+                    senderId: 'system',
+                    text: `🎉 Mutual consent confirmed! Real identities revealed & saved to your Matches.`,
+                    timestamp: Date.now()
+                }
+            ]);
+            toast.success("🎉 Mutual consent confirmed! Identities revealed.");
         };
 
         const handleAnonymousMessage = (msg: { from: string; text: string }) => {
@@ -123,6 +162,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
         socket.on('speed_date_match_found', handleMatchFound);
         socket.on('anonymous_chat_partner_skipped', handlePartnerSkipped);
         socket.on('anonymous_chat_reveal_requested', handleRevealRequested);
+        socket.on('anonymous_chat_reveal_declined', handleRevealDeclined);
         socket.on('anonymous_chat_identity_revealed', handleIdentityRevealed);
         socket.on('anonymous_chat_message', handleAnonymousMessage);
         socket.on('speed_date_waiting', handleSpeedDateWaiting);
@@ -131,6 +171,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
             socket.off('speed_date_match_found', handleMatchFound);
             socket.off('anonymous_chat_partner_skipped', handlePartnerSkipped);
             socket.off('anonymous_chat_reveal_requested', handleRevealRequested);
+            socket.off('anonymous_chat_reveal_declined', handleRevealDeclined);
             socket.off('anonymous_chat_identity_revealed', handleIdentityRevealed);
             socket.off('anonymous_chat_message', handleAnonymousMessage);
             socket.off('speed_date_waiting', handleSpeedDateWaiting);
@@ -168,20 +209,54 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
         setPartner(null);
         setMessages([]);
         setIsRevealed(false);
-        setRevealRequested(false);
+        setRevealRequestedByMe(false);
+        setRevealRequestedByPartner(false);
         setIsSearching(true);
 
         const targetGender = currentUser?.gender?.toLowerCase() === 'female' ? 'male' : 'female';
         socket.emit('anonymous_chat_skip', { partnerId: partner?.id });
     };
 
-    // Reveal Identity & Connect Handler
-    const handleRevealAndConnect = () => {
+    // Step 1: User A requests reveal
+    const handleRequestReveal = () => {
         if (!socket || !partner) return;
-        setRevealRequested(true);
+        setRevealRequestedByMe(true);
         socket.emit('anonymous_chat_reveal_request', { partnerId: partner.id });
+        setMessages(prev => [
+            ...prev,
+            {
+                id: `sys_req_me_${Date.now()}`,
+                senderId: 'system',
+                text: `🤝 You requested to Connect & Reveal Profiles. Waiting for Stranger's consent...`,
+                timestamp: Date.now()
+            }
+        ]);
+        toast.info("Connection request sent! Waiting for Stranger's consent.");
+    };
+
+    // Step 2: User B accepts reveal
+    const handleAcceptReveal = () => {
+        if (!socket || !partner) return;
+        setRevealRequestedByPartner(false);
         socket.emit('anonymous_chat_reveal_accept', { partnerId: partner.id });
-        toast.success("Identity reveal request sent!");
+        toast.success("You accepted! Revealing identities...");
+    };
+
+    // Step 3: User B declines reveal
+    const handleDeclineReveal = () => {
+        if (!socket || !partner) return;
+        setRevealRequestedByPartner(false);
+        socket.emit('anonymous_chat_reveal_decline', { partnerId: partner.id });
+        setMessages(prev => [
+            ...prev,
+            {
+                id: `sys_dec_me_${Date.now()}`,
+                senderId: 'system',
+                text: `🔒 You declined the request. Staying anonymous.`,
+                timestamp: Date.now()
+            }
+        ]);
+        toast.info("You declined. Staying anonymous.");
     };
 
     return (
@@ -301,27 +376,57 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                 {/* BOTTOM ACTION & INPUT BAR */}
                 {!isSearching && partner && (
                     <div className="p-3 bg-slate-900 border-t border-indigo-500/20 space-y-3 shrink-0">
+
+                        {/* Interactive Mutual Consent Request Card */}
+                        {revealRequestedByPartner && !isRevealed && (
+                            <div className="p-3 bg-gradient-to-r from-purple-900/95 via-indigo-900/95 to-slate-900 border border-amber-400/40 rounded-2xl flex flex-col gap-2 animate-in fade-in duration-200 shadow-xl">
+                                <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
+                                    <span>💖</span>
+                                    <span>Stranger wants to Connect & Reveal Profiles!</span>
+                                </div>
+                                <p className="text-[11px] text-gray-200 font-medium">
+                                    Do you feel comfortable revealing your real name & profile picture to connect?
+                                </p>
+                                <div className="flex gap-2 pt-1">
+                                    <button
+                                        onClick={handleAcceptReveal}
+                                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                                    >
+                                        ✅ Yes, Accept & Connect
+                                    </button>
+                                    <button
+                                        onClick={handleDeclineReveal}
+                                        className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold text-xs rounded-xl border border-white/10 transition-all active:scale-95 cursor-pointer"
+                                    >
+                                        ❌ Keep Anonymous
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Quick Control Actions */}
                         <div className="flex items-center justify-between gap-3">
                             <button
                                 onClick={handleSkip}
-                                className="flex-1 py-2 px-4 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95"
+                                className="flex-1 py-2 px-4 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                             >
                                 <UserX size={16} />
                                 <span>⏭️ Skip Stranger</span>
                             </button>
 
                             <button
-                                onClick={handleRevealAndConnect}
-                                disabled={isRevealed || revealRequested}
-                                className={`flex-1 py-2 px-4 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 ${
+                                onClick={handleRequestReveal}
+                                disabled={isRevealed || revealRequestedByMe || revealRequestedByPartner}
+                                className={`flex-1 py-2 px-4 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
                                     isRevealed
                                         ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                                        : 'bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white shadow-lg shadow-amber-500/20'
+                                        : revealRequestedByMe
+                                            ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300 opacity-80 cursor-wait'
+                                            : 'bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white shadow-lg shadow-amber-500/20'
                                 }`}
                             >
                                 <Heart size={16} className={isRevealed ? 'fill-emerald-400' : 'fill-white'} />
-                                <span>{isRevealed ? '✓ Connected' : revealRequested ? 'Requested...' : '🤝 Reveal & Connect'}</span>
+                                <span>{isRevealed ? '✓ Connected' : revealRequestedByMe ? 'Waiting Stranger...' : '🤝 Reveal & Connect'}</span>
                             </button>
                         </div>
 

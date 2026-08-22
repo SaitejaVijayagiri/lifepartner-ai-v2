@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 import Cropper from 'react-easy-crop';
-import { Edit2, Trash2, Camera, X, RotateCw } from 'lucide-react';
+import { Edit2, Trash2, Camera, X, RotateCw, Sparkles, Wand2 } from 'lucide-react';
 
 interface ProfileEditorProps {
     initialData: any;
@@ -126,6 +126,48 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     const [loading, setLoading] = useState(false);
     const [roasting, setRoasting] = useState(false);
     const [roastResult, setRoastResult] = useState<{roast: string, score: number, tips: string[]} | null>(null);
+
+    // AI Bio Generator States
+    const [showAiBioModal, setShowAiBioModal] = useState(false);
+    const [aiVibe, setAiVibe] = useState('Warm & Friendly');
+    const [aiHobby, setAiHobby] = useState('Travel & Exploring');
+    const [aiLookingFor, setAiLookingFor] = useState('Genuine & Caring Companion');
+    const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+
+    const handleGenerateAiBio = () => {
+        setIsGeneratingBio(true);
+        setTimeout(() => {
+            const profession = formData.career?.profession || 'professional';
+
+            const vibeDescriptions: Record<string, string> = {
+                'Warm & Friendly': `I'm a warm, down-to-earth person who values deep connections, family, and meaningful conversations.`,
+                'Ambitious & Driven': `I'm a passionate and goal-oriented ${profession} who balances career ambition with a meaningful personal life.`,
+                'Creative & Adventurous': `I have a creative soul, a curious mind, and a love for discovering new perspectives and experiences.`,
+                'Family & Values-Focused': `Rooted in traditions with a modern outlook, family, mutual respect, and warmth mean everything to me.`
+            };
+
+            const hobbyDescriptions: Record<string, string> = {
+                'Travel & Exploring': `In my free time, I love traveling to new places, exploring local cultures, and trying new food spots.`,
+                'Coffee & Good Books': `I enjoy quiet coffee moments, thoughtful discussions, reading good books, and weekend getaways.`,
+                'Music & Fitness': `Music, fitness, and living a healthy, active lifestyle keep me energized and positive every day.`,
+                'Cooking & Foodie': `I enjoy cooking delicious meals, hosting friends, and discovering cozy restaurants.`
+            };
+
+            const goalDescriptions: Record<string, string> = {
+                'Genuine & Caring Companion': `Looking for a genuine, kind-hearted life partner to share life's simple joys and build a loving future together.`,
+                'Ambitious Partner with Shared Values': `Hoping to connect with an understanding, goal-minded companion who shares similar life values.`,
+                'Adventure Buddy for Life': `Seeking a fun-loving best friend and life partner for lifelong adventures and mutual growth.`,
+                'Serious Marriage & Family': `Looking for a compatible partner for a serious marriage and a beautiful family journey together.`
+            };
+
+            const generatedBio = `${vibeDescriptions[aiVibe] || vibeDescriptions['Warm & Friendly']} ${hobbyDescriptions[aiHobby] || hobbyDescriptions['Travel & Exploring']} ${goalDescriptions[aiLookingFor] || goalDescriptions['Genuine & Caring Companion']}`;
+
+            handleChange('root', 'aboutMe', generatedBio);
+            setIsGeneratingBio(false);
+            setShowAiBioModal(false);
+            toast.success("✨ AI Profile Bio generated!");
+        }, 300);
+    };
 
     const handleRoast = async () => {
         setRoasting(true);
@@ -467,15 +509,118 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                 {/* About Me */}
                 <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">About Me</h4>
+                    <div className="flex items-center justify-between border-b pb-2 mb-4">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">About Me</h4>
+                        <button
+                            type="button"
+                            onClick={() => setShowAiBioModal(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-xs font-bold shadow-md hover:scale-105 transition-all cursor-pointer"
+                        >
+                            <Sparkles size={13} />
+                            <span>✨ Write AI Bio</span>
+                        </button>
+                    </div>
                     <textarea
                         className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-md text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-indigo-500 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                        rows={3}
+                        rows={4}
                         placeholder="Describe your personality, hobbies, and what you are looking for..."
                         value={formData.aboutMe || ''}
                         onChange={e => handleChange('root', 'aboutMe', e.target.value)}
                     />
                 </div>
+
+                {/* AI Bio Generator Modal */}
+                {showAiBioModal && (
+                    <div className="fixed inset-0 z-[100000] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
+                        <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-3xl p-6 border border-purple-500/30 shadow-2xl space-y-5 relative">
+                            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
+                                        ✨
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-base">AI Profile Bio Generator</h3>
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400">Select 3 choices to write your bio</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAiBioModal(false)}
+                                    className="p-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all cursor-pointer"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4 text-left">
+                                {/* Choice 1: Personality Vibe */}
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">1. Your Personality Vibe</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Warm & Friendly', 'Ambitious & Driven', 'Creative & Adventurous', 'Family & Values-Focused'].map(vibe => (
+                                            <button
+                                                key={vibe}
+                                                type="button"
+                                                onClick={() => setAiVibe(vibe)}
+                                                className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${aiVibe === vibe ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                            >
+                                                {vibe}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Choice 2: Hobbies & Passions */}
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">2. Your Favorite Hobbies</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Travel & Exploring', 'Coffee & Good Books', 'Music & Fitness', 'Cooking & Foodie'].map(hobby => (
+                                            <button
+                                                key={hobby}
+                                                type="button"
+                                                onClick={() => setAiHobby(hobby)}
+                                                className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${aiHobby === hobby ? 'bg-purple-50 dark:bg-purple-950/60 border-purple-500 text-purple-700 dark:text-purple-300 shadow-sm' : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                            >
+                                                {hobby}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Choice 3: Looking for */}
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1.5">3. What You're Looking For</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {['Genuine & Caring Companion', 'Ambitious Partner with Shared Values', 'Adventure Buddy for Life', 'Serious Marriage & Family'].map(goal => (
+                                            <button
+                                                key={goal}
+                                                type="button"
+                                                onClick={() => setAiLookingFor(goal)}
+                                                className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${aiLookingFor === goal ? 'bg-pink-50 dark:bg-pink-950/60 border-pink-500 text-pink-700 dark:text-pink-300 shadow-sm' : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                                            >
+                                                {goal}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 flex gap-3">
+                                <Button type="button" variant="outline" className="flex-1 rounded-xl cursor-pointer" onClick={() => setShowAiBioModal(false)}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleGenerateAiBio}
+                                    disabled={isGeneratingBio}
+                                    className="flex-[2] rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold shadow-lg shadow-indigo-500/20 cursor-pointer"
+                                >
+                                    {isGeneratingBio ? '✨ Writing Bio...' : '✨ Insert AI Bio'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Section 1: Basic Info */}
                 <div>

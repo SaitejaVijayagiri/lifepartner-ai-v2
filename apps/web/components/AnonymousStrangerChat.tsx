@@ -56,21 +56,23 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
 
         // Auto-join stranger queue
         const targetGender = currentUser?.gender?.toLowerCase() === 'female' ? 'male' : 'female';
+        const targetLabel = targetGender === 'female' ? 'Single Female' : 'Single Male';
         socket.emit('join_speed_dating_lobby', { targetGender });
         setIsSearching(true);
 
         const handleMatchFound = (data: { partner: AnonymousPartner; initiator: boolean }) => {
             setIsSearching(false);
             setPartner(data.partner);
+            const genderLabel = (data.partner.gender?.toLowerCase() === 'female' || data.partner.gender?.toLowerCase() === 'woman') ? 'Female ♀️' : 'Male ♂️';
             setMessages([
                 {
                     id: 'sys_1',
                     senderId: 'system',
-                    text: `🎭 Connected with an Anonymous Stranger! They are located in ${data.partner.location || 'a nearby city'}. Chat safely & tap 'Reveal & Connect' when comfortable.`,
+                    text: `🎭 Connected with a Verified ${genderLabel} Member from ${data.partner.location || 'a nearby city'}! Real identity & photos are 100% hidden until both tap 'Reveal & Connect'.`,
                     timestamp: Date.now()
                 }
             ]);
-            toast.success("🎭 Connected with an Anonymous Stranger!");
+            toast.success(`🎭 Connected with a Verified Single ${genderLabel}!`);
         };
 
         const handlePartnerSkipped = () => {
@@ -206,7 +208,10 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                             </div>
 
                             {partner && (
-                                <div className="flex items-center gap-2 text-xs text-indigo-200/80 mt-0.5">
+                                <div className="flex items-center gap-2 text-xs text-indigo-200/80 mt-0.5 flex-wrap">
+                                    <span className="inline-flex items-center gap-1 font-bold text-pink-300 bg-pink-500/20 px-2 py-0.5 rounded-md border border-pink-500/30">
+                                        {(partner.gender?.toLowerCase() === 'female' || partner.gender?.toLowerCase() === 'woman') ? '♀️ Single Female' : '♂️ Single Male'}
+                                    </span>
                                     <span className="flex items-center gap-1">
                                         <MapPin size={12} className="text-pink-400" />
                                         {partner.location || 'Verified Location'}
@@ -220,7 +225,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
 
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all"
+                        className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
                     >
                         <X size={20} />
                     </button>
@@ -232,9 +237,11 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                         <div className="w-24 h-24 rounded-full border-4 border-indigo-500/30 flex items-center justify-center animate-ping mb-6" style={{ animationDuration: '2s' }}>
                             <Sparkles className="w-10 h-10 text-indigo-400 animate-pulse" />
                         </div>
-                        <h4 className="text-xl font-bold text-white mb-2">Connecting with Stranger...</h4>
+                        <h4 className="text-xl font-bold text-white mb-1">
+                            Searching {currentUser?.gender?.toLowerCase() === 'female' ? 'Single Male ♂️' : 'Single Female ♀️'}...
+                        </h4>
                         <p className="text-xs text-indigo-200/70 max-w-xs leading-relaxed">
-                            Searching opposite-gender pool (Male ↔ Female). Location will be displayed while real identities remain 100% hidden!
+                            Connecting with verified single members on LifePartner-AI. Location & age are displayed while real identity & photos stay 100% masked!
                         </p>
                     </div>
                 ) : (

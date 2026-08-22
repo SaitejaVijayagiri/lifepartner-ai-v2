@@ -99,7 +99,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
             toast.success("🎉 Identities Revealed! Connection created in your Saved Matches.");
         };
 
-        const handlePrivateMessage = (msg: { from: string; text: string }) => {
+        const handleAnonymousMessage = (msg: { from: string; text: string }) => {
             setMessages(prev => [
                 ...prev,
                 {
@@ -115,14 +115,14 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
         socket.on('anonymous_chat_partner_skipped', handlePartnerSkipped);
         socket.on('anonymous_chat_reveal_requested', handleRevealRequested);
         socket.on('anonymous_chat_identity_revealed', handleIdentityRevealed);
-        socket.on('private_message', handlePrivateMessage);
+        socket.on('anonymous_chat_message', handleAnonymousMessage);
 
         return () => {
             socket.off('speed_date_match_found', handleMatchFound);
             socket.off('anonymous_chat_partner_skipped', handlePartnerSkipped);
             socket.off('anonymous_chat_reveal_requested', handleRevealRequested);
             socket.off('anonymous_chat_identity_revealed', handleIdentityRevealed);
-            socket.off('private_message', handlePrivateMessage);
+            socket.off('anonymous_chat_message', handleAnonymousMessage);
             socket.emit('leave_speed_dating_lobby');
         };
     }, [socket, currentUser]);
@@ -142,7 +142,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
         setMessages(prev => [...prev, newMsg]);
 
         // Send via Socket to partner
-        socket.emit('private_message', {
+        socket.emit('anonymous_chat_message', {
             to: partner.id,
             text: inputText.trim()
         });

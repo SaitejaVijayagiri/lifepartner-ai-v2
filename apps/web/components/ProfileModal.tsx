@@ -37,8 +37,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [sheetExpanded, setSheetExpanded] = useState(false);
-    const dragStartY = useState(0);
-    const swipeStartX = useState(0);
+    const [swipeStartX, setSwipeStartX] = useState(0);
+    const [swipeStartY, setSwipeStartY] = useState(0);
 
     const toast = useToast();
     const [matchStatus, setMatchStatus] = useState<string | null>(profile.match_status || null);
@@ -69,31 +69,26 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }
     };
 
-    const TABS = ['about', 'highlights', 'ai insight', 'personal', 'career', 'family', 'lifestyle', 'preferences'];
-    
-    const handleDragStart = (e: React.TouchEvent) => {
-        dragStartY[1](e.touches[0].clientY);
-        swipeStartX[1](e.touches[0].clientX);
-    };
-    const handleDragEnd = (e: React.TouchEvent) => {
-        const deltaY = dragStartY[0] - e.changedTouches[0].clientY;
-        const deltaX = swipeStartX[0] - e.changedTouches[0].clientX;
+    const TABS = ['ai insight', 'about', 'highlights', 'personal', 'career', 'family', 'lifestyle', 'preferences'];
 
-        // Horizontal swipe → change tab (must be more horizontal than vertical)
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setSwipeStartX(e.touches[0].clientX);
+        setSwipeStartY(e.touches[0].clientY);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (!swipeStartX || !swipeStartY) return;
+        const deltaX = swipeStartX - e.changedTouches[0].clientX;
+        const deltaY = swipeStartY - e.changedTouches[0].clientY;
+
+        // Horizontal swipe → change tab (must be more horizontal than vertical & > 40px)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
             const currentIndex = TABS.indexOf(activeTab);
             if (deltaX > 0 && currentIndex < TABS.length - 1) {
                 setActiveTab(TABS[currentIndex + 1]); // swipe left → next tab
             } else if (deltaX < 0 && currentIndex > 0) {
                 setActiveTab(TABS[currentIndex - 1]); // swipe right → prev tab
             }
-            return;
-        }
-
-        // Vertical swipe → expand/collapse sheet
-        if (Math.abs(deltaY) > Math.abs(deltaX)) {
-            if (deltaY > 40) setSheetExpanded(true);
-            if (deltaY < -40) setSheetExpanded(false);
         }
     };
 
@@ -381,7 +376,11 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Scrollable Content — extra bottom padding for breathing room */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10 min-h-0">
+                    <div 
+                        className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10 min-h-0"
+                        onTouchStart={handleTouchStart}
+                        onTouchEnd={handleTouchEnd}
+                    >
                         {activeTab === 'highlights' && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="bg-gradient-to-br from-amber-500/10 via-purple-500/10 to-pink-500/10 p-6 rounded-3xl border border-amber-500/20 shadow-xl space-y-4">

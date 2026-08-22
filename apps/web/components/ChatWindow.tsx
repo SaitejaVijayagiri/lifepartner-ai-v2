@@ -287,6 +287,107 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
     );
 };
 
+const VoiceNoteWaveformPlayer = ({ audioUrl, isMe }: { audioUrl: string; isMe: boolean }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [playbackRate, setPlaybackRate] = useState<number>(1);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const togglePlay = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!audioRef.current) {
+            const audio = new Audio(audioUrl);
+            audio.playbackRate = playbackRate;
+            audioRef.current = audio;
+
+            audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+            audio.onloadedmetadata = () => setDuration(audio.duration);
+            audio.onended = () => {
+                setIsPlaying(false);
+                setCurrentTime(0);
+            };
+        }
+
+        if (isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            audioRef.current.playbackRate = playbackRate;
+            audioRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+        }
+    };
+
+    const toggleSpeed = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const speeds = [1, 1.5, 2];
+        const nextIdx = (speeds.indexOf(playbackRate) + 1) % speeds.length;
+        const nextSpeed = speeds[nextIdx];
+        setPlaybackRate(nextSpeed);
+        if (audioRef.current) {
+            audioRef.current.playbackRate = nextSpeed;
+        }
+    };
+
+    const formatTime = (secs: number) => {
+        if (!secs || isNaN(secs)) return '0:00';
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
+    const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+    return (
+        <div 
+            onClick={(e) => e.stopPropagation()} 
+            className={`flex items-center gap-3 p-3 rounded-2xl min-w-[210px] sm:min-w-[240px] select-none my-1 ${isMe ? 'bg-indigo-700/60 border border-white/20' : 'bg-slate-800/80 border border-white/10'}`}
+        >
+            <button
+                type="button"
+                onClick={togglePlay}
+                className="w-10 h-10 rounded-full bg-white text-indigo-600 dark:text-indigo-900 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer"
+            >
+                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+            </button>
+
+            <div className="flex-1 flex flex-col justify-center gap-1">
+                {/* Waveform Equalizer Bars */}
+                <div className="flex items-center gap-1 h-6 px-1">
+                    {[40, 75, 30, 90, 60, 100, 45, 80, 55, 95, 35, 70, 50, 85].map((height, idx) => {
+                        const barProgress = (idx / 14) * 100;
+                        const isPassed = barProgress <= progressPercent;
+                        return (
+                            <div
+                                key={idx}
+                                className={`w-1 rounded-full transition-all duration-150 ${isPassed ? (isMe ? 'bg-white' : 'bg-indigo-400') : (isMe ? 'bg-white/30' : 'bg-gray-600')}`}
+                                style={{
+                                    height: isPlaying ? `${Math.max(20, Math.sin(idx + currentTime * 5) * 40 + height * 0.6)}%` : `${height}%`
+                                }}
+                            />
+                        );
+                    })}
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] opacity-80 font-mono">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{duration ? formatTime(duration) : 'Voice Note'}</span>
+                </div>
+            </div>
+
+            {/* Speed Toggle Pill (1x / 1.5x / 2x) */}
+            <button
+                type="button"
+                onClick={toggleSpeed}
+                className={`px-2 py-1 rounded-full text-[10px] font-black uppercase border transition-all cursor-pointer ${isMe ? 'bg-white/20 hover:bg-white/30 text-white border-white/30' : 'bg-gray-700 hover:bg-gray-600 text-indigo-300 border-indigo-500/30'}`}
+                title="Change playback speed"
+            >
+                {playbackRate}x
+            </button>
+        </div>
+    );
+};
+
 const rotateSize = (width: number, height: number, rotation: number) => {
     const rotRad = (rotation * Math.PI) / 180;
     return {
@@ -433,6 +534,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<BlobPart[]>([]);
     const recordingTimerRef = useRef<NodeJS.Timeout>();
+    const longPressTimerRef = useRef<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploadingMedia, setIsUploadingMedia] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -1628,6 +1730,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         data-msg-id={msg.id}
                                         onClick={() => msg.id && setActiveMsgId(activeMsgId === msg.id ? null : msg.id)}
                                         onDoubleClick={() => msg.id && !msg.id.toString().startsWith('temp-') && setEmojiPickerMsgId(msg.id)}
+                                        onTouchStart={() => {
+                                            if (!msg.id || msg.id.toString().startsWith('temp-')) return;
+                                            longPressTimerRef.current = setTimeout(() => {
+                                                setEmojiPickerMsgId(msg.id);
+                                                if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                                                    try { navigator.vibrate(40); } catch(e) {}
+                                                }
+                                            }, 450);
+                                        }}
+                                        onTouchEnd={() => {
+                                            if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                                        }}
+                                        onTouchMove={() => {
+                                            if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                                        }}
                                         className={`relative w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
@@ -1729,6 +1846,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             </div>
                                         ) : msg.text.startsWith('[IMAGE]') ? (
                                             <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: msg.text.replace('[IMAGE]', ''), type: 'image' })} />
+                                        ) : msg.text.startsWith('[AUDIO]') ? (
+                                            <VoiceNoteWaveformPlayer audioUrl={msg.text.replace('[AUDIO]', '')} isMe={isMe} />
                                         ) : msg.text.startsWith('[MUSIC_SHARE:') ? (() => {
                                             let title = 'Music Track';
                                             let artist = 'Artist';

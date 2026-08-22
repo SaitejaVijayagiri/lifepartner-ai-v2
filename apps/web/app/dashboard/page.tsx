@@ -440,9 +440,15 @@ function DashboardContent() {
         const orderId = searchParams.get('order_id');
         const action = searchParams.get('action');
         const tab = searchParams.get('tab');
+        const edit = searchParams.get('edit');
         const chatId = searchParams.get('chatId');
 
-        if (tab) setActiveTab(tab);
+        if (tab) {
+            setActiveTab(tab);
+            if (tab === 'profile' && edit === 'true') {
+                setIsEditingProfile(true);
+            }
+        }
         if (chatId) {
             setActiveTab('connections');
             // Auto open the chat window! The internal ChatWindow component will fetch the real name/photo
@@ -1036,7 +1042,14 @@ function DashboardContent() {
                             currentUser={currentUser}
                             setCurrentUser={setCurrentUser}
                             matches={matches}
-                            onNavigateTab={(tab) => setActiveTab(tab)}
+                            onNavigateTab={(tab) => {
+                                if (tab === 'profile_edit') {
+                                    setActiveTab('profile');
+                                    setIsEditingProfile(true);
+                                } else {
+                                    setActiveTab(tab);
+                                }
+                            }}
                             onSelectProfile={setSelectedProfile}
                             onSelectKundli={setSelectedKundli}
                             onJoinLiveRoom={async (event?: any) => {

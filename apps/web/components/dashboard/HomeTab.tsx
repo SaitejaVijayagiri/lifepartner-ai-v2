@@ -71,6 +71,7 @@ export default function HomeTab({
                 completenessScore={currentUser?.completenessScore ?? 40}
                 missingSections={currentUser?.missingSections || []}
                 badgeLevel={currentUser?.badgeLevel || 'Basic'}
+                onEditProfile={() => onNavigateTab('profile_edit')}
             />
 
             {/* 3. Clear & Distinct Feature Selection Cards (3-Column Grid) */}

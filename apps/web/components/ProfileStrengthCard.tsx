@@ -15,16 +15,26 @@ interface ProfileStrengthCardProps {
     completenessScore?: number;
     missingSections?: MissingSection[];
     badgeLevel?: string;
+    onEditProfile?: () => void;
 }
 
 export default function ProfileStrengthCard({
     completenessScore = 40,
     missingSections = [],
-    badgeLevel = 'Basic'
+    badgeLevel = 'Basic',
+    onEditProfile
 }: ProfileStrengthCardProps) {
 
     const isGold = completenessScore >= 80;
     const isSilver = completenessScore >= 50 && completenessScore < 80;
+
+    const handleOpenEdit = () => {
+        if (onEditProfile) {
+            onEditProfile();
+        } else {
+            window.location.href = '/dashboard?tab=profile&edit=true';
+        }
+    };
 
     return (
         <div className="w-full bg-gradient-to-r from-indigo-900/90 via-purple-900/90 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-indigo-500/30 relative overflow-hidden my-6">
@@ -89,13 +99,13 @@ export default function ProfileStrengthCard({
 
                 {/* Right CTA */}
                 {!isGold && (
-                    <Link
-                        href="/onboarding"
-                        className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.03] flex-shrink-0"
+                    <button
+                        onClick={handleOpenEdit}
+                        className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-600 hover:to-indigo-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.03] flex-shrink-0 cursor-pointer"
                     >
                         <span>Complete Profile</span>
                         <ArrowRight className="w-4 h-4" />
-                    </Link>
+                    </button>
                 )}
             </div>
 
@@ -104,14 +114,14 @@ export default function ProfileStrengthCard({
                 <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider mr-2">Quick Add:</span>
                     {missingSections.slice(0, 3).map((item) => (
-                        <Link
+                        <button
                             key={item.key}
-                            href={item.actionUrl}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs font-semibold text-white transition-all backdrop-blur-sm"
+                            onClick={handleOpenEdit}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs font-semibold text-white transition-all backdrop-blur-sm cursor-pointer"
                         >
                             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                             <span>+{item.points}% {item.label}</span>
-                        </Link>
+                        </button>
                     ))}
                 </div>
             )}

@@ -12,6 +12,48 @@ const onlineUsers = new Map<string, number>();
 // socketId -> { userId, name, photo }
 const communityUsers = new Map<string, { userId: string, name: string, photo: string }>();
 
+export function generateAnonymousCompanionReply(userMessage: string, partnerProfile?: any): string {
+    const text = (userMessage || '').toLowerCase();
+    const city = partnerProfile?.city || partnerProfile?.location_name || 'Hyderabad';
+    const age = partnerProfile?.age || 24;
+
+    if (text.includes('hi') || text.includes('hello') || text.includes('hey')) {
+        const greetings = [
+            `Hey there! Greetings from ${city}. How is your day going? 😊`,
+            `Hello! Nice to meet you anonymously. I'm based in ${city}.`,
+            `Hey! Glad we matched in Anonymous Chat. What are you up to today?`
+        ];
+        return greetings[Math.floor(Math.random() * greetings.length)];
+    }
+
+    if (text.includes('where') || text.includes('location') || text.includes('city') || text.includes('from')) {
+        return `I'm living in ${city}! Where are you currently based?`;
+    }
+
+    if (text.includes('age') || text.includes('old')) {
+        return `I'm ${age} years young! What about you?`;
+    }
+
+    if (text.includes('work') || text.includes('job') || text.includes('do') || text.includes('profession')) {
+        return `I work in tech/profession here in ${city}. What about your career?`;
+    }
+
+    if (text.includes('hobby') || text.includes('like') || text.includes('interest') || text.includes('free time')) {
+        return `I love listening to music, exploring good food spots in ${city}, and traveling. What hobbies do you enjoy?`;
+    }
+
+    if (text.includes('reveal') || text.includes('connect') || text.includes('photo') || text.includes('picture')) {
+        return `I'm really enjoying talking with you! Tap 'Reveal & Connect' button at the bottom and let's unlock our real profiles! 🤝`;
+    }
+
+    const fallbacks = [
+        `That sounds interesting! Tell me more about what you like to do in your free time.`,
+        `Nice! It's so refreshing chatting without any pressure. What are you looking for in a life partner?`,
+        `I agree! By the way, if you feel comfortable, we can tap 'Reveal & Connect' anytime to save our connection!`
+    ];
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+}
+
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -474,13 +516,37 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
-        socket.on("anonymous_chat_message", ({ to, text }: { to: string; text: string }) => {
+        socket.on("anonymous_chat_message", async ({ to, text }: { to: string; text: string }) => {
             if (userId && to && text) {
-                io.to(to).emit("anonymous_chat_message", {
-                    from: userId,
-                    text: text,
-                    timestamp: Date.now()
-                });
+                const isPartnerOnline = onlineUsers.has(to);
+
+                if (isPartnerOnline) {
+                    io.to(to).emit("anonymous_chat_message", {
+                        from: userId,
+                        text: text,
+                        timestamp: Date.now()
+                    });
+                } else {
+                    // Offline member fallback — generate 24/7 AI companion response based on partner DB profile
+                    try {
+                        const partnerUser = await prisma.users.findUnique({
+                            where: { id: to },
+                            select: { full_name: true, city: true, location_name: true, age: true, gender: true }
+                        });
+
+                        const replyText = generateAnonymousCompanionReply(text, partnerUser);
+
+                        setTimeout(() => {
+                            socket.emit("anonymous_chat_message", {
+                                from: to,
+                                text: replyText,
+                                timestamp: Date.now()
+                            });
+                        }, 1200);
+                    } catch (err) {
+                        console.error("AI Fallback Error", err);
+                    }
+                }
             }
         });
 

@@ -355,6 +355,11 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             {match.isPremium && <span className="text-amber-400 text-xl drop-shadow-md animate-pulse" title="Premium Member">👑</span>}
                         </h3>
                         {match.isVerified && <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>}
+                        {(match.completenessScore >= 80 || match.badgeLevel === 'Gold Verified') && (
+                            <span className="inline-flex items-center gap-1 text-amber-300 text-[10px] font-black uppercase tracking-wider bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 rounded-full mb-1 ml-1 backdrop-blur-md" title="Gold Verified Profile (1.5x Match Boost)">
+                                ⭐ Gold
+                            </span>
+                        )}
                         {/* Online Indicator */}
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/20 border-green-400/30' : 'bg-gray-500/20 border-gray-400/30'} mb-1.5`}>
                             <div className={`w-2 h-2 rounded-full ${isUserOnline ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-gray-400'}`}></div>

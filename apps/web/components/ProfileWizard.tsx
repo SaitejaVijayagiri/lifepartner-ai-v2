@@ -440,6 +440,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="w-20 h-20 bg-white dark:bg-gray-800 shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Upload Your Best Photos</h3>
                                 <p className="text-gray-500 dark:text-gray-400 mt-2">Profiles with photos get 10x more matches.</p>
+                                <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 rounded-xl text-amber-600 dark:text-amber-300 text-xs font-extrabold shadow-sm animate-pulse">
+                                    <span className="text-base">🎁</span> <span>Bonus Reward: Upload at least 1 photo to earn +50 FREE coins instantly!</span>
+                                </div>
                                 <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-900/40 max-w-sm">
                                     <p className="text-amber-700 dark:text-amber-400 text-sm font-medium">
                                         📸 Your first photo is your profile photo — it <strong>must show your face clearly</strong>. Our AI (Gemini Vision) verifies every photo and will reject scenery, cartoons, or obscured faces.

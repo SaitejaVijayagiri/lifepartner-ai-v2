@@ -6,7 +6,7 @@ import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline } from '../socket';
 import { sanitizePhotoUrl } from '../utils/photoUrl';
-import { mergeStoriesHelper } from './profile';
+import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
@@ -612,6 +612,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             const sentRequest = c.interactions_interactions_to_user_idTousers?.[0];
             const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
             const matchStatus = sentRequest?.status || receivedRequest?.status || null;
+            const completeness = calculateProfileCompleteness(c, meta, (c.profiles?.photos as any[]) || meta.photos || []);
+            if (completeness.completenessScore >= 80) {
+                score += 15;
+            } else if (completeness.completenessScore < 50) {
+                score -= 10;
+            }
+
+            // Cap
+            if (score > 99) score = 99;
 
             return {
                 id: c.id,
@@ -623,6 +632,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 role: meta.career?.profession || "Member",
                 photoUrl: sanitizePhotoUrl(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0], c.full_name || c.id),
                 hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
+                completenessScore: completeness.completenessScore,
+                badgeLevel: completeness.badgeLevel,
                 score: Math.max(1, Math.min(99, score)), // floor at 1 so they still appear
                 match_reasons: reasons,
                 analysis: {

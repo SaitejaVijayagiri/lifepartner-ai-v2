@@ -161,17 +161,15 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                 {/* Close button REMOVED from fixed — now lives inside the content panel header */}
 
-                {/* LEFT: Photo — hidden when sheet is expanded on mobile */}
-                <div className={`w-full md:w-[45%] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center transition-all duration-300 ease-in-out ${
-                    sheetExpanded ? 'h-0 overflow-hidden' : 'h-[45%]'
-                }`}>
+                {/* LEFT: Photo */}
+                <div className="w-full md:w-[45%] h-72 sm:h-80 md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
 
                     {/* Main Image */}
                     <img
                         src={photos[currentPhotoIndex]}
                         alt={profile.name}
                         onClick={() => setIsFullscreen(true)}
-                        className="w-full h-full object-contain md:object-cover bg-black/90 block transition-opacity duration-500 cursor-zoom-in"
+                        className="w-full h-full object-cover bg-black/90 block transition-opacity duration-500 cursor-zoom-in"
                         loading="eager"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -180,7 +178,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         }}
                     />
 
-                    {/* Gradient Overlay for Text Readability (Subtler) */}
+                    {/* Gradient Overlay for Text Readability */}
                     <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end p-6 z-20 pointer-events-none">
                         {/* Highlight Badge on Cover */}
                         {(() => {
@@ -277,29 +275,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
                 </div>
 
-                {/* RIGHT: Content & Details — expands to fill when sheet is dragged up */}
-                <div
-                    className={`w-full md:w-[55%] flex flex-col bg-white dark:bg-gray-900 md:h-full relative rounded-t-3xl md:rounded-none z-30 md:z-auto transition-all duration-300 ease-in-out min-h-0 ${
-                        sheetExpanded ? 'flex-1' : 'h-[55%]'
-                    }`}
-                    onTouchStart={handleDragStart}
-                    onTouchEnd={handleDragEnd}
-                >
-
-                    {/* Drag Handle — mobile only */}
-                    <div
-                        className="flex md:hidden flex-col items-center pt-3 pb-1 cursor-grab active:cursor-grabbing select-none"
-                        onTouchStart={handleDragStart}
-                        onTouchEnd={handleDragEnd}
-                        onClick={() => setSheetExpanded(v => !v)}
-                    >
-                        <div className="w-10 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full" />
-                        <span className="text-[10px] text-gray-400 mt-1 font-medium">
-                            {sheetExpanded ? '↓ Swipe down for photo' : '↑ Swipe up for full details'}
-                        </span>
-                    </div>
-
-
+                {/* RIGHT: Content & Details — Smooth full height scroll on mobile */}
+                <div className="w-full md:w-[55%] flex-1 flex flex-col bg-white dark:bg-gray-900 md:h-full relative overflow-y-auto z-30 md:z-auto">
 
                     {/* Desktop Header (Hidden on Mobile) */}
                     <div className="hidden md:block px-8 pt-8 pb-4">

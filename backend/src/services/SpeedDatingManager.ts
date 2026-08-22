@@ -9,6 +9,7 @@ interface QueuedUser {
     name: string;
     photoUrl: string;
     location: string;
+    age: number;
     joinedAt: number;
 }
 
@@ -48,7 +49,7 @@ export class SpeedDatingManager {
         // Fetch User Gender and Details
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true, full_name: true, avatar_url: true, city: true, location_name: true }
+            select: { gender: true, age: true, full_name: true, avatar_url: true, city: true, state: true, location_name: true }
         });
 
         if (!user || !user.gender || !user.full_name) {
@@ -58,6 +59,7 @@ export class SpeedDatingManager {
 
         const gender = user.gender.toLowerCase();
         const effectiveTargetGender = targetGender || (gender === 'male' ? 'female' : 'male');
+        const locString = user.city ? (user.state ? `${user.city}, ${user.state}` : user.city) : (user.location_name || 'Verified Location');
 
         const queuedUser: QueuedUser = {
             socketId: socket.id,
@@ -66,7 +68,8 @@ export class SpeedDatingManager {
             targetGender: effectiveTargetGender,
             name: user.full_name,
             photoUrl: user.avatar_url || '',
-            location: user.city || user.location_name || 'Unknown Location',
+            location: locString,
+            age: user.age || 24,
             joinedAt: Date.now()
         };
 
@@ -157,9 +160,13 @@ export class SpeedDatingManager {
                 this.io.to(maleUser.socketId).emit('speed_date_match_found', {
                     partner: {
                         id: femaleUser.userId,
-                        name: "Mystery Date",
+                        name: "Anonymous Stranger",
                         photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + femaleUser.userId,
-                        location: femaleUser.location
+                        location: femaleUser.location,
+                        age: femaleUser.age || 24,
+                        gender: femaleUser.gender,
+                        realName: femaleUser.name,
+                        realPhotoUrl: femaleUser.photoUrl
                     },
                     initiator: true
                 });
@@ -167,9 +174,13 @@ export class SpeedDatingManager {
                 this.io.to(femaleUser.socketId).emit('speed_date_match_found', {
                     partner: {
                         id: maleUser.userId,
-                        name: "Mystery Date",
+                        name: "Anonymous Stranger",
                         photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + maleUser.userId,
-                        location: maleUser.location
+                        location: maleUser.location,
+                        age: maleUser.age || 25,
+                        gender: maleUser.gender,
+                        realName: maleUser.name,
+                        realPhotoUrl: maleUser.photoUrl
                     },
                     initiator: false
                 });

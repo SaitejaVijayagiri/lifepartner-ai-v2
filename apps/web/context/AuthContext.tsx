@@ -1,8 +1,9 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
+import { Notifications } from '@/lib/notifications';
 
 interface User {
     id: string;
@@ -12,12 +13,14 @@ interface User {
     is_premium?: boolean;
     is_admin?: boolean;
     free_direct_messages?: number;
+    gender?: string | null;
+    age?: number | null;
 }
 
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
-    login: (userData: User, token: string) => void;
+    login: (userData: User, token: string, requiresOnboarding?: boolean) => void;
     logout: () => void;
     updateUser: (updates: Partial<User>) => void;
 }
@@ -28,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const init = async () => {
@@ -75,15 +79,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             photoUrl: freshProfile.photoUrl,
                             is_premium: freshProfile.is_premium,
                             is_admin: freshProfile.is_admin,
-                            free_direct_messages: freshProfile.free_direct_messages
+                            free_direct_messages: freshProfile.free_direct_messages,
+                            gender: freshProfile.gender,
+                            age: freshProfile.age
                         };
                         setUser(updatedUser);
                         try {
                             localStorage.setItem('user', JSON.stringify(updatedUser));
                         } catch (e) { /* ignore */ }
+
+                        // Auto-Register FCM Push Token for all active users
+                        Notifications.init().catch(console.error);
+
+                        // Mandatory 2-Step Onboarding Redirect for incomplete profiles
+                        const isIncomplete = !freshProfile.gender || !freshProfile.age;
+                        if (isIncomplete && pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login')) {
+                            console.warn("⚠️ Mandatory Onboarding Redirect triggered: Missing gender or age");
+                            router.replace('/onboarding');
+                        }
+
                     } catch (apiErr) {
                         console.error("Token verification failed", apiErr);
-                        // Optional: logout() if strictly 401? api.ts handles 401 redirect, so we just log here.
                     }
                 }
             } catch (e) {
@@ -110,15 +126,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }, 25 * 60 * 1000);
 
         return () => clearInterval(refreshInterval);
-    }, []);
+    }, [pathname]);
 
-    const login = (userData: User, token: string) => {
-        // We still save it to local storage because React Native and Socket.IO 
-        // require it when third-party cookies or cross-origin requests block the HttpOnly cookie.
+    const login = (userData: User, token: string, requiresOnboarding?: boolean) => {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('userId', userData.id);
         setUser(userData);
+
+        // Auto-Register FCM Push Token on Login
+        Notifications.init().catch(console.error);
+
+        if (requiresOnboarding || !userData.gender || !userData.age) {
+            router.replace('/onboarding');
+        } else {
+            router.replace('/dashboard');
+        }
     };
 
     const logout = async () => {

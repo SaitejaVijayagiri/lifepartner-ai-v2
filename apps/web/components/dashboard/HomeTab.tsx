@@ -6,8 +6,10 @@ import dynamic from 'next/dynamic';
 import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 import StoriesFeed from '@/components/StoriesFeed';
 import GlobalViewsBadge from '@/components/GlobalViewsBadge';
+import ProfileStrengthCard from '@/components/ProfileStrengthCard';
 
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
+const AnonymousStrangerChat = dynamic(() => import('@/components/AnonymousStrangerChat'), { ssr: false });
 
 interface HomeTabProps {
     currentUser: any;
@@ -30,6 +32,7 @@ export default function HomeTab({
     onJoinLiveRoom,
     onOpenStory
 }: HomeTabProps) {
+    const [showStrangerChat, setShowStrangerChat] = React.useState(false);
     const topMatches = matches.slice(0, 4);
     const firstName = (currentUser?.full_name || currentUser?.name || 'User').split(' ')[0];
 
@@ -62,6 +65,13 @@ export default function HomeTab({
                     </div>
                 </div>
             </div>
+
+            {/* Profile Strength Indicator Card (Gamification & Match Boost) */}
+            <ProfileStrengthCard
+                completenessScore={currentUser?.completenessScore ?? 40}
+                missingSections={currentUser?.missingSections || []}
+                badgeLevel={currentUser?.badgeLevel || 'Basic'}
+            />
 
             {/* 3. Clear & Distinct Feature Selection Cards (3-Column Grid) */}
             <div className="space-y-4">
@@ -163,8 +173,41 @@ export default function HomeTab({
                         </button>
                     </div>
 
+                    {/* Feature 4: Anonymous Stranger Chat */}
+                    <div className="group relative rounded-3xl bg-gradient-to-b from-purple-500/10 via-indigo-500/5 to-transparent border border-purple-500/30 p-6 flex flex-col justify-between space-y-5 hover:border-purple-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10 hover:-translate-y-1">
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform">
+                                    <Sparkles size={22} className="text-amber-300 animate-pulse" />
+                                </div>
+                                <span className="px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] font-black uppercase tracking-wider">
+                                    🎭 BLIND STRANGER CHAT
+                                </span>
+                            </div>
+
+                            <h3 className="text-lg font-black text-gray-900 dark:text-white group-hover:text-purple-400 transition-colors">
+                                Anonymous Stranger Chat
+                            </h3>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                Chat with strangers safely without revealing your identity. Displays location & age. Skip anytime or connect!
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowStrangerChat(true)}
+                            className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs shadow-lg shadow-purple-500/25 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            <Sparkles size={16} className="text-amber-300" />
+                            <span>Start Anonymous Chat</span>
+                        </button>
+                    </div>
+
                 </div>
             </div>
+
+            {showStrangerChat && (
+                <AnonymousStrangerChat onClose={() => setShowStrangerChat(false)} />
+            )}
 
             {/* 4. Top AI Recommended Matches Section */}
             <div className="space-y-6">

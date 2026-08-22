@@ -433,6 +433,47 @@ export const initSocket = (httpServer: HttpServer) => {
             socket.leave('speed_dating_lobby');
         });
 
+        socket.on("anonymous_chat_skip", (data: { partnerId: string }) => {
+            if (userId) {
+                SpeedDatingManager.getInstance().endActiveMatch(userId);
+                if (data?.partnerId) {
+                    SpeedDatingManager.getInstance().endActiveMatch(data.partnerId);
+                    io.to(data.partnerId).emit("anonymous_chat_partner_skipped");
+                }
+                SpeedDatingManager.getInstance().joinLobby(socket, userId);
+            }
+        });
+
+        socket.on("anonymous_chat_reveal_request", (data: { partnerId: string }) => {
+            if (userId && data?.partnerId) {
+                io.to(data.partnerId).emit("anonymous_chat_reveal_requested", { fromUserId: userId });
+            }
+        });
+
+        socket.on("anonymous_chat_reveal_accept", async (data: { partnerId: string }) => {
+            if (userId && data?.partnerId) {
+                try {
+                    // Save mutual match in Prisma
+                    await prisma.matches.createMany({
+                        data: [
+                            { user_a_id: userId, user_b_id: data.partnerId, status: "accepted" },
+                            { user_a_id: data.partnerId, user_b_id: userId, status: "accepted" }
+                        ],
+                        skipDuplicates: true
+                    });
+
+                    // Fetch real user profiles
+                    const me = await prisma.users.findUnique({ where: { id: userId }, select: { id: true, full_name: true, avatar_url: true } });
+                    const partner = await prisma.users.findUnique({ where: { id: data.partnerId }, select: { id: true, full_name: true, avatar_url: true } });
+
+                    io.to(userId).emit("anonymous_chat_identity_revealed", { realUser: partner });
+                    io.to(data.partnerId).emit("anonymous_chat_identity_revealed", { realUser: me });
+                } catch (err) {
+                    console.error("Reveal Accept Error", err);
+                }
+            }
+        });
+
         /**
          * CHAT LOGIC
          */

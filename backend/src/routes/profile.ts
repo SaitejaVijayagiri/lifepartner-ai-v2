@@ -93,6 +93,95 @@ const logDebug = (msg: string, data?: any) => {
     }
 };
 
+export function calculateProfileCompleteness(user: any, meta: any = {}, photos: any[] = []) {
+    let score = 0;
+    const missingSections: Array<{ key: string; label: string; points: number; actionUrl: string }> = [];
+
+    // 1. Basic Identity (25 points)
+    if (user?.full_name && user?.age && user?.gender && (user?.location_name || meta?.location?.city)) {
+        score += 25;
+    } else {
+        missingSections.push({
+            key: 'identity',
+            label: 'Basic Info (Age, Gender, City)',
+            points: 25,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    // 2. Photos (20 points)
+    const validPhotos = (photos && photos.length > 0) || user?.avatar_url;
+    if (validPhotos) {
+        score += 20;
+    } else {
+        missingSections.push({
+            key: 'photos',
+            label: 'Upload Profile Photo (+50 Coins)',
+            points: 20,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    // 3. Career & Education (15 points)
+    if (meta?.career?.profession || meta?.career?.education || meta?.career?.income) {
+        score += 15;
+    } else {
+        missingSections.push({
+            key: 'career',
+            label: 'Career, Education & Income',
+            points: 15,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    // 4. Religion & Community (15 points)
+    if (meta?.religion?.religion || meta?.motherTongue || meta?.religion?.caste) {
+        score += 15;
+    } else {
+        missingSections.push({
+            key: 'religion',
+            label: 'Religion, Caste & Mother Tongue',
+            points: 15,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    // 5. Family & Lifestyle (15 points)
+    if (meta?.family?.type || meta?.lifestyle?.diet || (meta?.interests && meta?.interests.length > 0)) {
+        score += 15;
+    } else {
+        missingSections.push({
+            key: 'lifestyle',
+            label: 'Family Values, Diet & Hobbies',
+            points: 15,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    // 6. About Me & Expectations (10 points)
+    if (meta?.aboutMe || meta?.bio || user?.profiles?.raw_prompt || meta?.expectations) {
+        score += 10;
+    } else {
+        missingSections.push({
+            key: 'bio',
+            label: 'About Me & Partner Preferences',
+            points: 10,
+            actionUrl: '/onboarding'
+        });
+    }
+
+    let badgeLevel = 'Basic';
+    if (score >= 80) badgeLevel = 'Gold Verified';
+    else if (score >= 50) badgeLevel = 'Silver';
+
+    return {
+        completenessScore: score,
+        missingSections,
+        badgeLevel,
+        isComplete: score >= 80
+    };
+}
+
 // 2. GET /me (Fetch from DB)
 router.get('/me', authenticateToken, async (req: any, res) => {
     try {
@@ -106,6 +195,10 @@ router.get('/me', authenticateToken, async (req: any, res) => {
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const meta: any = user.profiles?.metadata || {};
+        const photosList = (user.profiles?.photos as any[]) || meta.photos || [];
+
+        // Calculate completeness score & missing section chips
+        const completeness = calculateProfileCompleteness(user, meta, photosList);
 
         // Transform User + Profile into the specific Frontend Shape
         const profile = {
@@ -131,17 +224,13 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             dob: meta.dob, // Added DOB
             interests: meta.interests || (user.profiles?.traits as any)?.hobbies || [], // Map interests/hobbies
 
-            reels: (meta.reels as string[]) || [], // Use metadata reels or user.reels logic if column exists. Old code used user.reels?
-            // Actually old code used user.reels. Schema has user.reels? No, standard schema puts it in profiles or JSON.
-            // Old SQL: u.reels. 
-            // Prisma Schema: does User have reels?
-            // Let's assume it's in metadata.reels primarily.
+            reels: (meta.reels as string[]) || [],
 
             expectations: meta.expectations || "",  // Partner preferences text
             prompt: meta.expectations || "",  // Legacy fallback
             aboutMe: meta.aboutMe || meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
             height: meta.height || "", // Height
-            photos: (user.profiles?.photos as any[]) || meta.photos || [],
+            photos: photosList,
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
             is_premium: user.is_premium || false,
@@ -153,6 +242,13 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             premium_expiry: user.premium_expiry, // Added Premium Expiry
             is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
             muted_users: meta.muted_users || [],
+
+            // Profile Completeness Engine
+            completenessScore: completeness.completenessScore,
+            missingSections: completeness.missingSections,
+            badgeLevel: completeness.badgeLevel,
+            isComplete: completeness.isComplete,
+
             // Stories logic (combine direct stories + metadata stories; include highlighted stories permanently)
             stories: (() => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
@@ -715,6 +811,39 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         metadata: newMeta // On update use merge
                     }
                 });
+
+                // --- PHOTO UPLOAD BONUS (50 COINS) ---
+                if (finalPhotos && finalPhotos.length > 0) {
+                    try {
+                        const existingPhotoBonus = await tx.transactions.findFirst({
+                            where: {
+                                user_id: userId,
+                                type: 'REWARD',
+                                description: 'Bonus for uploading profile photo'
+                            }
+                        });
+
+                        if (!existingPhotoBonus) {
+                            console.log(`🎉 Awarding 50 Photo Bonus Coins to User ${userId}`);
+                            await tx.users.update({
+                                where: { id: userId },
+                                data: { coins: { increment: 50 } }
+                            });
+                            await tx.transactions.create({
+                                data: {
+                                    user_id: userId,
+                                    amount: 50,
+                                    type: 'REWARD',
+                                    status: 'SUCCESS',
+                                    description: 'Bonus for uploading profile photo',
+                                    metadata: { reason: 'PHOTO_UPLOAD_BONUS' }
+                                }
+                            });
+                        }
+                    } catch (photoBonusErr: any) {
+                        console.error("Photo bonus processing error:", photoBonusErr.message);
+                    }
+                }
 
                 // --- REFERRAL BONUS DEFERMENT LOGIC ---
                 // If the user just completed core onboarding (Age & Gender provided)

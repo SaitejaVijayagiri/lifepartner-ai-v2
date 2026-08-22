@@ -1,13 +1,13 @@
 {
     "name": "LifePartner AI | Free Matrimony & Dating App",
-    "short_name": "LifePartner",
+    "short_name": "LifePartner AI",
     "description": "World's #1 Free Matrimony, Dating & Snaps App. Connect & chat with verified singles globally with zero paywalls.",
     "start_url": "/?app=true",
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait",
-    "background_color": "#4c1d95",
-    "theme_color": "#7c3aed",
+    "background_color": "#0f172a",
+    "theme_color": "#6366f1",
     "categories": [
         "lifestyle",
         "social",
@@ -18,13 +18,30 @@
             "src": "/icon-192x192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
         },
         {
             "src": "/icon-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
         }
     ]
 }

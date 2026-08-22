@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Share2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Mail, Share2, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api, fetchAPI } from '@/lib/api';
 import { useSocket } from '@/context/SocketContext';
@@ -60,8 +60,14 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [loading, setLoading] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-    // Photos Array (Fallback to single photo)
-    const photos = match.photos && match.photos.length > 0 ? match.photos : [match.photoUrl];
+    // Photos Array (Supports match.photos, match.photo_urls, and fallbacks)
+    const rawPhotosList = (Array.isArray(match.photos) && match.photos.length > 0)
+        ? match.photos
+        : (Array.isArray(match.photo_urls) && match.photo_urls.length > 0)
+            ? match.photo_urls
+            : [match.photoUrl || match.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`];
+
+    const photos = rawPhotosList.filter(Boolean);
 
     const [isHovered, setIsHovered] = useState(false);
 
@@ -177,12 +183,12 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             onMouseLeave={() => setIsHovered(false)}
             onClick={onViewProfile}
         >
-            {/* Background Image (Immersive) */}
+            {/* Background Image (Immersive Carousel) */}
             <div className="absolute inset-0">
                 <img
-                    src={match.photos?.[currentPhotoIndex] || match.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`}
+                    src={photos[currentPhotoIndex] || match.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`}
                     alt={match.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
                     loading="eager"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -192,17 +198,49 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     }}
                 />
 
-                {/* Photo Progress Bar (Card Style) */}
+                {/* Photo Progress Bar & Counter (Card Style) */}
                 {photos.length > 1 && (
-                    <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 transition-opacity">
-                        {photos.map((_url: string, idx: number) => (
-                            <div key={idx} className="h-0.5 flex-1 bg-white/30 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full bg-white transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full' : 'w-0'}`}
-                                />
-                            </div>
-                        ))}
-                    </div>
+                    <>
+                        <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 transition-opacity">
+                            {photos.map((_url: string, idx: number) => (
+                                <div key={idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
+                                    <div
+                                        className={`h-full bg-white transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full' : 'w-0'}`}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Interactive Left / Right Photo Scroll Controls */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentPhotoIndex(prev => (prev > 0 ? prev - 1 : photos.length - 1));
+                            }}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer hover:scale-110 active:scale-95"
+                            title="Previous Photo"
+                        >
+                            <ChevronLeft className="w-5 h-5" />
+                        </button>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentPhotoIndex(prev => (prev < photos.length - 1 ? prev + 1 : 0));
+                            }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer hover:scale-110 active:scale-95"
+                            title="Next Photo"
+                        >
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+
+                        {/* Photo Index Counter Pill (Floating Bottom Left of Image) */}
+                        <div className="absolute bottom-28 left-4 z-30 pointer-events-none">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/50 text-white text-[10px] font-bold backdrop-blur-md border border-white/20">
+                                📷 {currentPhotoIndex + 1} / {photos.length}
+                            </span>
+                        </div>
+                    </>
                 )}
 
                 {/* Gradient Overlays */}

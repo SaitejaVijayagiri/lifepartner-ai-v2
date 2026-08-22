@@ -47,16 +47,32 @@ export const formatLocationString = (location: any) => {
 
 export function getProfilePhotoUrl(userObj: any): string {
     if (!userObj) return '';
-    if (typeof userObj.avatar_url === 'string' && userObj.avatar_url.trim()) return userObj.avatar_url;
-    if (typeof userObj.photoUrl === 'string' && userObj.photoUrl.trim()) return userObj.photoUrl;
-    if (typeof userObj.photo_url === 'string' && userObj.photo_url.trim()) return userObj.photo_url;
+
+    const extractString = (val: any): string => {
+        if (!val) return '';
+        if (typeof val === 'string' && val.trim() && val !== '[object Object]') return val.trim();
+        if (typeof val === 'object') {
+            if (typeof val.url === 'string' && val.url.trim()) return val.url.trim();
+            if (typeof val.photo_url === 'string' && val.photo_url.trim()) return val.photo_url.trim();
+            if (typeof val.avatar_url === 'string' && val.avatar_url.trim()) return val.avatar_url.trim();
+        }
+        return '';
+    };
+
+    const directAvatar = extractString(userObj.avatar_url);
+    if (directAvatar) return directAvatar;
+
+    const directPhotoUrl = extractString(userObj.photoUrl);
+    if (directPhotoUrl) return directPhotoUrl;
+
+    const directPhoto_url = extractString(userObj.photo_url);
+    if (directPhoto_url) return directPhoto_url;
 
     const photos = userObj.photos || userObj.photo_urls;
     if (Array.isArray(photos) && photos.length > 0) {
         for (const item of photos) {
-            if (typeof item === 'string' && item.trim()) return item;
-            if (item && typeof item.url === 'string' && item.url.trim()) return item.url;
-            if (item && typeof item.photo_url === 'string' && item.photo_url.trim()) return item.photo_url;
+            const extracted = extractString(item);
+            if (extracted) return extracted;
         }
     }
 

@@ -1,6 +1,6 @@
 'use client';
 import { getZodiacSymbol, getReligionSymbol } from '@/lib/religionUtils';
-import { formatLocationString } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -269,7 +269,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                             user: {
                                                                 id: profile.id,
                                                                 name: profile.name || 'My Profile',
-                                                                photoUrl: photos[0]
+                                                                photoUrl: getProfilePhotoUrl(profile)
                                                             }
                                                         });
                                                     }}

@@ -198,7 +198,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                 user: {
                                                     id: profile.id,
                                                     name: profile.name || profile.full_name || 'User',
-                                                    photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                    photoUrl: getProfilePhotoUrl(profile)
                                                 }
                                             });
                                         }}
@@ -319,7 +319,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                     user: {
                                                         id: profile.id,
                                                         name: profile.name || profile.full_name || 'User',
-                                                        photoUrl: profile.photos?.[0] || profile.avatar_url
+                                                        photoUrl: getProfilePhotoUrl(profile)
                                                     }
                                                 });
                                             }}

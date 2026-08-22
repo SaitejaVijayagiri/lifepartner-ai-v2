@@ -410,6 +410,11 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                         src={avatarUrl}
                                         className="w-11 h-11 rounded-full border-2 border-white shadow-lg object-cover"
                                         alt={displayName}
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.onerror = null;
+                                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName || 'User')}`;
+                                        }}
                                     />
                                     {isOnline && (
                                         <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>

@@ -269,7 +269,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 </div>
 
                 {/* RIGHT: Content & Details — Smooth full height scroll on mobile */}
-                <div className="w-full md:w-[55%] flex-1 flex flex-col bg-white dark:bg-gray-900 md:h-full relative overflow-y-auto z-30 md:z-auto">
+                <div className="w-full md:w-[55%] flex-1 flex flex-col bg-white dark:bg-gray-900 md:h-full md:overflow-y-auto relative z-30 md:z-auto">
 
                     {/* Desktop Header (Hidden on Mobile) */}
                     <div className="hidden md:block px-8 pt-8 pb-4">
@@ -375,7 +375,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Scrollable Content — extra bottom padding for breathing room */}
                     <div 
-                        className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 pb-20 md:pb-10 min-h-0"
+                        className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8 pb-28 md:pb-10 min-h-0"
                         onTouchStart={handleTouchStart}
                         onTouchEnd={handleTouchEnd}
                     >

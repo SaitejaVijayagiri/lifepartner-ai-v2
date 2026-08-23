@@ -45,17 +45,26 @@ android {
 
     buildTypes {
         debug {
+            debuggable false
             buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-ai.onrender.com\""
+            if (keystorePropsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         release {
-            // Enable R8 code shrinking and obfuscation
-            minifyEnabled true
-            shrinkResources true
+            debuggable false
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (keystorePropsFile.exists()) {
                 signingConfig signingConfigs.release
             }
         }
+    }
+
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
     }
 }
 

@@ -1,5 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
 
+let storyFeedCache: { data: any; timestamp: number } | null = null;
+
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -62,17 +64,31 @@ export const api = {
         updatePrompt: (payload: any) => fetchAPI('/profile/prompt', { method: 'POST', body: JSON.stringify(payload) }),
         getMe: () => fetchAPI('/profile/me'),
         updateProfile: (data: any) => fetchAPI('/profile/me', { method: 'PUT', body: JSON.stringify(data) }),
-        uploadStory: (formData: FormData) => fetchAPI('/profile/stories', {
-            method: 'POST',
-            body: formData instanceof FormData ? formData : JSON.stringify(formData)
-        }),
+        uploadStory: (formData: FormData) => {
+            storyFeedCache = null;
+            return fetchAPI('/profile/stories', {
+                method: 'POST',
+                body: formData instanceof FormData ? formData : JSON.stringify(formData)
+            });
+        },
         toggleMute: (targetId: string) => fetchAPI(`/profile/mute/${targetId}`, { method: 'POST' }),
         getById: (id: string) => fetchAPI(`/profile/${id}`),
-        getStoryFeed: () => fetchAPI('/profile/stories/feed'),
+        getStoryFeed: async (forceRefresh = false) => {
+            const now = Date.now();
+            if (!forceRefresh && storyFeedCache && (now - storyFeedCache.timestamp < 30000)) {
+                return storyFeedCache.data;
+            }
+            const data = await fetchAPI('/profile/stories/feed');
+            storyFeedCache = { data, timestamp: now };
+            return data;
+        },
         likeStory: (targetUserId: string, storyId: string, liked: boolean) => fetchAPI(`/profile/stories/${targetUserId}/${storyId}/like`, { method: 'POST', body: JSON.stringify({ liked }) }),
         reactToStory: (targetUserId: string, storyId: string, emoji: string) => fetchAPI(`/profile/stories/${targetUserId}/${storyId}/react`, { method: 'POST', body: JSON.stringify({ emoji }) }),
         toggleStoryHighlight: (storyId: string) => fetchAPI(`/profile/stories/${storyId}/highlight`, { method: 'POST' }),
-        deleteStory: (storyId: string) => fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' }),
+        deleteStory: (storyId: string) => {
+            storyFeedCache = null;
+            return fetchAPI(`/profile/stories/${storyId}`, { method: 'DELETE' });
+        },
         trackStoryView: (targetUserId: string, storyId: string) => fetchAPI(`/profile/stories/${targetUserId}/${storyId}/view`, { method: 'POST' }),
         uploadVoiceBio: (formData: FormData) => fetchAPI('/profile/voice-bio', {
             method: 'POST',

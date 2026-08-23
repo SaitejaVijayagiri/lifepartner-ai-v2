@@ -41,9 +41,11 @@ import { initAngelTimer } from './services/angelTimer';
 import path from 'path';
 
 
+import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 
 export const app = express();
+app.use(compression());
 app.use(cookieParser());
 app.set('trust proxy', 1);
 

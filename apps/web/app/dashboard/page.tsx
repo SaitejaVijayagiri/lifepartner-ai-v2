@@ -106,6 +106,16 @@ function DashboardContent() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('home');
+    const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(['home']));
+
+    useEffect(() => {
+        setVisitedTabs(prev => {
+            if (prev.has(activeTab)) return prev;
+            const next = new Set(prev);
+            next.add(activeTab);
+            return next;
+        });
+    }, [activeTab]);
     const [requestsCount, setRequestsCount] = useState(0);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [showCoinStore, setShowCoinStore] = useState(false);
@@ -528,12 +538,6 @@ function DashboardContent() {
             fetchRequests();
         }
         if (activeTab === 'map' && mapProfiles.length === 0) fetchMapProfiles();
-
-        // Reset on unmount so next mount re-fetches (avoids stale data on navigation)
-        return () => {
-            hasFetchedConnections.current = false;
-            hasFetchedRequests.current = false;
-        };
     }, [activeTab]);
 
     const fetchMapProfiles = async () => {
@@ -583,7 +587,7 @@ function DashboardContent() {
 
     const fetchRequests = async () => {
         try {
-            setLoading(true);
+            if (requests.length === 0) setLoading(true);
             const data = await api.interactions.getRequests();
             setRequests(data);
             setRequestsCount(data.length);
@@ -597,7 +601,7 @@ function DashboardContent() {
 
     const fetchConnections = async () => {
         try {
-            setLoading(true);
+            if (connections.length === 0) setLoading(true);
             const data = await api.interactions.getConnections();
             setConnections(data);
 
@@ -1037,390 +1041,391 @@ function DashboardContent() {
             <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'map' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-3 sm:pt-6 px-3 sm:px-4'}`}>
                 {/* Main Feed Column */}
                 <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'map' ? 'pb-0 h-full' : 'pb-28 sm:pb-24'}`}>
-                    {activeTab === 'home' && (
-                        <HomeTab
-                            currentUser={currentUser}
-                            setCurrentUser={setCurrentUser}
-                            matches={matches}
-                            onNavigateTab={(tab) => {
-                                if (tab === 'profile_edit') {
-                                    setActiveTab('profile');
-                                    setIsEditingProfile(true);
-                                } else {
-                                    setActiveTab(tab);
-                                }
-                            }}
-                            onSelectProfile={setSelectedProfile}
-                            onSelectKundli={setSelectedKundli}
-                            onJoinLiveRoom={async (event?: any) => {
-                                if (event && (event.host_name || event.host_id)) {
-                                    const myUserId = currentUser?.id || currentUser?.userId;
-                                    if (myUserId && event.host_id === myUserId) {
-                                        startCall({
-                                            id: myUserId,
-                                            name: event.title || 'Your Live Broadcast',
-                                            photoUrl: currentUser.avatar_url || currentUser.photoUrl || event.host_avatar,
-                                            _isHostRoom: true,
-                                            eventId: event.id
-                                        }, 'speed_date');
-                                    } else {
-                                        // Validate gender & capacity limits on backend
-                                        try {
-                                            const res = await fetchAPI('/dates/events/join', {
-                                                method: 'POST',
-                                                body: JSON.stringify({ event_id: event.id })
-                                            });
-                                            if (res && res.error) {
-                                                toast.error(res.error);
-                                                return;
-                                            }
-                                        } catch (e: any) {
-                                            toast.error(e.message || "Failed to join live event");
-                                            return;
-                                        }
-                                        startCall({
-                                            id: event.host_id || event.id,
-                                            name: event.host_name,
-                                            photoUrl: event.host_avatar,
-                                            _speedDateInitiator: true
-                                        }, 'speed_date');
-                                    }
-                                } else {
-                                    setShowSpeedDatingLobby(true);
-                                }
-                            }}
-                            onOpenStory={(storySet) => setActiveStorySet(storySet)}
-                        />
-                    )}
-
-                    {activeTab === 'live_events' && (
-                        <LiveVideoEventsHub
-                            onJoinLive={async (event?: any) => {
-                                if (event && (event.host_name || event.host_id)) {
-                                    const myUserId = currentUser?.id || currentUser?.userId;
-                                    if (myUserId && event.host_id === myUserId) {
-                                        startCall({
-                                            id: myUserId,
-                                            name: event.title || 'Your Live Broadcast',
-                                            photoUrl: currentUser.avatar_url || currentUser.photoUrl || event.host_avatar,
-                                            _isHostRoom: true,
-                                            eventId: event.id
-                                        }, 'speed_date');
-                                    } else {
-                                        // Validate gender & capacity limits on backend
-                                        try {
-                                            const res = await fetchAPI('/dates/events/join', {
-                                                method: 'POST',
-                                                body: JSON.stringify({ event_id: event.id })
-                                            });
-                                            if (res && res.error) {
-                                                toast.error(res.error);
-                                                return;
-                                            }
-                                        } catch (e: any) {
-                                            toast.error(e.message || "Failed to join live event");
-                                            return;
-                                        }
-                                        startCall({
-                                            id: event.host_id || event.id,
-                                            name: event.host_name,
-                                            photoUrl: event.host_avatar,
-                                            _speedDateInitiator: true
-                                        }, 'speed_date');
-                                    }
-                                } else {
-                                    setShowSpeedDatingLobby(true);
-                                }
-                            }}
-                        />
-                    )}
-
-                    {activeTab === 'matches' && (
-                        <>
-                            <InstantsBar />
-                            <MatchesTab
+                    <div className={activeTab === 'home' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('home') && (
+                            <HomeTab
                                 currentUser={currentUser}
-                            setCurrentUser={setCurrentUser}
-                            matches={matches}
-                            setMatches={setMatches}
-                            fetchMatches={fetchMatches}
-                            hasMore={hasMore}
-                            loadingMore={loadingMore}
-                            page={page}
-                            activeFilters={activeFilters}
-                            setActiveFilters={setActiveFilters}
-                            setSelectedProfile={setSelectedProfile}
-                            setSelectedKundli={setSelectedKundli}
-                            setGiftData={setGiftData}
-                            connections={connections}
-                            openChat={openChat}
-                            setActiveTab={setActiveTab}
-                            setShowCoinStore={setShowCoinStore}
-                            setShowSpeedDatingLobby={setShowSpeedDatingLobby}
-                        />
-                    </>
-                    )}
-                    {activeTab === 'map' && <InteractiveMap profiles={mapProfiles} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />}
-
-                    {activeTab === 'requests' && (
-                        <RequestsTab
-                            requests={requests}
-                            handleAcceptRequest={handleAcceptRequest}
-                            handleDeclineRequest={handleDeclineRequest}
-                            loading={loading}
-                        />
-                    )}
-                    {activeTab === 'connections' && (
-                        <ConnectionsTab
-                            currentUser={currentUser}
-                            setCurrentUser={setCurrentUser}
-                            connections={connections}
-                            setConnections={setConnections}
-                            onlineUsers={onlineUsers}
-                            openChat={openChat}
-                            setGameTarget={setGameTarget}
-                            setUnreadMessageCount={setUnreadMessageCount}
-                            onOpenStory={(storySet) => setActiveStorySet(storySet)}
-                        />
-                    )}
-                    {activeTab === 'events' && <MeetSpots currentUser={currentUser} />}
-
-                    {activeTab === 'community' && (
-                        <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
-                            <CommunityChat currentUser={currentUser} onClose={() => setActiveTab('matches')} onOpenStore={() => {
-                                // Force Guest Flow for upgrading users per recent request?
-                                // Actually, if they are here, they are logged in.
-                                // But the prompt said "open premium store modal".
-                                // Wait, the previous task CHANGED the "Get Verified" button to LOGOUT.
-                                // But here, if they are sending "onOpenStore", they are likely in "Access Denied" state inside CommunityChat?
-                                // If they are logged in and Access Denied, they need to verify.
-                                // The user's LAST request was "force logout". 
-                                // So I should probably stick to that logic for "Get Verified" buttons?
-                                // BUT this prop is `onOpenStore`. 
-                                // Let's keep the premium store logic for now unless explicitly told to force logout here too. 
-                                // OH WAIT, the previous turn I DID change CommunityChat prop in `community/page.tsx` to force logout.
-                                // I should probably do the same here for consistency if "Get Verified" is clicked.
-                                // BUT this might be for "Store" in general?
-                                // `CommunityChat` uses `onOpenStore` ONLY for the "Access Denied" button.
-                                // So yes, I should force logout/register flow here too if I want consistency.
-                                // However, keeping it as premium store for DASHBOARD users makes sense since they are already in the dashboard!
-                                // The previous fix was for the "Community Landing Page" where users were confused.
-                                // Here, they vary much ARE in the dashboard.
-                                // If they click "Get Verified", they SHOULD see the premium store.
-                                // So I will use the premium store modal.
-                                setInitialStoreTab('premium');
-                                setShowCoinStore(true);
-                            }} />
-                        </div>
-                    )}
-
-                    {activeTab === 'profile' && currentUser && (
-                        isEditingProfile ? (
-                            <ProfileEditor
-                                initialData={currentUser}
-                                onSave={async (newData) => {
-                                    // Optimization: optimistic update
-                                    setCurrentUser(newData);
-                                    setIsEditingProfile(false);
-                                    toast.success("Profile Saved!");
-
-                                    // Verify with backend source of truth
-                                    try {
-                                        const freshData = await api.profile.getMe();
-                                        setCurrentUser(freshData);
-                                    } catch (e) { console.error("Refresh failed", e); }
+                                setCurrentUser={setCurrentUser}
+                                matches={matches}
+                                onNavigateTab={(tab) => {
+                                    if (tab === 'profile_edit') {
+                                        setActiveTab('profile');
+                                        setIsEditingProfile(true);
+                                    } else {
+                                        setActiveTab(tab);
+                                    }
                                 }}
-                                onCancel={() => setIsEditingProfile(false)}
-                            />
-                        ) : (
-                            <div className="space-y-6">
-                                <ProfileView
-                                    profile={currentUser}
-                                    onEdit={() => setIsEditingProfile(true)}
-                                />
-
-                                {/* Profile Stats Row */}
-                                <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
-                                    <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
-                                        <div className="text-center min-w-[80px]">
-                                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{connections.length}</div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Connections</div>
-                                        </div>
-                                        <div className="w-[1px] h-10 bg-gray-200 dark:bg-gray-700 sm:hidden"></div>
-                                        <div className="text-center min-w-[80px]">
-                                            <div className="text-2xl font-bold text-gray-900 dark:text-white">{requests.length}</div>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Requests</div>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full sm:w-auto border-indigo-200 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold"
-                                        onClick={() => setActiveTab('connections')}
-                                    >
-                                        Manage Connections
-                                    </Button>
-                                </div>
-
-                                {/* Mobile Quick Actions - Visible on all screens for better UX */}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                    {/* Premium Status Card */}
-                                    <div
-                                        onClick={() => {
-                                            setInitialStoreTab('premium');
-                                            setShowCoinStore(true);
-                                        }}
-                                        className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500/50'}`}
-                                    >
-                                        <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
-                                            <Crown size={20} />
-                                        </div>
-                                        <div className="text-left sm:text-center">
-                                            <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800 dark:text-amber-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
-                                            </div>
-                                            <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700 dark:text-amber-600/80' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
-                                                {currentUser.is_premium && currentUser.premium_expiry
-                                                    ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
-                                                    : 'Unlock Features'}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Boost Card */}
-                                    <div
-                                        onClick={async () => {
-                                            if (!currentUser || currentUser.coins < 100) {
-                                                setShowCoinStore(true);
-                                                toast.error("Insufficient coins to boost!");
+                                onSelectProfile={setSelectedProfile}
+                                onSelectKundli={setSelectedKundli}
+                                onJoinLiveRoom={async (event?: any) => {
+                                    if (event && (event.host_name || event.host_id)) {
+                                        const myUserId = currentUser?.id || currentUser?.userId;
+                                        if (myUserId && event.host_id === myUserId) {
+                                            startCall({
+                                                id: myUserId,
+                                                name: event.title || 'Your Live Broadcast',
+                                                photoUrl: currentUser.avatar_url || currentUser.photoUrl || event.host_avatar,
+                                                _isHostRoom: true,
+                                                eventId: event.id
+                                            }, 'speed_date');
+                                        } else {
+                                            try {
+                                                const res = await fetchAPI('/dates/events/join', {
+                                                    method: 'POST',
+                                                    body: JSON.stringify({ event_id: event.id })
+                                                });
+                                                if (res && res.error) {
+                                                    toast.error(res.error);
+                                                    return;
+                                                }
+                                            } catch (e: any) {
+                                                toast.error(e.message || "Failed to join live event");
                                                 return;
                                             }
-                                            if (confirm("Boost your profile for 100 coins?")) {
-                                                try {
-                                                    await api.wallet.boostProfile();
-                                                    toast.success("Profile Boosted!");
-                                                    api.profile.getMe().then(setCurrentUser);
-                                                } catch (e) { toast.error("Boost failed."); }
+                                            startCall({
+                                                id: event.host_id || event.id,
+                                                name: event.host_name,
+                                                photoUrl: event.host_avatar,
+                                                _speedDateInitiator: true
+                                            }, 'speed_date');
+                                        }
+                                    } else {
+                                        setShowSpeedDatingLobby(true);
+                                    }
+                                }}
+                                onOpenStory={(storySet) => setActiveStorySet(storySet)}
+                            />
+                        )}
+                    </div>
+
+                    <div className={activeTab === 'live_events' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('live_events') && (
+                            <LiveVideoEventsHub
+                                onJoinLive={async (event?: any) => {
+                                    if (event && (event.host_name || event.host_id)) {
+                                        const myUserId = currentUser?.id || currentUser?.userId;
+                                        if (myUserId && event.host_id === myUserId) {
+                                            startCall({
+                                                id: myUserId,
+                                                name: event.title || 'Your Live Broadcast',
+                                                photoUrl: currentUser.avatar_url || currentUser.photoUrl || event.host_avatar,
+                                                _isHostRoom: true,
+                                                eventId: event.id
+                                            }, 'speed_date');
+                                        } else {
+                                            try {
+                                                const res = await fetchAPI('/dates/events/join', {
+                                                    method: 'POST',
+                                                    body: JSON.stringify({ event_id: event.id })
+                                                });
+                                                if (res && res.error) {
+                                                    toast.error(res.error);
+                                                    return;
+                                                }
+                                            } catch (e: any) {
+                                                toast.error(e.message || "Failed to join live event");
+                                                return;
                                             }
-                                        }}
-                                        className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
-                                    >
-                                        <div className="p-2 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
-                                            <Zap size={20} className="fill-indigo-600 dark:fill-indigo-400" />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="font-bold text-sm text-indigo-900 dark:text-indigo-300">Boost</div>
-                                            <div className="text-[10px] text-indigo-600 dark:text-indigo-400">Get Visible</div>
-                                        </div>
-                                    </div>
+                                            startCall({
+                                                id: event.host_id || event.id,
+                                                name: event.host_name,
+                                                photoUrl: event.host_avatar,
+                                                _speedDateInitiator: true
+                                            }, 'speed_date');
+                                        }
+                                    } else {
+                                        setShowSpeedDatingLobby(true);
+                                    }
+                                }}
+                            />
+                        )}
+                    </div>
 
-                                    {/* Free Coins Card */}
-                                    <div
-                                        onClick={() => router.push('/refer')}
-                                        className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
-                                    >
-                                        <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
-                                            <Users size={20} />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Free Coins</div>
-                                            <div className="text-[10px] text-emerald-600 dark:text-indigo-400">Refer Friend</div>
-                                        </div>
-                                    </div>
+                    <div className={activeTab === 'matches' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('matches') && (
+                            <>
+                                <InstantsBar />
+                                <MatchesTab
+                                    currentUser={currentUser}
+                                    setCurrentUser={setCurrentUser}
+                                    matches={matches}
+                                    setMatches={setMatches}
+                                    fetchMatches={fetchMatches}
+                                    hasMore={hasMore}
+                                    loadingMore={loadingMore}
+                                    page={page}
+                                    activeFilters={activeFilters}
+                                    setActiveFilters={setActiveFilters}
+                                    setSelectedProfile={setSelectedProfile}
+                                    setSelectedKundli={setSelectedKundli}
+                                    setGiftData={setGiftData}
+                                    connections={connections}
+                                    openChat={openChat}
+                                    setActiveTab={setActiveTab}
+                                    setShowCoinStore={setShowCoinStore}
+                                    setShowSpeedDatingLobby={setShowSpeedDatingLobby}
+                                />
+                            </>
+                        )}
+                    </div>
 
-                                    {/* Push Notifications Toggle Card */}
-                                    <div
-                                        onClick={togglePushNotifications}
-                                        className={`p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2 ${
-                                            pushEnabled
-                                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300'
-                                                : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-400'
-                                        }`}
-                                    >
-                                        <div className={`p-2 rounded-full transition-colors ${
-                                            pushEnabled
-                                                ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                                        }`}>
-                                            <Bell size={20} />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className={`font-bold text-sm ${
-                                                pushEnabled ? 'text-blue-900 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
-                                            }`}>{pushEnabled ? 'Notifs On' : 'Notifs Off'}</div>
-                                            <div className={`text-[10px] ${
-                                                pushEnabled ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
-                                            }`}>{pushEnabled ? 'Tap to disable' : 'Tap to enable'}</div>
-                                        </div>
-                                    </div>
+                    <div className={activeTab === 'map' ? 'block h-full' : 'hidden'}>
+                        {visitedTabs.has('map') && (
+                            <InteractiveMap profiles={mapProfiles} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />
+                        )}
+                    </div>
 
-                                    {/* Logout Card */}
-                                    <div
-                                        onClick={handleLogout}
-                                        className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 cursor-pointer hover:border-red-300 dark:hover:border-red-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
-                                    >
-                                        <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400">
-                                            <LogOut size={20} />
-                                        </div>
-                                        <div className="text-center">
-                                            <div className="font-bold text-sm text-red-900 dark:text-red-300">Log Out</div>
-                                            <div className="text-[10px] text-red-500 dark:text-red-400">Sign Out</div>
-                                        </div>
-                                    </div>
-                                </div>
+                    <div className={activeTab === 'requests' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('requests') && (
+                            <RequestsTab
+                                requests={requests}
+                                handleAcceptRequest={handleAcceptRequest}
+                                handleDeclineRequest={handleDeclineRequest}
+                                loading={loading}
+                            />
+                        )}
+                    </div>
 
-                                {/* Account Settings Section */}
-                                <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                            <ShieldAlert className="text-amber-500" size={20} />
-                                            Account Settings & Privacy
-                                        </h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                            Manage your account visibility and permanent data removal.
-                                        </p>
-                                    </div>
+                    <div className={activeTab === 'connections' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('connections') && (
+                            <ConnectionsTab
+                                currentUser={currentUser}
+                                setCurrentUser={setCurrentUser}
+                                connections={connections}
+                                setConnections={setConnections}
+                                onlineUsers={onlineUsers}
+                                openChat={openChat}
+                                setGameTarget={setGameTarget}
+                                setUnreadMessageCount={setUnreadMessageCount}
+                                onOpenStory={(storySet) => setActiveStorySet(storySet)}
+                            />
+                        )}
+                    </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        {/* Deactivate Option */}
-                                        <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors flex flex-col justify-between space-y-4">
-                                            <div>
-                                                <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Deactivate Account (15 Days)</h4>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    Temporarily hide your profile, reels, and stories from other users. You can reactivate by logging back in at any time.
-                                                </p>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={handleDeactivateAccount}
-                                                className="w-full justify-center border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 font-bold"
-                                            >
-                                                Deactivate Account
-                                            </Button>
-                                        </div>
+                    <div className={activeTab === 'events' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('events') && (
+                            <MeetSpots currentUser={currentUser} />
+                        )}
+                    </div>
 
-                                        {/* Delete Option */}
-                                        <div className="p-4 rounded-xl border border-dashed border-red-100 dark:border-red-900/20 bg-red-50/10 dark:bg-red-950/5 hover:bg-red-50/20 dark:hover:bg-red-950/10 transition-colors flex flex-col justify-between space-y-4">
-                                            <div>
-                                                <h4 className="text-sm font-bold text-red-700 dark:text-red-400">Permanently Delete Account</h4>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                    Permanently delete your profile, messages, matches, and all other database records. This action is irreversible.
-                                                </p>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={handleDeleteAccount}
-                                                className="w-full justify-center border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold"
-                                            >
-                                                Delete Permanently
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
+                    <div className={activeTab === 'community' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('community') && (
+                            <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
+                                <CommunityChat currentUser={currentUser} onClose={() => setActiveTab('matches')} onOpenStore={() => {
+                                    setInitialStoreTab('premium');
+                                    setShowCoinStore(true);
+                                }} />
                             </div>
-                        )
-                    )}
+                        )}
+                    </div>
+
+                    <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
+                        {visitedTabs.has('profile') && currentUser && (
+                            isEditingProfile ? (
+                                <ProfileEditor
+                                    initialData={currentUser}
+                                    onSave={async (newData) => {
+                                        setCurrentUser(newData);
+                                        setIsEditingProfile(false);
+                                        toast.success("Profile Saved!");
+
+                                        try {
+                                            const freshData = await api.profile.getMe();
+                                            setCurrentUser(freshData);
+                                        } catch (e) { console.error("Refresh failed", e); }
+                                    }}
+                                    onCancel={() => setIsEditingProfile(false)}
+                                />
+                            ) : (
+                                <div className="space-y-6">
+                                    <ProfileView
+                                        profile={currentUser}
+                                        onEdit={() => setIsEditingProfile(true)}
+                                    />
+
+                                    {/* Profile Stats Row */}
+                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
+                                        <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
+                                            <div className="text-center min-w-[80px]">
+                                                <div className="text-2xl font-bold text-gray-900 dark:text-white">{connections.length}</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Connections</div>
+                                            </div>
+                                            <div className="w-[1px] h-10 bg-gray-200 dark:bg-gray-700 sm:hidden"></div>
+                                            <div className="text-center min-w-[80px]">
+                                                <div className="text-2xl font-bold text-gray-900 dark:text-white">{requests.length}</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Requests</div>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full sm:w-auto border-indigo-200 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold"
+                                            onClick={() => setActiveTab('connections')}
+                                        >
+                                            Manage Connections
+                                        </Button>
+                                    </div>
+
+                                    {/* Mobile Quick Actions - Visible on all screens for better UX */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        {/* Premium Status Card */}
+                                        <div
+                                            onClick={() => {
+                                                setInitialStoreTab('premium');
+                                                setShowCoinStore(true);
+                                            }}
+                                            className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500/50'}`}
+                                        >
+                                            <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                                                <Crown size={20} />
+                                            </div>
+                                            <div className="text-left sm:text-center">
+                                                <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800 dark:text-amber-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                    {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
+                                                </div>
+                                                <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700 dark:text-amber-600/80' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
+                                                    {currentUser.is_premium && currentUser.premium_expiry
+                                                        ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
+                                                        : 'Unlock Features'}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Boost Card */}
+                                        <div
+                                            onClick={async () => {
+                                                if (!currentUser || currentUser.coins < 100) {
+                                                    setShowCoinStore(true);
+                                                    toast.error("Insufficient coins to boost!");
+                                                    return;
+                                                }
+                                                if (confirm("Boost your profile for 100 coins?")) {
+                                                    try {
+                                                        await api.wallet.boostProfile();
+                                                        toast.success("Profile Boosted!");
+                                                        api.profile.getMe().then(setCurrentUser);
+                                                    } catch (e) { toast.error("Boost failed."); }
+                                                }
+                                            }}
+                                            className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                        >
+                                            <div className="p-2 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+                                                <Zap size={20} className="fill-indigo-600 dark:fill-indigo-400" />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="font-bold text-sm text-indigo-900 dark:text-indigo-300">Boost</div>
+                                                <div className="text-[10px] text-indigo-600 dark:text-indigo-400">Get Visible</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Free Coins Card */}
+                                        <div
+                                            onClick={() => router.push('/refer')}
+                                            className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                        >
+                                            <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                                                <Users size={20} />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Free Coins</div>
+                                                <div className="text-[10px] text-emerald-600 dark:text-indigo-400">Refer Friend</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Push Notifications Toggle Card */}
+                                        <div
+                                            onClick={togglePushNotifications}
+                                            className={`p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2 ${
+                                                pushEnabled
+                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300'
+                                                    : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                                            }`}
+                                        >
+                                            <div className={`p-2 rounded-full transition-colors ${
+                                                pushEnabled
+                                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                                            }`}>
+                                                <Bell size={20} />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className={`font-bold text-sm ${
+                                                    pushEnabled ? 'text-blue-900 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'
+                                                }`}>{pushEnabled ? 'Notifs On' : 'Notifs Off'}</div>
+                                                <div className={`text-[10px] ${
+                                                    pushEnabled ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
+                                                }`}>{pushEnabled ? 'Tap to disable' : 'Tap to enable'}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Logout Card */}
+                                        <div
+                                            onClick={handleLogout}
+                                            className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 cursor-pointer hover:border-red-300 dark:hover:border-red-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                        >
+                                            <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400">
+                                                <LogOut size={20} />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="font-bold text-sm text-red-900 dark:text-red-300">Log Out</div>
+                                                <div className="text-[10px] text-red-500 dark:text-red-400">Sign Out</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Account Settings Section */}
+                                    <div className="mt-8 bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm space-y-6">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                <ShieldAlert className="text-amber-500" size={20} />
+                                                Account Settings & Privacy
+                                            </h3>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                Manage your account visibility and permanent data removal.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {/* Deactivate Option */}
+                                            <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors flex flex-col justify-between space-y-4">
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">Deactivate Account (15 Days)</h4>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        Temporarily hide your profile, reels, and stories from other users. You can reactivate by logging back in at any time.
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleDeactivateAccount}
+                                                    className="w-full justify-center border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 font-bold"
+                                                >
+                                                    Deactivate Account
+                                                </Button>
+                                            </div>
+
+                                            {/* Delete Option */}
+                                            <div className="p-4 rounded-xl border border-dashed border-red-100 dark:border-red-900/20 bg-red-50/10 dark:bg-red-950/5 hover:bg-red-50/20 dark:hover:bg-red-950/10 transition-colors flex flex-col justify-between space-y-4">
+                                                <div>
+                                                    <h4 className="text-sm font-bold text-red-700 dark:text-red-400">Permanently Delete Account</h4>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        Permanently delete your profile, messages, matches, and all other database records. This action is irreversible.
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={handleDeleteAccount}
+                                                    className="w-full justify-center border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold"
+                                                >
+                                                    Delete Permanently
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        )}
+                    </div>
                 </div>
 
 

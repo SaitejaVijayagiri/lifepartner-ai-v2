@@ -105,7 +105,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
               <div>
                 <h3 className="text-xs font-bold text-gray-900 dark:text-white">Option 1: Download Android App (.apk)</h3>
                 <p className="text-[11px] text-gray-600 dark:text-gray-300">
-                  Official 5.2 MB installer with instant push notifications & automatic background updates.
+                  Official 4.1 MB installer with instant push notifications & automatic background updates.
                 </p>
               </div>
             </div>
@@ -126,7 +126,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
               ) : (
                 <>
                   <Download size={16} />
-                  <span>Download Android App (5.2 MB)</span>
+                  <span>Download Android App (4.1 MB)</span>
                 </>
               )}
             </a>

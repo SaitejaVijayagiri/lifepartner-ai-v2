@@ -1261,9 +1261,9 @@ router.post('/stories', authenticateToken, (req, res, next) => {
                 }
             });
 
-            const connectionUserIds = connections
+            const connectionUserIds = Array.from(new Set(connections
                 .map(c => c.from_user_id === userId ? c.to_user_id : c.from_user_id)
-                .filter(Boolean) as string[];
+                .filter(Boolean) as string[]));
 
             if (connectionUserIds.length > 0 && user) {
                 const myName = user.full_name || "Someone";

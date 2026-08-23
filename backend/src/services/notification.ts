@@ -140,7 +140,7 @@ export class NotificationService {
             ? tokensRec.filter((r: any) => r.platform === 'android')
             : tokensRec;
 
-        const tokens = filteredTokens.map((r: any) => r.token);
+        const tokens = Array.from(new Set(filteredTokens.map((r: any) => r.token)));
 
         // 2. Send (Parallel)
         // If real firebase is off, we just mock log

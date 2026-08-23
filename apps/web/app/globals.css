@@ -356,3 +356,16 @@ html, body {
   animation: msg-blink 1.5s ease-in-out;
   border-radius: 1rem; /* match bubble rounding */
 }
+
+@keyframes splashProgress {
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+

@@ -13,6 +13,7 @@ import DateSafetyOverlay from '@/components/DateSafetyOverlay';
 import PageViewTracker from '@/components/PageViewTracker';
 import GlobalViewsBadge from '@/components/GlobalViewsBadge';
 import AppModeHandler from '@/components/AppModeHandler';
+import AnimatedSplash from '@/components/AnimatedSplash';
 
 const fontSans = DM_Sans({
   variable: "--font-sans",
@@ -239,6 +240,7 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ClientProviders>
+            <AnimatedSplash />
             <AppModeHandler />
             <PageViewTracker />
             <NetworkStatus />

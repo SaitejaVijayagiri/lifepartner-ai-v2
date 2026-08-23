@@ -1141,20 +1141,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
 
             const meta = (u.profiles?.metadata as any) || {};
 
-            const isBlurred = !isPremium;
-
-            // If blurred, hide details
-            if (isBlurred) {
-                return {
-                    id: u.id,
-                    name: "???",
-                    age: "??",
-                    photoUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`,
-                    location: "Hidden",
-                    isBlurred: true,
-                    likedAt: r.created_at
-                };
-            }
+            const isBlurred = false;
 
             return {
                 id: u.id,
@@ -1181,10 +1168,9 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
         }).filter(Boolean);
 
         res.json({
-            isPremium,
+            isPremium: true,
             totalLikes,
-            likes: formattedLikes,
-            message: !isPremium ? `${totalLikes} people liked your profile! Upgrade to Premium to see who.` : undefined
+            likes: formattedLikes
         });
 
     } catch (e) {
@@ -1427,20 +1413,17 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
             if (!u) return null; // Safe guard
 
             const meta = (u.profiles?.metadata as any) || {};
-            const isBlurred = !isPremium;
 
             return {
                 id: u.id,
-                name: isBlurred ? "Verify to Unlock" : (u.full_name || "User"),
-                age: isBlurred ? "??" : (u.age || meta.age),
+                name: u.full_name || "User",
+                age: u.age || meta.age,
                 height: meta.height || "Not Specified",
-                photoUrl: isBlurred
-                    ? `https://api.dicebear.com/7.x/shapes/svg?seed=${u.id}`
-                    : sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
-                location: isBlurred ? "Hidden" : getLocationString(u),
-                profession: isBlurred ? "Hidden" : (meta.career?.profession || "Member"),
+                photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
+                location: getLocationString(u),
+                profession: meta.career?.profession || "Member",
                 viewedAt: r.created_at,
-                isBlurred,
+                isBlurred: false,
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},
@@ -1456,7 +1439,7 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
         }).filter(Boolean);
 
         res.json({
-            isPremium,
+            isPremium: true,
             visitors: formattedVisitors
         });
 

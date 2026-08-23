@@ -493,23 +493,17 @@ export default function MatchesTab({
                                     <div
                                         key={visitor.id || idx}
                                         onClick={() => {
-                                            if (!visitor.isBlurred) {
-                                                setActiveInsightModal(null);
-                                                setSelectedProfile(visitor);
-                                            }
+                                            setActiveInsightModal(null);
+                                            setSelectedProfile(visitor);
                                         }}
-                                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
-                                            visitor.isBlurred
-                                                ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 opacity-80'
-                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-400 cursor-pointer shadow-sm'
-                                        }`}
+                                        className="flex items-center justify-between p-3 rounded-2xl border transition-all bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-400 cursor-pointer shadow-sm"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className={`relative w-12 h-12 rounded-full overflow-hidden shrink-0 ${visitor.isBlurred ? 'blur-md' : ''}`}>
+                                            <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
                                                 <img
                                                     src={visitor.photoUrl || '/avatar-fallback.svg'}
                                                     className="w-full h-full object-cover"
-                                                    alt=""
+                                                    alt={visitor.name || ''}
                                                     onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
                                                 />
                                             </div>
@@ -518,16 +512,7 @@ export default function MatchesTab({
                                                 <p className="text-xs text-gray-500">{visitor.location || 'Member'}</p>
                                             </div>
                                         </div>
-                                        {visitor.isBlurred ? (
-                                            <button
-                                                onClick={() => { setActiveInsightModal(null); setShowCoinStore(true); }}
-                                                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs shadow-sm flex items-center gap-1"
-                                            >
-                                                <Crown size={12} /> Unlock
-                                            </button>
-                                        ) : (
-                                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">View Profile →</span>
-                                        )}
+                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">View Profile →</span>
                                     </div>
                                 ))
                             )}
@@ -537,23 +522,17 @@ export default function MatchesTab({
                                     <div
                                         key={like.id || idx}
                                         onClick={() => {
-                                            if (!like.isBlurred) {
-                                                setActiveInsightModal(null);
-                                                setSelectedProfile(like);
-                                            }
+                                            setActiveInsightModal(null);
+                                            setSelectedProfile(like);
                                         }}
-                                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
-                                            like.isBlurred
-                                                ? 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-800 opacity-80'
-                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-rose-400 cursor-pointer shadow-sm'
-                                        }`}
+                                        className="flex items-center justify-between p-3 rounded-2xl border transition-all bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-rose-400 cursor-pointer shadow-sm"
                                     >
                                         <div className="flex items-center gap-3">
-                                            <div className={`relative w-12 h-12 rounded-full overflow-hidden shrink-0 ${like.isBlurred ? 'blur-md' : ''}`}>
+                                            <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
                                                 <img
                                                     src={like.photoUrl || '/avatar-fallback.svg'}
                                                     className="w-full h-full object-cover"
-                                                    alt=""
+                                                    alt={like.name || ''}
                                                     onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
                                                 />
                                             </div>
@@ -562,16 +541,7 @@ export default function MatchesTab({
                                                 <p className="text-xs text-gray-500">Liked your profile</p>
                                             </div>
                                         </div>
-                                        {like.isBlurred ? (
-                                            <button
-                                                onClick={() => { setActiveInsightModal(null); setShowCoinStore(true); }}
-                                                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold text-xs shadow-sm flex items-center gap-1"
-                                            >
-                                                <Crown size={12} /> Unlock
-                                            </button>
-                                        ) : (
-                                            <span className="text-xs font-bold text-rose-600 dark:text-rose-400">View Profile →</span>
-                                        )}
+                                        <span className="text-xs font-bold text-rose-600 dark:text-rose-400">View Profile →</span>
                                     </div>
                                 ))
                             )}

@@ -271,7 +271,7 @@ export class NotificationService {
                         const code = resp.error.code;
                         if (code === 'messaging/registration-token-not-registered' || 
                             code === 'messaging/invalid-registration-token') {
-                            staleTokens.push(tokens[idx]);
+                            staleTokens.push(tokens[idx] as string);
                         }
                     }
                 });

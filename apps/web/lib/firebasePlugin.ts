@@ -48,10 +48,11 @@ export const requestWebPushPermission = async (): Promise<string | null> => {
                 }
             }
 
-            const currentToken = await getToken(messaging, { 
-                vapidKey: vapidKey,
-                serviceWorkerRegistration: swRegistration
-            });
+            const tokenOptions: any = {};
+            if (vapidKey) tokenOptions.vapidKey = vapidKey;
+            if (swRegistration) tokenOptions.serviceWorkerRegistration = swRegistration;
+
+            const currentToken = await getToken(messaging, tokenOptions);
 
             if (currentToken) {
                 console.log("[Web Push] Got FCM Token:", currentToken);

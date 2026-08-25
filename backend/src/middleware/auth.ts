@@ -6,7 +6,9 @@ export const authenticateToken = (req: any, res: Response, next: NextFunction) =
     let token = req.cookies?.token;
     if (!token) {
         const authHeader = req.headers['authorization'];
-        token = authHeader && authHeader.split(' ')[1];
+        if (authHeader) {
+            token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
+        }
     }
 
     if (!token) return res.sendStatus(401);

@@ -376,7 +376,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("POST");
                         conn.setRequestProperty("Content-Type", "application/json");
-                        conn.setRequestProperty("Authorization", "Bearer " + authToken);
+                        String authHeader = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+                        conn.setRequestProperty("Authorization", authHeader);
                         conn.setDoOutput(true);
                         conn.setConnectTimeout(10000);
                         org.json.JSONObject payloadObj2 = new org.json.JSONObject();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -506,21 +506,21 @@ function DashboardContent() {
 
     const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
-    const primaryNavItems = [
+    const primaryNavItems = useMemo(() => [
         { id: 'home', label: 'Home', icon: Home },
         { id: 'matches', label: 'Matches', icon: Heart },
         { id: 'live_events', label: 'Live Video', icon: Radio, highlight: true },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadMessageCount },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount },
-    ];
+    ], [unreadMessageCount, requestsCount]);
 
-    const secondaryNavItems = [
+    const secondaryNavItems = useMemo(() => [
         { id: 'map', label: 'Live Map', icon: MapPin },
         { id: 'events', label: 'Meetups', icon: Calendar },
         { id: 'community', label: 'Lounge', icon: Coffee },
-    ];
+    ], []);
 
-    const navItems = [...primaryNavItems, ...secondaryNavItems];
+    const navItems = useMemo(() => [...primaryNavItems, ...secondaryNavItems], [primaryNavItems, secondaryNavItems]);
 
     // Fetch data based on active tab — guard against repeated re-fetches on tab switch
     // FIX: These refs prevent double-fetching within a single session, but reset on
@@ -802,8 +802,10 @@ function DashboardContent() {
         });
     };
 
-    // Get filtered matches
-    const displayMatches = activeFilters ? filterMatches(matches) : matches;
+    // Get filtered matches (Memoized for smooth 60fps tab switching)
+    const displayMatches = useMemo(() => {
+        return activeFilters ? filterMatches(matches) : matches;
+    }, [matches, activeFilters]);
 
     // Incoming Call Listener - REMOVED (Handled by Global CallManager)
     /*

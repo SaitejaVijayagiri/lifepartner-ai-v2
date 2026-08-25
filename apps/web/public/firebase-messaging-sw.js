@@ -90,7 +90,7 @@ self.addEventListener('notificationclick', function(event) {
     if (notificationId) {
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:5000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://backend.lifepartnerai.in';
             
         event.waitUntil(
             fetch(`${API_URL}/notifications/${notificationId}/click`, {
@@ -145,7 +145,7 @@ self.addEventListener('notificationclick', function(event) {
         const actionType = action === 'accept_request' ? 'accept' : 'decline';
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:5000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://backend.lifepartnerai.in';
 
         event.waitUntil(
             caches.open('auth-token')
@@ -209,7 +209,7 @@ self.addEventListener('notificationclick', function(event) {
         const messageId = payloadData.messageId;
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:5000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://backend.lifepartnerai.in';
 
         event.waitUntil(
             caches.open('auth-token')
@@ -254,7 +254,7 @@ self.addEventListener('notificationclick', function(event) {
         
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:5000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://backend.lifepartnerai.in';
 
         event.waitUntil(
             caches.open('auth-token')

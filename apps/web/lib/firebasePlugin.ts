@@ -32,15 +32,25 @@ export const requestWebPushPermission = async (): Promise<string | null> => {
         if (permission === 'granted') {
             const messaging = getMessaging(app);
             // VAPID key is ideally stored in NEXT_PUBLIC_FIREBASE_VAPID_KEY
-            // Provide a hard fallback or use ENV
             const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
             
             if (!vapidKey) {
                 console.warn("No VAPID Key available for Firebase Web Push.");
             }
 
+            let swRegistration: ServiceWorkerRegistration | undefined = undefined;
+            if ('serviceWorker' in navigator) {
+                try {
+                    swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                    console.log('[Web Push] Service Worker registered with scope:', swRegistration.scope);
+                } catch (swErr) {
+                    console.warn('[Web Push] Service Worker registration failed:', swErr);
+                }
+            }
+
             const currentToken = await getToken(messaging, { 
-                vapidKey: vapidKey 
+                vapidKey: vapidKey,
+                serviceWorkerRegistration: swRegistration
             });
 
             if (currentToken) {

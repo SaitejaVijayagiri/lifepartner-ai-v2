@@ -1,6 +1,7 @@
 'use client';
 
-import { MessageCircle, Trash2, Bell, BellOff, Gamepad2 } from 'lucide-react';
+import { useState } from 'react';
+import { MessageCircle, Trash2, Bell, BellOff, Gamepad2, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -29,11 +30,22 @@ export default function ConnectionsTab({
     onOpenStory
 }: ConnectionsTabProps) {
     const toast = useToast();
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Sort connections so online users appear at the top, preserving the recent-message order within groups
+    // Sort connections so online users appear at the top, preserving recent-message order within groups
     const onlineConns = connections.filter(c => c.partner && onlineUsers.includes(c.partner.id));
     const offlineConns = connections.filter(c => c.partner && !onlineUsers.includes(c.partner.id));
     const sortedConnections = [...onlineConns, ...offlineConns];
+
+    // Filter connections based on search query (matches name, role, or location)
+    const filteredConnections = sortedConnections.filter((conn: any) => {
+        if (!searchQuery.trim()) return true;
+        const q = searchQuery.toLowerCase().trim();
+        const name = (conn.partner?.name || '').toLowerCase();
+        const role = (conn.partner?.role || '').toLowerCase();
+        const location = (conn.partner?.location || '').toLowerCase();
+        return name.includes(q) || role.includes(q) || location.includes(q);
+    });
 
     const currentUserId = currentUser?.id || currentUser?.userId;
 
@@ -73,12 +85,46 @@ export default function ConnectionsTab({
     };
 
     return (
-        <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-2 sm:space-y-4">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1 text-gray-900 dark:text-white">Your Connections</h2>
+        <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                    Your Connections ({sortedConnections.length})
+                </h2>
+            </div>
+
+            {/* Friend List Search Input */}
+            {sortedConnections.length > 0 && (
+                <div className="relative w-full">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search connections by name, location, or role..."
+                        className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm"
+                    />
+                    {searchQuery && (
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
+            )}
+
             {sortedConnections.length === 0 && (
                 <div className="text-center py-20 text-gray-500 dark:text-gray-400">No connections yet</div>
             )}
-            {sortedConnections.map((conn: any) => {
+
+            {sortedConnections.length > 0 && filteredConnections.length === 0 && (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400 font-medium">
+                    No connections found matching &quot;{searchQuery}&quot;
+                </div>
+            )}
+
+            {filteredConnections.map((conn: any) => {
                 const stories: any[] = conn.partner?.stories || [];
                 const activeStories = stories.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date());
                 const hasStories = activeStories.length > 0;

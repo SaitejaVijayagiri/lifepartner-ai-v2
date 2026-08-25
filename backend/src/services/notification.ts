@@ -230,6 +230,21 @@ export class NotificationService {
                 };
             }
 
+            const androidPayload: any = {
+                priority: 'high',
+                notification: {
+                    channelId: 'chat_messages',
+                    priority: 'max',
+                    defaultSound: true,
+                    defaultVibrateTimings: true,
+                    visibility: 'public'
+                }
+            };
+
+            if (bannerUrl || senderPhoto) {
+                androidPayload.notification.imageUrl = String(bannerUrl || senderPhoto);
+            }
+
             const message: any = {
                 tokens,
                 data: {
@@ -237,6 +252,7 @@ export class NotificationService {
                     body: String(body),
                     ...mappedData
                 },
+                android: androidPayload,
                 apns: apnsPayload,
                 webpush: webpushPayload
             };

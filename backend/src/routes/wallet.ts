@@ -165,7 +165,8 @@ function getCalendarDayDiff(lastClaimedStr: string | null, todayStr: string): nu
         const d1 = new Date(lastClaimedStr.slice(0, 10) + 'T00:00:00.000Z').getTime();
         const d2 = new Date(todayStr.slice(0, 10) + 'T00:00:00.000Z').getTime();
         const msPerDay = 1000 * 60 * 60 * 24;
-        return Math.round((d2 - d1) / msPerDay);
+        const diff = Math.round((d2 - d1) / msPerDay);
+        return isNaN(diff) ? 999 : diff;
     } catch (e) {
         return 999;
     }
@@ -198,8 +199,8 @@ router.get('/streak', authenticateToken, async (req: any, res) => {
 
             if (diffDays === 0) {
                 canClaimToday = false; // Already claimed today
-            } else if (diffDays > 1) {
-                // Streak broken — reset streak count to 0 so nextDay becomes 1
+            } else if (diffDays > 1 || diffDays < 0) {
+                // Streak broken — missed a day. Reset streak count to 0 so nextDay becomes 1
                 currentStreak = 0;
             }
         }
@@ -249,8 +250,8 @@ router.post('/streak/claim', authenticateToken, async (req: any, res) => {
         let newStreak = (streakData.streak_count || 0) + 1;
         if (lastClaimed) {
             const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
-            if (diffDays > 1) {
-                newStreak = 1; // Missed a day — reset streak to Day 1
+            if (diffDays > 1 || diffDays < 0) {
+                newStreak = 1; // Missed a day — reset streak strictly to Day 1
             }
         }
 

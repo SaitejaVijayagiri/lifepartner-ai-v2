@@ -263,7 +263,25 @@ export class NotificationService {
             const batchResponse = await admin.messaging().sendEachForMulticast(message);
             console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);
 
-            // Cleanup invalid tokens? (Optional enhancement)
+            // Automatically clean up stale/uninstalled tokens
+            if (batchResponse.failureCount > 0) {
+                const staleTokens: string[] = [];
+                batchResponse.responses.forEach((resp: any, idx: number) => {
+                    if (!resp.success && resp.error) {
+                        const code = resp.error.code;
+                        if (code === 'messaging/registration-token-not-registered' || 
+                            code === 'messaging/invalid-registration-token') {
+                            staleTokens.push(tokens[idx]);
+                        }
+                    }
+                });
+                if (staleTokens.length > 0) {
+                    await prisma.device_tokens.deleteMany({
+                        where: { token: { in: staleTokens } }
+                    });
+                    console.log(`Cleaned up ${staleTokens.length} stale FCM token(s) from database.`);
+                }
+            }
         } catch (e) {
             console.error("Multicast Push Failed", e);
         }

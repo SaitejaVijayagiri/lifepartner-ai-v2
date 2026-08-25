@@ -20,7 +20,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Inject API base URL into BuildConfig so Java code has no hardcoded URLs
-        buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-ai.onrender.com\""
+        buildConfigField "String", "API_BASE_URL", "\"https://backend.lifepartnerai.in\""
 
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
@@ -46,7 +46,7 @@ android {
     buildTypes {
         debug {
             debuggable false
-            buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-ai.onrender.com\""
+            buildConfigField "String", "API_BASE_URL", "\"https://backend.lifepartnerai.in\""
             if (keystorePropsFile.exists()) {
                 signingConfig signingConfigs.release
             }

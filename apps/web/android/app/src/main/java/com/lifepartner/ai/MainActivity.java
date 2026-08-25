@@ -5,65 +5,146 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.google.firebase.messaging.FirebaseMessaging;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends BridgeActivity {
 
-    private static final int NOTIF_PERMISSION_CODE = 101;
+    private static final String TAG = "MainActivity";
+    private static final int PERMISSION_REQUEST_CODE = 200;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Request notification permission on Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                        NOTIF_PERMISSION_CODE);
-            }
-        }
-        
-        // Request Camera and Microphone for Video Calling inherently
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO},
-                    102);
-        }
+        // 1. Single-batch runtime permission handling to prevent permission dialog collision & crashes
+        requestAppPermissions();
 
-        // Inject a JavaScript interface so the web app can read/write the auth token natively
-        WebView webView = getBridge().getWebView();
-        webView.addJavascriptInterface(new NativeBridge(), "AndroidBridge");
+        // 2. Safely inject JavaScript interface with null check
+        setupNativeBridge();
 
-        // Fetch and register FCM token
+        // 3. Setup WebChromeClient to grant WebRTC Camera/Mic permissions to WebView
+        setupWebChromeClient();
+
+        // 4. Fetch & register FCM token safely
         fetchAndRegisterToken();
     }
 
-    private void fetchAndRegisterToken() {
-        final SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-        boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
-        if (isPushDisabled) {
-            return; // Abort registration because the user explicitly toggled notifications Off
-        }
+    private void requestAppPermissions() {
+        try {
+            List<String> permissionsToRequest = new ArrayList<>();
 
-        FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
-            if (token != null && !token.isEmpty()) {
-                prefs.edit().putString("fcm_token", token).apply();
-                String authToken = prefs.getString("auth_token", null);
-                if (authToken != null) {
-                    MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+            // Android 13+ Notification permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
                 }
             }
-        });
+
+            // Camera permission for Video Calling
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.CAMERA);
+            }
+
+            // Microphone permission for Voice & Video Calling
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.RECORD_AUDIO);
+            }
+
+            if (!permissionsToRequest.isEmpty()) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        permissionsToRequest.toArray(new String[0]),
+                        PERMISSION_REQUEST_CODE
+                );
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error requesting permissions: ", e);
+        }
+    }
+
+    private void setupNativeBridge() {
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                WebView webView = getBridge().getWebView();
+                webView.addJavascriptInterface(new NativeBridge(), "AndroidBridge");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error injecting AndroidBridge: ", e);
+        }
+    }
+
+    private void setupWebChromeClient() {
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                WebView webView = getBridge().getWebView();
+                webView.setWebChromeClient(new WebChromeClient() {
+                    @Override
+                    public void onPermissionRequest(final PermissionRequest request) {
+                        try {
+                            runOnUiThread(() -> {
+                                request.grant(request.getResources());
+                            });
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error granting web permission request: ", e);
+                        }
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting WebChromeClient: ", e);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            Log.d(TAG, "Runtime permissions processed successfully.");
+            // Re-verify bridge injection after permissions are resolved
+            setupNativeBridge();
+            setupWebChromeClient();
+        }
+    }
+
+    private void fetchAndRegisterToken() {
+        try {
+            final SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
+            if (isPushDisabled) {
+                return;
+            }
+
+            FirebaseMessaging.getInstance().getToken().addOnSuccessListener(token -> {
+                if (token != null && !token.isEmpty()) {
+                    prefs.edit().putString("fcm_token", token).apply();
+                    String authToken = prefs.getString("auth_token", null);
+                    if (authToken != null) {
+                        MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+                    }
+                }
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Failed to get FCM token: ", e);
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error in fetchAndRegisterToken: ", e);
+        }
     }
 
     /**
@@ -73,30 +154,45 @@ public class MainActivity extends BridgeActivity {
     class NativeBridge {
         @JavascriptInterface
         public void setAuthToken(String authToken) {
-            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-            prefs.edit().putString("auth_token", authToken).apply();
-            // Now register the FCM token with backend using this auth token
-            MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+            try {
+                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                prefs.edit().putString("auth_token", authToken).apply();
+                MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+            } catch (Exception e) {
+                Log.e(TAG, "Error in setAuthToken: ", e);
+            }
         }
 
         @JavascriptInterface
         public String getFcmToken() {
-            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-            return prefs.getString("fcm_token", "");
+            try {
+                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                return prefs.getString("fcm_token", "");
+            } catch (Exception e) {
+                Log.e(TAG, "Error in getFcmToken: ", e);
+                return "";
+            }
         }
 
         @JavascriptInterface
         public void disablePush() {
-            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-            prefs.edit().putBoolean("push_disabled", true).apply();
-            // Optional: You could proactively call FirebaseMessaging.getInstance().deleteToken() here natively.
+            try {
+                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                prefs.edit().putBoolean("push_disabled", true).apply();
+            } catch (Exception e) {
+                Log.e(TAG, "Error in disablePush: ", e);
+            }
         }
 
         @JavascriptInterface
         public void enablePush() {
-            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-            prefs.edit().putBoolean("push_disabled", false).apply();
-            fetchAndRegisterToken();
+            try {
+                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                prefs.edit().putBoolean("push_disabled", false).apply();
+                fetchAndRegisterToken();
+            } catch (Exception e) {
+                Log.e(TAG, "Error in enablePush: ", e);
+            }
         }
     }
 }

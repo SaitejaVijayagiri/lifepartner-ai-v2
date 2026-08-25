@@ -50,7 +50,7 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
         // 4. Send the HTTP POST Request in the background
         new Thread(() -> {
             try {
-                String apiUrl = "https://lifepartner-ai.onrender.com/messages/" + messageId + "/like";
+                String apiUrl = BuildConfig.API_BASE_URL + "/messages/" + messageId + "/like";
                 URL url = new URI(apiUrl).toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");

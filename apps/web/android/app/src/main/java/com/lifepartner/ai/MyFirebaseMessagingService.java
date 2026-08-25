@@ -184,12 +184,26 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "LifePartner Notifications",
+                    "lifepartner_chat",
+                    "Chat Messages",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Match and message notifications");
+            channel.setDescription("Direct messages and match alerts");
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{100, 200, 300, 400, 500});
+            channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
             manager.createNotificationChannel(channel);
+
+            // Create fallback alias channel for backend compatibility
+            NotificationChannel aliasChannel = new NotificationChannel(
+                    "chat_messages",
+                    "Chat Messages",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            aliasChannel.setDescription("Direct messages and match alerts");
+            aliasChannel.enableVibration(true);
+            aliasChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+            manager.createNotificationChannel(aliasChannel);
         }
 
         // 1. Regular Open-App Intent with deep link pathing
@@ -210,12 +224,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "lifepartner_chat")
                 .setSmallIcon(R.drawable.ic_stat_notification)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(pendingIntent);
 
         if (largeIcon != null) {

@@ -233,7 +233,7 @@ export class NotificationService {
             const androidPayload: any = {
                 priority: 'high',
                 notification: {
-                    channelId: 'chat_messages',
+                    channelId: 'lifepartner_chat',
                     priority: 'max',
                     defaultSound: true,
                     defaultVibrateTimings: true,

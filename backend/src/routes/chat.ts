@@ -268,32 +268,29 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             console.error("Socket broadcast failed", socketError);
         }
 
-        // Send Push Notification ONLY if user is offline
+        // Send Push Notification for chat message
         try {
-            const { isUserOnline } = require('../socket');
-            if (!isUserOnline(connectionId)) {
-                const senderProfile = await prisma.users.findUnique({
-                    where: { id: senderId },
-                    select: { full_name: true, avatar_url: true }
-                });
-                const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
+            const senderProfile = await prisma.users.findUnique({
+                where: { id: senderId },
+                select: { full_name: true, avatar_url: true }
+            });
+            const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
 
-                const { NotificationService } = require('../services/notification');
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
-                await NotificationService.getInstance().sendToUser(
-                    connectionId,
-                    `${senderName}`,
-                    cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
-                    { 
-                        url: `/dashboard?tab=connections&chatId=${senderId}`,
-                        messageId: newMessageRecord.id,
-                        senderId: senderId,
-                        senderName: senderName,
-                        senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User'),
-                        type: 'match'
-                    }
-                );
-            }
+            const { NotificationService } = require('../services/notification');
+            const { sanitizePhotoUrl } = require('../utils/photoUrl');
+            await NotificationService.getInstance().sendToUser(
+                connectionId,
+                `${senderName}`,
+                cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
+                { 
+                    url: `/dashboard?tab=connections&chatId=${senderId}`,
+                    messageId: newMessageRecord.id,
+                    senderId: senderId,
+                    senderName: senderName,
+                    senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User'),
+                    type: 'match'
+                }
+            );
         } catch (pushErr) {
             console.error("Chat Push Notification Error", pushErr);
         }

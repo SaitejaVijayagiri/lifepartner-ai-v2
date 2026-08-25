@@ -349,33 +349,31 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         prefs.edit().putString("auth_token", authToken).apply();
 
-        String fcmToken = prefs.getString("fcm_token", null);
-        if (fcmToken != null) {
-            com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken()
-                .addOnSuccessListener(token -> {
-                    prefs.edit().putString("fcm_token", token).apply();
-                    new Thread(() -> {
-                        try {
-                            URL url = new URI(API_BASE + "/notifications/register").toURL();
-                            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                            conn.setRequestMethod("POST");
-                            conn.setRequestProperty("Content-Type", "application/json");
-                            conn.setRequestProperty("Authorization", "Bearer " + authToken);
-                            conn.setDoOutput(true);
-                            conn.setConnectTimeout(10000);
-                            org.json.JSONObject payloadObj2 = new org.json.JSONObject();
-                            payloadObj2.put("token", token);
-                            payloadObj2.put("platform", "android");
-                            String payload = payloadObj2.toString();
-                            byte[] input = payload.getBytes(StandardCharsets.UTF_8);
-                            try (OutputStream os = conn.getOutputStream()) {
-                                os.write(input, 0, input.length);
-                            }
-                            conn.getResponseCode();
-                            conn.disconnect();
-                        } catch (Exception e) {}
-                    }).start();
-                });
-        }
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken()
+            .addOnSuccessListener(token -> {
+                if (token == null || token.isEmpty()) return;
+                prefs.edit().putString("fcm_token", token).apply();
+                new Thread(() -> {
+                    try {
+                        URL url = new URI(API_BASE + "/notifications/register").toURL();
+                        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("POST");
+                        conn.setRequestProperty("Content-Type", "application/json");
+                        conn.setRequestProperty("Authorization", "Bearer " + authToken);
+                        conn.setDoOutput(true);
+                        conn.setConnectTimeout(10000);
+                        org.json.JSONObject payloadObj2 = new org.json.JSONObject();
+                        payloadObj2.put("token", token);
+                        payloadObj2.put("platform", "android");
+                        String payload = payloadObj2.toString();
+                        byte[] input = payload.getBytes(StandardCharsets.UTF_8);
+                        try (OutputStream os = conn.getOutputStream()) {
+                            os.write(input, 0, input.length);
+                        }
+                        conn.getResponseCode();
+                        conn.disconnect();
+                    } catch (Exception e) {}
+                }).start();
+            });
     }
 }

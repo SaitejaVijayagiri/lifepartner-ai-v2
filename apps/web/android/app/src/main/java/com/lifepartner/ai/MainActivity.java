@@ -51,6 +51,11 @@ public class MainActivity extends BridgeActivity {
             try {
                 android.app.NotificationManager manager = getSystemService(android.app.NotificationManager.class);
                 if (manager != null) {
+                    android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                            .build();
+
                     android.app.NotificationChannel chatChannel = new android.app.NotificationChannel(
                             "lifepartner_chat",
                             "Chat Messages",
@@ -60,6 +65,7 @@ public class MainActivity extends BridgeActivity {
                     chatChannel.enableVibration(true);
                     chatChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500});
                     chatChannel.setLockscreenVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
+                    chatChannel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
                     manager.createNotificationChannel(chatChannel);
 
                     android.app.NotificationChannel notifChannel = new android.app.NotificationChannel(
@@ -70,6 +76,7 @@ public class MainActivity extends BridgeActivity {
                     notifChannel.setDescription("General notifications and activity updates");
                     notifChannel.enableVibration(true);
                     notifChannel.setLockscreenVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
+                    notifChannel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
                     manager.createNotificationChannel(notifChannel);
                 }
             } catch (Exception e) {
@@ -170,7 +177,7 @@ public class MainActivity extends BridgeActivity {
                 if (token != null && !token.isEmpty()) {
                     prefs.edit().putString("fcm_token", token).apply();
                     String authToken = prefs.getString("auth_token", null);
-                    if (authToken != null) {
+                    if (authToken != null && !authToken.trim().isEmpty() && !authToken.equalsIgnoreCase("null")) {
                         MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
                     }
                 }
@@ -190,6 +197,10 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void setAuthToken(String authToken) {
             try {
+                if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {
+                    Log.w(TAG, "NativeBridge.setAuthToken ignored invalid token.");
+                    return;
+                }
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putString("auth_token", authToken).apply();
                 MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);

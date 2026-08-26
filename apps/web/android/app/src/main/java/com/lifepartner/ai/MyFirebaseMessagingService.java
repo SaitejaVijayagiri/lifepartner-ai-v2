@@ -87,8 +87,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             String rawPhoto = data.get("senderPhoto");
             if (rawPhoto != null && !rawPhoto.isEmpty()) {
                 if (rawPhoto.contains("supabase")) {
-                    // Proxy through backend to avoid India DNS block
-                    senderPhotoUrl = "https://backend.lifepartnerai.in/photo/proxy?url=" + rawPhoto;
+                    String base = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
+                    senderPhotoUrl = base + "/photo/proxy?url=" + rawPhoto;
                 } else {
                     senderPhotoUrl = rawPhoto;
                 }
@@ -192,6 +192,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             channel.enableVibration(true);
             channel.setVibrationPattern(new long[]{100, 200, 300, 400, 500});
             channel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
+
+            android.media.AudioAttributes audioAttributes = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .build();
+            channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
+
             manager.createNotificationChannel(channel);
 
             // Create fallback alias channel for backend compatibility
@@ -202,6 +209,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             );
             aliasChannel.setDescription("Direct messages and match alerts");
             aliasChannel.enableVibration(true);
+            aliasChannel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, audioAttributes);
             aliasChannel.setLockscreenVisibility(NotificationCompat.VISIBILITY_PUBLIC);
             manager.createNotificationChannel(aliasChannel);
         }
@@ -233,6 +241,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setDefaults(NotificationCompat.DEFAULT_ALL)
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
+                .setVibrate(new long[]{100, 200, 300, 400, 500})
                 .setContentIntent(pendingIntent);
 
         if (largeIcon != null) {
@@ -358,6 +368,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     }
 
     public static void registerTokenWithBackend(Context context, String authToken) {
+        if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {
+            Log.w(TAG, "registerTokenWithBackend: Skipped because authToken is invalid or empty.");
+            return;
+        }
+
         SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
         
         if (prefs.getBoolean("push_disabled", false)) {
@@ -372,7 +387,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 prefs.edit().putString("fcm_token", token).apply();
                 new Thread(() -> {
                     try {
-                        URL url = new URI(API_BASE + "/notifications/register").toURL();
+                        String cleanBase = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
+                        URL url = new URI(cleanBase + "/notifications/register").toURL();
                         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                         conn.setRequestMethod("POST");
                         conn.setRequestProperty("Content-Type", "application/json");

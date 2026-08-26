@@ -15,11 +15,16 @@ export const Notifications = {
         // Native Android Bridge Handling
         if (Capacitor.isNativePlatform()) {
             try {
-                // Check if native Android bridge is available
-                const bridge = (window as any).AndroidBridge;
+                let bridge = (window as any).AndroidBridge;
+                let retries = 0;
+                while (!bridge && retries < 5) {
+                    await new Promise(r => setTimeout(r, 500));
+                    bridge = (window as any).AndroidBridge;
+                    retries++;
+                }
+
                 if (!bridge) {
-                    // Bridge not injected yet - wait a moment and retry
-                    setTimeout(() => Notifications.init(), 1000);
+                    console.warn('[Push Native] AndroidBridge not injected after retries');
                     return;
                 }
 
@@ -27,10 +32,30 @@ export const Notifications = {
                     bridge.enablePush();
                 }
 
-                // Pass auth token to native so it can register the FCM token with backend
-                const authToken = localStorage.getItem('token');
-                if (authToken) {
+                let authToken = localStorage.getItem('token');
+                if (!authToken || authToken === 'null') {
+                    try {
+                        const tokenRes = await api.auth.getToken();
+                        if (tokenRes?.token) {
+                            authToken = tokenRes.token;
+                            localStorage.setItem('token', tokenRes.token);
+                        }
+                    } catch (_) {}
+                }
+
+                if (authToken && authToken !== 'null') {
+                    console.log('[Push Native] Registering auth token with native AndroidBridge...');
                     bridge.setAuthToken(authToken);
+
+                    // Fallback: If bridge already has an FCM token, register it via JS API as well
+                    const fcmToken = typeof bridge.getFcmToken === 'function' ? bridge.getFcmToken() : null;
+                    if (fcmToken && fcmToken.length > 10) {
+                        api.notifications.register(fcmToken, 'android').catch(err => {
+                            console.warn('[Push Native] JS fallback FCM token registration failed:', err);
+                        });
+                    }
+                } else {
+                    console.warn('[Push Native] No valid auth token available for native push registration');
                 }
             } catch (e: any) {
                 console.error('Push init error (Native):', e.message || String(e));

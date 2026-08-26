@@ -226,6 +226,7 @@ export class NotificationService {
 
             const androidPayload: any = {
                 priority: 'high',
+                ttl: 86400 * 1000, // 24-hour offline queueing in FCM servers
                 notification: {
                     channelId: 'lifepartner_chat',
                     priority: 'max',

@@ -253,9 +253,9 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     </>
                 )}
 
-                {/* Smooth Multi-Layer Gradient Overlays for Enhanced Text Contrast */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95 pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/70 via-black/40 to-transparent opacity-80 pointer-events-none" />
+                {/* Subtle Edge Gradients Only - Keeps middle 80% of photo 100% bright, vibrant & crystal clear */}
+                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-10" />
+                <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none z-10" />
             </div>
 
             {/* Glowing Match Score (Floating Top Right) */}

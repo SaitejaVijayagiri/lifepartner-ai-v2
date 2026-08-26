@@ -24,11 +24,12 @@ import java.util.List;
 public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "MainActivity";
-    private static final int PERMISSION_REQUEST_CODE = 200;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 0. Ensure Android Notification Channels exist on OS before any push notification arrives
+        createNotificationChannels();
 
         // 1. Single-batch runtime permission handling to prevent permission dialog collision & crashes
         requestAppPermissions();
@@ -41,6 +42,38 @@ public class MainActivity extends BridgeActivity {
 
         // 4. Fetch & register FCM token safely
         fetchAndRegisterToken();
+    }
+
+    private void createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                android.app.NotificationManager manager = getSystemService(android.app.NotificationManager.class);
+                if (manager != null) {
+                    android.app.NotificationChannel chatChannel = new android.app.NotificationChannel(
+                            "lifepartner_chat",
+                            "Chat Messages",
+                            android.app.NotificationManager.IMPORTANCE_HIGH
+                    );
+                    chatChannel.setDescription("Direct messages and match alerts");
+                    chatChannel.enableVibration(true);
+                    chatChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500});
+                    chatChannel.setLockscreenVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
+                    manager.createNotificationChannel(chatChannel);
+
+                    android.app.NotificationChannel notifChannel = new android.app.NotificationChannel(
+                            "lifepartner_notifications",
+                            "App Notifications",
+                            android.app.NotificationManager.IMPORTANCE_HIGH
+                    );
+                    notifChannel.setDescription("General notifications and activity updates");
+                    notifChannel.enableVibration(true);
+                    notifChannel.setLockscreenVisibility(androidx.core.app.NotificationCompat.VISIBILITY_PUBLIC);
+                    manager.createNotificationChannel(notifChannel);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error creating notification channels: ", e);
+            }
+        }
     }
 
     private void requestAppPermissions() {

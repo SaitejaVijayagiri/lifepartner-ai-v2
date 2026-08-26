@@ -24,6 +24,8 @@ import java.util.List;
 public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "MainActivity";
+    private static final int PERMISSION_REQUEST_CODE = 200;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

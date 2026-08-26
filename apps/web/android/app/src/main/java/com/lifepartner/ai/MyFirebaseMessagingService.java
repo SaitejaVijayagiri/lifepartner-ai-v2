@@ -388,10 +388,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                         try (OutputStream os = conn.getOutputStream()) {
                             os.write(input, 0, input.length);
                         }
-                        conn.getResponseCode();
+                        int responseCode = conn.getResponseCode();
+                        Log.d(TAG, "Token registration response: " + responseCode);
                         conn.disconnect();
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to send FCM token to backend: ", e);
+                    }
                 }).start();
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Failed to retrieve FCM token from Firebase: ", e);
             });
     }
 }

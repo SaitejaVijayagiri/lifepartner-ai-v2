@@ -134,13 +134,7 @@ export class NotificationService {
 
         if (tokensRec.length === 0) return;
 
-        // Prioritize android token over web token to avoid duplicate push notifications on same device
-        const hasAndroid = tokensRec.some((r: any) => r.platform === 'android');
-        const filteredTokens = hasAndroid 
-            ? tokensRec.filter((r: any) => r.platform === 'android')
-            : tokensRec;
-
-        const tokens = Array.from(new Set(filteredTokens.map((r: any) => r.token)));
+        const tokens = Array.from(new Set(tokensRec.map((r: any) => r.token)));
 
         // 2. Send (Parallel)
         // If real firebase is off, we just mock log

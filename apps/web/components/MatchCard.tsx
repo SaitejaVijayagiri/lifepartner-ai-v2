@@ -178,18 +178,19 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
     return (
         <div
-            className="group relative h-[560px] sm:h-[500px] w-full rounded-3xl overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+            className="group relative h-[560px] sm:h-[500px] w-full rounded-[2rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 will-change-transform transform-gpu touch-manipulation select-none"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={onViewProfile}
         >
             {/* Background Image (Immersive Carousel) */}
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gray-950">
                 <img
                     src={photos[currentPhotoIndex] || match.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`}
                     alt={match.name}
-                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu"
                     loading="eager"
+                    decoding="async"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         trackImageFailure(target.src, 'MatchCard', match.id);
@@ -198,14 +199,23 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     }}
                 />
 
+                {/* Preload adjacent photos silently for instantaneous zero-lag photo switching */}
+                {photos.length > 1 && (
+                    <div className="hidden">
+                        {photos.map((url: string, idx: number) => (
+                            idx !== currentPhotoIndex && <img key={idx} src={url} alt="" decoding="async" />
+                        ))}
+                    </div>
+                )}
+
                 {/* Photo Progress Bar & Counter (Card Style) */}
                 {photos.length > 1 && (
                     <>
-                        <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 transition-opacity">
+                        <div className="absolute top-2 left-3 right-3 flex gap-1 z-30 transition-opacity">
                             {photos.map((_url: string, idx: number) => (
-                                <div key={idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
+                                <div key={idx} className="h-1 flex-1 bg-black/40 rounded-full overflow-hidden backdrop-blur-md border border-white/10">
                                     <div
-                                        className={`h-full bg-white transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full' : 'w-0'}`}
+                                        className={`h-full bg-gradient-to-r from-pink-400 to-purple-400 transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full opacity-60' : 'w-0'}`}
                                     />
                                 </div>
                             ))}
@@ -217,7 +227,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 e.stopPropagation();
                                 setCurrentPhotoIndex(prev => (prev > 0 ? prev - 1 : photos.length - 1));
                             }}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer hover:scale-110 active:scale-95"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer hover:scale-110 active:scale-95"
                             title="Previous Photo"
                         >
                             <ChevronLeft className="w-5 h-5" />
@@ -228,37 +238,37 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 e.stopPropagation();
                                 setCurrentPhotoIndex(prev => (prev < photos.length - 1 ? prev + 1 : 0));
                             }}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer hover:scale-110 active:scale-95"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 backdrop-blur-md cursor-pointer hover:scale-110 active:scale-95"
                             title="Next Photo"
                         >
                             <ChevronRight className="w-5 h-5" />
                         </button>
 
-                        {/* Photo Index Counter Pill (Floating Bottom Left of Image) */}
+                        {/* Photo Index Counter Pill */}
                         <div className="absolute bottom-28 left-4 z-30 pointer-events-none">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/50 text-white text-[10px] font-bold backdrop-blur-md border border-white/20">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 text-white text-[10px] font-bold backdrop-blur-md border border-white/20 shadow-md">
                                 📷 {currentPhotoIndex + 1} / {photos.length}
                             </span>
                         </div>
                     </>
                 )}
 
-                {/* Gradient Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/20 to-black/90 pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent opacity-60 pointer-events-none" />
+                {/* Smooth Multi-Layer Gradient Overlays for Enhanced Text Contrast */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/95 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/70 via-black/40 to-transparent opacity-80 pointer-events-none" />
             </div>
 
-            {/* Glowing Match Score (Floating Top Right) - Premium Redesign */}
+            {/* Glowing Match Score (Floating Top Right) */}
             <div className="absolute top-4 right-4 z-30">
-                <div className="relative flex items-center justify-center w-16 h-16">
+                <div className="relative flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16">
                     {/* Pulsing Outer Ring */}
                     <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping"></div>
-                    <div className="absolute inset-0 rounded-full border-2 border-emerald-400/50 shadow-[0_0_15px_rgba(52,211,153,0.5)]"></div>
+                    <div className="absolute inset-0 rounded-full border-2 border-emerald-400/60 shadow-[0_0_20px_rgba(52,211,153,0.5)]"></div>
 
                     {/* Glass Core */}
-                    <div className="relative w-full h-full rounded-full bg-black/60 backdrop-blur-xl flex flex-col items-center justify-center border border-white/10">
-                        <span className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 to-emerald-500 leading-none">{match.score}%</span>
-                        <span className="text-[9px] font-bold text-emerald-200 tracking-widest uppercase mt-0.5">Match</span>
+                    <div className="relative w-full h-full rounded-full bg-black/70 backdrop-blur-xl flex flex-col items-center justify-center border border-white/20 shadow-xl">
+                        <span className="text-base sm:text-lg font-black text-transparent bg-clip-text bg-gradient-to-br from-emerald-300 via-emerald-400 to-green-400 leading-none">{match.score}%</span>
+                        <span className="text-[8px] sm:text-[9px] font-bold text-emerald-200 tracking-widest uppercase mt-0.5">Match</span>
                     </div>
                 </div>
             </div>
@@ -266,8 +276,8 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             {/* Connected Badge (Top Left) */}
             {isConnected && (
                 <div className="absolute top-4 left-4 z-30">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600/90 backdrop-blur-md border border-emerald-400/30 shadow-lg">
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">✓ Connected</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-md border border-emerald-400/40 shadow-lg">
+                        <span className="text-[10px] font-black text-white uppercase tracking-wider">✓ Connected</span>
                     </div>
                 </div>
             )}
@@ -339,7 +349,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     );
                 })()}
 
-                {/* 3. Voice Bio */}
+                {/* 2. Voice Bio */}
                 {match.voiceBioUrl && (
                     <div className="pointer-events-auto">
                         <button
@@ -363,12 +373,12 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             </div>
 
             {/* Bottom Info Section */}
-            <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
-                {/* Info pushed up to clear the 2-row action buttons */}
-                <div className="transform transition-transform duration-300 group-hover:-translate-y-28 [@media(hover:none)]:-translate-y-28">
-                    {/* Kundli Badge - Now inside the animated container */}
+            <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 z-20 flex flex-col justify-end pointer-events-none">
+                {/* Info container */}
+                <div className="transform transition-all duration-300 group-hover:-translate-y-28 [@media(hover:none)]:-translate-y-28">
+                    {/* Kundli Badge */}
                     {match.kundli && match.kundli.details?.[0]?.name !== "Data Missing" && (
-                        <div className="pointer-events-auto self-start mb-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+                        <div className="pointer-events-auto self-start mb-2.5">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -386,41 +396,39 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         </div>
                     )}
 
-
-                    <div className="flex items-end gap-2 mb-1">
-                        <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter flex items-center gap-1">
+                    <div className="flex items-end gap-2 mb-1.5 flex-wrap">
+                        <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
                             {match.name}, {match.age}
-                            {match.isPremium && <span className="text-amber-400 text-xl drop-shadow-md animate-pulse" title="Premium Member">👑</span>}
+                            {match.isPremium && <span className="text-amber-400 text-lg sm:text-xl drop-shadow-md animate-pulse" title="Premium Member">👑</span>}
                         </h3>
                         {match.isVerified && (
                             <>
-                                <span className="text-blue-400 text-lg mb-1 drop-shadow-md" title="Verified">✓</span>
+                                <span className="text-blue-400 text-base sm:text-lg mb-0.5 drop-shadow-md" title="Verified">✓</span>
                                 {(match.completenessScore >= 90 || match.badgeLevel === 'Gold Verified') && (
-                                    <span className="inline-flex items-center gap-1 text-amber-300 text-[10px] font-black uppercase tracking-wider bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 rounded-full mb-1 ml-1 backdrop-blur-md" title="Gold Verified Profile (1.5x Match Boost)">
+                                    <span className="inline-flex items-center gap-1 text-amber-300 text-[10px] font-black uppercase tracking-wider bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md" title="Gold Verified Profile">
                                         ⭐ Gold
                                     </span>
                                 )}
                             </>
                         )}
                         {/* Online Indicator */}
-                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/20 border-green-400/30' : 'bg-gray-500/20 border-gray-400/30'} mb-1.5`}>
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/30 border-green-400/40 text-green-200' : 'bg-gray-500/30 border-gray-400/30 text-gray-300'} mb-0.5`}>
                             <div className={`w-2 h-2 rounded-full ${isUserOnline ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-gray-400'}`}></div>
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${isUserOnline ? 'text-green-200' : 'text-gray-300'}`}>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider">
                                 {isUserOnline ? 'Active' : 'Offline'}
                             </span>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap gap-1.5 text-gray-100 text-xs font-medium mb-3 opacity-95">
-                        {/* Standard Tags */}
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📏 {match.height || "-"}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">💼 {match.career?.profession || "-"}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">{getReligionSymbol(match.religion?.religion || match.religion?.faith)} {match.religion?.religion || match.religion?.faith || "-"}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10">📍 {formatLocationString(match.location)}</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">📏 {match.height || "-"}</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">💼 {match.career?.profession || match.profession || "-"}</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">{getReligionSymbol(match.religion?.religion || match.religion?.faith)} {match.religion?.religion || match.religion?.faith || "-"}</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">📍 {formatLocationString(match.location)}</span>
                     </div>
                 </div>
 
-                {/* Hidden ACTION Buttons — visible on hover on desktop, always visible on mobile tap */}
+                {/* ACTION Buttons — Desktop hover & mobile tap optimized */}
                 <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-2 translate-y-24 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100 transition-all duration-300 ease-out pointer-events-auto z-30">
 
                     {/* ROW 1 — Primary CTA */}
@@ -428,7 +436,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         {isConnected ? (
                             <Button
                                 onClick={handleMessage}
-                                className="flex-1 h-11 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700"
+                                className="flex-1 h-11 font-black uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
                                 style={{ opacity: 1 }}
                             >
                                 💬 Message
@@ -438,9 +446,9 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 <Button
                                     onClick={handleConnect}
                                     disabled={loading || isRequestSent}
-                                    className={`flex-1 h-11 font-bold uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
-                                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                    className={`flex-1 h-11 font-black uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
+                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-95'
+                                        : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white hover:opacity-95'
                                         }`}
                                     style={{ opacity: 1 }}
                                 >
@@ -449,7 +457,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 {!isRequestSent && (
                                     <Button
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
-                                        className="h-11 w-11 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-lg active:scale-95 transition-transform"
+                                        className="h-11 w-11 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-xl active:scale-95 transition-transform border border-white/20"
                                         title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages ?? 3) + ' Left'})`}
                                     >
                                         <Mail size={18} />
@@ -465,24 +473,24 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         <button
                             onClick={handleLike}
                             disabled={loading}
-                            className={`flex-1 h-10 flex flex-col items-center justify-center rounded-xl backdrop-blur-md border shadow-lg transition-all duration-300 active:scale-95 ${hasLiked
-                                ? 'bg-pink-500/30 border-pink-500/60'
-                                : 'bg-black/60 border-white/10 hover:bg-black/80'
+                            className={`flex-1 h-10 flex flex-col items-center justify-center rounded-xl backdrop-blur-xl border shadow-lg transition-all duration-300 active:scale-95 ${hasLiked
+                                ? 'bg-pink-500/30 border-pink-500/60 text-pink-300'
+                                : 'bg-black/60 border-white/15 hover:bg-black/80 text-white'
                                 }`}
                             title={hasLiked ? "You liked this profile" : "Like"}
                         >
-                            <span className={`text-base leading-none ${hasLiked ? 'scale-110' : ''} transition-transform`}>{hasLiked ? '❤️' : '🤍'}</span>
-                            <span className="text-[9px] font-bold text-white/80 mt-0.5">{likeCount}</span>
+                            <span className={`text-sm leading-none ${hasLiked ? 'scale-125' : ''} transition-transform`}>{hasLiked ? '❤️' : '🤍'}</span>
+                            <span className="text-[9px] font-black text-white/90 mt-0.5">{likeCount}</span>
                         </button>
 
                         {/* Gift */}
                         <button
                             onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
-                            className="flex-1 h-10 flex flex-col items-center justify-center rounded-xl backdrop-blur-md border border-white/10 bg-black/60 shadow-lg transition-all duration-300 hover:bg-black/80 active:scale-95"
+                            className="flex-1 h-10 flex flex-col items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg transition-all duration-300 hover:bg-black/80 active:scale-95"
                             title="Send a Gift"
                         >
-                            <span className="text-base leading-none">🎁</span>
-                            <span className="text-[9px] font-bold text-white/80 mt-0.5">{match.total_gifts || 0}</span>
+                            <span className="text-sm leading-none">🎁</span>
+                            <span className="text-[9px] font-black text-white/90 mt-0.5">{match.total_gifts || 0}</span>
                         </button>
 
                         {/* Share */}
@@ -503,7 +511,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                     }
                                 } catch { /* cancelled */ }
                             }}
-                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border border-white/10 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 text-gray-300"
+                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 text-gray-200"
                             title="Share Profile"
                         >
                             <Share2 className="w-4 h-4" />
@@ -512,16 +520,16 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         {/* Cosmic Compatibility */}
                         <button
                             onClick={(e) => { e.stopPropagation(); setShowCosmicReport(true); }}
-                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border border-purple-400/40 bg-gradient-to-br from-pink-500/70 to-purple-600/70 shadow-lg transition-all duration-300 active:scale-95 hover:from-pink-500 hover:to-purple-600"
+                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border border-purple-400/40 bg-gradient-to-br from-pink-500/70 to-purple-600/70 shadow-lg transition-all duration-300 active:scale-95 hover:from-pink-500 hover:to-purple-600 text-white"
                             title="Cosmic Compatibility"
                         >
-                            <span className="text-base">✨</span>
+                            <span className="text-sm">✨</span>
                         </button>
 
                         {/* Report */}
                         <button
                             onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
-                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-md border border-white/10 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 text-gray-400 hover:text-red-400"
+                            className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-red-500/20 hover:border-red-500/50 text-gray-400 hover:text-red-400"
                             title="Report User"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

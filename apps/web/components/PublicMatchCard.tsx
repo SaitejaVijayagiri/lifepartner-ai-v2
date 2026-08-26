@@ -29,17 +29,18 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
 
     return (
         <div 
-            className="group relative w-72 h-96 flex-shrink-0 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-950"
+            className="group relative w-72 h-96 flex-shrink-0 rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 will-change-transform transform-gpu touch-manipulation select-none"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Background Image (Immersive) */}
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-gray-950">
                 <img
                     src={photos[currentPhotoIndex] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'User')}`}
                     alt={match.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu"
                     loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         trackImageFailure(target.src, 'PublicMatchCard', match.id);
@@ -48,46 +49,47 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                     }}
                 />
 
-                {/* Photo Progress Bar (Card Style) */}
+                {/* Photo Progress Bar */}
                 {photos.length > 1 && (
-                    <div className="absolute top-2 left-2 right-2 flex gap-1 z-30 transition-opacity">
+                    <div className="absolute top-2 left-3 right-3 flex gap-1 z-30 transition-opacity">
                         {photos.map((_url: string, idx: number) => (
-                            <div key={idx} className="h-0.5 flex-1 bg-white/30 rounded-full overflow-hidden">
+                            <div key={idx} className="h-0.5 flex-1 bg-black/40 rounded-full overflow-hidden backdrop-blur-md border border-white/10">
                                 <div
-                                    className={`h-full bg-white transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full' : 'w-0'}`}
+                                    className={`h-full bg-gradient-to-r from-pink-400 to-purple-400 transition-all duration-300 ${idx === currentPhotoIndex ? 'w-full' : idx < currentPhotoIndex ? 'w-full opacity-60' : 'w-0'}`}
                                 />
                             </div>
                         ))}
                     </div>
                 )}
 
-                {/* Gradient Overlays */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+                {/* Smooth Gradient Overlays for High Contrast Text */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/95 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/70 via-black/40 to-transparent opacity-80 pointer-events-none" />
             </div>
 
             {/* Glowing Verified Badge (Floating Top Right) */}
             {match.isVerified && (
                 <div className="absolute top-4 right-4 z-30">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 shadow-lg text-white">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/70 backdrop-blur-xl border border-white/20 shadow-xl text-white">
                         <span className="text-blue-400 text-sm">✓</span>
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white">Verified</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white">Verified</span>
                     </div>
                 </div>
             )}
 
             {/* Bottom Info Section */}
             <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
-                <div className="flex items-end gap-2 mb-1">
-                    <h3 className="text-2xl font-bold text-white tracking-tight drop-shadow-lg filter flex items-center gap-1">
+                <div className="flex items-end gap-2 mb-1.5">
+                    <h3 className="text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
                         {match.name}, {match.age}
                     </h3>
                 </div>
 
-                <div className="flex flex-wrap gap-2 text-gray-100 text-[10px] font-medium mb-4 opacity-95">
-                    <span className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/10 uppercase tracking-widest">
+                <div className="flex flex-wrap gap-1.5 text-gray-100 text-[10px] font-medium mb-4 opacity-95">
+                    <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
                         💼 {match.profession}
                     </span>
-                    <span className="px-2 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/10 uppercase tracking-widest">
+                    <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
                         📍 {formatLocationString(match.location)}
                     </span>
                 </div>
@@ -95,8 +97,8 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                 {/* Call to Action Button */}
                 <div className="pointer-events-auto w-full">
                     <Link href="/register" className="block w-full">
-                        <button className="w-full h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-xs uppercase tracking-widest hover:bg-white hover:text-indigo-900 transition-all active:scale-95 shadow-lg">
-                            Connect Now
+                        <button className="w-full h-11 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-xs uppercase tracking-wider shadow-xl hover:opacity-95 transition-all active:scale-95 border border-white/20 flex items-center justify-center cursor-pointer">
+                            Connect Now ✨
                         </button>
                     </Link>
                 </div>

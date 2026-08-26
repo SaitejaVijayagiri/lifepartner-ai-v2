@@ -9,11 +9,22 @@ export class NotificationService {
 
     private constructor() {
         try {
+            if (admin.apps.length > 0) {
+                this.initialized = true;
+                console.log("Firebase Admin already initialized ✓");
+                return;
+            }
+
             // Priority 1: Environment variable (works everywhere)
             if (process.env.FIREBASE_SERVICE_ACCOUNT) {
                 console.log("Firebase: Found FIREBASE_SERVICE_ACCOUNT env var, initializing...");
                 try {
-                    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+                    let rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+                    // Handle unescaped newlines in JSON strings if present
+                    const serviceAccount = JSON.parse(rawEnv);
+                    if (serviceAccount.private_key) {
+                        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+                    }
                     admin.initializeApp({
                         credential: admin.credential.cert(serviceAccount)
                     });
@@ -26,8 +37,6 @@ export class NotificationService {
                 // Priority 2: Check multiple file locations
                 const fs = require('fs');
 
-                // PERFORMANCE: readdirSync is synchronous and runs at module load time.
-                // Wrapped in try/catch so a filesystem error (permissions, etc.) never crashes Firebase init.
                 let adminSdkFiles: string[] = [];
                 try {
                     adminSdkFiles = fs.readdirSync(process.cwd())
@@ -252,6 +261,7 @@ export class NotificationService {
                 webpush: webpushPayload
             };
 
+            // Keep notification object for Web/iOS while Android uses high-priority data & channel config
             if (data?.type !== 'witty_reengagement') {
                 message.notification = notificationPayload;
             }

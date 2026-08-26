@@ -49,94 +49,116 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
-        SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-        boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
-        if (isPushDisabled) {
-            Log.i("FCM", "Push notifications are disabled by the user. Ignoring.");
-            return;
+        // Hold a temporary WakeLock for 5 seconds to guarantee CPU stays awake during background notification construction
+        android.os.PowerManager pm = (android.os.PowerManager) getSystemService(Context.POWER_SERVICE);
+        android.os.PowerManager.WakeLock wakeLock = null;
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(
+                    android.os.PowerManager.PARTIAL_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "LifePartner:FCMWakeLock"
+            );
+            wakeLock.acquire(5000);
         }
 
-        String title = "LifePartner AI";
-        String body = "You have a new message";
-        String senderPhotoUrl = null;
-        String connId = null;
-        String type = null;
-        String bannerUrl = null;
-        String campaignNotificationId = null;
+        try {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            boolean isPushDisabled = prefs.getBoolean("push_disabled", false);
+            if (isPushDisabled) {
+                Log.i("FCM", "Push notifications are disabled by the user. Ignoring.");
+                return;
+            }
 
-        Map<String, String> data = remoteMessage.getData();
-        String messageId = null;
-        if (data.size() > 0) {
-            type = data.get("type");
-            bannerUrl = data.get("bannerUrl");
-            campaignNotificationId = data.get("notificationId");
+            String title = "LifePartner AI";
+            String body = "You have a new message";
+            String senderPhotoUrl = null;
+            String connId = null;
+            String type = null;
+            String bannerUrl = null;
+            String campaignNotificationId = null;
 
-            // Always prefer senderName as the notification title for chat messages
-            String extractedSenderName = data.get("senderName");
-            if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
-                title = extractedSenderName;
-            } else {
-                String dataTitle = data.get("title");
-                if (dataTitle != null) title = dataTitle;
+            Map<String, String> data = remoteMessage.getData();
+            String messageId = null;
+            if (data != null && data.size() > 0) {
+                type = data.get("type");
+                bannerUrl = data.get("bannerUrl");
+                campaignNotificationId = data.get("notificationId");
+
+                // Always prefer senderName as the notification title for chat messages
+                String extractedSenderName = data.get("senderName");
+                if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                    title = extractedSenderName;
+                } else {
+                    String dataTitle = data.get("title");
+                    if (dataTitle != null && !dataTitle.isEmpty()) title = dataTitle;
+                }
+                
+                String dataBody = data.get("body");
+                if (dataBody != null && !dataBody.isEmpty()) body = dataBody;
+
+                // Extract sender photo — route through backend proxy to bypass Supabase DNS block in India
+                String rawPhoto = data.get("senderPhoto");
+                if (rawPhoto != null && !rawPhoto.isEmpty()) {
+                    if (rawPhoto.contains("supabase")) {
+                        String base = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
+                        senderPhotoUrl = base + "/photo/proxy?url=" + rawPhoto;
+                    } else {
+                        senderPhotoUrl = rawPhoto;
+                    }
+                }
+
+                connId = data.get("senderId");
+                messageId = data.get("messageId");
+            }
+
+            if (remoteMessage.getNotification() != null) {
+                if (title.equals("LifePartner AI") && remoteMessage.getNotification().getTitle() != null)
+                    title = remoteMessage.getNotification().getTitle();
+                if (body.equals("You have a new message") && remoteMessage.getNotification().getBody() != null)
+                    body = remoteMessage.getNotification().getBody();
+            }
+
+            // Fetch large icon with fast 1.5s network timeout
+            Bitmap largeIcon = null;
+            if (senderPhotoUrl != null && !senderPhotoUrl.isEmpty()) {
+                largeIcon = getBitmapFromURL(senderPhotoUrl);
             }
             
-            String dataBody = data.get("body");
-            if (dataBody != null) body = dataBody;
-
-            // Extract sender photo — route through backend proxy to bypass Supabase DNS block in India
-            String rawPhoto = data.get("senderPhoto");
-            if (rawPhoto != null && !rawPhoto.isEmpty()) {
-                if (rawPhoto.contains("supabase")) {
-                    String base = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
-                    senderPhotoUrl = base + "/photo/proxy?url=" + rawPhoto;
-                } else {
-                    senderPhotoUrl = rawPhoto;
-                }
+            // Fallback to local app launcher icon instantly (0ms) when offline without hanging
+            if (largeIcon == null) {
+                try {
+                    largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
+                } catch (Exception ignored) {}
             }
 
-            connId = data.get("senderId");
-            messageId = data.get("messageId");
-        }
+            // Fetch banner image if present
+            Bitmap bannerBitmap = null;
+            if (bannerUrl != null && !bannerUrl.isEmpty()) {
+                bannerBitmap = getBitmapFromURL(bannerUrl);
+            }
 
-        if (remoteMessage.getNotification() != null) {
-            // Only use system notification fields if we didn't get senderName
-            if (title.equals("LifePartner AI") && remoteMessage.getNotification().getTitle() != null)
-                title = remoteMessage.getNotification().getTitle();
-            if (body.equals("You have a new message") && remoteMessage.getNotification().getBody() != null)
-                body = remoteMessage.getNotification().getBody();
+            showNotification(title, body, largeIcon, connId, messageId, type, bannerBitmap, campaignNotificationId);
+        } catch (Exception e) {
+            Log.e(TAG, "Error in onMessageReceived: ", e);
+        } finally {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                try {
+                    wakeLock.release();
+                } catch (Exception ignored) {}
+            }
         }
-
-        // Fetch large icon synchronously since we are already on a background thread
-        Bitmap largeIcon = null;
-        if (senderPhotoUrl != null && !senderPhotoUrl.isEmpty()) {
-            largeIcon = getBitmapFromURL(senderPhotoUrl);
-        }
-        
-        // Fallback to app logo if largeIcon is not loaded (shows logo on re-engagement pushes!)
-        if (largeIcon == null) {
-            largeIcon = getBitmapFromURL("https://lifepartnerai.in/icon.png");
-        }
-
-        // Fetch banner image if present
-        Bitmap bannerBitmap = null;
-        if (bannerUrl != null && !bannerUrl.isEmpty()) {
-            bannerBitmap = getBitmapFromURL(bannerUrl);
-        }
-
-        showNotification(title, body, largeIcon, connId, messageId, type, bannerBitmap, campaignNotificationId);
     }
 
     private Bitmap getBitmapFromURL(String src) {
         try {
-            int redirectLimit = 5;
+            int redirectLimit = 3;
             String currentUrl = src;
             HttpURLConnection connection = null;
             
             while (redirectLimit-- > 0) {
                 URL url = new URI(currentUrl).toURL();
                 connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
+                connection.setConnectTimeout(1500); // 1.5s max timeout to prevent hanging on poor network
+                connection.setReadTimeout(1500);
                 connection.setInstanceFollowRedirects(true);
                 
                 int status = connection.getResponseCode();

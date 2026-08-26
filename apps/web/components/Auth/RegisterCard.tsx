@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
@@ -178,7 +179,7 @@ export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps
             {/* Footer */}
             <div className="bg-gray-50 p-4 text-center border-t border-gray-100">
                 <p className="text-xs text-gray-500">
-                    By confirming, you agree to our <a href="#" className="underline">Terms</a> & <a href="#" className="underline">Privacy Policy</a>.
+                    By confirming, you agree to our <Link href="/terms" className="underline hover:text-indigo-600">Terms</Link> & <Link href="/privacy" className="underline hover:text-indigo-600">Privacy Policy</Link>.
                 </p>
             </div>
         </div>

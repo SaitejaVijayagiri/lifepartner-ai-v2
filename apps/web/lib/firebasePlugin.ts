@@ -31,8 +31,9 @@ export const requestWebPushPermission = async (): Promise<string | null> => {
         const permission = await Notification.requestPermission();
         if (permission === 'granted') {
             const messaging = getMessaging(app);
-            // VAPID key is ideally stored in NEXT_PUBLIC_FIREBASE_VAPID_KEY
-            const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+            // Web Push VAPID Public Key (Safe public key for browser subscription)
+            const DEFAULT_VAPID_KEY = "BJSMxZA2Mgelp_us1wQtB5G4OqATGVzXnx1SZ7OgDUqZgvzAxMAYsgT8iuTnPICzm_vRaTJbB6EQoITkUlVSSao";
+            const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || process.env.FIREBASE_VAPID_KEY || DEFAULT_VAPID_KEY;
             
             if (!vapidKey) {
                 console.warn("No VAPID Key available for Firebase Web Push.");

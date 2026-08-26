@@ -65,19 +65,19 @@ export default function Navbar() {
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex space-x-6 lg:space-x-8 items-center">
                     <Link
-                        href="#app-features"
+                        href="/#app-features"
                         className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
                     >
                         {t('navFeatures')}
                     </Link>
                     <Link
-                        href="#stories-snaps-music"
+                        href="/#stories-snaps-music"
                         className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1"
                     >
                         {t('navStories')} <span className="bg-pink-100 text-pink-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
                     </Link>
                     <Link
-                        href="#how-life-partner-connects"
+                        href="/#how-life-partner-connects"
                         className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
                     >
                         {t('navWorkflow')}
@@ -168,14 +168,14 @@ export default function Navbar() {
                         </div>
 
                         <Link
-                            href="#app-features"
+                            href="/#app-features"
                             className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             {t('navFeatures')}
                         </Link>
                         <Link
-                            href="#stories-snaps-music"
+                            href="/#stories-snaps-music"
                             className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
@@ -183,14 +183,14 @@ export default function Navbar() {
                             <span className="bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-pink-200 dark:border-pink-800">Snaps & Music</span>
                         </Link>
                         <Link
-                            href="#how-life-partner-connects"
+                            href="/#how-life-partner-connects"
                             className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             {t('navWorkflow')}
                         </Link>
                         <Link
-                            href="#meet-spots"
+                            href="/#meet-spots"
                             className="text-base font-semibold text-gray-800 dark:text-gray-200 hover:text-indigo-600 flex items-center justify-between px-1 py-1"
                             onClick={() => setIsMobileMenuOpen(false)}
                         >

@@ -181,7 +181,12 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             className="group relative h-[560px] sm:h-[500px] w-full rounded-[2rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 will-change-transform transform-gpu touch-manipulation select-none"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            onClick={onViewProfile}
+            onClick={() => {
+                if (match?.id) {
+                    api.interactions.recordView(match.id).catch(() => {});
+                }
+                if (onViewProfile) onViewProfile();
+            }}
         >
             {/* Background Image (Immersive Carousel) */}
             <div className="absolute inset-0 bg-gray-950">

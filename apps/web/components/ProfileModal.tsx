@@ -128,16 +128,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     // TRACK PROFILE VIEW
     useEffect(() => {
         if (currentUser && profile.id && profile.id !== currentUser.id) {
-            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/interactions/view`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ targetId: profile.id })
-            }).catch(err => console.error("Failed to track view", err));
+            api.interactions.recordView(profile.id).catch(err => console.error("Failed to track profile view", err));
         }
-    }, [profile.id]);
+    }, [profile.id, currentUser?.id]);
 
 
     // Helper for safe Date parsing

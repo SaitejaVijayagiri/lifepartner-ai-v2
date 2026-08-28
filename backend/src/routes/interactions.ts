@@ -999,7 +999,8 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                 }
             },
             update: {
-                is_liked: true
+                is_liked: true,
+                created_at: new Date()
             },
             create: {
                 user_a_id: userId,
@@ -1050,13 +1051,20 @@ router.post('/like', authenticateToken, async (req: any, res) => {
 
                 // Emit realtime
                 const { getIO } = require('../socket');
-                getIO().to(toUserId).emit('notification:new', {
+                const io = getIO();
+                io.to(toUserId).emit('notification:new', {
                     type: 'like',
                     message: msg,
                     timestamp: new Date(),
                     fromUserId: userId,
                     fromUserName: myName,
                     fromUserPhoto: fromUserPhoto
+                });
+                io.to(toUserId).emit('like:new', {
+                    fromUserId: userId,
+                    fromUserName: myName,
+                    fromUserPhoto: fromUserPhoto,
+                    likedAt: new Date()
                 });
 
                 // Push
@@ -1344,13 +1352,20 @@ router.post('/view', authenticateToken, async (req: any, res) => {
 
                 // Emit realtime socket event if online
                 const { getIO } = require('../socket');
-                getIO().to(targetId).emit('notification:new', {
+                const io = getIO();
+                io.to(targetId).emit('notification:new', {
                     type: 'view',
                     message: msg,
                     timestamp: new Date(),
                     fromUserId: userId,
                     fromUserName: viewerName,
                     fromUserPhoto: fromUserPhoto
+                });
+                io.to(targetId).emit('visitor:new', {
+                    fromUserId: userId,
+                    fromUserName: viewerName,
+                    fromUserPhoto: fromUserPhoto,
+                    viewedAt: new Date()
                 });
 
                 // Send Push Notification if offline

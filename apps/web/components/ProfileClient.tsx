@@ -41,6 +41,9 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
             api.profile.getById(profileId)
                 .then((data) => {
                     setProfile(data);
+                    if (user.id !== profileId) {
+                        api.interactions.recordView(profileId).catch(() => {});
+                    }
                 })
                 .catch((err) => {
                     console.error("Client fetch failed", err);

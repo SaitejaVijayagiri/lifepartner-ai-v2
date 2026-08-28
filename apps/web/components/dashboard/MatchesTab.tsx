@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { FilterState } from '@/components/FilterModal';
+import { useSocket } from '@/context/SocketContext';
 
 // Dynamically import heavy components
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
@@ -70,22 +71,42 @@ export default function MatchesTab({
     const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
 
     /* Visitors & Likes State */
+    const { socket } = useSocket() as any;
     const [visitorsData, setVisitorsData] = useState<any>(null);
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
     const [activeInsightModal, setActiveInsightModal] = useState<'visitors' | 'likes' | null>(null);
 
+    const fetchVisitorsAndLikes = useCallback(() => {
+        api.interactions.whoLikedMe().then(setWhoLikedMe).catch(() => {});
+        api.interactions.getVisitors().then(setVisitorsData).catch(() => {});
+    }, []);
+
     // Fetch story feed and visitors on mount
     useEffect(() => {
         api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || [])).catch(() => {});
-        
-        // Lazy-load secondary data (who liked me, visitors) after 800ms
-        const timer = setTimeout(() => {
-            api.interactions.whoLikedMe().then(setWhoLikedMe).catch(() => {});
-            api.interactions.getVisitors().then(setVisitorsData).catch(() => {});
-        }, 800);
+        fetchVisitorsAndLikes();
+    }, [fetchVisitorsAndLikes]);
 
-        return () => clearTimeout(timer);
-    }, []);
+    // Live Socket Updates for new Visitors & Likes
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleRealtimeUpdate = (data: any) => {
+            if (data?.type === 'view' || data?.type === 'like' || data?.fromUserId) {
+                fetchVisitorsAndLikes();
+            }
+        };
+
+        socket.on('visitor:new', handleRealtimeUpdate);
+        socket.on('like:new', handleRealtimeUpdate);
+        socket.on('notification:new', handleRealtimeUpdate);
+
+        return () => {
+            socket.off('visitor:new', handleRealtimeUpdate);
+            socket.off('like:new', handleRealtimeUpdate);
+            socket.off('notification:new', handleRealtimeUpdate);
+        };
+    }, [socket, fetchVisitorsAndLikes]);
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);

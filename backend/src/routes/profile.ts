@@ -1513,61 +1513,74 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
         }
 
         const story = stories[storyIndex];
-        const views = story.views || [];
+        let views = story.views || [];
 
-        // Check if already viewed
-        if (!views.some((v: any) => v.userId === viewerId)) {
+        const viewerName = viewer.full_name || "Someone";
+        let rawPhotoUrl = viewer.avatar_url || (viewer.profiles?.photos as any)?.[0] || null;
+        if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+            rawPhotoUrl = null;
+        }
+        const fromUserPhoto = rawPhotoUrl
+            ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`;
+
+        const existingIdx = views.findIndex((v: any) => v.userId === viewerId || v.user_id === viewerId);
+
+        if (existingIdx !== -1) {
+            views[existingIdx].viewedAt = new Date().toISOString();
+        } else {
             views.push({
                 userId: viewerId,
-                name: viewer.full_name,
-                photoUrl: sanitizePhotoUrl(viewer.avatar_url, viewer.full_name || viewer.id),
+                name: viewerName,
+                photoUrl: fromUserPhoto,
                 viewedAt: new Date().toISOString()
             });
+        }
 
-            stories[storyIndex].views = views;
+        stories[storyIndex].views = views;
 
-            // Update in DB
-            await prisma.profiles.update({
-                where: { user_id: targetUserId },
-                data: { stories }
-            });
+        // Update in DB
+        await prisma.profiles.update({
+            where: { user_id: targetUserId },
+            data: { stories }
+        });
 
-            // Trigger offline/real-time notification to the story owner
-            try {
-                const viewerName = viewer.full_name || "Someone";
-                const msg = `${viewerName} viewed your Story! 🎥`;
+        // Trigger offline/real-time notification to the story owner
+        try {
+            const msg = `${viewerName} viewed your Story! 🎥`;
 
-                // Persist notification
-                const dbNotif = await prisma.notifications.create({
-                    data: {
-                        user_id: targetUserId,
-                        type: 'story',
-                        message: msg,
-                        data: { fromUserId: viewerId, storyId }
-                    }
-                });
-
-                // Get photo
-                let rawPhotoUrl = viewer.avatar_url || (viewer.profiles?.photos as any)?.[0] || null;
-                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
-                    rawPhotoUrl = null;
-                }
-                const fromUserPhoto = rawPhotoUrl
-                    ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`;
-
-                // Socket real-time alert
-                const { getIO } = require('../socket');
-                const io = getIO();
-                io.to(targetUserId).emit('notification:new', {
-                    id: dbNotif.id,
+            // Persist notification
+            const dbNotif = await prisma.notifications.create({
+                data: {
+                    user_id: targetUserId,
                     type: 'story',
                     message: msg,
-                    fromUserName: viewerName,
-                    fromUserPhoto: fromUserPhoto,
-                    fromUserId: viewerId,
-                    timestamp: new Date()
-                });
+                    data: { fromUserId: viewerId, storyId }
+                }
+            });
+
+            // Socket real-time alert
+            const { getIO } = require('../socket');
+            const io = getIO();
+            io.to(targetUserId).emit('notification:new', {
+                id: dbNotif.id,
+                type: 'story',
+                message: msg,
+                fromUserName: viewerName,
+                fromUserPhoto: fromUserPhoto,
+                fromUserId: viewerId,
+                timestamp: new Date()
+            });
+
+            // Emit dedicated story:viewed event for live UI viewers update
+            io.to(targetUserId).emit('story:viewed', {
+                storyId,
+                targetUserId,
+                viewerId,
+                viewerName,
+                viewerPhoto: fromUserPhoto,
+                viewedAt: new Date().toISOString()
+            });
 
                 // Push alert for offline delivery
                 const { NotificationService } = require('../services/notification');
@@ -1587,7 +1600,6 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
             } catch (notifErr) {
                 console.error("Failed to notify story view:", notifErr);
             }
-        }
 
         res.json({ success: true });
     } catch (e) {

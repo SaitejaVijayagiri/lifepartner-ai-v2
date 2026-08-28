@@ -109,6 +109,50 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     
     const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
     
+    // Live Views State for Story & Highlights
+    const [viewsList, setViewsList] = useState<any[]>(story?.views || []);
+
+    useEffect(() => {
+        setViewsList(story?.views || []);
+    }, [story?.id, story?.views]);
+
+    useEffect(() => {
+        if (!socket || !isOwner || !story?.id) return;
+
+        const handleLiveStoryView = (data: any) => {
+            if (data && String(data.storyId) === String(story.id)) {
+                setViewsList(prev => {
+                    const existingIdx = prev.findIndex((v: any) => String(v.userId || v.user_id) === String(data.viewerId));
+                    if (existingIdx !== -1) {
+                        const updated = [...prev];
+                        updated[existingIdx] = {
+                            ...updated[existingIdx],
+                            viewedAt: data.viewedAt || new Date().toISOString()
+                        };
+                        return updated;
+                    }
+                    return [
+                        ...prev,
+                        {
+                            userId: data.viewerId,
+                            name: data.viewerName || 'Someone',
+                            photoUrl: data.viewerPhoto || '',
+                            viewedAt: data.viewedAt || new Date().toISOString()
+                        }
+                    ];
+                });
+            }
+        };
+
+        socket.on('story:viewed', handleLiveStoryView);
+        socket.on('storyView', handleLiveStoryView);
+
+        return () => {
+            socket.off('story:viewed', handleLiveStoryView);
+            socket.off('storyView', handleLiveStoryView);
+        };
+    }, [socket, isOwner, story?.id]);
+    
     // Audio and Video Refs
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -867,7 +911,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                             className="flex items-center gap-2 bg-black/50 backdrop-blur-md text-white px-5 py-2.5 rounded-full hover:bg-black/70 transition-all border border-white/10 shadow-lg"
                         >
                             <Eye size={18} />
-                            <span className="font-bold text-sm">{story.views?.length || 0} views</span>
+                            <span className="font-bold text-sm">{viewsList?.length || 0} views</span>
                         </button>
                     </div>
                 )}
@@ -884,7 +928,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                         <div className="flex items-center gap-3 text-white">
                             <Eye size={20} />
                             <h3 className="font-bold">Viewers</h3>
-                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{story.views?.length || 0} 👁️</span>
+                            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">{viewsList?.length || 0} 👁️</span>
                             {(story.likes?.length > 0 || localLikes > 0) && (
                                 <span className="bg-pink-500/30 px-2 py-0.5 rounded-full text-xs font-bold text-pink-300">
                                     {story.likes?.length || localLikes} ❤️
@@ -896,7 +940,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 no-scrollbar">
-                        {(!story.views || story.views.length === 0) ? (
+                        {(!viewsList || viewsList.length === 0) ? (
                             <div className="flex flex-col items-center justify-center mt-16 gap-4 text-center">
                                 <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
                                     <Eye size={28} className="text-white/40" />
@@ -907,7 +951,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                 </div>
                             </div>
                         ) : (
-                            [...story.views].reverse().map((viewer: any, idx: number) => {
+                            [...viewsList].reverse().map((viewer: any, idx: number) => {
                                 // Relative time helper
                                 const relTime = (() => {
                                     const ms = Date.now() - new Date(viewer.viewedAt).getTime();

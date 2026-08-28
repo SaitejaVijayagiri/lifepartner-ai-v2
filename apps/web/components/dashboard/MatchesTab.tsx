@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
@@ -71,7 +71,7 @@ export default function MatchesTab({
     const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
 
     /* Visitors & Likes State */
-    const { socket } = useSocket() as any;
+    const { socket, onlineUsers = [] } = useSocket() as any;
     const [visitorsData, setVisitorsData] = useState<any>(null);
     const [whoLikedMe, setWhoLikedMe] = useState<any>(null);
     const [activeInsightModal, setActiveInsightModal] = useState<'visitors' | 'likes' | null>(null);
@@ -267,10 +267,20 @@ export default function MatchesTab({
         });
     };
 
+    const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+
+    const onlineMatchesList = useMemo(() => {
+        return matches.filter(m => m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)));
+    }, [matches, onlineUsers]);
+
     const baseMatches = activeFilters ? filterMatches(matches) : matches;
-    const displayMatches = showHighlightsOnly
+    let displayMatches = showHighlightsOnly
         ? baseMatches.filter(m => (m.stories || []).some((s: any) => s.isHighlight))
         : baseMatches;
+
+    if (showOnlineOnly) {
+        displayMatches = displayMatches.filter(m => m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)));
+    }
 
     const renderStoriesView = () => (
         <div className="relative">
@@ -428,8 +438,20 @@ export default function MatchesTab({
                                 <span>Search</span>
                             </button>
                         </div>
-                        {/* Quick Prompts & Highlights Filter */}
+                        {/* Quick Prompts & Highlights & Online Filter */}
                         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <button
+                                onClick={() => setShowOnlineOnly(!showOnlineOnly)}
+                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border ${
+                                    showOnlineOnly
+                                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/20 scale-105'
+                                        : 'bg-emerald-50/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
+                                }`}
+                            >
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>{showOnlineOnly ? 'Showing 🟢 Online Only' : '🟢 Online Members'}</span>
+                            </button>
+
                             <button
                                 onClick={() => setShowHighlightsOnly(!showHighlightsOnly)}
                                 className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border ${
@@ -587,6 +609,83 @@ export default function MatchesTab({
                                 {aiFilters.values?.length > 0 && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💛 {aiFilters.values[0]}</span>}
                             </p>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Dedicated Online Now Horizontal Bar */}
+            {onlineMatchesList.length > 0 && (
+                <div className="mb-6 p-4 rounded-3xl bg-gradient-to-r from-emerald-950/30 via-teal-950/20 to-slate-900/40 border border-emerald-500/30 backdrop-blur-md shadow-xl">
+                    <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center space-x-2">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            </span>
+                            <h3 className="font-black text-xs sm:text-sm tracking-wide uppercase text-emerald-400">
+                                Active Members Online Now ({onlineMatchesList.length})
+                            </h3>
+                        </div>
+                        <button
+                            onClick={() => setShowOnlineOnly(!showOnlineOnly)}
+                            className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline"
+                        >
+                            {showOnlineOnly ? 'Show All Matches' : 'Filter Feed to Online Only →'}
+                        </button>
+                    </div>
+
+                    <div className="flex items-center space-x-4 overflow-x-auto no-scrollbar py-1 px-1">
+                        {onlineMatchesList.map((member: any) => {
+                            const photo = member.photoUrl || member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`;
+
+                            return (
+                                <div
+                                    key={member.id}
+                                    className="flex flex-col items-center space-y-1.5 flex-shrink-0 group cursor-pointer"
+                                    onClick={() => setSelectedProfile(member)}
+                                >
+                                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-emerald-400 via-teal-500 to-green-400 shadow-lg group-hover:scale-105 transition-transform">
+                                        <img
+                                            src={photo}
+                                            alt={member.name}
+                                            className="w-full h-full rounded-full object-cover border-2 border-slate-900 bg-slate-800"
+                                        />
+                                        {/* Glowing Green Online Badge */}
+                                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-900 flex items-center justify-center shadow-md">
+                                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                        </span>
+                                    </div>
+
+                                    <span className="text-[11px] font-bold text-slate-200 max-w-[70px] truncate text-center">
+                                        {member.name.split(' ')[0]}
+                                    </span>
+
+                                    {/* Instant Message Button */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const conn = connections.find((c: any) => c.partner?.id === member.id);
+                                            if (conn) {
+                                                openChat(conn);
+                                            } else {
+                                                openChat({
+                                                    interactionId: member.id,
+                                                    partner: {
+                                                        id: member.id,
+                                                        name: member.name,
+                                                        photoUrl: photo,
+                                                        role: 'Online'
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                        className="px-2.5 py-1 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] shadow-md transition-all active:scale-95 flex items-center space-x-1"
+                                    >
+                                        <span>💬 Instant Msg</span>
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

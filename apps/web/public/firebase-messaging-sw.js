@@ -89,8 +89,8 @@ self.addEventListener('notificationclick', function(event) {
     // Record the push click in database log asynchronously
     if (notificationId) {
         const API_URL = self.location.origin.includes('localhost') 
-            ? 'http://localhost:5000' 
-            : 'https://backend.lifepartnerai.in';
+            ? 'http://localhost:4000' 
+            : 'https://lifepartner-ai.onrender.com';
             
         event.waitUntil(
             fetch(`${API_URL}/notifications/${notificationId}/click`, {
@@ -144,8 +144,8 @@ self.addEventListener('notificationclick', function(event) {
     if (action === 'accept_request' || action === 'decline_request') {
         const actionType = action === 'accept_request' ? 'accept' : 'decline';
         const API_URL = self.location.origin.includes('localhost') 
-            ? 'http://localhost:5000' 
-            : 'https://backend.lifepartnerai.in';
+            ? 'http://localhost:4000' 
+            : 'https://lifepartner-ai.onrender.com';
 
         event.waitUntil(
             caches.open('auth-token')
@@ -208,8 +208,8 @@ self.addEventListener('notificationclick', function(event) {
     if (action === 'like_message') {
         const messageId = payloadData.messageId;
         const API_URL = self.location.origin.includes('localhost') 
-            ? 'http://localhost:5000' 
-            : 'https://backend.lifepartnerai.in';
+            ? 'http://localhost:4000' 
+            : 'https://lifepartner-ai.onrender.com';
 
         event.waitUntil(
             caches.open('auth-token')
@@ -253,8 +253,8 @@ self.addEventListener('notificationclick', function(event) {
         if (!replyText) return;
         
         const API_URL = self.location.origin.includes('localhost') 
-            ? 'http://localhost:5000' 
-            : 'https://backend.lifepartnerai.in';
+            ? 'http://localhost:4000' 
+            : 'https://lifepartner-ai.onrender.com';
 
         event.waitUntil(
             caches.open('auth-token')

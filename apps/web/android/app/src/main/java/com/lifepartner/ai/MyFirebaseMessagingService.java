@@ -242,7 +242,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         intent.setAction(Intent.ACTION_VIEW);
         
         String deepLinkUrl = "https://lifepartnerai.in/dashboard?tab=matches";
-        if (campaignNotificationId != null) {
+        String customUrl = (data != null) ? data.get("url") : null;
+        if (customUrl != null && !customUrl.trim().isEmpty()) {
+            deepLinkUrl = customUrl.startsWith("http") ? customUrl : "https://lifepartnerai.in" + (customUrl.startsWith("/") ? customUrl : "/" + customUrl);
+        } else if (campaignNotificationId != null) {
             deepLinkUrl += "&notificationId=" + campaignNotificationId + "&action=notification_body";
         }
         intent.setData(android.net.Uri.parse(deepLinkUrl));

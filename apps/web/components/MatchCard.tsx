@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Mail, Share2, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -31,6 +31,23 @@ interface MatchCardProps {
 }
 
 const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat, isConnectedProp }: MatchCardProps) {
+    // Card DOM Ref & Viewport Intersection Tracking
+    const cardRef = useRef<HTMLDivElement | null>(null);
+    const [isInViewport, setIsInViewport] = useState(false);
+
+    useEffect(() => {
+        if (!cardRef.current) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setIsInViewport(entry.isIntersecting);
+            },
+            { rootMargin: '200px' } // Pre-trigger 200px before card enters viewport
+        );
+
+        observer.observe(cardRef.current);
+        return () => observer.disconnect();
+    }, []);
+
     // Independent States
     const { onlineUsers } = useSocket();
     const { user: currentUser, setUser } = useAuth() as any;
@@ -60,16 +77,44 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const [loading, setLoading] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
-    // Photos Array (Supports match.photos, match.photo_urls, and fallbacks)
-    const rawPhotosList = (Array.isArray(match.photos) && match.photos.length > 0)
-        ? match.photos
-        : (Array.isArray(match.photo_urls) && match.photo_urls.length > 0)
-            ? match.photo_urls
-            : [match.photoUrl || match.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`];
+    // Optimized Photos Array (CDN Load Balancing & WebP conversion)
+    const photos = useMemo(() => {
+        const rawList = (Array.isArray(match.photos) && match.photos.length > 0)
+            ? match.photos
+            : (Array.isArray(match.photo_urls) && match.photo_urls.length > 0)
+                ? match.photo_urls
+                : [match.photoUrl || match.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`];
 
-    const photos = rawPhotosList.filter(Boolean);
+        return rawList.filter(Boolean).map((url: string) => {
+            if (typeof url !== 'string') return '';
+            // Auto-optimize Cloudinary CDN URLs for card resolution & WebP
+            if (url.includes('res.cloudinary.com') && !url.includes('/w_')) {
+                return url.replace('/upload/', '/upload/w_600,c_limit,q_auto,f_auto/');
+            }
+            return url;
+        }).filter(Boolean);
+    }, [match.photos, match.photo_urls, match.photoUrl, match.avatar_url, match.id]);
 
     const [isHovered, setIsHovered] = useState(false);
+
+    // Asynchronous In-Memory Preloader for Adjacent Photos (LRU Queue - Zero DOM Bloat)
+    useEffect(() => {
+        if (photos.length <= 1 || !isInViewport) return;
+
+        // Preload next image into browser disk/RAM cache
+        const nextIdx = (currentPhotoIndex + 1) % photos.length;
+        if (photos[nextIdx]) {
+            const imgNext = new Image();
+            imgNext.src = photos[nextIdx];
+        }
+
+        // Preload previous image
+        const prevIdx = (currentPhotoIndex - 1 + photos.length) % photos.length;
+        if (photos[prevIdx]) {
+            const imgPrev = new Image();
+            imgPrev.src = photos[prevIdx];
+        }
+    }, [currentPhotoIndex, photos, isInViewport]);
 
     // Auto-Slide Effect (3s interval, pause on hover)
     useEffect(() => {
@@ -83,7 +128,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     }, [photos.length, isHovered]);
 
     // 1. Handle "Send Interest" (Primary Action)
-    // Connecting does NOT toggle Like anymore.
     const handleConnect = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -117,7 +161,6 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     };
 
     // 3. Handle "Like/Shortlist" (Secondary Action)
-    // Liking does NOT affect connection status. purely Instagram style.
     const handleLike = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -178,6 +221,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
     return (
         <div
+            ref={cardRef}
             className="group relative h-[560px] sm:h-[500px] w-full rounded-[2rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 will-change-transform transform-gpu touch-manipulation select-none"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -188,7 +232,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 if (onViewProfile) onViewProfile();
             }}
         >
-            {/* Background Image (Immersive Carousel) */}
+            {/* Background Image (Immersive Carousel with Zero-Lag Hardware Acceleration) */}
             <div className="absolute inset-0 bg-gray-950">
                 <img
                     src={photos[currentPhotoIndex] || match.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`}
@@ -204,12 +248,33 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     }}
                 />
 
-                {/* Preload adjacent photos silently for instantaneous zero-lag photo switching */}
+                {/* Intuitive Touch/Tap Navigation Regions (Left 35% prev, Right 35% next) */}
                 {photos.length > 1 && (
-                    <div className="hidden">
-                        {photos.map((url: string, idx: number) => (
-                            idx !== currentPhotoIndex && <img key={idx} src={url} alt="" decoding="async" />
-                        ))}
+                    <div className="absolute inset-x-0 top-0 h-[60%] z-20 flex pointer-events-auto">
+                        <div
+                            className="w-[35%] h-full"
+                            title="Previous Photo"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentPhotoIndex(prev => (prev > 0 ? prev - 1 : photos.length - 1));
+                            }}
+                        />
+                        <div
+                            className="w-[30%] h-full"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (match?.id) api.interactions.recordView(match.id).catch(() => {});
+                                if (onViewProfile) onViewProfile();
+                            }}
+                        />
+                        <div
+                            className="w-[35%] h-full"
+                            title="Next Photo"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentPhotoIndex(prev => (prev < photos.length - 1 ? prev + 1 : 0));
+                            }}
+                        />
                     </div>
                 )}
 

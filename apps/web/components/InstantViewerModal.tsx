@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Zap, Lock, AlertCircle, ShieldAlert, Eye, Users, Clock, Trash2 } from 'lucide-react';
+import { X, Zap, Lock, AlertCircle, ShieldAlert, Eye, Users, Clock, Trash2, Heart, Send } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { useSocket } from '@/context/SocketContext';
 
 interface InstantViewerModalProps {
     instantId: string;
@@ -26,6 +27,7 @@ export default function InstantViewerModal({
     isOwn
 }: InstantViewerModalProps) {
     const toast = useToast();
+    const { socket } = useSocket() as any;
     const [mediaUrl, setMediaUrl] = useState<string | null>(initialMediaUrl || null);
     const [caption, setCaption] = useState<string | null>(null);
     const [senderId, setSenderId] = useState<string | null>(null);
@@ -37,6 +39,12 @@ export default function InstantViewerModal({
     const [showViewers, setShowViewers] = useState(false);
     const [viewersList, setViewersList] = useState<any[]>([]);
     const [loadingViewers, setLoadingViewers] = useState(false);
+    const [viewsCount, setViewsCount] = useState<number>(0);
+    const [hasLiked, setHasLiked] = useState<boolean>(false);
+    const [likesCount, setLikesCount] = useState<number>(0);
+    const [replyText, setReplyText] = useState<string>('');
+    const [sendingReply, setSendingReply] = useState<boolean>(false);
+    const [showHeartAnim, setShowHeartAnim] = useState<boolean>(false);
     const [isScreenBlurred, setIsScreenBlurred] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const touchDistRef = useRef<number | null>(null);
@@ -54,7 +62,44 @@ export default function InstantViewerModal({
 
     const isCreator = Boolean(isOwn) || (Boolean(senderId) && Boolean(currentUserId) && senderId === currentUserId);
 
-    const VIEW_DURATION_MS = 7000; // 7 seconds viewing time
+    const VIEW_DURATION_MS = 10000; // 10 seconds viewing time for receivers
+
+    // Live Socket listener for real-time viewer and like updates
+    useEffect(() => {
+        if (!socket || !instantId) return;
+
+        const handleViewedUpdate = (data: any) => {
+            if (data?.instantId === instantId) {
+                if (typeof data.totalViewers === 'number') {
+                    setViewsCount(data.totalViewers);
+                }
+                if (data.viewer) {
+                    setViewersList(prev => {
+                        const exists = prev.some(v => v.id === data.viewer.id);
+                        if (exists) return prev;
+                        return [data.viewer, ...prev];
+                    });
+                    toast.info(`⚡ ${data.viewer?.name || 'Someone'} viewed your snap!`);
+                }
+            }
+        };
+
+        const handleLikedUpdate = (data: any) => {
+            if (data?.instantId === instantId) {
+                if (typeof data.likesCount === 'number') {
+                    setLikesCount(data.likesCount);
+                }
+            }
+        };
+
+        socket.on('instant:viewed', handleViewedUpdate);
+        socket.on('instant:liked', handleLikedUpdate);
+
+        return () => {
+            socket.off('instant:viewed', handleViewedUpdate);
+            socket.off('instant:liked', handleLikedUpdate);
+        };
+    }, [socket, instantId, toast]);
 
     const handleOpenViewers = async () => {
         setShowViewers(true);
@@ -63,11 +108,48 @@ export default function InstantViewerModal({
             const res = await api.instants.getViewers(instantId);
             if (res?.success && Array.isArray(res.viewers)) {
                 setViewersList(res.viewers);
+                setViewsCount(res.totalViewers ?? res.viewers.length);
             }
         } catch (err) {
             console.warn('[InstantViewer] Failed to load viewers:', err);
         } finally {
             setLoadingViewers(false);
+        }
+    };
+
+    const handleToggleLike = async () => {
+        try {
+            const nextLiked = !hasLiked;
+            setHasLiked(nextLiked);
+            setLikesCount(prev => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+
+            const res = await api.instants.like(instantId);
+            if (res?.success) {
+                setHasLiked(Boolean(res.hasLiked));
+                setLikesCount(res.likesCount ?? 0);
+            }
+        } catch (err) {
+            console.warn('[InstantViewer] Failed to toggle like:', err);
+        }
+    };
+
+    const handleSendReply = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (!replyText.trim() || sendingReply) return;
+
+        setSendingReply(true);
+        try {
+            const res = await api.instants.reply(instantId, replyText.trim());
+            if (res?.success) {
+                toast.success(`Reply sent to ${senderName}!`);
+                setReplyText('');
+            } else {
+                toast.error(res?.error || 'Failed to send reply.');
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to send reply.');
+        } finally {
+            setSendingReply(false);
         }
     };
 
@@ -104,6 +186,9 @@ export default function InstantViewerModal({
                     setCaption(res.instant.caption || null);
                     setSenderId(res.instant.senderId);
                     setSenderName(res.instant.senderName || 'User');
+                    setViewsCount(res.instant.viewsCount ?? 0);
+                    setHasLiked(Boolean(res.instant.hasLiked));
+                    setLikesCount(res.instant.likesCount ?? 0);
                     if (onViewed) onViewed(instantId);
                 } else if (res?.error) {
                     if (initialMediaUrl) {
@@ -154,9 +239,11 @@ export default function InstantViewerModal({
         };
     }, [instantId]);
 
-    // Timer countdown progress bar
+    // Timer countdown progress bar (disabled for creator so creator can view continuously until expiration)
     useEffect(() => {
         if (!mediaUrl || loading || error) return;
+        if (isCreator) return; // Snap creator can view their own snap continuously until expiration!
+        if (replyText.length > 0) return; // Pause timer while typing text reply
 
         const startTime = Date.now();
         const interval = setInterval(() => {
@@ -171,12 +258,24 @@ export default function InstantViewerModal({
         }, 50);
 
         return () => clearInterval(interval);
-    }, [mediaUrl, loading, error]);
+    }, [mediaUrl, loading, error, replyText, isCreator]);
 
     const handleClose = () => {
-        // Clear media URL state immediately on close
         setMediaUrl(null);
         onClose();
+    };
+
+    const formatViewedAt = (isoString?: string | null) => {
+        if (!isoString) return 'Viewed';
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return 'Viewed';
+        return date.toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     const [mounted, setMounted] = useState(false);
@@ -187,21 +286,28 @@ export default function InstantViewerModal({
             <div className="relative w-full h-full flex-1 flex flex-col justify-between bg-black overflow-hidden">
                 {/* Top Progress Bar */}
                 <div className="absolute top-0 inset-x-0 z-30 p-3 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-                    <div className="w-full bg-white/20 h-1 rounded-full overflow-hidden mb-3">
-                        <div
-                            className="bg-amber-400 h-full transition-all ease-linear"
-                            style={{ width: `${progress}%` }}
-                        />
-                    </div>
+                    {!isCreator && (
+                        <div className="w-full bg-white/20 h-1 rounded-full overflow-hidden mb-3">
+                            <div
+                                className="bg-amber-400 h-full transition-all ease-linear"
+                                style={{ width: `${progress}%` }}
+                            />
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-between text-white">
                         <div className="flex items-center space-x-2">
                             <span className="flex items-center justify-center w-7 h-7 rounded-full bg-amber-500/30 text-amber-400 border border-amber-400/40">
                                 <Zap className="w-3.5 h-3.5 fill-amber-400" />
                             </span>
-                            <span className="text-xs font-bold tracking-wide uppercase text-amber-300">
-                                Instant Snap • View Once
-                            </span>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold tracking-wide uppercase text-amber-300">
+                                    Instant Snap • {isCreator ? 'Your Snap' : senderName}
+                                </span>
+                                <span className="text-[10px] text-slate-300">
+                                    {isCreator ? 'Active until 24h expiration' : 'Disappears when closed'}
+                                </span>
+                            </div>
                         </div>
 
                         <div className="flex items-center space-x-2">
@@ -251,7 +357,14 @@ export default function InstantViewerModal({
                     ) : (
                         <div
                             className="relative w-full h-full flex items-center justify-center overflow-hidden bg-black"
-                            onDoubleClick={() => setViewerZoom(prev => (prev === 1 ? 2 : 1))}
+                            onDoubleClick={() => {
+                                setViewerZoom(prev => (prev === 1 ? 2 : 1));
+                                if (!hasLiked) {
+                                    setShowHeartAnim(true);
+                                    setTimeout(() => setShowHeartAnim(false), 1000);
+                                    handleToggleLike();
+                                }
+                            }}
                             onTouchStart={(e) => {
                                 if (e.touches.length === 2) {
                                     const dist = Math.hypot(
@@ -281,6 +394,13 @@ export default function InstantViewerModal({
                                 />
                             )}
 
+                            {/* Double-Tap Heart Animation */}
+                            {showHeartAnim && (
+                                <div className="absolute z-50 pointer-events-none animate-bounce flex items-center justify-center">
+                                    <Heart className="w-24 h-24 text-rose-500 fill-rose-500 shadow-2xl drop-shadow-lg" />
+                                </div>
+                            )}
+
                             {/* Main Centered Snap Container */}
                             <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
                                 <img
@@ -306,7 +426,7 @@ export default function InstantViewerModal({
 
                             {/* Caption Overlay */}
                             {caption && !isScreenBlurred && (
-                                <div className="absolute bottom-16 inset-x-6 bg-black/70 backdrop-blur-md px-4 py-3 rounded-2xl text-center text-white text-sm font-medium border border-white/10 shadow-2xl">
+                                <div className="absolute bottom-20 inset-x-6 bg-black/70 backdrop-blur-md px-4 py-3 rounded-2xl text-center text-white text-sm font-medium border border-white/10 shadow-2xl">
                                     {caption}
                                 </div>
                             )}
@@ -314,44 +434,88 @@ export default function InstantViewerModal({
                     )}
                 </div>
 
-                {/* Bottom Security & Actions Footer */}
-                <div className="relative z-30 px-4 py-3 bg-black/90 border-t border-slate-900 text-center text-[10px] text-slate-400 flex items-center justify-between">
-                    <div className="flex items-center space-x-1.5">
-                        <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                        <span>View Once Active</span>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                        {!isOwn && senderId && onSnapBack && (
-                            <button
-                                onClick={() => {
-                                    handleClose();
-                                    onSnapBack(senderId, senderName);
-                                }}
-                                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold text-xs shadow-lg transition-transform active:scale-95"
-                            >
-                                <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                                <span>Snap Back</span>
-                            </button>
+                {/* Interactive Action Bar (Like & Reply) */}
+                {!loading && !error && mediaUrl && (
+                    <div className="relative z-30 px-4 py-3 bg-slate-950/90 border-t border-slate-900 flex flex-col space-y-2">
+                        {/* Interactive Text Reply Row (for viewers) */}
+                        {!isCreator && senderId && (
+                            <form onSubmit={handleSendReply} className="flex items-center space-x-2">
+                                <input
+                                    type="text"
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder={`Reply to ${senderName}...`}
+                                    className="flex-1 bg-slate-900 border border-slate-800 rounded-full px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors"
+                                />
+                                {replyText.trim() ? (
+                                    <button
+                                        type="submit"
+                                        disabled={sendingReply}
+                                        className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-1 shadow-md transition-all active:scale-95 disabled:opacity-50"
+                                    >
+                                        <Send className="w-3 h-3" />
+                                        <span>Send</span>
+                                    </button>
+                                ) : onSnapBack ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleClose();
+                                            onSnapBack(senderId, senderName);
+                                        }}
+                                        className="flex items-center space-x-1 px-3 py-2 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-slate-950 font-bold text-xs shadow-md transition-transform active:scale-95"
+                                    >
+                                        <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                                        <span>Snap Back</span>
+                                    </button>
+                                ) : null}
+                            </form>
                         )}
 
-                        <button
-                            onClick={handleOpenViewers}
-                            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors border border-slate-800"
-                        >
-                            <Eye className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Viewers</span>
-                        </button>
-                    </div>
-                </div>
+                        {/* Control Buttons Footer */}
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                            <div className="flex items-center space-x-1.5">
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                                <span>{isCreator ? 'Uploader View Mode' : 'View Once Protected'}</span>
+                            </div>
 
-                {/* Viewers Bottom Sheet Drawer */}
-                {showViewers && (
-                    <div className="absolute inset-x-0 bottom-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 rounded-t-3xl p-5 max-h-[60vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200">
+                            <div className="flex items-center space-x-3">
+                                {/* Like Snap Button */}
+                                <button
+                                    onClick={handleToggleLike}
+                                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full transition-all border ${
+                                        hasLiked
+                                            ? 'bg-rose-500/20 border-rose-500/50 text-rose-400'
+                                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
+                                    }`}
+                                >
+                                    <Heart className={`w-3.5 h-3.5 ${hasLiked ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} />
+                                    <span className="font-semibold">{likesCount > 0 ? likesCount : 'Like'}</span>
+                                </button>
+
+                                {/* Viewers List Button (RESTRICTED ONLY TO SNAP CREATOR) */}
+                                {isCreator && (
+                                    <button
+                                        onClick={handleOpenViewers}
+                                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors border border-slate-800"
+                                    >
+                                        <Eye className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                        <span>Live Viewers ({viewsCount})</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Viewers Bottom Sheet Drawer (Strictly Creator Only) */}
+                {showViewers && isCreator && (
+                    <div className="absolute inset-x-0 bottom-0 z-50 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 rounded-t-3xl p-5 max-h-[65vh] overflow-y-auto shadow-2xl animate-in slide-in-from-bottom duration-200">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
                             <div className="flex items-center space-x-2 text-white">
-                                <Eye className="w-4 h-4 text-amber-400" />
-                                <h4 className="font-bold text-sm">Snap Viewers</h4>
+                                <Eye className="w-4 h-4 text-amber-400 animate-pulse" />
+                                <h4 className="font-bold text-sm">Snap Viewers ({viewersList.length})</h4>
+                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">Live</span>
                             </div>
                             <button
                                 onClick={() => setShowViewers(false)}
@@ -364,22 +528,24 @@ export default function InstantViewerModal({
                         {loadingViewers ? (
                             <div className="py-8 text-center text-xs text-amber-400">Loading viewers...</div>
                         ) : viewersList.length === 0 ? (
-                            <div className="py-8 text-center text-xs text-slate-400">No views recorded yet.</div>
+                            <div className="py-8 text-center text-xs text-slate-400">No views recorded yet. Viewers will appear here in real-time.</div>
                         ) : (
                             <div className="space-y-3">
                                 {viewersList.map(v => (
-                                    <div key={v.id} className="flex items-center justify-between py-1">
+                                    <div key={v.id} className="flex items-center justify-between py-2 border-b border-slate-900/60 last:border-0">
                                         <div className="flex items-center space-x-3">
                                             <img
                                                 src={v.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.name}`}
                                                 alt={v.name}
-                                                className="w-9 h-9 rounded-full object-cover bg-slate-800"
+                                                className="w-9 h-9 rounded-full object-cover bg-slate-800 border border-slate-700"
                                             />
                                             <span className="font-semibold text-xs text-slate-200">{v.name}</span>
                                         </div>
-                                        <span className="text-[10px] text-slate-500">
-                                            {v.viewedAt ? new Date(v.viewedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Viewed'}
-                                        </span>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                {formatViewedAt(v.viewedAt)}
+                                            </span>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

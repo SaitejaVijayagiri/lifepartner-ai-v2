@@ -312,6 +312,8 @@ export const api = {
         getChat: (connectionId: string) => fetchAPI(`/instants/chat/${connectionId}`),
         view: (id: string) => fetchAPI(`/instants/${id}/view`, { method: 'POST' }),
         getViewers: (id: string) => fetchAPI(`/instants/${id}/viewers`),
+        like: (id: string) => fetchAPI(`/instants/${id}/like`, { method: 'POST' }),
+        reply: (id: string, text: string) => fetchAPI(`/instants/${id}/reply`, { method: 'POST', body: JSON.stringify({ text }) }),
         delete: (id: string) => fetchAPI(`/instants/${id}`, { method: 'DELETE' })
     },
     get: (endpoint: string) => fetchAPI(endpoint),

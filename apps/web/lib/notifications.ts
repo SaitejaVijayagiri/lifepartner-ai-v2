@@ -2,24 +2,41 @@ import { Capacitor } from '@capacitor/core';
 import { api } from './api';
 import { requestWebPushPermission, onMessageListener } from './firebasePlugin';
 
+const isNativePlatform = () => {
+    if (Capacitor.isNativePlatform()) return true;
+    if (typeof window !== 'undefined') {
+        const w = window as any;
+        if (w.AndroidBridge || w.androidBridge) return true;
+    }
+    return false;
+};
+
+const getNativeBridge = () => {
+    if (typeof window !== 'undefined') {
+        const w = window as any;
+        return w.AndroidBridge || w.androidBridge || null;
+    }
+    return null;
+};
+
 /**
  * Notifications module.
  * 
- * On Android: Uses native AndroidBridge (JavascriptInterface injected by MainActivity.java)
+ * On Android (Capacitor or Website APK WebView): Uses native AndroidBridge (JavascriptInterface injected by MainActivity.java)
  * to register the FCM token with the backend.
  * 
  * On Web: Requests Web Push Permission and registers standard FCM web token.
  */
 export const Notifications = {
     init: async () => {
-        // Native Android Bridge Handling
-        if (Capacitor.isNativePlatform()) {
+        // Native Android Bridge Handling (Works for Capacitor & Website APK WebView)
+        if (isNativePlatform()) {
             try {
-                let bridge = (window as any).AndroidBridge;
+                let bridge = getNativeBridge();
                 let retries = 0;
                 while (!bridge && retries < 5) {
                     await new Promise(r => setTimeout(r, 500));
-                    bridge = (window as any).AndroidBridge;
+                    bridge = getNativeBridge();
                     retries++;
                 }
 
@@ -45,7 +62,9 @@ export const Notifications = {
 
                 if (authToken && authToken !== 'null') {
                     console.log('[Push Native] Registering auth token with native AndroidBridge...');
-                    bridge.setAuthToken(authToken);
+                    if (typeof bridge.setAuthToken === 'function') {
+                        bridge.setAuthToken(authToken);
+                    }
 
                     // Fallback: If bridge already has an FCM token, register it via JS API as well
                     const fcmToken = typeof bridge.getFcmToken === 'function' ? bridge.getFcmToken() : null;
@@ -78,7 +97,7 @@ export const Notifications = {
     },
 
     setupListeners: () => {
-        if (!Capacitor.isNativePlatform()) {
+        if (!isNativePlatform()) {
             // Setup Foreground Web Message Listener
             onMessageListener().then((payload) => {
                 console.log('[Web Push] Foreground notification received:', payload);
@@ -96,9 +115,9 @@ export const Notifications = {
      * Get the FCM token from native storage (for debugging).
      */
     getToken: (): string | null => {
-        if (Capacitor.isNativePlatform()) {
-            const bridge = (window as any).AndroidBridge;
-            if (bridge) {
+        if (isNativePlatform()) {
+            const bridge = getNativeBridge();
+            if (bridge && typeof bridge.getFcmToken === 'function') {
                 return bridge.getFcmToken() || null;
             }
         }
@@ -111,8 +130,8 @@ export const Notifications = {
      */
     unregister: async () => {
         try {
-            if (Capacitor.isNativePlatform()) {
-                const bridge = (window as any).AndroidBridge;
+            if (isNativePlatform()) {
+                const bridge = getNativeBridge();
                 if (bridge && typeof bridge.disablePush === 'function') {
                     bridge.disablePush();
                 }
@@ -121,9 +140,6 @@ export const Notifications = {
                 if (!token) return;
                 await api.notifications.unregister(token);
             } else {
-                // Assuming backend unregisters based on user ID or we need to delete web token
-                // Web unregistration involves deleting the token natively via deleteToken(messaging)
-                // For now, let the backend clean it up on logout.
                 console.log("Web push unregister triggered.");
             }
         } catch (e) {

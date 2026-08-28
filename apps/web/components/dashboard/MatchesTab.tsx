@@ -87,26 +87,26 @@ export default function MatchesTab({
         fetchVisitorsAndLikes();
     }, [fetchVisitorsAndLikes]);
 
-    // Live Socket Updates for new Visitors & Likes
+    // Live Socket Updates for new Visitors & Likes (scoped strictly to prevent re-render flicker on chat events)
     useEffect(() => {
         if (!socket) return;
 
-        const handleRealtimeUpdate = (data: any) => {
-            if (data?.type === 'view' || data?.type === 'like' || data?.fromUserId) {
-                fetchVisitorsAndLikes();
-            }
+        const handleVisitorUpdate = () => {
+            api.interactions.getVisitors().then(setVisitorsData).catch(() => {});
         };
 
-        socket.on('visitor:new', handleRealtimeUpdate);
-        socket.on('like:new', handleRealtimeUpdate);
-        socket.on('notification:new', handleRealtimeUpdate);
+        const handleLikeUpdate = () => {
+            api.interactions.whoLikedMe().then(setWhoLikedMe).catch(() => {});
+        };
+
+        socket.on('visitor:new', handleVisitorUpdate);
+        socket.on('like:new', handleLikeUpdate);
 
         return () => {
-            socket.off('visitor:new', handleRealtimeUpdate);
-            socket.off('like:new', handleRealtimeUpdate);
-            socket.off('notification:new', handleRealtimeUpdate);
+            socket.off('visitor:new', handleVisitorUpdate);
+            socket.off('like:new', handleLikeUpdate);
         };
-    }, [socket, fetchVisitorsAndLikes]);
+    }, [socket]);
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -269,9 +269,10 @@ export default function MatchesTab({
 
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
+    const onlineUsersKey = Array.isArray(onlineUsers) ? onlineUsers.join(',') : '';
     const onlineMatchesList = useMemo(() => {
         return matches.filter(m => m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)));
-    }, [matches, onlineUsers]);
+    }, [matches, onlineUsersKey]);
 
     const baseMatches = activeFilters ? filterMatches(matches) : matches;
     let displayMatches = showHighlightsOnly

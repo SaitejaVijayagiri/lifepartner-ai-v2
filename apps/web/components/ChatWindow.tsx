@@ -542,6 +542,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     // Internal state for partner info to handle missing query params
     const [partnerInfo, setPartnerInfo] = useState(partner);
 
+    useEffect(() => {
+        if (partner) {
+            setPartnerInfo(partner);
+        }
+    }, [partner?.id, partner?.name, partner?.photoUrl]);
+
     // Mute State
     const [isMuted, setIsMuted] = useState<boolean>(() => {
         const mutedUsers = user?.muted_users || [];

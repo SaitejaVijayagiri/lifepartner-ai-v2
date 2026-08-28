@@ -694,6 +694,9 @@ function DashboardContent() {
             }
             return prev;
         });
+
+        // Re-fetch connections list so new chats appear instantly in Connections tab
+        api.interactions.getConnections().then(setConnections).catch(() => {});
     };
 
     // Client-side filter function - ROBUST & AUDITED

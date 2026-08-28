@@ -224,6 +224,31 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             isIncognito: !!isIncognito
         };
 
+        // Auto-connect interaction so user appears in Connections list
+        try {
+            await prisma.interactions.upsert({
+                where: {
+                    from_user_id_to_user_id_type: {
+                        from_user_id: senderId,
+                        to_user_id: connectionId,
+                        type: 'REQUEST'
+                    }
+                },
+                update: {
+                    status: 'connected',
+                    created_at: new Date()
+                },
+                create: {
+                    from_user_id: senderId,
+                    to_user_id: connectionId,
+                    type: 'REQUEST',
+                    status: 'connected'
+                }
+            });
+        } catch (connErr) {
+            // Ignore if already connected
+        }
+
         // Broadcast via Socket.IO (include sender details for in-app toast)
         try {
             const { getIO } = require('../socket');

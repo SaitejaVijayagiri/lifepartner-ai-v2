@@ -527,7 +527,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 const msg = `${myName}${detailsStr} sent you an Interest Request! 💖`;
 
                 // Persist
-                await prisma.notifications.create({
+                const dbNotif = await prisma.notifications.create({
                     data: {
                         user_id: toUserId,
                         type: 'request',
@@ -548,6 +548,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
 
                 // Realtime
                 getIO().to(toUserId).emit('notification:new', {
+                    id: dbNotif.id,
                     type: 'request',
                     message: msg,
                     timestamp: new Date(),
@@ -723,7 +724,7 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
             const isOnline = isUserOnline(toUserId);
 
             // Always create persistent DB notification and emit real-time alert
-            await prisma.notifications.create({
+            const dbNotif = await prisma.notifications.create({
                 data: {
                     user_id: toUserId,
                     type: isStoryReply ? 'story_reply' : 'direct_message',
@@ -734,6 +735,7 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
             // Realtime Socket Notification
             getIO().to(toUserId).emit('notification:new', {
+                id: dbNotif.id,
                 type: isStoryReply ? 'story_reply' : 'direct_message',
                 message: msg,
                 fromUserId: userId,
@@ -1029,7 +1031,7 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                 const msg = `${myName} liked your profile! ❤️`;
                 
                 // Persist
-                await prisma.notifications.create({
+                const dbNotif = await prisma.notifications.create({
                     data: {
                         user_id: toUserId,
                         type: 'like',
@@ -1053,6 +1055,7 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                 const { getIO } = require('../socket');
                 const io = getIO();
                 io.to(toUserId).emit('notification:new', {
+                    id: dbNotif.id,
                     type: 'like',
                     message: msg,
                     timestamp: new Date(),
@@ -1330,7 +1333,7 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                 const msg = `${viewerName} viewed your profile! 👀`;
 
                 // Persist notification for targetId
-                await prisma.notifications.create({
+                const dbNotif = await prisma.notifications.create({
                     data: {
                         user_id: targetId,
                         type: 'view',
@@ -1354,6 +1357,7 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                 const { getIO } = require('../socket');
                 const io = getIO();
                 io.to(targetId).emit('notification:new', {
+                    id: dbNotif.id,
                     type: 'view',
                     message: msg,
                     timestamp: new Date(),

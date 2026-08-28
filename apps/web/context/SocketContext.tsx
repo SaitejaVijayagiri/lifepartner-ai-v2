@@ -68,6 +68,13 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         // Connection Events
         newSocket.on('connect', () => {
             setIsConnected(true);
+            const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (freshToken) {
+                newSocket.emit('authenticate', { token: freshToken });
+            }
+            if (userId) {
+                newSocket.emit('join-room', userId);
+            }
         });
 
         newSocket.on('disconnect', () => {

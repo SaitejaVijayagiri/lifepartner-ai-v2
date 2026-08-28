@@ -234,8 +234,38 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
-        // Personal room is already joined above via socket.join(userId) on connection.
-        // No second join needed here.
+        // Personal room handling and post-connection authentication
+        socket.on('join-room', (uId: string) => {
+            if (uId && typeof uId === 'string') {
+                socket.join(uId);
+                console.log(`Socket ${socket.id} joined personal room: ${uId}`);
+            }
+        });
+
+        socket.on('authenticate', (data: { token?: string }) => {
+            const token = data?.token || socket.handshake.auth?.token;
+            if (!token) return;
+            try {
+                const secret = process.env.JWT_SECRET!;
+                jwt.verify(token, secret, (err: any, decoded: any) => {
+                    if (err || !decoded?.userId) return;
+                    const uId = decoded.userId;
+                    socket.data.user = decoded;
+                    socket.data.isGuest = false;
+                    socket.join(uId);
+
+                    const currentCount = onlineUsers.get(uId) || 0;
+                    if (currentCount === 0) {
+                        onlineUsers.set(uId, 1);
+                        socket.broadcast.emit('userOnline', uId);
+                    }
+                    socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
+                    console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
+                });
+            } catch (err) {
+                console.warn(`Socket authentication error:`, err);
+            }
+        });
 
         // --- MESSAGE STATUS TRACKING ---
         socket.on('messageDelivered', async (data: { messageId: string, senderId: string }) => {

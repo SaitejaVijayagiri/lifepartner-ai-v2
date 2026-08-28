@@ -1295,18 +1295,19 @@ router.post('/stories', authenticateToken, (req, res, next) => {
                             message: msg,
                             data: { fromUserId: userId, storyId: newStory.id }
                         }
+                    }).then((dbNotif) => {
+                        // Emit realtime notification with dbNotif.id
+                        io.to(connId).emit('notification:new', {
+                            id: dbNotif.id,
+                            type: 'story',
+                            message: msg,
+                            timestamp: new Date(),
+                            fromUserId: userId,
+                            fromUserName: myName,
+                            fromUserPhoto: fromUserPhoto,
+                            storyId: newStory.id
+                        });
                     }).catch(console.error);
-
-                    // Emit realtime notification
-                    io.to(connId).emit('notification:new', {
-                        type: 'story',
-                        message: msg,
-                        timestamp: new Date(),
-                        fromUserId: userId,
-                        fromUserName: myName,
-                        fromUserPhoto: fromUserPhoto,
-                        storyId: newStory.id
-                    });
 
                     // Send offline push notification to connection's device
                     pushService.sendToUser(

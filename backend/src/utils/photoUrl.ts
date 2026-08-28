@@ -23,6 +23,17 @@ export const toProxyUrl = (url: string): string => {
 };
 
 /**
+ * Converts a Supabase storage URL to our proxy URL.
+ * Cloudinary, base64, and other URLs pass through unchanged.
+ */
+export const extractPhotosList = (profileObj: any, meta: any = {}, defaultAvatarUrl?: string | null): string[] => {
+    const colPhotos = Array.isArray(profileObj?.photos) && profileObj.photos.length > 0 ? profileObj.photos : null;
+    const metaPhotos = Array.isArray(meta?.photos) && meta.photos.length > 0 ? meta.photos : null;
+    const rawList = colPhotos || metaPhotos || (defaultAvatarUrl ? [defaultAvatarUrl] : []);
+    return rawList.filter((p: any) => typeof p === 'string' && p.length > 0);
+};
+
+/**
  * Checks if a user has a valid custom photo uploaded (not null, default, or empty).
  */
 export const hasValidPhoto = (url: string | null | undefined): boolean => {

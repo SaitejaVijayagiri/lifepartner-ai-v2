@@ -83,7 +83,9 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             ? match.photos
             : (Array.isArray(match.photo_urls) && match.photo_urls.length > 0)
                 ? match.photo_urls
-                : [match.photoUrl || match.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`];
+                : (Array.isArray(match.metadata?.photos) && match.metadata.photos.length > 0)
+                    ? match.metadata.photos
+                    : [match.photoUrl || match.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`];
 
         return rawList.filter(Boolean).map((url: string) => {
             if (typeof url !== 'string') return '';
@@ -93,7 +95,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             }
             return url;
         }).filter(Boolean);
-    }, [match.photos, match.photo_urls, match.photoUrl, match.avatar_url, match.id]);
+    }, [match.photos, match.photo_urls, match.metadata?.photos, match.photoUrl, match.avatar_url, match.id]);
 
     const [isHovered, setIsHovered] = useState(false);
 

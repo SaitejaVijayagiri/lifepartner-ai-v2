@@ -14,7 +14,7 @@ const aiService = new AIService();
 import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
-import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
 
@@ -409,7 +409,7 @@ router.get('/public/featured', async (req, res) => {
                 age: user.age,
                 gender: user.gender,
                 photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
-                photos: ((user.profiles?.photos as any[]) || meta.photos || [user.avatar_url]).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
+                photos: extractPhotosList(user.profiles, meta, user.avatar_url).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
                 location: locationStr,
                 profession: meta.career?.profession || "Professional",
                 isVerified: true
@@ -580,7 +580,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             bio: meta.bio || user.profiles?.raw_prompt || "",
             expectations: meta.expectations || "",
             height: meta.height || "",
-            photos: ((user.profiles?.photos as any[]) || meta.photos || [user.avatar_url]).map((url: string) => sanitizePhotoUrl(url, user.full_name || user.id)),
+            photos: extractPhotosList(user.profiles, meta, user.avatar_url).map((url: string) => sanitizePhotoUrl(url, user.full_name || user.id)),
             reels: meta.reels || [],
             total_gifts: 0,
             total_likes: user._count.matches_matches_user_b_idTousers || 0,

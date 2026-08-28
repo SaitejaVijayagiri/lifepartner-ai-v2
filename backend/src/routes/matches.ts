@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline } from '../socket';
-import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
 
 const router = express.Router();
@@ -650,7 +650,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: ((c.profiles?.photos as any[]) || meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
+                photos: extractPhotosList(c.profiles, meta, c.avatar_url).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
 
                 career: meta.career || {},
                 family: meta.family || {},
@@ -1028,7 +1028,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: ((c.profiles?.photos as any[]) || meta.photos || []).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
+                photos: extractPhotosList(c.profiles, meta, c.avatar_url).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},

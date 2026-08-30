@@ -140,8 +140,29 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         );
     };
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (!validateStep()) return;
+        
+        // Auto-save basic demographic details immediately after 'basics' step
+        // to prevent users from becoming "invisible" if they drop off before finishing
+        if (STEPS[currentStep].id === 'basics') {
+            try {
+                api.profile.updateProfile({
+                    name: data.name,
+                    age: parseInt(data.age),
+                    gender: data.gender,
+                    location: {
+                        city: data.city,
+                        district: data.district,
+                        state: data.state,
+                        country: data.country
+                    },
+                    aboutMe: data.aboutMe || '',
+                    maritalStatus: data.maritalStatus || 'Single'
+                }).catch((e: any) => console.warn('Intermediate profile auto-save:', e?.message));
+            } catch (_) {}
+        }
+
         setDirection('forward');
         if (currentStep < STEPS.length - 1) {
             setCurrentStep(s => s + 1);
@@ -161,9 +182,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         if (stepId === 'basics') {
             return !!(data.name && data.age && data.gender);
         }
-        if (stepId === 'photos') {
-            return !!(data.photos && data.photos.length > 0);
-        }
+        // Photos are optional for onboarding to prevent dropoff
         return true;
     };
 
@@ -176,12 +195,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 return false;
             }
         }
-        if (stepId === 'photos') {
-            if (!(data.photos && data.photos.length > 0)) {
-                toast.error("Please upload at least one photo");
-                return false;
-            }
-        }
+        // Photos are optional for onboarding (users can add them anytime from profile for bonus coins)
         return true;
     };
 

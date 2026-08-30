@@ -99,7 +99,13 @@ app.use(cors({
 app.use(globalLimiter);
 
 // Parse request bodies FIRST — logger must come after so req.body is populated
-app.use(express.json({ limit: '50mb' }));
+// Capture rawBody buffer for Cashfree webhook signature verification
+app.use(express.json({ 
+    limit: '50mb',
+    verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Global Request Logger — lightweight non-blocking logger

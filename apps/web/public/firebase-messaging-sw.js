@@ -6,7 +6,7 @@ const firebaseConfig = {
     projectId: "lifepartnerai-1d6f4",
     storageBucket: "lifepartnerai-1d6f4.firebasestorage.app",
     messagingSenderId: "909951442224",
-    appId: "1:909951442224:web:firebase12345" // Using a generic web appId format if needed, but SDK infers it for messaging.
+    appId: "1:909951442224:web:65492d5367bdf8f2a1b9c0"
 };
 
 // Initialize Firebase app in the service worker.

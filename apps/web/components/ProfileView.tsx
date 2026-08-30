@@ -124,20 +124,27 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                         <Button
                             onClick={async () => {
-                                const shareUrl = `${window.location.origin}/profile/${profile.id || profile.user_id}`;
+                                const ageStr = profile.age ? `${profile.age} yrs` : '';
+                                const profStr = profile.career?.profession || profile.profession || '';
+                                const locStr = formatLocationString(profile.location) || '';
+                                const relStr = profile.religion?.religion || profile.religion?.faith || '';
+                                const detailChips = [ageStr, profStr, locStr, relStr].filter(Boolean).join(' • ');
+                                const shareText = `✨ Check out ${profile.name}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI!`.trim();
+                                const shareUrl = `${window.location.origin}/profile/${profile.id || profile.user_id}?utm_source=share&utm_medium=social&utm_campaign=profile_view_share`;
+
                                 if (navigator.share) {
                                     try {
                                         await navigator.share({
-                                            title: `${profile.name} on LifePartner AI`,
-                                            text: `Check out ${profile.name}'s profile on LifePartner AI!`,
+                                            title: `${profile.name} • LifePartner AI Profile`,
+                                            text: shareText,
                                             url: shareUrl
                                         });
                                         return;
                                     } catch (e) {}
                                 }
                                 try {
-                                    await navigator.clipboard.writeText(shareUrl);
-                                    toast.success("Profile link copied to clipboard!");
+                                    await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                                    toast.success("Profile details & link copied!");
                                 } catch (e) {
                                     toast.error("Failed to copy link");
                                 }

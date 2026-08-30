@@ -2,14 +2,14 @@ import { initializeApp, getApp, getApps } from "firebase/app";
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBTEcc-NbugTTBb-mu9F2sQEajI1DG6NaU",
-    projectId: "lifepartnerai-1d6f4",
-    storageBucket: "lifepartnerai-1d6f4.firebasestorage.app",
-    messagingSenderId: "909951442224",
-    appId: "1:909951442224:web:firebase12345" 
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBTEcc-NbugTTBb-mu9F2sQEajI1DG6NaU",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "lifepartnerai-1d6f4",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "lifepartnerai-1d6f4.firebasestorage.app",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "909951442224",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:909951442224:web:65492d5367bdf8f2a1b9c0"
 };
 
-let app;
+let app: any;
 if (!getApps().length) {
     app = initializeApp(firebaseConfig);
 } else {

@@ -136,7 +136,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 bannerBitmap = getBitmapFromURL(bannerUrl);
             }
 
-            showNotification(title, body, largeIcon, connId, messageId, type, bannerBitmap, campaignNotificationId);
+            showNotification(title, body, largeIcon, connId, messageId, type, bannerBitmap, campaignNotificationId, data);
         } catch (Exception e) {
             Log.e(TAG, "Error in onMessageReceived: ", e);
         } finally {
@@ -195,7 +195,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             String messageId, 
             String type, 
             Bitmap bannerBitmap, 
-            String campaignNotificationId
+            String campaignNotificationId,
+            Map<String, String> data
     ) {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         String CHANNEL_ID = "lifepartner_chat";

@@ -109,21 +109,33 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
     // Share Handler
     const handleShare = async () => {
+        const ageStr = profile.age ? `${profile.age} yrs` : '';
+        const profStr = profile.career?.profession || profile.profession || '';
+        const locStr = formatLocationString(profile.location) || '';
+        const relStr = profile.religion?.religion || profile.religion?.faith || '';
+        const eduStr = profile.career?.education || '';
+        const heightStr = profile.height ? `Height: ${profile.height}` : '';
+
+        const detailChips = [ageStr, profStr, eduStr, locStr, relStr, heightStr].filter(Boolean).join(' • ');
+        const shareText = `✨ Check out ${profile.name}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI!`.trim();
+        const shareUrl = typeof window !== 'undefined' 
+            ? `${window.location.origin}/profile/${profileId}?utm_source=share&utm_medium=social&utm_campaign=profile_share`
+            : `https://www.lifepartnerai.in/profile/${profileId}`;
+
         const shareData = {
-            title: `Profile: ${profile.name}`,
-            text: `Check out ${profile.name} on LifePartner AI!`,
-            url: `https://www.lifepartnerai.in/profile/${profileId}?utm_source=share&utm_medium=social&utm_campaign=profile_share`
+            title: `${profile.name} • LifePartner AI Profile`,
+            text: shareText,
+            url: shareUrl
         };
         try {
             if (navigator.share) {
                 await navigator.share(shareData);
             } else {
-                await navigator.clipboard.writeText(shareData.url);
-                toast.success("Profile link copied!");
+                await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                toast.success("Profile details & link copied!");
             }
         } catch (err) {
             console.error("Share failed:", err);
-            toast.error("Sharing unsupported or cancelled");
         }
     };
 
@@ -136,14 +148,14 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     if (!profile) return (
         <div className="min-h-screen bg-slate-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
             <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Shield size={32} />
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Profile Not Found</h1>
                 <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">This profile might be private, deleted, or the link is incorrect.</p>
                 <div className="flex gap-4 justify-center pt-4">
                     <Link href="/">
-                        <Button variant="outline">Go Home</Button>
+                        <Button variant="outline" className="dark:border-gray-700 dark:text-gray-200">Go Home</Button>
                     </Link>
                     {!user && (
                         <Link href="/register">
@@ -156,10 +168,10 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     );
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 pb-20 font-sans">
+        <div className="min-h-screen bg-slate-50 dark:bg-gray-900 pb-20 font-sans transition-colors duration-300">
             {/* Sticky Header */}
-            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center gap-4">
-                <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800 px-4 py-3 flex items-center gap-4 transition-colors">
+                <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                     <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
                 </button>
                 <div className="flex-1">
@@ -167,7 +179,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                 </div>
                 {!user && (
                     <Link href="/login">
-                        <Button size="sm" variant="outline" className="text-primary hover:text-primary-dark">Login</Button>
+                        <Button size="sm" variant="outline" className="text-primary hover:text-primary-dark dark:border-gray-700 dark:text-indigo-400">Login</Button>
                     </Link>
                 )}
             </div>
@@ -175,27 +187,27 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
             <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
 
                 {/* 1. Hero Card (Biodata Style) */}
-                <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-xl overflow-hidden border border-white">
+                <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors">
                     <div className="grid md:grid-cols-2 gap-0">
                         {/* Photo Carousel (Simplified) */}
-                        <div className="h-[500px] bg-gray-100 relative">
+                        <div className="h-[500px] bg-gray-100 dark:bg-gray-950 relative">
                             {/* Safer Image Access */}
                             {profile.photos?.[0] ? (
                                 <img src={profile.photos[0]} className="w-full h-full object-cover" alt={profile.name} />
                             ) : (
-                                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">No Photo</div>
+                                <div className="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-gray-400">No Photo</div>
                             )}
 
                             {!user && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <div className="bg-black/30 backdrop-blur-[2px] px-4 py-2 rounded-full text-white/50 text-xs font-bold uppercase tracking-widest border border-white/10">
+                                    <div className="bg-black/40 backdrop-blur-[2px] px-4 py-2 rounded-full text-white/70 text-xs font-bold uppercase tracking-widest border border-white/20">
                                         LifePartner AI • Public Preview
                                     </div>
                                 </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-8">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-8">
                                 <div className="text-white">
-                                    <h1 className="text-4xl font-heading font-bold mb-2">{profile.name}, {profile.age}</h1>
+                                    <h1 className="text-4xl font-heading font-bold mb-2 drop-shadow-sm">{profile.name}, {profile.age}</h1>
                                     <div className="flex items-center gap-4 text-sm font-medium opacity-90">
                                         <div className="flex items-center gap-1">
                                             <MapPin size={16} />
@@ -214,45 +226,45 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                         </div>
 
                         {/* Quick Specs */}
-                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-gray-800 relative">
+                        <div className="p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-gray-800 relative transition-colors">
                             {/* Ornamental Corner */}
-                            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 dark:opacity-5 pointer-events-none">
                                 <img src="https://www.svgrepo.com/show/486228/ornamental-design.svg" className="w-32 h-32" />
                             </div>
 
                             <div className="space-y-6 relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold uppercase tracking-wider border border-green-100">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wider border border-green-200 dark:border-green-800">
                                     <Shield size={14} /> ID Verified
                                 </div>
 
                                 <div className="space-y-4 text-gray-700 dark:text-gray-300">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><Briefcase size={20} /></div>
+                                        <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400"><Briefcase size={20} /></div>
                                         <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Profession</p>
-                                            <p className="font-semibold">{profile.career?.profession || "Not specified"}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide font-bold">Profession</p>
+                                            <p className="font-semibold text-gray-900 dark:text-gray-100">{profile.career?.profession || "Not specified"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600"><GraduationCap size={20} /></div>
+                                        <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400"><GraduationCap size={20} /></div>
                                         <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Education</p>
-                                            <p className="font-semibold">{profile.career?.education || "Not specified"}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide font-bold">Education</p>
+                                            <p className="font-semibold text-gray-900 dark:text-gray-100">{profile.career?.education || "Not specified"}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600"><Star size={20} /></div>
+                                        <div className="w-10 h-10 rounded-full bg-pink-50 dark:bg-pink-950/60 flex items-center justify-center text-pink-600 dark:text-pink-400"><Star size={20} /></div>
                                         <div>
-                                            <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Marital Status</p>
-                                            <p className="font-semibold">{(!profile.maritalStatus || profile.maritalStatus === "Never Married") ? "Single" : (profile.maritalStatus || "Single")}</p>
+                                            <p className="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide font-bold">Marital Status</p>
+                                            <p className="font-semibold text-gray-900 dark:text-gray-100">{(!profile.maritalStatus || profile.maritalStatus === "Never Married") ? "Single" : (profile.maritalStatus || "Single")}</p>
                                         </div>
                                     </div>
                                     {profile.height && (
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-600"><CheckCircle size={20} /></div>
+                                            <div className="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-950/60 flex items-center justify-center text-teal-600 dark:text-teal-400"><CheckCircle size={20} /></div>
                                             <div>
-                                                <p className="text-xs text-gray-400 uppercase tracking-wide font-bold">Height</p>
-                                                <p className="font-semibold">{profile.height}</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide font-bold">Height</p>
+                                                <p className="font-semibold text-gray-900 dark:text-gray-100">{profile.height}</p>
                                             </div>
                                         </div>
                                     )}
@@ -274,7 +286,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                     className={`flex-1 h-12 font-bold text-base rounded-xl shadow-lg transition-all ${
                                                         matchStatus === 'pending'
                                                             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
+                                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none'
                                                     }`}
                                                 >
                                                     {loadingInterest ? 'Sending...' : (matchStatus === 'pending' ? '✓ Request Sent' : '✨ Send Interest')}
@@ -284,8 +296,8 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                 onClick={handleToggleLike}
                                                 disabled={loadingLike}
                                                 variant="outline"
-                                                className={`h-12 w-12 rounded-xl border-gray-200 flex items-center justify-center transition-all ${
-                                                    isLiked ? 'bg-pink-50 border-pink-200 text-pink-600' : 'text-gray-400 hover:text-pink-600'
+                                                className={`h-12 w-12 rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 flex items-center justify-center transition-all ${
+                                                    isLiked ? 'bg-pink-50 dark:bg-pink-950/40 border-pink-200 dark:border-pink-800 text-pink-600 dark:text-pink-400' : 'text-gray-400 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400'
                                                 }`}
                                                 title={isLiked ? "Remove Shortlist" : "Shortlist"}
                                             >
@@ -294,12 +306,12 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         </>
                                     ) : (
                                         <Link href="/register" className="flex-1">
-                                            <Button className="w-full h-12 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 rounded-xl font-bold text-base text-white border-0 animate-pulse">
+                                            <Button className="w-full h-12 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 shadow-lg shadow-pink-200 dark:shadow-none rounded-xl font-bold text-base text-white border-0 animate-pulse">
                                                 Register to Connect
                                             </Button>
                                         </Link>
                                     )}
-                                    <Button variant="outline" onClick={handleShare} className="h-12 w-12 rounded-xl border-gray-200 text-gray-600 dark:text-gray-300 hover:text-blue-600" title="Share Profile">
+                                    <Button variant="outline" onClick={handleShare} className="h-12 w-12 rounded-xl border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400" title="Share Profile">
                                         <Share2 size={20} />
                                     </Button>
                                 </div>
@@ -358,10 +370,10 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                 {/* 2. Tabbed Content Area */}
                 <Tabs defaultValue="about" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-8 h-14 p-1 bg-gray-100/80 backdrop-blur-md rounded-2xl">
-                        <TabsTrigger value="about" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">About</TabsTrigger>
-                        <TabsTrigger value="highlights" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-amber-500 data-[state=active]:shadow-sm">⭐ Highlights</TabsTrigger>
-                        <TabsTrigger value="details" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:bg-gray-800 data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm">Details</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4 mb-8 h-14 p-1 bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
+                        <TabsTrigger value="about" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-gray-600 dark:text-gray-300 data-[state=active]:shadow-sm">About</TabsTrigger>
+                        <TabsTrigger value="highlights" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-amber-500 dark:data-[state=active]:text-amber-400 text-gray-600 dark:text-gray-300 data-[state=active]:shadow-sm">⭐ Highlights</TabsTrigger>
+                        <TabsTrigger value="details" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-gray-600 dark:text-gray-300 data-[state=active]:shadow-sm">Details</TabsTrigger>
                         <TabsTrigger value="ai" className="rounded-xl text-xs sm:text-sm md:text-base font-medium data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-md">
                             ✨ AI
                         </TabsTrigger>
@@ -369,9 +381,9 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                     {/* Tab: Highlights */}
                     <TabsContent value="highlights" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 space-y-4">
                             <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                <span className="p-2 bg-amber-50 rounded-xl text-amber-500 text-lg">⭐</span> Story Highlights
+                                <span className="p-2 bg-amber-50 dark:bg-amber-950/40 rounded-xl text-amber-500 text-lg">⭐</span> Story Highlights
                             </h3>
                             {(() => {
                                 const highlightedStories = (profile?.stories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
@@ -487,22 +499,22 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     {/* Tab: About */}
                     <TabsContent value="about" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Bio */}
-                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                             <h3 className="font-heading font-bold text-2xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                                <span className="p-2 bg-indigo-50 rounded-xl text-indigo-600 text-lg">📝</span> About Me
+                                <span className="p-2 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl text-indigo-600 dark:text-indigo-400 text-lg">📝</span> About Me
                             </h3>
                             <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">{profile.bio || profile.aboutMe || "No bio added yet."}</p>
                         </div>
 
                         {/* Hobbies */}
                         {profile.lifestyle?.hobbies && (
-                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                                    <span className="p-2 bg-green-50 rounded-xl text-green-600 text-lg">🎯</span> Hobbies & Interests
+                                    <span className="p-2 bg-green-50 dark:bg-green-950/40 rounded-xl text-green-600 dark:text-green-400 text-lg">🎯</span> Hobbies & Interests
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                     {profile.lifestyle.hobbies.split(',').map((h: string, i: number) => (
-                                        <span key={i} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100">{h.trim()}</span>
+                                        <span key={i} className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 rounded-full text-sm font-medium border border-indigo-100 dark:border-indigo-800/60">{h.trim()}</span>
                                     ))}
                                 </div>
                             </div>
@@ -510,35 +522,35 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                         {/* Family Background */}
                         {profile.family && (profile.family.type || profile.family.fatherOccupation || profile.family.nativePlace) && (
-                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                                    <span className="p-2 bg-purple-50 rounded-xl text-purple-600 text-lg">🏡</span> Family Background
+                                    <span className="p-2 bg-purple-50 dark:bg-purple-950/40 rounded-xl text-purple-600 dark:text-purple-400 text-lg">🏡</span> Family Background
                                 </h3>
                                 <div className="grid grid-cols-2 gap-y-3 gap-x-8">
-                                    {profile.family.type && <div><span className="text-gray-400 text-sm">Family Type</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.type}</p></div>}
-                                    {profile.family.values && <div><span className="text-gray-400 text-sm">Family Values</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.values}</p></div>}
-                                    {profile.family.fatherOccupation && <div><span className="text-gray-400 text-sm">Father's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.fatherOccupation}</p></div>}
-                                    {profile.family.motherOccupation && <div><span className="text-gray-400 text-sm">Mother's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.motherOccupation}</p></div>}
-                                    {(profile.family.brothers !== undefined && profile.family.brothers !== '') && <div><span className="text-gray-400 text-sm">Brothers</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.brothers}</p></div>}
-                                    {(profile.family.sisters !== undefined && profile.family.sisters !== '') && <div><span className="text-gray-400 text-sm">Sisters</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.sisters}</p></div>}
-                                    {profile.family.nativePlace && <div><span className="text-gray-400 text-sm">Native Place</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.nativePlace}</p></div>}
+                                    {profile.family.type && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Family Type</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.type}</p></div>}
+                                    {profile.family.values && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Family Values</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.values}</p></div>}
+                                    {profile.family.fatherOccupation && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Father's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.fatherOccupation}</p></div>}
+                                    {profile.family.motherOccupation && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Mother's Occupation</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.motherOccupation}</p></div>}
+                                    {(profile.family.brothers !== undefined && profile.family.brothers !== '') && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Brothers</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.brothers}</p></div>}
+                                    {(profile.family.sisters !== undefined && profile.family.sisters !== '') && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Sisters</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.sisters}</p></div>}
+                                    {profile.family.nativePlace && <div><span className="text-gray-400 dark:text-gray-400 text-sm">Native Place</span><p className="font-semibold text-gray-800 dark:text-gray-200">{profile.family.nativePlace}</p></div>}
                                 </div>
                             </div>
                         )}
 
                         {/* Partner Expectations */}
                         {profile.expectations && (
-                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                                    <span className="p-2 bg-pink-50 rounded-xl text-pink-600 text-lg">💞</span> Partner Expectations
+                                    <span className="p-2 bg-pink-50 dark:bg-pink-950/40 rounded-xl text-pink-600 dark:text-pink-400 text-lg">💞</span> Partner Expectations
                                 </h3>
                                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{profile.expectations}</p>
                                 {profile.partnerPreferences && (
                                     <div className="grid grid-cols-2 gap-3 mt-4">
-                                        {profile.partnerPreferences.ageRange && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Age Range</p><p className="font-semibold text-sm">{profile.partnerPreferences.ageRange}</p></div>}
-                                        {profile.partnerPreferences.heightRange && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Height Range</p><p className="font-semibold text-sm">{profile.partnerPreferences.heightRange}</p></div>}
-                                        {profile.partnerPreferences.income && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Min Income</p><p className="font-semibold text-sm">{profile.partnerPreferences.income}</p></div>}
-                                        {profile.partnerPreferences.location && <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl"><p className="text-xs text-gray-400">Pref Location</p><p className="font-semibold text-sm">{profile.partnerPreferences.location}</p></div>}
+                                        {profile.partnerPreferences.ageRange && <div className="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400">Age Range</p><p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{profile.partnerPreferences.ageRange}</p></div>}
+                                        {profile.partnerPreferences.heightRange && <div className="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400">Height Range</p><p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{profile.partnerPreferences.heightRange}</p></div>}
+                                        {profile.partnerPreferences.income && <div className="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400">Min Income</p><p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{profile.partnerPreferences.income}</p></div>}
+                                        {profile.partnerPreferences.location && <div className="bg-gray-50 dark:bg-gray-700/60 p-3 rounded-xl border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400">Pref Location</p><p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{profile.partnerPreferences.location}</p></div>}
                                     </div>
                                 )}
                             </div>
@@ -549,7 +561,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     <TabsContent value="details" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                         {/* Personal */}
-                        <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                        <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                             <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">👤 Personal Details</h3>
                             <div className="grid md:grid-cols-2 gap-y-1 gap-x-12">
                                 {[  
@@ -572,7 +584,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                         {/* Career */}
                         {profile.career && (profile.career.profession || profile.career.education || profile.career.income) && (
-                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">💼 Career & Education</h3>
                                 <div className="grid md:grid-cols-2 gap-y-1 gap-x-12">
                                     {[
@@ -594,19 +606,19 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
 
                         {/* Lifestyle */}
                         {profile.lifestyle && (profile.lifestyle.diet || profile.lifestyle.smoke || profile.lifestyle.drink) && (
-                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">🌿 Lifestyle</h3>
                                 <div className="grid md:grid-cols-3 gap-4">
-                                    {profile.lifestyle.diet && <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-2xl text-center"><p className="text-xs text-gray-400 mb-1">Diet</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.diet}</p></div>}
-                                    {profile.lifestyle.smoke && <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-2xl text-center"><p className="text-xs text-gray-400 mb-1">Smoking</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.smoke}</p></div>}
-                                    {profile.lifestyle.drink && <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-2xl text-center"><p className="text-xs text-gray-400 mb-1">Drinking</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.drink}</p></div>}
+                                    {profile.lifestyle.diet && <div className="bg-gray-50 dark:bg-gray-700/60 p-4 rounded-2xl text-center border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400 mb-1">Diet</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.diet}</p></div>}
+                                    {profile.lifestyle.smoke && <div className="bg-gray-50 dark:bg-gray-700/60 p-4 rounded-2xl text-center border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400 mb-1">Smoking</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.smoke}</p></div>}
+                                    {profile.lifestyle.drink && <div className="bg-gray-50 dark:bg-gray-700/60 p-4 rounded-2xl text-center border border-gray-100 dark:border-gray-700"><p className="text-xs text-gray-400 mb-1">Drinking</p><p className="font-bold text-gray-800 dark:text-gray-200">{profile.lifestyle.drink}</p></div>}
                                 </div>
                             </div>
                         )}
 
                         {/* Horoscope */}
                         {profile.horoscope && (profile.horoscope.zodiacSign || profile.horoscope.nakshatra || profile.horoscope.manglik) && (
-                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100">
+                            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <h3 className="font-heading font-bold text-xl text-gray-900 dark:text-gray-100 mb-5">🔮 Horoscope</h3>
                                 <div className="grid md:grid-cols-2 gap-y-1 gap-x-12">
                                     {[
@@ -629,33 +641,32 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                     {/* Tab: AI Insight */}
                     {profile.summary && (
                         <TabsContent value="ai" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-8 md:p-10 rounded-[2.5rem] shadow-lg border border-white/50 relative overflow-hidden">
+                            <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950/50 dark:via-purple-950/50 dark:to-pink-950/50 p-8 md:p-10 rounded-[2.5rem] shadow-lg border border-indigo-100 dark:border-indigo-900/50 relative overflow-hidden">
                                 {/* Decorative BG */}
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                                 <div className="relative z-10">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-indigo-100">
+                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-indigo-100 dark:border-indigo-900">
                                             ✨
                                         </div>
                                         <div>
-                                            <h3 className="font-heading font-bold text-2xl text-indigo-900">AI Compatibility Analysis</h3>
-                                            <p className="text-indigo-600/80 text-sm font-medium">Why you matched with {profile.name}</p>
+                                            <h3 className="font-heading font-bold text-2xl text-indigo-900 dark:text-indigo-100">AI Compatibility Analysis</h3>
+                                            <p className="text-indigo-600/80 dark:text-indigo-400 text-sm font-medium">Why you matched with {profile.name}</p>
                                         </div>
                                     </div>
 
-                                    <div className="bg-white/60 backdrop-blur-xl p-6 rounded-2xl border border-white/40 shadow-sm">
-                                        <p className="text-indigo-900/90 text-xl leading-relaxed font-medium">
+                                    <div className="bg-white/70 dark:bg-gray-800/80 backdrop-blur-xl p-6 rounded-2xl border border-white/50 dark:border-gray-700 shadow-sm">
+                                        <p className="text-indigo-950 dark:text-indigo-100 text-xl leading-relaxed font-medium">
                                             "{profile.summary}"
                                         </p>
                                     </div>
 
                                     <div className="mt-8 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                                        {/* AI Tags derived from content logic would go here, currently just placeholders or reuse match reasons if available in profile */}
-                                        <div className="px-4 py-2 bg-white/50 rounded-full text-indigo-700 text-xs font-bold uppercase tracking-wider border border-white/20">
+                                        <div className="px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-full text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/50">
                                             🧠 Smart Match
                                         </div>
-                                        <div className="px-4 py-2 bg-white/50 rounded-full text-indigo-700 text-xs font-bold uppercase tracking-wider border border-white/20">
+                                        <div className="px-4 py-2 bg-white/60 dark:bg-gray-800/60 rounded-full text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wider border border-indigo-100 dark:border-indigo-900/50">
                                             ⚡ High Compatibility
                                         </div>
                                     </div>

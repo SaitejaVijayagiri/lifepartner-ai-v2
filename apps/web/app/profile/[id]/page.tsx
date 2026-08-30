@@ -52,23 +52,25 @@ export async function generateMetadata(
     }
 
     const name = profile.name || 'Member';
-    const profession = profile.role || profile.profession || profile.jobTitle || 'Verified Member';
-    const location = profile.location?.city || 'India';
+    const age = profile.age ? `${profile.age} yrs` : '';
+    const profession = profile.role || profile.career?.profession || profile.profession || 'Verified Member';
+    const location = profile.location?.city || profile.location?.district || profile.city || 'India';
     const photos = profile.photos || [];
     const bio = profile.bio || profile.aboutMe || `Connect with ${name} on LifePartner AI.`;
+    const summaryHeader = [name, age, profession, location].filter(Boolean).join(' • ');
 
     return {
         title: `${name} - ${profession} in ${location} | LifePartner AI`,
-        description: bio.substring(0, 160), // SEO friendly description length
+        description: bio.substring(0, 160),
         openGraph: {
-            title: `${name} | LifePartner AI Match`,
-            description: `Check out ${name}'s profile on LifePartner AI - the #1 Free Matrimony App.`,
+            title: `${summaryHeader} | LifePartner AI`,
+            description: `${bio.substring(0, 140)}... Connect with ${name} on LifePartner AI.`,
             images: photos.length > 0 ? [photos[0]] : ['https://lifepartnerai.in/og-image.jpg'],
             type: 'profile',
         },
         twitter: {
             card: 'summary_large_image',
-            title: `${name} is on LifePartner AI`,
+            title: `${summaryHeader} is on LifePartner AI`,
             description: `Connect with ${name} from ${location}.`,
             images: photos.length > 0 ? [photos[0]] : ['https://lifepartnerai.in/og-image.jpg'],
         },

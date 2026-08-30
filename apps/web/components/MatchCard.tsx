@@ -569,19 +569,32 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         <button
                             onClick={async (e) => {
                                 e.stopPropagation();
+                                const ageStr = match.age ? `${match.age} yrs` : '';
+                                const profStr = match.career?.profession || match.profession || '';
+                                const locStr = formatLocationString(match.location) || '';
+                                const relStr = match.religion?.religion || match.religion?.faith || '';
+                                const scoreStr = match.score ? `🌟 ${match.score}% AI Match` : '';
+
+                                const detailChips = [ageStr, profStr, locStr, relStr].filter(Boolean).join(' • ');
+                                const shareText = `✨ Check out ${match.name}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI! ${scoreStr}`.trim();
+                                const shareUrl = typeof window !== 'undefined'
+                                    ? `${window.location.origin}/profile/${match.id}?utm_source=share&utm_medium=social&utm_campaign=matchcard_share`
+                                    : `https://lifepartnerai.in/profile/${match.id}`;
+
                                 const shareData = {
-                                    title: `Match: ${match.name}`,
-                                    text: `Check out ${match.name} on LifePartner AI!`,
-                                    url: `https://lifepartnerai.in/profile/${match.id}?utm_source=share&utm_medium=social&utm_campaign=profile_share`
+                                    title: `${match.name} • LifePartner AI Profile`,
+                                    text: shareText,
+                                    url: shareUrl
                                 };
+
                                 try {
                                     if (navigator.share) {
                                         await navigator.share(shareData);
                                     } else {
-                                        await navigator.clipboard.writeText(shareData.url);
-                                        toast.success("Link copied!");
+                                        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                                        toast.success("Profile details & link copied!");
                                     }
-                                } catch { /* cancelled */ }
+                                } catch { /* user cancelled share */ }
                             }}
                             className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 text-gray-200"
                             title="Share Profile"

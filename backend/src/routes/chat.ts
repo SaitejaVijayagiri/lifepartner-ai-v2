@@ -700,14 +700,9 @@ router.delete('/lounge/:messageId', authenticateToken, async (req: any, res) => 
             return res.status(404).json({ error: "Message not found" });
         }
 
+        // Strictly only the sender can delete their own message
         if (msg.sender_id !== userId) {
-            const user = await prisma.users.findUnique({
-                where: { id: userId },
-                select: { is_admin: true }
-            });
-            if (!user?.is_admin) {
-                return res.status(403).json({ error: "You can only delete your own messages" });
-            }
+            return res.status(403).json({ error: "You can only delete your own messages" });
         }
 
         await prisma.lounge_messages.delete({

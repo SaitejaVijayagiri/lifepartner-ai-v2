@@ -670,16 +670,10 @@ export const initSocket = (httpServer: HttpServer) => {
 
                 if (!msg) return;
 
-                // Only sender or admin can delete
+                // Strictly only the sender can delete their own message
                 if (msg.sender_id !== userId) {
-                    const userRecord = await prisma.users.findUnique({
-                        where: { id: userId },
-                        select: { is_admin: true }
-                    });
-                    if (!userRecord?.is_admin) {
-                        socket.emit('community_error', { message: "You can only delete your own messages." });
-                        return;
-                    }
+                    socket.emit('community_error', { message: "You can only delete your own messages." });
+                    return;
                 }
 
                 await prisma.lounge_messages.delete({

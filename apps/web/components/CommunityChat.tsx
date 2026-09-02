@@ -158,8 +158,9 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                         </div>
 
                         {messages.map((msg, idx) => {
-                            const isMe = msg.sender.id === currentUser?.id;
-                            const canDelete = Boolean(msg.id) && (isMe || currentUser?.is_admin);
+                            const currentUserId = currentUser?.id || currentUser?.userId;
+                            const isMe = Boolean(currentUserId && msg.sender.id === currentUserId);
+                            const canDelete = Boolean(msg.id) && isMe;
                             return (
                                 <div key={msg.id || idx} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2`}>
                                     <img src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} className="w-8 h-8 rounded-full border border-gray-200 self-end mb-1 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
@@ -181,7 +182,7 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDeleteMessage(msg.id)}
-                                                    title="Delete message"
+                                                    title="Delete your message"
                                                     className="opacity-60 sm:opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all"
                                                 >
                                                     <Trash2 size={13} />

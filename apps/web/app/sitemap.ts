@@ -31,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
         const res = await fetch(`${apiUrl}/blog?limit=100`, {
             signal: AbortSignal.timeout(3000)
         });

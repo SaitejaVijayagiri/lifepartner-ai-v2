@@ -72,6 +72,24 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
             return res.status(400).json({ error: 'Snap media content is required.' });
         }
 
+        // Deduplication / Debounce check: Prevent rapid double-upload within 15 seconds
+        const recentDuplicate: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id, sender_id, receiver_id, caption, created_at, expires_at, is_viewed
+            FROM instants
+            WHERE sender_id = $1::uuid
+              AND created_at > (now() - interval '15 seconds')
+            ORDER BY created_at DESC
+            LIMIT 1;
+        `, userId);
+
+        if (recentDuplicate && recentDuplicate.length > 0) {
+            console.log(`[Instants] Debounced duplicate snap submission for user ${userId}`);
+            return res.json({
+                success: true,
+                instant: recentDuplicate[0]
+            });
+        }
+
         // Upload snap image to Cloudinary CDN
         if (finalMediaUrl.startsWith('data:image')) {
             const cloudinaryUrl = await uploadToCloudinary(finalMediaUrl, `instants_${userId}`);

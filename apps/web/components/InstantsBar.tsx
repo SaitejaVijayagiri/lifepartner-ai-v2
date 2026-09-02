@@ -53,6 +53,36 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
         );
     };
 
+    // Group active snaps by sender so each user appears exactly ONCE in the bar
+    const displayInstants = React.useMemo(() => {
+        const userMap = new Map<string, { latest: InstantItem; count: number; hasUnviewed: boolean }>();
+        for (const item of instants) {
+            const key = item.senderId;
+            const existing = userMap.get(key);
+            if (!existing) {
+                userMap.set(key, {
+                    latest: item,
+                    count: 1,
+                    hasUnviewed: !item.hasViewed
+                });
+            } else {
+                existing.count += 1;
+                if (!item.hasViewed) {
+                    existing.hasUnviewed = true;
+                    // Prioritize showing unviewed snap
+                    if (existing.latest.hasViewed) {
+                        existing.latest = item;
+                    }
+                }
+            }
+        }
+        return Array.from(userMap.values()).map(g => ({
+            ...g.latest,
+            hasViewed: !g.hasUnviewed,
+            snapCount: g.count
+        }));
+    }, [instants]);
+
     return (
         <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-3 shadow-sm mb-4">
             <div className="flex items-center justify-between mb-2 px-1">
@@ -85,7 +115,7 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                 </div>
 
                 {/* Instant Items */}
-                {instants.map(instant => {
+                {displayInstants.map(instant => {
                     const isViewed = instant.hasViewed;
 
                     return (

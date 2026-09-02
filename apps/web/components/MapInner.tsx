@@ -88,10 +88,12 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                 style={{ height: '100%', width: '100%', background: '#0f172a' }}
                 zoomControl={false}
             >
-                {/* Premium Dark Mode Map Tiles */}
+                {/* High-Performance Free Map Tiles (No API key needed) */}
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    className="dark-map-tiles"
+                    maxZoom={19}
                 />
 
                 {/* Capture map ref */}
@@ -230,6 +232,17 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     <Navigation2 className="w-5 h-5 group-hover:fill-indigo-600 transition-all" />
                 </button>
             )}
+
+            {/* Custom Dark Theme & Leaflet Filter Styling */}
+            <style jsx global>{`
+                .dark-map-tiles {
+                    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+                }
+                .leaflet-container {
+                    background: #0f172a !important;
+                    font-family: inherit;
+                }
+            `}</style>
         </div>
     );
 }

@@ -1215,10 +1215,45 @@ function DashboardContent() {
                     <div className={activeTab === 'community' ? 'block' : 'hidden'}>
                         {visitedTabs.has('community') && (
                             <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
-                                <CommunityChat currentUser={currentUser} onClose={() => setActiveTab('matches')} onOpenStore={() => {
-                                    setInitialStoreTab('premium');
-                                    setShowCoinStore(true);
-                                }} />
+                                <CommunityChat 
+                                    currentUser={currentUser} 
+                                    onClose={() => setActiveTab('matches')} 
+                                    onOpenStore={() => {
+                                        setInitialStoreTab('premium');
+                                        setShowCoinStore(true);
+                                    }}
+                                    onViewProfile={async (member: any) => {
+                                        const targetId = member.userId || member.id;
+                                        if (!targetId) return;
+                                        try {
+                                            const fullProfile = await api.profile.getById(targetId);
+                                            setSelectedProfile(fullProfile);
+                                        } catch (e) {
+                                            const matchFound = matches.find((m: any) => m.id === targetId);
+                                            setSelectedProfile(matchFound || {
+                                                id: targetId,
+                                                userId: targetId,
+                                                name: member.name,
+                                                photoUrl: member.photo,
+                                                photos: member.photo ? [member.photo] : [],
+                                                isVerified: true
+                                            });
+                                        }
+                                    }}
+                                    onInstantMessage={(member: any) => {
+                                        const targetId = member.userId || member.id;
+                                        if (!targetId) return;
+                                        openChat({
+                                            interactionId: targetId,
+                                            partner: {
+                                                id: targetId,
+                                                name: member.name || 'User',
+                                                photoUrl: member.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${targetId}`,
+                                                role: 'Online'
+                                            }
+                                        });
+                                    }}
+                                />
                             </div>
                         )}
                     </div>

@@ -9,8 +9,8 @@ let io: Server;
 const onlineUsers = new Map<string, number>();
 
 // Track users explicitly in the Verified Lounge
-// socketId -> { userId, name, photo }
-const communityUsers = new Map<string, { userId: string, name: string, photo: string }>();
+// socketId -> { id, userId, name, photo, isVerified }
+const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean }>();
 
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
@@ -561,9 +561,11 @@ export const initSocket = (httpServer: HttpServer) => {
             // Add to Community Map
             if (user) {
                 communityUsers.set(socket.id, {
+                    id: userId,
                     userId: userId,
                     name: user.full_name || 'Verified Member',
-                    photo: user.avatar_url || ''
+                    photo: user.avatar_url || '',
+                    isVerified: true
                 });
             }
 
@@ -601,6 +603,7 @@ export const initSocket = (httpServer: HttpServer) => {
                     text: msg.text,
                     sender: {
                         id: msg.users.id,
+                        userId: msg.users.id,
                         name: msg.users.full_name || 'Member',
                         photo: msg.users.avatar_url,
                         isVerified: true
@@ -646,6 +649,7 @@ export const initSocket = (httpServer: HttpServer) => {
                     text,
                     sender: {
                         id: from,
+                        userId: from,
                         name: user.name,
                         photo: user.photo,
                         isVerified: true

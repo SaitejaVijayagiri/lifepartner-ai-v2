@@ -2,16 +2,29 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
-import { Send, Users, ShieldCheck, Lock, X, Trash2 } from 'lucide-react';
+import { Send, Users, ShieldCheck, Lock, X, Trash2, MessageCircle, User, Eye } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
 
-export default function CommunityChat({ currentUser, onOpenStore, onClose }: { currentUser: any, onOpenStore?: () => void, onClose?: () => void }) {
+export default function CommunityChat({ 
+    currentUser, 
+    onOpenStore, 
+    onClose,
+    onViewProfile,
+    onInstantMessage
+}: { 
+    currentUser: any, 
+    onOpenStore?: () => void, 
+    onClose?: () => void,
+    onViewProfile?: (member: any) => void,
+    onInstantMessage?: (member: any) => void
+}) {
     const { socket } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
     const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [status, setStatus] = useState<'connecting' | 'connected' | 'denied'>('connecting');
     const [showMobileUsersModal, setShowMobileUsersModal] = useState(false);
+    const [selectedMember, setSelectedMember] = useState<any | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -77,6 +90,41 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
         if (socket) {
             socket.emit('delete_community_message', { messageId });
         }
+    };
+
+    const handleViewProfile = (member: any) => {
+        if (!member) return;
+        const targetId = member.userId || member.id;
+        if (!targetId) return;
+
+        if (onViewProfile) {
+            onViewProfile(member);
+        } else {
+            window.location.href = `/profile/${targetId}`;
+        }
+        setSelectedMember(null);
+        setShowMobileUsersModal(false);
+    };
+
+    const handleInstantMessage = (member: any) => {
+        if (!member) return;
+        const targetId = member.userId || member.id;
+        if (!targetId) return;
+
+        if (onInstantMessage) {
+            onInstantMessage(member);
+        } else {
+            window.dispatchEvent(new CustomEvent('openChat', {
+                detail: {
+                    partnerId: targetId,
+                    partnerName: member.name || 'User',
+                    partnerPhoto: member.photo || member.photoUrl || ''
+                }
+            }));
+            if (onClose) onClose();
+        }
+        setSelectedMember(null);
+        setShowMobileUsersModal(false);
     };
 
     if (!currentUser) {
@@ -163,13 +211,25 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                             const canDelete = Boolean(msg.id) && isMe;
                             return (
                                 <div key={msg.id || idx} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2`}>
-                                    <img src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} className="w-8 h-8 rounded-full border border-gray-200 self-end mb-1 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
+                                    <img 
+                                        src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} 
+                                        onClick={() => !isMe && setSelectedMember(msg.sender)}
+                                        className={`w-8 h-8 rounded-full border border-gray-200 self-end mb-1 shrink-0 ${!isMe ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all' : ''}`} 
+                                        onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} 
+                                        title={!isMe ? `Tap to view ${msg.sender.name}'s card or send message` : undefined}
+                                    />
                                     <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]`}>
                                         {!isMe && (
-                                            <span className="text-[10px] text-gray-500 ml-1 mb-0.5 flex items-center gap-1 font-bold">
-                                                {msg.sender.name}
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedMember(msg.sender)}
+                                                className="text-[10px] text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 ml-1 mb-0.5 flex items-center gap-1 font-bold transition-colors cursor-pointer group/name"
+                                                title={`Tap to view ${msg.sender.name}'s matchcard or message`}
+                                            >
+                                                <span>{msg.sender.name}</span>
                                                 {msg.sender.isVerified && <VerificationBadge size={10} />}
-                                            </span>
+                                                <span className="text-[9px] text-indigo-500 opacity-0 group-hover/name:opacity-100 transition-opacity ml-1">· view card</span>
+                                            </button>
                                         )}
                                         <div className={`flex items-center gap-1.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                                             <div className={`px-4 py-2 rounded-2xl shadow-sm text-sm break-words ${isMe
@@ -224,28 +284,66 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                         <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full text-xs">{onlineMembers.length}</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                        {onlineMembers.map((u, i) => (
-                            <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors cursor-pointer group">
-                                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700">
-                                    {u.photo ? (
-                                        <img src={u.photo} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs font-bold">
-                                            {u.name[0]}
+                        {onlineMembers.map((u, i) => {
+                            const currentUserId = currentUser?.id || currentUser?.userId;
+                            const isCurrentUser = (u.userId || u.id) === currentUserId;
+                            return (
+                                <div 
+                                    key={i} 
+                                    onClick={() => !isCurrentUser && setSelectedMember(u)}
+                                    className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors cursor-pointer group"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
+                                            {u.photo ? (
+                                                <img src={u.photo} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs font-bold">
+                                                    {u.name[0]}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
+                                                <span>{u.name}</span>
+                                                {isCurrentUser && <span className="text-[10px] text-gray-400 font-normal">(You)</span>}
+                                                {u.isVerified && <VerificationBadge size={10} />}
+                                            </p>
+                                            <p className="text-[10px] text-green-500 flex items-center gap-1">
+                                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {!isCurrentUser && (
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleInstantMessage(u);
+                                                }}
+                                                title={`Send instant message to ${u.name}`}
+                                                className="p-1.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-lg transition-colors"
+                                            >
+                                                <MessageCircle size={13} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleViewProfile(u);
+                                                }}
+                                                title={`View ${u.name}'s matchcard`}
+                                                className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                            >
+                                                <User size={13} />
+                                            </button>
                                         </div>
                                     )}
                                 </div>
-                                <div className="min-w-0">
-                                    <p className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors flex items-center gap-1">
-                                        {u.name}
-                                        {u.isVerified && <VerificationBadge size={10} />}
-                                    </p>
-                                    <p className="text-[10px] text-green-500 flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -265,33 +363,124 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        {onlineMembers.map((u, i) => (
-                            <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0">
-                                    {u.photo ? (
-                                        <img src={u.photo} className="w-full h-full object-cover" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold">
-                                            {u.name[0]}
+                        {onlineMembers.map((u, i) => {
+                            const currentUserId = currentUser?.id || currentUser?.userId;
+                            const isCurrentUser = (u.userId || u.id) === currentUserId;
+                            return (
+                                <div 
+                                    key={i} 
+                                    onClick={() => !isCurrentUser && setSelectedMember(u)}
+                                    className="flex items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 cursor-pointer active:scale-[0.99] transition-transform"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0">
+                                            {u.photo ? (
+                                                <img src={u.photo} className="w-full h-full object-cover" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold">
+                                                    {u.name[0]}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-sm text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                                                <span>{u.name}</span>
+                                                {isCurrentUser && <span className="text-[10px] text-gray-400 font-normal">(You)</span>}
+                                                {u.isVerified && <VerificationBadge size={12} />}
+                                            </p>
+                                            <p className="text-xs text-green-500 flex items-center gap-1 mt-0.5 font-medium">
+                                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_4px_rgba(34,197,94,0.5)]"></span> Online
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {!isCurrentUser && (
+                                        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleInstantMessage(u)}
+                                                className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors"
+                                                title="Send instant message"
+                                            >
+                                                <MessageCircle size={13} />
+                                                <span>Chat</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleViewProfile(u)}
+                                                className="px-2.5 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
+                                                title="View matchcard"
+                                            >
+                                                <User size={13} />
+                                                <span>Card</span>
+                                            </button>
                                         </div>
                                     )}
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate flex items-center gap-1.5">
-                                        {u.name}
-                                        {u.isVerified && <VerificationBadge size={12} />}
-                                    </p>
-                                    <p className="text-xs text-green-500 flex items-center gap-1 mt-0.5 font-medium">
-                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_4px_rgba(34,197,94,0.5)]"></span> Online
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         {onlineMembers.length === 0 && (
                             <div className="text-center py-10 text-gray-500 text-sm">
                                 No one else is here right now.
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Quick Action Modal: Member Card & Instant Chat */}
+            {selectedMember && (
+                <div 
+                    className="fixed inset-0 z-[2500] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => setSelectedMember(null)}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl w-full max-w-xs overflow-hidden shadow-2xl p-6 flex flex-col items-center text-center relative animate-in zoom-in-95 duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button 
+                            type="button"
+                            onClick={() => setSelectedMember(null)}
+                            className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        >
+                            <X size={18} />
+                        </button>
+
+                        <div className="relative mb-3 mt-1">
+                            <img 
+                                src={selectedMember.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedMember.name || 'User')}`} 
+                                className="w-20 h-20 rounded-full object-cover border-4 border-indigo-500/20 shadow-lg"
+                                onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }}
+                            />
+                            <span className="absolute bottom-0 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                        </div>
+
+                        <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-1.5 justify-center">
+                            <span>{selectedMember.name}</span>
+                            {selectedMember.isVerified && <VerificationBadge size={14} />}
+                        </h3>
+                        <p className="text-xs text-green-500 font-medium flex items-center gap-1 mt-0.5 justify-center">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Active in Lounge right now
+                        </p>
+
+                        <div className="w-full flex flex-col gap-2.5 mt-6">
+                            <button
+                                type="button"
+                                onClick={() => handleInstantMessage(selectedMember)}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-500/25 transition-all active:scale-95"
+                            >
+                                <MessageCircle size={17} />
+                                Send Instant Message
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleViewProfile(selectedMember)}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white font-bold text-xs rounded-2xl border border-gray-200 dark:border-gray-700 transition-all active:scale-95"
+                            >
+                                <User size={15} />
+                                View Matchcard
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

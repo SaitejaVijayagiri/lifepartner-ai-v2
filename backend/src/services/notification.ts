@@ -187,14 +187,6 @@ export class NotificationService {
             };
 
             const webpushPayload: any = {
-                notification: {
-                    title: String(title),
-                    body: String(body),
-                    icon: senderPhoto ? String(senderPhoto) : 'https://lifepartnerai.in/icon.png',
-                    badge: 'https://lifepartnerai.in/icon-192x192.png',
-                    requireInteraction: true,
-                    silent: false
-                },
                 headers: {
                     Urgency: 'high',
                     TTL: '86400'
@@ -205,47 +197,11 @@ export class NotificationService {
             };
 
             if (bannerUrl) {
-                webpushPayload.notification.image = String(bannerUrl);
-            }
-
-            // Add Accept/Decline action buttons for Web Push client natively
-            if (data?.type === 'request' && data?.interactionId) {
-                webpushPayload.notification.actions = [
-                    { action: 'accept_request', title: 'Accept ✅' },
-                    { action: 'decline_request', title: 'Decline ❌' }
-                ];
-            } else if (data?.type === 'incoming_call') {
-                webpushPayload.notification.actions = [
-                    { action: 'answer_call', title: 'Answer 📞' },
-                    { action: 'decline_call', title: 'Decline ❌' }
-                ];
-            } else if (data?.type === 'match' && data?.messageId && data?.senderId) {
-                // Add Like and Reply actions for chat messages/replies
-                webpushPayload.notification.actions = [
-                    { action: 'like_message', title: 'Like ❤️' },
-                    { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
-                ];
-            } else if (data?.type === 'witty_reengagement') {
-                webpushPayload.notification.actions = [
-                    { action: 'find_matches', title: 'Swipe Matches 🔍' },
-                    { action: 'love_guru', title: 'Ask Love Guru 🤖' }
-                ];
-            } else if (data?.type === 'connection_online') {
-                webpushPayload.notification.actions = [
-                    { action: 'chat_now', title: 'Chat Now 💬' }
-                ];
-            }
-
-            if (bannerUrl) {
-                notificationPayload.imageUrl = String(bannerUrl);
                 apnsPayload.payload.aps['mutable-content'] = 1;
                 apnsPayload.fcmOptions = {
                     imageUrl: String(bannerUrl)
                 };
             } else if (senderPhoto) {
-                // Node.js SDK expects imageUrl (internally converted to image in REST API)
-                notificationPayload.imageUrl = String(senderPhoto);
-
                 // Enable rich media push on iOS
                 apnsPayload.payload.aps['mutable-content'] = 1;
                 apnsPayload.fcmOptions = {
@@ -253,27 +209,24 @@ export class NotificationService {
                 };
             }
 
+            // Android high-priority data payload:
+            // Omitting 'notification' object guarantees Android OS invokes MyFirebaseMessagingService.onMessageReceived()
+            // in all app states (foreground, background, and killed/locked screen), enabling WhatsApp/Telegram-style
+            // RemoteInput lockscreen replies, like button, custom channel sounds, and heads-up banner.
             const androidPayload: any = {
                 priority: 'high',
-                ttl: 86400 * 1000, // 24-hour offline queueing in FCM servers
-                notification: {
-                    channelId: 'lifepartner_chat',
-                    priority: 'max',
-                    defaultSound: true,
-                    defaultVibrateTimings: true,
-                    visibility: 'public'
-                }
+                ttl: 86400 * 1000 // 24-hour offline queueing in FCM servers
             };
-
-            if (bannerUrl || senderPhoto) {
-                androidPayload.notification.imageUrl = String(bannerUrl || senderPhoto);
-            }
 
             const message: any = {
                 tokens,
                 data: {
                     title: String(title),
                     body: String(body),
+                    senderName: String(data?.senderName || title),
+                    senderPhoto: senderPhoto ? String(senderPhoto) : '',
+                    bannerUrl: bannerUrl ? String(bannerUrl) : '',
+                    url: data?.url || (data?.callerId ? `/chat/${data.callerId}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections')),
                     ...mappedData
                 },
                 android: androidPayload,
@@ -281,10 +234,6 @@ export class NotificationService {
                 webpush: webpushPayload
             };
 
-            // Keep notification object for Web/iOS while Android uses high-priority data & channel config
-            if (data?.type !== 'witty_reengagement') {
-                message.notification = notificationPayload;
-            }
             const batchResponse = await admin.messaging().sendEachForMulticast(message);
             console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);
 

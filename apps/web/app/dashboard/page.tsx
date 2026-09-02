@@ -41,7 +41,6 @@ const FilterModal = dynamic(() => import('@/components/FilterModal'), { ssr: fal
 const GiftModal = dynamic(() => import('@/components/GiftModal'));
 const GameModal = dynamic(() => import('@/components/GameModal'));
 const CommunityChat = dynamic(() => import('@/components/CommunityChat'), { ssr: false });
-const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
 const MeetSpots = dynamic(() => import('@/components/MeetSpots'));
 const FloatingLoveGuru = dynamic(() => import('@/components/FloatingLoveGuru'), { ssr: false });
 const InstantsBar = dynamic(() => import('@/components/InstantsBar'), { ssr: false });
@@ -1561,9 +1560,6 @@ function DashboardContent() {
                     names={selectedKundli.names}
                 />
             )}
-
-            {/* Web Push Prompt (Condition handled inside component) */}
-            <WebPushPrompt />
 
             {/* Game Modal - Launched from Connections List */}
             {gameTarget && (

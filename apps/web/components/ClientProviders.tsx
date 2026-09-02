@@ -10,6 +10,10 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 import { LanguageProvider } from '@/context/LanguageContext';
 
+import dynamic from 'next/dynamic';
+
+const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
+
 function ProvidersContent({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
 
@@ -29,6 +33,7 @@ function ProvidersContent({ children }: { children: React.ReactNode }) {
             <CallProvider>
                 {children}
                 <GlobalCallUI />
+                {user && <WebPushPrompt />}
             </CallProvider>
             <Toaster />
         </SocketProvider>

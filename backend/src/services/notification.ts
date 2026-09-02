@@ -186,7 +186,11 @@ export class NotificationService {
                     silent: false
                 },
                 headers: {
-                    Urgency: 'high'
+                    Urgency: 'high',
+                    TTL: '86400'
+                },
+                fcmOptions: {
+                    link: data?.url || (data?.callerId ? `/chat/${data.callerId}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections'))
                 }
             };
 
@@ -200,7 +204,13 @@ export class NotificationService {
                     { action: 'accept_request', title: 'Accept ✅' },
                     { action: 'decline_request', title: 'Decline ❌' }
                 ];
+            } else if (data?.type === 'incoming_call') {
+                webpushPayload.notification.actions = [
+                    { action: 'answer_call', title: 'Answer 📞' },
+                    { action: 'decline_call', title: 'Decline ❌' }
+                ];
             } else if (data?.type === 'match' && data?.messageId && data?.senderId) {
+                // Add Like and Reply actions for chat messages/replies
                 webpushPayload.notification.actions = [
                     { action: 'like_message', title: 'Like ❤️' },
                     { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }

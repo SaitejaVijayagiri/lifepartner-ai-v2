@@ -20,28 +20,21 @@ export default function WebPushPrompt({ onDismiss }: WebPushPromptProps) {
             return;
         }
 
-        // Wait a few seconds before prompting so as not to overwhelm the user on first load
+        // Wait 2 seconds before prompting so user settles on page
         const timer = setTimeout(() => {
             if (typeof window !== 'undefined' && 'Notification' in window) {
                 if (Notification.permission === 'default') {
                     // Check local storage so we don't annoy them if they dismissed it before
                     const dismissed = localStorage.getItem('web_push_dismissed');
                     if (!dismissed) {
-                        // Immediately attempt native prompt without user interaction
-                        Notifications.init()
-                            .then(() => Notifications.setupListeners())
-                            .catch(err => {
-                                // If browser blocked it because it required a user gesture, gracefully fallback
-                                console.log("Auto-prompt blocked or failed, showing fallback UI banner", err);
-                                setShow(true);
-                            });
+                        setShow(true);
                     }
                 } else if (Notification.permission === 'granted') {
                     // Already granted! Silently initialize for web to update token if needed
                     Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
                 }
             }
-        }, 5000); // 5 sec delay
+        }, 2000); // 2 sec delay
 
         return () => clearTimeout(timer);
     }, []);

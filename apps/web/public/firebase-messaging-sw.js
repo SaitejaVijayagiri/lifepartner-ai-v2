@@ -362,7 +362,11 @@ self.addEventListener('notificationclick', function(event) {
         targetTab = 'connections';
     }
     
-    const urlToOpen = `/dashboard?tab=${targetTab}`;
+    let urlToOpen = payloadData.url || `/dashboard?tab=${targetTab}`;
+    if (!payloadData.url && type === 'match' && (payloadData.senderId || payloadData.chatId)) {
+        const id = payloadData.senderId || payloadData.chatId;
+        urlToOpen = `/chat/${id}`;
+    }
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {

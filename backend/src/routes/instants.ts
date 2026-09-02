@@ -174,23 +174,28 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
             oppositeGenders = ['male', 'man', 'm'];
         }
 
-        // Query active instants created in last 24h
+        const hasGenderFilter = oppositeGenders.length > 0;
+
+        // Query active instants created in last 24h with strict opposite-gender filtering
         const rows: any[] = await prisma.$queryRawUnsafe(`
             SELECT i.id, i.sender_id, i.caption, i.created_at, i.expires_at, i.viewed_by, i.likes, i.is_viewed, i.media_url,
                    u.full_name as sender_name, u.avatar_url as sender_avatar, u.gender as sender_gender
             FROM instants i
             JOIN users u ON u.id = i.sender_id
-            WHERE (i.receiver_id IS NULL OR i.receiver_id = $1::uuid OR i.sender_id = $1::uuid)
-              AND i.expires_at > now()
+            WHERE i.expires_at > now()
+              AND (
+                  i.sender_id = $1::uuid
+                  OR i.receiver_id = $1::uuid
+                  OR (i.receiver_id IS NULL AND (LOWER(TRIM(u.gender)) = ANY($2::text[]) OR $3::boolean = false))
+              )
             ORDER BY 
                 CASE 
-                    WHEN i.sender_id = $1::uuid THEN 1
-                    WHEN LOWER(u.gender) = ANY($2::text[]) THEN 0
-                    ELSE 2
+                    WHEN i.sender_id = $1::uuid THEN 0
+                    ELSE 1
                 END,
                 i.created_at DESC
             LIMIT 50;
-        `, userId, oppositeGenders.length > 0 ? oppositeGenders : ['none']);
+        `, userId, hasGenderFilter ? oppositeGenders : ['none'], hasGenderFilter);
 
         const formatted = rows.map((row: any) => {
             const viewedList: any[] = Array.isArray(row.viewed_by) ? row.viewed_by : [];

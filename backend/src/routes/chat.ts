@@ -686,4 +686,46 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
     }
 });
 
+// DELETE /messages/lounge/:messageId - Delete own message in Community Lounge
+router.delete('/lounge/:messageId', authenticateToken, async (req: any, res) => {
+    const { messageId } = req.params;
+    const userId = req.user.userId;
+
+    try {
+        const msg = await prisma.lounge_messages.findUnique({
+            where: { id: messageId }
+        });
+
+        if (!msg) {
+            return res.status(404).json({ error: "Message not found" });
+        }
+
+        if (msg.sender_id !== userId) {
+            const user = await prisma.users.findUnique({
+                where: { id: userId },
+                select: { is_admin: true }
+            });
+            if (!user?.is_admin) {
+                return res.status(403).json({ error: "You can only delete your own messages" });
+            }
+        }
+
+        await prisma.lounge_messages.delete({
+            where: { id: messageId }
+        });
+
+        // Broadcast deletion to lounge room via socket
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            io.to('verified_lounge').emit('community_message_deleted', { messageId });
+        } catch (_) {}
+
+        res.json({ success: true, message: "Lounge message deleted" });
+    } catch (e: any) {
+        console.error("Delete lounge message error", e);
+        res.status(500).json({ error: "Failed to delete message" });
+    }
+});
+
 export default router;

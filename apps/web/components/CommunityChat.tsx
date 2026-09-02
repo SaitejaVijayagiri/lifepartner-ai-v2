@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
-import { Send, Users, ShieldCheck, Lock, X } from 'lucide-react';
+import { Send, Users, ShieldCheck, Lock, X, Trash2 } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
 
 export default function CommunityChat({ currentUser, onOpenStore, onClose }: { currentUser: any, onOpenStore?: () => void, onClose?: () => void }) {
@@ -41,13 +41,17 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
             setOnlineMembers(users);
         });
 
+        socket.on('community_message_deleted', ({ messageId }: { messageId: string }) => {
+            setMessages(prev => prev.filter(m => m.id !== messageId));
+        });
+
         return () => {
             socket.off('joined_community');
             socket.off('community_error');
             socket.off('receive_community_message');
             socket.off('update_community_users');
+            socket.off('community_message_deleted');
             socket.emit('leave_community');
-
         };
     }, [socket, currentUser]);
 
@@ -64,6 +68,15 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
 
         socket.emit('send_community_message', { text: inputText });
         setInputText("");
+    };
+
+    const handleDeleteMessage = (messageId: string) => {
+        if (!messageId) return;
+        // Optimistic UI removal
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+        if (socket) {
+            socket.emit('delete_community_message', { messageId });
+        }
     };
 
     if (!currentUser) {
@@ -146,9 +159,10 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
 
                         {messages.map((msg, idx) => {
                             const isMe = msg.sender.id === currentUser?.id;
+                            const canDelete = Boolean(msg.id) && (isMe || currentUser?.is_admin);
                             return (
-                                <div key={idx} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2`}>
-                                    <img src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} className="w-8 h-8 rounded-full border border-gray-200 self-end mb-1" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
+                                <div key={msg.id || idx} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2`}>
+                                    <img src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} className="w-8 h-8 rounded-full border border-gray-200 self-end mb-1 shrink-0" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
                                     <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[80%]`}>
                                         {!isMe && (
                                             <span className="text-[10px] text-gray-500 ml-1 mb-0.5 flex items-center gap-1 font-bold">
@@ -156,11 +170,23 @@ export default function CommunityChat({ currentUser, onOpenStore, onClose }: { c
                                                 {msg.sender.isVerified && <VerificationBadge size={10} />}
                                             </span>
                                         )}
-                                        <div className={`px-4 py-2 rounded-2xl shadow-sm text-sm ${isMe
-                                            ? 'bg-indigo-600 text-white rounded-br-sm'
-                                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-sm'
-                                            }`}>
-                                            {msg.text}
+                                        <div className={`flex items-center gap-1.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            <div className={`px-4 py-2 rounded-2xl shadow-sm text-sm break-words ${isMe
+                                                ? 'bg-indigo-600 text-white rounded-br-sm'
+                                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-sm'
+                                                }`}>
+                                                {msg.text}
+                                            </div>
+                                            {canDelete && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteMessage(msg.id)}
+                                                    title="Delete message"
+                                                    className="opacity-60 sm:opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all"
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            )}
                                         </div>
                                         <span className="text-[9px] text-gray-400 mt-0.5 px-1">
                                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

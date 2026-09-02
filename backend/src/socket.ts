@@ -597,6 +597,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 });
 
                 const history = historyRaw.map(msg => ({
+                    id: msg.id,
                     text: msg.text,
                     sender: {
                         id: msg.users.id,
@@ -629,29 +630,67 @@ export const initSocket = (httpServer: HttpServer) => {
             }
 
             const user = communityUsers.get(socket.id);
-            if (!user) return; // Should not happen if communityUsers.has(socket.id) is true
+            if (!user) return;
 
-            const msgPayload = {
-                text,
-                sender: {
-                    id: from,
-                    name: user.name,
-                    photo: user.photo,
-                    isVerified: true
-                },
-                timestamp: new Date()
-            };
+            try {
+                // Save to DB
+                const saved = await prisma.lounge_messages.create({
+                    data: {
+                        sender_id: from,
+                        text: text
+                    }
+                });
 
-            // Save to DB asynchronously
-            prisma.lounge_messages.create({
-                data: {
-                    sender_id: from,
-                    text: text
+                const msgPayload = {
+                    id: saved.id,
+                    text,
+                    sender: {
+                        id: from,
+                        name: user.name,
+                        photo: user.photo,
+                        isVerified: true
+                    },
+                    timestamp: saved.created_at
+                };
+
+                // Emit to everyone in the 'verified_lounge' room
+                io.to('verified_lounge').emit('receive_community_message', msgPayload);
+            } catch (createErr) {
+                console.error("Failed to save lounge message:", createErr);
+            }
+        });
+
+        socket.on('delete_community_message', async ({ messageId }) => {
+            if (!userId || !messageId) return;
+
+            try {
+                const msg = await prisma.lounge_messages.findUnique({
+                    where: { id: messageId }
+                });
+
+                if (!msg) return;
+
+                // Only sender or admin can delete
+                if (msg.sender_id !== userId) {
+                    const userRecord = await prisma.users.findUnique({
+                        where: { id: userId },
+                        select: { is_admin: true }
+                    });
+                    if (!userRecord?.is_admin) {
+                        socket.emit('community_error', { message: "You can only delete your own messages." });
+                        return;
+                    }
                 }
-            }).catch(console.error);
 
-            // Emit to everyone in the 'verified_lounge' room
-            io.to('verified_lounge').emit('receive_community_message', msgPayload);
+                await prisma.lounge_messages.delete({
+                    where: { id: messageId }
+                });
+
+                // Broadcast deletion to all users in verified_lounge room
+                io.to('verified_lounge').emit('community_message_deleted', { messageId });
+            } catch (delErr) {
+                console.error("Failed to delete lounge message via socket:", delErr);
+            }
         });
     });
 

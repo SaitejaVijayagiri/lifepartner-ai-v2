@@ -14,6 +14,9 @@ const SocketContext = createContext<{
         signal: any;
         type: 'video' | 'audio' | 'speed_date';
         location?: string;
+        photoUrl?: string | null;
+        avatarUrl?: string | null;
+        photo?: string | null;
     } | null;
     clearIncomingCall: () => void;
     publicStats: { onlineCount: number };
@@ -45,6 +48,9 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         signal: any;
         type: 'video' | 'audio' | 'speed_date';
         location?: string;
+        photoUrl?: string | null;
+        avatarUrl?: string | null;
+        photo?: string | null;
     } | null>(null);
     const [publicStats, setPublicStats] = useState({ onlineCount: 0 });
 
@@ -108,7 +114,7 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         });
 
         // CALL EVENTS
-        newSocket.on("callUser", ({ from, name: callerName, signal, type, location }) => {
+        newSocket.on("callUser", ({ from, name: callerName, signal, type, location, photoUrl, avatarUrl }: any) => {
             console.log("Incoming Call from", callerName, location);
             setIncomingCall({
                 isReceivingCall: true,
@@ -116,7 +122,8 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
                 name: callerName,
                 signal,
                 type,
-                location
+                location,
+                photoUrl: photoUrl || avatarUrl || null
             });
         });
 

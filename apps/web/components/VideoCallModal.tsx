@@ -153,7 +153,16 @@ interface VideoCallModalProps {
         location?: string;
     };
     onEndCall: () => void;
-    incomingCall?: { signal: any, from: string, name: string, type?: 'audio' | 'video' | 'speed_date' };
+    incomingCall?: {
+        signal: any;
+        from: string;
+        name: string;
+        type?: 'audio' | 'video' | 'speed_date';
+        photoUrl?: string | null;
+        avatarUrl?: string | null;
+        photo?: string | null;
+        location?: string | null;
+    };
     mode?: 'audio' | 'video' | 'speed_date';
     isInitiator?: boolean;
 }
@@ -188,10 +197,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const isHostRoom = !!(initialPartner as any)?._isHostRoom;
     const isSpeedDateInitiator = isSpeedDate && !isHostRoom && !!(initialPartner as any)?._speedDateInitiator;
     const isVideo = ((mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate) || isHostRoom;
-    const partner = initialPartner || {
-        id: incomingCall?.from || 'unknown',
-        name: incomingCall?.name || 'Unknown User',
-        photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall?.name || 'U'),
+    const partner = {
+        id: initialPartner?.id || incomingCall?.from || 'unknown',
+        name: initialPartner?.name || incomingCall?.name || 'Unknown User',
+        photoUrl: initialPartner?.photoUrl && !initialPartner.photoUrl.includes('ui-avatars.com')
+            ? initialPartner.photoUrl
+            : (incomingCall?.photoUrl || incomingCall?.avatarUrl || initialPartner?.photoUrl || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(initialPartner?.name || incomingCall?.name || 'U'))),
+        location: initialPartner?.location || incomingCall?.location
     };
 
     useEffect(() => {

@@ -59,6 +59,13 @@ messaging.onBackgroundMessage((payload) => {
             { action: 'accept_request', title: 'Accept ✅' },
             { action: 'decline_request', title: 'Decline ❌' }
         ];
+    } else if (payload.data?.type === 'incoming_call') {
+        notificationOptions.actions = [
+            { action: 'answer_call', title: 'Answer 📞' },
+            { action: 'decline_call', title: 'Decline ❌' }
+        ];
+        notificationOptions.requireInteraction = true;
+        notificationOptions.vibrate = [500, 200, 500, 200, 500];
     } else if (payload.data?.type === 'match' && payload.data?.messageId && payload.data?.senderId) {
         // Add Like and Reply actions for chat messages/replies
         notificationOptions.actions = [
@@ -305,6 +312,33 @@ self.addEventListener('notificationclick', function(event) {
             urlToOpen = `/chat/${fromUserId}?name=${encodeURIComponent(fromUserName)}&photo=${encodeURIComponent(fromUserPhoto)}`;
         }
         
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('/chat/') || client.url.includes('/dashboard')) {
+                        if ('navigate' in client) client.navigate(urlToOpen);
+                        if ('focus' in client) return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow(urlToOpen);
+            })
+        );
+        return;
+    }
+
+    if (action === 'decline_call') {
+        return; // Notification already closed
+    }
+
+    if (action === 'answer_call' || type === 'incoming_call') {
+        const callerId = payloadData.callerId || payloadData.senderId;
+        const callerName = payloadData.callerName || 'Partner';
+        const callerPhoto = payloadData.callerPhoto || '';
+        const urlToOpen = callerId
+            ? `/chat/${callerId}?name=${encodeURIComponent(callerName)}&photo=${encodeURIComponent(callerPhoto)}`
+            : '/dashboard?tab=connections';
+
         event.waitUntil(
             clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
                 for (let i = 0; i < windowClients.length; i++) {

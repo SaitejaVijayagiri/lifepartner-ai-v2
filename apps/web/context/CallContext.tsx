@@ -53,7 +53,7 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
                     partner: {
                         id: incomingCall.from,
                         name: incomingCall.name,
-                        photoUrl: 'https://ui-avatars.com/api/?name=' + (incomingCall.name || 'U'),
+                        photoUrl: incomingCall.photoUrl || incomingCall.avatarUrl || incomingCall.photo || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(incomingCall.name || 'U')),
                         location: incomingCall.location || undefined
                     },
                     incomingCallData: incomingCall

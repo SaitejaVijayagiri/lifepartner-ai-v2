@@ -295,31 +295,33 @@ export const initSocket = (httpServer: HttpServer) => {
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
         try {
-                // Fetch caller name and location for call UI (no premium gate — calls are free for all)
+                // Fetch caller name, location, and avatar for call UI (no premium gate — calls are free for all)
                 const callerData = from ? await prisma.users.findUnique({
                     where: { id: from },
-                    select: { city: true, location_name: true, full_name: true }
+                    select: { city: true, location_name: true, full_name: true, avatar_url: true }
                 }) : null;
 
                 const userLocation = callerData?.city || callerData?.location_name || null;
                 const secureName = callerData?.full_name || name || 'A User';
+                const callerAvatar = callerData?.avatar_url || null;
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
                     from,
                     name: secureName,
                     type,
-                    location: userLocation
+                    location: userLocation,
+                    avatarUrl: callerAvatar,
+                    photoUrl: callerAvatar
                 });
 
                 // Track call partner on this socket so disconnect only notifies them
                 socket.data.callPartnerId = userToCall;
 
-                // Offline Ringing logic: Push notification if target user is disconnected
-                const targetOnlineCount = onlineUsers.get(userToCall) || 0;
+                // Incoming Call Push notification: Alert target user (always ensure phone rings even if tab is in background)
                 const lastPush = (socket as any).lastPushTime || 0;
                 
-                if (targetOnlineCount === 0 && Date.now() - lastPush > 15000) {
+                if (Date.now() - lastPush > 10000) {
                     (socket as any).lastPushTime = Date.now();
                     const { NotificationService } = require('./services/notification');
                     NotificationService.getInstance().sendToUser(
@@ -330,6 +332,8 @@ export const initSocket = (httpServer: HttpServer) => {
                             type: 'incoming_call',
                             callerId: from,
                             callerName: secureName,
+                            callerPhoto: callerAvatar || '',
+                            callType: type || 'video'
                         }
                     ).catch(console.error);
                 }

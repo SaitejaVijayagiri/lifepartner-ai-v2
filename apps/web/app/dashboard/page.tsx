@@ -11,7 +11,7 @@ import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
 import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar, ShieldAlert, Home, Radio } from 'lucide-react';
 
-import { Notifications } from '@/lib/notifications';
+import { Notifications, isNativePlatform } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
 import { NotificationBell } from '@/components/NotificationBell';
 import ProfileView from '@/components/ProfileView';
@@ -373,7 +373,7 @@ function DashboardContent() {
                 setCurrentUser(profile);
 
                 // Initialize Push Notifications
-                if (Capacitor.isNativePlatform()) {
+                if (isNativePlatform()) {
                     Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
                 } else if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                     // Only automatically initialize on web if they ALREADY granted it.

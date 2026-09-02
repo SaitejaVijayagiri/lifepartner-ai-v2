@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Bell, X, ShieldCheck } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { Notifications } from '@/lib/notifications';
+import { Notifications, isNativePlatform } from '@/lib/notifications';
 
 interface WebPushPromptProps {
     onDismiss?: () => void;
@@ -16,16 +16,16 @@ export default function WebPushPrompt({ onDismiss }: WebPushPromptProps) {
 
     useEffect(() => {
         // Do not show on Native Android/iOS (Push is handled natively automatically)
-        if (Capacitor.isNativePlatform()) {
+        if (isNativePlatform()) {
             return;
         }
 
-        // Wait 2 seconds before prompting so user settles on page
+        // Wait 1.5 seconds before prompting so user settles on page
         const timer = setTimeout(() => {
             if (typeof window !== 'undefined' && 'Notification' in window) {
                 if (Notification.permission === 'default') {
-                    // Check local storage so we don't annoy them if they dismissed it before
-                    const dismissed = localStorage.getItem('web_push_dismissed');
+                    // Check session storage so we don't annoy them repeatedly within the same session
+                    const dismissed = sessionStorage.getItem('web_push_dismissed_session');
                     if (!dismissed) {
                         setShow(true);
                     }
@@ -34,7 +34,7 @@ export default function WebPushPrompt({ onDismiss }: WebPushPromptProps) {
                     Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
                 }
             }
-        }, 2000); // 2 sec delay
+        }, 1500);
 
         return () => clearTimeout(timer);
     }, []);
@@ -53,7 +53,9 @@ export default function WebPushPrompt({ onDismiss }: WebPushPromptProps) {
     };
 
     const handleDismiss = () => {
-        localStorage.setItem('web_push_dismissed', 'true');
+        try {
+            sessionStorage.setItem('web_push_dismissed_session', 'true');
+        } catch (_) {}
         setShow(false);
         onDismiss?.();
     };

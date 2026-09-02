@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
+import { Notifications } from '@/lib/notifications';
 import { Eye, EyeOff, ArrowLeft, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
@@ -44,6 +45,13 @@ export default function LoginPage() {
             localStorage.setItem('userId', res.userId);
             if (res.token) {
                 localStorage.setItem('token', res.token);
+                if (typeof window !== 'undefined') {
+                    const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+                    if (bridge && typeof bridge.setAuthToken === 'function') {
+                        bridge.setAuthToken(res.token);
+                    }
+                    Notifications.init().catch(console.error);
+                }
             }
             // Clear old cached matches so user gets fresh recommendations immediately
             localStorage.removeItem('matches_cache_v2');

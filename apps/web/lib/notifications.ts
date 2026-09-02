@@ -2,16 +2,15 @@ import { Capacitor } from '@capacitor/core';
 import { api } from './api';
 import { requestWebPushPermission, onMessageListener } from './firebasePlugin';
 
-const isNativePlatform = () => {
+export const isNativePlatform = () => {
+    if (typeof window === 'undefined') return false;
     if (Capacitor.isNativePlatform()) return true;
-    if (typeof window !== 'undefined') {
-        const w = window as any;
-        if (w.AndroidBridge || w.androidBridge) return true;
-    }
+    const w = window as any;
+    if (w.AndroidBridge || w.androidBridge) return true;
     return false;
 };
 
-const getNativeBridge = () => {
+export const getNativeBridge = () => {
     if (typeof window !== 'undefined') {
         const w = window as any;
         return w.AndroidBridge || w.androidBridge || null;
@@ -34,8 +33,8 @@ export const Notifications = {
             try {
                 let bridge = getNativeBridge();
                 let retries = 0;
-                while (!bridge && retries < 5) {
-                    await new Promise(r => setTimeout(r, 500));
+                while (!bridge && retries < 10) {
+                    await new Promise(r => setTimeout(r, 300));
                     bridge = getNativeBridge();
                     retries++;
                 }
@@ -66,12 +65,32 @@ export const Notifications = {
                         bridge.setAuthToken(authToken);
                     }
 
-                    // Fallback: If bridge already has an FCM token, register it via JS API as well
-                    const fcmToken = typeof bridge.getFcmToken === 'function' ? bridge.getFcmToken() : null;
-                    if (fcmToken && fcmToken.length > 10) {
-                        api.notifications.register(fcmToken, 'android').catch(err => {
-                            console.warn('[Push Native] JS fallback FCM token registration failed:', err);
-                        });
+                    // Poll for FCM token up to 8 times (Firebase initialization can take 1-3 seconds on cold start)
+                    let tokenRetries = 0;
+                    const checkAndRegisterFcm = async () => {
+                        try {
+                            const fcmToken = typeof bridge.getFcmToken === 'function' ? bridge.getFcmToken() : null;
+                            if (fcmToken && fcmToken.length > 10) {
+                                console.log('[Push Native] Found FCM token via bridge, registering with backend...');
+                                await api.notifications.register(fcmToken, 'android');
+                                console.log('[Push Native] FCM token successfully registered with backend.');
+                                return true;
+                            }
+                        } catch (err) {
+                            console.warn('[Push Native] Registration check failed:', err);
+                        }
+                        return false;
+                    };
+
+                    const registered = await checkAndRegisterFcm();
+                    if (!registered) {
+                        const interval = setInterval(async () => {
+                            tokenRetries++;
+                            const ok = await checkAndRegisterFcm();
+                            if (ok || tokenRetries >= 8) {
+                                clearInterval(interval);
+                            }
+                        }, 1000);
                     }
                 } else {
                     console.warn('[Push Native] No valid auth token available for native push registration');

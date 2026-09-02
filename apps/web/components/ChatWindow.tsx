@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -525,7 +525,7 @@ const YoutubeEmbedCard = ({ videoId, onFullscreen }: { videoId: string, onFullsc
 
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
-    const { user, login } = useAuth() as any;
+    const { user, login, updateUser } = useAuth() as any;
     const toast = useToast();
     
     // Media & Recording State
@@ -892,9 +892,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 // Update local auth context silently to persist state across dashboard views
                 if (user) {
                     let newMuted = [...(user.muted_users || [])];
-                    if (res.isMuted) newMuted.push(partner.id);
-                    else newMuted = newMuted.filter((id) => id !== partner.id);
-                    login(user.token, { ...user, muted_users: newMuted });
+                    if (res.isMuted) {
+                        if (!newMuted.includes(partner.id)) newMuted.push(partner.id);
+                    } else {
+                        newMuted = newMuted.filter((id: string) => id !== partner.id);
+                    }
+                    if (updateUser) {
+                        updateUser({ muted_users: newMuted });
+                    }
                 }
 
                 toast.success(res.isMuted ? "Notifications muted" : "Notifications unmuted");
@@ -1478,6 +1483,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         🕵️ Incognito
                                     </span>
                                 )}
+                                {isMuted && (
+                                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200 text-[10px] font-semibold border border-amber-400/40 flex items-center gap-1 shrink-0" title="Notifications are muted for this chat">
+                                        <BellOff size={10} /> Muted
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1594,6 +1604,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     >
                                         <Gift size={16} className="text-pink-500" />
                                         Send Gift
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            handleToggleMute();
+                                            setShowHeaderMenu(false);
+                                        }}
+                                        className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-200 hover:bg-amber-50 dark:hover:bg-amber-900/30 flex items-center gap-3 transition-colors font-medium"
+                                    >
+                                        {isMuted ? (
+                                            <>
+                                                <Bell size={16} className="text-amber-500" />
+                                                Unmute Notifications
+                                            </>
+                                        ) : (
+                                            <>
+                                                <BellOff size={16} className="text-gray-500" />
+                                                Mute Notifications
+                                            </>
+                                        )}
                                     </button>
                                     <button
                                         onClick={() => { setShowClearChatModal(true); setShowHeaderMenu(false); }}

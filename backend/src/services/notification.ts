@@ -124,12 +124,22 @@ export class NotificationService {
         // Extract senderId to see if they are muted by the receiver
         const senderId = data?.from || data?.senderId;
 
+        // Check global notification enabled setting & muted users from profile metadata
+        const profile = await prisma.profiles.findUnique({
+            where: { user_id: userId },
+            select: { metadata: true }
+        });
+        const meta = (profile?.metadata as any) || {};
+
+        // 1. Global in-app push notification toggle check
+        if (meta.push_notifications_enabled === false || meta.notifications_enabled === false) {
+            console.log(`[Notification Disabled] User ${userId} has disabled push notifications in app settings.`);
+            return;
+        }
+
+        // 2. Specific chat / partner mute check
         if (senderId) {
-            const profile = await prisma.profiles.findUnique({
-                where: { user_id: userId },
-                select: { metadata: true }
-            });
-            const mutedUsers = (profile?.metadata as any)?.muted_users || [];
+            const mutedUsers = meta.muted_users || [];
             if (mutedUsers.includes(senderId)) {
                 console.log(`[Notification Muted] User ${userId} has muted ${senderId}. Skipping push.`);
                 return;

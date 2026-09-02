@@ -30,6 +30,20 @@ router.post('/register', authenticateToken, async (req: any, res) => {
             update: {} // Do nothing if exists
         });
 
+        // Ensure push_notifications_enabled is set to true in profile metadata
+        try {
+            const profile = await prisma.profiles.findUnique({ where: { user_id: userId } });
+            if (profile) {
+                const meta = (profile.metadata as any) || {};
+                if (meta.push_notifications_enabled === false) {
+                    await prisma.profiles.update({
+                        where: { user_id: userId },
+                        data: { metadata: { ...meta, push_notifications_enabled: true } }
+                    });
+                }
+            }
+        } catch (_) {}
+
         res.json({ success: true });
     } catch (e) {
         console.error("Token Register Error", e);
@@ -154,13 +168,29 @@ router.put('/:id/read', authenticateToken, async (req: any, res) => {
 router.delete('/unregister', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
-        const { token } = req.body;
+        const { token } = req.body || {};
 
-        if (!token) return res.status(400).json({ error: "Token required" });
+        if (token) {
+            await prisma.device_tokens.deleteMany({
+                where: { user_id: userId, token }
+            });
+        } else {
+            await prisma.device_tokens.deleteMany({
+                where: { user_id: userId }
+            });
+        }
 
-        await prisma.device_tokens.deleteMany({
-            where: { user_id: userId, token }
-        });
+        // Persist push_notifications_enabled: false in profile metadata
+        try {
+            const profile = await prisma.profiles.findUnique({ where: { user_id: userId } });
+            if (profile) {
+                const meta = (profile.metadata as any) || {};
+                await prisma.profiles.update({
+                    where: { user_id: userId },
+                    data: { metadata: { ...meta, push_notifications_enabled: false } }
+                });
+            }
+        } catch (_) {}
 
         res.json({ success: true });
     } catch (e) {

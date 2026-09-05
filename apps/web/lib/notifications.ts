@@ -111,7 +111,13 @@ export const Notifications = {
                         if (config?.onesignalAppId && typeof bridge.setOneSignalAppId === 'function') {
                             bridge.setOneSignalAppId(config.onesignalAppId);
                         }
-                        const storedUserId = localStorage.getItem('userId');
+                        let storedUserId = localStorage.getItem('userId');
+                        if (!storedUserId) {
+                            try {
+                                const u = localStorage.getItem('user');
+                                if (u) storedUserId = JSON.parse(u).id;
+                            } catch (_) {}
+                        }
                         if (storedUserId && typeof bridge.loginUser === 'function') {
                             bridge.loginUser(storedUserId);
                         }
@@ -170,7 +176,13 @@ export const Notifications = {
                             allowLocalhostAsSecureOrigin: true,
                             notifyButton: { enable: false }
                         });
-                        const storedUserId = localStorage.getItem('userId');
+                        let storedUserId = localStorage.getItem('userId');
+                        if (!storedUserId) {
+                            try {
+                                const u = localStorage.getItem('user');
+                                if (u) storedUserId = JSON.parse(u).id;
+                            } catch (_) {}
+                        }
                         if (storedUserId) {
                             await OneSignal.login(storedUserId);
                         }

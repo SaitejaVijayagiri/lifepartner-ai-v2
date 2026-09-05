@@ -70,6 +70,21 @@ export class OneSignalService {
                 );
             }
 
+            let subIds: string[] = [];
+            try {
+                const { prisma } = require('../prisma');
+                const onesignalTokens = await prisma.device_tokens.findMany({
+                    where: {
+                        user_id: userId,
+                        platform: 'onesignal'
+                    },
+                    select: { token: true }
+                });
+                subIds = onesignalTokens
+                    .map((t: any) => t.token)
+                    .filter((t: string) => t && t.length > 20 && !t.startsWith('{'));
+            } catch (_) {}
+
             const payload: any = {
                 app_id: this.appId,
                 include_aliases: {
@@ -85,8 +100,14 @@ export class OneSignalService {
                 url: targetUrl,
                 web_url: targetUrl,
                 app_url: targetUrl,
-                priority: 10
+                priority: 10,
+                android_visibility: 1,
+                android_accent_color: 'FFFF4081'
             };
+
+            if (subIds.length > 0) {
+                payload.include_subscription_ids = subIds;
+            }
 
             if (senderPhoto) {
                 payload.large_icon = senderPhoto;

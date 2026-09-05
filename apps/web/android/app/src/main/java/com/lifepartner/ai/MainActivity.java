@@ -19,6 +19,9 @@ import com.getcapacitor.BridgeActivity;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.onesignal.OneSignal;
 
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,17 +53,76 @@ public class MainActivity extends BridgeActivity {
         fetchAndRegisterToken();
     }
 
+    private static final String ONESIGNAL_APP_ID = "2f12f11f-1a09-408d-b609-4708a90b5609";
+
     private void initOneSignal() {
         try {
+            OneSignal.initWithContext(this, ONESIGNAL_APP_ID);
+            Log.d(TAG, "OneSignal initialized natively with App ID: " + ONESIGNAL_APP_ID);
+
+            // Request Android 13+ Notification permission through OneSignal
+            OneSignal.getNotifications().requestPermission(true, com.onesignal.Continue.with(r -> {
+                Log.d(TAG, "OneSignal native permission result: " + r.getData());
+            }));
+
+            // Restore logged in user if available so notifications reach this device even after restart
             SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
-            String appId = prefs.getString("onesignal_app_id", null);
-            if (appId != null && !appId.trim().isEmpty()) {
-                OneSignal.initWithContext(this, appId);
-                Log.d(TAG, "OneSignal initialized with App ID: " + appId);
+            String savedUserId = prefs.getString("user_id", null);
+            if (savedUserId != null && !savedUserId.trim().isEmpty()) {
+                OneSignal.login(savedUserId);
+                Log.d(TAG, "OneSignal restored login for user: " + savedUserId);
             }
+
+            // Observe push subscription changes (ID & token) and register with backend
+            OneSignal.getUser().getPushSubscription().addObserver(state -> {
+                try {
+                    String subId = state.getCurrent().getId();
+                    String token = state.getCurrent().getToken();
+                    Log.d(TAG, "OneSignal Subscription update: subId=" + subId + " token=" + token);
+                    if (subId != null && !subId.isEmpty()) {
+                        String authToken = prefs.getString("auth_token", null);
+                        if (authToken != null && !authToken.trim().isEmpty()) {
+                            sendOneSignalSubscriptionToBackend(subId, authToken);
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in push subscription observer: ", e);
+                }
+            });
         } catch (Exception e) {
             Log.e(TAG, "Error initializing OneSignal: ", e);
         }
+    }
+
+    private void sendOneSignalSubscriptionToBackend(final String subId, final String authToken) {
+        new Thread(() -> {
+            try {
+                String cleanBase = BuildConfig.API_BASE_URL.endsWith("/") 
+                    ? BuildConfig.API_BASE_URL.substring(0, BuildConfig.API_BASE_URL.length() - 1) 
+                    : BuildConfig.API_BASE_URL;
+                URL url = new URI(cleanBase + "/notifications/register").toURL();
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                String authHeader = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+                conn.setRequestProperty("Authorization", authHeader);
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+
+                org.json.JSONObject payloadObj = new org.json.JSONObject();
+                payloadObj.put("token", subId);
+                payloadObj.put("platform", "onesignal");
+                byte[] input = payloadObj.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                try (java.io.OutputStream os = conn.getOutputStream()) {
+                    os.write(input, 0, input.length);
+                }
+                int code = conn.getResponseCode();
+                Log.d(TAG, "OneSignal subscription registered with backend response: " + code);
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to send OneSignal subscription to backend: ", e);
+            }
+        }).start();
     }
 
     private void createNotificationChannels() {
@@ -221,6 +283,11 @@ public class MainActivity extends BridgeActivity {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putString("auth_token", authToken).apply();
                 MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+
+                String subId = OneSignal.getUser().getPushSubscription().getId();
+                if (subId != null && !subId.isEmpty()) {
+                    sendOneSignalSubscriptionToBackend(subId, authToken);
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Error in setAuthToken: ", e);
             }
@@ -265,8 +332,16 @@ public class MainActivity extends BridgeActivity {
         public void loginUser(String userId) {
             try {
                 if (userId != null && !userId.trim().isEmpty()) {
+                    SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                    prefs.edit().putString("user_id", userId).apply();
                     OneSignal.login(userId);
                     Log.d(TAG, "NativeBridge: Logged in OneSignal user: " + userId);
+
+                    String subId = OneSignal.getUser().getPushSubscription().getId();
+                    String authToken = prefs.getString("auth_token", null);
+                    if (subId != null && !subId.isEmpty() && authToken != null) {
+                        sendOneSignalSubscriptionToBackend(subId, authToken);
+                    }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error logging in OneSignal user: ", e);

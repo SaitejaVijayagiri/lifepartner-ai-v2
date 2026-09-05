@@ -222,6 +222,11 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ token, platform })
         }),
+        registerSubscription: (subscription: any, platform: string = 'webpush') => fetchAPI('/notifications/register', {
+            method: 'POST',
+            body: JSON.stringify({ subscription, platform })
+        }),
+        getConfig: () => fetchAPI('/notifications/config').catch(() => null),
         unregister: (token: string) => fetchAPI('/notifications/unregister', {
             method: 'DELETE',
             body: JSON.stringify({ token })

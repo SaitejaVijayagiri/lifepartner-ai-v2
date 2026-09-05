@@ -2,19 +2,39 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { NotificationService } from '../services/notification';
+import { OneSignalService } from '../services/OneSignalService';
+import { WebPushService } from '../services/WebPushService';
 import { authenticateToken } from '../middleware/auth';
 
 
 const router = express.Router();
 const notificationService = NotificationService.getInstance();
 
-// 1. Register Token
+// 0. Public/Client Notification Config (VAPID Public Key + OneSignal App ID)
+router.get('/config', (req, res) => {
+    const webPush = WebPushService.getInstance();
+    const oneSignal = OneSignalService.getInstance();
+    res.json({
+        vapidPublicKey: webPush.getPublicKey(),
+        onesignalAppId: oneSignal.getAppId() || process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '',
+        onesignalEnabled: oneSignal.isReady()
+    });
+});
+
+// 1. Register Token / WebPush Subscription / OneSignal ID
 router.post('/register', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const { token, platform } = req.body;
-        if (!token) return res.status(400).json({ error: "Token required" });
+        let { token, platform, subscription } = req.body;
+
+        // If a WebPush subscription object is passed, serialize it as the token
+        if (subscription && typeof subscription === 'object') {
+            token = JSON.stringify(subscription);
+            platform = platform || 'webpush';
+        }
+
+        if (!token) return res.status(400).json({ error: "Token or subscription required" });
 
         // Upsert (DO NOTHING on conflict)
         // Schema: @@id([user_id, token])

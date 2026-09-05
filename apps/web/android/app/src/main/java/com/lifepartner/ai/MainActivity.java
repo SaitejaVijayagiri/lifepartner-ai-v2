@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.onesignal.OneSignal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,17 +34,33 @@ public class MainActivity extends BridgeActivity {
         // 0. Ensure Android Notification Channels exist on OS before any push notification arrives
         createNotificationChannels();
 
-        // 1. Single-batch runtime permission handling to prevent permission dialog collision & crashes
+        // 1. Initialize OneSignal if configured
+        initOneSignal();
+
+        // 2. Single-batch runtime permission handling to prevent permission dialog collision & crashes
         requestAppPermissions();
 
-        // 2. Safely inject JavaScript interface with null check
+        // 3. Safely inject JavaScript interface with null check
         setupNativeBridge();
 
-        // 3. Setup WebChromeClient to grant WebRTC Camera/Mic permissions to WebView
+        // 4. Setup WebChromeClient to grant WebRTC Camera/Mic permissions to WebView
         setupWebChromeClient();
 
-        // 4. Fetch & register FCM token safely
+        // 5. Fetch & register FCM token safely (legacy fallback)
         fetchAndRegisterToken();
+    }
+
+    private void initOneSignal() {
+        try {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            String appId = prefs.getString("onesignal_app_id", null);
+            if (appId != null && !appId.trim().isEmpty()) {
+                OneSignal.initWithContext(this, appId);
+                Log.d(TAG, "OneSignal initialized with App ID: " + appId);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing OneSignal: ", e);
+        }
     }
 
     private void createNotificationChannels() {
@@ -227,6 +244,32 @@ public class MainActivity extends BridgeActivity {
                 prefs.edit().putBoolean("push_disabled", true).apply();
             } catch (Exception e) {
                 Log.e(TAG, "Error in disablePush: ", e);
+            }
+        }
+
+        @JavascriptInterface
+        public void setOneSignalAppId(String appId) {
+            try {
+                if (appId != null && !appId.trim().isEmpty()) {
+                    SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                    prefs.edit().putString("onesignal_app_id", appId).apply();
+                    OneSignal.initWithContext(MainActivity.this, appId);
+                    Log.d(TAG, "NativeBridge: OneSignal initialized with App ID: " + appId);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error setting OneSignal App ID via bridge: ", e);
+            }
+        }
+
+        @JavascriptInterface
+        public void loginUser(String userId) {
+            try {
+                if (userId != null && !userId.trim().isEmpty()) {
+                    OneSignal.login(userId);
+                    Log.d(TAG, "NativeBridge: Logged in OneSignal user: " + userId);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error logging in OneSignal user: ", e);
             }
         }
 

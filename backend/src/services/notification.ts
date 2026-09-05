@@ -1,13 +1,17 @@
-
 import * as admin from 'firebase-admin';
 import path from 'path';
+import { OneSignalService } from './OneSignalService';
+import { WebPushService } from './WebPushService';
 
 export class NotificationService {
     private static instance: NotificationService;
     private initialized = false;
 
-
     private constructor() {
+        // Initialize OneSignal & WebPush singleton instances
+        OneSignalService.getInstance();
+        WebPushService.getInstance();
+
         try {
             if (admin.apps.length > 0) {
                 this.initialized = true;
@@ -20,7 +24,6 @@ export class NotificationService {
                 console.log("Firebase: Found FIREBASE_SERVICE_ACCOUNT env var, initializing...");
                 try {
                     let rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-                    // Handle unescaped newlines in JSON strings if present
                     const serviceAccount = JSON.parse(rawEnv);
                     if (serviceAccount.private_key) {
                         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
@@ -51,23 +54,18 @@ export class NotificationService {
                     ...adminSdkFiles,
                 ];
 
-                console.log("Firebase: No env var found, checking file paths...");
-                let found = false;
                 for (const p of possiblePaths) {
-                    console.log(`Firebase: Checking ${p} ...`);
                     if (fs.existsSync(p)) {
-                        console.log(`Firebase: Found file at ${p}`);
                         admin.initializeApp({
                             credential: admin.credential.cert(JSON.parse(fs.readFileSync(p, 'utf8')))
                         });
                         this.initialized = true;
                         console.log(`Firebase Admin Initialized (File: ${p}) ✓`);
-                        found = true;
                         break;
                     }
                 }
-                if (!found) {
-                    console.warn("Push Notifications DISABLED: No firebase-service-account.json found in any path, and no FIREBASE_SERVICE_ACCOUNT env var set.");
+                if (!this.initialized) {
+                    console.log("Firebase Push: Not configured or disabled. OneSignal / WebPush active.");
                 }
             }
         } catch (e) {
@@ -83,7 +81,7 @@ export class NotificationService {
     }
 
     public isReady(): boolean {
-        return this.initialized;
+        return this.initialized || OneSignalService.getInstance().isReady() || WebPushService.getInstance().isReady();
     }
 
     public async sendvalidate(token: string): Promise<boolean> {
@@ -101,7 +99,7 @@ export class NotificationService {
 
     public async sendToToken(token: string, title: string, body: string, data?: any) {
         if (!this.initialized) {
-            console.log(`[Mock Push] To ${token}: ${title} - ${body}`);
+            console.log(`[Push] To ${token}: ${title} - ${body}`);
             return;
         }
 
@@ -118,7 +116,6 @@ export class NotificationService {
     }
 
     public async sendToUser(userId: string, title: string, body: string, data?: any) {
-        // 1. Get tokens and check mute status
         const { prisma } = require('../prisma');
 
         // Extract senderId to see if they are muted by the receiver
@@ -146,118 +143,140 @@ export class NotificationService {
             }
         }
 
-        const tokensRec = await prisma.device_tokens.findMany({
-            where: { user_id: userId },
-            select: { token: true, platform: true }
-        });
-
-        if (tokensRec.length === 0) return;
-
-        const tokens = Array.from(new Set(tokensRec.map((r: any) => r.token)));
-
-        // 2. Send (Parallel)
-        // If real firebase is off, we just mock log
-        if (!this.initialized) {
-            console.log(`[Mock Push] To User ${userId} (${tokens.length} devices): ${title}`);
-            return;
+        const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
+        let bannerUrl = data?.bannerUrl || null;
+        if (bannerUrl && bannerUrl.startsWith('/')) {
+            const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
+            const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+            bannerUrl = `${cleanBase}${bannerUrl}`;
         }
 
-        // Multicast
-        try {
-            const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
-            const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
-            let bannerUrl = data?.bannerUrl || null;
-            if (bannerUrl && bannerUrl.startsWith('/')) {
-                const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
-                const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
-                bannerUrl = `${cleanBase}${bannerUrl}`;
-            }
-            const notificationPayload: any = {
-                title: String(title),
-                body: String(body)
-            };
-            
-            const apnsPayload: any = {
-                payload: {
-                    aps: {
-                        alert: { title, body },
-                        sound: 'default'
-                    }
-                }
-            };
+        const targetUrl = data?.url || (data?.callerId ? `/chat/${data.callerId}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections'));
 
-            const webpushPayload: any = {
-                headers: {
-                    Urgency: 'high',
-                    TTL: '86400'
-                },
-                fcmOptions: {
-                    link: data?.url || (data?.callerId ? `/chat/${data.callerId}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections'))
-                }
-            };
+        // ==========================================
+        // PROVIDER 1: OneSignal (Web & Mobile APK)
+        // ==========================================
+        const oneSignal = OneSignalService.getInstance();
+        if (oneSignal.isReady()) {
+            oneSignal.sendToUser(userId, title, body, {
+                ...data,
+                senderPhoto,
+                bannerUrl,
+                url: targetUrl
+            }).catch(err => console.error('[OneSignal Error]:', err));
+        }
 
-            if (bannerUrl) {
-                apnsPayload.payload.aps['mutable-content'] = 1;
-                apnsPayload.fcmOptions = {
-                    imageUrl: String(bannerUrl)
-                };
-            } else if (senderPhoto) {
-                // Enable rich media push on iOS
-                apnsPayload.payload.aps['mutable-content'] = 1;
-                apnsPayload.fcmOptions = {
-                    imageUrl: String(senderPhoto)
-                };
-            }
-
-            // Android high-priority data payload:
-            // Omitting 'notification' object guarantees Android OS invokes MyFirebaseMessagingService.onMessageReceived()
-            // in all app states (foreground, background, and killed/locked screen), enabling WhatsApp/Telegram-style
-            // RemoteInput lockscreen replies, like button, custom channel sounds, and heads-up banner.
-            const androidPayload: any = {
-                priority: 'high',
-                ttl: 86400 * 1000 // 24-hour offline queueing in FCM servers
-            };
-
-            const message: any = {
-                tokens,
+        // ==========================================
+        // PROVIDER 2: Standard W3C WebPush (VAPID)
+        // ==========================================
+        const webPush = WebPushService.getInstance();
+        if (webPush.isReady()) {
+            const webPayload = {
+                title,
+                body,
+                icon: senderPhoto || '/icon.png',
+                image: bannerUrl || null,
                 data: {
-                    title: String(title),
-                    body: String(body),
-                    senderName: String(data?.senderName || title),
-                    senderPhoto: senderPhoto ? String(senderPhoto) : '',
-                    bannerUrl: bannerUrl ? String(bannerUrl) : '',
-                    url: data?.url || (data?.callerId ? `/chat/${data.callerId}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections')),
-                    ...mappedData
-                },
-                android: androidPayload,
-                apns: apnsPayload,
-                webpush: webpushPayload
+                    ...data,
+                    senderPhoto,
+                    bannerUrl,
+                    url: targetUrl
+                }
             };
+            webPush.sendToUser(userId, webPayload).catch(err => console.error('[WebPush Error]:', err));
+        }
 
-            const batchResponse = await admin.messaging().sendEachForMulticast(message);
-            console.log(`Sent ${batchResponse.successCount} messages, failed ${batchResponse.failureCount}`);
+        // ==========================================
+        // PROVIDER 3: FCM Multicast (Legacy Fallback)
+        // ==========================================
+        if (this.initialized) {
+            try {
+                const tokensRec = await prisma.device_tokens.findMany({
+                    where: { 
+                        user_id: userId,
+                        platform: { in: ['android', 'ios', 'web'] }
+                    },
+                    select: { token: true, platform: true }
+                });
 
-            // Automatically clean up stale/uninstalled tokens
-            if (batchResponse.failureCount > 0) {
-                const staleTokens: string[] = [];
-                batchResponse.responses.forEach((resp: any, idx: number) => {
-                    if (!resp.success && resp.error) {
-                        const code = resp.error.code;
-                        if (code === 'messaging/registration-token-not-registered' || 
-                            code === 'messaging/invalid-registration-token') {
-                            staleTokens.push(tokens[idx] as string);
+                // Filter out non-FCM tokens (such as JSON WebPush subscriptions)
+                const fcmTokens = Array.from(new Set(
+                    tokensRec
+                        .map((r: any) => r.token)
+                        .filter((t: string) => !t.startsWith('{') && t.length > 20)
+                ));
+
+                if (fcmTokens.length > 0) {
+                    const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
+                    const apnsPayload: any = {
+                        payload: {
+                            aps: {
+                                alert: { title, body },
+                                sound: 'default'
+                            }
+                        }
+                    };
+                    const webpushPayload: any = {
+                        headers: {
+                            Urgency: 'high',
+                            TTL: '86400'
+                        },
+                        fcmOptions: {
+                            link: targetUrl
+                        }
+                    };
+
+                    if (bannerUrl) {
+                        apnsPayload.payload.aps['mutable-content'] = 1;
+                        apnsPayload.fcmOptions = { imageUrl: String(bannerUrl) };
+                    } else if (senderPhoto) {
+                        apnsPayload.payload.aps['mutable-content'] = 1;
+                        apnsPayload.fcmOptions = { imageUrl: String(senderPhoto) };
+                    }
+
+                    const message: any = {
+                        tokens: fcmTokens,
+                        data: {
+                            title: String(title),
+                            body: String(body),
+                            senderName: String(data?.senderName || title),
+                            senderPhoto: senderPhoto ? String(senderPhoto) : '',
+                            bannerUrl: bannerUrl ? String(bannerUrl) : '',
+                            url: targetUrl,
+                            ...mappedData
+                        },
+                        android: {
+                            priority: 'high',
+                            ttl: 86400 * 1000
+                        },
+                        apns: apnsPayload,
+                        webpush: webpushPayload
+                    };
+
+                    const batchResponse = await admin.messaging().sendEachForMulticast(message);
+                    console.log(`FCM Multicast: ${batchResponse.successCount} sent, ${batchResponse.failureCount} failed`);
+
+                    if (batchResponse.failureCount > 0) {
+                        const staleTokens: string[] = [];
+                        batchResponse.responses.forEach((resp: any, idx: number) => {
+                            if (!resp.success && resp.error) {
+                                const code = resp.error.code;
+                                if (code === 'messaging/registration-token-not-registered' || 
+                                    code === 'messaging/invalid-registration-token') {
+                                    staleTokens.push(fcmTokens[idx] as string);
+                                }
+                            }
+                        });
+                        if (staleTokens.length > 0) {
+                            await prisma.device_tokens.deleteMany({
+                                where: { token: { in: staleTokens } }
+                            });
                         }
                     }
-                });
-                if (staleTokens.length > 0) {
-                    await prisma.device_tokens.deleteMany({
-                        where: { token: { in: staleTokens } }
-                    });
-                    console.log(`Cleaned up ${staleTokens.length} stale FCM token(s) from database.`);
                 }
+            } catch (fcmErr) {
+                console.error("FCM Multicast Error:", fcmErr);
             }
-        } catch (e) {
-            console.error("Multicast Push Failed", e);
         }
     }
 }

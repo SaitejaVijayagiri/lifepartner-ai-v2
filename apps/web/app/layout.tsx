@@ -233,6 +233,10 @@ export default function RootLayout({
             }
           ])}
         </Script>
+        <Script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          strategy="lazyOnload"
+        />
       </head>
       <body
         className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} font-sans antialiased`}

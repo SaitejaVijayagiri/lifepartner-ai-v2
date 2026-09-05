@@ -42,8 +42,8 @@ export default function WebPushPrompt({ onDismiss }: WebPushPromptProps) {
     const handleEnable = async () => {
         setIsSubscribing(true);
         try {
-            await Notifications.init();
-            await Notifications.setupListeners();
+            await Notifications.requestPermission();
+            Notifications.setupListeners();
             setShow(false);
         } catch (e) {
             console.error("Failed to enable push", e);

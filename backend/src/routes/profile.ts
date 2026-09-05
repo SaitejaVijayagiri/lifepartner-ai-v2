@@ -618,10 +618,10 @@ router.put('/me', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        // Fetch user's existing gender to enforce read-only protection
+        // Fetch user's existing gender and avatar to enforce read-only protection & preserve avatars
         const existingUser = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true }
+            select: { gender: true, avatar_url: true, full_name: true }
         });
 
         // ...
@@ -696,8 +696,18 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
-        // Derive finalPhotoUrl from the processed photos array to prevent duplicate uploads
-        let finalPhotoUrl = finalPhotos.length > 0 ? finalPhotos[0] : photoUrl;
+        // Derive finalPhotoUrl: never allow saving an empty string ""
+        let finalPhotoUrl: string;
+        if (finalPhotos.length > 0 && typeof finalPhotos[0] === 'string' && finalPhotos[0].trim()) {
+            finalPhotoUrl = finalPhotos[0].trim();
+        } else if (photoUrl && typeof photoUrl === 'string' && photoUrl.trim()) {
+            finalPhotoUrl = photoUrl.trim();
+        } else if (existingUser?.avatar_url && existingUser.avatar_url.trim()) {
+            finalPhotoUrl = existingUser.avatar_url.trim();
+        } else {
+            const seed = (name || existingUser?.full_name || userId || 'Member').trim();
+            finalPhotoUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(seed)}`;
+        }
 
         // Separate: aboutMe → raw_prompt (personal bio), expectations/prompt → metadata.expectations
         const cleanBio = sanitizeContent(aboutMe || '');
@@ -850,11 +860,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     create: {
                         user_id: userId,
                         raw_prompt: cleanBio || finalBio, // raw_prompt = bio/about me only
-                        metadata: metadata // On create use fresh
+                        metadata: metadata, // On create use fresh
+                        photos: finalPhotos
                     },
                     update: {
                         raw_prompt: cleanBio || finalBio, // raw_prompt = bio/about me only
-                        metadata: newMeta // On update use merge
+                        metadata: newMeta, // On update use merge
+                        photos: finalPhotos.length > 0 ? finalPhotos : (existingMeta?.photos || undefined)
                     }
                 });
 

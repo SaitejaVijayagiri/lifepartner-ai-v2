@@ -95,8 +95,10 @@ export default function OnboardingPage() {
 
                 motherTongue: data.motherTongue,
                 maritalStatus: data.maritalStatus || "Single", // Added Marital Status
-                photos: data.photos,
-                photoUrl: data.photos?.[0] || '' // Set primary
+                photos: data.photos || [],
+                photoUrl: (Array.isArray(data.photos) && data.photos.length > 0 && data.photos[0])
+                    ? data.photos[0]
+                    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name || 'User')}`
             };
 
             await api.profile.updateProfile(payload); // Updated to use correct endpoint

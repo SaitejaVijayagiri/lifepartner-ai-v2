@@ -151,12 +151,22 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     name: data.name,
                     age: parseInt(data.age),
                     gender: data.gender,
+                    height: data.height,
                     location: {
                         city: data.city,
                         district: data.district,
                         state: data.state,
                         country: data.country
                     },
+                    career: {
+                        profession: data.profession,
+                        education: data.education
+                    },
+                    religion: {
+                        religion: data.religion,
+                        caste: data.caste
+                    },
+                    motherTongue: data.motherTongue,
                     aboutMe: data.aboutMe || '',
                     maritalStatus: data.maritalStatus || 'Single'
                 }).catch((e: any) => console.warn('Intermediate profile auto-save:', e?.message));
@@ -374,6 +384,62 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         <option value="Brazil">Brazil</option>
                                         <option value="Mexico">Mexico</option>
                                         <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <Input
+                                    label="Profession (Optional)"
+                                    placeholder="e.g. Software Engineer, Doctor, Business, Teacher"
+                                    value={data.profession || ''}
+                                    onChange={e => update('profession', e.target.value)}
+                                />
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">Education (Optional)</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        value={data.education || "Bachelor's"}
+                                        onChange={e => update('education', e.target.value)}
+                                    >
+                                        <option value="High School">High School</option>
+                                        <option value="Diploma">Diploma</option>
+                                        <option value="Bachelor's">Bachelor's</option>
+                                        <option value="Master's">Master's</option>
+                                        <option value="Doctorate / PhD">Doctorate / PhD</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">Religion (Optional)</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        value={data.religion || "Not Specified"}
+                                        onChange={e => update('religion', e.target.value)}
+                                    >
+                                        {RELIGION_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <Input
+                                    label="Caste / Community (Optional)"
+                                    placeholder="e.g. Brahmin, Reddy, Patel, Khan, etc."
+                                    value={data.caste || ''}
+                                    onChange={e => update('caste', e.target.value)}
+                                />
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">Mother Tongue (Optional)</label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                                        value={data.motherTongue || "Hindi"}
+                                        onChange={e => update('motherTongue', e.target.value)}
+                                    >
+                                        {["Hindi", "Telugu", "Tamil", "Marathi", "Bengali", "Kannada", "Gujarati", "Punjabi", "Malayalam", "Odia", "Urdu", "Assamese", "English", "Other"].map(lang => (
+                                            <option key={lang} value={lang}>{lang}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">

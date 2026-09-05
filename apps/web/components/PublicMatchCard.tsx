@@ -13,8 +13,13 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
 
-    // Photos Array (Fallback to single photo)
-    const photos = match.photos && match.photos.length > 0 ? match.photos : [match.photoUrl];
+    // Photos Array (with robust fallback)
+    const fallbackAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`;
+    const rawList = (Array.isArray(match.photos) && match.photos.length > 0)
+        ? match.photos
+        : [match.photoUrl || match.avatar_url || fallbackAvatar];
+    const photos = rawList.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
+    if (photos.length === 0) photos.push(fallbackAvatar);
 
     // Auto-Slide Effect (3s interval, pause on hover)
     useEffect(() => {
@@ -36,8 +41,8 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
             {/* Background Image (Immersive) */}
             <div className="absolute inset-0 bg-gray-950">
                 <img
-                    src={photos[currentPhotoIndex] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'User')}`}
-                    alt={match.name}
+                    src={photos[currentPhotoIndex] || photos[0] || fallbackAvatar}
+                    alt={match.name || 'Member'}
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu"
                     loading="lazy"
                     decoding="async"
@@ -45,7 +50,7 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                         const target = e.target as HTMLImageElement;
                         trackImageFailure(target.src, 'PublicMatchCard', match.id);
                         target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'User')}`;
+                        target.src = fallbackAvatar;
                     }}
                 />
 
@@ -81,17 +86,21 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
             <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
                 <div className="flex items-end gap-2 mb-1.5">
                     <h3 className="text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
-                        {match.name}, {match.age}
+                        {match.name || 'Member'}{match.age ? `, ${match.age}` : ''}
                     </h3>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 text-gray-100 text-[10px] font-medium mb-4 opacity-95">
-                    <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
-                        💼 {match.profession}
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
-                        📍 {formatLocationString(match.location)}
-                    </span>
+                    {match.profession && match.profession !== '-' && match.profession !== 'Member' && (
+                        <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
+                            💼 {match.profession}
+                        </span>
+                    )}
+                    {formatLocationString(match.location) && formatLocationString(match.location) !== 'Unknown City' && (
+                        <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
+                            📍 {formatLocationString(match.location)}
+                        </span>
+                    )}
                 </div>
 
                 {/* Call to Action Button */}

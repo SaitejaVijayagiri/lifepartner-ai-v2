@@ -432,6 +432,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND is_verified = true 
                   AND is_banned = false 
                   AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
+                  AND full_name IS NOT NULL AND TRIM(full_name) != ''
+                  AND age IS NOT NULL AND age >= 18
+                  AND gender IS NOT NULL
                   AND LOWER(gender) = 'female'
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
@@ -442,6 +445,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND is_verified = true 
                   AND is_banned = false 
                   AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
+                  AND full_name IS NOT NULL AND TRIM(full_name) != ''
+                  AND age IS NOT NULL AND age >= 18
+                  AND gender IS NOT NULL
                   AND LOWER(gender) = 'male'
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
@@ -452,6 +458,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND is_verified = true 
                   AND is_banned = false 
                   AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
+                  AND full_name IS NOT NULL AND TRIM(full_name) != ''
+                  AND age IS NOT NULL AND age >= 18
+                  AND gender IS NOT NULL
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         }
@@ -622,15 +631,27 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             // Cap
             if (score > 99) score = 99;
 
+            const rawPhotoList = extractPhotosList(c.profiles, meta, c.avatar_url);
+            const sanitizedPhotos = rawPhotoList.map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)).filter(Boolean);
+            const mainPhoto = sanitizePhotoUrl(
+                (sanitizedPhotos.length > 0 ? sanitizedPhotos[0] : null) || (c.avatar_url && c.avatar_url.trim() ? c.avatar_url : null),
+                c.full_name || c.id
+            );
+            const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+
             return {
                 id: c.id,
-                name: c.full_name,
+                name: c.full_name || 'Member',
                 age: c.age,
                 height: meta.height || "Not Specified",
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0], c.full_name || c.id),
+                profession: meta.career?.profession || "",
+                education: meta.career?.education || meta.career?.educationLevel || "",
+                maritalStatus: meta.maritalStatus || "Single",
+                motherTongue: meta.motherTongue || "",
+                photoUrl: mainPhoto,
                 hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
                 completenessScore: completeness.completenessScore,
                 badgeLevel: completeness.badgeLevel,
@@ -650,7 +671,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: extractPhotosList(c.profiles, meta, c.avatar_url).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
+                photos: finalPhotos,
 
                 career: meta.career || {},
                 family: meta.family || {},
@@ -678,9 +699,6 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 // Astrology
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
 
-                // Missing Core Fields
-                motherTongue: meta.motherTongue || "Unknown",
-                maritalStatus: meta.maritalStatus || "Single"
             };
         }));
 
@@ -733,7 +751,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // Build dynamic SQL WHERE clauses using safe parameterized Prisma.sql fragments
         const conditions: Prisma.Sql[] = [
             Prisma.sql`u.id != ${userId}::uuid`,
-            Prisma.sql`u.is_verified = true`
+            Prisma.sql`u.is_verified = true`,
+            Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
+            Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
+            Prisma.sql`u.gender IS NOT NULL`
         ];
 
         // Gender
@@ -799,7 +820,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             // Relaxed query: remove strict JSON/Location constraints but keep AI vector ordering
             const relaxedConditions: Prisma.Sql[] = [
                 Prisma.sql`u.id != ${userId}::uuid`,
-                Prisma.sql`u.is_verified = true`
+                Prisma.sql`u.is_verified = true`,
+                Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
+                Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
+                Prisma.sql`u.gender IS NOT NULL`
             ];
             if (myGender === 'male') relaxedConditions.push(Prisma.sql`u.gender ILIKE 'female'`);
             else if (myGender === 'female') relaxedConditions.push(Prisma.sql`u.gender ILIKE 'male'`);
@@ -1005,15 +1029,27 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 score -= 15;
             }
 
+            const rawPhotoList = extractPhotosList(c.profiles, meta, c.avatar_url);
+            const sanitizedPhotos = rawPhotoList.map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)).filter(Boolean);
+            const mainPhoto = sanitizePhotoUrl(
+                (sanitizedPhotos.length > 0 ? sanitizedPhotos[0] : null) || (c.avatar_url && c.avatar_url.trim() ? c.avatar_url : null),
+                c.full_name || c.id
+            );
+            const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+
             return {
                 id: c.id,
-                name: c.full_name,
+                name: c.full_name || 'Member',
                 age: c.age,
                 height: meta.height || "Not Specified",
                 location: locString,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0], c.full_name || c.id),
+                profession: meta.career?.profession || "",
+                education: meta.career?.education || meta.career?.educationLevel || "",
+                maritalStatus: meta.maritalStatus || "Single",
+                motherTongue: meta.motherTongue || "",
+                photoUrl: mainPhoto,
                 hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
                 score: Math.max(1, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
@@ -1028,7 +1064,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     c
                 ),
                 reels: meta.reels || [],
-                photos: extractPhotosList(c.profiles, meta, c.avatar_url).map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)),
+                photos: finalPhotos,
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},
@@ -1049,9 +1085,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
-                isPremium: c.is_premium || false,
-                motherTongue: meta.motherTongue || "Unknown",
-                maritalStatus: meta.maritalStatus || "Single"
+                isPremium: c.is_premium || false
             };
         }));
 

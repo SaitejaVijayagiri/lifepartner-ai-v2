@@ -79,23 +79,52 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
     // Optimized Photos Array (CDN Load Balancing & WebP conversion)
     const photos = useMemo(() => {
-        const rawList = (Array.isArray(match.photos) && match.photos.length > 0)
-            ? match.photos
-            : (Array.isArray(match.photo_urls) && match.photo_urls.length > 0)
-                ? match.photo_urls
-                : (Array.isArray(match.metadata?.photos) && match.metadata.photos.length > 0)
-                    ? match.metadata.photos
-                    : [match.photoUrl || match.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`];
+        const fallbackUrl = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`;
 
-        return rawList.filter(Boolean).map((url: string) => {
-            if (typeof url !== 'string') return '';
+        const extractCandidate = (v: any): string => {
+            if (!v) return '';
+            if (typeof v === 'string') return v.trim();
+            if (typeof v === 'object') {
+                return (v.url || v.photo_url || v.avatar_url || '').trim();
+            }
+            return '';
+        };
+
+        const rawList: string[] = [];
+        if (Array.isArray(match.photos) && match.photos.length > 0) {
+            match.photos.forEach((p: any) => {
+                const s = extractCandidate(p);
+                if (s) rawList.push(s);
+            });
+        }
+        if (rawList.length === 0 && Array.isArray(match.photo_urls) && match.photo_urls.length > 0) {
+            match.photo_urls.forEach((p: any) => {
+                const s = extractCandidate(p);
+                if (s) rawList.push(s);
+            });
+        }
+        if (rawList.length === 0 && Array.isArray(match.metadata?.photos) && match.metadata.photos.length > 0) {
+            match.metadata.photos.forEach((p: any) => {
+                const s = extractCandidate(p);
+                if (s) rawList.push(s);
+            });
+        }
+        if (rawList.length === 0) {
+            const single = extractCandidate(match.photoUrl) || extractCandidate(match.avatar_url);
+            if (single) rawList.push(single);
+        }
+
+        const validPhotos = rawList.map((url: string) => {
+            if (typeof url !== 'string' || !url.trim()) return '';
             // Auto-optimize Cloudinary CDN URLs for card resolution & WebP
             if (url.includes('res.cloudinary.com') && !url.includes('/w_')) {
                 return url.replace('/upload/', '/upload/w_600,c_limit,q_auto,f_auto/');
             }
-            return url;
+            return url.trim();
         }).filter(Boolean);
-    }, [match.photos, match.photo_urls, match.metadata?.photos, match.photoUrl, match.avatar_url, match.id]);
+
+        return validPhotos.length > 0 ? validPhotos : [fallbackUrl];
+    }, [match.photos, match.photo_urls, match.metadata?.photos, match.photoUrl, match.avatar_url, match.id, match.name]);
 
     const [isHovered, setIsHovered] = useState(false);
 
@@ -237,8 +266,8 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             {/* Background Image (Immersive Carousel with Zero-Lag Hardware Acceleration) */}
             <div className="absolute inset-0 bg-gray-950">
                 <img
-                    src={photos[currentPhotoIndex] || match.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${match.id}`}
-                    alt={match.name}
+                    src={photos[currentPhotoIndex] || photos[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`}
+                    alt={match.name || 'Member'}
                     className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu"
                     loading="eager"
                     decoding="async"
@@ -470,7 +499,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
                     <div className="flex items-end gap-2 mb-1.5 flex-wrap">
                         <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
-                            {match.name}, {match.age}
+                            {match.name || 'Member'}{match.age ? `, ${match.age}` : ''}
                             {match.isPremium && <span className="text-amber-400 text-lg sm:text-xl drop-shadow-md animate-pulse" title="Premium Member">👑</span>}
                         </h3>
                         {match.isVerified && (
@@ -492,12 +521,59 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-1.5 text-gray-100 text-xs font-medium mb-3 opacity-95">
-                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">📏 {match.height || "-"}</span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">💼 {match.career?.profession || match.profession || "-"}</span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">{getReligionSymbol(match.religion?.religion || match.religion?.faith)} {match.religion?.religion || match.religion?.faith || "-"}</span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">📍 {formatLocationString(match.location)}</span>
-                    </div>
+                    {(() => {
+                        const chips: { icon: string; text: string }[] = [];
+
+                        // 1. Height (if specified)
+                        if (match.height && match.height !== '-' && match.height !== 'Not Specified' && match.height !== 'Unknown') {
+                            chips.push({ icon: '📏', text: match.height });
+                        }
+
+                        // 2. Profession or Education
+                        const prof = match.profession || match.career?.profession;
+                        const edu = match.education || match.career?.education || match.career?.educationLevel;
+                        if (prof && prof !== '-' && prof !== 'Member' && prof !== 'Not Specified') {
+                            chips.push({ icon: '💼', text: prof });
+                        } else if (edu && edu !== '-' && edu !== 'Other') {
+                            chips.push({ icon: '🎓', text: edu });
+                        }
+
+                        // 3. Religion
+                        const rel = match.religion?.religion || match.religion?.faith;
+                        if (rel && rel !== '-' && rel !== 'Not Specified' && rel !== 'Unknown') {
+                            chips.push({ icon: getReligionSymbol(rel), text: rel });
+                        }
+
+                        // 4. Marital Status or Mother Tongue (supplementary if few chips)
+                        const marital = match.maritalStatus || match.metadata?.maritalStatus;
+                        if (chips.length < 3 && marital && marital !== 'Single' && marital !== '-') {
+                            chips.push({ icon: '💍', text: marital });
+                        }
+                        const lang = match.motherTongue || match.metadata?.motherTongue;
+                        if (chips.length < 3 && lang && lang !== 'Unknown' && lang !== '-') {
+                            chips.push({ icon: '🗣️', text: lang });
+                        }
+
+                        // 5. Location
+                        const loc = formatLocationString(match.location);
+                        if (loc && loc !== 'Unknown City' && loc !== '-') {
+                            chips.push({ icon: '📍', text: loc });
+                        }
+
+                        if (chips.length === 0) {
+                            chips.push({ icon: '✨', text: 'Verified Profile' });
+                        }
+
+                        return (
+                            <div className="flex flex-wrap gap-1.5 text-gray-100 text-xs font-medium mb-3 opacity-95">
+                                {chips.map((c, i) => (
+                                    <span key={i} className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">
+                                        {c.icon} {c.text}
+                                    </span>
+                                ))}
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {/* ACTION Buttons — Desktop hover & mobile tap optimized */}

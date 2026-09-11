@@ -558,6 +558,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />
+                                        <InfoCard label="Inter-Caste" value={profile.religion?.interCasteOpen || "-"} />
                                         <InfoCard label="Gothra" value={profile.horoscope?.gothra || profile.religion?.gothra || "-"} />
                                         <InfoCard label="Manglik" value={profile.horoscope?.manglik || "-"} icon="✨" />
                                         <InfoCard label="Zodiac" value={profile.horoscope?.zodiacSign ? `${getZodiacSymbol(profile.horoscope.zodiacSign)} ${profile.horoscope.zodiacSign}` : "-"} />
@@ -645,7 +646,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <InfoRow label="Education" value={profile.career?.education || "-"} />
+                                        <InfoRow label="Education" value={profile.career?.education || profile.career?.educationLevel || profile.education || "-"} />
                                         <InfoRow label="Degree" value={profile.career?.degree || "-"} />
                                         <InfoRow label="College" value={profile.career?.college || "-"} />
                                         <InfoRow
@@ -668,9 +669,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoCard label="Values" value={profile.family?.values || profile.family?.familyValues || "-"} />
                                         <InfoCard label="Father" value={profile.family?.fatherOccupation || "-"} />
                                         <InfoCard label="Mother" value={profile.family?.motherOccupation || "-"} />
-                                        <InfoCard label="Brothers" value={profile.family?.brothers || "0"} />
-                                        <InfoCard label="Sisters" value={profile.family?.sisters || "0"} />
-                                        <InfoCard label="Native Place" value={profile.family?.nativePlace || profile.location?.city || "City"} />
+                                        <InfoCard label="Brothers" value={profile.family?.brothers !== undefined && profile.family?.brothers !== null && profile.family?.brothers !== '' ? String(profile.family.brothers) : "0"} />
+                                        <InfoCard label="Sisters" value={profile.family?.sisters !== undefined && profile.family?.sisters !== null && profile.family?.sisters !== '' ? String(profile.family.sisters) : "0"} />
+                                        <InfoCard label="Native Place" value={profile.family?.nativePlace || profile.location?.city || "-"} />
                                     </div>
                                 </div>
                             </div>
@@ -687,18 +688,27 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     </div>
                                 </div>
 
-                                {profile.lifestyle?.hobbies && (
-                                    <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                        <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-4">Interests & Hobbies</h3>
-                                        <div className="flex flex-wrap gap-2">
-                                            {profile.lifestyle.hobbies.split(',').map((hobby: string, idx: number) => (
-                                                <span key={idx} className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm">
-                                                    {hobby.trim()}
-                                                </span>
-                                            ))}
+                                {(() => {
+                                    const rawHobbies = profile.interests || profile.lifestyle?.hobbies;
+                                    const hobbiesArr: string[] = Array.isArray(rawHobbies)
+                                        ? rawHobbies
+                                        : (typeof rawHobbies === 'string' ? rawHobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+
+                                    if (hobbiesArr.length === 0) return null;
+
+                                    return (
+                                        <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                            <h3 className="font-bold text-slate-900 dark:text-slate-100 mb-4">Interests & Hobbies</h3>
+                                            <div className="flex flex-wrap gap-2">
+                                                {hobbiesArr.map((hobby: string, idx: number) => (
+                                                    <span key={idx} className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                        {hobby}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
                         )}
 

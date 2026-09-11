@@ -1267,11 +1267,13 @@ function DashboardContent() {
                                         setCurrentUser(newData);
                                         setIsEditingProfile(false);
                                         toast.success("Profile Saved!");
+                                        try { localStorage.removeItem('matches_cache_v2'); } catch (_) {}
 
                                         try {
                                             const freshData = await api.profile.getMe();
-                                            setCurrentUser(freshData);
+                                            if (freshData) setCurrentUser(freshData);
                                         } catch (e) { console.error("Refresh failed", e); }
+                                        try { fetchMatches(1); } catch (_) {}
                                     }}
                                     onCancel={() => setIsEditingProfile(false)}
                                 />

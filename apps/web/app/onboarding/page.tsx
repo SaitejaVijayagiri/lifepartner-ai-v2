@@ -46,7 +46,9 @@ export default function OnboardingPage() {
                 religion: {
                     religion: data.religion,
                     caste: data.caste,
-                    interCasteOpen: data.interCasteOpen,
+                    interCasteOpen: typeof data.interCasteOpen === 'boolean'
+                        ? (data.interCasteOpen ? 'Yes, open to inter-caste' : 'No, strictly same caste')
+                        : (data.interCasteOpen || 'Open Details'),
                     gothra: data.gothra
                 },
 
@@ -79,9 +81,11 @@ export default function OnboardingPage() {
 
                 lifestyle: {
                     diet: data.diet,
-                    smoke: data.smoke,
-                    drink: data.drink,
-                    hobbies: data.hobbies  // was missing
+                    smoke: data.smoke || 'No',
+                    smoking: data.smoke || 'No',
+                    drink: data.drink || 'No',
+                    drinking: data.drink || 'No',
+                    hobbies: data.hobbies
                 },
 
                 prompt: data.prompt,

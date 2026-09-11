@@ -247,6 +247,21 @@ router.get('/me', authenticateToken, async (req: any, res) => {
         const completeness = calculateProfileCompleteness(user, meta, photosList);
 
         // Transform User + Profile into the specific Frontend Shape
+        const locationObj = {
+            city: meta.location?.city || user.city || user.location_name || "",
+            district: meta.location?.district || user.district || "",
+            state: meta.location?.state || user.state || "",
+            country: meta.location?.country || "India",
+            lat: meta.location?.lat,
+            lng: meta.location?.lng
+        };
+
+        const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
+            ? meta.interests
+            : (typeof meta.lifestyle?.hobbies === 'string'
+                ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
+                : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : (user.profiles?.traits as any)?.hobbies || []));
+
         const profile = {
             id: user.id || userId,
             userId: user.id || userId,
@@ -255,20 +270,37 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             email: user.email,
             age: user.age, // Added Age
             gender: user.gender,
-            // Prefer metadata location (full object) over user.location_name (string)
-            location: meta.location || { city: user.location_name },
+            // Prefer full metadata location, seamlessly merged with user.city/district/state
+            location: locationObj,
+            city: locationObj.city,
+            district: locationObj.district,
+            state: locationObj.state,
 
             // Read from Metadata with fallbacks
-            career: meta.career || { profession: "", education: "" },
+            career: {
+                profession: meta.career?.profession || "",
+                company: meta.career?.company || "",
+                education: meta.career?.education || meta.career?.educationLevel || "",
+                college: meta.career?.college || "",
+                degree: meta.career?.degree || "",
+                income: meta.career?.income || ""
+            },
             family: meta.family || {},
-            lifestyle: meta.lifestyle || {},
+            lifestyle: {
+                ...meta.lifestyle,
+                smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
+                smoke: meta.lifestyle?.smoke || meta.lifestyle?.smoking || "No",
+                drinking: meta.lifestyle?.drinking || meta.lifestyle?.drink || "No",
+                drink: meta.lifestyle?.drink || meta.lifestyle?.drinking || "No",
+                hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
+            },
             religion: meta.religion || {},
             horoscope: meta.horoscope || {},
             partnerPreferences: meta.partnerPreferences || {},
             motherTongue: meta.motherTongue || "",
             maritalStatus: meta.maritalStatus || "", // Removed "Single" default
             dob: meta.dob, // Added DOB
-            interests: meta.interests || (user.profiles?.traits as any)?.hobbies || [], // Map interests/hobbies
+            interests: hobbiesList, // Map interests/hobbies
 
             reels: (meta.reels as string[]) || [],
 
@@ -283,11 +315,16 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             is_admin: user.is_admin || false, // Exposed to Frontend
             free_direct_messages: user.free_direct_messages ?? 3,
             coins: user.coins || 0, // Added Coin Balance
-            phone: meta.phone || "", // Added Phone
+            phone: user.phone || meta.phone || "", // Hydrate phone from users table or metadata
             referral_code: user.referral_code || "", // Added Referral Code
             premium_expiry: user.premium_expiry, // Added Premium Expiry
             is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
             muted_users: meta.muted_users || [],
+            emergency_contact: meta.emergency_contact || null,
+            metadata: {
+                ...meta,
+                emergency_contact: meta.emergency_contact || null
+            },
 
             // Profile Completeness Engine
             completenessScore: completeness.completenessScore,
@@ -621,7 +658,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         // Fetch user's existing gender and avatar to enforce read-only protection & preserve avatars
         const existingUser = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true, avatar_url: true, full_name: true }
+            select: { gender: true, avatar_url: true, full_name: true, phone: true }
         });
 
         // ...
@@ -635,7 +672,9 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             photos, photoUrl,
             email, phone, // Added email and phone
             savedStickers,
-            interests // Added interests/hobbies
+            interests, // Added interests/hobbies
+            emergency_contact,
+            metadata: rawMetadata
         } = req.body;
 
         // Lock Gender: If gender is already set in the database, do not allow changing it.
@@ -715,8 +754,26 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         // Legacy: if only prompt is provided but no bio, fallback for compatibility
         const finalBio = cleanBio || (aboutMe === undefined ? cleanExpectations : '');
         const cleanPrompt = finalBio;
-        if (career) career.profession = sanitizeContent(career.profession || '');
+        if (career) {
+            career.profession = sanitizeContent(career.profession || '');
+            if (career.education && !career.educationLevel) {
+                career.educationLevel = career.education;
+            }
+        }
         if (location) location.city = sanitizeContent(location.city || '');
+
+        // Normalize lifestyle habits and synchronize hobbies
+        if (lifestyle) {
+            lifestyle.smoking = lifestyle.smoking || lifestyle.smoke || 'No';
+            lifestyle.smoke = lifestyle.smoke || lifestyle.smoking || 'No';
+            lifestyle.drinking = lifestyle.drinking || lifestyle.drink || 'No';
+            lifestyle.drink = lifestyle.drink || lifestyle.drinking || 'No';
+            if (interests && Array.isArray(interests) && interests.length > 0) {
+                lifestyle.hobbies = lifestyle.hobbies || interests.join(', ');
+            }
+        }
+
+        const emergencyContact = emergency_contact || rawMetadata?.emergency_contact || undefined;
 
         // 0. Validation: Email Uniqueness
         if (email) {
@@ -845,11 +902,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     dob,
                     location, // already sanitized
                     height, // Added Height
-                    phone, // Added Phone
+                    phone: phone || existingUser?.phone || undefined, // Added Phone
                     bio: cleanBio || finalBio, // Sync aboutMe to bio
+                    aboutMe: cleanBio || finalBio,
                     expectations: cleanExpectations || undefined, // Store expectations separately
                     savedStickers,
-                    interests
+                    interests: interests || (lifestyle?.hobbies ? (typeof lifestyle.hobbies === 'string' ? lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : lifestyle.hobbies) : undefined),
+                    emergency_contact: emergencyContact || existingMeta?.emergency_contact || undefined
                 };
 
                 // Upsert Profile
@@ -997,6 +1056,9 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     console.warn('[profile] PostGIS update skipped (non-blocking):', e?.message);
                 }
             }
+
+            // Invalidate recommendation match cache so user and peers get fresh scores & data
+            try { require('./matches').matchCache.clear(); } catch (_) {}
 
             res.json({ success: true, message: "Profile saved" });
 

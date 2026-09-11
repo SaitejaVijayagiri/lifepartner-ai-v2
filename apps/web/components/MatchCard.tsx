@@ -538,10 +538,13 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             chips.push({ icon: '🎓', text: edu });
                         }
 
-                        // 3. Religion
+                        // 3. Religion & Caste
                         const rel = match.religion?.religion || match.religion?.faith;
+                        const caste = match.religion?.caste;
                         if (rel && rel !== '-' && rel !== 'Not Specified' && rel !== 'Unknown') {
-                            chips.push({ icon: getReligionSymbol(rel), text: rel });
+                            chips.push({ icon: getReligionSymbol(rel), text: (caste && caste !== '-' && caste !== 'Not Specified') ? `${rel} (${caste})` : rel });
+                        } else if (caste && caste !== '-' && caste !== 'Not Specified') {
+                            chips.push({ icon: '🕉️', text: caste });
                         }
 
                         // 4. Marital Status or Mother Tongue (supplementary if few chips)

@@ -582,7 +582,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             }
 
             // 5. Smoking compatibility
-            if (meMeta.lifestyle?.smoking === 'No' && meta.lifestyle?.smoking === 'Yes') {
+            const meSmoking = meMeta.lifestyle?.smoking || meMeta.lifestyle?.smoke;
+            const cSmoking = meta.lifestyle?.smoking || meta.lifestyle?.smoke;
+            if (meSmoking === 'No' && cSmoking === 'Yes') {
                 score -= 15;
             }
 
@@ -637,6 +639,12 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             );
             const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
 
+            const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
+                ? meta.interests
+                : (typeof meta.lifestyle?.hobbies === 'string'
+                    ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
+                    : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : []));
+
             return {
                 id: c.id,
                 name: c.full_name || 'Member',
@@ -675,12 +683,20 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 family: meta.family || {},
                 religion: meta.religion || {},
                 horoscope: meta.horoscope || {},
-                lifestyle: meta.lifestyle || {},
+                lifestyle: {
+                    ...meta.lifestyle,
+                    smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
+                    smoke: meta.lifestyle?.smoke || meta.lifestyle?.smoking || "No",
+                    drinking: meta.lifestyle?.drinking || meta.lifestyle?.drink || "No",
+                    drink: meta.lifestyle?.drink || meta.lifestyle?.drinking || "No",
+                    hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
+                },
                 partnerPreferences: meta.partnerPreferences || {},
                 aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
+                interests: hobbiesList,
 
                 stories: mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []),
                 total_likes: c._count.matches_matches_user_b_idTousers || 0,
@@ -1023,7 +1039,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             }
 
             // 5. Smoking compatibility
-            if (meMeta.lifestyle?.smoking === 'No' && meta.lifestyle?.smoking === 'Yes') {
+            const meSmoking = meMeta.lifestyle?.smoking || meMeta.lifestyle?.smoke;
+            const cSmoking = meta.lifestyle?.smoking || meta.lifestyle?.smoke;
+            if (meSmoking === 'No' && cSmoking === 'Yes') {
                 score -= 15;
             }
 
@@ -1034,6 +1052,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 c.full_name || c.id
             );
             const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+
+            const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
+                ? meta.interests
+                : (typeof meta.lifestyle?.hobbies === 'string'
+                    ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
+                    : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : []));
 
             return {
                 id: c.id,
@@ -1067,12 +1091,20 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 family: meta.family || {},
                 religion: meta.religion || {},
                 horoscope: meta.horoscope || {},
-                lifestyle: meta.lifestyle || {},
+                lifestyle: {
+                    ...meta.lifestyle,
+                    smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
+                    smoke: meta.lifestyle?.smoke || meta.lifestyle?.smoking || "No",
+                    drinking: meta.lifestyle?.drinking || meta.lifestyle?.drink || "No",
+                    drink: meta.lifestyle?.drink || meta.lifestyle?.drinking || "No",
+                    hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
+                },
                 partnerPreferences: meta.partnerPreferences || {},
                 aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
+                interests: hobbiesList,
                 stories: (() => {
                     const direct: any[] = (c.profiles?.stories as any[]) || [];
                     const metaStories: any[] = (meta?.stories as any[]) || [];

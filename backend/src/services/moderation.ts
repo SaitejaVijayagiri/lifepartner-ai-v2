@@ -132,7 +132,7 @@ You MUST ACCEPT (return hasFace: true) ONLY if there is at least one clear, real
 If you reject it, provide a short, polite reason (e.g., "The photo appears to be a scenery.", "The photo contains a deity/idol.", "No clear human face is visible.").`;
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -163,7 +163,7 @@ If you reject it, provide a short, polite reason (e.g., "The photo appears to be
                             }
                         }
                     }),
-                    signal: AbortSignal.timeout(15000) // 15s timeout
+                    signal: AbortSignal.timeout(10000) // 10s timeout
                 }
             );
 

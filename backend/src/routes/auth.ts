@@ -457,10 +457,11 @@ router.post('/resend-otp', async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ error: "Email required" });
+        const emailNormalized = email.trim().toLowerCase();
 
         // 1. Check User
         const user = await prisma.users.findUnique({
-            where: { email },
+            where: { email: emailNormalized },
             select: { id: true, full_name: true, is_verified: true }
         });
 
@@ -478,19 +479,37 @@ router.post('/resend-otp', async (req, res) => {
         });
 
         // 4. Send Email
-        console.log(`🔐 RESENT OTP for ${email}: ${otp}`);
+        console.log(`🔐 RESENT OTP for ${emailNormalized}: ${otp}`);
 
         if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('mock')) {
             await resend.emails.send({
-                from: process.env.EMAIL_FROM || 'LifePartner AI <auth@lifepartnerai.in>',
-                to: email,
-                subject: 'Verify your LifePartner AI Account (Resend)',
+                from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
+                to: emailNormalized,
+                subject: 'Your Verification Code (Resend)',
+                text: `Your new verification code is: ${otp}\n\nThis code expires in 10 minutes.\n\nSent from LifePartner AI.`,
                 html: `
-                    <h1>Verification Code</h1>
-                    <p>Hello ${user.full_name},</p>
-                    <p>Here is your new verification code:</p>
-                    <h2>${otp}</h2>
-                    <p>Expires in 10 minutes.</p>
+                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                    <div style="background: linear-gradient(135deg, #E11D48 0%, #4F46E5 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">LifePartner AI</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin-top: 5px; font-size: 14px;">Where Tradition Meets Technology</p>
+                    </div>
+                    <div style="padding: 40px 30px; text-align: center;">
+                        <h2 style="color: #1e293b; margin-bottom: 20px; font-size: 20px;">Verify Your Email Address</h2>
+                        <p style="color: #64748b; margin-bottom: 30px; line-height: 1.6;">
+                            Hello ${user.full_name || 'there'},<br />
+                            Please enter your new verification code below to complete your registration. This code is valid for 10 minutes.
+                        </p>
+                        <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 5px; margin-bottom: 30px; display: inline-block;">
+                            ${otp}
+                        </div>
+                        <p style="color: #94a3b8; font-size: 12px; margin-top: 20px;">
+                            If you didn't request this code, you can safely ignore this email.
+                        </p>
+                    </div>
+                    <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LifePartner AI. All rights reserved.</p>
+                    </div>
+                </div>
                 `
             });
         }

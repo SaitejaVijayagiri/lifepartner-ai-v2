@@ -70,8 +70,34 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 const stepIndex = parseInt(savedStep, 10);
                 if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < STEPS.length) {
                     setCurrentStep(stepIndex);
-                    // console.log(`Restored to step ${stepIndex}: ${STEPS[stepIndex].title}`);
                 }
+            }
+
+            // Pre-fill user details from Google Login or database session
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    const u = JSON.parse(storedUser);
+                    setData((prev: any) => ({
+                        ...prev,
+                        name: prev.name || u.name || '',
+                        gender: prev.gender || u.gender || 'Male',
+                        age: prev.age || (u.age ? String(u.age) : '')
+                    }));
+                } catch (_) {}
+            } else {
+                api.profile.getMe().then((me: any) => {
+                    if (me) {
+                        setData((prev: any) => ({
+                            ...prev,
+                            name: prev.name || me.name || me.full_name || '',
+                            gender: prev.gender || me.gender || 'Male',
+                            age: prev.age || (me.age ? String(me.age) : ''),
+                            city: prev.city || me.city || '',
+                            photos: (prev.photos && prev.photos.length > 0) ? prev.photos : (me.photos || [])
+                        }));
+                    }
+                }).catch(() => {});
             }
         } catch (e) {
             console.error('Failed to load saved onboarding data', e);

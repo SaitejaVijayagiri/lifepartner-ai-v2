@@ -434,8 +434,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
                   AND full_name IS NOT NULL AND TRIM(full_name) != ''
                   AND age IS NOT NULL AND age >= 18
-                  AND gender IS NOT NULL
-                  AND LOWER(gender) = 'female'
+                  AND gender IN ('Female', 'female')
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else if (myGender === 'female') {
@@ -447,8 +446,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
                   AND full_name IS NOT NULL AND TRIM(full_name) != ''
                   AND age IS NOT NULL AND age >= 18
-                  AND gender IS NOT NULL
-                  AND LOWER(gender) = 'male'
+                  AND gender IN ('Male', 'male')
                 ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else {

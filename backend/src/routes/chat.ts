@@ -249,15 +249,20 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             // Ignore if already connected
         }
 
+        // Pre-fetch sender profile once for both Socket.io broadcast and Push notification
+        const senderProfile = await prisma.users.findUnique({
+            where: { id: senderId },
+            select: { full_name: true, avatar_url: true }
+        });
+        const { sanitizePhotoUrl } = require('../utils/photoUrl');
+        const senderPhotoUrl = sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User');
+        const senderFullName = senderProfile?.full_name || 'Someone';
+        const senderFirstName = senderFullName.split(' ')[0] || "Someone";
+
         // Broadcast via Socket.IO (include sender details for in-app toast)
         try {
             const { getIO } = require('../socket');
             const io = getIO();
-            const senderProfile = await prisma.users.findUnique({
-                where: { id: senderId },
-                select: { full_name: true, avatar_url: true }
-            });
-            const { sanitizePhotoUrl } = require('../utils/photoUrl');
 
             // If replying, fetch the original message so the receiver can show the preview
             let replyToPreview: any = null;
@@ -285,34 +290,27 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
 
             io.to(connectionId).emit("receiveMessage", {
                 ...newMessage,
-                senderName: senderProfile?.full_name || 'Someone',
-                senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User'),
+                senderName: senderFullName,
+                senderPhoto: senderPhotoUrl,
                 replyToPreview
             });
         } catch (socketError) {
             console.error("Socket broadcast failed", socketError);
         }
 
-        // Send Push Notification for chat message
+        // Send Push Notification for chat message (zero extra DB queries)
         try {
-            const senderProfile = await prisma.users.findUnique({
-                where: { id: senderId },
-                select: { full_name: true, avatar_url: true }
-            });
-            const senderName = senderProfile?.full_name?.split(' ')[0] || "Someone";
-
             const { NotificationService } = require('../services/notification');
-            const { sanitizePhotoUrl } = require('../utils/photoUrl');
             await NotificationService.getInstance().sendToUser(
                 connectionId,
-                `${senderName}`,
+                `${senderFirstName}`,
                 cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
                 { 
                     url: `/dashboard?tab=connections&chatId=${senderId}`,
                     messageId: newMessageRecord.id,
                     senderId: senderId,
-                    senderName: senderName,
-                    senderPhoto: sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User'),
+                    senderName: senderFirstName,
+                    senderPhoto: senderPhotoUrl,
                     type: 'match'
                 }
             );

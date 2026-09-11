@@ -34,6 +34,7 @@ export default function LandingPageClient() {
     full_name: '',
     email: '',
     password: '',
+    age: '',
     gender: 'Male',
     looking_for: 'Female',
     intent: 'matrimony'
@@ -72,11 +73,17 @@ export default function LandingPageClient() {
       toast.error("Password must be at least 8 characters long.");
       return;
     }
+    const ageNum = parseInt(signupForm.age);
+    if (!signupForm.age || isNaN(ageNum) || ageNum < 18 || ageNum > 80) {
+      toast.error("Please enter a valid age (18 - 80 years).");
+      return;
+    }
 
     setSignupLoading(true);
     try {
       const res = await api.auth.register({
         ...signupForm,
+        age: ageNum,
         email: signupForm.email.trim().toLowerCase(),
         password: signupForm.password.trim()
       });
@@ -400,8 +407,8 @@ export default function LandingPageClient() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                      <div className="sm:col-span-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                      <div className="col-span-2 sm:col-span-1">
                         <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Password</label>
                         <div className="relative">
                           <input
@@ -420,6 +427,20 @@ export default function LandingPageClient() {
                             {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                           </button>
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Age</label>
+                        <input
+                          type="number"
+                          required
+                          min="18"
+                          max="80"
+                          value={signupForm.age}
+                          onChange={(e) => setSignupForm({ ...signupForm, age: e.target.value })}
+                          placeholder="e.g. 25"
+                          className="w-full h-11 px-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                        />
                       </div>
 
                       <div>

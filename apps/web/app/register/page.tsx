@@ -85,11 +85,16 @@ function RegisterForm() {
     const handleResendOtp = async () => {
         try {
             setResendLoading(true);
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: form.email })
+                body: JSON.stringify({ email: form.email.trim().toLowerCase() })
             });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                toast.error(data.error || 'Failed to resend code. Please try again.');
+                return;
+            }
             setResendCooldown(60);
             toast.success('A new verification code has been sent!');
         } catch {

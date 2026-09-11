@@ -138,11 +138,16 @@ export default function LandingPageClient() {
 
   const handleResendHeroOtp = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: signupForm.email })
+        body: JSON.stringify({ email: signupForm.email.trim().toLowerCase() })
       });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to resend code. Please try again.');
+        return;
+      }
       setResendCooldown(60);
       toast.success('A new 6-digit code has been sent!');
     } catch (e) {

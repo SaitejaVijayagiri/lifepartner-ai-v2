@@ -306,7 +306,7 @@ function DashboardContent() {
         const notificationId = searchParams.get('notificationId');
         const action = searchParams.get('action') || 'notification_body';
         if (notificationId) {
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://backend.lifepartnerai.in';
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
             fetch(`${API_BASE_URL}/notifications/${notificationId}/click`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

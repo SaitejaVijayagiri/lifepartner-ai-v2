@@ -789,6 +789,25 @@ function DashboardContent() {
         };
     }, [socket, activeTab, selectedConnection]);
 
+    // Instantly remove blocked users and refresh data when blocked in chat
+    useEffect(() => {
+        const handleUserBlocked = (e: any) => {
+            const blockedId = e?.detail?.blockedId;
+            closeChat();
+            if (blockedId) {
+                setConnections(prev => prev.filter(c => (c.partner?.id || c.id) !== blockedId));
+                setMatches(prev => prev.filter(m => m.id !== blockedId));
+            }
+            fetchConnections();
+            try { fetchMatches(1); } catch (_) {}
+        };
+
+        window.addEventListener('userBlocked', handleUserBlocked);
+        return () => {
+            window.removeEventListener('userBlocked', handleUserBlocked);
+        };
+    }, []);
+
     // Handle instant read update
     const handleMarkRead = (partnerId: string) => {
         setConnections(prev => {

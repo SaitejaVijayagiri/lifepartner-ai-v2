@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -831,6 +831,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const [showHeaderMenu, setShowHeaderMenu] = useState(false);
     const [showClearChatModal, setShowClearChatModal] = useState(false);
+    const [showBlockModal, setShowBlockModal] = useState(false);
+    const [blockReason, setBlockReason] = useState("Inappropriate or offensive messages");
+    const [blockDetails, setBlockDetails] = useState("");
+    const [reportedMessageSnippet, setReportedMessageSnippet] = useState<string | null>(null);
+    const [alsoReportUser, setAlsoReportUser] = useState(true);
+    const [isBlocking, setIsBlocking] = useState(false);
 
     // Automatically close menus, emoji picker, or message actions when scrolling the chat or clicking outside
     useEffect(() => {
@@ -1567,15 +1573,55 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
-    // Block Partner
-    const handleBlock = async () => {
-        if (!confirm("Block this user? You will not see their messages again.")) return;
+    // Open Block & Report Modal
+    const handleOpenBlockModal = (messageSnippet?: string) => {
+        setReportedMessageSnippet(messageSnippet || null);
+        setBlockReason(messageSnippet ? "Inappropriate or offensive messages" : "Inappropriate or offensive messages");
+        setBlockDetails("");
+        setAlsoReportUser(true);
+        setShowBlockModal(true);
+        setShowHeaderMenu(false);
+        setActiveMsgId(null);
+    };
+
+    // Confirm Block & Report Partner
+    const handleConfirmBlock = async () => {
+        if (isBlocking) return;
+        setIsBlocking(true);
         try {
-            await api.interactions.reportUser(partner.id, "BLOCK", "Blocked from Chat");
-            toast.success("User blocked");
+            // 1. Block user in backend (upsert block, delete matches & mutual interactions, clear cache)
+            await api.interactions.blockUser(partner.id);
+
+            // 2. Submit formal report if requested
+            if (alsoReportUser) {
+                const reportContent = reportedMessageSnippet 
+                    ? `[Reported Inappropriate Message: "${reportedMessageSnippet.slice(0, 300)}"] ${blockDetails}`.trim()
+                    : (blockDetails ? `${blockReason} - ${blockDetails}` : blockReason);
+                try {
+                    await api.interactions.reportUser(partner.id, blockReason, reportContent);
+                } catch (reportErr) {
+                    console.warn("Failed to record formal report:", reportErr);
+                }
+            }
+
+            // 3. Emit socket notification if partner is connected
+            if (socket && partner?.id) {
+                socket.emit("user_blocked", { to: partner.id });
+            }
+
+            // 4. Dispatch local window event so parent dashboard immediately clears matches/connections
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('userBlocked', { detail: { blockedId: partner.id } }));
+            }
+
+            toast.success(`Blocked ${partnerInfo.name || 'user'}. They can no longer contact you.`);
+            setShowBlockModal(false);
             onClose?.();
-        } catch (e) {
-            toast.error("Failed to block user");
+        } catch (e: any) {
+            console.error("Failed to block user:", e);
+            toast.error(e?.message || "Failed to block user. Please try again.");
+        } finally {
+            setIsBlocking(false);
         }
     };
 
@@ -1811,6 +1857,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     >
                                         <Trash2 size={16} />
                                         Clear Chat
+                                    </button>
+                                    <button
+                                        onClick={() => handleOpenBlockModal()}
+                                        className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 transition-colors font-medium border-t border-gray-100 dark:border-gray-700/60"
+                                    >
+                                        <Ban size={16} className="text-red-500" />
+                                        Block & Report User
                                     </button>
                                 </div>
                             )}
@@ -2460,6 +2513,18 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 className="p-1 text-gray-500 hover:text-amber-500 rounded-full transition-all text-xs cursor-pointer animate-pulse"
                                                 title="React"
                                             >😊</button>
+                                            {!isMe && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenBlockModal(msg.text);
+                                                    }}
+                                                    className="p-1 text-gray-500 hover:text-red-500 rounded-full transition-all cursor-pointer"
+                                                    title="Report & Block"
+                                                >
+                                                    <Flag size={14} />
+                                                </button>
+                                            )}
                                             {isMe && (
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(msg.id); setActiveMsgId(null); }}
@@ -2494,6 +2559,16 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm cursor-pointer"
                                             title="React"
                                         >😊</button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleOpenBlockModal(msg.text);
+                                            }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
+                                            title="Report & Block"
+                                        >
+                                            <Flag size={14} />
+                                        </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
                                             className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
@@ -3187,6 +3262,148 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 className="w-full text-center p-3.5 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 font-medium transition-all"
                             >
                                 Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Block & Report User Modal */}
+            {showBlockModal && (
+                <div 
+                    className="fixed inset-0 z-[3100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" 
+                    onClick={() => !isBlocking && setShowBlockModal(false)}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-red-100 dark:border-red-900/40" 
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-5 sm:p-6 bg-red-50 dark:bg-red-950/30 border-b border-red-100 dark:border-red-900/40 text-center relative">
+                            <button
+                                onClick={() => !isBlocking && setShowBlockModal(false)}
+                                className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-white/50 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                            <div className="w-14 h-14 bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner ring-4 ring-red-50 dark:ring-red-950">
+                                <Ban size={28} />
+                            </div>
+                            <h3 className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">
+                                Block {partnerInfo.name || 'User'}?
+                            </h3>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                Keep your profile safe from inappropriate messages or harassment.
+                            </p>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-5 sm:p-6 space-y-4 max-h-[calc(85vh-200px)] overflow-y-auto">
+                            {/* Safety Notice */}
+                            <div className="p-3.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-100 dark:border-gray-700/60 text-xs text-gray-600 dark:text-gray-300 space-y-1.5">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-red-500 font-bold">•</span>
+                                    <span>This conversation will be permanently closed.</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="text-red-500 font-bold">•</span>
+                                    <span>{partnerInfo.name || 'They'} will be removed from your matches.</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="text-red-500 font-bold">•</span>
+                                    <span>They won't be able to message, call, or view your profile again.</span>
+                                </div>
+                            </div>
+
+                            {/* Reported Message Preview (if triggered from message action) */}
+                            {reportedMessageSnippet && (
+                                <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3 text-xs">
+                                    <span className="font-bold text-amber-800 dark:text-amber-300 block mb-1">
+                                        Flagged Inappropriate Message:
+                                    </span>
+                                    <p className="text-gray-700 dark:text-gray-300 italic line-clamp-3 bg-white/70 dark:bg-gray-800/70 p-2 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                                        &ldquo;{reportedMessageSnippet}&rdquo;
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Reason selection */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    Reason for Blocking
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        value={blockReason}
+                                        onChange={(e) => setBlockReason(e.target.value)}
+                                        disabled={isBlocking}
+                                        className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all cursor-pointer font-medium"
+                                    >
+                                        <option value="Inappropriate or offensive messages">Inappropriate or offensive messages</option>
+                                        <option value="Harassment, abuse, or bullying">Harassment, abuse, or bullying</option>
+                                        <option value="Inappropriate photos, media, or sexual content">Inappropriate photos, media, or sexual content</option>
+                                        <option value="Fake profile, spam, or scammer">Fake profile, spam, or scammer</option>
+                                        <option value="Asking for money or financial requests">Asking for money or financial requests</option>
+                                        <option value="Other safety concern">Other safety concern</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Additional details */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                    Additional Details (Optional)
+                                </label>
+                                <textarea
+                                    value={blockDetails}
+                                    onChange={(e) => setBlockDetails(e.target.value)}
+                                    placeholder="Explain why this message or user was inappropriate..."
+                                    disabled={isBlocking}
+                                    rows={2}
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs sm:text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all placeholder:text-gray-400 resize-none"
+                                />
+                            </div>
+
+                            {/* Report checkbox */}
+                            <label className="flex items-center gap-2.5 cursor-pointer select-none text-xs text-gray-600 dark:text-gray-400">
+                                <input
+                                    type="checkbox"
+                                    checked={alsoReportUser}
+                                    onChange={(e) => setAlsoReportUser(e.target.checked)}
+                                    disabled={isBlocking}
+                                    className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-gray-300 dark:border-gray-700 cursor-pointer"
+                                />
+                                <span>Also report this user to LifePartner AI Safety Team</span>
+                            </label>
+                        </div>
+
+                        {/* Footer buttons */}
+                        <div className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => setShowBlockModal(false)}
+                                disabled={isBlocking}
+                                className="flex-1 py-2.5 px-4 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-all disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirmBlock}
+                                disabled={isBlocking}
+                                className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-md hover:shadow-lg hover:shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                            >
+                                {isBlocking ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>Blocking...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Ban size={16} />
+                                        <span>Block User</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>

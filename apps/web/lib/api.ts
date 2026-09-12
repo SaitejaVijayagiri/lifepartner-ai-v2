@@ -134,6 +134,13 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ reportedId, reason, details })
         }),
+        blockUser: (blockedId: string) => fetchAPI('/interactions/block', {
+            method: 'POST',
+            body: JSON.stringify({ blockedId })
+        }),
+        unblockUser: (blockedId: string) => fetchAPI(`/interactions/block/${blockedId}`, {
+            method: 'DELETE'
+        }),
         sendDirectMessage: (toUserId: string, text: string) => fetchAPI('/interactions/direct', {
             method: 'POST',
             body: JSON.stringify({ toUserId, text })

@@ -575,6 +575,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [showJukebox, setShowJukebox] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const headerMenuRef = useRef<HTMLDivElement>(null);
+    const attachmentMenuRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
     const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<string | null>(null);
@@ -746,6 +748,55 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const [showHeaderMenu, setShowHeaderMenu] = useState(false);
     const [showClearChatModal, setShowClearChatModal] = useState(false);
+
+    // Automatically close menus, emoji picker, or message actions when scrolling the chat or clicking outside
+    useEffect(() => {
+        if (!showHeaderMenu && !showAttachmentMenu && !emojiPickerMsgId && !activeMsgId) return;
+
+        const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+            const target = e.target as Node;
+            if (showHeaderMenu && headerMenuRef.current && !headerMenuRef.current.contains(target)) {
+                setShowHeaderMenu(false);
+            }
+            if (showAttachmentMenu && attachmentMenuRef.current && !attachmentMenuRef.current.contains(target)) {
+                setShowAttachmentMenu(false);
+            }
+            if (emojiPickerMsgId && !(target as HTMLElement)?.closest?.('.emoji-picker-container')) {
+                setEmojiPickerMsgId(null);
+            }
+            if (activeMsgId && !(target as HTMLElement)?.closest?.('.message-action-bar')) {
+                setActiveMsgId(null);
+            }
+        };
+
+        const handleScroll = (e: Event) => {
+            // Don't close if user is scrolling inside the menu itself
+            if (headerMenuRef.current && headerMenuRef.current.contains(e.target as Node)) return;
+            if (attachmentMenuRef.current && attachmentMenuRef.current.contains(e.target as Node)) return;
+
+            if (showHeaderMenu) setShowHeaderMenu(false);
+            if (showAttachmentMenu) setShowAttachmentMenu(false);
+            if (emojiPickerMsgId) setEmojiPickerMsgId(null);
+            if (activeMsgId) setActiveMsgId(null);
+        };
+
+        const scrollEl = scrollRef.current;
+        if (scrollEl) {
+            scrollEl.addEventListener('scroll', handleScroll, { passive: true });
+        }
+        window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside, { passive: true });
+
+        return () => {
+            if (scrollEl) {
+                scrollEl.removeEventListener('scroll', handleScroll);
+            }
+            window.removeEventListener('scroll', handleScroll, { capture: true } as any);
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [showHeaderMenu, showAttachmentMenu, emojiPickerMsgId, activeMsgId]);
 
     const handleClearChat = async (mode: 'me' | 'everyone') => {
         try {
@@ -1428,7 +1479,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             `}</style>
             {/* Premium Header */}
             {!isCallMode && (
-                <div className={`p-3.5 sm:p-4 text-white flex justify-between items-center relative transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
+                <div className={`p-3.5 sm:p-4 text-white flex justify-between items-center relative z-50 flex-shrink-0 transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
                     {/* Decorative elements */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -1533,9 +1584,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         >
                             <EyeOff size={18} />
                         </button>
-                        <div className="relative">
+                        <div className="relative" ref={headerMenuRef}>
                             <button
-                                onClick={() => setShowHeaderMenu(!showHeaderMenu)}
+                                onClick={() => setShowHeaderMenu(prev => !prev)}
                                 className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
                                 title="More Options"
                             >
@@ -1543,7 +1594,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             </button>
 
                             {showHeaderMenu && (
-                                <div className="absolute right-0 top-12 mt-2 w-52 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[3000] animate-in slide-in-from-top-2 duration-200">
+                                <div className="absolute right-0 top-full mt-2 w-52 max-h-[calc(100dvh-120px)] overflow-y-auto bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 z-[3000] animate-in slide-in-from-top-2 duration-200">
                                     <button
                                         onClick={() => {
                                             setGameMode('snakes');
@@ -1743,7 +1794,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     {/* Emoji picker popup */}
                                     {emojiPickerMsgId === msg.id && (
                                         <div
-                                            className={`absolute ${isMe ? 'right-0' : 'left-0'} -top-12 z-50 flex gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-2 py-1.5 shadow-xl animate-in zoom-in-95 duration-150`}
+                                            className={`emoji-picker-container absolute ${isMe ? 'right-0' : 'left-0'} -top-12 z-50 flex gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl px-2 py-1.5 shadow-xl animate-in zoom-in-95 duration-150`}
                                         >
                                             {QUICK_EMOJIS.map(e => (
                                                 <button
@@ -2204,7 +2255,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     })()}
                                     {/* Mobile-optimized Action Pill Bar */}
                                     {activeMsgId === msg.id && (
-                                        <div className="flex sm:hidden items-center gap-2.5 mt-1 px-3 py-1.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-full shadow-md animate-in slide-in-from-top-1 duration-150 z-10">
+                                        <div className="message-action-bar flex sm:hidden items-center gap-2.5 mt-1 px-3 py-1.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-full shadow-md animate-in slide-in-from-top-1 duration-150 z-10">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: isMe ? 'You' : partnerInfo.name }); inputRef.current?.focus(); setActiveMsgId(null); }}
                                                 className="p-1 text-gray-500 hover:text-indigo-500 rounded-full transition-all cursor-pointer"
@@ -2448,7 +2499,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 )}
                 <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                 {/* 📎 Paperclip Attachment Menu & AI Icebreaker Launcher */}
-                <div className="relative flex-shrink-0">
+                <div className="relative flex-shrink-0" ref={attachmentMenuRef}>
                     {isRecording ? (
                         <button
                             type="button"

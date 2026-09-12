@@ -114,7 +114,7 @@ export default function OnboardingPage() {
 
             // Minimal delay just to ensure the success animation renders smoothly
             await new Promise(r => setTimeout(r, 400));
-            router.push('/dashboard');
+            router.replace('/dashboard');
         } catch (error: any) {
             console.error(error);
             toast.error(error.message || 'Failed to save profile. Please try again.');

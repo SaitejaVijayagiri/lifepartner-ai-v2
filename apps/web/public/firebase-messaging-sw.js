@@ -66,12 +66,14 @@ messaging.onBackgroundMessage((payload) => {
         ];
         notificationOptions.requireInteraction = true;
         notificationOptions.vibrate = [500, 200, 500, 200, 500];
-    } else if (payload.data?.type === 'match' && payload.data?.messageId && payload.data?.senderId) {
-        // Add Like and Reply actions for chat messages/replies
-        notificationOptions.actions = [
-            { action: 'like_message', title: 'Like ❤️' },
-            { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
-        ];
+    } else if ((payload.data?.type === 'match' || payload.data?.type === 'chat' || payload.data?.type === 'message') && (payload.data?.senderId || payload.data?.connId)) {
+        // WhatsApp-style inline quick reply and like actions for all chat messages
+        const actions = [];
+        if (payload.data?.messageId) {
+            actions.push({ action: 'like_message', title: 'Like ❤️' });
+        }
+        actions.push({ action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' });
+        notificationOptions.actions = actions;
     } else if (payload.data?.type === 'witty_reengagement') {
         notificationOptions.actions = [
             { action: 'find_matches', title: 'Swipe Matches 🔍' },
@@ -255,7 +257,7 @@ self.addEventListener('notificationclick', function(event) {
     // Inline reply action click handler
     if (action === 'reply_to_message') {
         const replyText = event.reply;
-        const senderId = payloadData.senderId; // The partner's user ID
+        const senderId = payloadData.senderId || payloadData.connId; // The partner's user ID
         
         if (!replyText) return;
         
@@ -373,7 +375,7 @@ self.addEventListener('notificationclick', function(event) {
             // Check if there is already a window/tab open with the dashboard URL
             for (let i = 0; i < windowClients.length; i++) {
                 const client = windowClients[i];
-                if (client.url.includes('/dashboard')) {
+                if (client.url.includes('/dashboard') || client.url.includes('/chat')) {
                     // Update/Navigate the open client window to the correct tab
                     if ('navigate' in client) {
                         client.navigate(urlToOpen);

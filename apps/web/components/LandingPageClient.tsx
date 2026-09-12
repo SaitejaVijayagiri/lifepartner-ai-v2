@@ -27,6 +27,7 @@ export default function LandingPageClient() {
   const [topRow, setTopRow] = useState<any[]>([]);
   const [bottomRow, setBottomRow] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
 
   // Hero Dual Tab (Signup vs Search)
   const [heroTab, setHeroTab] = useState<'signup' | 'search'>('signup');
@@ -97,7 +98,7 @@ export default function LandingPageClient() {
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('token', res.token);
         toast.success("Account created successfully! Welcome 🎉");
-        router.push('/onboarding');
+        router.replace('/onboarding');
       }
     } catch (err: any) {
       console.error("Instant registration error:", err);
@@ -127,7 +128,7 @@ export default function LandingPageClient() {
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('token', res.token);
         toast.success("Email verified! Welcome to LifePartner AI 🎉");
-        router.push('/onboarding');
+        router.replace('/onboarding');
       }
     } catch (err: any) {
       toast.error(err.message || "Invalid OTP code. Please check and try again.");
@@ -159,7 +160,14 @@ export default function LandingPageClient() {
     // Check if user is already logged in
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
+    const userStr = localStorage.getItem('user');
     setIsLoggedIn(!!(token && userId));
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        setUserName(u.full_name || u.name || '');
+      } catch (_) {}
+    }
 
     // Fetch public featured profiles for the marquee
     const fetchProfiles = async () => {
@@ -322,7 +330,35 @@ export default function LandingPageClient() {
               </div>
 
               {heroTab === 'signup' ? (
-                signupOtpStep ? (
+                isLoggedIn ? (
+                  <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/50 to-pink-50/90 dark:from-indigo-950/40 dark:via-gray-900 dark:to-purple-950/40 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-900/40 text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                      <Sparkles size={28} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black text-gray-900 dark:text-white">
+                        Welcome Back{userName ? `, ${userName.split(' ')[0]}` : ''}! 🎉
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        You are already signed in to LifePartner AI.
+                      </p>
+                    </div>
+                    <Link href="/dashboard" className="block w-full">
+                      <button className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer">
+                        <span>Go to My Dashboard</span>
+                        <ArrowRight size={18} />
+                      </button>
+                    </Link>
+                    <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
+                      <Link href="/dashboard?tab=matches" className="py-2.5 px-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:text-indigo-600 transition-colors">
+                        💘 View Matches
+                      </Link>
+                      <Link href="/dashboard?tab=connections" className="py-2.5 px-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 font-bold hover:text-indigo-600 transition-colors">
+                        💬 My Chats
+                      </Link>
+                    </div>
+                  </div>
+                ) : signupOtpStep ? (
                   /* OTP Step inside Hero Widget */
                   <form onSubmit={handleInstantVerifyOtp} className="space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-center">

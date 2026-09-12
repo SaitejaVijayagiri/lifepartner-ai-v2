@@ -301,14 +301,32 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         // Send Push Notification for chat message (zero extra DB queries)
         try {
             const { NotificationService } = require('../services/notification');
+            
+            const pushBody = isIncognito
+                ? '🕵️ Sent an incognito message'
+                : cleanText.startsWith('[IMAGE]')
+                ? '📷 Sent a photo'
+                : cleanText.startsWith('[AUDIO]')
+                ? '🎤 Sent a voice message'
+                : cleanText.startsWith('[STICKER]')
+                ? '🎭 Sent a sticker'
+                : cleanText.startsWith('[STORY_REPLY:')
+                ? (() => {
+                    const endIdx = cleanText.indexOf(']');
+                    const reply = endIdx !== -1 ? cleanText.substring(endIdx + 1).trim() : '';
+                    return reply ? `📸 Story reply: "${reply}"` : '📸 Replied to your story';
+                  })()
+                : cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
+
             await NotificationService.getInstance().sendToUser(
                 connectionId,
                 `${senderFirstName}`,
-                cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText,
+                pushBody,
                 { 
-                    url: `/dashboard?tab=connections&chatId=${senderId}`,
+                    url: `/dashboard?tab=connections&chatId=${senderId}&name=${encodeURIComponent(senderFirstName)}&photo=${encodeURIComponent(senderPhotoUrl || '')}`,
                     messageId: newMessageRecord.id,
                     senderId: senderId,
+                    connId: senderId,
                     senderName: senderFirstName,
                     senderPhoto: senderPhotoUrl,
                     type: 'match'

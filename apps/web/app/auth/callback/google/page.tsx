@@ -36,10 +36,10 @@ function GoogleCallbackContent() {
                     localStorage.setItem('token', res.data.token);
                     if (res.data.requiresOnboarding) {
                         setStatus('Profile incomplete. Redirecting to Onboarding...');
-                        setTimeout(() => router.push('/onboarding'), 1000);
+                        setTimeout(() => router.replace('/onboarding'), 1000);
                     } else {
                         setStatus('Success! Redirecting...');
-                        setTimeout(() => router.push('/dashboard'), 1000);
+                        setTimeout(() => router.replace('/dashboard'), 1000);
                     }
                 }
             } catch (err: any) {

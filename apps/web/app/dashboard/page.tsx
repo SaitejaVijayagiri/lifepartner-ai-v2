@@ -276,6 +276,127 @@ function DashboardContent() {
         }, 50);
     };
 
+    // Keep refs in sync for popstate back button handler
+    const dashboardStateRefs = useRef({
+        selectedConnection,
+        selectedProfile,
+        activeStorySet,
+        showCoinStore,
+        showFilterModal,
+        showCallHistory,
+        isEditingProfile,
+        selectedKundli,
+        giftData,
+        showSpeedDatingLobby,
+        showStreakModal,
+        gameTarget,
+        pendingGameInvite,
+        activeTab,
+    });
+
+    dashboardStateRefs.current = {
+        selectedConnection,
+        selectedProfile,
+        activeStorySet,
+        showCoinStore,
+        showFilterModal,
+        showCallHistory,
+        isEditingProfile,
+        selectedKundli,
+        giftData,
+        showSpeedDatingLobby,
+        showStreakModal,
+        gameTarget,
+        pendingGameInvite,
+        activeTab,
+    };
+
+    const lastBackPressTimeRef = useRef<number>(0);
+
+    // Handle browser/device back button: keep user fixed in dashboard instead of falling back to landing page
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        // Push an initial history entry so browser back button triggers popstate inside dashboard
+        window.history.pushState({ inDashboard: true }, '', window.location.href);
+
+        const handlePopState = () => {
+            const current = dashboardStateRefs.current;
+
+            // 1. Close active chat window if open
+            if (current.selectedConnection) {
+                closeChat();
+                window.history.pushState({ inDashboard: true }, '', window.location.href);
+                return;
+            }
+
+            // 2. Close profile modal if open
+            if (current.selectedProfile) {
+                setSelectedProfile(null);
+                window.history.pushState({ inDashboard: true }, '', window.location.href);
+                return;
+            }
+
+            // 3. Close active stories if open
+            if (current.activeStorySet) {
+                setActiveStorySet(null);
+                window.history.pushState({ inDashboard: true }, '', window.location.href);
+                return;
+            }
+
+            // 4. Close any open overlays/modals
+            if (
+                current.showCoinStore ||
+                current.showFilterModal ||
+                current.showCallHistory ||
+                current.isEditingProfile ||
+                current.selectedKundli ||
+                current.giftData ||
+                current.showSpeedDatingLobby ||
+                current.showStreakModal ||
+                current.gameTarget ||
+                current.pendingGameInvite
+            ) {
+                setShowCoinStore(false);
+                setShowFilterModal(false);
+                setShowCallHistory(false);
+                setIsEditingProfile(false);
+                setSelectedKundli(null);
+                setGiftData(null);
+                setShowSpeedDatingLobby(false);
+                setShowStreakModal(false);
+                setGameTarget(null);
+                setPendingGameInvite(null);
+                window.history.pushState({ inDashboard: true }, '', window.location.href);
+                return;
+            }
+
+            // 5. If on another tab, return to home tab
+            if (current.activeTab !== 'home') {
+                setActiveTab('home');
+                window.history.pushState({ inDashboard: true }, '', window.location.href);
+                return;
+            }
+
+            // 6. Already at home tab with no modals open:
+            // "Press back again to exit" mobile/PWA friendly behavior
+            const now = Date.now();
+            if (now - lastBackPressTimeRef.current < 2000) {
+                // User pressed back twice within 2 seconds: allow exit/back navigation
+                return;
+            } else {
+                lastBackPressTimeRef.current = now;
+                toast.info("Press back again to exit");
+                window.history.pushState({ inDashboard: true }, '', window.location.href);
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
     // Sync active chat partner to window global so MessageToastBanner can suppress notifications
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -451,6 +572,8 @@ function DashboardContent() {
         const tab = searchParams.get('tab');
         const edit = searchParams.get('edit');
         const chatId = searchParams.get('chatId');
+        const partnerName = searchParams.get('name');
+        const partnerPhoto = searchParams.get('photo');
 
         if (tab) {
             setActiveTab(tab);
@@ -460,19 +583,21 @@ function DashboardContent() {
         }
         if (chatId) {
             setActiveTab('connections');
-            // Auto open the chat window! The internal ChatWindow component will fetch the real name/photo
+            // Auto open the chat window with sender's real name and photo
             setSelectedConnection({
                 interactionId: chatId,
                 partner: {
                     id: chatId,
-                    name: 'Partner',
-                    photoUrl: ''
+                    name: partnerName ? decodeURIComponent(partnerName) : 'Partner',
+                    photoUrl: partnerPhoto ? decodeURIComponent(partnerPhoto) : ''
                 }
             });
             
             // Clean URL without refresh
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete('chatId');
+            newUrl.searchParams.delete('name');
+            newUrl.searchParams.delete('photo');
             window.history.replaceState({}, '', newUrl.toString());
         }
 

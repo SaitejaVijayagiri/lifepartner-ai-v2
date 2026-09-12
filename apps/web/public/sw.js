@@ -99,7 +99,19 @@ self.addEventListener('notificationclick', function (event) {
                         silent: true
                     });
                 })
-                .catch(err => console.error('Failed to send reply from SW:', err))
+                .catch(err => {
+                    console.error('Failed to send reply from SW (offline), queueing:', err);
+                    return caches.open('offline-actions').then(cache => {
+                        const item = { type: 'reply', connId: senderId, text: replyText, timestamp: Date.now() };
+                        return cache.put('/reply_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).then(() => {
+                        return self.registration.showNotification('LifePartner AI', {
+                            body: `Reply queued: "${replyText}" (will send when online)`,
+                            icon: '/icon.png',
+                            silent: true
+                        });
+                    });
+                })
         );
         return;
     }
@@ -157,7 +169,18 @@ self.addEventListener('notificationclick', function (event) {
                         icon: '/icon.png'
                     });
                 })
-                .catch(err => console.error('Failed to process request action:', err))
+                .catch(err => {
+                    console.error('Failed to process request action (offline), queueing:', err);
+                    return caches.open('offline-actions').then(cache => {
+                        const item = { type: 'request', interactionId, action: actionType, timestamp: Date.now() };
+                        return cache.put('/req_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).then(() => {
+                        return self.registration.showNotification('Match Request Update', {
+                            body: actionType === 'accept' ? 'Request accepted (will sync when online) ✅' : 'Request declined (will sync when online) ❌',
+                            icon: '/icon.png'
+                        });
+                    });
+                })
         );
         return;
     }

@@ -46,6 +46,52 @@ export const cacheAuthTokenForWorker = async (token: string | null) => {
 };
 
 /**
+ * Sync offline queued actions from CacheStorage (replies & friend requests)
+ * when network connectivity is restored.
+ */
+export const syncOfflineActions = async () => {
+    if (typeof window === 'undefined' || !('caches' in window) || !navigator.onLine) return;
+    try {
+        const cache = await caches.open('offline-actions');
+        const keys = await cache.keys();
+        if (keys.length === 0) return;
+
+        console.log(`[Offline Sync] Draining ${keys.length} queued offline actions...`);
+        for (const req of keys) {
+            try {
+                const res = await cache.match(req);
+                if (!res) continue;
+                const item = await res.json();
+
+                if (item.type === 'request' && item.interactionId && item.action) {
+                    if (item.action === 'accept') {
+                        await api.interactions.acceptRequest(item.interactionId);
+                    } else {
+                        await api.interactions.declineRequest(item.interactionId);
+                    }
+                    await cache.delete(req);
+                    console.log(`[Offline Sync] Synced request action: ${item.action} for ${item.interactionId}`);
+                } else if (item.type === 'reply' && item.connId && item.text) {
+                    await api.chat.sendMessage(item.connId, item.text);
+                    await cache.delete(req);
+                    console.log(`[Offline Sync] Synced reply for ${item.connId}`);
+                }
+            } catch (itemErr) {
+                console.warn('[Offline Sync] Failed to sync item:', itemErr);
+            }
+        }
+    } catch (e) {
+        console.warn('[Offline Sync] Error during sync:', e);
+    }
+};
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+        syncOfflineActions();
+    });
+}
+
+/**
  * Notifications module:
  * 
  * 1. Mobile APK (Android Capacitor / WebView):
@@ -77,6 +123,9 @@ export const Notifications = {
         if (authToken && authToken !== 'null') {
             await cacheAuthTokenForWorker(authToken);
         }
+
+        // Drain any pending offline actions if internet is available
+        syncOfflineActions();
 
         // ----------------------------------------------------
         // A. Native Android Platform (Capacitor / Website APK)

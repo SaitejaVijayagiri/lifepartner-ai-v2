@@ -41,6 +41,14 @@
             </intent-filter>
         </receiver>
 
+        <!-- Native Friend / Match Request Action Receiver -->
+        <receiver android:name=".NotificationRequestReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.lifepartner.ai.ACTION_ACCEPT_REQUEST" />
+                <action android:name="com.lifepartner.ai.ACTION_DECLINE_REQUEST" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

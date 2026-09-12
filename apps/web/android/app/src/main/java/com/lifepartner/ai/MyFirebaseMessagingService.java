@@ -200,10 +200,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     ) {
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         String CHANNEL_ID = "lifepartner_chat";
+        String interactionId = (data != null) ? data.get("interactionId") : null;
+        if (interactionId == null && data != null && "request".equals(type)) {
+            interactionId = data.get("id");
+        }
         // Compute notificationId once at method level so all places use the same value
-        int notificationId = (connId != null) 
-            ? connId.hashCode() 
-            : ((campaignNotificationId != null) ? campaignNotificationId.hashCode() : (int) System.currentTimeMillis());
+        int notificationId = (interactionId != null && !interactionId.isEmpty())
+            ? interactionId.hashCode()
+            : ((connId != null) 
+                ? connId.hashCode() 
+                : ((campaignNotificationId != null) ? campaignNotificationId.hashCode() : (int) System.currentTimeMillis()));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -310,7 +316,40 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.addAction(0, "Ask Love Guru 🤖", guruPendingIntent);
         }
 
-        // 2. Setup "Quick Reply" Action if this is a chat message (connId exists)
+        // 2. Setup "Accept" & "Decline" Actions for Friend / Match Requests
+        if (interactionId != null && !interactionId.isEmpty() && ("request".equals(type) || (data != null && data.containsKey("interactionId")))) {
+            // Accept Action
+            Intent acceptIntent = new Intent(this, NotificationRequestReceiver.class);
+            acceptIntent.setAction("com.lifepartner.ai.ACTION_ACCEPT_REQUEST");
+            acceptIntent.putExtra("interactionId", interactionId);
+            acceptIntent.putExtra("action", "accept");
+            acceptIntent.putExtra("notificationId", notificationId);
+
+            PendingIntent acceptPendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    interactionId.hashCode() + 10,
+                    acceptIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            builder.addAction(0, "Accept ✅", acceptPendingIntent);
+
+            // Decline Action
+            Intent declineIntent = new Intent(this, NotificationRequestReceiver.class);
+            declineIntent.setAction("com.lifepartner.ai.ACTION_DECLINE_REQUEST");
+            declineIntent.putExtra("interactionId", interactionId);
+            declineIntent.putExtra("action", "decline");
+            declineIntent.putExtra("notificationId", notificationId);
+
+            PendingIntent declinePendingIntent = PendingIntent.getBroadcast(
+                    this,
+                    interactionId.hashCode() + 20,
+                    declineIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            builder.addAction(0, "Decline ❌", declinePendingIntent);
+        }
+
+        // 3. Setup "Quick Reply" Action if this is a chat message (connId exists)
         if (connId != null && !connId.isEmpty()) {
             RemoteInput remoteInput = new RemoteInput.Builder("key_text_reply")
                     .setLabel("Type your reply...")

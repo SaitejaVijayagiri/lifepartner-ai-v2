@@ -189,24 +189,16 @@ self.addEventListener('notificationclick', function(event) {
                     });
                 })
                 .catch(err => {
-                    console.error('Failed to perform background notification action:', err);
-                    // Fallback: Open dashboard requests tab so user can review/action manually
-                    return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-                        const urlToOpen = '/dashboard?tab=requests';
-                        for (let i = 0; i < windowClients.length; i++) {
-                            const client = windowClients[i];
-                            if (client.url.includes('/dashboard')) {
-                                if ('navigate' in client) {
-                                    client.navigate(urlToOpen);
-                                }
-                                if ('focus' in client) {
-                                    return client.focus();
-                                }
-                            }
-                        }
-                        if (clients.openWindow) {
-                            return clients.openWindow(urlToOpen);
-                        }
+                    console.error('Failed to perform background notification action (offline), queueing:', err);
+                    caches.open('offline-actions').then(cache => {
+                        const item = { type: 'request', interactionId, action: actionType, timestamp: Date.now() };
+                        return cache.put('/req_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).catch(console.error);
+
+                    return self.registration.showNotification('Match Request Update', {
+                        body: actionType === 'accept' ? 'Request accepted (will sync when online) ✅' : 'Request declined (will sync when online) ❌',
+                        icon: '/icon.png',
+                        silent: false
                     });
                 })
         );
@@ -296,7 +288,17 @@ self.addEventListener('notificationclick', function(event) {
                     });
                 })
                 .catch(err => {
-                    console.error('Failed to send reply from notification:', err);
+                    console.error('Failed to send reply from notification (offline), queueing:', err);
+                    caches.open('offline-actions').then(cache => {
+                        const item = { type: 'reply', connId: senderId, text: replyText, timestamp: Date.now() };
+                        return cache.put('/reply_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).catch(console.error);
+
+                    return self.registration.showNotification('LifePartner AI', {
+                        body: `Reply queued: "${replyText}" (will send when online)`,
+                        icon: '/icon.png',
+                        silent: true
+                    });
                 })
         );
         return;

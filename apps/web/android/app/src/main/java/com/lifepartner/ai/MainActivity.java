@@ -1,6 +1,8 @@
 package com.lifepartner.ai;
 
 import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -51,6 +53,33 @@ public class MainActivity extends BridgeActivity {
 
         // 5. Fetch & register FCM token safely (legacy fallback)
         fetchAndRegisterToken();
+
+        // 6. Monitor network state to flush offline queued replies and actions when reconnected
+        registerNetworkMonitoring();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        OfflineSyncManager.flushPendingActions(this);
+    }
+
+    private void registerNetworkMonitoring() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                cm.registerDefaultNetworkCallback(new android.net.ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(android.net.Network network) {
+                        super.onAvailable(network);
+                        Log.i(TAG, "Network became available! Draining offline queued actions...");
+                        OfflineSyncManager.flushPendingActions(MainActivity.this);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to register network monitoring: ", e);
+        }
     }
 
     private static final String ONESIGNAL_APP_ID = "2f12f11f-1a09-408d-b609-4708a90b5609";
@@ -68,6 +97,32 @@ public class MainActivity extends BridgeActivity {
                 Log.d(TAG, "OneSignal native permission result: " + r.getData());
                 OneSignal.getUser().getPushSubscription().optIn();
             }));
+
+            // Handle interactive button clicks (e.g. Accept / Decline) from OneSignal notifications
+            OneSignal.getNotifications().addClickListener(event -> {
+                try {
+                    String actionId = event.getResult().getActionId();
+                    Log.d(TAG, "OneSignal notification action clicked: " + actionId);
+                    org.json.JSONObject additionalData = event.getNotification().getAdditionalData();
+                    if (additionalData != null && actionId != null) {
+                        String interactionId = additionalData.optString("interactionId", null);
+                        if (interactionId == null) interactionId = additionalData.optString("id", null);
+
+                        if (interactionId != null && ("accept".equals(actionId) || "decline".equals(actionId))) {
+                            Intent reqIntent = new Intent(MainActivity.this, NotificationRequestReceiver.class);
+                            reqIntent.setAction("accept".equals(actionId)
+                                    ? "com.lifepartner.ai.ACTION_ACCEPT_REQUEST"
+                                    : "com.lifepartner.ai.ACTION_DECLINE_REQUEST");
+                            reqIntent.putExtra("interactionId", interactionId);
+                            reqIntent.putExtra("action", actionId);
+                            reqIntent.putExtra("notificationId", interactionId.hashCode());
+                            sendBroadcast(reqIntent);
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error handling OneSignal click action: ", e);
+                }
+            });
 
             // Restore logged in user if available so notifications reach this device even after restart
             SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);

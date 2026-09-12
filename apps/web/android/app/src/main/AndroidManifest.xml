@@ -21,12 +21,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Native Firebase Messaging Service -->
+        <!-- Let OneSignal handle FCM Messaging Events directly -->
+        <!-- Native Firebase Messaging Service (disabled to allow OneSignal FCM token reception)
         <service android:name=".MyFirebaseMessagingService" android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+        -->
 
         <receiver android:name=".NotificationReplyReceiver" android:exported="false">
             <intent-filter>

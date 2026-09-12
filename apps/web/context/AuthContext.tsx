@@ -88,6 +88,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             localStorage.setItem('user', JSON.stringify(updatedUser));
                         } catch (e) { /* ignore */ }
 
+                        // Sync with native Android Bridge immediately
+                        if (typeof window !== 'undefined') {
+                            const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+                            if (bridge) {
+                                if (typeof bridge.loginUser === 'function') {
+                                    bridge.loginUser(updatedUser.id);
+                                }
+                                const currentToken = localStorage.getItem('token') || token;
+                                if (typeof bridge.setAuthToken === 'function' && currentToken) {
+                                    bridge.setAuthToken(currentToken);
+                                }
+                            }
+                        }
+
                         // Auto-Register FCM Push Token for all active users
                         Notifications.init().catch(console.error);
 
@@ -133,6 +147,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('userId', userData.id);
         setUser(userData);
+
+        if (typeof window !== 'undefined') {
+            const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+            if (bridge) {
+                if (typeof bridge.loginUser === 'function') {
+                    bridge.loginUser(userData.id);
+                }
+                if (typeof bridge.setAuthToken === 'function') {
+                    bridge.setAuthToken(token);
+                }
+            }
+        }
 
         // Auto-Register FCM Push Token on Login
         Notifications.init().catch(console.error);

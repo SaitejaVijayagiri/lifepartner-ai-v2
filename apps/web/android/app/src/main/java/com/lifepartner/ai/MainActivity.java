@@ -344,8 +344,11 @@ public class MainActivity extends BridgeActivity {
 
                     String subId = OneSignal.getUser().getPushSubscription().getId();
                     String authToken = prefs.getString("auth_token", null);
-                    if (subId != null && !subId.isEmpty() && authToken != null) {
-                        sendOneSignalSubscriptionToBackend(subId, authToken);
+                    if (authToken != null && !authToken.trim().isEmpty() && !authToken.equalsIgnoreCase("null")) {
+                        MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+                        if (subId != null && !subId.isEmpty()) {
+                            sendOneSignalSubscriptionToBackend(subId, authToken);
+                        }
                     }
                 }
             } catch (Exception e) {

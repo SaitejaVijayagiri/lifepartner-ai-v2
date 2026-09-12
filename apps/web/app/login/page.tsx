@@ -47,8 +47,13 @@ export default function LoginPage() {
                 localStorage.setItem('token', res.token);
                 if (typeof window !== 'undefined') {
                     const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
-                    if (bridge && typeof bridge.setAuthToken === 'function') {
-                        bridge.setAuthToken(res.token);
+                    if (bridge) {
+                        if (typeof bridge.setAuthToken === 'function') {
+                            bridge.setAuthToken(res.token);
+                        }
+                        if (typeof bridge.loginUser === 'function') {
+                            bridge.loginUser(res.userId);
+                        }
                     }
                     Notifications.init().catch(console.error);
                 }

@@ -12,7 +12,6 @@
     "@capacitor/android": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
-    "@capacitor/push-notifications": "^8.0.0",
     "@cashfreepayments/cashfree-js": "^1.0.5",
     "@radix-ui/react-tabs": "^1.1.13",
     "@vercel/analytics": "^1.6.1",

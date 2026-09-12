@@ -105,21 +105,23 @@ export const Notifications = {
                         bridge.setAuthToken(authToken);
                     }
 
-                    // Sync OneSignal App ID & User ID with native layer
+                    // Sync User ID with native layer immediately
+                    let storedUserId = localStorage.getItem('userId');
+                    if (!storedUserId) {
+                        try {
+                            const u = localStorage.getItem('user');
+                            if (u) storedUserId = JSON.parse(u).id;
+                        } catch (_) {}
+                    }
+                    if (storedUserId && typeof bridge.loginUser === 'function') {
+                        bridge.loginUser(storedUserId);
+                    }
+
+                    // Sync OneSignal App ID with native layer
                     try {
                         const config = await api.notifications.getConfig();
                         if (config?.onesignalAppId && typeof bridge.setOneSignalAppId === 'function') {
                             bridge.setOneSignalAppId(config.onesignalAppId);
-                        }
-                        let storedUserId = localStorage.getItem('userId');
-                        if (!storedUserId) {
-                            try {
-                                const u = localStorage.getItem('user');
-                                if (u) storedUserId = JSON.parse(u).id;
-                            } catch (_) {}
-                        }
-                        if (storedUserId && typeof bridge.loginUser === 'function') {
-                            bridge.loginUser(storedUserId);
                         }
                     } catch (_) {}
 

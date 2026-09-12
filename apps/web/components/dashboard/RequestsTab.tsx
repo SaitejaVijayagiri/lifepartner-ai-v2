@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Heart, MapPin, Briefcase, X, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, MapPin, Briefcase, X, Check, Bell } from 'lucide-react';
+import { Notifications } from '@/lib/notifications';
 
 interface RequestsTabProps {
     requests: any[];
@@ -17,6 +18,27 @@ export default function RequestsTab({
     loading
 }: RequestsTabProps) {
     const [actioningIds, setActioningIds] = useState<Set<string>>(new Set());
+    const [permissionStatus, setPermissionStatus] = useState<string>('granted');
+    const [isEnabling, setIsEnabling] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setPermissionStatus(Notification.permission);
+        }
+    }, []);
+
+    const handleEnablePush = async () => {
+        setIsEnabling(true);
+        try {
+            const granted = await Notifications.requestPermission();
+            if (granted) {
+                setPermissionStatus('granted');
+            }
+        } catch (_) {
+        } finally {
+            setIsEnabling(false);
+        }
+    };
 
     const onAccept = async (id: string) => {
         setActioningIds(prev => {
@@ -63,6 +85,28 @@ export default function RequestsTab({
 
     return (
         <div className="w-full max-w-2xl mx-auto py-2 sm:py-6 space-y-3 sm:space-y-4">
+            {/* Push Notification Opt-in Banner for Offline Friend Requests */}
+            {permissionStatus === 'default' && (
+                <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-indigo-200 dark:border-indigo-800/40 rounded-3xl p-4 flex items-center justify-between gap-3 shadow-sm animate-in fade-in duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20">
+                            <Bell size={18} />
+                        </div>
+                        <div>
+                            <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">Get Instant Friend Request Alerts</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400">Receive alerts on your lock screen when someone sends or accepts an interest request.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleEnablePush}
+                        disabled={isEnabling}
+                        className="shrink-0 px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                        {isEnabling ? 'Enabling...' : 'Turn On'}
+                    </button>
+                </div>
+            )}
+
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1 text-gray-900 dark:text-white">
                 Pending Requests <span className="text-indigo-600 bg-indigo-50 dark:bg-indigo-900/40 px-2 py-0.5 rounded-full text-base ml-2">{requests.length}</span>
             </h2>

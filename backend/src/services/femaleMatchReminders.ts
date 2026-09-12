@@ -8,7 +8,7 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
 const FROM = process.env.EMAIL_FROM || 'LifePartner AI <hello@lifepartnerai.in>';
 
-function generateMatchWaitingEmail(firstName: string, waitingCount: number, totalVerifiedMen: number): string {
+function generateMatchWaitingEmail(firstName: string, waitingCount: number, totalVerifiedOpposite: number, oppositeGenderLabel: string = 'verified matches'): string {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -38,7 +38,7 @@ function generateMatchWaitingEmail(firstName: string, waitingCount: number, tota
     <!-- Match Counter Highlight -->
     <div style="background:linear-gradient(135deg,#fff7ed,#fef3c7);border-bottom:1px solid #fde68a;padding:18px 24px;text-align:center;">
       <p style="margin:0;font-size:15px;color:#92400e;font-weight:600;">
-        🔥 <strong style="font-size:24px;color:#dc2626;">${waitingCount > 0 ? waitingCount : totalVerifiedMen}+</strong> ${waitingCount > 0 ? 'new pending interests & verified matches' : 'verified men looking for a partner like you'} waiting
+        🔥 <strong style="font-size:24px;color:#dc2626;">${waitingCount > 0 ? waitingCount : totalVerifiedOpposite}+</strong> ${waitingCount > 0 ? 'new pending interests & verified matches' : `${oppositeGenderLabel} looking for a partner like you`} waiting
       </p>
     </div>
 
@@ -91,26 +91,15 @@ function generateMatchWaitingEmail(firstName: string, waitingCount: number, tota
 }
 
 export async function runFemaleMatchesReminderCampaign() {
-    console.log('[CRON] Starting Female Matches Reminder Notification Campaign...');
+    console.log('[CRON] Starting Match Requests & Online Matches Reminder Campaign (Boys & Girls)...');
     try {
-        const femaleUsers = await prisma.users.findMany({
+        const activeUsers = await prisma.users.findMany({
             where: {
                 is_banned: false,
-                AND: [
-                    {
-                        OR: [
-                            { gender: 'Female' },
-                            { gender: 'female' },
-                            { gender: 'FEMALE' }
-                        ]
-                    },
-                    {
-                        OR: [
-                            { is_deactivated: false },
-                            { is_deactivated: null },
-                            { deactivated_until: { lt: new Date() } }
-                        ]
-                    }
+                OR: [
+                    { is_deactivated: false },
+                    { is_deactivated: null },
+                    { deactivated_until: { lt: new Date() } }
                 ]
             },
             select: {
@@ -122,31 +111,45 @@ export async function runFemaleMatchesReminderCampaign() {
             }
         });
 
-        const totalVerifiedMen = await prisma.users.count({
-            where: {
-                OR: [{ gender: 'Male' }, { gender: 'male' }],
-                is_verified: true,
-                is_banned: false
-            }
-        });
+        const [totalVerifiedMen, totalVerifiedWomen] = await Promise.all([
+            prisma.users.count({
+                where: {
+                    OR: [{ gender: 'Male' }, { gender: 'male' }, { gender: 'MALE' }],
+                    is_verified: true,
+                    is_banned: false
+                }
+            }),
+            prisma.users.count({
+                where: {
+                    OR: [{ gender: 'Female' }, { gender: 'female' }, { gender: 'FEMALE' }],
+                    is_verified: true,
+                    is_banned: false
+                }
+            })
+        ]);
 
-        console.log(`[CRON] Processing ${femaleUsers.length} female users...`);
+        console.log(`[CRON] Processing ${activeUsers.length} users (both boys and girls)...`);
 
-        for (const user of femaleUsers) {
+        for (const user of activeUsers) {
             const name = user.full_name || 'there';
             const firstName = name.split(' ')[0];
+            const isMale = (user.gender || '').toLowerCase() === 'male';
+            const oppositeCount = isMale ? totalVerifiedWomen : totalVerifiedMen;
+            const oppositeLabel = isMale ? 'verified women' : 'verified men';
 
+            // Check pending requests with case-insensitive / normalized status
             const pendingRequests = await prisma.interactions.count({
                 where: {
                     to_user_id: user.id,
-                    status: 'PENDING'
+                    type: 'REQUEST',
+                    status: { in: ['pending', 'PENDING'] }
                 }
             });
 
             const notificationTitle = `💌 ${firstName}, your matches are waiting!`;
             const notificationBody = pendingRequests > 0
-                ? `You have ${pendingRequests} pending match request${pendingRequests > 1 ? 's' : ''} waiting for your response.`
-                : `Over ${totalVerifiedMen}+ verified matches are waiting to meet someone like you on LifePartner AI.`;
+                ? `You have ${pendingRequests} pending friend request${pendingRequests > 1 ? 's' : ''} waiting for your response! 💖`
+                : `Over ${oppositeCount}+ ${oppositeLabel} are waiting to meet someone like you on LifePartner AI.`;
 
             // In-app Notification
             await prisma.notifications.create({
@@ -162,7 +165,7 @@ export async function runFemaleMatchesReminderCampaign() {
                 }
             }).catch(() => {});
 
-            // Realtime Push Notification
+            // Realtime Push Notification (Delivered even if app is closed/offline)
             NotificationService.getInstance().sendToUser(
                 user.id,
                 notificationTitle,
@@ -170,6 +173,7 @@ export async function runFemaleMatchesReminderCampaign() {
                 {
                     type: 'match_reminder',
                     pendingCount: String(pendingRequests),
+                    url: '/dashboard?tab=requests',
                     actionUrl: '/dashboard?tab=requests'
                 }
             ).catch(() => {});
@@ -184,14 +188,14 @@ export async function runFemaleMatchesReminderCampaign() {
                     from: FROM,
                     to: user.email,
                     subject,
-                    html: generateMatchWaitingEmail(firstName, pendingRequests, totalVerifiedMen)
+                    html: generateMatchWaitingEmail(firstName, pendingRequests, oppositeCount, oppositeLabel)
                 }).catch((e: any) => console.error(`[CRON Email Error] ${user.email}:`, e.message));
             }
 
-            await new Promise((r) => setTimeout(r, 300));
+            await new Promise((r) => setTimeout(r, 150));
         }
 
-        console.log('[CRON] Female Matches Reminder Campaign completed successfully.');
+        console.log('[CRON] Match Requests & Matches Reminder Campaign completed successfully.');
     } catch (e: any) {
         console.error('[CRON] Error in runFemaleMatchesReminderCampaign:', e.message);
     }

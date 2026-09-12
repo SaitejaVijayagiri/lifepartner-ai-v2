@@ -406,6 +406,83 @@ export default function MatchesTab({
 
     return (
         <div className="w-full space-y-6">
+            {/* Dedicated Online Now Horizontal Bar (directly below Instants bar) */}
+            {onlineMatchesList.length > 0 && (
+                <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-slate-900/40 border border-emerald-200 dark:border-emerald-500/30 backdrop-blur-md shadow-xl">
+                    <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center space-x-2">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            </span>
+                            <h3 className="font-black text-xs sm:text-sm tracking-wide uppercase text-emerald-800 dark:text-emerald-400">
+                                Active Members Online Now ({onlineMatchesList.length})
+                            </h3>
+                        </div>
+                        <button
+                            onClick={() => setShowOnlineOnly(!showOnlineOnly)}
+                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 underline"
+                        >
+                            {showOnlineOnly ? 'Show All Matches' : 'Filter Feed to Online Only →'}
+                        </button>
+                    </div>
+
+                    <div className="flex items-center space-x-4 overflow-x-auto no-scrollbar py-1 px-1">
+                        {onlineMatchesList.map((member: any) => {
+                            const photo = member.photoUrl || member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`;
+
+                            return (
+                                <div
+                                    key={member.id}
+                                    className="flex flex-col items-center space-y-1.5 flex-shrink-0 group cursor-pointer"
+                                    onClick={() => setSelectedProfile(member)}
+                                >
+                                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-emerald-400 via-teal-500 to-green-400 shadow-lg group-hover:scale-105 transition-transform">
+                                        <img
+                                            src={photo}
+                                            alt={member.name}
+                                            className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 bg-white dark:bg-slate-800"
+                                        />
+                                        {/* Glowing Green Online Badge */}
+                                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-md">
+                                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                        </span>
+                                    </div>
+
+                                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 max-w-[70px] truncate text-center">
+                                        {member.name.split(' ')[0]}
+                                    </span>
+
+                                    {/* Instant Message Button */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const conn = connections.find((c: any) => c.partner?.id === member.id);
+                                            if (conn) {
+                                                openChat(conn);
+                                            } else {
+                                                openChat({
+                                                    interactionId: member.id,
+                                                    partner: {
+                                                        id: member.id,
+                                                        name: member.name,
+                                                        photoUrl: photo,
+                                                        role: 'Online'
+                                                    }
+                                                });
+                                            }
+                                        }}
+                                        className="px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-black text-[10px] shadow-md transition-all active:scale-95 flex items-center space-x-1"
+                                    >
+                                        <span>💬 Instant Msg</span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* AI Matchmaker Search & Filters Bar */}
             <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
@@ -650,82 +727,6 @@ export default function MatchesTab({
                 </div>
             )}
 
-            {/* Dedicated Online Now Horizontal Bar */}
-            {onlineMatchesList.length > 0 && (
-                <div className="mb-6 p-4 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-slate-900/40 border border-emerald-200 dark:border-emerald-500/30 backdrop-blur-md shadow-xl">
-                    <div className="flex items-center justify-between mb-3 px-1">
-                        <div className="flex items-center space-x-2">
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                            </span>
-                            <h3 className="font-black text-xs sm:text-sm tracking-wide uppercase text-emerald-800 dark:text-emerald-400">
-                                Active Members Online Now ({onlineMatchesList.length})
-                            </h3>
-                        </div>
-                        <button
-                            onClick={() => setShowOnlineOnly(!showOnlineOnly)}
-                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 underline"
-                        >
-                            {showOnlineOnly ? 'Show All Matches' : 'Filter Feed to Online Only →'}
-                        </button>
-                    </div>
-
-                    <div className="flex items-center space-x-4 overflow-x-auto no-scrollbar py-1 px-1">
-                        {onlineMatchesList.map((member: any) => {
-                            const photo = member.photoUrl || member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`;
-
-                            return (
-                                <div
-                                    key={member.id}
-                                    className="flex flex-col items-center space-y-1.5 flex-shrink-0 group cursor-pointer"
-                                    onClick={() => setSelectedProfile(member)}
-                                >
-                                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-emerald-400 via-teal-500 to-green-400 shadow-lg group-hover:scale-105 transition-transform">
-                                        <img
-                                            src={photo}
-                                            alt={member.name}
-                                            className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 bg-white dark:bg-slate-800"
-                                        />
-                                        {/* Glowing Green Online Badge */}
-                                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-md">
-                                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                        </span>
-                                    </div>
-
-                                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 max-w-[70px] truncate text-center">
-                                        {member.name.split(' ')[0]}
-                                    </span>
-
-                                    {/* Instant Message Button */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const conn = connections.find((c: any) => c.partner?.id === member.id);
-                                            if (conn) {
-                                                openChat(conn);
-                                            } else {
-                                                openChat({
-                                                    interactionId: member.id,
-                                                    partner: {
-                                                        id: member.id,
-                                                        name: member.name,
-                                                        photoUrl: photo,
-                                                        role: 'Online'
-                                                    }
-                                                });
-                                            }
-                                        }}
-                                        className="px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-black text-[10px] shadow-md transition-all active:scale-95 flex items-center space-x-1"
-                                    >
-                                        <span>💬 Instant Msg</span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
 
             {/* Feed Header */}
             <div className="flex items-center justify-between px-2">

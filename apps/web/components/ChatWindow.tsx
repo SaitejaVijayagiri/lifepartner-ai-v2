@@ -106,7 +106,7 @@ function parseStoryReplyText(text: string) {
     };
 }
 
-const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, socket, partnerId }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string; socket?: any; partnerId?: string }) => {
+const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, socket, partnerId, onStartSync }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string; socket?: any; partnerId?: string; onStartSync?: (track: any) => void }) => {
     const toast = useToast();
     const [showVideo, setShowVideo] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -226,13 +226,27 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                         </div>
                     )}
                     {(isDirectVideo || ytId) && (
-                        <button
-                            onClick={() => setShowVideo(false)}
-                            className="absolute top-1 right-1 p-1 bg-black/70 hover:bg-black/90 text-white rounded-full text-[10px] z-10"
-                            title="Close Video"
-                        >
-                            <X size={12} />
-                        </button>
+                        <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
+                            {ytId && (
+                                <a
+                                    href={`https://www.youtube.com/watch?v=${ytId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold shadow flex items-center gap-1"
+                                    title="Open in YouTube (If embedding is restricted)"
+                                >
+                                    <span>YouTube</span>
+                                    <Tv size={10} />
+                                </a>
+                            )}
+                            <button
+                                onClick={() => setShowVideo(false)}
+                                className="p-1 bg-black/70 hover:bg-black/90 text-white rounded-full text-[10px]"
+                                title="Close Video"
+                            >
+                                <X size={12} />
+                            </button>
+                        </div>
                     )}
                 </div>
             ) : (
@@ -261,6 +275,9 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                                 if (socket && partnerId) {
                                     socket.emit("music_play_sync", { to: partnerId, title, artist, coverUrl, audioUrl, videoUrl });
                                     toast.success("🎧 Synced music playback with match!");
+                                }
+                                if (onStartSync) {
+                                    onStartSync({ title, artist, coverUrl, audioUrl, videoUrl, isPlaying: true });
                                 }
                             }}
                             className="py-1.5 px-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform"
@@ -573,6 +590,51 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [replyTo, setReplyTo] = useState<{ id: string; text: string; senderName: string } | null>(null);
     const [highlightedMsgId, setHighlightedMsgId] = useState<string | null>(null);
     const [showJukebox, setShowJukebox] = useState(false);
+    const syncedAudioRef = useRef<HTMLAudioElement | null>(null);
+    const [activeSyncedTrack, setActiveSyncedTrack] = useState<{
+        title: string;
+        artist: string;
+        coverUrl: string;
+        audioUrl: string;
+        videoUrl?: string;
+        isPlaying: boolean;
+    } | null>(null);
+
+    const toggleActiveSyncedTrack = () => {
+        if (!activeSyncedTrack) return;
+        if (syncedAudioRef.current) {
+            if (activeSyncedTrack.isPlaying) {
+                syncedAudioRef.current.pause();
+                setActiveSyncedTrack(prev => prev ? { ...prev, isPlaying: false } : null);
+            } else {
+                syncedAudioRef.current.play().then(() => {
+                    setActiveSyncedTrack(prev => prev ? { ...prev, isPlaying: true } : null);
+                }).catch(() => {});
+            }
+        } else if (activeSyncedTrack.audioUrl) {
+            const audio = new Audio(activeSyncedTrack.audioUrl);
+            syncedAudioRef.current = audio;
+            audio.volume = 0.8;
+            audio.onended = () => {
+                setActiveSyncedTrack(null);
+                syncedAudioRef.current = null;
+            };
+            audio.play().then(() => {
+                setActiveSyncedTrack(prev => prev ? { ...prev, isPlaying: true } : null);
+            }).catch(() => {});
+        }
+    };
+
+    const stopActiveSyncedTrack = () => {
+        if (syncedAudioRef.current) {
+            syncedAudioRef.current.pause();
+            syncedAudioRef.current = null;
+        }
+        if (socket && partner.id) {
+            socket.emit("music_stop_sync", { to: partner.id });
+        }
+        setActiveSyncedTrack(null);
+    };
     const inputRef = useRef<HTMLInputElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const headerMenuRef = useRef<HTMLDivElement>(null);
@@ -1162,14 +1224,57 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         socket.on("messageLiked", handleLiked);
         socket.on("messageReaction", handleReaction);
         socket.on("messageDeleted", handleDeleted);
-        const handleMusicSync = (data: { from: string; title: string; artist: string; coverUrl: string; audioUrl: string }) => {
+        const handleMusicSync = (data: { from: string; title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => {
             if (data.from === partner.id) {
                 toast.success(`🎧 ${partnerInfo.name} started playing "${data.title}"! Playing together...`);
                 if (data.audioUrl) {
+                    if (syncedAudioRef.current) {
+                        syncedAudioRef.current.pause();
+                        syncedAudioRef.current = null;
+                    }
                     const audio = new Audio(data.audioUrl);
+                    syncedAudioRef.current = audio;
                     audio.volume = 0.8;
-                    audio.play().catch(console.error);
+                    audio.onended = () => {
+                        setActiveSyncedTrack(null);
+                        syncedAudioRef.current = null;
+                    };
+                    audio.onerror = () => {
+                        setActiveSyncedTrack(null);
+                        syncedAudioRef.current = null;
+                    };
+                    audio.play().then(() => {
+                        setActiveSyncedTrack({
+                            title: data.title,
+                            artist: data.artist,
+                            coverUrl: data.coverUrl,
+                            audioUrl: data.audioUrl,
+                            videoUrl: data.videoUrl || '',
+                            isPlaying: true
+                        });
+                    }).catch((err) => {
+                        console.warn('[ChatWindow] Synced audio autoplay prevented:', err);
+                        setActiveSyncedTrack({
+                            title: data.title,
+                            artist: data.artist,
+                            coverUrl: data.coverUrl,
+                            audioUrl: data.audioUrl,
+                            videoUrl: data.videoUrl || '',
+                            isPlaying: false
+                        });
+                    });
                 }
+            }
+        };
+
+        const handleMusicStopSync = (data: { from: string }) => {
+            if (data.from === partner.id) {
+                if (syncedAudioRef.current) {
+                    syncedAudioRef.current.pause();
+                    syncedAudioRef.current = null;
+                }
+                setActiveSyncedTrack(null);
+                toast.info(`🎧 ${partnerInfo.name} stopped the synced music.`);
             }
         };
 
@@ -1184,6 +1289,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         socket.on("game_invite", handleGameInvite);
         socket.on("game_accept", handleGameAccept);
         socket.on("music_play_sync", handleMusicSync);
+        socket.on("music_stop_sync", handleMusicStopSync);
         socket.on("incognito_toggle", handleIncognitoToggle);
 
         return () => {
@@ -1197,7 +1303,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("game_invite", handleGameInvite);
             socket.off("game_accept", handleGameAccept);
             socket.off("music_play_sync", handleMusicSync);
+            socket.off("music_stop_sync", handleMusicStopSync);
             socket.off("incognito_toggle", handleIncognitoToggle);
+            if (syncedAudioRef.current) {
+                syncedAudioRef.current.pause();
+                syncedAudioRef.current = null;
+            }
         };
     }, [socket, partner.id, user]);
 
@@ -1703,6 +1814,53 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </div>
             )}
 
+            {/* Real-time Synced Music Player Bar */}
+            {activeSyncedTrack && (
+                <div className="bg-gradient-to-r from-purple-900/95 via-pink-900/90 to-indigo-900/95 text-white px-4 py-2.5 flex items-center justify-between border-b border-purple-500/30 shadow-lg z-30 flex-shrink-0 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center space-x-3 min-w-0">
+                        <div className="relative flex-shrink-0">
+                            <img
+                                src={activeSyncedTrack.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'}
+                                alt={activeSyncedTrack.title}
+                                className={`w-10 h-10 rounded-xl object-cover shadow border border-purple-400/40 ${activeSyncedTrack.isPlaying ? 'animate-spin' : ''}`}
+                                style={{ animationDuration: '10s' }}
+                            />
+                            {activeSyncedTrack.isPlaying && (
+                                <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
+                            )}
+                        </div>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/40 text-purple-200">
+                                    🎧 Listening Together
+                                </span>
+                            </div>
+                            <p className="font-bold text-xs truncate max-w-[170px] sm:max-w-[280px]">{activeSyncedTrack.title}</p>
+                            <p className="text-[10px] text-purple-200/80 truncate max-w-[170px] sm:max-w-[280px]">{activeSyncedTrack.artist}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                        <button
+                            type="button"
+                            onClick={toggleActiveSyncedTrack}
+                            className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all active:scale-95 cursor-pointer"
+                            title={activeSyncedTrack.isPlaying ? "Pause" : "Play"}
+                        >
+                            {activeSyncedTrack.isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={stopActiveSyncedTrack}
+                            className="p-2 rounded-full bg-white/10 hover:bg-rose-600/80 text-white/80 hover:text-white transition-all active:scale-95 cursor-pointer"
+                            title="Stop & Dismiss"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Messages - Premium Design */}
             <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 transition-colors duration-300 ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
                 {messages.length === 0 && (
@@ -1981,6 +2139,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     videoUrl={videoUrl}
                                                     socket={socket}
                                                     partnerId={partner.id}
+                                                    onStartSync={(track) => setActiveSyncedTrack(track)}
                                                 />
                                             );
                                         })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {

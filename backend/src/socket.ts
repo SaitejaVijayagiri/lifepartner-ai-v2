@@ -437,6 +437,12 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
+        socket.on("music_stop_sync", (data) => {
+            if (data?.to) {
+                io.to(data.to).emit("music_stop_sync", { ...data, from: userId });
+            }
+        });
+
         socket.on("incognito_toggle", (data) => {
             if (data?.to) {
                 io.to(data.to).emit("incognito_toggle", { ...data, from: userId });

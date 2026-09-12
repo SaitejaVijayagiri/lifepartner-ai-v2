@@ -49,6 +49,11 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
 
     const [savedTracks, setSavedTracks] = useState<(Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string })[]>([]);
 
+    const handleCloseModal = () => {
+        stopAudioPlayback();
+        onClose();
+    };
+
     useEffect(() => {
         setMounted(true);
         try {
@@ -57,7 +62,29 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                 setSavedTracks(JSON.parse(saved));
             }
         } catch (e) {}
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                stopAudioPlayback();
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        // Push temporary state so device/browser back button closes Jukebox first
+        window.history.pushState({ inJukebox: true }, '', window.location.href);
+        const handlePop = () => {
+            stopAudioPlayback();
+            onClose();
+        };
+        window.addEventListener('popstate', handlePop);
+
         searchMusicAPI('pop hits');
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('popstate', handlePop);
+        };
     }, []);
 
     const toggleSaveTrack = (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
@@ -111,9 +138,13 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                 });
             }
 
+            // Determine best storefront (prioritize IN for Indian / Bollywood / Regional hits)
+            const isDesi = /bollywood|hindi|punjabi|desi|romantic|lofi|south|tamil|telugu|arijit|shreya|anirudh|diljit|sidhu|badshah|honey|darshan/i.test(term) || selectedMood.includes('Desi') || selectedMood.includes('Romantic') || selectedMood.includes('Punjabi');
+            const countryParam = isDesi ? '&country=IN' : '';
+
             // 1. iTunes Songs API for Audio
             try {
-                const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=20`);
+                const itunesRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&limit=25${countryParam}`);
                 const itunesData = await itunesRes.json();
                 if (itunesData.results && Array.isArray(itunesData.results)) {
                     const songsMapped = itunesData.results
@@ -126,7 +157,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                             coverUrl: r.artworkUrl100?.replace('100x100bb', '600x600bb') || r.artworkUrl100,
                             audioUrl: r.previewUrl,
                             videoUrl: '',
-                            duration: Math.max(180, Math.floor((r.trackTimeMillis || 210000) / 1000))
+                            duration: 30 // iTunes preview audio is strictly 30 seconds
                         }));
                     mapped.push(...songsMapped);
                 }
@@ -136,7 +167,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
 
             // 2. iTunes Music Videos API for HD Videos
             try {
-                const videoRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=musicVideo&limit=8`);
+                const videoRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=musicVideo&limit=8${countryParam}`);
                 const videoData = await videoRes.json();
                 if (videoData.results && Array.isArray(videoData.results)) {
                     const videoMapped = videoData.results
@@ -149,7 +180,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                             coverUrl: r.artworkUrl100?.replace('100x100bb', '600x600bb') || r.artworkUrl100,
                             audioUrl: r.previewUrl,
                             videoUrl: r.previewUrl,
-                            duration: Math.max(180, Math.floor((r.trackTimeMillis || 210000) / 1000))
+                            duration: 30
                         }));
                     mapped.unshift(...videoMapped);
                 }
@@ -160,7 +191,9 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
             if (mapped.length > 0) {
                 setTracks(mapped);
                 if (!activeTrack) {
-                    handlePlayTrack(mapped[0]);
+                    // Pre-select top track without unprompted autoplay to respect browser audio policies
+                    setActiveTrack(mapped[0]);
+                    setDuration(mapped[0].duration || 30);
                 }
             }
         } catch (e) {
@@ -289,15 +322,12 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                             <span>Chat Vibe Music & Video Player</span>
                             <Sparkles className="w-4 h-4 text-amber-400 fill-amber-400" />
                         </h3>
-                        <p className="text-xs text-slate-400">Play full audio songs & watch music videos directly in chat</p>
+                        <p className="text-xs text-slate-400">Preview songs, watch HD music videos & vibe together in chat</p>
                     </div>
                 </div>
 
                 <button
-                    onClick={() => {
-                        stopAudioPlayback();
-                        onClose();
-                    }}
+                    onClick={handleCloseModal}
                     className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
                 >
                     <X className="w-5 h-5" />
@@ -395,7 +425,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                         <h4 className="font-bold text-xs sm:text-sm text-white truncate max-w-full">{track.title}</h4>
                                         <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-full">{track.artist}</p>
                                         <span className="inline-block mt-0.5 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
-                                            {track.mood} • {formatTime(track.duration || 210)}
+                                            {track.mood} • 30s HD Preview
                                         </span>
                                     </div>
                                 </div>

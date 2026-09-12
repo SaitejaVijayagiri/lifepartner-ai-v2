@@ -316,6 +316,26 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     const reply = endIdx !== -1 ? cleanText.substring(endIdx + 1).trim() : '';
                     return reply ? `📸 Story reply: "${reply}"` : '📸 Replied to your story';
                   })()
+                : cleanText.startsWith('[MUSIC_SHARE:')
+                ? (() => {
+                    try {
+                        let raw = cleanText.replace(/^\[MUSIC_SHARE:/, '');
+                        if (raw.endsWith(']')) raw = raw.slice(0, -1);
+                        let parsed: any = null;
+                        try {
+                            parsed = JSON.parse(decodeURIComponent(raw));
+                        } catch {
+                            parsed = JSON.parse(raw);
+                        }
+                        const t = parsed?.title;
+                        const a = parsed?.artist;
+                        if (t && a) return `🎵 Shared a song: "${t}" by ${a}`;
+                        if (t) return `🎵 Shared a song: "${t}"`;
+                        return '🎵 Shared a music track';
+                    } catch {
+                        return '🎵 Shared a music track';
+                    }
+                  })()
                 : cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
 
             await NotificationService.getInstance().sendToUser(

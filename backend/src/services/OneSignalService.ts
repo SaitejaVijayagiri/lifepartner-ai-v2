@@ -38,6 +38,7 @@ export class OneSignalService {
             return false;
         }
 
+        let payload: any = null;
         try {
             const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
             let bannerUrl = data?.bannerUrl || null;
@@ -85,7 +86,7 @@ export class OneSignalService {
                     .filter((t: string) => t && t.length > 20 && !t.startsWith('{'));
             } catch (_) {}
 
-            const payload: any = {
+            payload = {
                 app_id: this.appId,
                 include_aliases: {
                     external_id: [userId]
@@ -139,8 +140,45 @@ export class OneSignalService {
             }
             return false;
         } catch (err: any) {
-            const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+            const errData = err.response?.data;
+            const errorMsg = errData ? JSON.stringify(errData) : err.message;
             console.error('[OneSignal] Send failed:', errorMsg);
+
+            // Clean up invalid tokens from database
+            try {
+                const invalidIds = errData?.errors?.invalid_player_ids || errData?.errors?.invalid_subscription_ids;
+                if (Array.isArray(invalidIds) && invalidIds.length > 0) {
+                    const { prisma } = require('../prisma');
+                    await prisma.device_tokens.deleteMany({
+                        where: { token: { in: invalidIds } }
+                    });
+                    console.log(`[OneSignal] Purged ${invalidIds.length} invalid token(s) from DB.`);
+                }
+            } catch (_) {}
+
+            // If it failed due to invalid subscription/player IDs, retry targeting external_id alone
+            if (payload && (errData?.errors?.invalid_player_ids || errData?.errors?.invalid_subscription_ids)) {
+                try {
+                    const retryPayload = { ...payload };
+                    delete retryPayload.include_subscription_ids;
+                    delete retryPayload.include_player_ids;
+
+                    const retryRes = await axios.post('https://onesignal.com/api/v1/notifications', retryPayload, {
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8',
+                            'Authorization': `Key ${this.apiKey}`
+                        },
+                        timeout: 10000
+                    });
+                    if (retryRes.data && retryRes.data.id) {
+                        console.log(`[OneSignal] Retry via external_id succeeded: ${retryRes.data.id}`);
+                        return true;
+                    }
+                } catch (retryErr: any) {
+                    console.error('[OneSignal] Retry failed:', retryErr.message || retryErr);
+                }
+            }
+
             return false;
         }
     }

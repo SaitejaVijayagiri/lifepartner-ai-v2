@@ -62,6 +62,23 @@ export class WebPushService {
         }
     }
 
+    public async validateSubscription(subscription: any): Promise<{ valid: boolean; expired: boolean }> {
+        if (!this.initialized) return { valid: true, expired: false };
+        try {
+            await webpush.sendNotification(
+                subscription,
+                JSON.stringify({ silent: true, ping: true }),
+                { TTL: 0, urgency: 'very-low' }
+            );
+            return { valid: true, expired: false };
+        } catch (err: any) {
+            if (err?.statusCode === 404 || err?.statusCode === 410 || (err?.body && typeof err.body === 'string' && err.body.includes('expired'))) {
+                return { valid: false, expired: true };
+            }
+            return { valid: true, expired: false };
+        }
+    }
+
     public async sendToUser(userId: string, payload: any): Promise<number> {
         if (!this.initialized) return 0;
 

@@ -5,6 +5,9 @@ self.addEventListener('push', function (event) {
 
     try {
         const payload = event.data.json();
+        if (payload.ping || payload.silent) {
+            return;
+        }
         const origin = self.location.origin;
         const title = payload.title || payload.data?.title || 'LifePartner AI';
         const rawPhoto = payload.icon || payload.data?.senderPhoto || payload.data?.fromUserPhoto || null;

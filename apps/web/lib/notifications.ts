@@ -186,6 +186,18 @@ export const Notifications = {
                         if (storedUserId) {
                             await OneSignal.login(storedUserId);
                         }
+                        try {
+                            const subId = OneSignal.User?.pushSubscription?.id;
+                            if (subId) {
+                                await api.notifications.register(subId, 'onesignal');
+                            }
+                            OneSignal.User?.pushSubscription?.addEventListener('change', async (event: any) => {
+                                const currentId = event?.current?.id;
+                                if (currentId) {
+                                    await api.notifications.register(currentId, 'onesignal');
+                                }
+                            });
+                        } catch (_) {}
                         console.log('[OneSignal Web] Initialized successfully ✓');
                     });
                 } catch (osErr) {
@@ -206,32 +218,49 @@ export const Notifications = {
 
                     if (Notification.permission === 'granted' && vapidPublicKey) {
                         let subscription = await swReg.pushManager.getSubscription();
-                        if (!subscription) {
+                        let needsNewSubscription = !subscription;
+
+                        if (subscription) {
+                            try {
+                                const regRes = await api.notifications.registerSubscription(subscription.toJSON(), 'webpush');
+                                if (regRes && regRes.expired) {
+                                    console.warn('[Web Push] Existing subscription expired on push service. Renewing...');
+                                    await subscription.unsubscribe();
+                                    needsNewSubscription = true;
+                                } else {
+                                    console.log('[Web Push] W3C VAPID subscription validated & registered with backend ✓');
+                                }
+                            } catch (regErr) {
+                                console.warn('[Web Push] Error validating subscription:', regErr);
+                            }
+                        }
+
+                        if (needsNewSubscription) {
                             try {
                                 subscription = await swReg.pushManager.subscribe({
                                     userVisibleOnly: true,
                                     applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
                                 });
+                                if (subscription) {
+                                    await api.notifications.registerSubscription(subscription.toJSON(), 'webpush');
+                                    console.log('[Web Push] Fresh W3C VAPID subscription created & registered ✓');
+                                }
                             } catch (subErr) {
                                 console.warn('[Web Push] VAPID subscribe error:', subErr);
                             }
-                        }
-
-                        if (subscription) {
-                            await api.notifications.registerSubscription(subscription.toJSON(), 'webpush');
-                            console.log('[Web Push] W3C VAPID subscription registered with backend ✓');
-                            return;
                         }
                     }
                 }
             }
 
-            // 4. Legacy Firebase Web Push Fallback (if browser couldn't subscribe via VAPID)
-            const fbToken = await requestWebPushPermission();
-            if (fbToken) {
-                await api.notifications.register(fbToken, 'web');
-                console.log('[Web Push] Firebase fallback token registered.');
-            }
+            // 4. Dual-Redundancy Firebase Web Push (runs alongside VAPID)
+            try {
+                const fbToken = await requestWebPushPermission();
+                if (fbToken) {
+                    await api.notifications.register(fbToken, 'web');
+                    console.log('[Web Push] Firebase dual-redundant token registered ✓');
+                }
+            } catch (_) {}
         } catch (webErr: any) {
             console.error('[Web Push] Initialization failed:', webErr?.message || webErr);
         }

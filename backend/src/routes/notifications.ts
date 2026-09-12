@@ -28,8 +28,16 @@ router.post('/register', authenticateToken, async (req: any, res) => {
 
         let { token, platform, subscription } = req.body;
 
-        // If a WebPush subscription object is passed, serialize it as the token
+        // If a WebPush subscription object is passed, validate & serialize it as the token
         if (subscription && typeof subscription === 'object') {
+            const webPush = WebPushService.getInstance();
+            if (webPush.isReady() && subscription.endpoint) {
+                const check = await webPush.validateSubscription(subscription);
+                if (check.expired) {
+                    console.warn(`[Push Register] WebPush subscription for user ${userId} is expired on push server. Requesting client refresh.`);
+                    return res.json({ success: false, expired: true, message: "Subscription expired on push server" });
+                }
+            }
             token = JSON.stringify(subscription);
             platform = platform || 'webpush';
         }

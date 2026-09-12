@@ -15,6 +15,8 @@ export function sanitizeContent(text: string): string {
         text.startsWith("[STICKER]") ||
         text.startsWith("[STORY_REPLY:") ||
         text.startsWith("[DATE_INVITE:") ||
+        text.startsWith("[DATE_RESPONSE:") ||
+        text.startsWith("[MUSIC_SHARE:") ||
         text.startsWith("[INSTANT:") ||
         text.startsWith("[LOCATION:") ||
         text.startsWith("[GAME:") ||

@@ -122,13 +122,24 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
         };
     }, []);
 
+    const resolvedYtId = (videoUrl ? getYoutubeId(videoUrl) : null) || (audioUrl ? getYoutubeId(audioUrl) : null);
+    const isCorrupted = (audioUrl && audioUrl.includes('[Hidden Contact')) || (videoUrl && videoUrl.includes('[Hidden Contact'));
+    const isDirectVideo = (videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && (videoUrl.includes('.mp4') || videoUrl.includes('.m4v') || videoUrl.includes('.webm') || videoUrl.includes('video-ssl'))) ||
+                          (audioUrl && (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) && (audioUrl.includes('.mp4') || audioUrl.includes('.m4v') || audioUrl.includes('.webm') || audioUrl.includes('video-ssl')));
+    const effectiveVideoUrl = videoUrl || (isDirectVideo ? audioUrl : '');
+
     const toggleAudio = (e: React.MouseEvent) => {
         e.stopPropagation();
 
+        if (resolvedYtId) {
+            setShowVideo(prev => !prev);
+            return;
+        }
+
         const targetUrl = audioUrl || videoUrl || '';
-        if (!targetUrl) {
-            console.warn('[ChatSharedMediaCard] No audioUrl available to play');
-            toast.error('No audio stream available for this track');
+        if (!targetUrl || isCorrupted) {
+            console.warn('[ChatSharedMediaCard] No valid audio stream available to play');
+            setPlaybackError(true);
             return;
         }
 
@@ -174,9 +185,6 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
         setShowVideo(true);
     };
 
-    const ytId = videoUrl ? getYoutubeId(videoUrl) : null;
-    const isDirectVideo = videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && (videoUrl.includes('.mp4') || videoUrl.includes('.m4v') || videoUrl.includes('.webm') || videoUrl.includes('video-ssl'));
-
     return (
         <div
             onClick={(e) => e.stopPropagation()}
@@ -196,10 +204,10 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
             {showVideo ? (
                 <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1 flex items-center justify-center flex-col">
                     {isDirectVideo ? (
-                        <video src={videoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
-                    ) : ytId ? (
+                        <video src={effectiveVideoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
+                    ) : resolvedYtId ? (
                         <iframe
-                            src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0`}
+                            src={`https://www.youtube-nocookie.com/embed/${resolvedYtId}?autoplay=1&rel=0`}
                             className="w-full h-full border-0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
@@ -225,11 +233,11 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                             </button>
                         </div>
                     )}
-                    {(isDirectVideo || ytId) && (
+                    {(isDirectVideo || resolvedYtId) && (
                         <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
-                            {ytId && (
+                            {resolvedYtId && (
                                 <a
-                                    href={`https://www.youtube.com/watch?v=${ytId}`}
+                                    href={`https://www.youtube.com/watch?v=${resolvedYtId}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white rounded-md text-[10px] font-bold shadow flex items-center gap-1"
@@ -298,7 +306,18 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                 </div>
             )}
             {playbackError && (
-                <p className="text-[9px] text-rose-400 text-center">Audio preview unavailable for this track.</p>
+                <div className="flex flex-col items-center space-y-1.5 mt-1 pt-1.5 border-t border-rose-500/20">
+                    <p className="text-[10px] text-rose-400 text-center font-medium">Audio preview unavailable for this track.</p>
+                    <a
+                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${artist} ${title} official audio`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 rounded-lg text-[10px] font-semibold border border-rose-500/30 transition-colors shadow-sm"
+                    >
+                        <span>Listen / Watch on YouTube</span>
+                        <Tv size={11} />
+                    </a>
+                </div>
             )}
         </div>
     );

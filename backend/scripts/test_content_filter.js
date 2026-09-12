@@ -28,6 +28,11 @@ function runContentFilterTests() {
       name: "Plain text with URL containing 10-digit number",
       input: "Check this profile https://lifepartnerai.in/profile/1786782409 today",
       expected: "Check this profile https://lifepartnerai.in/profile/1786782409 today"
+    },
+    {
+      name: "Music Share with 10-digit track ID in audio URL",
+      input: "[MUSIC_SHARE:%7B%22title%22%3A%22Wake%20Me%20Up%22%2C%22audioUrl%22%3A%22https%3A%2F%2Faudio-ssl.itunes.apple.com%2Fitunes-assets%2FAudioPreview221%2Fv4%2Ff0%2F54%2F86%2F1544272950%2Fmzaf_1544272950.plus.aac.p.m4a%22%7D]",
+      expected: "[MUSIC_SHARE:%7B%22title%22%3A%22Wake%20Me%20Up%22%2C%22audioUrl%22%3A%22https%3A%2F%2Faudio-ssl.itunes.apple.com%2Fitunes-assets%2FAudioPreview221%2Fv4%2Ff0%2F54%2F86%2F1544272950%2Fmzaf_1544272950.plus.aac.p.m4a%22%7D]"
     }
   ];
 

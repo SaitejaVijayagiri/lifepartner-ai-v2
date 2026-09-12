@@ -60,9 +60,13 @@ public class MainActivity extends BridgeActivity {
             OneSignal.initWithContext(this, ONESIGNAL_APP_ID);
             Log.d(TAG, "OneSignal initialized natively with App ID: " + ONESIGNAL_APP_ID);
 
+            // Explicitly opt-in device to push notifications
+            OneSignal.getUser().getPushSubscription().optIn();
+
             // Request Android 13+ Notification permission through OneSignal
             OneSignal.getNotifications().requestPermission(true, com.onesignal.Continue.with(r -> {
                 Log.d(TAG, "OneSignal native permission result: " + r.getData());
+                OneSignal.getUser().getPushSubscription().optIn();
             }));
 
             // Restore logged in user if available so notifications reach this device even after restart
@@ -335,6 +339,7 @@ public class MainActivity extends BridgeActivity {
                     SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                     prefs.edit().putString("user_id", userId).apply();
                     OneSignal.login(userId);
+                    OneSignal.getUser().getPushSubscription().optIn();
                     Log.d(TAG, "NativeBridge: Logged in OneSignal user: " + userId);
 
                     String subId = OneSignal.getUser().getPushSubscription().getId();
@@ -353,6 +358,7 @@ public class MainActivity extends BridgeActivity {
             try {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putBoolean("push_disabled", false).apply();
+                OneSignal.getUser().getPushSubscription().optIn();
                 fetchAndRegisterToken();
             } catch (Exception e) {
                 Log.e(TAG, "Error in enablePush: ", e);

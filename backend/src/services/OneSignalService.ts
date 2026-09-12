@@ -56,16 +56,17 @@ export class OneSignalService {
             const targetUrl = rawUrl.startsWith('http') ? rawUrl : `${cleanBase}${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
 
             const buttons: any[] = [];
-            // If chat message, offer quick reply and like
-            if (data?.senderId || data?.connId) {
-                buttons.push(
-                    { id: 'reply', text: 'Reply 💬', icon: 'ic_menu_send' },
-                    { id: 'like', text: '❤️ Like' }
-                );
-            } else if (data?.type === 'request') {
+            // If match / friend request, offer Accept & Decline buttons
+            if (data?.type === 'request') {
                 buttons.push(
                     { id: 'accept', text: 'Accept ✅' },
                     { id: 'decline', text: 'Decline ❌' }
+                );
+            } else if (data?.senderId || data?.connId) {
+                // If chat message, offer quick reply and like
+                buttons.push(
+                    { id: 'reply', text: 'Reply 💬', icon: 'ic_menu_send' },
+                    { id: 'like', text: '❤️ Like' }
                 );
             } else if (data?.type === 'witty_reengagement') {
                 buttons.push(

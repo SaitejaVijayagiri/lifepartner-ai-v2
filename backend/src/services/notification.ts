@@ -199,15 +199,73 @@ export class NotificationService {
                     select: { token: true, platform: true }
                 });
 
-                // Filter out non-FCM tokens (such as JSON WebPush subscriptions)
-                const fcmTokens = Array.from(new Set(
+                // Separate Android tokens from iOS/Web tokens
+                const androidTokens = Array.from(new Set(
                     tokensRec
+                        .filter((r: any) => r.platform === 'android')
                         .map((r: any) => r.token)
                         .filter((t: string) => !t.startsWith('{') && t.length > 20)
                 ));
 
-                if (fcmTokens.length > 0) {
-                    const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
+                const otherTokens = Array.from(new Set(
+                    tokensRec
+                        .filter((r: any) => r.platform !== 'android')
+                        .map((r: any) => r.token)
+                        .filter((t: string) => !t.startsWith('{') && t.length > 20)
+                ));
+
+                const defaultAppLogo = 'https://lifepartnerai.in/icon-512x512.png';
+                const displayImage = bannerUrl || senderPhoto || defaultAppLogo;
+                const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
+
+                // A. Android Native Devices: High-priority DATA-ONLY message ensures
+                // MyFirebaseMessagingService.onMessageReceived is always invoked by Android OS
+                // to construct rich interactive action buttons (Accept/Decline for requests, Reply/Like for chat).
+                if (androidTokens.length > 0) {
+                    const androidMessage: any = {
+                        tokens: androidTokens,
+                        data: {
+                            title: String(title),
+                            body: String(body),
+                            type: String(data?.type || 'message'),
+                            interactionId: String(data?.interactionId || ''),
+                            senderId: String(data?.senderId || data?.from || ''),
+                            senderName: String(data?.senderName || title),
+                            senderPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
+                            bannerUrl: bannerUrl ? String(bannerUrl) : '',
+                            url: targetUrl,
+                            ...mappedData
+                        },
+                        android: {
+                            priority: 'high',
+                            ttl: 86400 * 1000
+                        }
+                    };
+
+                    const androidBatchResp = await admin.messaging().sendEachForMulticast(androidMessage);
+                    console.log(`FCM Android (Data-Only Native Actions): ${androidBatchResp.successCount} sent, ${androidBatchResp.failureCount} failed`);
+
+                    if (androidBatchResp.failureCount > 0) {
+                        const staleTokens: string[] = [];
+                        androidBatchResp.responses.forEach((resp: any, idx: number) => {
+                            if (!resp.success && resp.error) {
+                                const code = resp.error.code;
+                                if (code === 'messaging/registration-token-not-registered' || 
+                                    code === 'messaging/invalid-registration-token') {
+                                    staleTokens.push(androidTokens[idx] as string);
+                                }
+                            }
+                        });
+                        if (staleTokens.length > 0) {
+                            await prisma.device_tokens.deleteMany({
+                                where: { token: { in: staleTokens } }
+                            }).catch(() => {});
+                        }
+                    }
+                }
+
+                // B. iOS & Web FCM Devices: Standard notification payload
+                if (otherTokens.length > 0) {
                     const apnsPayload: any = {
                         payload: {
                             aps: {
@@ -240,11 +298,8 @@ export class NotificationService {
                         apnsPayload.fcmOptions = { imageUrl: String(senderPhoto) };
                     }
 
-                    const defaultAppLogo = 'https://lifepartnerai.in/icon-512x512.png';
-                    const displayImage = bannerUrl || senderPhoto || defaultAppLogo;
-
-                    const message: any = {
-                        tokens: fcmTokens,
+                    const otherMessage: any = {
+                        tokens: otherTokens,
                         notification: {
                             title: String(title),
                             body: String(body),
@@ -259,40 +314,28 @@ export class NotificationService {
                             url: targetUrl,
                             ...mappedData
                         },
-                        android: {
-                            priority: 'high',
-                            ttl: 86400 * 1000,
-                            notification: {
-                                title: String(title),
-                                body: String(body),
-                                icon: 'ic_stat_notification',
-                                color: '#ec4899',
-                                imageUrl: displayImage,
-                                channelId: 'lifepartner_chat'
-                            }
-                        },
                         apns: apnsPayload,
                         webpush: webpushPayload
                     };
 
-                    const batchResponse = await admin.messaging().sendEachForMulticast(message);
-                    console.log(`FCM Multicast: ${batchResponse.successCount} sent, ${batchResponse.failureCount} failed`);
+                    const otherBatchResp = await admin.messaging().sendEachForMulticast(otherMessage);
+                    console.log(`FCM iOS/Web: ${otherBatchResp.successCount} sent, ${otherBatchResp.failureCount} failed`);
 
-                    if (batchResponse.failureCount > 0) {
+                    if (otherBatchResp.failureCount > 0) {
                         const staleTokens: string[] = [];
-                        batchResponse.responses.forEach((resp: any, idx: number) => {
+                        otherBatchResp.responses.forEach((resp: any, idx: number) => {
                             if (!resp.success && resp.error) {
                                 const code = resp.error.code;
                                 if (code === 'messaging/registration-token-not-registered' || 
                                     code === 'messaging/invalid-registration-token') {
-                                    staleTokens.push(fcmTokens[idx] as string);
+                                    staleTokens.push(otherTokens[idx] as string);
                                 }
                             }
                         });
                         if (staleTokens.length > 0) {
                             await prisma.device_tokens.deleteMany({
                                 where: { token: { in: staleTokens } }
-                            });
+                            }).catch(() => {});
                         }
                     }
                 }

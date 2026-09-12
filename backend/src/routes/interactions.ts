@@ -601,7 +601,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     fromUserPhoto,
                     senderPhoto: fromUserPhoto,
                     senderDetails: detailsShort,
-                    url: `/dashboard?tab=requests&viewProfile=${userId}`
+                    url: `/dashboard?tab=requests`
                 };
                 
                 // Realtime Push via Service Worker / FCM

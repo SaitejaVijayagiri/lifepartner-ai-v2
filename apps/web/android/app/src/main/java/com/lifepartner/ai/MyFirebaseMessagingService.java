@@ -311,7 +311,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.setAction(Intent.ACTION_VIEW);
         
-        String deepLinkUrl = "https://lifepartnerai.in/dashboard?tab=matches";
+        String deepLinkUrl = "request".equals(type)
+                ? "https://lifepartnerai.in/dashboard?tab=requests"
+                : "https://lifepartnerai.in/dashboard?tab=matches";
         String customUrl = (data != null) ? data.get("url") : null;
         if (customUrl != null && !customUrl.trim().isEmpty()) {
             deepLinkUrl = customUrl.startsWith("http") ? customUrl : "https://lifepartnerai.in" + (customUrl.startsWith("/") ? customUrl : "/" + customUrl);

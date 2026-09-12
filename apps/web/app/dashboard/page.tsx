@@ -691,7 +691,9 @@ function DashboardContent() {
 
         const viewProfileId = searchParams.get('viewProfile') || searchParams.get('profileId');
         if (viewProfileId) {
-            handleOpenProfileById(viewProfileId);
+            if (tab !== 'requests' && tab !== 'connections') {
+                handleOpenProfileById(viewProfileId);
+            }
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete('viewProfile');
             newUrl.searchParams.delete('profileId');

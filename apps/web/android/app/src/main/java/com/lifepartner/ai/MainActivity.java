@@ -56,6 +56,50 @@ public class MainActivity extends BridgeActivity {
 
         // 6. Monitor network state to flush offline queued replies and actions when reconnected
         registerNetworkMonitoring();
+
+        // 7. Handle deep link from notification clicks
+        handleNotificationDeepLink(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleNotificationDeepLink(intent);
+    }
+
+    private void handleNotificationDeepLink(Intent intent) {
+        if (intent == null) return;
+        android.net.Uri data = intent.getData();
+        if (data != null) {
+            String url = data.toString();
+            Log.d(TAG, "Notification deep link received: " + url);
+            String path = data.getPath();
+            String query = data.getQuery();
+            String targetPath = (path != null ? path : "/dashboard") + (query != null ? "?" + query : "");
+
+            runOnUiThread(() -> {
+                try {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        WebView webView = getBridge().getWebView();
+                        String script = "if (typeof window !== 'undefined') { " +
+                                "  if (window.location.pathname + window.location.search !== '" + targetPath + "') { " +
+                                "    window.location.href = '" + targetPath + "'; " +
+                                "  } else if (window.dispatchEvent) { " +
+                                "    window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } })); " +
+                                "  } " +
+                                "}";
+                        webView.postDelayed(() -> {
+                            try {
+                                webView.evaluateJavascript(script, null);
+                            } catch (Exception ignored) {}
+                        }, 1000);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error handling deep link navigation: ", e);
+                }
+            });
+        }
     }
 
     @Override

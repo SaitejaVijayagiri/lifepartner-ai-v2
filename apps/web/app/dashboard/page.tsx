@@ -139,9 +139,14 @@ function DashboardContent() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            setPushEnabled(localStorage.getItem('push_notifications_enabled') !== 'false');
+            const localPref = localStorage.getItem('push_notifications_enabled');
+            if (localPref !== null) {
+                setPushEnabled(localPref !== 'false');
+            } else if (currentUser?.metadata?.push_notifications_enabled !== undefined) {
+                setPushEnabled(currentUser.metadata.push_notifications_enabled !== false);
+            }
         }
-    }, []);
+    }, [currentUser?.metadata?.push_notifications_enabled]);
 
     useEffect(() => {
         if (currentUser?.id) {

@@ -358,21 +358,34 @@ export const Notifications = {
 
     unregister: async () => {
         try {
+            // Opt-out of OneSignal Web SDK if present
+            try {
+                const w = window as any;
+                if (w.OneSignal?.User?.pushSubscription?.optOut) {
+                    await w.OneSignal.User.pushSubscription.optOut();
+                }
+            } catch (_) {}
+
             if (isNativePlatform()) {
                 const bridge = getNativeBridge();
                 if (bridge && typeof bridge.disablePush === 'function') {
                     bridge.disablePush();
                 }
                 const token = Notifications.getToken();
-                if (!token) return;
-                await api.notifications.unregister(token);
-            } else if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                const sub = await reg.pushManager.getSubscription();
-                if (sub) {
-                    await sub.unsubscribe();
-                    await api.notifications.unregister(JSON.stringify(sub.toJSON()));
+                await api.notifications.unregister(token || undefined);
+            } else {
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const reg = await navigator.serviceWorker.ready;
+                        const sub = await reg.pushManager.getSubscription();
+                        if (sub) {
+                            await sub.unsubscribe();
+                            await api.notifications.unregister(JSON.stringify(sub.toJSON()));
+                        }
+                    } catch (_) {}
                 }
+                // Call backend unregister to ensure push_notifications_enabled: false is saved
+                await api.notifications.unregister();
             }
         } catch (e) {
             console.error("Failed to unregister push", e);

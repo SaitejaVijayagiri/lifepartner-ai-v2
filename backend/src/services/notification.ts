@@ -119,7 +119,7 @@ export class NotificationService {
         const { prisma } = require('../prisma');
 
         // Extract senderId to see if they are muted by the receiver
-        const senderId = data?.from || data?.senderId;
+        const senderId = data?.from || data?.senderId || data?.fromUserId || data?.connId || data?.callerId;
 
         // Check global notification enabled setting & muted users from profile metadata
         const profile = await prisma.profiles.findUnique({

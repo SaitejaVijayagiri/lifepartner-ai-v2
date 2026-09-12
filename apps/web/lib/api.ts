@@ -235,9 +235,9 @@ export const api = {
             body: JSON.stringify({ subscription, platform })
         }),
         getConfig: () => fetchAPI('/notifications/config').catch(() => null),
-        unregister: (token: string) => fetchAPI('/notifications/unregister', {
+        unregister: (token?: string) => fetchAPI('/notifications/unregister', {
             method: 'DELETE',
-            body: JSON.stringify({ token })
+            body: JSON.stringify(token ? { token } : {})
         }),
         getAll: () => fetchAPI('/notifications'),
         markRead: (id: string) => fetchAPI(`/notifications/${id}/read`, { method: 'PUT' }),

@@ -412,6 +412,8 @@ public class MainActivity extends BridgeActivity {
             try {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putBoolean("push_disabled", true).apply();
+                OneSignal.getUser().getPushSubscription().optOut();
+                Log.d(TAG, "NativeBridge: Push notifications disabled and OneSignal opted out.");
             } catch (Exception e) {
                 Log.e(TAG, "Error in disablePush: ", e);
             }

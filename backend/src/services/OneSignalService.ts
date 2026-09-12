@@ -103,18 +103,19 @@ export class OneSignalService {
                 app_url: targetUrl,
                 priority: 10,
                 android_visibility: 1,
-                android_accent_color: 'FFFF4081'
+                android_accent_color: 'FFFF4081',
+                small_icon: 'ic_stat_notification'
             };
 
             if (subIds.length > 0) {
                 payload.include_subscription_ids = subIds;
             }
 
-            if (senderPhoto) {
-                payload.large_icon = senderPhoto;
-                payload.chrome_web_icon = senderPhoto;
-                payload.firefox_icon = senderPhoto;
-            }
+            const defaultAppLogo = 'https://lifepartnerai.in/icon-512x512.png';
+            const iconUrl = senderPhoto || defaultAppLogo;
+            payload.large_icon = iconUrl;
+            payload.chrome_web_icon = iconUrl;
+            payload.firefox_icon = iconUrl;
 
             if (bannerUrl) {
                 payload.big_picture = bannerUrl;

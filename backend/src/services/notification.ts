@@ -240,18 +240,21 @@ export class NotificationService {
                         apnsPayload.fcmOptions = { imageUrl: String(senderPhoto) };
                     }
 
+                    const defaultAppLogo = 'https://lifepartnerai.in/icon-512x512.png';
+                    const displayImage = bannerUrl || senderPhoto || defaultAppLogo;
+
                     const message: any = {
                         tokens: fcmTokens,
                         notification: {
                             title: String(title),
                             body: String(body),
-                            imageUrl: (bannerUrl || senderPhoto) ? String(bannerUrl || senderPhoto) : undefined
+                            imageUrl: displayImage
                         },
                         data: {
                             title: String(title),
                             body: String(body),
                             senderName: String(data?.senderName || title),
-                            senderPhoto: senderPhoto ? String(senderPhoto) : '',
+                            senderPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
                             bannerUrl: bannerUrl ? String(bannerUrl) : '',
                             url: targetUrl,
                             ...mappedData
@@ -262,10 +265,10 @@ export class NotificationService {
                             notification: {
                                 title: String(title),
                                 body: String(body),
-                                icon: 'ic_notification',
+                                icon: 'ic_stat_notification',
                                 color: '#ec4899',
-                                imageUrl: (bannerUrl || senderPhoto) ? String(bannerUrl || senderPhoto) : undefined,
-                                channelId: 'lifepartner_notifications'
+                                imageUrl: displayImage,
+                                channelId: 'lifepartner_chat'
                             }
                         },
                         apns: apnsPayload,

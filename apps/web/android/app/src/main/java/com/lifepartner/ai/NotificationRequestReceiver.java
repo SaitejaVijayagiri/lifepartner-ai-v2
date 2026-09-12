@@ -36,8 +36,12 @@ public class NotificationRequestReceiver extends BroadcastReceiver {
 
         // 1. Immediately dismiss the notification card
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager != null && notificationId != 0) {
-            manager.cancel(notificationId);
+        if (manager != null) {
+            if (notificationId != 0) {
+                manager.cancel(notificationId);
+            } else {
+                manager.cancel(interactionId.hashCode());
+            }
         }
 
         // 2. Retrieve auth token

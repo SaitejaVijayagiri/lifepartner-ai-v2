@@ -83,24 +83,53 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 bannerUrl = data.get("bannerUrl");
                 campaignNotificationId = data.get("notificationId");
 
-                // Always prefer senderName as the notification title for chat messages
                 String extractedSenderName = data.get("senderName");
-                if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
-                    title = extractedSenderName;
+                String dataTitle = data.get("title");
+
+                if ("request".equals(type)) {
+                    if (dataTitle != null && !dataTitle.isEmpty()) {
+                        title = dataTitle;
+                    } else if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                        title = extractedSenderName + " sent you an Interest Request! 💖";
+                    } else {
+                        title = "New Interest Request! 💖";
+                    }
                 } else {
-                    String dataTitle = data.get("title");
-                    if (dataTitle != null && !dataTitle.isEmpty()) title = dataTitle;
+                    if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                        title = extractedSenderName;
+                    } else if (dataTitle != null && !dataTitle.isEmpty()) {
+                        title = dataTitle;
+                    }
                 }
                 
                 String dataBody = data.get("body");
                 if (dataBody != null && !dataBody.isEmpty()) body = dataBody;
 
-                // Extract sender photo — route through backend proxy to bypass Supabase DNS block in India
+                // Extract sender photo — fallback chain with proxying and SVG handling
                 String rawPhoto = data.get("senderPhoto");
-                if (rawPhoto != null && !rawPhoto.isEmpty()) {
-                    if (rawPhoto.contains("supabase")) {
+                if (rawPhoto == null || rawPhoto.isEmpty()) rawPhoto = data.get("fromUserPhoto");
+                if (rawPhoto == null || rawPhoto.isEmpty()) rawPhoto = data.get("avatarUrl");
+                if (rawPhoto == null || rawPhoto.isEmpty()) rawPhoto = data.get("photo");
+
+                if (rawPhoto != null && !rawPhoto.trim().isEmpty()) {
+                    rawPhoto = rawPhoto.trim();
+                    if (rawPhoto.contains("dicebear.com") || rawPhoto.endsWith(".svg") || rawPhoto.contains(".svg?")) {
+                        try {
+                            String nameSeed = extractedSenderName != null ? extractedSenderName : title;
+                            senderPhotoUrl = "https://ui-avatars.com/api/?name=" + java.net.URLEncoder.encode(nameSeed, "UTF-8") + "&background=6366f1&color=fff&size=256&format=png";
+                        } catch (Exception e) {
+                            senderPhotoUrl = rawPhoto;
+                        }
+                    } else if (rawPhoto.contains("supabase.co/storage")) {
                         String base = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
-                        senderPhotoUrl = base + "/photo/proxy?url=" + rawPhoto;
+                        try {
+                            senderPhotoUrl = base + "/photo?url=" + java.net.URLEncoder.encode(rawPhoto, "UTF-8");
+                        } catch (Exception e) {
+                            senderPhotoUrl = rawPhoto;
+                        }
+                    } else if (rawPhoto.startsWith("/")) {
+                        String base = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
+                        senderPhotoUrl = base + rawPhoto;
                     } else {
                         senderPhotoUrl = rawPhoto;
                     }
@@ -117,10 +146,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     body = remoteMessage.getNotification().getBody();
             }
 
-            // Fetch large icon with fast 1.5s network timeout
+            // Fetch large icon with 3.5s network timeout and circular crop
             Bitmap largeIcon = null;
             if (senderPhotoUrl != null && !senderPhotoUrl.isEmpty()) {
-                largeIcon = getBitmapFromURL(senderPhotoUrl);
+                Bitmap rawIcon = getBitmapFromURL(senderPhotoUrl);
+                if (rawIcon != null) {
+                    largeIcon = getCircularBitmap(rawIcon);
+                }
             }
             
             // Fallback to local app launcher icon instantly (0ms) when offline without hanging
@@ -148,6 +180,35 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
+    public static Bitmap getCircularBitmap(Bitmap bitmap) {
+        if (bitmap == null) return null;
+        try {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            int minEdge = Math.min(width, height);
+
+            Bitmap output = Bitmap.createBitmap(minEdge, minEdge, Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(output);
+
+            final int color = 0xff424242;
+            final android.graphics.Paint paint = new android.graphics.Paint();
+            final android.graphics.Rect srcRect = new android.graphics.Rect((width - minEdge) / 2, (height - minEdge) / 2, (width + minEdge) / 2, (height + minEdge) / 2);
+            final android.graphics.Rect destRect = new android.graphics.Rect(0, 0, minEdge, minEdge);
+            final android.graphics.RectF rectF = new android.graphics.RectF(destRect);
+
+            paint.setAntiAlias(true);
+            canvas.drawARGB(0, 0, 0, 0);
+            paint.setColor(color);
+            canvas.drawOval(rectF, paint);
+
+            paint.setXfermode(new android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN));
+            canvas.drawBitmap(bitmap, srcRect, destRect, paint);
+            return output;
+        } catch (Exception e) {
+            return bitmap;
+        }
+    }
+
     private Bitmap getBitmapFromURL(String src) {
         try {
             int redirectLimit = 3;
@@ -157,8 +218,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             while (redirectLimit-- > 0) {
                 URL url = new URI(currentUrl).toURL();
                 connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(1500); // 1.5s max timeout to prevent hanging on poor network
-                connection.setReadTimeout(1500);
+                connection.setConnectTimeout(3500); // 3.5s timeout for mobile data
+                connection.setReadTimeout(3500);
                 connection.setInstanceFollowRedirects(true);
                 
                 int status = connection.getResponseCode();
@@ -203,6 +264,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String interactionId = (data != null) ? data.get("interactionId") : null;
         if (interactionId == null && data != null && "request".equals(type)) {
             interactionId = data.get("id");
+            if (interactionId == null) interactionId = data.get("fromUserId");
+            if (interactionId == null) interactionId = data.get("from");
         }
         // Compute notificationId once at method level so all places use the same value
         int notificationId = (interactionId != null && !interactionId.isEmpty())
@@ -281,10 +344,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.setLargeIcon(largeIcon);
         }
 
+        String senderDetails = (data != null) ? data.get("senderDetails") : null;
+        if (senderDetails != null && !senderDetails.trim().isEmpty()) {
+            builder.setSubText(senderDetails);
+        }
+
         if (bannerBitmap != null) {
             builder.setStyle(new NotificationCompat.BigPictureStyle()
                     .bigPicture(bannerBitmap)
                     .bigLargeIcon((Bitmap) null)); // Hide large icon in expanded view
+        } else {
+            NotificationCompat.BigTextStyle bigTextStyle = new NotificationCompat.BigTextStyle()
+                    .bigText(body);
+            if (senderDetails != null && !senderDetails.trim().isEmpty()) {
+                bigTextStyle.setSummaryText(senderDetails);
+            }
+            builder.setStyle(bigTextStyle);
         }
 
         // 2. Setup Witty Campaign Action Buttons

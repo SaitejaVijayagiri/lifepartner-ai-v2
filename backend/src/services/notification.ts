@@ -176,6 +176,13 @@ export class NotificationService {
                 body,
                 icon: senderPhoto || '/icon.png',
                 image: bannerUrl || null,
+                actions: data?.type === 'request' ? [
+                    { action: 'accept_request', title: 'Accept ✅' },
+                    { action: 'decline_request', title: 'Decline ❌' }
+                ] : (data?.senderId || data?.connId ? [
+                    { action: 'like_message', title: 'Like ❤️' },
+                    { action: 'reply_to_message', title: 'Reply 💬' }
+                ] : undefined),
                 data: {
                     ...data,
                     senderPhoto,
@@ -284,6 +291,13 @@ export class NotificationService {
                             body: String(body),
                             icon: senderPhoto ? String(senderPhoto) : '/icon.png',
                             image: bannerUrl ? String(bannerUrl) : undefined,
+                            actions: data?.type === 'request' ? [
+                                { action: 'accept_request', title: 'Accept ✅' },
+                                { action: 'decline_request', title: 'Decline ❌' }
+                            ] : (data?.senderId || data?.connId ? [
+                                { action: 'like_message', title: 'Like ❤️' },
+                                { action: 'reply_to_message', title: 'Reply 💬' }
+                            ] : undefined)
                         },
                         fcmOptions: {
                             link: targetUrl

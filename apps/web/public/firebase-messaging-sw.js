@@ -53,8 +53,8 @@ messaging.onBackgroundMessage((payload) => {
         silent: false, // Explicitly tell browser/device to play default system alert sound
     };
 
-    // Add Accept/Decline actions only if it's an interest request containing interactionId!
-    if (payload.data?.type === 'request' && payload.data?.interactionId) {
+    // Add Accept/Decline actions if it's an interest request!
+    if (payload.data?.type === 'request') {
         notificationOptions.actions = [
             { action: 'accept_request', title: 'Accept ✅' },
             { action: 'decline_request', title: 'Decline ❌' }

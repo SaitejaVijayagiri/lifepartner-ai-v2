@@ -10,7 +10,7 @@ const router = express.Router();
  * 
  * GET /photo?url=<encoded_supabase_url>
  */
-router.get('/', async (req, res) => {
+router.get(['/', '/proxy'], async (req, res) => {
     const url = req.query.url as string;
 
     if (!url) {

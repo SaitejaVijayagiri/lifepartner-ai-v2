@@ -38,16 +38,21 @@ self.addEventListener('push', function (event) {
             renotify: true
         };
 
-        // Actions for Quick Reply and Message Actions
-        if (data.senderId || data.connId) {
-            options.actions = [
-                { action: 'like_message', title: 'Like ❤️' },
-                { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
-            ];
-        } else if (data.type === 'request' && data.interactionId) {
+        // Actions for Request, Call, Chat, and Campaign
+        if (data.type === 'request') {
             options.actions = [
                 { action: 'accept_request', title: 'Accept ✅' },
                 { action: 'decline_request', title: 'Decline ❌' }
+            ];
+        } else if (data.type === 'incoming_call') {
+            options.actions = [
+                { action: 'answer_call', title: 'Answer 📞' },
+                { action: 'decline_call', title: 'Decline ❌' }
+            ];
+        } else if (data.senderId || data.connId) {
+            options.actions = [
+                { action: 'like_message', title: 'Like ❤️' },
+                { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
             ];
         } else if (data.type === 'witty_reengagement') {
             options.actions = [

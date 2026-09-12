@@ -587,7 +587,9 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     interactionId: interaction.id
                 });
 
-                // Embed the sender ID so the Android app / PWA knows where to navigate
+                const detailsShort = detailsArr.join(' • ');
+
+                // Embed the sender details, photo, and ID so the Android app / PWA displays rich profile card
                 const pushData = { 
                     type: 'request', 
                     from: userId, 
@@ -595,16 +597,24 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     interactionId: interaction.id,
                     fromUserId: userId,
                     fromUserName: myName,
+                    senderName: myName,
                     fromUserPhoto,
+                    senderPhoto: fromUserPhoto,
+                    senderDetails: detailsShort,
                     url: `/dashboard?tab=requests&viewProfile=${userId}`
                 };
                 
                 // Realtime Push via Service Worker / FCM
                 const { NotificationService } = await import('../services/notification');
+                const notifTitle = `${myName} sent you an Interest Request! 💖`;
+                const notifBody = detailsShort
+                    ? `${detailsShort} — Tap Accept or Decline to connect`
+                    : msg;
+
                 NotificationService.getInstance().sendToUser(
                     toUserId, 
-                    "New Match Interest! 💖", 
-                    msg,
+                    notifTitle, 
+                    notifBody,
                     pushData
                 ).catch(e => console.warn("Push failed in interactions", e));
 

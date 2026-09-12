@@ -763,6 +763,44 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         setTimeout(() => setHighlightedMsgId(null), 1500);
     };
 
+    // Stable reply initiator: eliminates flickering, scroll jumps, and layout shifts
+    const handleInitiateReply = (msg: any, senderName: string) => {
+        const scrollEl = scrollRef.current;
+        const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+        
+        setReplyTo({ id: msg.id, text: msg.text, senderName });
+        setActiveMsgId(null);
+        setEmojiPickerMsgId(null);
+
+        // Keep scroll view stable: if user was near bottom, pin them to bottom; otherwise preserve scroll
+        if (scrollEl) {
+            requestAnimationFrame(() => {
+                const isNearBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 120;
+                if (isNearBottom) {
+                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'auto' });
+                } else {
+                    scrollEl.scrollTop = prevScrollTop;
+                }
+            });
+        }
+
+        // Focus without delayed 50ms setTimeout that causes secondary layout/keyboard bounce
+        requestAnimationFrame(() => {
+            inputRef.current?.focus({ preventScroll: true });
+        });
+    };
+
+    const handleCancelReply = () => {
+        const scrollEl = scrollRef.current;
+        const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+        setReplyTo(null);
+        if (scrollEl) {
+            requestAnimationFrame(() => {
+                scrollEl.scrollTop = prevScrollTop;
+            });
+        }
+    };
+
     const getStickerAnimation = (url: string) => {
         return '';
     };
@@ -1934,7 +1972,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             )}
 
             {/* Messages - Premium Design */}
-            <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 transition-colors duration-300 ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 pb-12 space-y-3 transition-colors duration-300 ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
                 {messages.length === 0 && (
                     <div className="text-center py-16">
                         <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1997,28 +2035,26 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For "my" messages: action buttons go LEFT of bubble */}
                                 {isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-all duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
+                                    <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setReplyTo({ id: msg.id, text: msg.text, senderName: 'You' });
-                                                setActiveMsgId(null);
-                                                setTimeout(() => { inputRef.current?.focus({ preventScroll: true }); }, 50);
+                                                handleInitiateReply(msg, 'You');
                                             }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer"
                                             title="Reply"
                                         >
                                             <Reply size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-sm cursor-pointer"
                                             title="React"
                                         >😊</button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                             title="Delete"
                                         >
                                             <Trash2 size={14} />
@@ -2055,11 +2091,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         onTouchStart={() => {
                                             if (!msg.id || msg.id.toString().startsWith('temp-')) return;
                                             longPressTimerRef.current = setTimeout(() => {
+                                                setActiveMsgId(msg.id);
                                                 setEmojiPickerMsgId(msg.id);
                                                 if (typeof window !== 'undefined' && 'vibrate' in navigator) {
                                                     try { navigator.vibrate(40); } catch(e) {}
                                                 }
-                                            }, 450);
+                                            }, 380);
                                         }}
                                         onTouchEnd={() => {
                                             if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
@@ -2067,7 +2104,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         onTouchMove={() => {
                                             if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                                         }}
-                                        className={`relative w-fit text-sm shadow-sm transition-all cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
+                                        className={`relative w-fit text-sm shadow-sm transition-colors duration-150 cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
                                         : msg.text.startsWith('[MUSIC_SHARE:')
                                         ? 'bg-transparent shadow-none p-0 w-full'
@@ -2492,46 +2529,61 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             </div>
                                         );
                                     })()}
-                                    {/* Mobile-optimized Action Pill Bar */}
+                                    {/* Mobile-optimized Action Pill Bar - Absolutely positioned so it does NOT shift message row height */}
                                     {activeMsgId === msg.id && (
-                                        <div className="message-action-bar flex sm:hidden items-center gap-2.5 mt-1 px-3 py-1.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-full shadow-md animate-in slide-in-from-top-1 duration-150 z-10">
+                                        <div 
+                                            onClick={(e) => e.stopPropagation()}
+                                            className={`message-action-bar absolute ${isMe ? 'right-0' : 'left-0'} -bottom-8 flex sm:hidden items-center gap-1.5 px-3 py-1 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-full shadow-lg z-30 select-none animate-in fade-in zoom-in-95 duration-100`}
+                                        >
                                             <button
+                                                type="button"
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    setReplyTo({ id: msg.id, text: msg.text, senderName: isMe ? 'You' : partnerInfo.name });
-                                                    setActiveMsgId(null);
-                                                    setTimeout(() => { inputRef.current?.focus({ preventScroll: true }); }, 50);
+                                                    handleInitiateReply(msg, isMe ? 'You' : partnerInfo.name);
                                                 }}
-                                                className="p-1 text-gray-500 hover:text-indigo-500 rounded-full transition-all cursor-pointer"
+                                                className="p-1 text-gray-600 dark:text-gray-300 hover:text-indigo-500 rounded-full transition-colors cursor-pointer flex items-center gap-1"
                                                 title="Reply"
                                             >
-                                                <Reply size={14} />
+                                                <Reply size={13} />
+                                                <span className="text-[10px] font-semibold">Reply</span>
                                             </button>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                                className="p-1 text-gray-500 hover:text-amber-500 rounded-full transition-all text-xs cursor-pointer animate-pulse"
+                                                type="button"
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); 
+                                                }}
+                                                className="p-1 text-gray-500 hover:text-amber-500 rounded-full transition-colors text-xs cursor-pointer"
                                                 title="React"
-                                            >😊</button>
+                                            >
+                                                😊
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setDeleteMenuMsgId(msg.id); 
+                                                    setActiveMsgId(null); 
+                                                }}
+                                                className="p-1 text-red-500 hover:text-red-600 rounded-full transition-colors cursor-pointer flex items-center gap-1"
+                                                title="Delete Message"
+                                            >
+                                                <Trash2 size={13} />
+                                                <span className="text-[10px] font-semibold">Delete</span>
+                                            </button>
                                             {!isMe && (
                                                 <button
+                                                    type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        setActiveMsgId(null);
                                                         handleOpenBlockModal(msg.text);
                                                     }}
-                                                    className="p-1 text-gray-500 hover:text-red-500 rounded-full transition-all cursor-pointer"
+                                                    className="p-1 text-gray-400 hover:text-red-500 rounded-full transition-colors cursor-pointer"
                                                     title="Report & Block"
                                                 >
-                                                    <Flag size={14} />
-                                                </button>
-                                            )}
-                                            {isMe && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(msg.id); setActiveMsgId(null); }}
-                                                    className="p-1 text-gray-500 hover:text-red-500 rounded-full transition-all cursor-pointer"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={14} />
+                                                    <Flag size={13} />
                                                 </button>
                                             )}
                                         </div>
@@ -2540,23 +2592,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For partner messages: action buttons go RIGHT of bubble */}
                                 {!isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-all duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
+                                    <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setReplyTo({ id: msg.id, text: msg.text, senderName: partnerInfo.name });
-                                                setActiveMsgId(null);
-                                                setTimeout(() => { inputRef.current?.focus({ preventScroll: true }); }, 50);
+                                                handleInitiateReply(msg, partnerInfo.name);
                                             }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors cursor-pointer"
                                             title="Reply"
                                         >
                                             <Reply size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-sm cursor-pointer"
                                             title="React"
                                         >😊</button>
                                         <button
@@ -2564,14 +2614,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 e.stopPropagation();
                                                 handleOpenBlockModal(msg.text);
                                             }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                             title="Report & Block"
                                         >
                                             <Flag size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
                                             title="Delete"
                                         >
                                             <Trash2 size={14} />
@@ -2668,7 +2718,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 : replyTo.text}
                         </p>
                     </div>
-                    <button type="button" onClick={() => setReplyTo(null)} className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                    <button type="button" onClick={handleCancelReply} className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 rounded-full cursor-pointer">
                         <X size={16} />
                     </button>
                 </div>
@@ -3203,26 +3253,41 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 const isMyMsg = msgToDelete.senderId !== partner.id;
                 
                 return (
-                    <div className="fixed inset-0 z-[2010] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setDeleteMenuMsgId(null)}>
-                        <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-                            <div className="p-6 text-center border-b border-gray-100 dark:border-gray-800">
-                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <div className="fixed inset-0 z-[2010] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200" onClick={() => setDeleteMenuMsgId(null)}>
+                        <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                            <div className="p-5 text-center border-b border-gray-100 dark:border-gray-800">
+                                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-2.5 shadow-inner">
                                     <Trash2 size={24} />
                                 </div>
                                 <h3 className="font-bold text-lg text-gray-900 dark:text-white">Delete Message</h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">What would you like to do with this message?</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                    {isMyMsg 
+                                        ? "Choose whether to remove this message for only yourself or for everyone in this chat."
+                                        : "This message will be removed from your chat history."}
+                                </p>
                             </div>
-                            <div className="p-2 flex flex-col gap-1">
-                                <button onClick={() => handleDeleteMessage(msgToDelete.id, 'me')} className="w-full text-center p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-800 dark:text-gray-200 font-medium transition-all">
-                                    Delete for me
+                            <div className="p-3 flex flex-col gap-2">
+                                <button 
+                                    onClick={() => handleDeleteMessage(msgToDelete.id, 'me')} 
+                                    className="w-full p-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100 font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                >
+                                    <Trash2 size={16} className="text-gray-500" />
+                                    <span>Delete for me</span>
                                 </button>
                                 {isMyMsg && (
-                                    <button onClick={() => handleDeleteMessage(msgToDelete.id, 'everyone')} className="w-full text-center p-4 rounded-2xl hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 font-bold transition-all">
-                                        Delete for everyone
+                                    <button 
+                                        onClick={() => handleDeleteMessage(msgToDelete.id, 'everyone')} 
+                                        className="w-full p-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                                    >
+                                        <Trash2 size={16} className="text-red-500" />
+                                        <span>Delete for everyone</span>
                                     </button>
                                 )}
-                                <div className="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
-                                <button onClick={() => setDeleteMenuMsgId(null)} className="w-full text-center p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 font-medium transition-all">
+                                <div className="h-px bg-gray-100 dark:bg-gray-800 my-0.5"></div>
+                                <button 
+                                    onClick={() => setDeleteMenuMsgId(null)} 
+                                    className="w-full p-3 rounded-2xl text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50 font-medium transition-all cursor-pointer"
+                                >
                                     Cancel
                                 </button>
                             </div>

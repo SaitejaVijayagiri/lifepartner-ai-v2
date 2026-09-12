@@ -188,13 +188,13 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
     return (
         <div
             onClick={(e) => e.stopPropagation()}
-            className="flex flex-col space-y-2 p-3 rounded-2xl bg-gradient-to-r from-slate-900/95 via-pink-950/40 to-slate-900/95 border border-pink-500/40 shadow-xl min-w-[240px] max-w-[300px] my-1 text-white select-none"
+            className="flex flex-col space-y-2.5 p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-pink-950/40 to-slate-900 border border-pink-500/40 shadow-xl w-full max-w-[280px] xs:max-w-[300px] sm:max-w-[320px] my-0.5 text-white select-none box-border"
         >
-            <div className="flex items-center space-x-3">
-                <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-12 h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" alt={title} />
+            <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+                <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" alt={title} />
                 <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-xs text-white truncate">{title}</h4>
-                    <p className="text-[10px] text-pink-300 truncate">{artist}</p>
+                    <h4 className="font-bold text-xs sm:text-sm text-white truncate">{title}</h4>
+                    <p className="text-[10px] sm:text-[11px] text-pink-300 truncate">{artist}</p>
                     <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 font-medium">
                         🎵 Shared Music & Video
                     </span>
@@ -268,13 +268,14 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                             <span className="text-[10px] font-bold text-pink-300 ml-1">Playing Track...</span>
                         </div>
                     )}
-                    <div className="flex items-center justify-between gap-1.5">
+                    <div className="grid grid-cols-3 gap-1.5 w-full pt-0.5">
                         <button
                             onClick={toggleAudio}
-                            className={`flex-1 py-1.5 px-2 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-xs flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform`}
+                            className={`py-1.5 px-1 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-[11px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform truncate`}
+                            title={isPlaying ? 'Pause' : 'Play'}
                         >
-                            {isPlaying ? <Square size={12} fill="white" /> : <Play size={12} fill="white" />}
-                            <span>{isPlaying ? 'Pause' : 'Play'}</span>
+                            {isPlaying ? <Square size={11} fill="white" className="shrink-0" /> : <Play size={11} fill="white" className="shrink-0" />}
+                            <span className="truncate">{isPlaying ? 'Pause' : 'Play'}</span>
                         </button>
 
                         <button
@@ -288,19 +289,20 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                                     onStartSync({ title, artist, coverUrl, audioUrl, videoUrl, isPlaying: true });
                                 }
                             }}
-                            className="py-1.5 px-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform"
+                            className="py-1.5 px-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform truncate"
                             title="Listen Together in Real-Time"
                         >
-                            <Music size={12} />
-                            <span>Listen Sync</span>
+                            <Music size={11} className="shrink-0" />
+                            <span className="truncate">Sync</span>
                         </button>
 
                         <button
                             onClick={handleWatchVideo}
-                            className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-[10px] flex items-center justify-center space-x-1 border border-pink-500/30 active:scale-95 transition-transform"
+                            className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-[10px] flex items-center justify-center space-x-1 border border-pink-500/30 active:scale-95 transition-transform truncate"
+                            title="Watch Video"
                         >
-                            <Video size={12} />
-                            <span>Video</span>
+                            <Video size={11} className="shrink-0" />
+                            <span className="truncate">Video</span>
                         </button>
                     </div>
                 </div>
@@ -1967,7 +1969,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </div>
                                 )}
 
-                                <div className={`flex flex-col relative max-w-[75%] ${isMe ? 'items-end' : 'items-start'} ${activeMsgId === msg.id || emojiPickerMsgId === msg.id ? 'z-30' : 'z-0'}`}>
+                                <div className={`flex flex-col relative ${msg.text.startsWith('[MUSIC_SHARE:') ? 'w-[85%] sm:w-auto max-w-[320px] sm:max-w-[340px]' : 'max-w-[75%]'} ${isMe ? 'items-end' : 'items-start'} ${activeMsgId === msg.id || emojiPickerMsgId === msg.id ? 'z-30' : 'z-0'}`}>
                                     {/* Emoji picker popup */}
                                     {emojiPickerMsgId === msg.id && (
                                         <div
@@ -2008,9 +2010,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         onTouchMove={() => {
                                             if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                                         }}
-                                        className={`relative w-fit px-4 py-3 text-sm shadow-sm transition-all cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
+                                        className={`relative w-fit text-sm shadow-sm transition-all cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                        : (isMe ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
+                                        : msg.text.startsWith('[MUSIC_SHARE:')
+                                        ? 'bg-transparent shadow-none p-0 w-full'
+                                        : (isMe ? 'px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'px-4 py-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
                                         }`}>
                                         {/* Reply preview inside bubble — polished UI, clickable to scroll to original */}
                                         {(() => {
@@ -2389,14 +2393,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             }
                                             return msg.text;
                                         })()}
-                                        <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') ? 'text-gray-500 font-medium drop-shadow-sm' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
+                                        <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') || msg.text.startsWith('[MUSIC_SHARE:') ? 'text-gray-400 dark:text-gray-500 font-medium drop-shadow-sm px-1' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
                                             {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                             {isMe && (
                                                 <div className="flex items-center justify-center">
                                                     {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
                                                     {msg.status === 'sent' && <Check size={12} />}
                                                     {msg.status === 'delivered' && <CheckCheck size={12} />}
-                                                    {msg.status === 'read' && <CheckCheck size={12} className={msg.text.startsWith('[STICKER]') ? 'text-blue-500' : 'text-blue-300'} />}
+                                                    {msg.status === 'read' && <CheckCheck size={12} className={msg.text.startsWith('[STICKER]') || msg.text.startsWith('[MUSIC_SHARE:') ? 'text-pink-400' : 'text-blue-300'} />}
                                                 </div>
                                             )}
                                         </div>
@@ -3254,6 +3258,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         };
                         const musicPayload = `[MUSIC_SHARE:${encodeURIComponent(JSON.stringify(payloadObj))}]`;
                         handleSend(undefined, musicPayload);
+                        setShowJukebox(false);
                         toast.success('Track & video shared to chat!');
                     }}
                     onCreateStoryWithTrack={(track) => {

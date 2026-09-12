@@ -221,6 +221,12 @@ export class NotificationService {
                             Urgency: 'high',
                             TTL: '86400'
                         },
+                        notification: {
+                            title: String(title),
+                            body: String(body),
+                            icon: senderPhoto ? String(senderPhoto) : '/icon.png',
+                            image: bannerUrl ? String(bannerUrl) : undefined,
+                        },
                         fcmOptions: {
                             link: targetUrl
                         }
@@ -236,6 +242,11 @@ export class NotificationService {
 
                     const message: any = {
                         tokens: fcmTokens,
+                        notification: {
+                            title: String(title),
+                            body: String(body),
+                            imageUrl: (bannerUrl || senderPhoto) ? String(bannerUrl || senderPhoto) : undefined
+                        },
                         data: {
                             title: String(title),
                             body: String(body),
@@ -247,7 +258,15 @@ export class NotificationService {
                         },
                         android: {
                             priority: 'high',
-                            ttl: 86400 * 1000
+                            ttl: 86400 * 1000,
+                            notification: {
+                                title: String(title),
+                                body: String(body),
+                                icon: 'ic_notification',
+                                color: '#ec4899',
+                                imageUrl: (bannerUrl || senderPhoto) ? String(bannerUrl || senderPhoto) : undefined,
+                                channelId: 'lifepartner_notifications'
+                            }
                         },
                         apns: apnsPayload,
                         webpush: webpushPayload

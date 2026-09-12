@@ -563,7 +563,11 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     type: 'request', 
                     from: userId, 
                     screen: 'requests',
-                    interactionId: interaction.id
+                    interactionId: interaction.id,
+                    fromUserId: userId,
+                    fromUserName: myName,
+                    fromUserPhoto,
+                    url: `/dashboard?tab=requests&viewProfile=${userId}`
                 };
                 
                 // Realtime Push via Service Worker / FCM
@@ -1076,7 +1080,15 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                     toUserId,
                     "New Profile Like! ❤️",
                     msg,
-                    { type: 'like', from: userId, screen: 'matches' }
+                    { 
+                        type: 'like', 
+                        from: userId, 
+                        screen: 'matches',
+                        fromUserId: userId,
+                        fromUserName: myName,
+                        fromUserPhoto,
+                        url: `/dashboard?tab=matches&viewProfile=${userId}`
+                    }
                 ).catch((e: any) => console.warn("Push failed in like", e));
             }
         } catch (notifErr) {
@@ -1372,9 +1384,8 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                     viewedAt: new Date()
                 });
 
-                // Send Push Notification if offline
-                const { isUserOnline } = require('../socket');
-                if (!isUserOnline(targetId)) {
+                // Send Push Notification
+                try {
                     const { NotificationService } = require('../services/notification');
                     NotificationService.getInstance().sendToUser(
                         targetId,
@@ -1386,9 +1397,12 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                             screen: 'visitors',
                             fromUserId: userId,
                             fromUserName: viewerName,
-                            fromUserPhoto: fromUserPhoto
+                            fromUserPhoto: fromUserPhoto,
+                            url: `/dashboard?tab=matches&viewProfile=${userId}`
                         }
                     ).catch((e: any) => console.warn("Push failed in view profile", e));
+                } catch (pushErr) {
+                    console.warn("Failed to dispatch profile view push:", pushErr);
                 }
             }
         } catch (viewNotifErr) {

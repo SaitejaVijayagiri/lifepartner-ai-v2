@@ -112,6 +112,31 @@ export default function NotificationToastBanner() {
             timersRef.current[toastId] = setTimeout(() => {
                 dismiss(toastId);
             }, 6000);
+
+            // If the tab is minimized or in the background, pop up a system push / OS notification
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted' && document.visibilityState === 'hidden') {
+                try {
+                    const notifTitle = newToast.fromUserName || 'LifePartner AI';
+                    const notifBody = newToast.message;
+                    const notifIcon = newToast.fromUserPhoto || '/icon.png';
+                    const targetUrl = newToast.fromUserId ? `/dashboard?tab=matches&viewProfile=${newToast.fromUserId}` : '/dashboard';
+
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification(notifTitle, {
+                                body: notifBody,
+                                icon: notifIcon,
+                                badge: '/icon-192x192.png',
+                                data: { url: targetUrl }
+                            });
+                        }).catch(() => {
+                            new Notification(notifTitle, { body: notifBody, icon: notifIcon });
+                        });
+                    } else {
+                        new Notification(notifTitle, { body: notifBody, icon: notifIcon });
+                    }
+                } catch (_) {}
+            }
         };
 
         socket.on('notification:new', handleNewNotification);

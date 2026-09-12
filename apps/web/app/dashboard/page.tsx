@@ -9,7 +9,7 @@ import CallHistoryModal from '@/components/CallHistoryModal';
 import { useSocket } from '@/context/SocketContext';
 import { useCall } from '@/context/CallContext';
 import { useTheme } from 'next-themes';
-import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar, ShieldAlert, Home, Radio } from 'lucide-react';
+import { Bell, BellOff, Search, Sparkles, Filter, Briefcase, MapPin, Ruler, Heart, Video, Users, MessageCircle, User, Check, X, Coins, LogOut, Clock, Zap, Rocket, Crown, Lock, Eye, Trash2, Coffee, Moon, Sun, Calendar, ShieldAlert, Home, Radio, Ban } from 'lucide-react';
 
 import { Notifications, isNativePlatform } from '@/lib/notifications';
 import dynamic from 'next/dynamic';
@@ -236,6 +236,42 @@ function DashboardContent() {
     const openChat = (conn: any) => {
         savedScrollRef.current = window.scrollY;
         setSelectedConnection(conn);
+    };
+
+    /* Blocked Users Management */
+    const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+    const [showBlockedModal, setShowBlockedModal] = useState(false);
+    const [loadingBlocked, setLoadingBlocked] = useState(false);
+    const [unblockingId, setUnblockingId] = useState<string | null>(null);
+
+    const fetchBlockedUsers = async () => {
+        setLoadingBlocked(true);
+        try {
+            const data = await api.interactions.getBlockedUsers();
+            setBlockedUsers(Array.isArray(data) ? data : []);
+            setShowBlockedModal(true);
+        } catch (e: any) {
+            console.error("Error fetching blocked users:", e);
+            toast.error(e?.message || "Failed to load blocked users");
+        } finally {
+            setLoadingBlocked(false);
+        }
+    };
+
+    const handleUnblockUser = async (blockedId: string, name: string) => {
+        setUnblockingId(blockedId);
+        try {
+            await api.interactions.unblockUser(blockedId);
+            toast.success(`Unblocked ${name || 'user'}.`);
+            setBlockedUsers(prev => prev.filter(u => u.blocked_id !== blockedId));
+            fetchConnections();
+            try { fetchMatches(1); } catch (_) {}
+        } catch (e: any) {
+            console.error("Error unblocking user:", e);
+            toast.error(e?.message || "Failed to unblock user");
+        } finally {
+            setUnblockingId(null);
+        }
     };
 
     // Global listener for toast clicks
@@ -1605,6 +1641,30 @@ function DashboardContent() {
                                                     Delete Permanently
                                                 </Button>
                                             </div>
+
+                                            {/* Blocked Users Option */}
+                                            <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors flex flex-col justify-between space-y-4 sm:col-span-2">
+                                                <div className="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                                                            <Ban size={16} className="text-red-500" />
+                                                            Blocked Users & Safety
+                                                        </h4>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                            Review contacts you have blocked from the chat or matching. You can unblock any user at any time if you wish to restore contact.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={fetchBlockedUsers}
+                                                    disabled={loadingBlocked}
+                                                    className="w-full sm:w-auto self-start border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-bold"
+                                                >
+                                                    {loadingBlocked ? 'Loading...' : 'Manage Blocked Users'}
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1629,6 +1689,98 @@ function DashboardContent() {
                     api.profile.getMe().then(setCurrentUser);
                 }}
             />
+
+            {/* Blocked Users Modal */}
+            {showBlockedModal && (
+                <div 
+                    className="fixed inset-0 z-[2050] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowBlockedModal(false)}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-800 flex flex-col max-h-[85vh]"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-xl flex items-center justify-center">
+                                    <Ban size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                                        Blocked Users
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {blockedUsers.length} blocked contact{blockedUsers.length === 1 ? '' : 's'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowBlockedModal(false)}
+                                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* List of Blocked Users */}
+                        <div className="p-4 space-y-2 overflow-y-auto flex-1">
+                            {blockedUsers.length === 0 ? (
+                                <div className="py-12 text-center text-gray-400 text-sm">
+                                    <Ban size={36} className="mx-auto text-gray-300 dark:text-gray-600 mb-2 opacity-50" />
+                                    <p className="font-medium text-gray-600 dark:text-gray-400">No blocked users</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Your block list is currently empty.</p>
+                                </div>
+                            ) : (
+                                blockedUsers.map(u => (
+                                    <div 
+                                        key={u.blocked_id}
+                                        className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 hover:border-gray-200 transition-all"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <img
+                                                src={u.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.full_name || 'User')}`}
+                                                alt={u.full_name || 'Blocked User'}
+                                                className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0"
+                                                onError={(e) => {
+                                                    const target = e.target as HTMLImageElement;
+                                                    target.onerror = null;
+                                                    target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.full_name || 'User')}`;
+                                                }}
+                                            />
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                                                    {u.full_name || 'User'}
+                                                </p>
+                                                <p className="text-[11px] text-gray-400 truncate">
+                                                    Blocked {u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={unblockingId === u.blocked_id}
+                                            onClick={() => handleUnblockUser(u.blocked_id, u.full_name)}
+                                            className="text-xs font-bold px-3 py-1.5 h-auto text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40 hover:bg-emerald-50 dark:hover:bg-emerald-950/20 shrink-0 ml-2"
+                                        >
+                                            {unblockingId === u.blocked_id ? 'Unblocking...' : 'Unblock'}
+                                        </Button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-center">
+                            <p className="text-[11px] text-gray-400">
+                                Unblocking allows you and the user to discover each other and connect again.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             
 

@@ -141,6 +141,7 @@ export const api = {
         unblockUser: (blockedId: string) => fetchAPI(`/interactions/block/${blockedId}`, {
             method: 'DELETE'
         }),
+        getBlockedUsers: () => fetchAPI('/interactions/blocked'),
         sendDirectMessage: (toUserId: string, text: string) => fetchAPI('/interactions/direct', {
             method: 'POST',
             body: JSON.stringify({ toUserId, text })

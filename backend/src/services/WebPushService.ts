@@ -40,8 +40,8 @@ export class WebPushService {
         return this.publicKey;
     }
 
-    public async sendToSubscription(subscription: any, payload: any): Promise<boolean> {
-        if (!this.initialized) return false;
+    public async sendToSubscription(subscription: any, payload: any): Promise<{ success: boolean; expired: boolean }> {
+        if (!this.initialized) return { success: false, expired: false };
         try {
             await webpush.sendNotification(
                 subscription,
@@ -51,14 +51,13 @@ export class WebPushService {
                     urgency: 'high'
                 }
             );
-            return true;
+            return { success: true, expired: false };
         } catch (err: any) {
-            if (err?.statusCode === 404 || err?.statusCode === 410) {
-                // Subscription is expired or gone
-                return false;
-            }
-            console.error('WebPush sendNotification error:', err.message || err);
-            return false;
+            const isExpired = err?.statusCode === 404 || err?.statusCode === 410 || 
+                (typeof err?.body === 'string' && (err.body.includes('expired') || err.body.includes('unsubscribed') || err.body.includes('DROP')));
+            
+            console.error('[WebPush Send Error] StatusCode:', err?.statusCode, 'Headers:', JSON.stringify(err?.headers), 'Body:', err?.body || err?.message || err);
+            return { success: false, expired: isExpired };
         }
     }
 
@@ -105,10 +104,10 @@ export class WebPushService {
                     }
 
                     if (subObj && subObj.endpoint) {
-                        const ok = await this.sendToSubscription(subObj, payload);
-                        if (ok) {
+                        const res = await this.sendToSubscription(subObj, payload);
+                        if (res.success) {
                             sentCount++;
-                        } else {
+                        } else if (res.expired) {
                             expiredTokens.push(record.token);
                         }
                     }

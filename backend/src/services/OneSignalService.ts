@@ -48,9 +48,12 @@ export class OneSignalService {
                 bannerUrl = `${cleanBase}${bannerUrl}`;
             }
 
-            const targetUrl = data?.url || 
-                (data?.callerId ? `https://lifepartnerai.in/chat/${data.callerId}` : 
-                (data?.senderId ? `https://lifepartnerai.in/chat/${data.senderId}` : 'https://lifepartnerai.in/dashboard'));
+            const rawUrl = data?.url || 
+                (data?.callerId ? `/chat/${data.callerId}` : 
+                (data?.senderId ? `/chat/${data.senderId}` : '/dashboard'));
+            const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
+            const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+            const targetUrl = rawUrl.startsWith('http') ? rawUrl : `${cleanBase}${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
 
             const buttons: any[] = [];
             // If chat message, offer quick reply and like
@@ -99,8 +102,6 @@ export class OneSignalService {
                     url: targetUrl
                 },
                 url: targetUrl,
-                web_url: targetUrl,
-                app_url: targetUrl,
                 priority: 10,
                 android_visibility: 1,
                 android_accent_color: 'FFFF4081',

@@ -163,6 +163,9 @@ self.addEventListener('notificationclick', function (event) {
     let targetUrl = payloadData.url || '/dashboard';
     if (!payloadData.url && senderId) {
         targetUrl = `/chat/${senderId}`;
+    } else if (!payloadData.url && (payloadData.type === 'like' || payloadData.type === 'view') && (payloadData.fromUserId || payloadData.from)) {
+        const id = payloadData.fromUserId || payloadData.from;
+        targetUrl = `/dashboard?tab=matches&viewProfile=${id}`;
     }
 
     event.waitUntil(

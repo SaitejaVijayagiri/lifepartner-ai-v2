@@ -274,13 +274,52 @@ function DashboardContent() {
         }
     };
 
-    // Global listener for toast clicks
+    // Open Profile / Match Card Helper
+    const handleOpenProfileById = async (profileId: string, fallbackData?: any) => {
+        if (!profileId) return;
+        setActiveTab('matches');
+
+        // 1. Instant optimistic match card display (0ms)
+        const existingMatch = matches.find((m: any) => m.id === profileId);
+        if (existingMatch) {
+            setSelectedProfile(existingMatch);
+        } else if (fallbackData) {
+            const fbName = fallbackData.name || fallbackData.profileName || 'Member';
+            const fbPhoto = fallbackData.photoUrl || fallbackData.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fbName)}`;
+            setSelectedProfile({
+                id: profileId,
+                userId: profileId,
+                name: fbName,
+                photoUrl: fbPhoto,
+                photos: fallbackData.photos && fallbackData.photos.length > 0 ? fallbackData.photos : [fbPhoto],
+                location: fallbackData.location || 'Member',
+                profession: fallbackData.profession || '',
+                age: fallbackData.age || '',
+                isVerified: true
+            });
+        }
+
+        // 2. Fetch complete profile data for full bio, astrology, family & lifestyle details
+        try {
+            const fullProfile = await api.profile.getById(profileId);
+            if (fullProfile) {
+                setSelectedProfile((prev: any) => ({
+                    ...prev,
+                    ...fullProfile,
+                    photos: Array.isArray(fullProfile.photos) && fullProfile.photos.length > 0
+                        ? fullProfile.photos
+                        : (fullProfile.photoUrl ? [fullProfile.photoUrl] : (prev?.photos || []))
+                }));
+            }
+        } catch (e) {
+            console.warn("Could not fetch full profile for", profileId, e);
+        }
+    };
+
+    // Global listener for toast and notification clicks
     useEffect(() => {
         const handleOpenChatEvent = (e: any) => {
             if (e.detail && e.detail.partnerId) {
-                // Structure matches what ChatWindow expects:
-                // interactionId = the partner's userId (chat API uses userId as connectionId)
-                // partner = the nested object ChatWindow reads
                 openChat({
                     interactionId: e.detail.partnerId,
                     partner: {
@@ -297,13 +336,26 @@ function DashboardContent() {
                 setActiveTab(e.detail.tab);
             }
         };
+        const handleOpenProfileEvent = (e: any) => {
+            const profileId = e.detail?.profileId || e.detail?.id;
+            if (profileId) {
+                handleOpenProfileById(profileId, e.detail);
+            } else if (e.detail?.profile) {
+                setActiveTab('matches');
+                setSelectedProfile(e.detail.profile);
+            }
+        };
+
         window.addEventListener('openChat', handleOpenChatEvent);
         window.addEventListener('changeTab', handleChangeTabEvent);
+        window.addEventListener('openProfile', handleOpenProfileEvent);
+
         return () => {
             window.removeEventListener('openChat', handleOpenChatEvent);
             window.removeEventListener('changeTab', handleChangeTabEvent);
+            window.removeEventListener('openProfile', handleOpenProfileEvent);
         };
-    }, []);
+    }, [matches]);
     const closeChat = () => {
         setSelectedConnection(null);
         // Restore scroll on next frame after DOM updates layout
@@ -634,6 +686,15 @@ function DashboardContent() {
             newUrl.searchParams.delete('chatId');
             newUrl.searchParams.delete('name');
             newUrl.searchParams.delete('photo');
+            window.history.replaceState({}, '', newUrl.toString());
+        }
+
+        const viewProfileId = searchParams.get('viewProfile') || searchParams.get('profileId');
+        if (viewProfileId) {
+            handleOpenProfileById(viewProfileId);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('viewProfile');
+            newUrl.searchParams.delete('profileId');
             window.history.replaceState({}, '', newUrl.toString());
         }
 

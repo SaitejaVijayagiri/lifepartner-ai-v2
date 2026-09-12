@@ -91,8 +91,20 @@ export const NotificationBell = () => {
 
         if ((type === 'match' || type === 'connection_online') && fromUserId) {
             router.push(`/chat/${fromUserId}?name=${encodeURIComponent(n.fromUserName || 'Member')}`);
-        } else if (type === 'view' && fromUserId) {
-            router.push(`/profile/${fromUserId}`);
+        } else if ((type === 'view' || type === 'like') && fromUserId) {
+            // Redirect to dashboard and open matchcard
+            const profileName = n.fromUserName || n.data?.fromUserName || (n.message ? n.message.split(' ')[0] : 'Member');
+            const profilePhoto = n.fromUserPhoto || n.data?.fromUserPhoto;
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('openProfile', { 
+                    detail: { 
+                        profileId: fromUserId, 
+                        profileName,
+                        profilePhoto 
+                    } 
+                }));
+            }
+            router.push(`/dashboard?tab=matches&viewProfile=${fromUserId}`);
         } else if (type === 'request') {
             if (typeof window !== 'undefined') {
                 localStorage.setItem('dashboard_active_tab', 'requests');

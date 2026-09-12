@@ -368,6 +368,9 @@ self.addEventListener('notificationclick', function(event) {
     if (!payloadData.url && type === 'match' && (payloadData.senderId || payloadData.chatId)) {
         const id = payloadData.senderId || payloadData.chatId;
         urlToOpen = `/chat/${id}`;
+    } else if (!payloadData.url && (type === 'like' || type === 'view') && (payloadData.fromUserId || payloadData.from || payloadData.senderId)) {
+        const id = payloadData.fromUserId || payloadData.from || payloadData.senderId;
+        urlToOpen = `/dashboard?tab=matches&viewProfile=${id}`;
     }
 
     event.waitUntil(

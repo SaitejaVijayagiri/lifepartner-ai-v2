@@ -219,6 +219,17 @@ export default function NotificationToastBanner() {
                             // 2. Navigate to dashboard or matching screen
                             if ((toast.type === 'match' || toast.type === 'connection_online') && toast.fromUserId) {
                                 router.push(`/chat/${toast.fromUserId}?name=${encodeURIComponent(toast.fromUserName || '')}&photo=${encodeURIComponent(toast.fromUserPhoto || '')}`);
+                            } else if ((toast.type === 'view' || toast.type === 'like') && toast.fromUserId) {
+                                if (typeof window !== 'undefined') {
+                                    window.dispatchEvent(new CustomEvent('openProfile', {
+                                        detail: {
+                                            profileId: toast.fromUserId,
+                                            profileName: toast.fromUserName,
+                                            profilePhoto: toast.fromUserPhoto
+                                        }
+                                    }));
+                                }
+                                router.push(`/dashboard?tab=matches&viewProfile=${toast.fromUserId}`);
                             } else {
                                 router.push('/dashboard');
                             }

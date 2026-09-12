@@ -538,7 +538,25 @@ export default function MatchesTab({
                                         key={visitor.id || idx}
                                         onClick={() => {
                                             setActiveInsightModal(null);
-                                            setSelectedProfile(visitor);
+                                            const photos = Array.isArray(visitor.photos) && visitor.photos.length > 0
+                                                ? visitor.photos
+                                                : (visitor.photoUrl ? [visitor.photoUrl] : []);
+                                            setSelectedProfile({
+                                                ...visitor,
+                                                photos,
+                                                isVerified: true
+                                            });
+                                            if (visitor.id) {
+                                                api.profile.getById(visitor.id).then((full: any) => {
+                                                    if (full) {
+                                                        setSelectedProfile((prev: any) => ({
+                                                            ...prev,
+                                                            ...full,
+                                                            photos: Array.isArray(full.photos) && full.photos.length > 0 ? full.photos : photos
+                                                        }));
+                                                    }
+                                                }).catch(() => {});
+                                            }
                                         }}
                                         className="flex items-center justify-between p-3 rounded-2xl border transition-all bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-indigo-400 cursor-pointer shadow-sm"
                                     >
@@ -567,7 +585,25 @@ export default function MatchesTab({
                                         key={like.id || idx}
                                         onClick={() => {
                                             setActiveInsightModal(null);
-                                            setSelectedProfile(like);
+                                            const photos = Array.isArray(like.photos) && like.photos.length > 0
+                                                ? like.photos
+                                                : (like.photoUrl ? [like.photoUrl] : []);
+                                            setSelectedProfile({
+                                                ...like,
+                                                photos,
+                                                isVerified: true
+                                            });
+                                            if (like.id) {
+                                                api.profile.getById(like.id).then((full: any) => {
+                                                    if (full) {
+                                                        setSelectedProfile((prev: any) => ({
+                                                            ...prev,
+                                                            ...full,
+                                                            photos: Array.isArray(full.photos) && full.photos.length > 0 ? full.photos : photos
+                                                        }));
+                                                    }
+                                                }).catch(() => {});
+                                            }
                                         }}
                                         className="flex items-center justify-between p-3 rounded-2xl border transition-all bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-rose-400 cursor-pointer shadow-sm"
                                     >

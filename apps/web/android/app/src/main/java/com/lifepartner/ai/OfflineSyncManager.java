@@ -81,8 +81,8 @@ public class OfflineSyncManager {
             Log.i(TAG, "Queued offline request action: " + action + " for " + interactionId);
 
             String feedback = "accept".equals(action)
-                    ? "Request accepted (will sync when online) ✅"
-                    : "Request declined (will sync when online) ❌";
+                    ? "Connected (will sync when online) 💖"
+                    : "Passed for now (will sync when online)";
             showToast(context, feedback);
         } catch (Exception e) {
             Log.e(TAG, "Failed to queue offline request: ", e);

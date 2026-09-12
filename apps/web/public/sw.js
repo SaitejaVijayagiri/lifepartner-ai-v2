@@ -41,8 +41,8 @@ self.addEventListener('push', function (event) {
         // Actions for Request, Call, Chat, and Campaign
         if (data.type === 'request') {
             options.actions = [
-                { action: 'accept_request', title: 'Accept ✅' },
-                { action: 'decline_request', title: 'Decline ❌' }
+                { action: 'accept_request', title: 'Connect 💖' },
+                { action: 'decline_request', title: 'Not Now' }
             ];
         } else if (data.type === 'incoming_call') {
             options.actions = [

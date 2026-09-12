@@ -59,8 +59,8 @@ export class OneSignalService {
             // If match / friend request, offer Accept & Decline buttons
             if (data?.type === 'request') {
                 buttons.push(
-                    { id: 'accept', text: 'Accept ✅' },
-                    { id: 'decline', text: 'Decline ❌' }
+                    { id: 'accept', text: 'Connect 💖' },
+                    { id: 'decline', text: 'Not Now' }
                 );
             } else if (data?.senderId || data?.connId) {
                 // If chat message, offer quick reply and like

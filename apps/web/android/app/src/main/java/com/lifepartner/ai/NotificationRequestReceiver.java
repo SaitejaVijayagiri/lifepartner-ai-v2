@@ -70,8 +70,8 @@ public class NotificationRequestReceiver extends BroadcastReceiver {
                 boolean success = OfflineSyncManager.executeRequestAction(interactionId, finalAction, authToken);
                 if (success) {
                     String msg = "accept".equals(finalAction)
-                            ? "Request accepted! 🎉"
-                            : "Request declined ❌";
+                            ? "Connected successfully! 💖"
+                            : "Passed for now";
                     OfflineSyncManager.showToast(context, msg);
                     Log.i(TAG, "Action " + finalAction + " successfully sent for " + interactionId);
                 } else {

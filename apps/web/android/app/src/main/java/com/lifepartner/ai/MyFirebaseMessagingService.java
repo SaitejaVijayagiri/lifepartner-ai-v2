@@ -408,7 +408,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     acceptIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
-            builder.addAction(0, "Accept ✅", acceptPendingIntent);
+            builder.addAction(0, "Connect 💖", acceptPendingIntent);
 
             // Decline Action
             Intent declineIntent = new Intent(this, NotificationRequestReceiver.class);
@@ -423,7 +423,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     declineIntent,
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
-            builder.addAction(0, "Decline ❌", declinePendingIntent);
+            builder.addAction(0, "Not Now", declinePendingIntent);
         }
 
         // 3. Setup "Quick Reply" Action if this is a chat message (connId exists)

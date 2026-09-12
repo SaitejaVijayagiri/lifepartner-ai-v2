@@ -177,8 +177,8 @@ export class NotificationService {
                 icon: senderPhoto || '/icon.png',
                 image: bannerUrl || null,
                 actions: data?.type === 'request' ? [
-                    { action: 'accept_request', title: 'Accept ✅' },
-                    { action: 'decline_request', title: 'Decline ❌' }
+                    { action: 'accept_request', title: 'Connect 💖' },
+                    { action: 'decline_request', title: 'Not Now' }
                 ] : (data?.senderId || data?.connId ? [
                     { action: 'like_message', title: 'Like ❤️' },
                     { action: 'reply_to_message', title: 'Reply 💬' }
@@ -292,8 +292,8 @@ export class NotificationService {
                             icon: senderPhoto ? String(senderPhoto) : '/icon.png',
                             image: bannerUrl ? String(bannerUrl) : undefined,
                             actions: data?.type === 'request' ? [
-                                { action: 'accept_request', title: 'Accept ✅' },
-                                { action: 'decline_request', title: 'Decline ❌' }
+                                { action: 'accept_request', title: 'Connect 💖' },
+                                { action: 'decline_request', title: 'Not Now' }
                             ] : (data?.senderId || data?.connId ? [
                                 { action: 'like_message', title: 'Like ❤️' },
                                 { action: 'reply_to_message', title: 'Reply 💬' }

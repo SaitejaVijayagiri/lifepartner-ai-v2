@@ -608,7 +608,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 const { NotificationService } = await import('../services/notification');
                 const notifTitle = `${myName} sent you an Interest Request! 💖`;
                 const notifBody = detailsShort
-                    ? `${detailsShort} — Tap Accept or Decline to connect`
+                    ? `${detailsShort} — Tap Connect or Not Now`
                     : msg;
 
                 NotificationService.getInstance().sendToUser(

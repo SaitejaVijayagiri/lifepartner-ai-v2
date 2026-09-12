@@ -56,8 +56,8 @@ messaging.onBackgroundMessage((payload) => {
     // Add Accept/Decline actions if it's an interest request!
     if (payload.data?.type === 'request') {
         notificationOptions.actions = [
-            { action: 'accept_request', title: 'Accept ✅' },
-            { action: 'decline_request', title: 'Decline ❌' }
+            { action: 'accept_request', title: 'Connect 💖' },
+            { action: 'decline_request', title: 'Not Now' }
         ];
     } else if (payload.data?.type === 'incoming_call') {
         notificationOptions.actions = [

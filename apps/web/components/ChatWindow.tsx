@@ -847,13 +847,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             if (emojiPickerMsgId && !(target as HTMLElement)?.closest?.('.emoji-picker-container')) {
                 setEmojiPickerMsgId(null);
             }
-            if (activeMsgId && !(target as HTMLElement)?.closest?.('.message-action-bar')) {
+            if (activeMsgId && !(target as HTMLElement)?.closest?.('.message-action-bar') && !(target as HTMLElement)?.closest?.('.message-row-actions')) {
                 setActiveMsgId(null);
             }
         };
 
         const handleScroll = (e: Event) => {
-            // Don't close if user is scrolling inside the menu itself
+            // Don't close if user is scrolling inside menus
             if (headerMenuRef.current && headerMenuRef.current.contains(e.target as Node)) return;
             if (attachmentMenuRef.current && attachmentMenuRef.current.contains(e.target as Node)) return;
 
@@ -867,7 +867,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (scrollEl) {
             scrollEl.addEventListener('scroll', handleScroll, { passive: true });
         }
-        window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
         document.addEventListener('mousedown', handleClickOutside);
         document.addEventListener('touchstart', handleClickOutside, { passive: true });
 
@@ -875,7 +874,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             if (scrollEl) {
                 scrollEl.removeEventListener('scroll', handleScroll);
             }
-            window.removeEventListener('scroll', handleScroll, { capture: true } as any);
             document.removeEventListener('mousedown', handleClickOutside);
             document.removeEventListener('touchstart', handleClickOutside);
         };
@@ -1927,7 +1925,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     }
 
                     return (
-                        <div key={idx} className="flex flex-col">
+                        <div key={msg.id || `msg-${idx}`} className="flex flex-col">
                             {showDateHeader && (
                                 <div className="flex justify-center my-4">
                                     <span className="text-xs font-semibold bg-gray-200/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full shadow-sm backdrop-blur-sm">
@@ -1935,7 +1933,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </span>
                                 </div>
                             )}
-                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300 mb-1 group/row items-end gap-1`}>
+                            <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} ${msg.id?.toString().startsWith('temp-') ? 'animate-in fade-in slide-in-from-bottom-2 duration-200' : ''} mb-1 group/row items-end gap-1`}>
                                 {!isMe && (
                                     <img src={partnerInfo.photoUrl} className="w-8 h-8 rounded-full mr-1 self-end mb-1 shadow-sm flex-shrink-0" alt="" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
@@ -1946,22 +1944,28 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For "my" messages: action buttons go LEFT of bubble */}
                                 {isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
+                                    <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-all duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: 'You' }); inputRef.current?.focus(); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setReplyTo({ id: msg.id, text: msg.text, senderName: 'You' });
+                                                setActiveMsgId(null);
+                                                setTimeout(() => { inputRef.current?.focus({ preventScroll: true }); }, 50);
+                                            }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer"
                                             title="Reply"
                                         >
                                             <Reply size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm cursor-pointer"
                                             title="React"
                                         >😊</button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
                                             title="Delete"
                                         >
                                             <Trash2 size={14} />
@@ -2439,7 +2443,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     {activeMsgId === msg.id && (
                                         <div className="message-action-bar flex sm:hidden items-center gap-2.5 mt-1 px-3 py-1.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-full shadow-md animate-in slide-in-from-top-1 duration-150 z-10">
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: isMe ? 'You' : partnerInfo.name }); inputRef.current?.focus(); setActiveMsgId(null); }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setReplyTo({ id: msg.id, text: msg.text, senderName: isMe ? 'You' : partnerInfo.name });
+                                                    setActiveMsgId(null);
+                                                    setTimeout(() => { inputRef.current?.focus({ preventScroll: true }); }, 50);
+                                                }}
                                                 className="p-1 text-gray-500 hover:text-indigo-500 rounded-full transition-all cursor-pointer"
                                                 title="Reply"
                                             >
@@ -2465,22 +2475,28 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                                 {/* For partner messages: action buttons go RIGHT of bubble */}
                                 {!isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
-                                    <div className={`hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 ${activeMsgId === msg.id ? 'opacity-100' : 'opacity-0 md:group-hover/row:opacity-100'}`}>
+                                    <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-all duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); setReplyTo({ id: msg.id, text: msg.text, senderName: partnerInfo.name }); inputRef.current?.focus(); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setReplyTo({ id: msg.id, text: msg.text, senderName: partnerInfo.name });
+                                                setActiveMsgId(null);
+                                                setTimeout(() => { inputRef.current?.focus({ preventScroll: true }); }, 50);
+                                            }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer"
                                             title="Reply"
                                         >
                                             <Reply size={14} />
                                         </button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setEmojiPickerMsgId(emojiPickerMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all text-sm cursor-pointer"
                                             title="React"
                                         >😊</button>
                                         <button
                                             onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
-                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all cursor-pointer"
                                             title="Delete"
                                         >
                                             <Trash2 size={14} />
@@ -2559,7 +2575,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Reply Preview Bar */}
             {replyTo && (
-                <div className="flex items-center justify-between gap-2 w-full px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
+                <div className="flex items-center justify-between gap-2 w-full px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border-t border-indigo-100 dark:border-indigo-800 animate-in fade-in duration-150">
                     <div className="flex-1 min-w-0 border-l-4 border-indigo-500 pl-2">
                         <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">{replyTo.senderName}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">

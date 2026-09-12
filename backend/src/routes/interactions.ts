@@ -471,11 +471,40 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                             );
 
                             const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+
+                            // Persist in-app notification
+                            await prisma.notifications.create({
+                                data: {
+                                    user_id: toUserId,
+                                    type: 'match',
+                                    message: msg,
+                                    data: { fromUserId: userId, partnerId: userId }
+                                }
+                            }).catch(() => {});
+
                             getIO().to(toUserId).emit('notification:new', {
                                 type: 'match',
                                 message: msg,
                                 timestamp: new Date()
                             });
+
+                            // Realtime Push via Service Worker / FCM to offline user
+                            const { NotificationService } = await import('../services/notification');
+                            NotificationService.getInstance().sendToUser(
+                                toUserId,
+                                "Request Accepted! 🎉",
+                                msg,
+                                {
+                                    type: 'match',
+                                    from: userId,
+                                    fromUserId: userId,
+                                    senderId: userId,
+                                    senderName: uB.full_name || "Partner",
+                                    fromUserName: uB.full_name || "Partner",
+                                    fromUserPhoto: partnerPhotoUrl,
+                                    url: `/chat/${userId}`
+                                }
+                            ).catch(e => console.warn("Push failed in mutual match", e));
                         }
                     } catch (notifyErr) { 
                         console.error("Notify error during mutual match", notifyErr); 
@@ -878,11 +907,40 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
                             );
 
                             const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+
+                            // Persist in-app notification
+                            await prisma.notifications.create({
+                                data: {
+                                    user_id: from_user_id,
+                                    type: 'match',
+                                    message: msg,
+                                    data: { fromUserId: to_user_id, partnerId: to_user_id }
+                                }
+                            }).catch(() => {});
+
                             getIO().to(from_user_id).emit('notification:new', {
                                 type: 'match',
                                 message: msg,
                                 timestamp: new Date()
                             });
+
+                            // Realtime Push via Service Worker / FCM to offline user
+                            const { NotificationService } = await import('../services/notification');
+                            NotificationService.getInstance().sendToUser(
+                                from_user_id,
+                                "Request Accepted! 🎉",
+                                msg,
+                                {
+                                    type: 'match',
+                                    from: to_user_id,
+                                    fromUserId: to_user_id,
+                                    senderId: to_user_id,
+                                    senderName: uB.full_name || "Partner",
+                                    fromUserName: uB.full_name || "Partner",
+                                    fromUserPhoto: partnerPhotoUrl,
+                                    url: `/chat/${to_user_id}`
+                                }
+                            ).catch(e => console.warn("Push failed in accept request", e));
                         }
                     } catch (notifyErr) { console.error("Notify error", notifyErr); }
                 }

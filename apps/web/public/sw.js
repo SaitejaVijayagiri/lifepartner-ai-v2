@@ -166,6 +166,9 @@ self.addEventListener('notificationclick', function (event) {
     } else if (!payloadData.url && (payloadData.type === 'like' || payloadData.type === 'view') && (payloadData.fromUserId || payloadData.from)) {
         const id = payloadData.fromUserId || payloadData.from;
         targetUrl = `/dashboard?tab=matches&viewProfile=${id}`;
+    } else if (!payloadData.url && payloadData.type === 'request' && (payloadData.fromUserId || payloadData.from)) {
+        const id = payloadData.fromUserId || payloadData.from;
+        targetUrl = `/dashboard?tab=requests&viewProfile=${id}`;
     }
 
     event.waitUntil(

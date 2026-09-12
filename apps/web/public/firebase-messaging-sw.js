@@ -371,6 +371,9 @@ self.addEventListener('notificationclick', function(event) {
     } else if (!payloadData.url && (type === 'like' || type === 'view') && (payloadData.fromUserId || payloadData.from || payloadData.senderId)) {
         const id = payloadData.fromUserId || payloadData.from || payloadData.senderId;
         urlToOpen = `/dashboard?tab=matches&viewProfile=${id}`;
+    } else if (!payloadData.url && type === 'request' && (payloadData.fromUserId || payloadData.from || payloadData.senderId)) {
+        const id = payloadData.fromUserId || payloadData.from || payloadData.senderId;
+        urlToOpen = `/dashboard?tab=requests&viewProfile=${id}`;
     }
 
     event.waitUntil(

@@ -490,16 +490,25 @@ function DashboardContent() {
         };
     }, []);
 
-    // Sync active chat partner to window global so MessageToastBanner can suppress notifications
+    // Sync active chat partner to window global and Android bridge so notifications are suppressed
     useEffect(() => {
         if (typeof window !== 'undefined') {
             // Handle both nested { partner: { id } } and flat { id } connection structures
             const partnerId = selectedConnection?.partner?.id || selectedConnection?.id || null;
             (window as any).__activeChatPartnerId = partnerId;
+
+            const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+            if (bridge && typeof bridge.setActiveChat === 'function') {
+                bridge.setActiveChat(partnerId);
+            }
         }
         return () => {
             if (typeof window !== 'undefined') {
                 (window as any).__activeChatPartnerId = null;
+                const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+                if (bridge && typeof bridge.setActiveChat === 'function') {
+                    bridge.setActiveChat(null);
+                }
             }
         };
     }, [selectedConnection]);

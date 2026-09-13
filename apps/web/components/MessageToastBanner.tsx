@@ -87,8 +87,8 @@ export default function MessageToastBanner() {
                 } catch (err) {}
             }
 
-            // Fire native browser / device push notification if tab is hidden or backgrounded
-            if (typeof window !== 'undefined' && 'Notification' in window) {
+            // Fire native browser / device push notification ONLY if tab is hidden or backgrounded
+            if (typeof window !== 'undefined' && 'Notification' in window && document.visibilityState === 'hidden') {
                 if (Notification.permission === 'granted') {
                     try {
                         const notif = new Notification(newToast.senderName, {

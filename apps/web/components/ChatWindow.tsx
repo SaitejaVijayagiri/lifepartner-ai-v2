@@ -586,6 +586,56 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     }, [partner?.id, partner?.name, partner?.photoUrl]);
 
+    // Sync active chat session with Socket backend, Android Bridge, and global window state
+    // so push notifications are completely suppressed while user is actively viewing this conversation
+    useEffect(() => {
+        if (!partner?.id) return;
+        const partnerId = partner.id;
+
+        const syncChatActive = (isActive: boolean) => {
+            if (typeof window === 'undefined') return;
+            (window as any).__activeChatPartnerId = isActive ? partnerId : null;
+
+            const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+            if (bridge && typeof bridge.setActiveChat === 'function') {
+                bridge.setActiveChat(isActive ? partnerId : null);
+            }
+
+            if (socket) {
+                if (isActive) {
+                    socket.emit('enter_chat', { partnerId });
+                } else {
+                    socket.emit('leave_chat');
+                }
+            }
+        };
+
+        // Notify socket and native layer that we are actively chatting with this partner
+        syncChatActive(true);
+
+        const handleVisibilityChange = () => {
+            const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+            if (document.visibilityState === 'hidden') {
+                syncChatActive(false);
+                if (bridge && typeof bridge.setAppForeground === 'function') {
+                    bridge.setAppForeground(false);
+                }
+            } else if (document.visibilityState === 'visible') {
+                syncChatActive(true);
+                if (bridge && typeof bridge.setAppForeground === 'function') {
+                    bridge.setAppForeground(true);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            syncChatActive(false);
+        };
+    }, [partner?.id, socket]);
+
     // Mute State
     const [isMuted, setIsMuted] = useState<boolean>(() => {
         const mutedUsers = user?.muted_users || [];

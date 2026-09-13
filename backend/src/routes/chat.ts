@@ -298,60 +298,67 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             console.error("Socket broadcast failed", socketError);
         }
 
-        // Send Push Notification for chat message (zero extra DB queries)
+        // Send Push Notification for chat message (suppressed if recipient is actively viewing this chat)
         try {
-            const { NotificationService } = require('../services/notification');
-            
-            const pushBody = isIncognito
-                ? '🕵️ Sent an incognito message'
-                : cleanText.startsWith('[IMAGE]')
-                ? '📷 Sent a photo'
-                : cleanText.startsWith('[AUDIO]')
-                ? '🎤 Sent a voice message'
-                : cleanText.startsWith('[STICKER]')
-                ? '🎭 Sent a sticker'
-                : cleanText.startsWith('[STORY_REPLY:')
-                ? (() => {
-                    const endIdx = cleanText.indexOf(']');
-                    const reply = endIdx !== -1 ? cleanText.substring(endIdx + 1).trim() : '';
-                    return reply ? `📸 Story reply: "${reply}"` : '📸 Replied to your story';
-                  })()
-                : cleanText.startsWith('[MUSIC_SHARE:')
-                ? (() => {
-                    try {
-                        let raw = cleanText.replace(/^\[MUSIC_SHARE:/, '');
-                        if (raw.endsWith(']')) raw = raw.slice(0, -1);
-                        let parsed: any = null;
-                        try {
-                            parsed = JSON.parse(decodeURIComponent(raw));
-                        } catch {
-                            parsed = JSON.parse(raw);
-                        }
-                        const t = parsed?.title;
-                        const a = parsed?.artist;
-                        if (t && a) return `🎵 Shared a song: "${t}" by ${a}`;
-                        if (t) return `🎵 Shared a song: "${t}"`;
-                        return '🎵 Shared a music track';
-                    } catch {
-                        return '🎵 Shared a music track';
-                    }
-                  })()
-                : cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
+            const { isUserActiveInChat } = require('../socket');
+            const isViewing = isUserActiveInChat(connectionId, senderId);
 
-            await NotificationService.getInstance().sendToUser(
-                connectionId,
-                `${senderFirstName}`,
-                pushBody,
-                { 
-                    url: `/dashboard?tab=connections&chatId=${senderId}&name=${encodeURIComponent(senderFirstName)}&photo=${encodeURIComponent(senderPhotoUrl || '')}`,
-                    messageId: newMessageRecord.id,
-                    senderId: senderId,
-                    connId: senderId,
-                    senderName: senderFirstName,
-                    senderPhoto: senderPhotoUrl,
-                    type: 'match'
-                }
-            );
+            if (isViewing) {
+                console.log(`[Chat Push Suppressed] Recipient ${connectionId} is actively in chat with ${senderId}. Skipping push notification.`);
+            } else {
+                const { NotificationService } = require('../services/notification');
+                
+                const pushBody = isIncognito
+                    ? '🕵️ Sent an incognito message'
+                    : cleanText.startsWith('[IMAGE]')
+                    ? '📷 Sent a photo'
+                    : cleanText.startsWith('[AUDIO]')
+                    ? '🎤 Sent a voice message'
+                    : cleanText.startsWith('[STICKER]')
+                    ? '🎭 Sent a sticker'
+                    : cleanText.startsWith('[STORY_REPLY:')
+                    ? (() => {
+                        const endIdx = cleanText.indexOf(']');
+                        const reply = endIdx !== -1 ? cleanText.substring(endIdx + 1).trim() : '';
+                        return reply ? `📸 Story reply: "${reply}"` : '📸 Replied to your story';
+                      })()
+                    : cleanText.startsWith('[MUSIC_SHARE:')
+                    ? (() => {
+                        try {
+                            let raw = cleanText.replace(/^\[MUSIC_SHARE:/, '');
+                            if (raw.endsWith(']')) raw = raw.slice(0, -1);
+                            let parsed: any = null;
+                            try {
+                                parsed = JSON.parse(decodeURIComponent(raw));
+                            } catch {
+                                parsed = JSON.parse(raw);
+                            }
+                            const t = parsed?.title;
+                            const a = parsed?.artist;
+                            if (t && a) return `🎵 Shared a song: "${t}" by ${a}`;
+                            if (t) return `🎵 Shared a song: "${t}"`;
+                            return '🎵 Shared a music track';
+                        } catch {
+                            return '🎵 Shared a music track';
+                        }
+                      })()
+                    : cleanText.length > 50 ? cleanText.substring(0, 50) + '...' : cleanText;
+
+                await NotificationService.getInstance().sendToUser(
+                    connectionId,
+                    `${senderFirstName}`,
+                    pushBody,
+                    { 
+                        url: `/dashboard?tab=connections&chatId=${senderId}&name=${encodeURIComponent(senderFirstName)}&photo=${encodeURIComponent(senderPhotoUrl || '')}`,
+                        messageId: newMessageRecord.id,
+                        senderId: senderId,
+                        connId: senderId,
+                        senderName: senderFirstName,
+                        senderPhoto: senderPhotoUrl,
+                        type: 'match'
+                    }
+                );
+            }
         } catch (pushErr) {
             console.error("Chat Push Notification Error", pushErr);
         }

@@ -8,6 +8,10 @@ let io: Server;
 // userId -> count of active sockets
 const onlineUsers = new Map<string, number>();
 
+// userId -> active partnerId that user is currently chatting with
+// (used to suppress push notifications when recipient is actively viewing the conversation)
+const activeChats = new Map<string, string>();
+
 // Track users explicitly in the Verified Lounge
 // socketId -> { id, userId, name, photo, isVerified }
 const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean }>();
@@ -219,6 +223,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 if (currentCount <= 1) {
                     // Last connection dying
                     onlineUsers.delete(userId);
+                    activeChats.delete(userId);
                     io.emit('userOffline', userId);
                     io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
                 } else {
@@ -264,6 +269,23 @@ export const initSocket = (httpServer: HttpServer) => {
                 });
             } catch (err) {
                 console.warn(`Socket authentication error:`, err);
+            }
+        });
+
+        // --- ACTIVE CHAT TRACKING (SUPPRESS PUSH NOTIFICATIONS WHILE USER IS CHATTING) ---
+        socket.on('enter_chat', (data: { partnerId: string }) => {
+            const currentUserId = socket.data.user?.userId || userId;
+            if (currentUserId && data?.partnerId) {
+                activeChats.set(currentUserId, String(data.partnerId));
+                console.log(`[Active Chat] User ${currentUserId} entered chat with ${data.partnerId}`);
+            }
+        });
+
+        socket.on('leave_chat', () => {
+            const currentUserId = socket.data.user?.userId || userId;
+            if (currentUserId) {
+                activeChats.delete(currentUserId);
+                console.log(`[Active Chat] User ${currentUserId} left chat`);
             }
         });
 
@@ -714,3 +736,9 @@ export const isUserOnline = (userId: string): boolean => {
     const room = io.sockets.adapter.rooms.get(userId);
     return !!room && room.size > 0;
 };
+
+export const isUserActiveInChat = (userId: string, partnerId: string): boolean => {
+    if (!userId || !partnerId) return false;
+    return activeChats.get(userId) === String(partnerId);
+};
+

@@ -136,7 +136,18 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 }
 
                 connId = data.get("senderId");
+                if (connId == null) connId = data.get("connId");
+                if (connId == null) connId = data.get("from");
+                if (connId == null) connId = data.get("fromUserId");
                 messageId = data.get("messageId");
+
+                // Suppress push notification if the user is currently in the app and actively chatting with this sender
+                boolean isForeground = prefs.getBoolean("is_foreground", false) || MainActivity.isAppInForeground;
+                String activeChatId = MainActivity.activeChatPartnerId != null ? MainActivity.activeChatPartnerId : prefs.getString("active_chat_id", null);
+                if (isForeground && connId != null && connId.equals(activeChatId)) {
+                    Log.i("FCM", "User is currently active in chat with " + connId + ". Suppressing push notification.");
+                    return;
+                }
             }
 
             if (remoteMessage.getNotification() != null) {

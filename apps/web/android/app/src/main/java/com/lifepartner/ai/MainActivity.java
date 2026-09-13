@@ -32,9 +32,13 @@ public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 200;
 
+    public static volatile String activeChatPartnerId = null;
+    public static volatile boolean isAppInForeground = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        isAppInForeground = true;
 
         // 0. Ensure Android Notification Channels exist on OS before any push notification arrives
         createNotificationChannels();
@@ -105,7 +109,22 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        isAppInForeground = true;
+        try {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            prefs.edit().putBoolean("is_foreground", true).apply();
+        } catch (Exception e) {}
         OfflineSyncManager.flushPendingActions(this);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        isAppInForeground = false;
+        try {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            prefs.edit().putBoolean("is_foreground", false).apply();
+        } catch (Exception e) {}
     }
 
     private void registerNetworkMonitoring() {
@@ -165,6 +184,25 @@ public class MainActivity extends BridgeActivity {
                     }
                 } catch (Exception e) {
                     Log.e(TAG, "Error handling OneSignal click action: ", e);
+                }
+            });
+
+            // Suppress foreground notifications if user is currently active in chat with the sender
+            OneSignal.getNotifications().addForegroundLifecycleListener(event -> {
+                try {
+                    org.json.JSONObject additionalData = event.getNotification().getAdditionalData();
+                    if (additionalData != null) {
+                        String senderId = additionalData.optString("senderId", null);
+                        if (senderId == null) senderId = additionalData.optString("connId", null);
+                        if (senderId == null) senderId = additionalData.optString("from", null);
+
+                        if (senderId != null && activeChatPartnerId != null && senderId.equals(activeChatPartnerId)) {
+                            Log.i(TAG, "OneSignal: Suppressing notification because user is active in chat with: " + senderId);
+                            event.preventDefault();
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error in OneSignal foreground listener: ", e);
                 }
             });
 
@@ -466,6 +504,30 @@ public class MainActivity extends BridgeActivity {
                 fetchAndRegisterToken();
             } catch (Exception e) {
                 Log.e(TAG, "Error in enablePush: ", e);
+            }
+        }
+
+        @JavascriptInterface
+        public void setActiveChat(String partnerId) {
+            MainActivity.activeChatPartnerId = (partnerId != null && !partnerId.trim().isEmpty() && !partnerId.equalsIgnoreCase("null")) ? partnerId.trim() : null;
+            try {
+                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                prefs.edit().putString("active_chat_id", MainActivity.activeChatPartnerId).apply();
+                Log.d(TAG, "NativeBridge.setActiveChat: " + MainActivity.activeChatPartnerId);
+            } catch (Exception e) {
+                Log.e(TAG, "Error in setActiveChat: ", e);
+            }
+        }
+
+        @JavascriptInterface
+        public void setAppForeground(boolean isForeground) {
+            MainActivity.isAppInForeground = isForeground;
+            try {
+                SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                prefs.edit().putBoolean("is_foreground", isForeground).apply();
+                Log.d(TAG, "NativeBridge.setAppForeground: " + isForeground);
+            } catch (Exception e) {
+                Log.e(TAG, "Error in setAppForeground: ", e);
             }
         }
     }

@@ -90,6 +90,19 @@ export class OneSignalService {
                     .filter((t: string) => t && t.length > 20 && !t.startsWith('{'));
             } catch (_) {}
 
+            let relativePath = rawUrl;
+            if (rawUrl.startsWith('http')) {
+                try {
+                    const parsed = new URL(rawUrl);
+                    relativePath = parsed.pathname + parsed.search;
+                } catch (_) {
+                    relativePath = '/dashboard';
+                }
+            }
+            if (!relativePath.startsWith('/')) {
+                relativePath = '/' + relativePath;
+            }
+
             payload = {
                 app_id: this.appId,
                 include_aliases: {
@@ -100,9 +113,13 @@ export class OneSignalService {
                 contents: { en: body },
                 data: {
                     ...data,
-                    url: targetUrl
+                    route: relativePath,
+                    targetPath: relativePath,
+                    url: targetUrl,
+                    senderId: data?.senderId || data?.connId || (data?.callerId || null)
                 },
-                url: targetUrl,
+                web_url: targetUrl,
+                app_url: `lifepartner://${relativePath.slice(1)}`,
                 priority: 10,
                 android_visibility: 1,
                 android_accent_color: 'FFFF4081',

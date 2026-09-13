@@ -74,36 +74,56 @@ public class MainActivity extends BridgeActivity {
 
     private void handleNotificationDeepLink(Intent intent) {
         if (intent == null) return;
-        android.net.Uri data = intent.getData();
-        if (data != null) {
-            String url = data.toString();
-            Log.d(TAG, "Notification deep link received: " + url);
-            String path = data.getPath();
-            String query = data.getQuery();
-            String targetPath = (path != null ? path : "/dashboard") + (query != null ? "?" + query : "");
-
-            runOnUiThread(() -> {
-                try {
-                    if (getBridge() != null && getBridge().getWebView() != null) {
-                        WebView webView = getBridge().getWebView();
-                        String script = "if (typeof window !== 'undefined') { " +
-                                "  if (window.location.pathname + window.location.search !== '" + targetPath + "') { " +
-                                "    window.location.href = '" + targetPath + "'; " +
-                                "  } else if (window.dispatchEvent) { " +
-                                "    window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } })); " +
-                                "  } " +
-                                "}";
-                        webView.postDelayed(() -> {
-                            try {
-                                webView.evaluateJavascript(script, null);
-                            } catch (Exception ignored) {}
-                        }, 1000);
+        String targetPath = intent.getStringExtra("targetPath");
+        if (targetPath == null || targetPath.isEmpty()) {
+            android.net.Uri data = intent.getData();
+            if (data != null) {
+                String scheme = data.getScheme();
+                if ("lifepartner".equalsIgnoreCase(scheme)) {
+                    String host = data.getHost() != null ? data.getHost() : "";
+                    String path = data.getPath() != null ? data.getPath() : "";
+                    targetPath = "/" + host + path;
+                    String query = data.getQuery();
+                    if (query != null && !query.isEmpty()) {
+                        targetPath += "?" + query;
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error handling deep link navigation: ", e);
+                } else {
+                    String path = data.getPath();
+                    String query = data.getQuery();
+                    targetPath = (path != null ? path : "/dashboard") + (query != null ? "?" + query : "");
                 }
-            });
+            }
         }
+        if (targetPath != null && !targetPath.isEmpty()) {
+            Log.d(TAG, "Notification deep link received: " + targetPath);
+            navigateToPath(targetPath);
+        }
+    }
+
+    private void navigateToPath(String targetPath) {
+        if (targetPath == null || targetPath.isEmpty()) return;
+        final String cleanPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
+        runOnUiThread(() -> {
+            try {
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    WebView webView = getBridge().getWebView();
+                    String script = "if (typeof window !== 'undefined') { " +
+                            "  if (window.location.pathname + window.location.search !== '" + cleanPath + "') { " +
+                            "    window.location.href = '" + cleanPath + "'; " +
+                            "  } else if (window.dispatchEvent) { " +
+                            "    window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } })); " +
+                            "  } " +
+                            "}";
+                    webView.postDelayed(() -> {
+                        try {
+                            webView.evaluateJavascript(script, null);
+                        } catch (Exception ignored) {}
+                    }, 800);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error handling deep link navigation: ", e);
+            }
+        });
     }
 
     @Override
@@ -161,12 +181,13 @@ public class MainActivity extends BridgeActivity {
                 OneSignal.getUser().getPushSubscription().optIn();
             }));
 
-            // Handle interactive button clicks (e.g. Accept / Decline) from OneSignal notifications
+            // Handle interactive button clicks & notification clicks from OneSignal notifications
             OneSignal.getNotifications().addClickListener(event -> {
                 try {
                     String actionId = event.getResult().getActionId();
-                    Log.d(TAG, "OneSignal notification action clicked: " + actionId);
+                    Log.d(TAG, "OneSignal notification clicked, actionId=" + actionId);
                     org.json.JSONObject additionalData = event.getNotification().getAdditionalData();
+
                     if (additionalData != null && actionId != null) {
                         String interactionId = additionalData.optString("interactionId", null);
                         if (interactionId == null) interactionId = additionalData.optString("id", null);
@@ -180,8 +201,77 @@ public class MainActivity extends BridgeActivity {
                             reqIntent.putExtra("action", actionId);
                             reqIntent.putExtra("notificationId", interactionId.hashCode());
                             sendBroadcast(reqIntent);
+                            return;
+                        }
+
+                        if ("like".equals(actionId)) {
+                            String messageId = additionalData.optString("messageId", null);
+                            String senderId = additionalData.optString("senderId", null);
+                            if (messageId != null) {
+                                Intent likeIntent = new Intent(MainActivity.this, NotificationLikeReceiver.class);
+                                likeIntent.setAction("com.lifepartner.ai.ACTION_LIKE");
+                                likeIntent.putExtra("messageId", messageId);
+                                likeIntent.putExtra("senderId", senderId);
+                                sendBroadcast(likeIntent);
+                                return;
+                            }
                         }
                     }
+
+                    // For "reply" action, or regular notification tap (actionId == null / empty),
+                    // or other actions, open the app directly to the conversation or target page
+                    String targetPath = null;
+                    if (additionalData != null) {
+                        targetPath = additionalData.optString("targetPath", null);
+                        if (targetPath == null || targetPath.isEmpty()) {
+                            targetPath = additionalData.optString("route", null);
+                        }
+                        if (targetPath == null || targetPath.isEmpty()) {
+                            String senderId = additionalData.optString("senderId", null);
+                            if (senderId == null) senderId = additionalData.optString("connId", null);
+                            if (senderId != null && !senderId.isEmpty()) {
+                                targetPath = "/chat/" + senderId;
+                            }
+                        }
+                        if (targetPath == null || targetPath.isEmpty()) {
+                            String urlStr = additionalData.optString("url", null);
+                            if (urlStr != null && !urlStr.isEmpty()) {
+                                if (urlStr.startsWith("http")) {
+                                    try {
+                                        java.net.URI u = new java.net.URI(urlStr);
+                                        targetPath = u.getPath() + (u.getQuery() != null ? "?" + u.getQuery() : "");
+                                    } catch (Exception ignored) {}
+                                } else {
+                                    targetPath = urlStr;
+                                }
+                            }
+                        }
+                    }
+
+                    if (targetPath == null || targetPath.isEmpty()) {
+                        String launchUrl = event.getNotification().getLaunchURL();
+                        if (launchUrl != null && !launchUrl.isEmpty()) {
+                            try {
+                                java.net.URI u = new java.net.URI(launchUrl);
+                                targetPath = u.getPath() + (u.getQuery() != null ? "?" + u.getQuery() : "");
+                            } catch (Exception ignored) {}
+                        }
+                    }
+
+                    if (targetPath == null || targetPath.isEmpty()) {
+                        targetPath = "/dashboard";
+                    }
+
+                    Log.d(TAG, "OneSignal opening app internally: " + targetPath);
+
+                    Intent openIntent = new Intent(MainActivity.this, MainActivity.class);
+                    openIntent.setPackage(getPackageName());
+                    openIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    openIntent.putExtra("targetPath", targetPath);
+                    openIntent.setData(android.net.Uri.parse("lifepartner://" + (targetPath.startsWith("/") ? targetPath.substring(1) : targetPath)));
+                    startActivity(openIntent);
+
+                    navigateToPath(targetPath);
                 } catch (Exception e) {
                     Log.e(TAG, "Error handling OneSignal click action: ", e);
                 }

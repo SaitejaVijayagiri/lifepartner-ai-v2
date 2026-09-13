@@ -319,6 +319,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         // 1. Regular Open-App Intent with deep link pathing
         Intent intent = new Intent(this, MainActivity.class);
+        intent.setPackage(getPackageName());
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.setAction(Intent.ACTION_VIEW);
         
@@ -328,8 +329,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         String customUrl = (data != null) ? data.get("url") : null;
         if (customUrl != null && !customUrl.trim().isEmpty()) {
             deepLinkUrl = customUrl.startsWith("http") ? customUrl : "https://lifepartnerai.in" + (customUrl.startsWith("/") ? customUrl : "/" + customUrl);
+            intent.putExtra("targetPath", customUrl);
         } else if (campaignNotificationId != null) {
             deepLinkUrl += "&notificationId=" + campaignNotificationId + "&action=notification_body";
+            intent.putExtra("targetPath", deepLinkUrl);
+        } else {
+            intent.putExtra("targetPath", deepLinkUrl);
         }
         intent.setData(android.net.Uri.parse(deepLinkUrl));
 
@@ -379,8 +384,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if ("witty_reengagement".equals(type) && campaignNotificationId != null) {
             // Button 1: Swipe Matches 🔍
             Intent matchesIntent = new Intent(this, MainActivity.class);
+            matchesIntent.setPackage(getPackageName());
             matchesIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             matchesIntent.setAction(Intent.ACTION_VIEW);
+            matchesIntent.putExtra("targetPath", "/dashboard?tab=matches&notificationId=" + campaignNotificationId + "&action=find_matches");
             matchesIntent.setData(android.net.Uri.parse("https://lifepartnerai.in/dashboard?tab=matches&notificationId=" + campaignNotificationId + "&action=find_matches"));
             PendingIntent matchesPendingIntent = PendingIntent.getActivity(
                     this,
@@ -392,8 +399,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
             // Button 2: Ask Love Guru 🤖
             Intent guruIntent = new Intent(this, MainActivity.class);
+            guruIntent.setPackage(getPackageName());
             guruIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
             guruIntent.setAction(Intent.ACTION_VIEW);
+            guruIntent.putExtra("targetPath", "/dashboard?tab=matches&openGuru=true&notificationId=" + campaignNotificationId + "&action=love_guru");
             guruIntent.setData(android.net.Uri.parse("https://lifepartnerai.in/dashboard?tab=matches&openGuru=true&notificationId=" + campaignNotificationId + "&action=love_guru"));
             PendingIntent guruPendingIntent = PendingIntent.getActivity(
                     this,

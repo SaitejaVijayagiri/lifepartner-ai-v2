@@ -18,11 +18,13 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
             CharSequence replyCharSequence = getMessageText(intent);
             String connId = intent.getStringExtra("connId");
 
+            String senderName = intent.getStringExtra("senderName");
+
             if (replyCharSequence != null && connId != null) {
                 final String replyText = replyCharSequence.toString().trim();
                 if (replyText.isEmpty()) return;
 
-                Log.d(TAG, "Reply text received for partner: " + connId);
+                Log.d(TAG, "Reply text received for partner: " + connId + ", senderName: " + senderName);
 
                 // 1. Dismiss the notification immediately so the UI feels instantaneous
                 NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -34,9 +36,21 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                 SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
                 String authToken = prefs.getString("auth_token", null);
 
-                if (authToken == null || authToken.trim().isEmpty()) {
-                    Log.w(TAG, "No auth token in prefs. Queueing reply offline.");
+                if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {
+                    Log.w(TAG, "No auth token in prefs. Queueing reply offline and launching chat.");
                     OfflineSyncManager.queueOfflineReply(context, connId, replyText);
+                    OfflineSyncManager.showToast(context, "Opening LifePartner to complete reply 💬");
+
+                    try {
+                        Intent openIntent = new Intent(context, MainActivity.class);
+                        openIntent.setPackage(context.getPackageName());
+                        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        openIntent.putExtra("targetPath", "/chat/" + connId);
+                        openIntent.setData(android.net.Uri.parse("lifepartner://chat/" + connId));
+                        context.startActivity(openIntent);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to launch MainActivity for reply: ", e);
+                    }
                     return;
                 }
 
@@ -53,7 +67,8 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                     try {
                         boolean success = OfflineSyncManager.executeSendReply(connId, replyText, authToken);
                         if (success) {
-                            OfflineSyncManager.showToast(context, "Reply sent! 💬");
+                            String displayName = (senderName != null && !senderName.trim().isEmpty()) ? senderName : "partner";
+                            OfflineSyncManager.showToast(context, "Reply sent to " + displayName + "! 💬");
                             Log.i(TAG, "Reply delivered successfully to " + connId);
                         } else {
                             Log.w(TAG, "Server returned error sending reply. Queueing offline.");

@@ -455,6 +455,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             Intent replyIntent = new Intent(this, NotificationReplyReceiver.class);
             replyIntent.setAction("com.lifepartner.ai.ACTION_REPLY");
             replyIntent.putExtra("connId", connId);
+            replyIntent.putExtra("senderName", title);
             
             PendingIntent replyPendingIntent = PendingIntent.getBroadcast(
                     this,

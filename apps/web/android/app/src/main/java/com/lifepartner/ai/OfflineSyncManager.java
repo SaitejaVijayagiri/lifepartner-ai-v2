@@ -216,8 +216,8 @@ public class OfflineSyncManager {
             conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             String authHeader = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
             conn.setRequestProperty("Authorization", authHeader);
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
             conn.setDoOutput(false);
 
             int code = conn.getResponseCode();
@@ -242,8 +242,8 @@ public class OfflineSyncManager {
             String authHeader = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
             conn.setRequestProperty("Authorization", authHeader);
             conn.setDoOutput(true);
-            conn.setConnectTimeout(8000);
-            conn.setReadTimeout(8000);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
 
             byte[] input = payload.toString().getBytes(StandardCharsets.UTF_8);
             try (OutputStream os = conn.getOutputStream()) {

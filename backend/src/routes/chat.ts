@@ -559,6 +559,11 @@ router.delete('/:messageId', authenticateToken, async (req: any, res) => {
         });
         if (!msg) return res.status(404).json({ error: 'Message not found' });
 
+        // Ensure current user is a participant of this conversation
+        if (msg.sender_id !== userId && msg.receiver_id !== userId) {
+            return res.status(403).json({ error: 'You are not a participant in this conversation' });
+        }
+
         let clearedBy = (msg.cleared_by as any[]) || [];
 
         if (mode === 'everyone') {
@@ -580,13 +585,15 @@ router.delete('/:messageId', authenticateToken, async (req: any, res) => {
             select: { id: true, cleared_by: true }
         });
 
-        // Broadcast deletion event
-        try {
-            const { getIO } = require('../socket');
-            const io = getIO();
-            const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-            io.to(other!).emit('messageDeleted', { messageId, mode, deletedBy: userId });
-        } catch (_) {}
+        // Broadcast deletion event to partner ONLY when deleted for everyone
+        if (mode === 'everyone') {
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                const other = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+                io.to(other!).emit('messageDeleted', { messageId, mode, deletedBy: userId });
+            } catch (_) {}
+        }
 
         res.json({ success: true, message: 'Message deleted' });
     } catch (e) {

@@ -2609,21 +2609,19 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             >
                                                 😊
                                             </button>
-                                            {isMe && (
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => { 
-                                                        e.stopPropagation(); 
-                                                        setDeleteMenuMsgId(msg.id); 
-                                                        setActiveMsgId(null); 
-                                                    }}
-                                                    className="p-1 text-red-500 hover:text-red-600 rounded-full transition-colors cursor-pointer flex items-center gap-1"
-                                                    title="Delete Message"
-                                                >
-                                                    <Trash2 size={13} />
-                                                    <span className="text-[10px] font-semibold">Delete</span>
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    setDeleteMenuMsgId(msg.id); 
+                                                    setActiveMsgId(null); 
+                                                }}
+                                                className="p-1 text-red-500 hover:text-red-600 rounded-full transition-colors cursor-pointer flex items-center gap-1"
+                                                title="Delete Message"
+                                            >
+                                                <Trash2 size={13} />
+                                                <span className="text-[10px] font-semibold">Delete</span>
+                                            </button>
                                             {!isMe && (
                                                 <button
                                                     type="button"
@@ -2643,7 +2641,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     )}
                                 </div>
 
-                                {/* For partner messages: action buttons go RIGHT of bubble (Reply, React, Report - NO Delete) */}
+                                {/* For partner messages: action buttons go RIGHT of bubble (Reply, React, Delete, Report) */}
                                 {!isMe && msg.id && !msg.id.toString().startsWith('temp-') && (
                                     <div className={`message-row-actions hidden sm:flex items-center gap-0.5 mb-1 transition-opacity duration-150 select-none ${activeMsgId === msg.id ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:group-hover/row:opacity-100 md:group-hover/row:pointer-events-auto'}`}>
                                         <button
@@ -2662,6 +2660,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             className="p-1.5 rounded-full text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-sm cursor-pointer"
                                             title="React"
                                         >😊</button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setDeleteMenuMsgId(deleteMenuMsgId === msg.id ? null : msg.id); }}
+                                            className="p-1.5 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -3297,8 +3302,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 const msgToDelete = messages.find(m => m.id === deleteMenuMsgId);
                 if (!msgToDelete) return null;
                 const isMyMsg = msgToDelete.senderId !== partner.id;
-                // Security guard: Only allow deleting messages that YOU sent!
-                if (!isMyMsg) return null;
                 
                 return (
                     <div className="fixed inset-0 z-[2010] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200" onClick={() => setDeleteMenuMsgId(null)}>
@@ -3309,7 +3312,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 </div>
                                 <h3 className="font-bold text-lg text-gray-900 dark:text-white">Delete Message</h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                                    Choose whether to remove this message for only yourself or for everyone in this chat.
+                                    {isMyMsg 
+                                        ? "Choose whether to remove this message for only yourself or for everyone in this chat." 
+                                        : "Remove this message from your chat history."}
                                 </p>
                             </div>
                             <div className="p-3 flex flex-col gap-2">

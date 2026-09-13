@@ -161,6 +161,13 @@ function RegisterForm() {
                 localStorage.removeItem('matches_cache_v2');
                 localStorage.setItem('userId', res.userId);
                 localStorage.setItem('token', res.token);
+                if (typeof window !== 'undefined') {
+                    const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+                    if (bridge) {
+                        if (typeof bridge.loginUser === 'function') bridge.loginUser(res.userId);
+                        if (typeof bridge.setAuthToken === 'function') bridge.setAuthToken(res.token);
+                    }
+                }
                 router.replace('/onboarding');
             }
         } catch (err: any) {

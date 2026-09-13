@@ -32,8 +32,13 @@ function ProvidersContent({ children }: { children: React.ReactNode }) {
         // Pass auth token to Native Android Bridge immediately if in APK
         if (isNativePlatform()) {
             const bridge = getNativeBridge();
-            if (bridge && typeof bridge.setAuthToken === 'function' && token) {
-                bridge.setAuthToken(token);
+            if (bridge) {
+                if (typeof bridge.loginUser === 'function' && user?.id) {
+                    bridge.loginUser(user.id);
+                }
+                if (typeof bridge.setAuthToken === 'function' && token) {
+                    bridge.setAuthToken(token);
+                }
             }
             Notifications.init().catch(console.error);
         } else if ('Notification' in window && Notification.permission === 'granted') {

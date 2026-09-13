@@ -174,20 +174,27 @@ export const Notifications = {
                         }
                     } catch (_) {}
 
-                    // Poll for native token
+                    // Poll for native tokens (both FCM and OneSignal)
                     let tokenRetries = 0;
                     const checkAndRegisterNative = async () => {
+                        let anyRegistered = false;
                         try {
                             const nativeToken = typeof bridge.getFcmToken === 'function' ? bridge.getFcmToken() : null;
                             if (nativeToken && nativeToken.length > 10) {
                                 await api.notifications.register(nativeToken, 'android');
-                                console.log('[Push Native] Native token successfully registered.');
-                                return true;
+                                console.log('[Push Native] Native FCM token successfully registered.');
+                                anyRegistered = true;
+                            }
+                            const osSubId = typeof bridge.getOneSignalSubId === 'function' ? bridge.getOneSignalSubId() : null;
+                            if (osSubId && osSubId.length > 10) {
+                                await api.notifications.register(osSubId, 'onesignal');
+                                console.log('[Push Native] Native OneSignal subscription successfully registered.');
+                                anyRegistered = true;
                             }
                         } catch (err) {
                             console.warn('[Push Native] Registration check failed:', err);
                         }
-                        return false;
+                        return anyRegistered;
                     };
 
                     const registered = await checkAndRegisterNative();

@@ -133,7 +133,20 @@ public class MainActivity extends BridgeActivity {
         try {
             SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
             prefs.edit().putBoolean("is_foreground", true).apply();
-        } catch (Exception e) {}
+            String authToken = prefs.getString("auth_token", null);
+            if (authToken != null && !authToken.trim().isEmpty() && !authToken.equalsIgnoreCase("null")) {
+                MyFirebaseMessagingService.registerTokenWithBackend(this, authToken);
+                String subId = OneSignal.getUser().getPushSubscription().getId();
+                if (subId == null || subId.isEmpty()) {
+                    subId = prefs.getString("onesignal_sub_id", null);
+                }
+                if (subId != null && !subId.isEmpty()) {
+                    sendOneSignalSubscriptionToBackend(subId, authToken);
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error refreshing tokens in onResume: ", e);
+        }
         OfflineSyncManager.flushPendingActions(this);
     }
 
@@ -311,8 +324,9 @@ public class MainActivity extends BridgeActivity {
                     String token = state.getCurrent().getToken();
                     Log.d(TAG, "OneSignal Subscription update: subId=" + subId + " token=" + token);
                     if (subId != null && !subId.isEmpty()) {
+                        prefs.edit().putString("onesignal_sub_id", subId).apply();
                         String authToken = prefs.getString("auth_token", null);
-                        if (authToken != null && !authToken.trim().isEmpty()) {
+                        if (authToken != null && !authToken.trim().isEmpty() && !authToken.equalsIgnoreCase("null")) {
                             sendOneSignalSubscriptionToBackend(subId, authToken);
                         }
                     }
@@ -516,9 +530,28 @@ public class MainActivity extends BridgeActivity {
                 MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
 
                 String subId = OneSignal.getUser().getPushSubscription().getId();
+                if (subId == null || subId.isEmpty()) {
+                    subId = prefs.getString("onesignal_sub_id", null);
+                }
                 if (subId != null && !subId.isEmpty()) {
                     sendOneSignalSubscriptionToBackend(subId, authToken);
                 }
+
+                // Poll in background for OneSignal subscription ID if it's still negotiating
+                final String finalToken = authToken;
+                new Thread(() -> {
+                    for (int i = 0; i < 4; i++) {
+                        try {
+                            Thread.sleep(2000);
+                            String currentSubId = OneSignal.getUser().getPushSubscription().getId();
+                            if (currentSubId != null && !currentSubId.isEmpty()) {
+                                prefs.edit().putString("onesignal_sub_id", currentSubId).apply();
+                                sendOneSignalSubscriptionToBackend(currentSubId, finalToken);
+                                break;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }).start();
             } catch (Exception e) {
                 Log.e(TAG, "Error in setAuthToken: ", e);
             }
@@ -531,6 +564,21 @@ public class MainActivity extends BridgeActivity {
                 return prefs.getString("fcm_token", "");
             } catch (Exception e) {
                 Log.e(TAG, "Error in getFcmToken: ", e);
+                return "";
+            }
+        }
+
+        @JavascriptInterface
+        public String getOneSignalSubId() {
+            try {
+                String subId = OneSignal.getUser().getPushSubscription().getId();
+                if (subId == null || subId.isEmpty()) {
+                    SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                    subId = prefs.getString("onesignal_sub_id", "");
+                }
+                return subId != null ? subId : "";
+            } catch (Exception e) {
+                Log.e(TAG, "Error in getOneSignalSubId: ", e);
                 return "";
             }
         }
@@ -571,10 +619,13 @@ public class MainActivity extends BridgeActivity {
                     OneSignal.getUser().getPushSubscription().optIn();
                     Log.d(TAG, "NativeBridge: Logged in OneSignal user: " + userId);
 
-                    String subId = OneSignal.getUser().getPushSubscription().getId();
                     String authToken = prefs.getString("auth_token", null);
                     if (authToken != null && !authToken.trim().isEmpty() && !authToken.equalsIgnoreCase("null")) {
                         MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, authToken);
+                        String subId = OneSignal.getUser().getPushSubscription().getId();
+                        if (subId == null || subId.isEmpty()) {
+                            subId = prefs.getString("onesignal_sub_id", null);
+                        }
                         if (subId != null && !subId.isEmpty()) {
                             sendOneSignalSubscriptionToBackend(subId, authToken);
                         }

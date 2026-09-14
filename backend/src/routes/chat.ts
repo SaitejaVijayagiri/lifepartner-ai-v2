@@ -298,13 +298,14 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             console.error("Socket broadcast failed", socketError);
         }
 
-        // Send Push Notification for chat message (suppressed if recipient is actively viewing this chat)
+        // Send Push Notification for chat message (suppressed if recipient is actively viewing this chat or is online)
         try {
-            const { isUserActiveInChat } = require('../socket');
+            const { isUserActiveInChat, isUserOnline } = require('../socket');
             const isViewing = isUserActiveInChat(connectionId, senderId);
+            const isOnline = isUserOnline(connectionId);
 
-            if (isViewing) {
-                console.log(`[Chat Push Suppressed] Recipient ${connectionId} is actively in chat with ${senderId}. Skipping push notification.`);
+            if (isViewing || isOnline) {
+                console.log(`[Chat Push Suppressed] Recipient ${connectionId} is online/active in chat (viewing: ${isViewing}, online: ${isOnline}). Skipping push notification.`);
             } else {
                 const { NotificationService } = require('../services/notification');
                 

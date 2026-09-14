@@ -273,10 +273,11 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         // --- ACTIVE CHAT TRACKING (SUPPRESS PUSH NOTIFICATIONS WHILE USER IS CHATTING) ---
-        socket.on('enter_chat', (data: { partnerId: string }) => {
-            const currentUserId = socket.data.user?.userId || userId;
+        socket.on('enter_chat', (data: { partnerId: string; userId?: string }) => {
+            const currentUserId = socket.data.user?.userId || userId || data?.userId;
             if (currentUserId && data?.partnerId) {
                 activeChats.set(currentUserId, String(data.partnerId));
+                socket.data.activePartnerId = String(data.partnerId);
                 console.log(`[Active Chat] User ${currentUserId} entered chat with ${data.partnerId}`);
             }
         });
@@ -285,6 +286,7 @@ export const initSocket = (httpServer: HttpServer) => {
             const currentUserId = socket.data.user?.userId || userId;
             if (currentUserId) {
                 activeChats.delete(currentUserId);
+                socket.data.activePartnerId = null;
                 console.log(`[Active Chat] User ${currentUserId} left chat`);
             }
         });

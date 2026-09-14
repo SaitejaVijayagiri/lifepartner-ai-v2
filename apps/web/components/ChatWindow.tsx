@@ -603,7 +603,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             if (socket) {
                 if (isActive) {
-                    socket.emit('enter_chat', { partnerId });
+                    socket.emit('enter_chat', { partnerId, userId: user?.id });
                 } else {
                     socket.emit('leave_chat');
                 }
@@ -612,6 +612,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         // Notify socket and native layer that we are actively chatting with this partner
         syncChatActive(true);
+
+        const handleSocketConnect = () => {
+            syncChatActive(true);
+        };
+        if (socket) {
+            socket.on('connect', handleSocketConnect);
+        }
 
         const handleVisibilityChange = () => {
             const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
@@ -632,9 +639,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            if (socket) {
+                socket.off('connect', handleSocketConnect);
+            }
             syncChatActive(false);
         };
-    }, [partner?.id, socket]);
+    }, [partner?.id, socket, user?.id]);
 
     // Mute State
     const [isMuted, setIsMuted] = useState<boolean>(() => {

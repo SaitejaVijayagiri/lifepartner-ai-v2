@@ -63,16 +63,14 @@ self.addEventListener('push', function (event) {
 
         const pushPromise = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
             const incomingSender = data.senderId || data.connId || data.from || data.fromUserId;
-            // Suppress system push notification if the user has an open, focused window actively viewing this chat
-            const isClientActiveInChat = clientList.some(client => {
-                if (!client.focused) return false;
-                if (incomingSender && client.url && client.url.includes(incomingSender)) return true;
-                return false;
-            });
-
-            if (isClientActiveInChat) {
-                console.log('[SW] User is actively viewing this chat in a focused window. Suppressing push notification.');
-                return;
+            
+            // Suppress system push notification if the user has a focused window open in the app (unless it's an incoming call)
+            if (data.type !== 'incoming_call') {
+                const isClientFocused = clientList.some(client => client.focused);
+                if (isClientFocused) {
+                    console.log('[SW] User has a focused window open in the app. Suppressing push notification.');
+                    return;
+                }
             }
 
             return self.registration.showNotification(title, options);

@@ -238,11 +238,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
     const handleClaimReward = async () => {
         try {
-            setLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/profile/claim-completion`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            }).then(r => r.json());
+            const res = await api.post('/profile/claim-completion');
             
             if (res.success) {
                 toast.success(res.message);

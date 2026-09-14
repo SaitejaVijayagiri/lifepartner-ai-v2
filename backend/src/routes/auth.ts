@@ -231,6 +231,17 @@ router.post('/register', async (req, res) => {
                 select: { id: true, full_name: true }
             });
 
+            // Initialize profile row immediately so joins, recommendations, and campaigns never omit this user
+            await tx.profiles.create({
+                data: {
+                    user_id: user.id,
+                    metadata: {},
+                    photos: [],
+                    stories: [],
+                    reels: []
+                }
+            });
+
             // Referral Tracking (Coins are now deferred to Onboarding completion in profile.ts)
             if (referredByUserId) {
                 console.log(`🤝 Referral logged for User ${user.id} -> Referrer ${referredByUserId} (Pending Onboarding)`);

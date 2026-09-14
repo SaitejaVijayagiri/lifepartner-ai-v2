@@ -24,9 +24,7 @@ export default function DateSafetyOverlay() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         if (!token) return;
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/active`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }).then(r => r.json());
+            const res = await api.get('/dates/active');
             
             if (res.success && res.dates) {
                 // Find any date that is 'accepted' and occurring today or recently
@@ -86,14 +84,7 @@ export default function DateSafetyOverlay() {
             const lng = pos.coords.longitude;
             
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${activeDate.id}/sos`, {
-                    method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ lat, lng, reason: 'Manual SOS' })
-                }).then(r => r.json());
+                const res = await api.post(`/dates/${activeDate.id}/sos`, { lat, lng, reason: 'Manual SOS' });
 
                 if (res.success) {
                     toast.success("SOS sent to your Emergency Contact!");
@@ -111,10 +102,7 @@ export default function DateSafetyOverlay() {
 
     const handleMarkSafe = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${activeDate.id}/safe`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            }).then(r => r.json());
+            const res = await api.post(`/dates/${activeDate.id}/safe`, {});
 
             if (res.success) {
                 toast.success("Date marked as safe. Have a great time!");
@@ -130,10 +118,7 @@ export default function DateSafetyOverlay() {
     const handleCancelDate = async () => {
         if (!confirm("Are you sure you want to cancel this meetup? This will notify your partner.")) return;
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${activeDate.id}/cancel`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            }).then(r => r.json());
+            const res = await api.post(`/dates/${activeDate.id}/cancel`, {});
 
             if (res.success) {
                 toast.success("Meetup cancelled successfully.");

@@ -28,6 +28,23 @@ router.post('/', authenticateToken, async (req: any, res) => {
             }
         });
 
+        // Automatically block the reported user to immediately protect the reporter
+        try {
+            await prisma.blocks.upsert({
+                where: {
+                    blocker_id_blocked_id: {
+                        blocker_id: reporterId,
+                        blocked_id: reportedId
+                    }
+                },
+                create: {
+                    blocker_id: reporterId,
+                    blocked_id: reportedId
+                },
+                update: {}
+            });
+        } catch (_) {}
+
         // Notify Admins
         try {
             const io = getIO();

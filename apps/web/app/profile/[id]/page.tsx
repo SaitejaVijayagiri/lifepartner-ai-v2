@@ -3,8 +3,8 @@ import { Metadata, ResolvingMetadata } from 'next';
 import ProfileClient from '@/components/ProfileClient';
 import Script from 'next/script';
 
-// Define the API URL for server-side fetching
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// Define the API URL for server-side fetching with production fallback
+const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
 
 type Props = {
     params: { id: string }

@@ -53,8 +53,14 @@ export class WebPushService {
             );
             return { success: true, expired: false };
         } catch (err: any) {
-            const isExpired = err?.statusCode === 404 || err?.statusCode === 410 || 
-                (typeof err?.body === 'string' && (err.body.includes('expired') || err.body.includes('unsubscribed') || err.body.includes('DROP')));
+            const isExpired = err?.statusCode === 404 || err?.statusCode === 410 || err?.statusCode === 401 || err?.statusCode === 403 ||
+                (typeof err?.body === 'string' && (
+                    err.body.includes('expired') || 
+                    err.body.includes('unsubscribed') || 
+                    err.body.includes('DROP') ||
+                    err.body.includes('credentials') ||
+                    err.body.includes('does not match')
+                ));
             
             console.error('[WebPush Send Error] StatusCode:', err?.statusCode, 'Headers:', JSON.stringify(err?.headers), 'Body:', err?.body || err?.message || err);
             return { success: false, expired: isExpired };
@@ -67,14 +73,18 @@ export class WebPushService {
             await webpush.sendNotification(
                 subscription,
                 JSON.stringify({ silent: true, ping: true }),
-                { TTL: 0, urgency: 'very-low' }
+                { TTL: 0, urgency: 'low' }
             );
             return { valid: true, expired: false };
         } catch (err: any) {
-            if (err?.statusCode === 404 || err?.statusCode === 410 || (err?.body && typeof err.body === 'string' && err.body.includes('expired'))) {
-                return { valid: false, expired: true };
-            }
-            return { valid: true, expired: false };
+            const isExpired = err?.statusCode === 404 || err?.statusCode === 410 || err?.statusCode === 401 || err?.statusCode === 403 ||
+                (typeof err?.body === 'string' && (
+                    err.body.includes('expired') || 
+                    err.body.includes('unsubscribed') ||
+                    err.body.includes('credentials') ||
+                    err.body.includes('does not match')
+                ));
+            return { valid: !isExpired, expired: isExpired };
         }
     }
 

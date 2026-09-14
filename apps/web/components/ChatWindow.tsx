@@ -1573,28 +1573,22 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
         setDateLoading(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/propose`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    receiver_id: partner.id,
-                    location_name: dateForm.location,
-                    date_time: dateForm.date
-                })
-            }).then(r => r.json());
+            const res = await api.post('/dates/propose', {
+                receiver_id: partner.id,
+                location_name: dateForm.location,
+                date_time: dateForm.date
+            });
             
             if (res.success) {
                 toast.success("Date proposed safely!");
                 setShowDateModal(false);
                 setDateForm({ location: '', date: '' });
+                loadMessages();
             } else {
                 toast.error(res.error || "Failed to propose date");
             }
-        } catch (e) {
-            toast.error("Network error");
+        } catch (e: any) {
+            toast.error(e?.message || "Network error proposing date");
         } finally {
             setDateLoading(false);
         }
@@ -1615,41 +1609,28 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
-    const handleRespondDate = async (dateId: string, status: string) => {
+    const handleDateResponse = async (dateId: string, status: 'accepted' | 'declined') => {
         if (status === 'accepted') {
             const isSafe = await verifySafetyContact();
             if (!isSafe) return;
         }
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${dateId}/respond`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status })
-            }).then(r => r.json());
+            const res = await api.post(`/dates/${dateId}/respond`, { status });
             
             if (res.success) {
                 toast.success(`Date ${status}!`);
             } else {
                 toast.error(res.error || "Failed to respond");
             }
-        } catch (e) {
-            toast.error("Network error");
+        } catch (e: any) {
+            toast.error(e?.message || "Network error");
         }
     };
 
     const handleCancelProposal = async (dateId: string) => {
         if (!confirm("Are you sure you want to cancel this date proposal?")) return;
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/dates/${dateId}/cancel`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Content-Type': 'application/json'
-                }
-            }).then(r => r.json());
+            const res = await api.post(`/dates/${dateId}/cancel`, {});
             
             if (res.success) {
                 toast.success("Proposal cancelled!");

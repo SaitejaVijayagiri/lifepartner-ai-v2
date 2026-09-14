@@ -14,11 +14,7 @@ export default function ReferralPage() {
     useEffect(() => {
         const fetchReferrals = async () => {
             try {
-                // Since this uses the api utility which handles the base URL and auth tokens naturally
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/profile/referrals`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                });
-                const data = await response.json();
+                const data = await api.get('/profile/referrals');
                 setReferralData(data);
             } catch (error) {
                 console.error("Failed to load referrals", error);

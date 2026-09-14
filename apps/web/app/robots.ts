@@ -19,6 +19,26 @@ export default function robots(): MetadataRoute.Robots {
                 disallow: ['/admin/', '/dashboard/', '/private/'],
             },
             {
+                userAgent: 'Applebot',
+                allow: '/',
+                disallow: ['/admin/', '/dashboard/', '/private/'],
+            },
+            {
+                userAgent: 'YandexBot',
+                allow: '/',
+                disallow: ['/admin/', '/dashboard/', '/private/'],
+            },
+            {
+                userAgent: 'DuckDuckBot',
+                allow: '/',
+                disallow: ['/admin/', '/dashboard/', '/private/'],
+            },
+            {
+                userAgent: 'Baiduspider',
+                allow: '/',
+                disallow: ['/admin/', '/dashboard/', '/private/'],
+            },
+            {
                 userAgent: 'Twitterbot',
                 allow: '/',
             },

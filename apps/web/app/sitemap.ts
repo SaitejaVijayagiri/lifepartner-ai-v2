@@ -75,6 +75,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'Caracas', 'Sao-Paulo', 'Rio-de-Janeiro', 'Mexico-City', 'Buenos-Aires',
         'Lagos', 'Nairobi', 'Johannesburg', 'Cairo', 'Paris', 'Berlin', 'Madrid', 'Rome'
     ];
+
+    const COUNTRIES = [
+        'United-States', 'United-Kingdom', 'Canada', 'Australia', 'United-Arab-Emirates',
+        'Singapore', 'Germany', 'Malaysia', 'New-Zealand', 'South-Africa', 'Russia',
+        'Japan', 'France', 'Italy', 'Spain', 'Brazil', 'Mexico', 'Saudi-Arabia',
+        'Qatar', 'Kuwait', 'Netherlands', 'Ireland', 'Switzerland', 'Sweden', 'Norway', 'India'
+    ];
+
+    const ALL_LOCATIONS = [...CITIES, ...COUNTRIES];
+
     const COMMUNITIES = ['Brahmin', 'Iyer', 'Iyengar', 'Reddy', 'Kamma', 'Kapu', 'Ezhava', 'Nair', 'Muslim-Sunni', 'Muslim-Shia', 'Christian-Roman-Catholic', 'Sikh-Jat', 'Aggarwal', 'Baniya', 'Yadav', 'Kayastha', 'Maratha', 'Rajput', 'Jain-Digambar', 'Jain-Shwetambar'];
     const PROFESSIONS = ['Software-Engineer', 'Doctor', 'Civil-Engineer', 'Chartered-Accountant', 'IAS-IPS', 'Teacher', 'Professor', 'Lawyer', 'Architect', 'Business-Owner'];
     const INTENTS = [
@@ -88,6 +98,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'free-matrimony-chat-without-payment',
         'nri-matrimony-chat',
         'global-chat-with-verified-singles',
+        'chat-with-singles-usa',
+        'chat-with-singles-uk',
+        'chat-with-singles-canada',
+        'chat-with-singles-australia',
+        'chat-with-singles-uae',
+        'chat-with-singles-germany',
         'chat-with-singles-russia',
         'russian-singles-dating',
         'russia-matrimony-chat',
@@ -101,7 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'safe-dating-app-for-women'
     ];
 
-    const cityRoutes = CITIES.map(city => ({
+    const cityRoutes = ALL_LOCATIONS.map(city => ({
         url: `${baseUrl}/matrimony/location/${city.toLowerCase()}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
@@ -130,7 +146,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     // Dating Programmatic SEO Routes
-    const cityDatingRoutes = CITIES.map(city => ({
+    const cityDatingRoutes = ALL_LOCATIONS.map(city => ({
         url: `${baseUrl}/dating/location/${city.toLowerCase()}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,

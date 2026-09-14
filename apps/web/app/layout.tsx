@@ -38,6 +38,17 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://lifepartnerai.in'),
   alternates: {
     canonical: 'https://lifepartnerai.in',
+    languages: {
+      'en': 'https://lifepartnerai.in',
+      'en-US': 'https://lifepartnerai.in',
+      'en-GB': 'https://lifepartnerai.in',
+      'en-IN': 'https://lifepartnerai.in',
+      'en-CA': 'https://lifepartnerai.in',
+      'en-AU': 'https://lifepartnerai.in',
+      'en-AE': 'https://lifepartnerai.in',
+      'en-SG': 'https://lifepartnerai.in',
+      'x-default': 'https://lifepartnerai.in',
+    },
   },
   robots: {
     index: true,
@@ -82,6 +93,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
+    alternateLocale: ["en_GB", "en_CA", "en_AU", "en_IN", "hi_IN", "te_IN", "ta_IN"],
     url: "https://lifepartnerai.in",
     title: "LifePartner AI | The Best Free Matrimony & Dating App Worldwide",
     description: "Don't just swipe. Connect. The only offline-first, AI-driven worldwide matrimony & dating platform for Verified Singles. Free Registration. Safe. Secure.",
@@ -204,9 +216,21 @@ export default function RootLayout({
                   "name": "Saiteja Vijayagiri"
                 }
               ],
-              "description": "India's first AI-powered free matrimony and matchmaking service.",
-              "areaServed": "IN",
-              "availableLanguage": ["English", "Telugu", "Hindi", "Tamil"],
+              "description": "Worldwide AI-powered free matrimony, matchmaking & dating service connecting singles globally.",
+              "areaServed": [
+                { "@type": "AdministrativeArea", "name": "Worldwide" },
+                { "@type": "Country", "name": "India" },
+                { "@type": "Country", "name": "United States" },
+                { "@type": "Country", "name": "United Kingdom" },
+                { "@type": "Country", "name": "Canada" },
+                { "@type": "Country", "name": "Australia" },
+                { "@type": "Country", "name": "United Arab Emirates" },
+                { "@type": "Country", "name": "Singapore" },
+                { "@type": "Country", "name": "Germany" },
+                { "@type": "Country", "name": "Malaysia" },
+                { "@type": "Country", "name": "New Zealand" }
+              ],
+              "availableLanguage": ["English", "Telugu", "Hindi", "Tamil", "Spanish", "French", "Russian", "Arabic"],
               "aggregateRating": {
                 "@type": "AggregateRating",
                 "ratingValue": "4.9",
@@ -215,8 +239,8 @@ export default function RootLayout({
               "offers": {
                 "@type": "Offer",
                 "price": "0",
-                "priceCurrency": "INR",
-                "name": "Free Registration"
+                "priceCurrency": "USD",
+                "name": "100% Free Registration & Chat"
               }
             },
             {
@@ -225,10 +249,11 @@ export default function RootLayout({
               "name": "LifePartner AI App",
               "applicationCategory": "LifestyleApplication",
               "operatingSystem": "Android, iOS, Web",
+              "countriesSupported": "Worldwide",
               "offers": {
                 "@type": "Offer",
                 "price": "0",
-                "priceCurrency": "INR"
+                "priceCurrency": "USD"
               }
             }
           ])}

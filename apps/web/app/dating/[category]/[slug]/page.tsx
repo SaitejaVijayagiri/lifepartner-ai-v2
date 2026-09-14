@@ -64,12 +64,12 @@ export default async function SEODatingPage({ params }: PageProps) {
         "name": `Dating and Matchmaking in ${displayValue}`,
         "description": `Browse verified singles in ${displayValue} and start dating for free.`,
         "url": `https://lifepartnerai.in/dating/${category.toLowerCase()}/${slug.toLowerCase()}`,
-        "areaServed": displayCategory === 'Location' ? displayValue : 'IN',
+        "areaServed": displayCategory === 'Location' ? displayValue : 'Worldwide',
         "offers": {
             "@type": "Offer",
             "price": "0",
-            "priceCurrency": "INR",
-            "name": "Free Dating Account"
+            "priceCurrency": "USD",
+            "name": "100% Free Dating Account"
         }
     };
 

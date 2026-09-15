@@ -465,21 +465,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     type: mode
                 };
 
-                // Emit full SDP offer immediately
+                // Emit full SDP offer once
                 socket.emit("callUser", callPayload);
-
-                // Re-emit every 3s for offline wakeup — only once
-                if (!(window as any)._ringInterval) {
-                    const ringInterval = setInterval(() => {
-                        if ((window as any)._callEnded || connectionRef.current?.connected || isSpeedDate) {
-                            clearInterval(ringInterval);
-                            (window as any)._ringInterval = null;
-                        } else {
-                            socket.emit("callUser", callPayload);
-                        }
-                    }, 3000);
-                    (window as any)._ringInterval = ringInterval;
-                }
             }
         });
 
@@ -1125,10 +1112,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     )}
                 </div>
 
-                {/* 4. SLEEK FLOATING CAPSULE CONTROLS
+                {/* 4. SLEEK FLOATING CAPSULE CONTROLS (Only visible once answered or outgoing call)
                      — positioned above the bottom nav on mobile (bottom-24 = ~96px),
                        and lower on desktop where no bottom nav exists (lg:bottom-8).    */}
-                <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-slate-950/80 backdrop-blur-xl border border-white/10 px-5 py-3.5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
+                {(!incomingCall || callAnswered) && (
+                    <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-slate-950/80 backdrop-blur-xl border border-white/10 px-5 py-3.5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all">
                     {/* Toggle Microphone */}
                     <button 
                         onClick={toggleMute} 
@@ -1189,6 +1177,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                         <PhoneOff size={22} />
                     </button>
                 </div>
+                )}
             </div>
 
             {/* Right Side Chat Panel (Desktop view only, styled in full premium dark style) */}

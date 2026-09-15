@@ -5,11 +5,11 @@ import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
+import { useCall } from '@/context/CallContext';
 import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
-import VideoCallButton from './VideoCallButton';
 import StickerPicker from './StickerPicker';
 import InstantCameraModal from './InstantCameraModal';
 import InstantViewerModal from './InstantViewerModal';
@@ -564,6 +564,7 @@ const YoutubeEmbedCard = ({ videoId, onFullscreen }: { videoId: string, onFullsc
 export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
     const { user, login, updateUser } = useAuth() as any;
+    const { startCall } = useCall();
     const toast = useToast();
     
     // Media & Recording State
@@ -1799,21 +1800,26 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     </div>
 
                     <div className="flex gap-1 sm:gap-1.5 relative z-10 flex-shrink-0 items-center">
-                        <VideoCallButton
-                            targetUserId={partner.id}
-                            targetUserName={partnerInfo.name}
-                            targetUserPhoto={partnerInfo.photoUrl}
-                            showLabel={false}
-                            mode="audio"
+                        <button
+                            onClick={() => {
+                                if (onAudioCall) onAudioCall();
+                                else startCall(partner, 'audio', connectionId);
+                            }}
                             className="p-1.5 sm:p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                        />
-                        <VideoCallButton
-                            targetUserId={partner.id}
-                            targetUserName={partnerInfo.name}
-                            targetUserPhoto={partnerInfo.photoUrl}
-                            showLabel={false}
+                            title="Audio Call"
+                        >
+                            <Phone size={18} />
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (onVideoCall) onVideoCall();
+                                else startCall(partner, 'video', connectionId);
+                            }}
                             className="p-1.5 sm:p-2 text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                        />
+                            title="Video Call"
+                        >
+                            <Video size={18} />
+                        </button>
                         <button
                             onClick={() => setShowJukebox(true)}
                             className="p-1.5 sm:p-2 text-pink-300 hover:text-white hover:bg-pink-500/20 rounded-xl transition-all relative group"

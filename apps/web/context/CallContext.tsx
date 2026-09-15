@@ -43,6 +43,10 @@ export const CallProvider = ({ children }: { children: React.ReactNode }) => {
             // just inject the incomingCallData (signal) without rebuilding the whole state.
             // This lets VideoCallModal's auto-answer fire correctly.
             setCallState(prev => {
+                // If a call is already open with this partner, avoid recreating the state which causes double modals
+                if (prev.isOpen && prev.partner?.id === incomingCall.from) {
+                    return { ...prev, incomingCallData: incomingCall };
+                }
                 if (prev.isOpen && prev.mode === 'speed_date' && incomingCall.type === 'speed_date') {
                     return { ...prev, incomingCallData: incomingCall };
                 }

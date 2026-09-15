@@ -64,13 +64,11 @@ self.addEventListener('push', function (event) {
         const pushPromise = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
             const incomingSender = data.senderId || data.connId || data.from || data.fromUserId;
             
-            // Suppress system push notification if the user has a focused window open in the app (unless it's an incoming call)
-            if (data.type !== 'incoming_call') {
-                const isClientFocused = clientList.some(client => client.focused);
-                if (isClientFocused) {
-                    console.log('[SW] User has a focused window open in the app. Suppressing push notification.');
-                    return;
-                }
+            // Suppress system push notification if the user has a focused window open in the app
+            const isClientFocused = clientList.some(client => client.focused);
+            if (isClientFocused) {
+                console.log('[SW] User has a focused window open in the app. Suppressing push notification.');
+                return;
             }
 
             return self.registration.showNotification(title, options);

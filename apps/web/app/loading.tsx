@@ -11,16 +11,21 @@ export default function Loading() {
             <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none animate-pulse [animation-delay:1.5s]" />
 
             <div className="relative flex flex-col items-center gap-6 z-10">
-                {/* Glowing Pulsing Heart Logo */}
-                <div className="relative flex items-center justify-center w-24 h-24">
-                    {/* Ring 1 (Outer Ping) */}
-                    <div className="absolute inset-0 rounded-full bg-rose-500/15 animate-ping [animation-duration:2.5s]" />
-                    {/* Ring 2 (Middle Glow) */}
-                    <div className="absolute inset-2 rounded-full bg-indigo-500/10 border-2 border-indigo-400/20 shadow-[0_0_20px_rgba(99,102,241,0.2)] animate-pulse" />
+                {/* Free-Floating Animated Logo (No Box!) */}
+                <div className="relative flex items-center justify-center w-28 h-28">
+                    {/* Soft Ambient Radial Light Behind Logo (Borderless) */}
+                    <div className="absolute w-36 h-36 rounded-full bg-gradient-to-tr from-rose-500/25 via-purple-500/20 to-indigo-500/25 blur-2xl pointer-events-none animate-pulse" />
                     
-                    {/* Floating Core */}
-                    <div className="relative w-16 h-16 rounded-2xl bg-slate-900/60 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-2xl transition-all hover:scale-105 duration-300">
-                        <Heart className="w-8 h-8 text-rose-500 fill-rose-500 animate-[beat_1.2s_infinite_ease-in-out]" />
+                    {/* Floating Animated Logo */}
+                    <div className="relative w-20 h-20 flex items-center justify-center animate-[logoFloat_2.4s_ease-in-out_infinite]">
+                        <img
+                            src="/icon-192x192.png"
+                            alt="LifePartner AI Logo"
+                            className="w-full h-full object-contain select-none pointer-events-none drop-shadow-[0_12px_24px_rgba(99,102,241,0.45)]"
+                            onError={(e) => {
+                                (e.target as any).style.display = 'none';
+                            }}
+                        />
                     </div>
                 </div>
 
@@ -42,9 +47,15 @@ export default function Loading() {
 
             {/* Embed animations directly */}
             <style jsx global>{`
-                @keyframes beat {
-                    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(244,63,94,0.4)); }
-                    50% { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(244,63,94,0.8)); }
+                @keyframes logoFloat {
+                    0%, 100% {
+                        transform: translateY(0px) scale(1);
+                        filter: drop-shadow(0 10px 20px rgba(99, 102, 241, 0.4)) drop-shadow(0 4px 8px rgba(244, 63, 94, 0.3));
+                    }
+                    50% {
+                        transform: translateY(-6px) scale(1.06);
+                        filter: drop-shadow(0 20px 30px rgba(99, 102, 241, 0.6)) drop-shadow(0 8px 16px rgba(244, 63, 94, 0.5));
+                    }
                 }
                 @keyframes progress {
                     0% { transform: translateX(-100%); }

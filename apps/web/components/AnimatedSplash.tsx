@@ -40,20 +40,17 @@ export default function AnimatedSplash() {
 
             {/* Main Central Container */}
             <div className="relative z-10 flex flex-col items-center text-center px-6 animate-in fade-in zoom-in-75 duration-700">
-                {/* Logo Wrapper with Glowing Rings */}
-                <div className="relative mb-6 group">
-                    {/* Outer Glowing Ring */}
-                    <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-indigo-500 via-rose-500 to-purple-500 opacity-60 blur-xl animate-pulse" />
+                {/* Free-Floating Logo with Movement Animation (No Box!) */}
+                <div className="relative mb-6 flex items-center justify-center">
+                    {/* Soft Ambient Radial Light Behind Logo (Borderless) */}
+                    <div className="absolute w-44 h-44 rounded-full bg-gradient-to-tr from-rose-500/25 via-purple-500/20 to-indigo-500/25 blur-2xl pointer-events-none animate-pulse" />
                     
-                    {/* Secondary Heart Pulse Ring */}
-                    <div className="absolute -inset-2 rounded-2xl bg-gradient-to-r from-indigo-400 to-rose-400 opacity-40 animate-ping [animation-duration:2.5s]" />
-
-                    {/* Logo Image */}
-                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-slate-900/90 border border-white/10 shadow-2xl p-4 flex items-center justify-center backdrop-blur-md">
+                    {/* Floating Animated Logo (Pure Logo Icon with Breathing/Floating Motion) */}
+                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center animate-[logoFloat_2.4s_ease-in-out_infinite]">
                         <img
                             src="/icon-192x192.png"
                             alt="LifePartner AI Logo"
-                            className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(79,70,229,0.4)] animate-in zoom-in duration-500"
+                            className="w-full h-full object-contain select-none pointer-events-none drop-shadow-[0_12px_24px_rgba(99,102,241,0.5)]"
                             onError={(e) => {
                                 (e.target as any).style.display = 'none';
                             }}
@@ -89,6 +86,20 @@ export default function AnimatedSplash() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 100% Free • Verified Matches
             </div>
+
+            {/* Logo Float Animation Keyframes */}
+            <style jsx global>{`
+                @keyframes logoFloat {
+                    0%, 100% {
+                        transform: translateY(0px) scale(1);
+                        filter: drop-shadow(0 12px 24px rgba(99, 102, 241, 0.45)) drop-shadow(0 4px 10px rgba(244, 63, 94, 0.35));
+                    }
+                    50% {
+                        transform: translateY(-8px) scale(1.06);
+                        filter: drop-shadow(0 22px 34px rgba(99, 102, 241, 0.65)) drop-shadow(0 8px 18px rgba(244, 63, 94, 0.55));
+                    }
+                }
+            `}</style>
         </div>
     );
 }

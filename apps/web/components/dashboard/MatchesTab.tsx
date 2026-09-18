@@ -587,19 +587,7 @@ export default function MatchesTab({
                                 <span>{showHighlightsOnly ? 'Showing ⭐ Highlights' : '⭐ Story Highlights'}</span>
                             </button>
 
-                            {/* Gender Intent Chips for Matrimony & Dating */}
-                            <button
-                                onClick={() => handleSearch("Brides / Girls")}
-                                className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
-                            >
-                                👰 Girls / Brides
-                            </button>
-                            <button
-                                onClick={() => handleSearch("Grooms / Boys")}
-                                className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
-                            >
-                                🤵 Boys / Grooms
-                            </button>
+                            {/* Quick Action Chips */}
                             <button
                                 onClick={() => setSearchQuery("LP-")}
                                 className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"

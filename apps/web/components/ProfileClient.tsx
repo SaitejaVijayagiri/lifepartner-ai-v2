@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, Star, CheckCircle, Shield, Share2, Trash2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Briefcase, GraduationCap, Heart, Star, CheckCircle, Shield, Share2, Trash2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/Toast';
@@ -59,6 +59,22 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     const [loadingInterest, setLoadingInterest] = useState<boolean>(false);
     const [loadingLike, setLoadingLike] = useState<boolean>(false);
     const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
+    const [copiedId, setCopiedId] = useState(false);
+
+    const displayProfileId = profile?.profile_id || profile?.profileId || (profile?.referral_code ? `LP-${String(profile.referral_code).toUpperCase()}` : (profile?.id ? `LP-${String(profile.id).slice(0, 8).toUpperCase()}` : ''));
+    const displayHandle = profile?.handle || (profile?.name ? `@${String(profile.name).toLowerCase().replace(/[^a-z0-9]/g, '')}` : '');
+
+    const handleCopyId = (e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (!displayProfileId) return;
+        navigator.clipboard.writeText(displayProfileId);
+        setCopiedId(true);
+        toast.success(`Copied Profile ID: ${displayProfileId}`);
+        setTimeout(() => setCopiedId(false), 2000);
+    };
 
     useEffect(() => {
         if (profile) {
@@ -207,6 +223,24 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                             )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-8">
                                 <div className="text-white">
+                                    <div className="flex flex-wrap items-center gap-1.5 mb-2 pointer-events-auto">
+                                        {displayProfileId && (
+                                            <button
+                                                type="button"
+                                                onClick={handleCopyId}
+                                                className="inline-flex items-center gap-1.5 text-purple-200 hover:text-white text-xs font-mono font-bold bg-purple-950/80 hover:bg-purple-900 border border-purple-400/40 px-2.5 py-0.5 rounded-full backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-md"
+                                                title="Click to copy Profile ID"
+                                            >
+                                                <span>🆔 {displayProfileId}</span>
+                                                {copiedId ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} className="text-purple-300" />}
+                                            </button>
+                                        )}
+                                        {displayHandle && (
+                                            <span className="inline-flex items-center text-indigo-200 text-xs font-semibold bg-indigo-950/70 border border-indigo-400/30 px-2.5 py-0.5 rounded-full backdrop-blur-md">
+                                                {displayHandle}
+                                            </span>
+                                        )}
+                                    </div>
                                     <h1 className="text-4xl font-heading font-bold mb-2 drop-shadow-sm">{profile.name}, {profile.age}</h1>
                                     <div className="flex items-center gap-4 text-sm font-medium opacity-90">
                                         <div className="flex items-center gap-1">
@@ -233,8 +267,26 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                             </div>
 
                             <div className="space-y-6 relative z-10">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wider border border-green-200 dark:border-green-800">
-                                    <Shield size={14} /> ID Verified
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 text-xs font-bold uppercase tracking-wider border border-green-200 dark:border-green-800">
+                                        <Shield size={14} /> ID Verified
+                                    </div>
+                                    {displayProfileId && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCopyId}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-mono font-bold border border-purple-200 dark:border-purple-800 hover:bg-purple-100 transition-all active:scale-95 cursor-pointer"
+                                            title="Click to copy Profile ID"
+                                        >
+                                            <span>🆔 {displayProfileId}</span>
+                                            {copiedId ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                                        </button>
+                                    )}
+                                    {displayHandle && (
+                                        <span className="px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-semibold border border-gray-200 dark:border-gray-700">
+                                            {displayHandle}
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="space-y-4 text-gray-700 dark:text-gray-300">

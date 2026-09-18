@@ -4,7 +4,7 @@ import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Edit, Shield, X, Coins, Star, Trash2, Share2 } from 'lucide-react';
+import { Play, Edit, Shield, X, Coins, Star, Trash2, Share2, Copy, Check } from 'lucide-react';
 import RequestVerificationButton from '@/components/RequestVerificationButton';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -25,6 +25,22 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [localStories, setLocalStories] = useState<any[]>(profile.stories || []);
     const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
+    const [copiedId, setCopiedId] = useState(false);
+
+    const displayProfileId = profile.profile_id || profile.profileId || (profile.referral_code ? `LP-${String(profile.referral_code).toUpperCase()}` : (profile.id ? `LP-${String(profile.id).slice(0, 8).toUpperCase()}` : ''));
+    const displayHandle = profile.handle || (profile.name ? `@${String(profile.name).toLowerCase().replace(/[^a-z0-9]/g, '')}` : '');
+
+    const handleCopyId = (e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (!displayProfileId) return;
+        navigator.clipboard.writeText(displayProfileId);
+        setCopiedId(true);
+        toast.success(`Copied Profile ID: ${displayProfileId}`);
+        setTimeout(() => setCopiedId(false), 2000);
+    };
 
     useEffect(() => {
         setLocalStories(profile.stories || []);
@@ -66,6 +82,25 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 
                 {/* Overlay Text */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 z-20 pointer-events-none">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1.5 pointer-events-auto">
+                        {displayProfileId && (
+                            <button
+                                type="button"
+                                onClick={handleCopyId}
+                                className="inline-flex items-center gap-1.5 text-purple-200 hover:text-white text-[11px] font-mono font-bold bg-purple-950/80 hover:bg-purple-900 border border-purple-400/40 px-2.5 py-0.5 rounded-full backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-md"
+                                title="Click to copy your Profile ID"
+                            >
+                                <span>🆔 {displayProfileId}</span>
+                                {copiedId ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} className="text-purple-300" />}
+                            </button>
+                        )}
+                        {displayHandle && (
+                            <span className="inline-flex items-center text-indigo-200 text-[11px] font-semibold bg-indigo-950/70 border border-indigo-400/30 px-2.5 py-0.5 rounded-full backdrop-blur-md">
+                                {displayHandle}
+                            </span>
+                        )}
+                    </div>
+
                     <div className="flex items-center gap-2">
                         <h2 className="text-2xl font-extrabold text-white tracking-tight drop-shadow-md">{profile.name}, {profile.age}</h2>
                         {profile.is_verified && (
@@ -108,9 +143,25 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
             <div className="w-full md:w-[60%] flex flex-col bg-white dark:bg-gray-900">
 
                 {/* Header with Edit Button */}
-                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
-                    <div className="flex items-center gap-2">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-wrap justify-between items-center gap-3 sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-20">
+                    <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-bold text-gray-800 dark:text-gray-100">My Profile</h3>
+                        {displayProfileId && (
+                            <button
+                                type="button"
+                                onClick={handleCopyId}
+                                className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-full transition-all active:scale-95 cursor-pointer"
+                                title="Click to copy your Profile ID"
+                            >
+                                <span>🆔 {displayProfileId}</span>
+                                {copiedId ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} className="text-purple-500" />}
+                            </button>
+                        )}
+                        {displayHandle && (
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                                {displayHandle}
+                            </span>
+                        )}
                         {profile.is_verified && (
                             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
                                 <Shield size={10} className="fill-blue-600" /> Verified
@@ -129,8 +180,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                 const locStr = formatLocationString(profile.location) || '';
                                 const relStr = profile.religion?.religion || profile.religion?.faith || '';
                                 const detailChips = [ageStr, profStr, locStr, relStr].filter(Boolean).join(' • ');
-                                const shareText = `✨ Check out ${profile.name}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI!`.trim();
-                                const shareUrl = `${window.location.origin}/profile/${profile.id || profile.user_id}?utm_source=share&utm_medium=social&utm_campaign=profile_view_share`;
+                                const shareText = `✨ Check out ${profile.name}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI! (ID: ${displayProfileId})`.trim();
+                                const shareUrl = `${window.location.origin}/profile/${displayProfileId || profile.id || profile.user_id}?utm_source=share&utm_medium=social&utm_campaign=profile_view_share`;
 
                                 if (navigator.share) {
                                     try {

@@ -1,9 +1,12 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import { sanitizeContent } from '../utils/contentFilter';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
+import { isConfigured, uploadBufferToCloudinary } from '../services/cloudinaryStorage';
 
 const memoryUpload = multer({ 
     storage: multer.memoryStorage(),
@@ -313,6 +316,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     ? '🕵️ Sent an incognito message'
                     : cleanText.startsWith('[IMAGE]')
                     ? '📷 Sent a photo'
+                    : cleanText.startsWith('[VIDEO]')
+                    ? '🎥 Sent a video'
                     : cleanText.startsWith('[AUDIO]')
                     ? '🎤 Sent a voice message'
                     : cleanText.startsWith('[STICKER]')
@@ -703,34 +708,54 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
     }
 });
 
-import { ImageOptimizer } from '../services/imageOptimizer';
-
-// ... (in the route handler)
 router.post('/upload-media', authenticateToken, memoryUpload.single('file'), async (req: any, res) => {
     const file = req.file;
+    const userId = req.user?.userId || 'unknown';
 
     if (!file) {
         return res.status(400).json({ error: "No file uploaded" });
     }
 
     try {
-        let base64Data = '';
-        let finalMimeType = file.mimetype;
-
+        let resourceType: 'image' | 'video' | 'raw' | 'auto' = 'auto';
         if (file.mimetype.startsWith('image/')) {
-            // Compress image to prevent database bloat (<200KB)
-            const optimizedBuffer = await ImageOptimizer.optimize(`data:${file.mimetype};base64,${file.buffer.toString('base64')}`);
-            base64Data = optimizedBuffer.toString('base64');
-            finalMimeType = 'image/webp';
-        } else {
-            // Audio is already heavily compressed by the browser's MediaRecorder (webm)
-            base64Data = file.buffer.toString('base64');
+            resourceType = 'image';
+        } else if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('audio/')) {
+            resourceType = 'video';
         }
 
-        const dataUri = `data:${finalMimeType};base64,${base64Data}`;
-        
-        // Return the data URI directly as the URL
-        res.json({ success: true, url: dataUri });
+        // 1. Primary Storage: Cloudinary CDN (fast, compressed, global)
+        if (isConfigured()) {
+            const uploadResult = await uploadBufferToCloudinary(
+                file.buffer,
+                `lifepartner/chat/${userId}`,
+                resourceType
+            );
+            if (uploadResult?.url) {
+                return res.json({
+                    success: true,
+                    url: uploadResult.url,
+                    mimetype: file.mimetype
+                });
+            }
+        }
+
+        // 2. Resilient Fallback: Local Disk Storage served via static route
+        const chatUploadsDir = path.join(process.cwd(), 'uploads', 'chat');
+        if (!fs.existsSync(chatUploadsDir)) {
+            fs.mkdirSync(chatUploadsDir, { recursive: true });
+        }
+        const ext = path.extname(file.originalname || '') || (file.mimetype.startsWith('image/') ? '.jpg' : file.mimetype.startsWith('video/') ? '.mp4' : '.webm');
+        const safeName = `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+        const filePath = path.join(chatUploadsDir, safeName);
+        fs.writeFileSync(filePath, file.buffer);
+
+        const relativeUrl = `/uploads/chat/${safeName}`;
+        return res.json({
+            success: true,
+            url: relativeUrl,
+            mimetype: file.mimetype
+        });
     } catch (e: any) {
         console.error("Media Upload Error", e);
         res.status(500).json({ error: "Failed to process media", details: e.message || String(e) });

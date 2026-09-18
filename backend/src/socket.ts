@@ -21,7 +21,8 @@ export const initSocket = (httpServer: HttpServer) => {
         cors: {
             origin: '*',
             methods: ['GET', 'POST']
-        }
+        },
+        maxHttpBufferSize: 1e7 // 10MB to safely handle larger media packets
     });
 
     // Initialize Speed Dating Matchmaker Loop

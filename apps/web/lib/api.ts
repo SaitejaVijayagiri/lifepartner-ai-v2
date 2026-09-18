@@ -1,9 +1,20 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
+export const getApiUrl = () => {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+    }
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:4000';
+    }
+    return 'https://lifepartner-ai.onrender.com';
+};
+
+const API_URL = getApiUrl();
 
 let storyFeedCache: { data: any; timestamp: number } | null = null;
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const baseUrl = getApiUrl();
 
     const headers: any = {
         ...options.headers,
@@ -17,7 +28,7 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
         ...options,
         headers,
         credentials: 'include',
@@ -170,7 +181,8 @@ export const api = {
                 const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
                 const xhr = new XMLHttpRequest();
-                xhr.open('POST', `${API_URL}/messages/upload-media`);
+                const baseUrl = getApiUrl();
+                xhr.open('POST', `${baseUrl}/messages/upload-media`);
 
                 if (token) {
                     xhr.setRequestHeader('Authorization', `Bearer ${token}`);

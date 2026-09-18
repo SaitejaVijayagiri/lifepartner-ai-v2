@@ -125,6 +125,40 @@ export const uploadFileToCloudinary = async (
 };
 
 /**
+ * Uploads a Buffer (image, video, audio) directly to Cloudinary using upload_stream.
+ */
+export const uploadBufferToCloudinary = async (
+    buffer: Buffer,
+    folder: string,
+    resourceType: 'image' | 'video' | 'raw' | 'auto' = 'auto'
+): Promise<{ url: string, publicId: string } | null> => {
+    if (!isConfigured()) {
+        console.warn('[Cloudinary] Not configured — skipping buffer upload.');
+        return null;
+    }
+
+    return new Promise((resolve) => {
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder,
+                resource_type: resourceType,
+                overwrite: false
+            },
+            (error, result) => {
+                if (error || !result) {
+                    console.error('[Cloudinary] Buffer upload failed:', error?.message || error);
+                    resolve(null);
+                } else {
+                    console.log(`✅ [Cloudinary] Uploaded buffer to ${result.secure_url}`);
+                    resolve({ url: result.secure_url, publicId: result.public_id });
+                }
+            }
+        );
+        stream.end(buffer);
+    });
+};
+
+/**
  * Deletes a file from Cloudinary by its public_id.
  */
 export const deleteFromCloudinary = async (publicId: string): Promise<boolean> => {

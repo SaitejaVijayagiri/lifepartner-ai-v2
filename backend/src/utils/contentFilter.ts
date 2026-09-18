@@ -11,6 +11,7 @@ export function sanitizeContent(text: string): string {
     // to prevent regex matching on Base64 Data URIs, URLs, and timestamps
     if (
         text.startsWith("[IMAGE]") || 
+        text.startsWith("[VIDEO]") || 
         text.startsWith("[AUDIO]") || 
         text.startsWith("[STICKER]") ||
         text.startsWith("[STORY_REPLY:") ||

@@ -506,6 +506,16 @@ const getCroppedImg = (
     });
 };
 
+const resolveMediaUrl = (url: string): string => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+        return url;
+    }
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const base = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com');
+    return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 const getYoutubeId = (text: string): string | null => {
     if (!text) return null;
     const standardMatch = text.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
@@ -1474,30 +1484,33 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (stagedFile && !forcedText) {
             const fileToUpload = stagedFile;
             const previewToClear = stagedPreviewUrl;
-            
-            // Instantly clear staging states for snappy visual feedback
-            setStagedFile(null);
-            setStagedPreviewUrl(null);
-            if (previewToClear) {
-                URL.revokeObjectURL(previewToClear);
-            }
 
             setIsUploadingMedia(true);
             setUploadProgress(0);
             try {
                 const res = await api.chat.uploadMedia(fileToUpload, (percent) => setUploadProgress(percent));
                 if (res.url) {
-                    // Send the uploaded image attachment message
-                    await handleSend(undefined, `[IMAGE]${res.url}`);
+                    // Instantly clear staging states on success
+                    setStagedFile(null);
+                    setStagedPreviewUrl(null);
+                    if (previewToClear) {
+                        URL.revokeObjectURL(previewToClear);
+                    }
+
+                    const isVideo = fileToUpload.type.startsWith('video/') || (res.mimetype && res.mimetype.startsWith('video/'));
+                    const tag = isVideo ? '[VIDEO]' : '[IMAGE]';
+                    // Send the uploaded media attachment message
+                    await handleSend(undefined, `${tag}${res.url}`);
                     
                     // If the user had written text, dispatch it sequentially as a caption!
                     if (inputText.trim()) {
                         await handleSend(undefined, inputText);
                     }
+                    toast.success(isVideo ? "Video sent!" : "Photo sent!");
                 }
             } catch (err: any) {
-                toast.error(`Image upload failed: ${err.message || 'Unknown error'}`);
-                // High-resiliency error recovery: restore staged states
+                toast.error(`Attachment upload failed: ${err.message || 'Unknown error'}`);
+                // High-resiliency error recovery: keep staged states intact
                 setStagedFile(fileToUpload);
                 setStagedPreviewUrl(previewToClear);
             } finally {
@@ -1594,7 +1607,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 toast.success("Date proposed safely!");
                 setShowDateModal(false);
                 setDateForm({ location: '', date: '' });
-                loadMessages();
+                api.chat.getHistory(partner.id).then(history => {
+                    if (Array.isArray(history)) setMessages(history);
+                });
             } else {
                 toast.error(res.error || "Failed to propose date");
             }
@@ -2165,6 +2180,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             const rName = replyMsg.senderName || (replyMsg.senderId === 'me' || replyMsg.senderId === user?.id ? 'You' : partnerInfo.name);
                                             const rText = replyMsg.text?.startsWith('[IMAGE]') 
                                                 ? '📷 Photo' 
+                                                : replyMsg.text?.startsWith('[VIDEO]') 
+                                                ? '🎥 Video' 
                                                 : replyMsg.text?.startsWith('[AUDIO]') 
                                                 ? '🎤 Voice message' 
                                                 : replyMsg.text?.startsWith('[STICKER]') 
@@ -2253,9 +2270,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 </div>
                                             </div>
                                         ) : msg.text.startsWith('[IMAGE]') ? (
-                                            <img src={msg.text.replace('[IMAGE]', '')} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: msg.text.replace('[IMAGE]', ''), type: 'image' })} />
+                                            <img src={resolveMediaUrl(msg.text.replace('[IMAGE]', ''))} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: resolveMediaUrl(msg.text.replace('[IMAGE]', '')), type: 'image' })} />
+                                        ) : msg.text.startsWith('[VIDEO]') ? (
+                                            <div className="relative max-w-[220px] sm:max-w-[260px] rounded-xl overflow-hidden mt-1 cursor-pointer group bg-black" onClick={() => setFullscreenMedia({ url: resolveMediaUrl(msg.text.replace('[VIDEO]', '')), type: 'video' })}>
+                                                <video src={resolveMediaUrl(msg.text.replace('[VIDEO]', ''))} className="w-full max-h-[260px] object-cover rounded-xl" controls preload="metadata" />
+                                            </div>
                                         ) : msg.text.startsWith('[AUDIO]') ? (
-                                            <VoiceNoteWaveformPlayer audioUrl={msg.text.replace('[AUDIO]', '')} isMe={isMe} />
+                                            <VoiceNoteWaveformPlayer audioUrl={resolveMediaUrl(msg.text.replace('[AUDIO]', ''))} isMe={isMe} />
                                         ) : msg.text.startsWith('[MUSIC_SHARE:') ? (() => {
                                             let title = 'Music Track';
                                             let artist = 'Artist';
@@ -2485,8 +2506,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                         </button>
                                                     ) : (
                                                         <div className="flex gap-2 w-full">
-                                                            <button onClick={() => handleRespondDate(dateId, 'declined')} className="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors">Decline</button>
-                                                            <button onClick={() => handleRespondDate(dateId, 'accepted')} className="flex-1 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors">Accept</button>
+                                                            <button onClick={() => handleDateResponse(dateId, 'declined')} className="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors">Decline</button>
+                                                            <button onClick={() => handleDateResponse(dateId, 'accepted')} className="flex-1 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors">Accept</button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -2754,6 +2775,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                             {replyTo.text?.startsWith('[IMAGE]') 
                                 ? '📷 Photo' 
+                                : replyTo.text?.startsWith('[VIDEO]') 
+                                ? '🎥 Video' 
                                 : replyTo.text?.startsWith('[AUDIO]') 
                                 ? '🎤 Voice' 
                                 : replyTo.text?.startsWith('[STICKER]') 
@@ -2777,8 +2800,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 <div className="flex items-center justify-between gap-3 w-full px-4 py-3 bg-indigo-50/80 dark:bg-indigo-900/20 border-t border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom duration-200">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* Rounded Visual Thumbnail */}
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-black/10 border border-black/10 shrink-0 shadow-inner">
-                            <img src={stagedPreviewUrl} className="w-full h-full object-cover" alt="Selected attachment preview" />
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-black/10 border border-black/10 shrink-0 shadow-inner flex items-center justify-center">
+                            {stagedFile.type.startsWith('video/') ? (
+                                <video src={stagedPreviewUrl} className="w-full h-full object-cover" muted />
+                            ) : (
+                                <img src={stagedPreviewUrl} className="w-full h-full object-cover" alt="Selected attachment preview" />
+                            )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 truncate">Staged Attachment</p>
@@ -2868,7 +2895,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         }}
                     />
                 )}
-                <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                <input type="file" accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                 {/* 📎 Paperclip Attachment Menu & AI Icebreaker Launcher */}
                 <div className="relative flex-shrink-0" ref={attachmentMenuRef}>
                     {isRecording ? (

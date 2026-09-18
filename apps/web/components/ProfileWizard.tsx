@@ -12,20 +12,17 @@ const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
 
 const STEPS = [
-    { id: 'welcome', title: 'Welcome' },
     { id: 'basics', title: 'Personal Details' },
     { id: 'photos', title: 'Upload Photos' },
 ];
 
 const QUOTES = {
-    welcome: "Your journey to finding the perfect life partner begins here.",
     basics: "Tell us about yourself. Honesty is the foundation of a great relationship.",
     photos: "A picture is worth a thousand words. Add your best moments."
 };
 
 // Gradient BGs for Left Panel
 const GRADIENTS = {
-    welcome: "from-indigo-600 to-purple-700",
     basics: "from-blue-600 to-cyan-600",
     photos: "from-indigo-500 to-blue-600",
 };
@@ -70,21 +67,34 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 const stepIndex = parseInt(savedStep, 10);
                 if (!isNaN(stepIndex) && stepIndex >= 0 && stepIndex < STEPS.length) {
                     setCurrentStep(stepIndex);
+                } else {
+                    setCurrentStep(0);
                 }
             }
 
-            // Pre-fill user details from Google Login or database session
+            // Pre-fill user details from Google Login, registration form, or database session
+            const pendingGender = localStorage.getItem('pendingUserGender');
+            const pendingAge = localStorage.getItem('pendingUserAge');
+            const pendingName = localStorage.getItem('pendingUserName');
+
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 try {
                     const u = JSON.parse(storedUser);
                     setData((prev: any) => ({
                         ...prev,
-                        name: prev.name || u.name || '',
-                        gender: prev.gender || u.gender || 'Male',
-                        age: prev.age || (u.age ? String(u.age) : '')
+                        name: prev.name || u.name || pendingName || '',
+                        gender: prev.gender || u.gender || pendingGender || 'Male',
+                        age: prev.age || (u.age ? String(u.age) : '') || pendingAge || ''
                     }));
                 } catch (_) {}
+            } else if (pendingName || pendingGender || pendingAge) {
+                setData((prev: any) => ({
+                    ...prev,
+                    name: prev.name || pendingName || '',
+                    gender: prev.gender || pendingGender || 'Male',
+                    age: prev.age || pendingAge || ''
+                }));
             } else {
                 api.profile.getMe().then((me: any) => {
                     if (me) {
@@ -292,16 +302,6 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             {/* RIGHT PANEL: Form */}
             <div className="w-full lg:w-2/3 p-5 sm:p-6 lg:p-12 flex flex-col relative overflow-y-auto flex-1 lg:h-auto bg-white dark:bg-gray-900 border-t lg:border-t-0 dark:border-gray-800">
                 <div className="flex-1 max-w-2xl mx-auto w-full">
-                    {/* STEP 0: WELCOME */}
-                    {stepId === 'welcome' && (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
-                            <div className="w-24 h-24 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-4xl mb-4">💍</div>
-                            <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Let's Create Your Profile</h2>
-                            <p className="text-gray-500 dark:text-gray-400 max-w-md">We need a few details to find your perfect match. The process takes about 2 minutes.</p>
-                            <Button onClick={handleNext} className="w-48 h-12 text-lg bg-indigo-600 hover:bg-indigo-700 shadow-lg hover:shadow-xl transition-all">Get Started</Button>
-                        </div>
-                    )}
-
                     {/* STEP 1: BASICS */}
                     {stepId === 'basics' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
@@ -554,6 +554,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         📸 Your first photo is your profile photo — it <strong>must show your face clearly</strong>. Our AI (Gemini Vision) verifies every photo and will reject scenery, cartoons, or obscured faces.
                                     </p>
                                 </div>
+                                <div className="mt-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => onComplete(data)}
+                                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline py-1 px-3 transition-all"
+                                    >
+                                        Skip photo for now & complete setup →
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Preview */}
@@ -585,18 +594,32 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 </div>
 
                 {/* Footer Buttons */}
-                {stepId !== 'welcome' && (
-                    <div className="mt-8 pt-4 border-t dark:border-gray-800 flex justify-between">
-                        <Button variant="outline" onClick={handleBack} className="w-32 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">Back</Button>
+                <div className="mt-8 pt-4 border-t dark:border-gray-800 flex justify-between items-center">
+                    {currentStep > 0 ? (
+                        <Button variant="outline" onClick={handleBack} className="w-28 sm:w-32 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">Back</Button>
+                    ) : (
+                        <div />
+                    )}
+                    <div className="flex items-center gap-3">
+                        {stepId === 'photos' && (
+                            <Button
+                                variant="ghost"
+                                type="button"
+                                onClick={() => onComplete(data)}
+                                className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white font-semibold text-xs sm:text-sm"
+                            >
+                                Skip photo
+                            </Button>
+                        )}
                         <Button
                             onClick={handleNext}
-                            className="w-32 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                            className="w-28 sm:w-32 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 font-bold"
                             disabled={!isStepValid()}
                         >
                             {currentStep === STEPS.length - 1 ? "Finish" : "Next"}
                         </Button>
                     </div>
-                )}
+                </div>
             </div>
         </div >
     );

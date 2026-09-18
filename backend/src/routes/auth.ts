@@ -42,6 +42,11 @@ router.post('/register', async (req, res) => {
     try {
         const { email, phone, password, full_name, age, gender, location_name } = req.body;
 
+        // Clean & parse demographic values
+        const parsedAge = age ? parseInt(String(age), 10) : undefined;
+        const validAge = (parsedAge && !isNaN(parsedAge) && parsedAge >= 18 && parsedAge <= 99) ? parsedAge : undefined;
+        const cleanGender = gender ? (String(gender).trim().toLowerCase() === 'female' ? 'Female' : 'Male') : undefined;
+
         // 1. Validation
         if ((!email && !phone) || !password) {
             return res.status(400).json({ error: "Email/Phone and Password required" });
@@ -118,6 +123,9 @@ router.post('/register', async (req, res) => {
                         phone: phone, // Update phone
                         password_hash: passwordHash,
                         full_name: full_name,
+                        age: validAge,
+                        gender: cleanGender,
+                        location_name: location_name || undefined,
                         otp_code: otp,
                         otp_expires_at: otpExpiresAt,
                         // Don't reset created_at, keep original timestamp or not?
@@ -219,8 +227,8 @@ router.post('/register', async (req, res) => {
                     phone,
                     password_hash: passwordHash,
                     full_name,
-                    age,
-                    gender,
+                    age: validAge || null,
+                    gender: cleanGender || null,
                     location_name,
                     otp_code: otp,
                     otp_expires_at: otpExpiresAt,
@@ -228,7 +236,7 @@ router.post('/register', async (req, res) => {
                     referral_code: myReferralCode,
                     referred_by: referredByUserId
                 },
-                select: { id: true, full_name: true }
+                select: { id: true, full_name: true, gender: true, age: true }
             });
 
             // Initialize profile row immediately so joins, recommendations, and campaigns never omit this user
@@ -330,7 +338,7 @@ router.post('/verify-otp', async (req, res) => {
         // Find user
         const user = await prisma.users.findUnique({
             where: { email },
-            select: { id: true, otp_code: true, otp_expires_at: true, is_verified: true, full_name: true }
+            select: { id: true, otp_code: true, otp_expires_at: true, is_verified: true, full_name: true, gender: true, age: true }
         });
 
         if (!user) return res.status(404).json({ error: "User not found" });
@@ -339,7 +347,7 @@ router.post('/verify-otp', async (req, res) => {
         if (user.is_verified) {
             const token = generateToken(user.id);
             setTokenCookie(res, token);
-            return res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name } });
+            return res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name, gender: user.gender, age: user.age } });
         }
 
         // Validate OTP
@@ -360,7 +368,7 @@ router.post('/verify-otp', async (req, res) => {
         // Return Token
         const token = generateToken(user.id);
         setTokenCookie(res, token);
-        res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name } });
+        res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name, gender: user.gender, age: user.age } });
 
     } catch (e) {
         console.error("Verify Error", e);

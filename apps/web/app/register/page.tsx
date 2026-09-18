@@ -23,7 +23,7 @@ function RegisterForm() {
     const intentParam = searchParams.get('intent') || 'dating';
     const isDating = intentParam.toLowerCase() === 'dating';
 
-    const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '' });
+    const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '', gender: 'Male', age: '' });
     const [loading, setLoading] = useState(false);
     const [activeTestimonial, setActiveTestimonial] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
@@ -112,6 +112,11 @@ function RegisterForm() {
                 toast.error('Please fill in all fields.');
                 return;
             }
+            const parsedAge = parseInt(form.age, 10);
+            if (!form.age || isNaN(parsedAge) || parsedAge < 18 || parsedAge > 99) {
+                toast.error('Please enter a valid age (must be 18 or older).');
+                return;
+            }
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(form.email.trim())) {
                 toast.error('Please enter a valid email address.');
@@ -122,10 +127,21 @@ function RegisterForm() {
                 return;
             }
             setLoading(true);
+            // Save pending demographic details so they survive OTP flow
+            localStorage.setItem('pendingUserGender', form.gender || 'Male');
+            localStorage.setItem('pendingUserAge', String(parsedAge));
+            localStorage.setItem('pendingUserName', form.full_name);
+
             // Show 'slow' hint after 6s — common on Render free tier cold starts
             const slowTimer = setTimeout(() => setSlowRequest(true), 6000);
             try {
-                const res = await api.auth.register({ ...form, email: form.email.trim().toLowerCase(), password: form.password.trim() });
+                const res = await api.auth.register({
+                    ...form,
+                    age: parsedAge,
+                    gender: form.gender,
+                    email: form.email.trim().toLowerCase(),
+                    password: form.password.trim()
+                });
                 if (res.requiresVerification) {
                     localStorage.setItem('pendingVerificationEmail', form.email);
                     setShowOtp(true);
@@ -133,6 +149,12 @@ function RegisterForm() {
                     localStorage.removeItem('matches_cache_v2');
                     localStorage.setItem('userId', res.userId);
                     localStorage.setItem('token', res.token);
+                    localStorage.setItem('user', JSON.stringify({
+                        id: res.userId,
+                        name: form.full_name,
+                        gender: form.gender,
+                        age: parsedAge
+                    }));
                     router.replace('/onboarding');
                 }
             } finally {
@@ -161,6 +183,27 @@ function RegisterForm() {
                 localStorage.removeItem('matches_cache_v2');
                 localStorage.setItem('userId', res.userId);
                 localStorage.setItem('token', res.token);
+
+                const savedGender = localStorage.getItem('pendingUserGender') || form.gender || 'Male';
+                const savedAge = parseInt(localStorage.getItem('pendingUserAge') || form.age || '24', 10);
+                const savedName = localStorage.getItem('pendingUserName') || form.full_name || '';
+
+                localStorage.setItem('user', JSON.stringify({
+                    id: res.userId,
+                    name: res.user?.name || savedName,
+                    gender: savedGender,
+                    age: savedAge
+                }));
+
+                // Background sync to ensure profile has gender and age persisted
+                try {
+                    api.profile.updateProfile({
+                        name: res.user?.name || savedName,
+                        gender: savedGender,
+                        age: savedAge
+                    }).catch(() => {});
+                } catch (_) {}
+
                 if (typeof window !== 'undefined') {
                     const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
                     if (bridge) {
@@ -364,12 +407,57 @@ function RegisterForm() {
 
                     <div className="space-y-4">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Full Name</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Full Name</label>
                             <Input
                                 placeholder="e.g. Aditi Rao"
                                 className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.full_name}
                                 onChange={e => setForm({ ...form, full_name: e.target.value })}
+                            />
+                        </div>
+
+                        {/* Gender Selection */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Gender</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setForm({ ...form, gender: 'Male' })}
+                                    className={`h-11 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
+                                        form.gender === 'Male'
+                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                            : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <span>🤵</span>
+                                    <span>{isDating ? 'Male / Man' : 'Male / Groom'}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setForm({ ...form, gender: 'Female' })}
+                                    className={`h-11 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
+                                        form.gender === 'Female'
+                                            ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                                            : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300'
+                                    }`}
+                                >
+                                    <span>👰</span>
+                                    <span>{isDating ? 'Female / Woman' : 'Female / Bride'}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Age Input */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Age (18+)</label>
+                            <Input
+                                type="number"
+                                min={18}
+                                max={99}
+                                placeholder="e.g. 24"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                value={form.age}
+                                onChange={e => setForm({ ...form, age: e.target.value })}
                             />
                         </div>
 

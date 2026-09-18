@@ -1040,6 +1040,38 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 }
 
+                // --- WELCOME ONBOARDING BONUS (25 COINS) ---
+                // Every user completing onboarding receives 25 Welcome Coins to start chatting and exploring
+                try {
+                    const existingWelcomeBonus = await tx.transactions.findFirst({
+                        where: {
+                            user_id: userId,
+                            type: 'REWARD',
+                            description: 'Welcome bonus for completing onboarding'
+                        }
+                    });
+
+                    if (!existingWelcomeBonus) {
+                        console.log(`🎉 Minting 25 Welcome Coins for User ${userId}`);
+                        await tx.users.update({
+                            where: { id: userId },
+                            data: { coins: { increment: 25 } }
+                        });
+                        await tx.transactions.create({
+                            data: {
+                                user_id: userId,
+                                amount: 25,
+                                type: 'REWARD',
+                                status: 'SUCCESS',
+                                description: 'Welcome bonus for completing onboarding',
+                                metadata: { reason: 'WELCOME_ONBOARDING_BONUS' }
+                            }
+                        });
+                    }
+                } catch (welcomeBonusErr: any) {
+                    console.error("Welcome bonus processing error:", welcomeBonusErr.message);
+                }
+
                 // --- REFERRAL BONUS DEFERMENT LOGIC ---
                 // If the user just completed core onboarding (Age & Gender provided)
                 if (finalAge && finalGender) {

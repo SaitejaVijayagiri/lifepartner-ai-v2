@@ -40,21 +40,79 @@ export default function AnimatedSplash() {
 
             {/* Main Central Container */}
             <div className="relative z-10 flex flex-col items-center text-center px-6 animate-in fade-in zoom-in-75 duration-700">
-                {/* Free-Floating Logo with Movement Animation (No Box!) */}
-                <div className="relative mb-6 flex items-center justify-center">
-                    {/* Soft Ambient Radial Light Behind Logo (Borderless) */}
-                    <div className="absolute w-44 h-44 rounded-full bg-gradient-to-tr from-rose-500/25 via-purple-500/20 to-indigo-500/25 blur-2xl pointer-events-none animate-pulse" />
-                    
-                    {/* Floating Animated Logo (Pure Logo Icon with Breathing/Floating Motion) */}
-                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center animate-[logoFloat_2.4s_ease-in-out_infinite]">
-                        <img
-                            src="/icon-192x192.png"
-                            alt="LifePartner AI Logo"
-                            className="w-full h-full object-contain select-none pointer-events-none drop-shadow-[0_12px_24px_rgba(99,102,241,0.5)]"
-                            onError={(e) => {
-                                (e.target as any).style.display = 'none';
-                            }}
-                        />
+                {/* Dynamic Purple Love Animation (No Static Picture!) */}
+                <div className="relative mb-6 flex items-center justify-center w-36 h-36 sm:w-44 sm:h-44">
+                    {/* Radiating Purple Love Ripples */}
+                    <div className="absolute inset-2 rounded-full border border-purple-500/40 animate-[purpleRipple_2.4s_ease-out_infinite]" />
+                    <div className="absolute inset-2 rounded-full border border-fuchsia-500/25 animate-[purpleRipple_2.4s_ease-out_infinite_0.8s]" />
+                    <div className="absolute inset-2 rounded-full border border-violet-500/30 animate-[purpleRipple_2.4s_ease-out_infinite_1.6s]" />
+
+                    {/* Ambient Purple Glow */}
+                    <div className="absolute w-36 h-36 rounded-full bg-gradient-to-tr from-purple-600/30 via-fuchsia-600/20 to-violet-600/30 blur-2xl pointer-events-none animate-pulse" />
+
+                    {/* Floating Micro-Hearts */}
+                    <div className="absolute top-2 right-2 text-purple-400 opacity-75 animate-[floatParticle_2.6s_ease-in-out_infinite]">
+                        <Heart className="w-4 h-4 fill-purple-400 text-purple-300 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
+                    </div>
+                    <div className="absolute bottom-3 left-2 text-fuchsia-400 opacity-60 animate-[floatParticle_2.6s_ease-in-out_infinite_1.3s]">
+                        <Heart className="w-3.5 h-3.5 fill-fuchsia-400 text-fuchsia-300 drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]" />
+                    </div>
+
+                    {/* Central Glowing Purple Twin Hearts */}
+                    <div className="relative z-10 flex items-center justify-center animate-[purpleHeartbeat_1.8s_ease-in-out_infinite]">
+                        <svg
+                            viewBox="0 0 100 100"
+                            className="w-24 h-24 sm:w-28 sm:h-28 overflow-visible"
+                        >
+                            <defs>
+                                <linearGradient id="splashPurpleHeart" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#c084fc" />
+                                    <stop offset="50%" stopColor="#9333ea" />
+                                    <stop offset="100%" stopColor="#6b21a8" />
+                                </linearGradient>
+                                <linearGradient id="splashCompanionHeart" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#f472b6" />
+                                    <stop offset="100%" stopColor="#a855f7" />
+                                </linearGradient>
+                                <filter id="splashGlow" x="-30%" y="-30%" width="160%" height="160%">
+                                    <feGaussianBlur stdDeviation="3.5" result="blur" />
+                                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                </filter>
+                            </defs>
+
+                            {/* Companion Back Heart */}
+                            <path
+                                d="M35,28 C28,18 16,20 12,28 C6,38 12,52 35,70 C42,64 47,58 51,52 C45,46 38,36 35,28 Z"
+                                fill="url(#splashCompanionHeart)"
+                                opacity="0.8"
+                                transform="rotate(-12 35 50)"
+                            />
+
+                            {/* Main Glowing Purple Heart */}
+                            <path
+                                d="M50,30 C42,15 22,17 18,32 C12,50 32,68 50,84 C68,68 88,50 82,32 C78,17 58,15 50,30 Z"
+                                fill="url(#splashPurpleHeart)"
+                                filter="url(#splashGlow)"
+                            />
+
+                            {/* Specular Highlight Arc */}
+                            <path
+                                d="M30,30 C32,22 42,21 46,26"
+                                stroke="rgba(255,255,255,0.45)"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                fill="none"
+                            />
+
+                            {/* Center AI Sparkle Star */}
+                            <g transform="translate(44, 42) scale(0.6)">
+                                <path
+                                    d="M10,0 L12,7 L19,10 L12,13 L10,20 L8,13 L1,10 L8,7 Z"
+                                    fill="#ffffff"
+                                    className="animate-pulse"
+                                />
+                            </g>
+                        </svg>
                     </div>
                 </div>
 
@@ -87,16 +145,53 @@ export default function AnimatedSplash() {
                 100% Free • Verified Matches
             </div>
 
-            {/* Logo Float Animation Keyframes */}
+            {/* Purple Love Animation Keyframes */}
             <style jsx global>{`
-                @keyframes logoFloat {
-                    0%, 100% {
-                        transform: translateY(0px) scale(1);
-                        filter: drop-shadow(0 12px 24px rgba(99, 102, 241, 0.45)) drop-shadow(0 4px 10px rgba(244, 63, 94, 0.35));
+                @keyframes purpleHeartbeat {
+                    0% {
+                        transform: scale(1);
+                        filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.45));
+                    }
+                    14% {
+                        transform: scale(1.16);
+                        filter: drop-shadow(0 0 32px rgba(192, 132, 252, 0.85));
+                    }
+                    28% {
+                        transform: scale(1.06);
+                        filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.6));
+                    }
+                    42% {
+                        transform: scale(1.24);
+                        filter: drop-shadow(0 0 45px rgba(217, 70, 239, 0.95));
+                    }
+                    70%, 100% {
+                        transform: scale(1);
+                        filter: drop-shadow(0 0 16px rgba(168, 85, 247, 0.45));
+                    }
+                }
+
+                @keyframes purpleRipple {
+                    0% {
+                        transform: scale(0.75);
+                        opacity: 0.85;
                     }
                     50% {
-                        transform: translateY(-8px) scale(1.06);
-                        filter: drop-shadow(0 22px 34px rgba(99, 102, 241, 0.65)) drop-shadow(0 8px 18px rgba(244, 63, 94, 0.55));
+                        opacity: 0.4;
+                    }
+                    100% {
+                        transform: scale(2.2);
+                        opacity: 0;
+                    }
+                }
+
+                @keyframes floatParticle {
+                    0%, 100% {
+                        transform: translateY(0px) scale(0.9);
+                        opacity: 0.5;
+                    }
+                    50% {
+                        transform: translateY(-10px) scale(1.15);
+                        opacity: 0.95;
                     }
                 }
             `}</style>

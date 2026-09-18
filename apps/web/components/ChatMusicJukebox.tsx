@@ -2,35 +2,39 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart } from 'lucide-react';
+import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 
 interface ChatMusicJukeboxProps {
     onClose: () => void;
     onShareTrackToChat?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => void;
     onCreateStoryWithTrack?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string }) => void;
+    onStartSyncTrack?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => void;
 }
 
 const JUKEBOX_MOODS = [
-    { name: '🔖 Saved Tracks', query: 'SAVED' },
+    { name: '🔖 Saved', query: 'SAVED' },
     { name: '🔥 Top Hits', query: 'pop hits' },
     { name: '💖 Romantic Vibe', query: 'romantic love songs' },
+    { name: '🥁 Bollywood Hits', query: 'bollywood hits' },
+    { name: '🌟 South Hits', query: 'tamil telugu melody hits' },
+    { name: '🎸 Punjabi & Rap', query: 'punjabi rap' },
     { name: '☕ Chill Lo-Fi', query: 'lofi chill' },
-    { name: '🥁 Desi Hits', query: 'bollywood hits' },
     { name: '🕺 Party Groove', query: 'dance party' },
-    { name: '🎸 Punjabi & Rap', query: 'punjabi rap' }
+    { name: '🌸 Acoustic & Indie', query: 'indian indie acoustic' }
 ];
 
 const getYoutubeId = (text: string): string | null => {
     if (!text) return null;
-    const standardMatch = text.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
+    const clean = text.trim();
+    const standardMatch = clean.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/i);
     if (standardMatch) return standardMatch[1];
-    const shortsMatch = text.match(/youtube\.com\/shorts\/([^"&?\/ ]{11})/i);
+    const shortsMatch = clean.match(/youtube\.com\/shorts\/([^"&?\/ ]{11})/i);
     if (shortsMatch) return shortsMatch[1];
     return null;
 };
 
-export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreateStoryWithTrack }: ChatMusicJukeboxProps) {
+export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreateStoryWithTrack, onStartSyncTrack }: ChatMusicJukeboxProps) {
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<'audio' | 'video'>('audio');
     const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +45,8 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
     const [activeTrack, setActiveTrack] = useState<(Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(210);
+    const [duration, setDuration] = useState(30);
+    const [volume, setVolume] = useState(0.8);
     const [isMuted, setIsMuted] = useState(false);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -124,17 +129,28 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
             const mapped: (Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string })[] = [];
 
             // 0. Direct URL / YouTube Link Parsing
-            if (term.startsWith('http://') || term.startsWith('https://')) {
-                const ytId = getYoutubeId(term);
+            const ytId = getYoutubeId(term);
+            if (ytId) {
                 mapped.push({
-                    id: `custom_${Date.now()}`,
-                    title: ytId ? 'Shared YouTube Video' : 'Custom Web Audio Track',
-                    artist: 'Web Link 🔗',
-                    mood: 'Custom Stream',
-                    coverUrl: ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+                    id: `yt_${ytId}`,
+                    title: 'YouTube Video Track',
+                    artist: 'YouTube Media',
+                    mood: 'HD YouTube Stream',
+                    coverUrl: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`,
                     audioUrl: term,
                     videoUrl: term,
-                    duration: 210
+                    duration: 30
+                });
+            } else if (term.startsWith('http://') || term.startsWith('https://')) {
+                mapped.push({
+                    id: `custom_${Date.now()}`,
+                    title: 'Custom Web Audio Track',
+                    artist: 'Web Link 🔗',
+                    mood: 'Custom Stream',
+                    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
+                    audioUrl: term,
+                    videoUrl: term,
+                    duration: 30
                 });
             }
 
@@ -209,8 +225,17 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
             searchTimeoutRef.current = setTimeout(() => {
                 searchMusicAPI(searchQuery);
             }, 300);
+        } else if (searchQuery.trim().length === 0) {
+            const mood = JUKEBOX_MOODS.find(m => m.name === selectedMood);
+            if (mood) {
+                if (mood.query === 'SAVED') {
+                    setTracks(savedTracks);
+                } else {
+                    searchMusicAPI(mood.query);
+                }
+            }
         }
-    }, [searchQuery]);
+    }, [searchQuery, selectedMood, savedTracks]);
 
     const handleSelectMood = (moodName: string, query: string) => {
         setSelectedMood(moodName);
@@ -235,7 +260,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
 
         const audio = new Audio(track.audioUrl);
         audioRef.current = audio;
-        audio.volume = isMuted ? 0 : 0.8;
+        audio.volume = isMuted ? 0 : volume;
 
         audio.onloadedmetadata = () => {
             if (audio.duration && !isNaN(audio.duration)) {
@@ -289,11 +314,19 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
         }
     };
 
+    const handleVolumeChange = (newVol: number) => {
+        setVolume(newVol);
+        if (isMuted && newVol > 0) setIsMuted(false);
+        if (audioRef.current) {
+            audioRef.current.volume = newVol;
+        }
+    };
+
     const handleToggleMute = () => {
         const nextMuted = !isMuted;
         setIsMuted(nextMuted);
         if (audioRef.current) {
-            audioRef.current.volume = nextMuted ? 0 : 0.8;
+            audioRef.current.volume = nextMuted ? 0 : volume;
         }
     };
 
@@ -401,119 +434,177 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
             {/* Main Content View */}
             {activeTab === 'audio' ? (
                 /* Audio Songs List */
-                <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-2 space-y-2.5">
-                    {tracks.map(track => {
-                        const isCurrent = activeTrack?.id === track.id;
+                tracks.length === 0 && !isSearching ? (
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-3">
+                        <div className="w-16 h-16 rounded-3xl bg-slate-900 flex items-center justify-center text-pink-400 border border-slate-800 shadow-xl">
+                            <Music className="w-8 h-8" />
+                        </div>
+                        {selectedMood === '🔖 Saved' ? (
+                            <>
+                                <p className="text-sm font-semibold text-white">No saved tracks yet</p>
+                                <p className="text-xs max-w-xs text-slate-400">Tap the heart icon (💖) on any song to bookmark your favorite tunes for quick access!</p>
+                                <button
+                                    onClick={() => handleSelectMood('🔥 Top Hits', 'pop hits')}
+                                    className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold shadow-lg transition-transform active:scale-95"
+                                >
+                                    Explore Top Hits 🔥
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm font-semibold text-white">No tracks found</p>
+                                <p className="text-xs max-w-xs text-slate-400">
+                                    {searchQuery ? `We couldn't find any songs matching "${searchQuery}".` : 'No songs available in this category right now.'}
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setSearchQuery('');
+                                        handleSelectMood('🔥 Top Hits', 'pop hits');
+                                    }}
+                                    className="mt-2 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold shadow-lg transition-transform active:scale-95"
+                                >
+                                    Reset & Browse Hits 🔥
+                                </button>
+                            </>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex-1 overflow-y-auto no-scrollbar px-4 py-2 space-y-2.5">
+                        {tracks.map(track => {
+                            const isCurrent = activeTrack?.id === track.id;
 
-                        return (
-                            <div
-                                key={track.id}
-                                onClick={() => handlePlayTrack(track)}
-                                className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl cursor-pointer transition-all ${
-                                    isCurrent
-                                        ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
-                                        : 'bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80'
-                                }`}
-                            >
-                                <div className="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0 flex-1 pr-1.5">
-                                    <img
-                                        src={track.coverUrl}
-                                        alt={track.title}
-                                        className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <h4 className="font-bold text-xs sm:text-sm text-white truncate max-w-full">{track.title}</h4>
-                                        <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-full">{track.artist}</p>
-                                        <span className="inline-block mt-0.5 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
-                                            {track.mood} • 30s HD Preview
-                                        </span>
+                            return (
+                                <div
+                                    key={track.id}
+                                    onClick={() => handlePlayTrack(track)}
+                                    className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl cursor-pointer transition-all ${
+                                        isCurrent
+                                            ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
+                                            : 'bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80'
+                                    }`}
+                                >
+                                    <div className="flex items-center space-x-2.5 sm:space-x-3.5 min-w-0 flex-1 pr-1.5">
+                                        <img
+                                            src={track.coverUrl}
+                                            alt={track.title}
+                                            className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <h4 className="font-bold text-xs sm:text-sm text-white truncate max-w-full">{track.title}</h4>
+                                            <p className="text-[11px] sm:text-xs text-slate-400 truncate max-w-full">{track.artist}</p>
+                                            <span className="inline-block mt-0.5 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">
+                                                {track.mood} • 30s HD Preview
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleSaveTrack(track);
-                                        }}
-                                        className={`p-1.5 sm:p-2.5 rounded-full transition-colors ${
-                                            savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist))
-                                                ? 'bg-pink-500/20 text-pink-400'
-                                                : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'
-                                        }`}
-                                        title="Bookmark Song to Favorites 💖"
-                                    >
-                                        <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist)) ? 'fill-pink-400' : ''}`} />
-                                    </button>
-                                    {onCreateStoryWithTrack && (
+                                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                stopAudioPlayback();
-                                                onCreateStoryWithTrack({
-                                                    title: track.title,
-                                                    artist: track.artist,
-                                                    coverUrl: track.coverUrl,
-                                                    audioUrl: track.audioUrl
-                                                });
-                                                onClose();
+                                                toggleSaveTrack(track);
                                             }}
-                                            className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors"
-                                            title="Create Instant Story with this Song 📸"
+                                            className={`p-1.5 sm:p-2.5 rounded-full transition-colors ${
+                                                savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist))
+                                                    ? 'bg-pink-500/20 text-pink-400'
+                                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white'
+                                            }`}
+                                            title="Bookmark Song to Favorites 💖"
                                         >
-                                            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                            <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${savedTracks.some(t => t.id === track.id || (t.title === track.title && t.artist === track.artist)) ? 'fill-pink-400' : ''}`} />
                                         </button>
-                                    )}
 
-                                    {onShareTrackToChat && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onShareTrackToChat({
-                                                    title: track.title,
-                                                    artist: track.artist,
-                                                    coverUrl: track.coverUrl,
-                                                    audioUrl: track.audioUrl,
-                                                    videoUrl: track.videoUrl || ''
-                                                });
-                                            }}
-                                            className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
-                                            title="Share Song to Chat"
-                                        >
-                                            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                                        </button>
-                                    )}
-
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (isCurrent) {
-                                                if (isPlaying) {
+                                        {onCreateStoryWithTrack && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
                                                     stopAudioPlayback();
+                                                    onCreateStoryWithTrack({
+                                                        title: track.title,
+                                                        artist: track.artist,
+                                                        coverUrl: track.coverUrl,
+                                                        audioUrl: track.audioUrl
+                                                    });
+                                                    onClose();
+                                                }}
+                                                className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors"
+                                                title="Create Instant Story with this Song 📸"
+                                            >
+                                                <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                            </button>
+                                        )}
+
+                                        {onStartSyncTrack && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    stopAudioPlayback();
+                                                    onStartSyncTrack({
+                                                        title: track.title,
+                                                        artist: track.artist,
+                                                        coverUrl: track.coverUrl,
+                                                        audioUrl: track.audioUrl,
+                                                        videoUrl: track.videoUrl || ''
+                                                    });
+                                                    onClose();
+                                                }}
+                                                className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-purple-900/60 text-purple-400 hover:text-purple-200 transition-colors"
+                                                title="Sync Live with Match 🎧 (Listen Together)"
+                                            >
+                                                <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                            </button>
+                                        )}
+
+                                        {onShareTrackToChat && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onShareTrackToChat({
+                                                        title: track.title,
+                                                        artist: track.artist,
+                                                        coverUrl: track.coverUrl,
+                                                        audioUrl: track.audioUrl,
+                                                        videoUrl: track.videoUrl || ''
+                                                    });
+                                                }}
+                                                className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
+                                                title="Share Song to Chat"
+                                            >
+                                                <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                            </button>
+                                        )}
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (isCurrent) {
+                                                    if (isPlaying) {
+                                                        stopAudioPlayback();
+                                                    } else {
+                                                        handlePlayTrack(track);
+                                                    }
                                                 } else {
                                                     handlePlayTrack(track);
                                                 }
-                                            } else {
-                                                handlePlayTrack(track);
-                                            }
-                                        }}
-                                        className={`p-1.5 sm:p-2.5 rounded-full transition-transform active:scale-95 ${
-                                            isCurrent
-                                                ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
-                                                : 'bg-slate-800 text-slate-300 hover:text-white'
-                                        }`}
-                                    >
-                                        {isCurrent && isPlaying ? (
-                                            <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
-                                        ) : (
-                                            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white ml-0.5" />
-                                        )}
-                                    </button>
+                                            }}
+                                            className={`p-1.5 sm:p-2.5 rounded-full transition-transform active:scale-95 ${
+                                                isCurrent
+                                                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
+                                                    : 'bg-slate-800 text-slate-300 hover:text-white'
+                                            }`}
+                                        >
+                                            {isCurrent && isPlaying ? (
+                                                <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white" />
+                                            ) : (
+                                                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white ml-0.5" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )
             ) : (
                 /* Native In-Chat Video Player & Video Catalog */
                 <div className="flex-1 flex flex-col items-center justify-start p-4 bg-black overflow-y-auto no-scrollbar space-y-4">
@@ -563,21 +654,44 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                     </div>
                                 </div>
 
-                                {onShareTrackToChat && (
-                                    <button
-                                        onClick={() => onShareTrackToChat({
-                                            title: activeTrack.title,
-                                            artist: activeTrack.artist,
-                                            coverUrl: activeTrack.coverUrl,
-                                            audioUrl: activeTrack.audioUrl,
-                                            videoUrl: activeTrack.videoUrl || ''
-                                        })}
-                                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0 hover:scale-105 transition-transform"
-                                    >
-                                        <Send className="w-4 h-4" />
-                                        <span>Share Video to Chat</span>
-                                    </button>
-                                )}
+                                <div className="flex items-center space-x-2 flex-shrink-0">
+                                    {onStartSyncTrack && (
+                                        <button
+                                            onClick={() => {
+                                                stopAudioPlayback();
+                                                onStartSyncTrack({
+                                                    title: activeTrack.title,
+                                                    artist: activeTrack.artist,
+                                                    coverUrl: activeTrack.coverUrl,
+                                                    audioUrl: activeTrack.audioUrl,
+                                                    videoUrl: activeTrack.videoUrl || ''
+                                                });
+                                                onClose();
+                                            }}
+                                            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg active:scale-95 transition-transform"
+                                            title="Listen together in real-time"
+                                        >
+                                            <Headphones className="w-4 h-4" />
+                                            <span className="hidden sm:inline">Sync Live</span>
+                                        </button>
+                                    )}
+
+                                    {onShareTrackToChat && (
+                                        <button
+                                            onClick={() => onShareTrackToChat({
+                                                title: activeTrack.title,
+                                                artist: activeTrack.artist,
+                                                coverUrl: activeTrack.coverUrl,
+                                                audioUrl: activeTrack.audioUrl,
+                                                videoUrl: activeTrack.videoUrl || ''
+                                            })}
+                                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0 hover:scale-105 transition-transform"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                            <span>Share Video to Chat</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ) : (
@@ -653,13 +767,65 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-3">
-                            <button
-                                onClick={handleToggleMute}
-                                className="p-2 rounded-full bg-slate-800 text-slate-300 hover:text-white"
-                            >
-                                {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
-                            </button>
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                            <div className="flex items-center space-x-1.5 bg-slate-800/80 px-2 py-1 rounded-full border border-slate-700/60">
+                                <button
+                                    onClick={handleToggleMute}
+                                    className="p-1 rounded-full text-slate-300 hover:text-white transition-colors"
+                                    title={isMuted ? "Unmute" : "Mute"}
+                                >
+                                    {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-pink-400" />}
+                                </button>
+                                <input
+                                    type="range"
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    value={isMuted ? 0 : volume}
+                                    onChange={e => handleVolumeChange(parseFloat(e.target.value))}
+                                    className="w-14 sm:w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                    title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
+                                />
+                            </div>
+
+                            {onStartSyncTrack && (
+                                <button
+                                    onClick={() => {
+                                        stopAudioPlayback();
+                                        onStartSyncTrack({
+                                            title: activeTrack.title,
+                                            artist: activeTrack.artist,
+                                            coverUrl: activeTrack.coverUrl,
+                                            audioUrl: activeTrack.audioUrl,
+                                            videoUrl: activeTrack.videoUrl || ''
+                                        });
+                                        onClose();
+                                    }}
+                                    className="px-3 py-1.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1 shadow-md active:scale-95 transition-transform"
+                                    title="Sync Live with Match (Listen Together)"
+                                >
+                                    <Headphones className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Sync</span>
+                                </button>
+                            )}
+
+                            {onShareTrackToChat && (
+                                <button
+                                    onClick={() => {
+                                        onShareTrackToChat({
+                                            title: activeTrack.title,
+                                            artist: activeTrack.artist,
+                                            coverUrl: activeTrack.coverUrl,
+                                            audioUrl: activeTrack.audioUrl,
+                                            videoUrl: activeTrack.videoUrl || ''
+                                        });
+                                    }}
+                                    className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
+                                    title="Share Song to Chat"
+                                >
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            )}
 
                             <button
                                 onClick={handleTogglePlay}

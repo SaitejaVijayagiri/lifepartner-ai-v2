@@ -3014,6 +3014,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     <span className="text-[10px] text-gray-400">Generate creative conversation starter</span>
                                 </div>
                             </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowAttachmentMenu(false);
+                                    setShowJukebox(true);
+                                }}
+                                className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-pink-50 dark:hover:bg-pink-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
+                            >
+                                <span className="p-2 rounded-xl bg-pink-500/10 text-pink-500">
+                                    <Music size={18} />
+                                </span>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-xs text-pink-600 dark:text-pink-400 flex items-center gap-1">
+                                        🎵 Music & Video Jukebox
+                                    </span>
+                                    <span className="text-[10px] text-gray-400">Preview songs, watch videos & sync audio live</span>
+                                </div>
+                            </button>
                         </div>
                     )}
                 </div>
@@ -3637,6 +3656,61 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     onCreateStoryWithTrack={(track) => {
                         setStagedStoryTrack(track);
                         setShowInstantCamera(true);
+                    }}
+                    onStartSyncTrack={(track) => {
+                        if (syncedAudioRef.current) {
+                            syncedAudioRef.current.pause();
+                            syncedAudioRef.current = null;
+                        }
+                        const audio = new Audio(track.audioUrl);
+                        syncedAudioRef.current = audio;
+                        audio.volume = 0.8;
+                        audio.onended = () => {
+                            setActiveSyncedTrack(null);
+                            syncedAudioRef.current = null;
+                        };
+                        audio.play().then(() => {
+                            setActiveSyncedTrack({
+                                title: track.title,
+                                artist: track.artist,
+                                coverUrl: track.coverUrl,
+                                audioUrl: track.audioUrl,
+                                videoUrl: track.videoUrl || '',
+                                isPlaying: true
+                            });
+                        }).catch(() => {
+                            setActiveSyncedTrack({
+                                title: track.title,
+                                artist: track.artist,
+                                coverUrl: track.coverUrl,
+                                audioUrl: track.audioUrl,
+                                videoUrl: track.videoUrl || '',
+                                isPlaying: false
+                            });
+                        });
+
+                        if (socket && partner.id) {
+                            socket.emit("music_play_sync", {
+                                to: partner.id,
+                                title: track.title,
+                                artist: track.artist,
+                                coverUrl: track.coverUrl,
+                                audioUrl: track.audioUrl,
+                                videoUrl: track.videoUrl || ''
+                            });
+                            toast.success(`🎧 Synced "${track.title}" with match!`);
+                        }
+
+                        const payloadObj = {
+                            title: track.title,
+                            artist: track.artist,
+                            coverUrl: track.coverUrl,
+                            audioUrl: track.audioUrl,
+                            videoUrl: track.videoUrl || ''
+                        };
+                        const musicPayload = `[MUSIC_SHARE:${encodeURIComponent(JSON.stringify(payloadObj))}]`;
+                        handleSend(undefined, musicPayload);
+                        setShowJukebox(false);
                     }}
                 />
             )}

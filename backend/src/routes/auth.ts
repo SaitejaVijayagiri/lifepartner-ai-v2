@@ -389,6 +389,9 @@ router.post('/login', async (req, res) => {
                     { email: emailNormalized },
                     { phone: emailNormalized }
                 ]
+            },
+            include: {
+                profiles: { select: { metadata: true } }
             }
         });
 
@@ -435,19 +438,16 @@ router.post('/login', async (req, res) => {
         setTokenCookie(res, token);
 
         // Track last_seen_at in profile metadata for re-engagement campaign accuracy
-        prisma.profiles.findUnique({ where: { user_id: user.id }, select: { metadata: true } })
-            .then(profile => {
-                if (profile) {
-                    const meta = (profile.metadata as any) || {};
-                    return prisma.profiles.update({
-                        where: { user_id: user.id },
-                        data: { metadata: { ...meta, last_seen_at: new Date().toISOString() } }
-                    });
-                }
-            })
-            .catch(e => console.error('last_seen_at update failed (non-blocking):', e));
+        const meta = (user.profiles?.metadata as any) || {};
+        prisma.profiles.update({
+            where: { user_id: user.id },
+            data: { metadata: { ...meta, last_seen_at: new Date().toISOString() } }
+        }).catch(e => console.error('last_seen_at update failed (non-blocking):', e));
         
-        const requiresOnboarding = !user.gender || !user.age;
+        const hasAge = Boolean(user.age || meta.age || meta.dob);
+        const hasGender = Boolean(user.gender || meta.gender);
+        const isCompleted = Boolean(meta.onboarding_completed || (hasAge && hasGender));
+        const requiresOnboarding = !isCompleted;
         
         res.json({ 
             token, 
@@ -764,7 +764,14 @@ router.post('/google', async (req, res) => {
         const token = generateToken(user!.id);
 
         // Check if onboarding is needed (missing gender or age)
-        const requiresOnboarding = !(user as any).gender || !(user as any).age;
+        const userProfile = await prisma.profiles.findUnique({
+            where: { user_id: user!.id },
+            select: { metadata: true }
+        });
+        const googleMeta = (userProfile?.metadata as any) || {};
+        const googleHasAge = Boolean((user as any).age || googleMeta.age || googleMeta.dob);
+        const googleHasGender = Boolean((user as any).gender || googleMeta.gender);
+        const requiresOnboarding = !Boolean(googleMeta.onboarding_completed || (googleHasAge && googleHasGender));
 
         setTokenCookie(res, token);
         res.json({ success: true, token, userId: user!.id, requiresOnboarding });

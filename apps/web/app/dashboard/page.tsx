@@ -572,27 +572,41 @@ function DashboardContent() {
                 // Handle profile
                 if (profileResult.status === 'rejected') {
                     const err = profileResult.reason;
-                    const msg = err?.message || '';
-                    if (msg.includes('401') || msg.includes('session') || msg.includes('404') || msg.includes('not found')) {
+                    const msg = (err?.message || '').toLowerCase();
+                    if (msg.includes('401') || msg.includes('session') || msg.includes('404') || msg.includes('not found') || msg.includes('unauthorized')) {
                         localStorage.removeItem('token');
                         localStorage.removeItem('userId');
                         localStorage.removeItem('user');
+                        localStorage.removeItem('onboarding_completed');
                         router.push('/login');
-                    } else {
-                        router.push('/onboarding');
+                        return;
+                    }
+                    // For network errors, Render cold starts, timeouts, or temporary server issues:
+                    // NEVER redirect to /onboarding! Fall back gracefully to cached profile data in localStorage.
+                    console.warn("Profile fetch failed on dashboard, checking local cache:", err);
+                    const storedUser = localStorage.getItem('user');
+                    if (storedUser) {
+                        try {
+                            const parsed = JSON.parse(storedUser);
+                            setCurrentUser(parsed);
+                        } catch (_) {}
                     }
                     return;
                 }
 
                 const profile = profileResult.value;
-                // FIX: Only require the essential fields (name, age, gender) to determine onboarding completion.
-                // Previously also checked photos/photoUrl which caused redirect loops when:
-                //   1. Supabase storage URLs are DNS-blocked (India ISPs) and fall back to dicebear
-                //   2. User uploaded via base64 path but server returned proxy URL
-                if (!profile || !profile.name || !profile.age || !profile.gender) {
+                const isCompleted = Boolean(
+                    profile?.onboarding_completed ||
+                    localStorage.getItem('onboarding_completed') === 'true' ||
+                    (profile?.name && profile?.age && profile?.gender)
+                );
+                if (!isCompleted) {
                     router.push('/onboarding');
                     return;
                 }
+                try {
+                    localStorage.setItem('onboarding_completed', 'true');
+                } catch (_) {}
                 setCurrentUser(profile);
 
                 // Initialize Push Notifications

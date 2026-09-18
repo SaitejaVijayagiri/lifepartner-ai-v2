@@ -63,6 +63,9 @@ export default function LoginPage() {
             if (res.isNewUser || res.requiresOnboarding) {
                 router.replace('/onboarding');
             } else {
+                try {
+                    localStorage.setItem('onboarding_completed', 'true');
+                } catch (_) {}
                 router.replace('/dashboard');
             }
         } catch (err: any) {

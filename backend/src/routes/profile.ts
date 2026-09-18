@@ -262,14 +262,58 @@ router.get('/me', authenticateToken, async (req: any, res) => {
                 ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
                 : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : (user.profiles?.traits as any)?.hobbies || []));
 
+        // Self-Healing: Resolve Age, Gender, Name from metadata / DOB if missing on users row
+        let resolvedAge = user.age;
+        if (!resolvedAge || isNaN(resolvedAge)) {
+            if (meta.dob) {
+                const birthDate = new Date(meta.dob);
+                const today = new Date();
+                let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    calculatedAge--;
+                }
+                if (calculatedAge >= 18 && calculatedAge <= 100) {
+                    resolvedAge = calculatedAge;
+                }
+            } else if (meta.age && parseInt(meta.age) >= 18) {
+                resolvedAge = parseInt(meta.age);
+            }
+        }
+
+        let resolvedGender = user.gender;
+        if (!resolvedGender && meta.gender) {
+            resolvedGender = String(meta.gender).trim();
+        }
+
+        let resolvedName = user.full_name || meta.name || user.email?.split('@')[0] || "Member";
+
+        // Asynchronously persist healed fields to database so subsequent queries have them immediately
+        if ((!user.age && resolvedAge) || (!user.gender && resolvedGender) || (!user.full_name && resolvedName)) {
+            prisma.users.update({
+                where: { id: user.id },
+                data: {
+                    age: (!user.age && resolvedAge) ? resolvedAge : undefined,
+                    gender: (!user.gender && resolvedGender) ? resolvedGender : undefined,
+                    full_name: (!user.full_name && resolvedName) ? resolvedName : undefined,
+                }
+            }).catch(e => console.warn('[profile /me self-heal users row error]:', e?.message));
+        }
+
+        const isOnboardingCompleted = Boolean(
+            meta.onboarding_completed || 
+            (resolvedAge && resolvedGender && resolvedName)
+        );
+
         const profile = {
             id: user.id || userId,
             userId: user.id || userId,
-            name: user.full_name,
-            full_name: user.full_name,
+            name: resolvedName,
+            full_name: resolvedName,
             email: user.email,
-            age: user.age, // Added Age
-            gender: user.gender,
+            age: resolvedAge, // Self-healed Age
+            gender: resolvedGender, // Self-healed Gender
+            onboarding_completed: isOnboardingCompleted,
             // Prefer full metadata location, seamlessly merged with user.city/district/state
             location: locationObj,
             city: locationObj.city,
@@ -939,7 +983,10 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     expectations: cleanExpectations || undefined, // Store expectations separately
                     savedStickers,
                     interests: interests || (lifestyle?.hobbies ? (typeof lifestyle.hobbies === 'string' ? lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : lifestyle.hobbies) : undefined),
-                    emergency_contact: emergencyContact || existingMeta?.emergency_contact || undefined
+                    emergency_contact: emergencyContact || existingMeta?.emergency_contact || undefined,
+                    onboarding_completed: true,
+                    age: finalAge || existingMeta?.age || undefined,
+                    gender: finalGender || existingMeta?.gender || undefined
                 };
 
                 // Upsert Profile
@@ -1091,7 +1138,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             // Invalidate recommendation match cache so user and peers get fresh scores & data
             try { require('./matches').matchCache.clear(); } catch (_) {}
 
-            res.json({ success: true, message: "Profile saved" });
+            res.json({ success: true, message: "Profile saved", onboarding_completed: true });
 
         } catch (e: any) {
             console.error("Tx Error", e?.message || e);

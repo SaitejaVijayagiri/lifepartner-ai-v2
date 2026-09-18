@@ -107,6 +107,22 @@ export default function OnboardingPage() {
 
             await api.profile.updateProfile(payload); // Updated to use correct endpoint
 
+            // Mark onboarding as completed in localStorage & sync updated user
+            try {
+                const storedUserStr = localStorage.getItem('user');
+                const prevUser = storedUserStr ? JSON.parse(storedUserStr) : {};
+                const updatedUser = {
+                    ...prevUser,
+                    id: localStorage.getItem('userId') || prevUser.id,
+                    name: data.name,
+                    gender: data.gender,
+                    age: parseInt(data.age),
+                    onboarding_completed: true
+                };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                localStorage.setItem('onboarding_completed', 'true');
+            } catch (_) {}
+
             // Clear saved onboarding data from localStorage after successful save
             localStorage.removeItem('lifepartner_onboarding_data');
             localStorage.removeItem('lifepartner_onboarding_step');

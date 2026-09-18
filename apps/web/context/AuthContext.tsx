@@ -106,10 +106,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         Notifications.init().catch(console.error);
 
                         // Mandatory 2-Step Onboarding Redirect for incomplete profiles
-                        const isIncomplete = !freshProfile.gender || !freshProfile.age;
+                        // Only trigger if onboarding has NEVER been completed AND essential fields are missing
+                        const hasCompletedOnboarding = Boolean(
+                            freshProfile.onboarding_completed ||
+                            localStorage.getItem('onboarding_completed') === 'true' ||
+                            (freshProfile.gender && freshProfile.age)
+                        );
+                        const isIncomplete = !hasCompletedOnboarding;
                         if (isIncomplete && pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login')) {
-                            console.warn("⚠️ Mandatory Onboarding Redirect triggered: Missing gender or age");
+                            console.warn("⚠️ Mandatory Onboarding Redirect triggered: Incomplete profile");
                             router.replace('/onboarding');
+                        } else if (hasCompletedOnboarding) {
+                            try {
+                                localStorage.setItem('onboarding_completed', 'true');
+                            } catch (_) {}
                         }
 
                     } catch (apiErr) {
@@ -163,9 +173,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Auto-Register FCM Push Token on Login
         Notifications.init().catch(console.error);
 
-        if (requiresOnboarding || !userData.gender || !userData.age) {
+        const isCompleted = Boolean(
+            !requiresOnboarding &&
+            ((userData.gender && userData.age) || (typeof window !== 'undefined' && localStorage.getItem('onboarding_completed') === 'true'))
+        );
+
+        if (!isCompleted && requiresOnboarding) {
             router.replace('/onboarding');
         } else {
+            try {
+                localStorage.setItem('onboarding_completed', 'true');
+            } catch (_) {}
             router.replace('/dashboard');
         }
     };

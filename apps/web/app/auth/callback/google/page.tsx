@@ -38,6 +38,9 @@ function GoogleCallbackContent() {
                         setStatus('Profile incomplete. Redirecting to Onboarding...');
                         setTimeout(() => router.replace('/onboarding'), 1000);
                     } else {
+                        try {
+                            localStorage.setItem('onboarding_completed', 'true');
+                        } catch (_) {}
                         setStatus('Success! Redirecting...');
                         setTimeout(() => router.replace('/dashboard'), 1000);
                     }

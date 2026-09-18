@@ -1,4 +1,4 @@
-﻿const dns = require('dns');
+const dns = require('dns');
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const { PrismaClient } = require('@prisma/client');
@@ -9,23 +9,23 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const prisma = new PrismaClient();
 
 const FEMALE_NAMES = new Set([
-  'aditi', 'priya', 'ananya', 'pooja', 'sneha', 'neha', 'ritu', 'divya', 'kavya', 'swati',
+  'aditi', 'priya', 'ananya', 'pooja', 'sneha', 'neha', 'ritu', 'divya', 'kavya', 'swati', 'swathi',
   'shreya', 'deepa', 'meera', 'anjali', 'deepika', 'sunita', 'radhika', 'tanvi', 'sakshi',
   'aishwarya', 'anita', 'geeta', 'seema', 'rekha', 'kavita', 'komal', 'monika', 'payal',
   'shruti', 'simran', 'preeti', 'khushi', 'isha', 'riya', 'rhea', 'sonia', 'tanya', 'vani',
   'shweta', 'pallavi', 'rashmi', 'richa', 'nandini', 'sanya', 'alisha', 'madhuri', 'bhavna',
-  'megha', 'vidya', 'jyoti', 'laxmi', 'lakshmi', 'arti', 'aarti', 'neetu', 'sunayana', 'kiran'
+  'megha', 'vidya', 'jyoti', 'laxmi', 'lakshmi', 'arti', 'aarti', 'neetu', 'sunayana', 'kiran',
+  'harika', 'niharika', 'keerthana', 'amrita', 'amulya', 'chetna', 'archna', 'bhavi', 'suhani',
+  'ria', 'krithi', 'monalisha', 'sheriya', 'ankita', 'tanu', 'tanishka', 'lucy', 'sofia', 'sadaf',
+  'swetha', 'parul', 'ramya', 'soumya', 'shagun', 'aastha', 'sobika', 'rajnandini', 'saba'
 ]);
 
 function inferGender(fullName) {
   if (!fullName) return 'Male';
-  const firstName = fullName.trim().split(/\s+/)[0].toLowerCase().replace(/[^a-z]/g, '');
-  if (FEMALE_NAMES.has(firstName)) return 'Female';
-  
-  if (firstName.endsWith('a') || firstName.endsWith('i') || firstName.endsWith('ya') || firstName.endsWith('ee') || firstName.endsWith('ka')) {
-    const maleExceptions = ['shiva', 'rama', 'krishna', 'surya', 'chandra', 'baba', 'raja', 'bala', 'aditya', 'arya', 'teja', 'saiteja', 'sai'];
-    if (maleExceptions.includes(firstName)) return 'Male';
-    return 'Female';
+  const parts = fullName.trim().toLowerCase().split(/\s+/).map(p => p.replace(/[^a-z]/g, ''));
+  // If ANY word in the full name is a known female name, return Female
+  for (const part of parts) {
+    if (FEMALE_NAMES.has(part)) return 'Female';
   }
   return 'Male';
 }

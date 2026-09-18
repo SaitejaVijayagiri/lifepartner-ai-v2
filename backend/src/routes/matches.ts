@@ -257,9 +257,16 @@ router.get('/public-preview', async (req: any, res) => {
             is_verified: true
         };
 
-        // Dynamic Filtering
-        // ILIKE replacement: Prisma mode: 'insensitive'
         const val = value.toString();
+        const lowerCat = category.toString().toLowerCase();
+        const lowerVal = val.toLowerCase();
+        const explicitGender = req.query.gender?.toString().toLowerCase();
+
+        if (lowerCat === 'brides' || lowerCat === 'girls' || lowerCat === 'women' || lowerVal === 'brides' || lowerVal === 'girls' || lowerVal === 'women' || explicitGender === 'female') {
+            where.gender = { in: ['Female', 'female'] };
+        } else if (lowerCat === 'grooms' || lowerCat === 'boys' || lowerCat === 'men' || lowerVal === 'grooms' || lowerVal === 'boys' || lowerVal === 'men' || explicitGender === 'male') {
+            where.gender = { in: ['Male', 'male'] };
+        }
 
         if (category === 'location') {
             where = {
@@ -777,6 +784,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     id: { not: userId },
                     is_banned: false,
                     is_verified: true,
+                    ...(targetGender ? { gender: { in: [targetGender, targetGender.toLowerCase()] } } : {}),
                     OR: [
                         { referral_code: { equals: cleanCode, mode: 'insensitive' } },
                         { referral_code: { equals: query.trim(), mode: 'insensitive' } },

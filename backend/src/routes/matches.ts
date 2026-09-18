@@ -645,8 +645,14 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
                     : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : []));
 
+            const profileId = c.referral_code ? `LP-${c.referral_code.toUpperCase()}` : `LP-${c.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+            const handle = `@${c.full_name ? c.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${c.referral_code ? '_' + c.referral_code.toLowerCase().slice(-4) : ''}`;
+
             return {
                 id: c.id,
+                profile_id: profileId,
+                handle: handle,
+                referral_code: c.referral_code || null,
                 name: c.full_name || 'Member',
                 age: c.age,
                 height: meta.height || "Not Specified",
@@ -752,6 +758,56 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const meMeta: any = me.profiles?.metadata || {};
         const myGender = (me.gender || "").trim().toLowerCase();
 
+        // Target Gender Resolution:
+        // By default: Always opposite gender (male -> female, female -> male)
+        // If user explicitly asks for "girl/bride" or "boy/groom", respect their explicit query intent
+        let targetGender = filters.targetGender;
+        if (!targetGender) {
+            targetGender = (myGender === 'male') ? 'Female' : (myGender === 'female' ? 'Male' : null);
+        }
+
+        // --- 1.1 Direct Exact Profile ID / Handle / Name Search ---
+        const cleanCode = (filters.exactProfileId || query).replace(/^@|^lp-?/i, '').trim();
+        const candidateName = (filters.exactName || query).trim();
+
+        let exactCandidates: any[] = [];
+        if (cleanCode.length >= 2 || candidateName.length >= 2) {
+            exactCandidates = await prisma.users.findMany({
+                where: {
+                    id: { not: userId },
+                    is_banned: false,
+                    is_verified: true,
+                    OR: [
+                        { referral_code: { equals: cleanCode, mode: 'insensitive' } },
+                        { referral_code: { equals: query.trim(), mode: 'insensitive' } },
+                        { full_name: { contains: candidateName, mode: 'insensitive' } },
+                        { full_name: { contains: query.trim(), mode: 'insensitive' } }
+                    ]
+                },
+                include: {
+                    profiles: true,
+                    matches_matches_user_b_idTousers: {
+                        where: { user_a_id: userId },
+                        select: { status: true, is_liked: true }
+                    },
+                    interactions_interactions_to_user_idTousers: {
+                        where: { from_user_id: userId, type: 'REQUEST' },
+                        select: { status: true }
+                    },
+                    interactions_interactions_from_user_idTousers: {
+                        where: { to_user_id: userId, type: 'REQUEST' },
+                        select: { status: true }
+                    },
+                    _count: {
+                        select: {
+                            matches_matches_user_b_idTousers: { where: { is_liked: true } }
+                        }
+                    }
+                },
+                take: 10
+            });
+        }
+
         // --- NEW OPTIMIZED PGVECTOR + JSONB QUERY ---
         let queryVector: number[] = [];
         try {
@@ -771,9 +827,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             Prisma.sql`u.gender IS NOT NULL`
         ];
 
-        // Gender
-        if (myGender === 'male') conditions.push(Prisma.sql`u.gender ILIKE 'female'`);
-        else if (myGender === 'female') conditions.push(Prisma.sql`u.gender ILIKE 'male'`);
+        // Target Gender SQL Condition
+        if (targetGender === 'Female') conditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
+        else if (targetGender === 'Male') conditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
 
         // Age
         if (filters.minAge) conditions.push(Prisma.sql`u.age >= ${parseInt(filters.minAge)}`);
@@ -839,8 +895,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
                 Prisma.sql`u.gender IS NOT NULL`
             ];
-            if (myGender === 'male') relaxedConditions.push(Prisma.sql`u.gender ILIKE 'female'`);
-            else if (myGender === 'female') relaxedConditions.push(Prisma.sql`u.gender ILIKE 'male'`);
+            if (targetGender === 'Female') relaxedConditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
+            else if (targetGender === 'Male') relaxedConditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
 
             const relaxedSql = Prisma.join(relaxedConditions, ' AND ');
 
@@ -1059,10 +1115,17 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
                     : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : []));
 
+            const profileId = c.referral_code ? `LP-${c.referral_code.toUpperCase()}` : `LP-${c.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+            const handle = `@${c.full_name ? c.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${c.referral_code ? '_' + c.referral_code.toLowerCase().slice(-4) : ''}`;
+
             return {
                 id: c.id,
+                profile_id: profileId,
+                handle: handle,
+                referral_code: c.referral_code || null,
                 name: c.full_name || 'Member',
                 age: c.age,
+                gender: c.gender,
                 height: meta.height || "Not Specified",
                 location: locString,
                 location_data: metaLoc || null,
@@ -1133,6 +1196,73 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             }
         }));
 
+        // Map Direct Exact Candidates (ID / Name / Handle Match)
+        const mappedExact = exactCandidates.map(c => {
+            const meta = (c.profiles?.metadata as any) || {};
+            const profileId = c.referral_code ? `LP-${c.referral_code.toUpperCase()}` : `LP-${c.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+            const handle = `@${c.full_name ? c.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${c.referral_code ? '_' + c.referral_code.toLowerCase().slice(-4) : ''}`;
+            const rawPhotoList = extractPhotosList(c.profiles, meta, c.avatar_url);
+            const sanitizedPhotos = rawPhotoList.map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)).filter(Boolean);
+            const mainPhoto = sanitizePhotoUrl(
+                (sanitizedPhotos.length > 0 ? sanitizedPhotos[0] : null) || (c.avatar_url && c.avatar_url.trim() ? c.avatar_url : null),
+                c.full_name || c.id
+            );
+            const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+
+            const matchRecord = c.matches_matches_user_b_idTousers?.[0];
+            const sentRequest = c.interactions_interactions_to_user_idTousers?.[0];
+            const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
+            const matchStatus = sentRequest?.status || receivedRequest?.status || null;
+
+            const locString = [c.city, c.district, c.state, meta.location?.country].filter(Boolean).join(', ') || "India";
+
+            return {
+                id: c.id,
+                profile_id: profileId,
+                handle: handle,
+                referral_code: c.referral_code || null,
+                name: c.full_name || 'Member',
+                age: c.age,
+                gender: c.gender,
+                height: meta.height || "Not Specified",
+                location: locString,
+                location_data: meta.location || null,
+                role: meta.career?.profession || "Member",
+                profession: meta.career?.profession || "",
+                education: meta.career?.education || meta.career?.educationLevel || "",
+                maritalStatus: meta.maritalStatus || "Single",
+                motherTongue: meta.motherTongue || "",
+                photoUrl: mainPhoto,
+                hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
+                score: 99,
+                is_exact_match: true,
+                match_reasons: ["🎯 Exact Profile Match"],
+                analysis: { emotional: 99, vision: 99 },
+                isOnline: isUserOnline(c.id),
+                summary: `🎯 **Exact Profile Match** for "${query}".`,
+                reels: meta.reels || [],
+                photos: finalPhotos,
+                career: meta.career || {},
+                family: meta.family || {},
+                religion: meta.religion || {},
+                horoscope: meta.horoscope || {},
+                lifestyle: meta.lifestyle || {},
+                partnerPreferences: meta.partnerPreferences || {},
+                aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                expectations: meta.expectations || "",
+                prompt: c.profiles?.raw_prompt || "",
+                dob: meta.dob || null,
+                stories: mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []),
+                match_status: matchStatus,
+                is_liked: matchRecord?.is_liked || false,
+                isPremium: c.is_premium || false,
+                phone: me.is_premium ? (c.phone || meta.phone) : null,
+                email: me.is_premium ? (c.email || meta.email) : null,
+                voiceBioUrl: c.voice_bio_url || null,
+                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra)
+            };
+        });
+
         // Batch Query for Likes & Interactions Status
         const candidateIds = finalMatches.map(m => m.id);
         const [likes, interactions] = await Promise.all([
@@ -1168,7 +1298,12 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             is_liked: likeMap.get(m.id) || false
         }));
 
-        res.json({ matches: finalMatchesWithStatus, filters });
+        // Prepend exact matches and deduplicate with vector search results
+        const exactIds = new Set(mappedExact.map(e => e.id));
+        const deduplicatedAi = finalMatchesWithStatus.filter(m => !exactIds.has(m.id));
+        const combined = [...mappedExact, ...deduplicatedAi];
+
+        res.json({ matches: combined, filters, total_count: combined.length });
 
     } catch (e) {
         console.error("Search Error", e);

@@ -512,6 +512,26 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                 )}
                             </>
                         )}
+                        {/* Profile ID / Matrimony ID Badge */}
+                        {(match.profile_id || match.profileId || match.referral_code) && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const idToCopy = match.profile_id || match.profileId || (match.referral_code ? `LP-${match.referral_code.toUpperCase()}` : `LP-${match.id.slice(0, 8).toUpperCase()}`);
+                                    navigator.clipboard.writeText(idToCopy);
+                                    toast.success(`Copied Profile ID: ${idToCopy}`);
+                                }}
+                                className="pointer-events-auto inline-flex items-center gap-1 text-purple-200 hover:text-white text-[10px] font-mono font-bold bg-purple-900/60 hover:bg-purple-800/80 border border-purple-400/40 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-sm"
+                                title="Click to copy Profile ID"
+                            >
+                                <span>🆔 {match.profile_id || match.profileId || (match.referral_code ? `LP-${match.referral_code.toUpperCase()}` : `LP-${match.id.slice(0, 8).toUpperCase()}`)}</span>
+                            </button>
+                        )}
+                        {match.is_exact_match && (
+                            <span className="inline-flex items-center gap-1 text-emerald-300 text-[10px] font-black uppercase tracking-wider bg-emerald-500/30 border border-emerald-400/50 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md shadow-md animate-pulse">
+                                🎯 Exact Match
+                            </span>
+                        )}
                         {/* Online Indicator */}
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/30 border-green-400/40 text-green-200' : 'bg-gray-500/30 border-gray-400/30 text-gray-300'} mb-0.5`}>
                             <div className={`w-2 h-2 rounded-full ${isUserOnline ? 'bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'bg-gray-400'}`}></div>

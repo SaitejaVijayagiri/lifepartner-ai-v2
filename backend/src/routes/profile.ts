@@ -317,6 +317,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             coins: user.coins || 0, // Added Coin Balance
             phone: user.phone || meta.phone || "", // Hydrate phone from users table or metadata
             referral_code: user.referral_code || "", // Added Referral Code
+            profile_id: user.referral_code ? `LP-${user.referral_code.toUpperCase()}` : `LP-${user.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
+            handle: `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`,
             premium_expiry: user.premium_expiry, // Added Premium Expiry
             is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
             muted_users: meta.muted_users || [],
@@ -520,18 +522,41 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             return res.status(400).json({ error: "Use /me endpoint" });
         }
 
-        // Fetch User with Relations in one go
-        const user = await prisma.users.findUnique({
-            where: { id },
-            include: {
-                profiles: true,
-                _count: {
-                    select: {
-                        matches_matches_user_b_idTousers: { where: { is_liked: true } } // Total Likes
-                    }
+        // Check if id is a standard UUID or a Profile ID / Handle
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+        let user: any = null;
+
+        const includeConfig = {
+            profiles: true,
+            _count: {
+                select: {
+                    matches_matches_user_b_idTousers: { where: { is_liked: true } } // Total Likes
                 }
             }
-        });
+        };
+
+        if (isUUID) {
+            user = await prisma.users.findUnique({
+                where: { id },
+                include: includeConfig
+            });
+        } else {
+            // Support lookup by Matrimony ID (LP-XXXX), @handle, referral_code, or exact full_name
+            const cleanHandle = id.replace(/^@/, '').trim();
+            const cleanLP = id.replace(/^lp-?/i, '').trim();
+
+            user = await prisma.users.findFirst({
+                where: {
+                    OR: [
+                        { referral_code: { equals: cleanLP, mode: 'insensitive' } },
+                        { referral_code: { equals: cleanHandle, mode: 'insensitive' } },
+                        { referral_code: { equals: id, mode: 'insensitive' } },
+                        { full_name: { equals: cleanHandle, mode: 'insensitive' } }
+                    ]
+                },
+                include: includeConfig
+            });
+        }
 
         if (!user || user.is_banned) {
             return res.status(404).json({ error: "User not found" });
@@ -554,7 +579,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                     where: {
                         from_user_id_to_user_id_type: {
                             from_user_id: requesterId,
-                            to_user_id: id,
+                            to_user_id: user.id,
                             type: 'REQUEST'
                         }
                     },
@@ -563,7 +588,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                 prisma.interactions.findUnique({
                     where: {
                         from_user_id_to_user_id_type: {
-                            from_user_id: id,
+                            from_user_id: user.id,
                             to_user_id: requesterId,
                             type: 'REQUEST'
                         }
@@ -574,7 +599,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                     where: {
                         user_a_id_user_b_id: {
                             user_a_id: requesterId,
-                            user_b_id: id
+                            user_b_id: user.id
                         }
                     },
                     select: { is_liked: true }
@@ -600,8 +625,14 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             phone: null
         };
 
+        const profileId = user.referral_code ? `LP-${user.referral_code.toUpperCase()}` : `LP-${user.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+        const handle = `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`;
+
         res.json({
             id: user.id,
+            profile_id: profileId,
+            handle: handle,
+            referral_code: user.referral_code || null,
             name: user.full_name,
             age: user.age,
             gender: user.gender,

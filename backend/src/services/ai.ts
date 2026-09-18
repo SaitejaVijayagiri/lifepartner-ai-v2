@@ -227,6 +227,33 @@ export class AIService {
         ];
         filters.keywords = hobbyKeywords.filter(k => lower.includes(k));
 
+        // --- Gender Intent Recognition ---
+        if (/\b(?:girl|girls|bride|brides|female|females|woman|women|daughter|she|her)\b/i.test(query)) {
+            filters.targetGender = 'Female';
+        } else if (/\b(?:boy|boys|groom|grooms|male|males|man|men|son|he|him)\b/i.test(query)) {
+            filters.targetGender = 'Male';
+        }
+
+        // --- Exact Profile ID or Handle Detection ---
+        const profileIdMatch = query.match(/(?:^|\s)(?:id[:\s]+)?(lp-?[a-z0-9]{3,10}|@[a-z0-9_.-]{3,30})(?:$|\s)/i);
+        if (profileIdMatch) {
+            filters.exactProfileId = profileIdMatch[1].trim();
+        } else {
+            const cleanRaw = query.trim();
+            if (/^(?:@|lp-?)?[a-z0-9]{4,10}$/i.test(cleanRaw)) {
+                filters.exactProfileId = cleanRaw;
+            }
+        }
+
+        // --- Exact Name Detection (e.g. "Priya Sharma", "Rahul Verma") ---
+        const cleanedWords = query
+            .replace(/\b(?:search|find|looking|for|a|an|the|who|is|in|boy|boys|girl|girls|bride|groom)\b/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (cleanedWords.length >= 2 && !filters.profession && !filters.location && !filters.exactProfileId) {
+            filters.exactName = cleanedWords;
+        }
+
         console.log(`[AIService.parseSearchQuery] Query: "${query}" → Filters:`, filters);
         return filters;
     }

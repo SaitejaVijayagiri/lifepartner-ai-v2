@@ -3,7 +3,7 @@
 import { getZodiacSymbol } from '@/lib/religionUtils';
 
 import { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2 } from 'lucide-react';
+import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2, Copy, Check, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
@@ -41,6 +41,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const [swipeStartY, setSwipeStartY] = useState(0);
 
     const toast = useToast();
+    const [copiedId, setCopiedId] = useState(false);
     const [matchStatus, setMatchStatus] = useState<string | null>(profile.match_status || null);
     const [loadingInterest, setLoadingInterest] = useState(false);
 
@@ -143,18 +144,67 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         } catch (e) { return defaultAge; }
     };
 
+    const displayProfileId = profile.profile_id || profile.profileId || (profile.referral_code ? `LP-${String(profile.referral_code).toUpperCase()}` : (profile.id ? `LP-${String(profile.id).slice(0, 8).toUpperCase()}` : ''));
+    const displayHandle = profile.handle || (profile.name ? `@${String(profile.name).toLowerCase().replace(/[^a-z0-9]/g, '')}` : '');
+
+    const handleCopyId = (e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        if (!displayProfileId) return;
+        navigator.clipboard.writeText(displayProfileId);
+        setCopiedId(true);
+        toast.success(`Copied Profile ID: ${displayProfileId}`);
+        setTimeout(() => setCopiedId(false), 2000);
+    };
+
+    const handleShareProfile = async (e?: React.MouseEvent) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
+        }
+        const profileUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/profile/${displayProfileId || profile.id}`;
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            try {
+                await navigator.share({
+                    title: `${profile.name} on LifePartner AI`,
+                    text: `View ${profile.name}'s verified profile on LifePartner AI (${displayProfileId})`,
+                    url: profileUrl,
+                });
+                return;
+            } catch (err: any) {
+                if (err.name === 'AbortError') return;
+            }
+        }
+        if (typeof navigator !== 'undefined') {
+            navigator.clipboard.writeText(profileUrl);
+            toast.success("Profile link copied to clipboard!");
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
             <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-screen h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
 
-                {/* Top Right Floating Close Button */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 z-[999] p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer"
-                    aria-label="Close"
-                >
-                    <X size={20} />
-                </button>
+                {/* Top Right Floating Action Buttons */}
+                <div className="absolute top-4 right-4 z-[999] flex items-center gap-2">
+                    <button
+                        onClick={handleShareProfile}
+                        className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
+                        aria-label="Share Profile"
+                        title="Share Profile"
+                    >
+                        <Share2 size={18} />
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
+                        aria-label="Close"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
 
                 {/* LEFT: Photo (Full-height hero on mobile, sticky 45% column on desktop) */}
                 <div className="w-full md:w-[45%] h-[420px] sm:h-[460px] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
@@ -202,6 +252,26 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </div>
                             );
                         })()}
+
+                        {/* Profile ID & Handle Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5 pointer-events-auto">
+                            {displayProfileId && (
+                                <button
+                                    type="button"
+                                    onClick={handleCopyId}
+                                    className="inline-flex items-center gap-1.5 text-purple-200 hover:text-white text-[11px] font-mono font-bold bg-purple-950/80 hover:bg-purple-900 border border-purple-400/40 px-2.5 py-0.5 rounded-full backdrop-blur-md transition-all active:scale-95 cursor-pointer shadow-md"
+                                    title="Click to copy Profile ID"
+                                >
+                                    <span>🆔 {displayProfileId}</span>
+                                    {copiedId ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} className="text-purple-300" />}
+                                </button>
+                            )}
+                            {displayHandle && (
+                                <span className="inline-flex items-center text-indigo-200 text-[11px] font-semibold bg-indigo-950/70 border border-indigo-400/30 px-2.5 py-0.5 rounded-full backdrop-blur-md">
+                                    {displayHandle}
+                                </span>
+                            )}
+                        </div>
 
                         <div className="flex items-center gap-2 mb-1">
                             <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-center gap-2">
@@ -274,13 +344,42 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 <div className="w-full md:w-[55%] flex-1 flex flex-col bg-white dark:bg-gray-900 md:h-full md:overflow-y-auto relative z-30 md:z-auto">
 
                     {/* Desktop Header (Hidden on Mobile) */}
-                    <div className="hidden md:block px-8 pt-8 pb-4">
-                        <div className="flex gap-2 mt-2 pl-4">
-                            <div className="bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 dark:border-pink-800/50 flex items-center gap-1 w-max">
-                                <span>🎁</span> {profile.total_gifts || 0} Gifts
+                    <div className="hidden md:block px-8 pt-6 pb-2">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                {displayProfileId && (
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyId}
+                                        className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800 px-3 py-1 rounded-full transition-all active:scale-95 cursor-pointer"
+                                        title="Click to copy Profile ID"
+                                    >
+                                        <span>🆔 {displayProfileId}</span>
+                                        {copiedId ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} className="text-purple-500" />}
+                                    </button>
+                                )}
+                                {displayHandle && (
+                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+                                        {displayHandle}
+                                    </span>
+                                )}
                             </div>
-                            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-100 dark:border-red-800/50 flex items-center gap-1 w-max">
-                                <span>❤️</span> {profile.total_likes || 0} Likes
+                            <div className="flex items-center gap-2">
+                                <div className="bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 dark:border-pink-800/50 flex items-center gap-1 w-max">
+                                    <span>🎁</span> {profile.total_gifts || 0} Gifts
+                                </div>
+                                <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-100 dark:border-red-800/50 flex items-center gap-1 w-max">
+                                    <span>❤️</span> {profile.total_likes || 0} Likes
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleShareProfile}
+                                    className="p-1 px-3 rounded-full bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                                    title="Share Profile Link"
+                                >
+                                    <Share2 size={13} />
+                                    <span>Share</span>
+                                </button>
                             </div>
                         </div>
                     </div>

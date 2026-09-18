@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff } from 'lucide-react';
+import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -149,24 +149,46 @@ export default function MatchesTab({
         });
     };
 
-    const handleSearch = async () => {
-        if (!searchQuery.trim()) return;
+    const handleSearch = async (overrideQuery?: string) => {
+        const query = (overrideQuery !== undefined ? overrideQuery : searchQuery).trim();
+        if (!query) return;
+        if (overrideQuery !== undefined) {
+            setSearchQuery(overrideQuery);
+        }
         setLoading(true);
         setIsSearching(true);
         setAiFilters(null);
         try {
-            const minDelay = new Promise(resolve => setTimeout(resolve, 1500));
+            const minDelay = new Promise(resolve => setTimeout(resolve, 800));
             const [results] = await Promise.all([
-                api.matches.search(searchQuery),
+                api.matches.search(query),
                 minDelay
             ]);
             setMatches(results.matches || []);
             setAiFilters(results.filters || null);
+            if ((results.matches || []).length === 0) {
+                toast.info("No matches found for this query. Try adjusting your search!");
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to search. Please try again.");
+        } finally {
+            setLoading(false);
+            setIsSearching(false);
+        }
+    };
+
+    const handleClearSearch = async () => {
+        setSearchQuery('');
+        setAiFilters(null);
+        setLoading(true);
+        try {
+            await fetchMatches(1);
+            toast.success("Reset to daily recommendations");
         } catch (error) {
             console.error(error);
         } finally {
             setLoading(false);
-            setIsSearching(false);
         }
     };
 
@@ -489,34 +511,57 @@ export default function MatchesTab({
                 <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
 
                     <div className="relative z-10">
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5 mb-1">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
-                                <Sparkles className="text-white" size={18} />
-                            </div>
-                            <span className="text-gradient">AI Matchmaker Search</span>
-                        </h2>
-                        <p className="text-xs text-gray-500 ml-9">Describe your ideal partner in plain English</p>
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5 mb-1">
+                                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
+                                    <Sparkles className="text-white" size={18} />
+                                </div>
+                                <span className="text-gradient">AI Matchmaker Search</span>
+                            </h2>
+                            {(searchQuery || aiFilters) && (
+                                <button
+                                    onClick={handleClearSearch}
+                                    className="text-xs font-semibold text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 flex items-center gap-1 transition-colors"
+                                >
+                                    <X size={13} />
+                                    <span>Reset</span>
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-xs text-gray-500 ml-9">Search by Name, Profile ID (e.g. LP-8291A), or describe your ideal partner</p>
                     </div>
 
                     <div className="space-y-3 relative z-10">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                placeholder="e.g., 'Software Engineer who loves travel'..."
-                                className="flex-1 bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl px-4 py-3 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
-                            />
+                        <div className="flex gap-2 relative">
+                            <div className="relative flex-1">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                    placeholder="Search by Name, Profile ID (e.g. LP-8291A), or AI ('Doctor in Mumbai')..."
+                                    className="w-full bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl pl-4 pr-10 py-3 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={handleClearSearch}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full transition-colors"
+                                        title="Clear search"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
                             <button
-                                onClick={handleSearch}
-                                className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-5 py-3 rounded-2xl font-bold text-xs md:text-sm hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5 shrink-0"
+                                onClick={() => handleSearch()}
+                                disabled={loading}
+                                className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-5 py-3 rounded-2xl font-bold text-xs md:text-sm hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-70 cursor-pointer"
                             >
                                 <Search size={16} />
-                                <span>Search</span>
+                                <span>{loading ? 'Searching...' : 'Search'}</span>
                             </button>
                         </div>
-                        {/* Quick Prompts & Highlights & Online Filter */}
+                        {/* Quick Prompts & Gender Chips & Online Filter */}
                         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                             <button
                                 onClick={() => setShowOnlineOnly(!showOnlineOnly)}
@@ -542,11 +587,31 @@ export default function MatchesTab({
                                 <span>{showHighlightsOnly ? 'Showing ⭐ Highlights' : '⭐ Story Highlights'}</span>
                             </button>
 
-                            {['Loves Travel', 'Fitness & Yoga', 'Doctor / Healthcare', 'Music Lover'].map(prompt => (
+                            {/* Gender Intent Chips for Matrimony & Dating */}
+                            <button
+                                onClick={() => handleSearch("Brides / Girls")}
+                                className="bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
+                            >
+                                👰 Girls / Brides
+                            </button>
+                            <button
+                                onClick={() => handleSearch("Grooms / Boys")}
+                                className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
+                            >
+                                🤵 Boys / Grooms
+                            </button>
+                            <button
+                                onClick={() => setSearchQuery("LP-")}
+                                className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
+                            >
+                                🆔 Search by ID
+                            </button>
+
+                            {['Doctor / Healthcare', 'Software Engineer', 'Loves Travel', 'Fitness & Yoga'].map(prompt => (
                                 <button
                                     key={prompt}
-                                    onClick={() => { setSearchQuery(prompt); handleSearch(); }}
-                                    className="bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full transition-colors font-medium"
+                                    onClick={() => handleSearch(prompt)}
+                                    className="bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full transition-colors font-medium active:scale-95"
                                 >
                                     + {prompt}
                                 </button>
@@ -710,19 +775,42 @@ export default function MatchesTab({
             {/* AI Feedback */}
             {aiFilters && (
                 <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-2xl p-4 mb-6 animate-in fade-in slide-in-from-top-4">
-                    <div className="flex items-start gap-3">
-                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400">
-                            <Sparkles size={18} />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 shrink-0">
+                                <Sparkles size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-100">AI Search Active:</h3>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs text-indigo-700 dark:text-indigo-300">
+                                    {aiFilters.target_gender && (
+                                        <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm border border-indigo-100 dark:border-indigo-800">
+                                            {aiFilters.target_gender === 'Female' ? '👰 Brides / Women' : '🤵 Grooms / Men'}
+                                        </span>
+                                    )}
+                                    {aiFilters.exact_profile_id && (
+                                        <span className="font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded shadow-sm border border-purple-200 dark:border-purple-700">
+                                            🆔 ID: {aiFilters.exact_profile_id}
+                                        </span>
+                                    )}
+                                    {aiFilters.candidate_name && (
+                                        <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm border border-indigo-100 dark:border-indigo-800">
+                                            👤 Name: {aiFilters.candidate_name}
+                                        </span>
+                                    )}
+                                    {aiFilters.profession && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">💼 {aiFilters.profession}</span>}
+                                    {aiFilters.location && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">📍 {aiFilters.location}</span>}
+                                    {aiFilters.values?.length > 0 && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">💛 {aiFilters.values[0]}</span>}
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-100">Here's what I understood:</h3>
-                            <p className="text-sm text-indigo-700 dark:text-indigo-300 mt-1">
-                                Looking for
-                                {aiFilters.profession && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💼 {aiFilters.profession}</span>}
-                                {aiFilters.location && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">📍 {aiFilters.location}</span>}
-                                {aiFilters.values?.length > 0 && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded mx-1 shadow-sm">💛 {aiFilters.values[0]}</span>}
-                            </p>
-                        </div>
+                        <button
+                            onClick={handleClearSearch}
+                            className="self-start sm:self-center shrink-0 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/40 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                            <X size={13} />
+                            <span>Reset Search</span>
+                        </button>
                     </div>
                 </div>
             )}
@@ -734,10 +822,21 @@ export default function MatchesTab({
                     <h2 className="text-2xl font-heading font-bold text-foreground">
                         {searchQuery ? (aiFilters ? 'AI Recommended Matches' : 'Search Results') : 'Daily Recommendations'}
                     </h2>
-                    <p className="text-sm text-muted-foreground mt-1">Handpicked matches just for you ✨</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        {searchQuery ? `Showing matches for "${searchQuery}"` : 'Handpicked matches just for you ✨'}
+                    </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="bg-indigo-50 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full border border-indigo-100">
+                    {(searchQuery || aiFilters) && (
+                        <button
+                            onClick={handleClearSearch}
+                            className="text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-950/40 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                            <X size={12} />
+                            <span>Clear Filter</span>
+                        </button>
+                    )}
+                    <span className="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 text-xs font-bold px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-800">
                         {displayMatches.length} matches
                     </span>
                 </div>

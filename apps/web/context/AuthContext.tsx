@@ -110,7 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const hasCompletedOnboarding = Boolean(
                             freshProfile.onboarding_completed ||
                             localStorage.getItem('onboarding_completed') === 'true' ||
-                            (freshProfile.gender && freshProfile.age)
+                            freshProfile.gender ||
+                            freshProfile.age ||
+                            (freshProfile.name && freshProfile.email)
                         );
                         const isIncomplete = !hasCompletedOnboarding;
                         if (isIncomplete && pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login')) {

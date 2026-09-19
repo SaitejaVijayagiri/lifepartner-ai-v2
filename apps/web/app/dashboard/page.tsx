@@ -598,7 +598,9 @@ function DashboardContent() {
                 const isCompleted = Boolean(
                     profile?.onboarding_completed ||
                     localStorage.getItem('onboarding_completed') === 'true' ||
-                    (profile?.name && profile?.age && profile?.gender)
+                    profile?.gender ||
+                    profile?.age ||
+                    (profile?.name && profile?.email)
                 );
                 if (!isCompleted) {
                     router.push('/onboarding');

@@ -17,7 +17,7 @@ import ConnectionWorkflowSection from '@/components/ConnectionWorkflowSection';
 import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/ui/Toast';
-import { api } from '@/lib/api';
+import { api, getApiUrl } from '@/lib/api';
 
 export default function LandingPageClient() {
   const { t } = useLanguage();
@@ -146,7 +146,7 @@ export default function LandingPageClient() {
 
   const handleResendHeroOtp = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
+      const res = await fetch(`${getApiUrl()}/auth/resend-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: signupForm.email.trim().toLowerCase() })

@@ -318,6 +318,24 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     }, [incomingCall, callAnswered, callAccepted, callEnded, status, isSpeedDate, isHostRoom]);
 
+    // 45-second Ringing Timeout: Auto-hangup if call is unanswered
+    useEffect(() => {
+        if (isSpeedDate || isHostRoom || callAccepted || callEnded) return;
+
+        const isRinging = (incomingCall && !callAnswered) || status.includes("Calling") || status.includes("Dialing");
+        if (!isRinging) return;
+
+        const timeoutTimer = setTimeout(() => {
+            if (!callAccepted && !callEnded) {
+                console.log("[VideoCallModal] Call timed out after 45s without answer.");
+                toast.info(incomingCall ? "Call missed." : `No answer from ${partner?.name || 'user'}.`);
+                leaveCall(true);
+            }
+        }, 45000);
+
+        return () => clearTimeout(timeoutTimer);
+    }, [incomingCall, callAnswered, callAccepted, callEnded, status, isSpeedDate, isHostRoom, partner?.name]);
+
     // Initialize Local Stream
     useEffect(() => {
         if (!SimplePeer) return;

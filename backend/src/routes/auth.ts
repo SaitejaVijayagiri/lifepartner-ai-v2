@@ -431,13 +431,55 @@ router.post('/login', async (req, res) => {
             user.deactivated_until = null;
         }
 
-        // Enforce Email Verification
+        // Enforce Email Verification — Auto-dispatch fresh OTP so user is never locked out with an expired code
         if (!user.is_verified) {
-            console.log(`❌ Login prevented: Unverified email for ${email}`);
+            console.log(`❌ Login prevented: Unverified email for ${email}. Auto-dispatching fresh OTP...`);
+            const freshOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+            await prisma.users.update({
+                where: { id: user.id },
+                data: { otp_code: freshOtp, otp_expires_at: otpExpiresAt }
+            });
+
+            if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('mock')) {
+                resend.emails.send({
+                    from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
+                    to: emailNormalized,
+                    subject: 'Your Verification Code',
+                    text: `Your verification code is: ${freshOtp}\n\nThis code expires in 10 minutes.\n\nSent from LifePartner AI.`,
+                    html: `
+                    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                        <div style="background: linear-gradient(135deg, #E11D48 0%, #4F46E5 100%); padding: 30px; text-align: center;">
+                            <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">LifePartner AI</h1>
+                            <p style="color: rgba(255,255,255,0.9); margin-top: 5px; font-size: 14px;">Where Tradition Meets Technology</p>
+                        </div>
+                        <div style="padding: 40px 30px; text-align: center;">
+                            <h2 style="color: #1e293b; margin-bottom: 20px; font-size: 20px;">Verify Your Email Address</h2>
+                            <p style="color: #64748b; margin-bottom: 30px; line-height: 1.6;">
+                                Hello ${user.full_name || 'there'},<br />
+                                Please enter your verification code below to complete your login. This code is valid for 10 minutes.
+                            </p>
+                            <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 5px; margin-bottom: 30px; display: inline-block;">
+                                ${freshOtp}
+                            </div>
+                            <p style="color: #94a3b8; font-size: 12px; margin-top: 20px;">
+                                If you didn't request this code, you can safely ignore this email.
+                            </p>
+                        </div>
+                        <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LifePartner AI. All rights reserved.</p>
+                        </div>
+                    </div>
+                    `
+                }).catch(e => console.error("Auto-dispatch login OTP email error:", e));
+            }
+
             return res.status(403).json({
-                error: "Please verify your email address first.",
+                error: "Please verify your email address. A fresh verification code has been sent to your email.",
                 requiresVerification: true,
-                email: email
+                email: emailNormalized,
+                otpSent: true
             });
         }
 

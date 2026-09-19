@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
+import { api, getApiUrl } from '@/lib/api';
 
 import { Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
 
@@ -66,12 +66,18 @@ function RegisterForm() {
         if (isNewSignup) {
             // Clear stale pending state so fresh register form is shown
             localStorage.removeItem('pendingVerificationEmail');
+            localStorage.removeItem('pendingVerificationJustDispatched');
             return;
         }
         const pendingEmail = localStorage.getItem('pendingVerificationEmail');
         if (pendingEmail) {
             setForm(prev => ({ ...prev, email: pendingEmail }));
             setShowOtp(true);
+            if (localStorage.getItem('pendingVerificationJustDispatched') === 'true') {
+                localStorage.removeItem('pendingVerificationJustDispatched');
+                setResendCooldown(60);
+                toast.success('A fresh verification code was sent to your email!');
+            }
         }
     }, [searchParams]);
 
@@ -85,7 +91,7 @@ function RegisterForm() {
     const handleResendOtp = async () => {
         try {
             setResendLoading(true);
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/auth/resend-otp`, {
+            const res = await fetch(`${getApiUrl()}/auth/resend-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: form.email.trim().toLowerCase() })

@@ -69,9 +69,10 @@ export default function LoginPage() {
                 router.replace('/dashboard');
             }
         } catch (err: any) {
-            // If unverified — redirect to OTP verification screen on /register
+            // If unverified — redirect to OTP verification screen on /register with fresh code waiting
             if (err.message?.toLowerCase().includes('verify your email')) {
                 localStorage.setItem('pendingVerificationEmail', form.email.trim().toLowerCase());
+                localStorage.setItem('pendingVerificationJustDispatched', 'true');
                 router.push('/register');
                 return;
             }

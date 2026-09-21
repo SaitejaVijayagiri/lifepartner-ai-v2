@@ -30,8 +30,8 @@ router.get('/history', authenticateToken, async (req: any, res) => {
 
             return {
                 id: row.id,
-                otherName: otherUser?.full_name,
-                otherPhoto: sanitizePhotoUrl(otherUser?.avatar_url ?? null, otherUser?.full_name || 'User'),
+                otherName: otherUser?.full_name || 'Member',
+                otherPhoto: sanitizePhotoUrl(otherUser?.avatar_url ?? null, otherUser?.full_name || 'Member'),
                 type: row.type,
                 status: row.status,
                 duration: row.duration_seconds,
@@ -53,6 +53,10 @@ router.post('/log', authenticateToken, async (req: any, res) => {
     try {
         const { receiverId, type, status, duration } = req.body;
         const callerId = req.user.userId;
+
+        if (!receiverId || callerId === receiverId) {
+            return res.status(400).json({ error: "Invalid receiver ID" });
+        }
 
         // created_at defaults to NOW(). ended_at = NOW(). started_at = NOW() - duration.
         const now = new Date();

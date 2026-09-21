@@ -194,18 +194,25 @@ export default function MatchesTab({
 
     // Client-side filter function
     const filterMatches = (matchList: any[]) => {
-        if (!activeFilters) return matchList;
+        if (!activeFilters || !Array.isArray(matchList)) return matchList || [];
+
+        const safeStr = (val: any): string => {
+            if (typeof val === 'string') return val;
+            if (val && typeof val === 'object') return typeof val.name === 'string' ? val.name : (typeof val.value === 'string' ? val.value : '');
+            return '';
+        };
 
         return matchList.filter((match) => {
+            if (!match) return false;
             const meta = match.metadata || {};
 
             const age = match.age ?? meta.basics?.age ?? meta.age ?? 0;
-            const heightStr = match.height || meta.basics?.height || meta.height || '';
-            const religionStr = (match.religion?.religion || meta.religion?.religion || meta.background?.religion || match.religion || '').toLowerCase();
-            const casteStr = (match.religion?.caste || meta.religion?.caste || '').toLowerCase();
-            const dietStr = (match.lifestyle?.diet || meta.lifestyle?.diet || match.diet || '').toLowerCase();
-            const maritalStr = (match.maritalStatus || meta.maritalStatus || 'Single').toLowerCase();
-            const incomeStr = (match.career?.income || meta.career?.income || '').toLowerCase();
+            const heightStr = safeStr(match.height || meta.basics?.height || meta.height);
+            const religionStr = (safeStr(match.religion?.religion) || safeStr(meta.religion?.religion) || safeStr(meta.background?.religion) || safeStr(match.religion)).toLowerCase();
+            const casteStr = (safeStr(match.religion?.caste) || safeStr(meta.religion?.caste)).toLowerCase();
+            const dietStr = (safeStr(match.lifestyle?.diet) || safeStr(meta.lifestyle?.diet) || safeStr(match.diet)).toLowerCase();
+            const maritalStr = (safeStr(match.maritalStatus) || safeStr(meta.maritalStatus) || 'single').toLowerCase();
+            const incomeStr = String(match.career?.income || meta.career?.income || '').toLowerCase();
 
             const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();
 
@@ -450,19 +457,20 @@ export default function MatchesTab({
                     </div>
 
                     <div className="flex items-center space-x-4 overflow-x-auto no-scrollbar py-1 px-1">
-                        {onlineMatchesList.map((member: any) => {
-                            const photo = member.photoUrl || member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`;
+                        {onlineMatchesList.map((member: any, mIdx: number) => {
+                            if (!member) return null;
+                            const photo = member.photoUrl || member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id || mIdx}`;
 
                             return (
                                 <div
-                                    key={member.id}
+                                    key={member.id ? `online-${member.id}-${mIdx}` : `online-${mIdx}`}
                                     className="flex flex-col items-center space-y-1.5 flex-shrink-0 group cursor-pointer"
                                     onClick={() => setSelectedProfile(member)}
                                 >
                                     <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-emerald-400 via-teal-500 to-green-400 shadow-lg group-hover:scale-105 transition-transform">
                                         <img
                                             src={photo}
-                                            alt={member.name}
+                                            alt={member.name || 'Member'}
                                             className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 bg-white dark:bg-slate-800"
                                         />
                                         {/* Glowing Green Online Badge */}
@@ -472,7 +480,7 @@ export default function MatchesTab({
                                     </div>
 
                                     <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 max-w-[70px] truncate text-center">
-                                        {member.name.split(' ')[0]}
+                                        {(member.name || 'Member').split(' ')[0]}
                                     </span>
 
                                     {/* Instant Message Button */}
@@ -832,38 +840,41 @@ export default function MatchesTab({
 
             {/* Matches Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
-                {displayMatches.map((match, idx) => (
-                    <div
-                        key={match.id}
-                        className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium"
-                        style={{ animationDelay: `${idx * 100}ms` }}
-                    >
-                        <MatchCard
-                            match={match}
-                            onConnect={() => {
-                                setMatches(prev => prev.map(m =>
-                                    m.id === match.id ? { ...m, match_status: 'pending' } : m
-                                ));
-                                try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
-                            }}
-                            onViewProfile={() => setSelectedProfile(match)}
-                            onShowKundli={(data: any) => setSelectedKundli({
-                                data,
-                                names: { me: "You", partner: match.name }
-                            })}
-                            onGift={() => setGiftData({ userId: match.id, userName: match.name })}
-                            isConnectedProp={connections.some((c: any) => c.partner?.id === match.id)}
-                            onChat={() => {
-                                const conn = connections.find((c: any) => c.partner?.id === match.id);
-                                if (conn) {
-                                    openChat(conn);
-                                } else {
-                                    setActiveTab('connections');
-                                }
-                            }}
-                        />
-                    </div>
-                ))}
+                {displayMatches.map((match, idx) => {
+                    if (!match) return null;
+                    return (
+                        <div
+                            key={match.id ? `${match.id}-${idx}` : `match-${idx}`}
+                            className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium"
+                            style={{ animationDelay: `${Math.min(idx, 15) * 50}ms` }}
+                        >
+                            <MatchCard
+                                match={match}
+                                onConnect={() => {
+                                    setMatches(prev => prev.map(m =>
+                                        m.id === match.id ? { ...m, match_status: 'pending' } : m
+                                    ));
+                                    try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
+                                }}
+                                onViewProfile={() => setSelectedProfile(match)}
+                                onShowKundli={(data: any) => setSelectedKundli({
+                                    data,
+                                    names: { me: "You", partner: match.name }
+                                })}
+                                onGift={() => setGiftData({ userId: match.id, userName: match.name })}
+                                isConnectedProp={connections.some((c: any) => c.partner?.id === match.id)}
+                                onChat={() => {
+                                    const conn = connections.find((c: any) => c.partner?.id === match.id);
+                                    if (conn) {
+                                        openChat(conn);
+                                    } else {
+                                        setActiveTab('connections');
+                                    }
+                                }}
+                            />
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Load More Matches */}

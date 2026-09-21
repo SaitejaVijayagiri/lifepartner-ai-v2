@@ -298,7 +298,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
     const filtered = events
         .filter(e => activeCategory === 'All' || e.category === activeCategory)
-        .filter(e => !searchQuery || e.title.toLowerCase().includes(searchQuery.toLowerCase()) || e.location_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+        .filter(e => !searchQuery || String(e.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || String(e.location_name || '').toLowerCase().includes(searchQuery.toLowerCase()))
         .sort((a, b) => {
             if (sortBy === 'distance' && a.distance != null && b.distance != null)
                 return parseFloat(a.distance) - parseFloat(b.distance);

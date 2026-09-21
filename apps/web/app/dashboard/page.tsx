@@ -554,6 +554,9 @@ function DashboardContent() {
                     // 2 minute TTL for client cache, then fallback to loading state
                     if (Date.now() - ts < 120000) {
                         setMatches(data);
+                        if (Array.isArray(data) && data.length < 200) {
+                            setHasMore(false);
+                        }
                         setLoading(false);
                     }
                 }
@@ -816,7 +819,7 @@ function DashboardContent() {
         try {
             if (pageNum > 1) setLoadingMore(true);
             const data = await api.matches.getAll(pageNum);
-            const newMatches = data.matches || [];
+            const newMatches = Array.isArray(data?.matches) ? data.matches : [];
             
             if (newMatches.length < 200) {
                 setHasMore(false);
@@ -827,11 +830,20 @@ function DashboardContent() {
             if (pageNum === 1) {
                 setMatches(newMatches);
             } else {
-                setMatches(prev => [...prev, ...newMatches]);
+                if (newMatches.length === 0) {
+                    toast.info("You've viewed all available recommendations.");
+                } else {
+                    setMatches(prev => {
+                        const seenIds = new Set(prev.map((m: any) => m?.id).filter(Boolean));
+                        const uniqueNew = newMatches.filter((m: any) => m?.id && !seenIds.has(m.id));
+                        return [...prev, ...uniqueNew];
+                    });
+                }
             }
             setPage(pageNum);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to load matches', err);
+            toast.error(err?.message || 'Failed to load more matches. Please try again.');
         } finally {
             setLoading(false);
             setLoadingMore(false);
@@ -973,19 +985,26 @@ function DashboardContent() {
 
     // Client-side filter function - ROBUST & AUDITED
     const filterMatches = (matchList: any[]) => {
-        if (!activeFilters) return matchList;
+        if (!activeFilters || !Array.isArray(matchList)) return matchList || [];
+
+        const safeStr = (val: any): string => {
+            if (typeof val === 'string') return val;
+            if (val && typeof val === 'object') return typeof val.name === 'string' ? val.name : (typeof val.value === 'string' ? val.value : '');
+            return '';
+        };
 
         return matchList.filter((match) => {
+            if (!match) return false;
             const meta = match.metadata || {};
 
             // Unified Data Accessors (Check root first, then meta)
             const age = match.age ?? meta.basics?.age ?? meta.age ?? 0;
-            const heightStr = match.height || meta.basics?.height || meta.height || '';
-            const religionStr = (match.religion?.religion || meta.religion?.religion || meta.background?.religion || match.religion || '').toLowerCase();
-            const casteStr = (match.religion?.caste || meta.religion?.caste || '').toLowerCase();
-            const dietStr = (match.lifestyle?.diet || meta.lifestyle?.diet || match.diet || '').toLowerCase();
-            const maritalStr = (match.maritalStatus || meta.maritalStatus || 'Single').toLowerCase();
-            const incomeStr = (match.career?.income || meta.career?.income || '').toLowerCase();
+            const heightStr = safeStr(match.height || meta.basics?.height || meta.height);
+            const religionStr = (safeStr(match.religion?.religion) || safeStr(meta.religion?.religion) || safeStr(meta.background?.religion) || safeStr(match.religion)).toLowerCase();
+            const casteStr = (safeStr(match.religion?.caste) || safeStr(meta.religion?.caste)).toLowerCase();
+            const dietStr = (safeStr(match.lifestyle?.diet) || safeStr(meta.lifestyle?.diet) || safeStr(match.diet)).toLowerCase();
+            const maritalStr = (safeStr(match.maritalStatus) || safeStr(meta.maritalStatus) || 'single').toLowerCase();
+            const incomeStr = String(match.career?.income || meta.career?.income || '').toLowerCase();
 
             // Safe Location search across multiple fields
             const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();

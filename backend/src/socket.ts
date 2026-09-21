@@ -317,6 +317,10 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("callUser", async ({ userToCall, signalData, name, type }) => {
             const from = userId; // Secure source
+            if (!userToCall || userToCall === from) {
+                console.warn(`[callUser] Rejected self-call or invalid target: from ${from} to ${userToCall}`);
+                return;
+            }
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
         try {

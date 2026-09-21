@@ -16,7 +16,7 @@ export const RELIGION_SYMBOLS: Record<string, string> = {
  * Falls back to 🙏 if no symbol is found.
  */
 export function getReligionSymbol(religion?: string | null): string {
-    if (!religion) return '🙏';
+    if (!religion || typeof religion !== 'string') return '🙏';
     const key = Object.keys(RELIGION_SYMBOLS).find(
         k => k.toLowerCase() === religion.toLowerCase()
     );

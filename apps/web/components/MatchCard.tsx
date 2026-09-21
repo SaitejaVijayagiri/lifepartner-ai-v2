@@ -51,7 +51,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     // Independent States
     const { onlineUsers } = useSocket();
     const { user: currentUser, setUser } = useAuth() as any;
-    const isUserOnline = match.isOnline || onlineUsers.includes(match.id);
+    const isUserOnline = Boolean(match?.isOnline || (Array.isArray(onlineUsers) && match?.id && onlineUsers.includes(match.id)));
 
     const [matchStatus, setMatchStatus] = useState<string | null>(match.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match.is_liked || false);
@@ -517,7 +517,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    const idToCopy = match.profile_id || match.profileId || (match.referral_code ? `LP-${match.referral_code.toUpperCase()}` : `LP-${match.id.slice(0, 8).toUpperCase()}`);
+                                    const idToCopy = match.profile_id || match.profileId || (match.referral_code ? `LP-${match.referral_code.toUpperCase()}` : `LP-${String(match.id || '').slice(0, 8).toUpperCase()}`);
                                     navigator.clipboard.writeText(idToCopy);
                                     toast.success(`Copied Profile ID: ${idToCopy}`);
                                 }}

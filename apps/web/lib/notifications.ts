@@ -36,17 +36,21 @@ function urlBase64ToUint8Array(base64String: string) {
  * and likes from notifications even if the website tab is completely closed.
  */
 export const cacheAuthTokenForWorker = async (token: string | null) => {
-    if (typeof window === 'undefined' || !token) return;
+    if (typeof window === 'undefined') return;
     try {
         if ('caches' in window) {
             const cache = await caches.open('auth-token');
-            await cache.put('/token', new Response(token));
+            if (token && token !== 'null') {
+                await cache.put('/token', new Response(token));
+            } else {
+                await cache.delete('/token');
+            }
         }
     } catch (_) {}
 };
 
 /**
- * Sync offline queued actions from CacheStorage (replies & friend requests)
+ * Sync offline queued actions from CacheStorage (replies, likes & match requests)
  * when network connectivity is restored.
  */
 export const syncOfflineActions = async () => {
@@ -75,6 +79,10 @@ export const syncOfflineActions = async () => {
                     await api.chat.sendMessage(item.connId, item.text);
                     await cache.delete(req);
                     console.log(`[Offline Sync] Synced reply for ${item.connId}`);
+                } else if (item.type === 'like' && item.messageId) {
+                    await api.chat.likeMessage(item.messageId);
+                    await cache.delete(req);
+                    console.log(`[Offline Sync] Synced like for message ${item.messageId}`);
                 }
             } catch (itemErr) {
                 console.warn('[Offline Sync] Failed to sync item:', itemErr);
@@ -89,6 +97,11 @@ if (typeof window !== 'undefined') {
     window.addEventListener('online', () => {
         syncOfflineActions();
     });
+
+    // Proactively drain on page load if online
+    if (navigator.onLine) {
+        setTimeout(() => syncOfflineActions(), 1500);
+    }
 }
 
 /**

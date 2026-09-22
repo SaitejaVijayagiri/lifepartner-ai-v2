@@ -180,8 +180,8 @@ export class NotificationService {
                     { action: 'accept_request', title: 'Connect 💖' },
                     { action: 'decline_request', title: 'Not Now' }
                 ] : (data?.senderId || data?.connId ? [
-                    { action: 'like_message', title: 'Like ❤️' },
-                    { action: 'reply_to_message', title: 'Reply 💬' }
+                    ...(data?.messageId ? [{ action: 'like_message', title: 'Like ❤️' }] : []),
+                    { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
                 ] : undefined),
                 data: {
                     ...data,

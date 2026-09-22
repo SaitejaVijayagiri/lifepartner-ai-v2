@@ -29,51 +29,45 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
             return;
         }
 
-        // 1. Get Auth Token
-        SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
-        String authToken = prefs.getString("auth_token", null);
-
-        if (authToken == null) {
-            Log.e(TAG, "No auth token available to like message natively");
-            return;
-        }
-
-        // 2. Clear the notification immediately to feel responsive
+        // 1. Clear the notification immediately to feel responsive
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (notificationManager != null && notificationId != 0) {
             notificationManager.cancel(notificationId);
         }
 
-        // 3. Keep the BroadcastReceiver alive until the network request finishes
-        final PendingResult pendingResult = goAsync();
+        // 2. Get Auth Token
+        SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
+        String authToken = prefs.getString("auth_token", null);
 
-        // 4. Send the HTTP POST Request in the background
+        if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {
+            Log.w(TAG, "No auth token available to like message natively. Queueing offline.");
+            OfflineSyncManager.queueOfflineLike(context, messageId);
+            return;
+        }
+
+        // 3. Check connectivity
+        if (!OfflineSyncManager.isNetworkAvailable(context)) {
+            Log.i(TAG, "Device is offline. Queueing like for background sync.");
+            OfflineSyncManager.queueOfflineLike(context, messageId);
+            return;
+        }
+
+        // 4. Device is online: execute immediately on background thread
+        final PendingResult pendingResult = goAsync();
         new Thread(() -> {
             try {
-                String apiUrl = BuildConfig.API_BASE_URL + "/messages/" + messageId + "/like";
-                URL url = new URI(apiUrl).toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Authorization", "Bearer " + authToken);
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
-
-                int responseCode = conn.getResponseCode();
-
-                if (responseCode == 200 || responseCode == 201) {
+                boolean success = OfflineSyncManager.executeLikeMessage(messageId, authToken);
+                if (success) {
                     Log.i(TAG, "Message liked successfully!");
-                    // Optional visual feedback
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        Toast.makeText(context, "❤️ Liked", Toast.LENGTH_SHORT).show();
-                    });
+                    OfflineSyncManager.showToast(context, "❤️ Liked");
                 } else {
-                    Log.e(TAG, "Failed to like message. Response Code: " + responseCode);
+                    Log.w(TAG, "Server returned error liking message. Queueing offline.");
+                    OfflineSyncManager.queueOfflineLike(context, messageId);
                 }
-                conn.disconnect();
             } catch (Exception e) {
-                Log.e(TAG, "Exception liking message via Native HTTP", e);
+                Log.e(TAG, "Exception liking message via Native HTTP. Queueing offline.", e);
+                OfflineSyncManager.queueOfflineLike(context, messageId);
             } finally {
-                // Must call finish so the OS knows we are done
                 pendingResult.finish();
             }
         }).start();

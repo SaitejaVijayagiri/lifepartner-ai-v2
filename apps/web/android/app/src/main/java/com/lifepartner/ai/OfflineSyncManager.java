@@ -24,6 +24,7 @@ public class OfflineSyncManager {
     private static final String PREFS_NAME = "LifePartnerPrefs";
     private static final String KEY_OFFLINE_REQUESTS = "offline_pending_requests";
     private static final String KEY_OFFLINE_REPLIES = "offline_pending_replies";
+    private static final String KEY_OFFLINE_LIKES = "offline_pending_likes";
     private static final String API_BASE = BuildConfig.API_BASE_URL;
 
     private static final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -116,7 +117,40 @@ public class OfflineSyncManager {
     }
 
     // ==========================================
-    // 3. FLUSH ALL PENDING ACTIONS
+    // 3. MESSAGE LIKE OFFLINE QUEUE
+    // ==========================================
+
+    public static synchronized void queueOfflineLike(Context context, String messageId) {
+        if (messageId == null || messageId.trim().isEmpty()) return;
+        try {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            String existingJson = prefs.getString(KEY_OFFLINE_LIKES, "[]");
+            JSONArray array = new JSONArray(existingJson);
+
+            // Avoid duplicate like queued
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject obj = array.getJSONObject(i);
+                if (messageId.equals(obj.optString("messageId"))) {
+                    return;
+                }
+            }
+
+            JSONObject item = new JSONObject();
+            item.put("messageId", messageId);
+            item.put("timestamp", System.currentTimeMillis());
+
+            array.put(item);
+            prefs.edit().putString(KEY_OFFLINE_LIKES, array.toString()).apply();
+            Log.i(TAG, "Queued offline like for message " + messageId);
+
+            showToast(context, "❤️ Liked (will sync when online)");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to queue offline like: ", e);
+        }
+    }
+
+    // ==========================================
+    // 4. FLUSH ALL PENDING ACTIONS
     // ==========================================
 
     public static void flushPendingActions(Context context) {
@@ -139,6 +173,9 @@ public class OfflineSyncManager {
 
                 // B. Drain Pending Replies
                 drainPendingReplies(context, prefs, authToken);
+
+                // C. Drain Pending Likes
+                drainPendingLikes(context, prefs, authToken);
             } catch (Exception e) {
                 Log.e(TAG, "Error in flushPendingActions: ", e);
             }
@@ -255,6 +292,58 @@ public class OfflineSyncManager {
             return (code >= 200 && code < 300);
         } catch (Exception e) {
             Log.w(TAG, "Failed to execute send reply: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private static synchronized void drainPendingLikes(Context context, SharedPreferences prefs, String authToken) {
+        try {
+            String jsonStr = prefs.getString(KEY_OFFLINE_LIKES, "[]");
+            JSONArray array = new JSONArray(jsonStr);
+            if (array.length() == 0) return;
+
+            Log.i(TAG, "Draining " + array.length() + " offline likes...");
+            JSONArray remaining = new JSONArray();
+
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject item = array.getJSONObject(i);
+                String messageId = item.getString("messageId");
+
+                boolean success = executeLikeMessage(messageId, authToken);
+                if (!success) {
+                    remaining.put(item);
+                } else {
+                    Log.i(TAG, "Successfully synced offline like for " + messageId);
+                }
+            }
+
+            prefs.edit().putString(KEY_OFFLINE_LIKES, remaining.toString()).apply();
+            if (remaining.length() < array.length()) {
+                showToast(context, "Queued likes synced ❤️");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error draining pending likes: ", e);
+        }
+    }
+
+    public static boolean executeLikeMessage(String messageId, String authToken) {
+        try {
+            String cleanBase = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
+            URL url = new URI(cleanBase + "/messages/" + messageId + "/like").toURL();
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            String authHeader = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+            conn.setRequestProperty("Authorization", authHeader);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
+            conn.setDoOutput(true);
+
+            int code = conn.getResponseCode();
+            conn.disconnect();
+            return (code >= 200 && code < 300);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to execute like message " + messageId + ": " + e.getMessage());
             return false;
         }
     }

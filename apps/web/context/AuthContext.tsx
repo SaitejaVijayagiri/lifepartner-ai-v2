@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
-import { Notifications } from '@/lib/notifications';
+import { Notifications, cacheAuthTokenForWorker } from '@/lib/notifications';
 
 interface User {
     id: string;
@@ -96,8 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     bridge.loginUser(updatedUser.id);
                                 }
                                 const currentToken = localStorage.getItem('token') || token;
-                                if (typeof bridge.setAuthToken === 'function' && currentToken) {
-                                    bridge.setAuthToken(currentToken);
+                                if (currentToken) {
+                                    cacheAuthTokenForWorker(currentToken);
+                                    if (typeof bridge.setAuthToken === 'function') {
+                                        bridge.setAuthToken(currentToken);
+                                    }
                                 }
                             }
                         }
@@ -144,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const res = await api.auth.getToken();
                     if (res?.token) {
                         localStorage.setItem('token', res.token);
+                        cacheAuthTokenForWorker(res.token);
                     }
                 }
             } catch (err) {
@@ -156,6 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = (userData: User, token: string, requiresOnboarding?: boolean) => {
         localStorage.setItem('token', token);
+        cacheAuthTokenForWorker(token);
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem('userId', userData.id);
         setUser(userData);
@@ -197,6 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("Logout API call failed", e);
         }
         localStorage.clear();
+        cacheAuthTokenForWorker(null);
         setUser(null);
         router.push('/login');
     };

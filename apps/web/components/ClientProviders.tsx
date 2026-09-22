@@ -12,7 +12,7 @@ import { LanguageProvider } from '@/context/LanguageContext';
 
 import dynamic from 'next/dynamic';
 
-import { Notifications, isNativePlatform, getNativeBridge } from '@/lib/notifications';
+import { Notifications, isNativePlatform, getNativeBridge, syncOfflineActions } from '@/lib/notifications';
 
 const WebPushPrompt = dynamic(() => import('@/components/WebPushPrompt'), { ssr: false });
 
@@ -45,6 +45,9 @@ function ProvidersContent({ children }: { children: React.ReactNode }) {
             // In browser, if already granted, ensure token is registered on every active session
             Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);
         }
+
+        // Drain any pending offline actions (replies, likes, requests) upon mounting
+        syncOfflineActions();
     }, [user]);
 
     return (

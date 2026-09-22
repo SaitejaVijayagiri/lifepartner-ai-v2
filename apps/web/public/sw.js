@@ -50,10 +50,12 @@ self.addEventListener('push', function (event) {
                 { action: 'decline_call', title: 'Decline ❌' }
             ];
         } else if (data.senderId || data.connId) {
-            options.actions = [
-                { action: 'like_message', title: 'Like ❤️' },
-                { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
-            ];
+            const actions = [];
+            if (data.messageId) {
+                actions.push({ action: 'like_message', title: 'Like ❤️' });
+            }
+            actions.push({ action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' });
+            options.actions = actions;
         } else if (data.type === 'witty_reengagement') {
             options.actions = [
                 { action: 'find_matches', title: 'Swipe Matches 🔍' },
@@ -94,7 +96,26 @@ self.addEventListener('notificationclick', function (event) {
     // 1. Inline quick reply action
     if (action === 'reply_to_message') {
         const replyText = event.reply;
-        if (!replyText || !senderId) return;
+        if (!replyText) {
+            // Browser does not support inline reply input or user tapped reply without typing:
+            // Fall back to opening the chat window directly
+            const targetUrl = senderId ? `/dashboard?tab=connections&chatId=${senderId}` : '/dashboard';
+            event.waitUntil(
+                clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                    for (let i = 0; i < windowClients.length; i++) {
+                        const client = windowClients[i];
+                        if (client.url.includes('/dashboard') || client.url.includes('/chat')) {
+                            if ('navigate' in client) client.navigate(targetUrl);
+                            if ('focus' in client) return client.focus();
+                        }
+                    }
+                    if (clients.openWindow) return clients.openWindow(targetUrl);
+                })
+            );
+            return;
+        }
+
+        if (!senderId) return;
 
         event.waitUntil(
             caches.open('auth-token')
@@ -110,7 +131,10 @@ self.addEventListener('notificationclick', function (event) {
                         body: JSON.stringify({ text: replyText })
                     });
                 })
-                .then(() => {
+                .then(response => {
+                    if (!response || !response.ok) {
+                        throw new Error(`Failed to send reply HTTP status: ${response ? response.status : 'offline'}`);
+                    }
                     return self.registration.showNotification('LifePartner AI', {
                         body: `Reply sent: "${replyText}"`,
                         icon: '/icon.png',
@@ -151,14 +175,29 @@ self.addEventListener('notificationclick', function (event) {
                         headers
                     });
                 })
-                .then(() => {
+                .then(response => {
+                    if (!response || !response.ok) {
+                        throw new Error(`Failed to like message HTTP status: ${response ? response.status : 'offline'}`);
+                    }
                     return self.registration.showNotification('LifePartner AI', {
                         body: 'Message liked! ❤️',
                         icon: '/icon.png',
                         silent: true
                     });
                 })
-                .catch(err => console.error('Failed to like message from SW:', err))
+                .catch(err => {
+                    console.error('Failed to like message from SW (offline), queueing:', err);
+                    return caches.open('offline-actions').then(cache => {
+                        const item = { type: 'like', messageId, timestamp: Date.now() };
+                        return cache.put('/like_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).then(() => {
+                        return self.registration.showNotification('LifePartner AI', {
+                            body: 'Message liked! ❤️ (will sync when online)',
+                            icon: '/icon.png',
+                            silent: true
+                        });
+                    });
+                })
         );
         return;
     }
@@ -230,3 +269,74 @@ self.addEventListener('notificationclick', function (event) {
         })
     );
 });
+
+// 5. Offline Queue Synchronization (Background Sync & Active Wakeup)
+async function flushOfflineActions() {
+    try {
+        if (!('caches' in self)) return;
+        const cache = await caches.open('offline-actions');
+        const keys = await cache.keys();
+        if (!keys || keys.length === 0) return;
+
+        const tokenRes = await caches.open('auth-token').then(c => c.match('/token')).catch(() => null);
+        const token = tokenRes ? await tokenRes.text() : null;
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const origin = self.location.origin;
+        const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com';
+
+        for (const req of keys) {
+            try {
+                const res = await cache.match(req);
+                if (!res) continue;
+                const item = await res.json();
+
+                if (item.type === 'reply' && item.connId && item.text) {
+                    const sendRes = await fetch(`${API_URL}/messages/${item.connId}/send`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ text: item.text })
+                    });
+                    if (sendRes.ok) {
+                        await cache.delete(req);
+                        console.log('[SW Sync] Queued reply delivered to:', item.connId);
+                    }
+                } else if (item.type === 'like' && item.messageId) {
+                    const likeRes = await fetch(`${API_URL}/messages/${item.messageId}/like`, {
+                        method: 'POST',
+                        headers
+                    });
+                    if (likeRes.ok) {
+                        await cache.delete(req);
+                        console.log('[SW Sync] Queued like synced for message:', item.messageId);
+                    }
+                } else if (item.type === 'request' && item.interactionId && item.action) {
+                    const reqRes = await fetch(`${API_URL}/interactions/requests/${item.interactionId}/${item.action}`, {
+                        method: 'POST',
+                        headers
+                    });
+                    if (reqRes.ok) {
+                        await cache.delete(req);
+                        console.log('[SW Sync] Queued request synced for interaction:', item.interactionId);
+                    }
+                }
+            } catch (err) {
+                console.warn('[SW Sync] Action sync failed (will retry):', err);
+            }
+        }
+    } catch (e) {
+        console.warn('[SW Sync] Error flushing offline actions:', e);
+    }
+}
+
+self.addEventListener('sync', function(event) {
+    if (event.tag === 'sync-offline-actions' || event.tag === 'offline-sync') {
+        event.waitUntil(flushOfflineActions());
+    }
+});
+
+self.addEventListener('activate', function(event) {
+    event.waitUntil(flushOfflineActions());
+});
+

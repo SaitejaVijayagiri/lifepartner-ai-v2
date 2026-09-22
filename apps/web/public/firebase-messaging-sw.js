@@ -208,6 +208,8 @@ self.addEventListener('notificationclick', function(event) {
     // Like message action click handler
     if (action === 'like_message') {
         const messageId = payloadData.messageId;
+        if (!messageId) return;
+
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:4000' 
             : 'https://lifepartner-ai.onrender.com';
@@ -229,7 +231,7 @@ self.addEventListener('notificationclick', function(event) {
                     });
                 })
                 .then(response => {
-                    if (!response.ok) throw new Error(`API request failed with status: ${response.status}`);
+                    if (!response || !response.ok) throw new Error(`API request failed with status: ${response ? response.status : 'offline'}`);
                     return response.json();
                 })
                 .then(result => {
@@ -240,7 +242,17 @@ self.addEventListener('notificationclick', function(event) {
                     });
                 })
                 .catch(err => {
-                    console.error('Failed to like message from notification:', err);
+                    console.error('Failed to like message from notification (offline), queueing:', err);
+                    return caches.open('offline-actions').then(cache => {
+                        const item = { type: 'like', messageId, timestamp: Date.now() };
+                        return cache.put('/like_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).then(() => {
+                        return self.registration.showNotification('LifePartner AI', {
+                            body: 'Message liked! ❤️ (will sync when online)',
+                            icon: '/icon.png',
+                            silent: true
+                        });
+                    }).catch(console.error);
                 })
         );
         return;
@@ -251,8 +263,27 @@ self.addEventListener('notificationclick', function(event) {
         const replyText = event.reply;
         const senderId = payloadData.senderId || payloadData.connId; // The partner's user ID
         
-        if (!replyText) return;
+        if (!replyText) {
+            // Browser does not support inline reply input or user tapped reply without typing:
+            // Fall back to opening the chat directly
+            const urlToOpen = senderId ? `/dashboard?tab=connections&chatId=${senderId}` : '/dashboard';
+            event.waitUntil(
+                clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                    for (let i = 0; i < windowClients.length; i++) {
+                        const client = windowClients[i];
+                        if (client.url.includes('/dashboard') || client.url.includes('/chat')) {
+                            if ('navigate' in client) client.navigate(urlToOpen);
+                            if ('focus' in client) return client.focus();
+                        }
+                    }
+                    if (clients.openWindow) return clients.openWindow(urlToOpen);
+                })
+            );
+            return;
+        }
         
+        if (!senderId) return;
+
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:4000' 
             : 'https://lifepartner-ai.onrender.com';
@@ -277,7 +308,7 @@ self.addEventListener('notificationclick', function(event) {
                     });
                 })
                 .then(response => {
-                    if (!response.ok) throw new Error(`API request failed with status: ${response.status}`);
+                    if (!response || !response.ok) throw new Error(`API request failed with status: ${response ? response.status : 'offline'}`);
                     return response.json();
                 })
                 .then(result => {
@@ -289,16 +320,16 @@ self.addEventListener('notificationclick', function(event) {
                 })
                 .catch(err => {
                     console.error('Failed to send reply from notification (offline), queueing:', err);
-                    caches.open('offline-actions').then(cache => {
+                    return caches.open('offline-actions').then(cache => {
                         const item = { type: 'reply', connId: senderId, text: replyText, timestamp: Date.now() };
                         return cache.put('/reply_' + Date.now(), new Response(JSON.stringify(item)));
+                    }).then(() => {
+                        return self.registration.showNotification('LifePartner AI', {
+                            body: `Reply queued: "${replyText}" (will send when online)`,
+                            icon: '/icon.png',
+                            silent: true
+                        });
                     }).catch(console.error);
-
-                    return self.registration.showNotification('LifePartner AI', {
-                        body: `Reply queued: "${replyText}" (will send when online)`,
-                        icon: '/icon.png',
-                        silent: true
-                    });
                 })
         );
         return;
@@ -400,3 +431,74 @@ self.addEventListener('notificationclick', function(event) {
         })
     );
 });
+
+// Offline Queue Synchronization (Background Sync & Active Wakeup)
+async function flushOfflineActions() {
+    try {
+        if (!('caches' in self)) return;
+        const cache = await caches.open('offline-actions');
+        const keys = await cache.keys();
+        if (!keys || keys.length === 0) return;
+
+        const tokenRes = await caches.open('auth-token').then(c => c.match('/token')).catch(() => null);
+        const token = tokenRes ? await tokenRes.text() : null;
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const origin = self.location.origin;
+        const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com';
+
+        for (const req of keys) {
+            try {
+                const res = await cache.match(req);
+                if (!res) continue;
+                const item = await res.json();
+
+                if (item.type === 'reply' && item.connId && item.text) {
+                    const sendRes = await fetch(`${API_URL}/messages/${item.connId}/send`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ text: item.text })
+                    });
+                    if (sendRes.ok) {
+                        await cache.delete(req);
+                        console.log('[Firebase SW Sync] Queued reply delivered to:', item.connId);
+                    }
+                } else if (item.type === 'like' && item.messageId) {
+                    const likeRes = await fetch(`${API_URL}/messages/${item.messageId}/like`, {
+                        method: 'POST',
+                        headers
+                    });
+                    if (likeRes.ok) {
+                        await cache.delete(req);
+                        console.log('[Firebase SW Sync] Queued like synced for message:', item.messageId);
+                    }
+                } else if (item.type === 'request' && item.interactionId && item.action) {
+                    const reqRes = await fetch(`${API_URL}/interactions/requests/${item.interactionId}/${item.action}`, {
+                        method: 'POST',
+                        headers
+                    });
+                    if (reqRes.ok) {
+                        await cache.delete(req);
+                        console.log('[Firebase SW Sync] Queued request synced for interaction:', item.interactionId);
+                    }
+                }
+            } catch (err) {
+                console.warn('[Firebase SW Sync] Action sync failed (will retry):', err);
+            }
+        }
+    } catch (e) {
+        console.warn('[Firebase SW Sync] Error flushing offline actions:', e);
+    }
+}
+
+self.addEventListener('sync', function(event) {
+    if (event.tag === 'sync-offline-actions' || event.tag === 'offline-sync') {
+        event.waitUntil(flushOfflineActions());
+    }
+});
+
+self.addEventListener('activate', function(event) {
+    event.waitUntil(flushOfflineActions());
+});
+

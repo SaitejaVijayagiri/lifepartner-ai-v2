@@ -66,6 +66,31 @@ export default function HomeTab({
                 </div>
             </div>
 
+            {/* Photo Upload Accelerator for Photo-less Profiles */}
+            {(!currentUser?.avatar_url || currentUser?.avatar_url.includes('dicebear')) && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-white flex items-center justify-center text-2xl shadow-md shrink-0">
+                            📸
+                        </div>
+                        <div>
+                            <h4 className="text-sm sm:text-base font-black text-gray-900 dark:text-white">
+                                Unlock 10x More Matches & Worldwide Reach!
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-300">
+                                Profiles with real photos get 10x more responses from women and priority placement in global feeds.
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => onNavigateTab('profile_edit')}
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
+                    >
+                        Upload Photo Now ➔
+                    </button>
+                </div>
+            )}
+
             {/* Profile Strength Indicator Card (Gamification & Match Boost) */}
             <ProfileStrengthCard
                 completenessScore={currentUser?.completenessScore ?? 40}

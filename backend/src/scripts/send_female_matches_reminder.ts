@@ -146,6 +146,14 @@ async function main() {
     let emailsSentCount = 0;
     let emailsFailedCount = 0;
 
+    // Parse execution flags: Push notification is ALWAYS first priority.
+    // Email is strictly guarded to never exceed Resend's 100/day limit.
+    const enableEmail = process.argv.includes('--enable-email');
+    const MAX_DAILY_EMAILS = Math.min(10, parseInt(process.env.MAX_DAILY_REMINDER_EMAILS || '10', 10));
+
+    console.log(`📱 Push Notifications Priority: ACTIVE (100% of females receive Push & In-App)`);
+    console.log(`📧 Email Mode: ${enableEmail ? `ENABLED (Strict Safety Cap: Max ${MAX_DAILY_EMAILS} emails to protect Resend 100/day limit)` : 'DISABLED (Push-only mode to preserve 100/day Resend quota)'}\n`);
+
     for (const user of femaleUsers) {
         const name = user.full_name || 'there';
         const firstName = name.split(' ')[0];
@@ -158,15 +166,18 @@ async function main() {
             }
         });
 
-        const notificationTitle = `💌 ${firstName}, your matches are waiting!`;
+        const notificationTitle = pendingRequests > 0
+            ? `💌 ${firstName}, you have ${pendingRequests} match request${pendingRequests > 1 ? 's' : ''} waiting!`
+            : `💌 ${firstName}, verified suitors are waiting to meet you!`;
+
         const notificationBody = pendingRequests > 0
             ? `You have ${pendingRequests} pending match request${pendingRequests > 1 ? 's' : ''} waiting for your response.`
-            : `Over ${totalVerifiedMen}+ verified matches are waiting to meet someone like you on LifePartner AI.`;
+            : `Over ${totalVerifiedMen}+ verified suitors across India & worldwide are waiting to meet someone like you on LifePartner AI.`;
 
         console.log(`👉 Processing [${user.full_name || 'User'}] (${user.id}):`);
         console.log(`   - Pending Requests: ${pendingRequests}`);
 
-        // 3. Create In-App Notification in DB
+        // 3. PRIORITY 1: Create In-App Notification in DB
         try {
             await prisma.notifications.create({
                 data: {
@@ -186,7 +197,7 @@ async function main() {
             console.error(`   ⚠️ Failed to create DB notification:`, e.message);
         }
 
-        // 4. Send Realtime Push Notification via NotificationService
+        // 4. PRIORITY 1: Send Realtime Push Notification via NotificationService (OneSignal, WebPush, FCM)
         try {
             await NotificationService.getInstance().sendToUser(
                 user.id,
@@ -204,12 +215,10 @@ async function main() {
             console.error(`   ⚠️ Push failed:`, e.message);
         }
 
-        // 5. Send Email via Resend
-        if (user.email && resend) {
+        // 5. PRIORITY 2: Email via Resend (Strictly throttled to preserve 100/day limit)
+        if (enableEmail && emailsSentCount < MAX_DAILY_EMAILS && pendingRequests > 0 && user.email && resend) {
             try {
-                const subject = pendingRequests > 0
-                    ? `${firstName}, you have ${pendingRequests} pending match request${pendingRequests > 1 ? 's' : ''} waiting! 💌`
-                    : `${firstName}, your match is waiting for you 💌`;
+                const subject = `${firstName}, you have ${pendingRequests} pending match request${pendingRequests > 1 ? 's' : ''} waiting! 💌`;
 
                 await resend.emails.send({
                     from: FROM,
@@ -218,19 +227,19 @@ async function main() {
                     html: generateMatchWaitingEmail(firstName, pendingRequests, totalVerifiedMen)
                 });
                 emailsSentCount++;
-                console.log(`   📧 Email sent → ${user.email}`);
+                console.log(`   📧 Email sent → ${user.email} (Email count: ${emailsSentCount}/${MAX_DAILY_EMAILS})`);
             } catch (e: any) {
                 emailsFailedCount++;
                 console.error(`   ❌ Email failed to ${user.email}:`, e.message);
             }
-        } else if (!resend) {
-            console.log(`   ℹ️ Skipping email (RESEND_API_KEY not configured)`);
-        } else {
-            console.log(`   ℹ️ Skipping email (No email address on profile)`);
+        } else if (enableEmail && emailsSentCount >= MAX_DAILY_EMAILS) {
+            console.log(`   ℹ️ [Email Skipped] Reached safe daily email cap (${MAX_DAILY_EMAILS}) to preserve Resend 100/day quota.`);
+        } else if (!enableEmail) {
+            console.log(`   ℹ️ [Email Skipped] Push notification prioritized to preserve Resend 100/day quota.`);
         }
 
         // Small pause between operations
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 200));
     }
 
     console.log('\n====================================================');

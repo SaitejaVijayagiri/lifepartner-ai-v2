@@ -510,6 +510,11 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                         ⭐ Gold
                                     </span>
                                 )}
+                                {match.isWorldwide && (
+                                    <span className="inline-flex items-center gap-1 text-sky-200 text-[10px] font-black uppercase tracking-wider bg-sky-500/30 border border-sky-400/50 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md shadow-sm" title="Worldwide / International Suitor">
+                                        🌍 Worldwide
+                                    </span>
+                                )}
                             </>
                         )}
                         {/* Profile ID / Matrimony ID Badge */}
@@ -629,7 +634,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                     <Button
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
                                         className="h-11 w-11 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-xl active:scale-95 transition-transform border border-white/20"
-                                        title={`Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages ?? 3) + ' Left'})`}
+                                        title={currentUser?.gender?.toLowerCase() === 'female' ? "Direct Message (Free for Women ✨)" : `Direct Message (${currentUser?.is_premium ? 'Unlimited' : (currentUser?.free_direct_messages ?? 3) + ' Left'})`}
                                     >
                                         <Mail size={18} />
                                     </Button>
@@ -738,12 +743,41 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     description={`Send a direct message to ${match.name} instantly, bypassing the match process.`}
                 >
                     <div className="space-y-4 py-2">
-                        {!currentUser?.is_premium && (
+                        {currentUser?.gender?.toLowerCase() === 'female' ? (
+                            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl flex items-center gap-2 text-sm text-emerald-800 dark:text-emerald-300 font-semibold shadow-sm">
+                                <Sparkles size={16} className="text-emerald-500 animate-pulse shrink-0" />
+                                <span>✨ Women message free! Send a message directly to start chatting anytime.</span>
+                            </div>
+                        ) : !currentUser?.is_premium ? (
                             <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 p-3 rounded-xl flex items-center gap-2 text-sm text-purple-800 dark:text-purple-300">
                                 <Sparkles size={16} />
                                 You have <strong>{currentUser?.free_direct_messages ?? 3}</strong> free messages left.
                             </div>
-                        )}
+                        ) : null}
+
+                        {/* 1-Click AI Icebreakers */}
+                        <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">
+                                ✨ 1-Click Icebreakers (Tap to use):
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {[
+                                    "👋 Hi! Loved your profile, let's connect!",
+                                    "✨ Your vibe caught my attention! How's your week going?",
+                                    match.isWorldwide ? "🌍 Hey! Where are you currently based?" : "☕ Would love to connect and chat!",
+                                    "🌟 Great profile! What kind of partner are you looking for?"
+                                ].map((prompt, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => setDmText(prompt)}
+                                        className="text-xs text-left px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 transition-all active:scale-95 cursor-pointer"
+                                    >
+                                        {prompt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
                         <form onSubmit={handleSendDM}>
                             <textarea
@@ -755,7 +789,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             />
                             <Button 
                                 type="submit" 
-                                disabled={sendingDM || !dmText.trim() || (!currentUser?.is_premium && (currentUser?.free_direct_messages ?? 3) <= 0)}
+                                disabled={sendingDM || !dmText.trim() || (!currentUser?.is_premium && currentUser?.gender?.toLowerCase() !== 'female' && (currentUser?.free_direct_messages ?? 3) <= 0)}
                                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold h-12 shadow-lg"
                             >
                                 {sendingDM ? 'Sending...' : 'Send Direct Message'}

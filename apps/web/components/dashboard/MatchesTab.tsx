@@ -297,6 +297,7 @@ export default function MatchesTab({
     };
 
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
+    const [showWorldwideOnly, setShowWorldwideOnly] = useState(false);
 
     const onlineUsersKey = Array.isArray(onlineUsers) ? onlineUsers.join(',') : '';
     const onlineMatchesList = useMemo(() => {
@@ -310,6 +311,14 @@ export default function MatchesTab({
 
     if (showOnlineOnly) {
         displayMatches = displayMatches.filter(m => m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)));
+    }
+
+    if (showWorldwideOnly) {
+        displayMatches = displayMatches.filter(m => Boolean(
+            m.isWorldwide || 
+            (m.location && !m.location.toLowerCase().includes('india')) ||
+            (m.location_data?.country && !m.location_data.country.toLowerCase().includes('india'))
+        ));
     }
 
     const renderStoriesView = () => (
@@ -585,7 +594,7 @@ export default function MatchesTab({
 
                             <button
                                 onClick={() => setShowHighlightsOnly(!showHighlightsOnly)}
-                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border ${
+                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
                                     showHighlightsOnly
                                         ? 'bg-amber-500 text-white border-amber-400 shadow-md shadow-amber-500/20 scale-105'
                                         : 'bg-amber-50/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
@@ -593,6 +602,18 @@ export default function MatchesTab({
                             >
                                 <span>⭐</span>
                                 <span>{showHighlightsOnly ? 'Showing ⭐ Highlights' : '⭐ Story Highlights'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => setShowWorldwideOnly(!showWorldwideOnly)}
+                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
+                                    showWorldwideOnly
+                                        ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-500/20 scale-105'
+                                        : 'bg-blue-50/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100'
+                                }`}
+                            >
+                                <span>🌍</span>
+                                <span>{showWorldwideOnly ? 'Showing 🌍 Worldwide Only' : '🌍 Worldwide / NRI'}</span>
                             </button>
 
                             {/* Quick Action Chips */}

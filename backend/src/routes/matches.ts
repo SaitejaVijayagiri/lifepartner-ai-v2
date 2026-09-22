@@ -595,6 +595,20 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 score -= 15;
             }
 
+            // 6. Worldwide / Global Suitor Recognition & Boost
+            const locUpper = (c.location_name || "").toUpperCase();
+            const rawMetaLoc = meta.location;
+            const isMetaObjCheck = rawMetaLoc && typeof rawMetaLoc === 'object';
+            const metaCountryCheck = (isMetaObjCheck ? (rawMetaLoc.country || '') : '').toUpperCase();
+            const isNonIndia = Boolean(
+                (locUpper && !locUpper.includes('INDIA') && locUpper.includes(',')) ||
+                (metaCountryCheck && !metaCountryCheck.includes('INDIA') && metaCountryCheck !== 'UNKNOWN' && metaCountryCheck !== '')
+            );
+            if (isNonIndia) {
+                score += 15;
+                reasons.push("🌍 Worldwide Suitor");
+            }
+
             // Cap
             if (score > 99) score = 99;
 
@@ -674,6 +688,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
                 completenessScore: completeness.completenessScore,
                 badgeLevel: completeness.badgeLevel,
+                isWorldwide: isNonIndia,
                 score: Math.max(1, Math.min(99, score)), // floor at 1 so they still appear
                 match_reasons: reasons,
                 analysis: {
@@ -729,7 +744,16 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             };
         }));
 
-        matches.sort((a, b) => b.score - a.score);
+        if (myGender === 'female') {
+            matches.sort((a, b) => {
+                // Photo-First Priority: Always surface suitors with verified real photos first
+                if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
+                if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
+                return b.score - a.score;
+            });
+        } else {
+            matches.sort((a, b) => b.score - a.score);
+        }
 
         // Save to in-memory Cache
         matchCache.set(cacheKey, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });

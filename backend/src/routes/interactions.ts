@@ -664,10 +664,12 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
         // Get user details & check quota
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { full_name: true, is_premium: true, free_direct_messages: true, avatar_url: true }
+            select: { full_name: true, is_premium: true, free_direct_messages: true, avatar_url: true, gender: true }
         });
 
         if (!user) return res.status(404).json({ error: "User not found" });
+
+        const isFemale = Boolean(user.gender && user.gender.toLowerCase() === 'female');
 
         // Check if already connected
         const existingConnection = await prisma.interactions.findFirst({
@@ -684,15 +686,16 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
 
         // Quota check only if NOT already connected
         if (!isAlreadyConnected) {
-            if (!user.is_premium && (user.free_direct_messages || 0) <= 0) {
+            // Female users get 100% UNLIMITED free direct messaging to drive female initiation!
+            if (!user.is_premium && !isFemale && (user.free_direct_messages || 0) <= 0) {
                 return res.status(403).json({ 
                     error: "Limit Reached", 
                     message: "You have run out of free Direct Messages. Upgrade to Premium for unlimited!" 
                 });
             }
 
-            // Decrement quota if not premium
-            if (!user.is_premium) {
+            // Decrement quota only for non-female, non-premium users
+            if (!user.is_premium && !isFemale) {
                 await prisma.users.update({
                     where: { id: userId },
                     data: { free_direct_messages: { decrement: 1 } }
@@ -812,7 +815,7 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
             console.warn("Notification failed for direct message:", err);
         }
 
-        const remaining = user.is_premium ? "Unlimited" : Math.max(0, (user.free_direct_messages || 0) - 1);
+        const remaining = (user.is_premium || isFemale) ? "Unlimited" : Math.max(0, (user.free_direct_messages || 0) - 1);
         
         matchCache.deletePrefix(`${userId}_`);
         matchCache.deletePrefix(`${toUserId}_`);

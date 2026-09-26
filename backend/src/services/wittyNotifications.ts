@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../prisma';
 import { NotificationService } from './notification';
+import { generateCuriosityPush } from './curiosityPush';
 
 interface NotificationTemplate {
     id: string;
@@ -113,54 +114,44 @@ export async function sendWittyNotifications() {
         let count = 0;
 
         for (const user of inactiveUsers) {
-            const template = activeTemplates[Math.floor(Math.random() * activeTemplates.length)];
-            const firstName = user.full_name?.split(' ')[0] || 'there';
             const location = user.profiles?.location_name || '';
-            
-            // Personalize title and body
-            let personalizedTitle = typeof template.title === 'function'
-                ? template.title(firstName)
-                : template.title;
-            const personalizedBody = template.body;
 
-            // Apply city/food-specific personalization for lunch templates
-            if (template.id === 'lunch' && location) {
-                const lowerLoc = location.toLowerCase();
-                if (lowerLoc.includes('hyderabad')) {
-                    personalizedTitle = `Hey ${firstName}, eating Hyderabadi Biryani alone again? 🍛`;
-                } else if (lowerLoc.includes('mumbai')) {
-                    personalizedTitle = `Hey ${firstName}, eating Vada Pav alone again? 🍔`;
-                } else if (lowerLoc.includes('bangalore') || lowerLoc.includes('bengaluru')) {
-                    personalizedTitle = `Hey ${firstName}, eating Masala Dosa alone again? 🍽️`;
-                } else if (lowerLoc.includes('delhi')) {
-                    personalizedTitle = `Hey ${firstName}, eating Butter Chicken alone again? 🍛`;
-                } else if (lowerLoc.includes('chennai')) {
-                    personalizedTitle = `Hey ${firstName}, eating Idli Sambhar alone again? 🍲`;
+            // Check if user has pending requests to trigger highest curiosity
+            const pendingRequests = await prisma.interactions.count({
+                where: {
+                    to_user_id: user.id,
+                    type: 'REQUEST',
+                    status: { in: ['pending', 'PENDING'] }
                 }
-            }
+            }).catch(() => 0);
+
+            // Generate daily curiosity-driven push with rich banner
+            const pushData = generateCuriosityPush(user.full_name, location, pendingRequests);
 
             // Create notification record in database first to track it
             const dbNotification = await prisma.notifications.create({
                 data: {
                     user_id: user.id,
                     type: 'witty_reengagement',
-                    message: personalizedTitle,
+                    message: pushData.title,
                     data: {
-                        body: personalizedBody,
-                        bannerUrl: template.bannerUrl,
-                        clicked: false
+                        body: pushData.body,
+                        bannerUrl: pushData.bannerUrl,
+                        clicked: false,
+                        templateId: pushData.templateId
                     }
                 }
             });
 
             await ns.sendToUser(
                 user.id,
-                personalizedTitle,
-                personalizedBody,
+                pushData.title,
+                pushData.body,
                 { 
                     type: 'witty_reengagement', 
-                    screen: 'matches',
-                    bannerUrl: template.bannerUrl,
+                    screen: pushData.targetUrl.includes('requests') ? 'requests' : 'matches',
+                    url: pushData.targetUrl,
+                    bannerUrl: pushData.bannerUrl,
                     notificationId: dbNotification.id
                 }
             );
@@ -172,9 +163,9 @@ export async function sendWittyNotifications() {
                 io.to(user.id).emit('notification:new', {
                     id: dbNotification.id,
                     type: 'witty_reengagement',
-                    message: personalizedTitle,
-                    body: personalizedBody,
-                    bannerUrl: template.bannerUrl,
+                    message: pushData.title,
+                    body: pushData.body,
+                    bannerUrl: pushData.bannerUrl,
                     timestamp: new Date()
                 });
             } catch (_) {}

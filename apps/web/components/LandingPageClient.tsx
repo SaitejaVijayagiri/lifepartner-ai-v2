@@ -18,6 +18,7 @@ import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/ui/Toast';
 import { api, getApiUrl } from '@/lib/api';
+import { detectVisitorGeo, VisitorGeo } from '@/lib/geoDetect';
 
 export default function LandingPageClient() {
   const { t } = useLanguage();
@@ -28,6 +29,16 @@ export default function LandingPageClient() {
   const [bottomRow, setBottomRow] = useState<any[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+
+  // Live Visitor Geo & Curiosity Metrics
+  const [visitorGeo, setVisitorGeo] = useState<VisitorGeo>({
+    country: 'Worldwide',
+    city: 'Global Singles',
+    flag: '🌍',
+    countryCode: 'GLOBAL',
+    activeCount: 142,
+    recentJoinedMinutes: 4
+  });
 
   // Hero Dual Tab (Signup vs Search)
   const [heroTab, setHeroTab] = useState<'signup' | 'search'>('signup');
@@ -52,6 +63,18 @@ export default function LandingPageClient() {
   const [quickLookingFor, setQuickLookingFor] = useState('Female');
   const [quickIntent, setQuickIntent] = useState<'dating' | 'matrimony'>('matrimony');
   const [quickCountry, setQuickCountry] = useState('Worldwide');
+
+  const handleGoogleSignIn = () => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
+    const redirectUri = `${window.location.origin}/auth/callback/google`;
+    const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
+    
+    // Save detected country to avoid defaulting to India on onboarding
+    if (visitorGeo.country && visitorGeo.country !== 'Worldwide') {
+      localStorage.setItem('pendingUserCountry', visitorGeo.country);
+    }
+    window.location.href = startUrl;
+  };
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -164,6 +187,15 @@ export default function LandingPageClient() {
   };
 
   useEffect(() => {
+    // Detect visitor geo & curiosity signals
+    try {
+      const detected = detectVisitorGeo();
+      setVisitorGeo(detected);
+      if (detected.country && detected.country !== 'Worldwide') {
+        setQuickCountry(detected.country);
+      }
+    } catch (_) {}
+
     // Check if user is already logged in
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
@@ -308,6 +340,22 @@ export default function LandingPageClient() {
             {/* Interactive Dual-Tab Hero Widget: Instant Signup vs Match Search */}
             <div id="hero-signup-widget" className="bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-3xl p-5 shadow-2xl mb-8 ring-1 ring-gray-100 dark:ring-gray-800 transition-all">
               
+              {/* Live Geo & Curiosity Pulse */}
+              <div className="flex items-center justify-between bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 dark:from-pink-950/30 dark:to-indigo-950/30 border border-pink-200/60 dark:border-pink-900/40 rounded-2xl px-3.5 py-2 mb-3.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="font-bold text-gray-800 dark:text-gray-200">
+                    {visitorGeo.flag} {visitorGeo.city ? `${visitorGeo.city}, ` : ''}{visitorGeo.country}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-indigo-600 text-[11px] sm:text-xs">
+                  <span>🔥 {visitorGeo.activeCount} Singles Active Today</span>
+                </div>
+              </div>
+
               {/* Tab Selector */}
               <div className="flex items-center p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-4 border border-gray-200/60 dark:border-gray-800">
                 <button
@@ -426,10 +474,38 @@ export default function LandingPageClient() {
                         Edit Details
                       </button>
                     </div>
+
+                    <div className="pt-2 text-center border-t border-gray-100 dark:border-gray-800">
+                      <p className="text-[11px] text-gray-400 mb-1.5">Didn't get email or prefer 1-click?</p>
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        className="inline-flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        <img src="/icons/google.svg" className="w-4 h-4" alt="Google" />
+                        <span>Continue with Google instead</span>
+                      </button>
+                    </div>
                   </form>
                 ) : (
                   /* Instant Quick Registration Form */
                   <form onSubmit={handleInstantRegister} className="space-y-3">
+                    {/* 1-Click Fast Google Sign-Up for Global Visitors */}
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      className="w-full h-12 flex items-center justify-center gap-3 px-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-bold text-sm shadow-sm hover:shadow transition-all group cursor-pointer"
+                    >
+                      <img src="/icons/google.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
+                      <span>Continue with Google (1-Click Instant)</span>
+                    </button>
+
+                    <div className="relative flex items-center justify-center my-2">
+                      <div className="border-t border-gray-200 dark:border-gray-800 w-full"></div>
+                      <span className="bg-white dark:bg-gray-950 px-2.5 text-[11px] text-gray-400 font-bold uppercase tracking-wider">or fast email signup</span>
+                      <div className="border-t border-gray-200 dark:border-gray-800 w-full"></div>
+                    </div>
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
                         <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Your Full Name</label>
@@ -602,7 +678,14 @@ export default function LandingPageClient() {
                     </div>
                   </div>
 
-                  <Link href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}>
+                  <Link 
+                    href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}
+                    onClick={() => {
+                      if (quickCountry && quickCountry !== 'Worldwide') {
+                        localStorage.setItem('pendingUserCountry', quickCountry);
+                      }
+                    }}
+                  >
                     <button className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-lg shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2">
                       <span>{t('findMatchesBtn')}</span>
                       <ArrowRight size={18} />

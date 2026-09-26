@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 import { MapPin, LogOut } from 'lucide-react';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
+import { detectVisitorGeo } from '@/lib/geoDetect';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
@@ -76,6 +77,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             const pendingGender = localStorage.getItem('pendingUserGender');
             const pendingAge = localStorage.getItem('pendingUserAge');
             const pendingName = localStorage.getItem('pendingUserName');
+            const pendingCountry = localStorage.getItem('pendingUserCountry');
+            const detectedGeo = detectVisitorGeo();
+            const resolvedCountry = pendingCountry || (detectedGeo.country !== 'Worldwide' ? detectedGeo.country : 'India');
 
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
@@ -85,17 +89,23 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         ...prev,
                         name: prev.name || u.name || pendingName || '',
                         gender: prev.gender || u.gender || pendingGender || 'Male',
-                        age: prev.age || (u.age ? String(u.age) : '') || pendingAge || ''
+                        age: prev.age || (u.age ? String(u.age) : '') || pendingAge || '',
+                        country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
                     }));
                 } catch (_) {}
-            } else if (pendingName || pendingGender || pendingAge) {
+            } else if (pendingName || pendingGender || pendingAge || pendingCountry) {
                 setData((prev: any) => ({
                     ...prev,
                     name: prev.name || pendingName || '',
                     gender: prev.gender || pendingGender || 'Male',
-                    age: prev.age || pendingAge || ''
+                    age: prev.age || pendingAge || '',
+                    country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
                 }));
             } else {
+                setData((prev: any) => ({
+                    ...prev,
+                    country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
+                }));
                 api.profile.getMe().then((me: any) => {
                     if (me) {
                         setData((prev: any) => ({

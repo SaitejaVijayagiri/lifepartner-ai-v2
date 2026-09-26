@@ -53,7 +53,18 @@ function RegisterForm() {
             const saved = localStorage.getItem('referralCode');
             if (saved) setForm(prev => ({ ...prev, referralCode: saved }));
         }
-    }, [referralCodeParam, router]);
+
+        const countryParam = searchParams.get('country');
+        if (countryParam && countryParam !== 'Worldwide') {
+            localStorage.setItem('pendingUserCountry', countryParam);
+        }
+
+        const genderParam = searchParams.get('gender');
+        if (genderParam) {
+            setForm(prev => ({ ...prev, gender: genderParam }));
+            localStorage.setItem('pendingUserGender', genderParam);
+        }
+    }, [referralCodeParam, searchParams, router]);
 
     const [showOtp, setShowOtp] = useState(false);
     const [otp, setOtp] = useState('');

@@ -434,4 +434,22 @@ router.get('/views', async (req: Request, res: Response) => {
     }
 });
 
+/**
+ * GET /api/analytics/email-stats
+ * Returns live email delivery, open, click, bounce metrics and remaining daily OTP quota buffer
+ */
+router.get('/email-stats', async (req: Request, res: Response) => {
+    try {
+        const { EmailTracker } = await import('../services/emailTracker');
+        const tracker = EmailTracker.getInstance();
+        const stats = await tracker.getEmailStats();
+        return res.status(200).json({
+            success: true,
+            stats
+        });
+    } catch (e: any) {
+        return res.status(500).json({ error: 'Failed to fetch email stats', message: e.message });
+    }
+});
+
 export default router;

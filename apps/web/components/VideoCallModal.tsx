@@ -338,9 +338,13 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     // Initialize Local Stream
     useEffect(() => {
-        if (!SimplePeer) return;
+        const audioConstraints = {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+        };
 
-        navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true })
+        navigator.mediaDevices.getUserMedia({ video: isVideo, audio: audioConstraints })
             .then((currentStream) => {
                 setStream(currentStream);
                 streamRef.current = currentStream; // Keep ref in sync
@@ -415,29 +419,22 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         }
     }, [socket, isVideo, isSpeedDate]);
 
-    // Attach Remote Stream — use <audio> for audio-only, <video> for video calls
+    // Attach Remote Stream — userVideo for video, audioRef (DOM element) for all calls to guarantee playback
     useEffect(() => {
         if (!remoteStream) return;
-        if (isVideo) {
-            // Video call: attach to video element
-            if (userVideo.current) {
-                userVideo.current.srcObject = remoteStream;
-                userVideo.current.muted = false;
-                userVideo.current.volume = 1.0;
-                userVideo.current.play().catch(e => console.warn('Remote video autoplay blocked:', e));
-            }
-        } else {
-            // Audio call: use a dedicated <audio> element for reliable audio on all devices
-            if (!audioRef.current) {
-                audioRef.current = new Audio();
-                audioRef.current.autoplay = true;
-            }
+        if (isVideo && userVideo.current) {
+            userVideo.current.srcObject = remoteStream;
+            userVideo.current.muted = false;
+            userVideo.current.volume = isSpeakerOn ? 1.0 : 0;
+            userVideo.current.play().catch(e => console.warn('Remote video autoplay blocked:', e));
+        }
+        if (audioRef.current) {
             audioRef.current.srcObject = remoteStream;
-            audioRef.current.muted = false;
-            audioRef.current.volume = 1.0;
+            audioRef.current.muted = !isSpeakerOn;
+            audioRef.current.volume = isSpeakerOn ? 1.0 : 0;
             audioRef.current.play().catch(e => console.warn('Remote audio autoplay blocked:', e));
         }
-    }, [remoteStream, isVideo, callAccepted]);
+    }, [remoteStream, isVideo, callAccepted, isSpeakerOn]);
 
     // Cleanup audio element on unmount
     useEffect(() => {
@@ -445,7 +442,6 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.srcObject = null;
-                audioRef.current = null;
             }
         };
     }, []);
@@ -511,6 +507,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const answerCall = () => {
         setCallAnswered(true);
         setStatus("Connecting...");
+
+        // User gesture: unlock and prime DOM audio element immediately
+        if (audioRef.current) {
+            audioRef.current.play().catch(() => {});
+        }
 
         if (socket) {
             socket.emit("answerCall_stop_ringing", { to: incomingCall?.from });
@@ -846,6 +847,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
             {/* Left: Main Area */}
             <div className="flex-1 relative bg-slate-950 flex flex-col overflow-hidden">
+                {/* Dedicated DOM audio element for reliable, unblocked WebRTC audio playback on all mobile & desktop browsers */}
+                <audio ref={audioRef} autoPlay playsInline className="hidden" />
                 
                 {/* 1. IMMERSIVE BLURRED BACKDROP */}
                 <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0 select-none">

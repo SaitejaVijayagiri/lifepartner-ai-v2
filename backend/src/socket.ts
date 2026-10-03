@@ -237,6 +237,11 @@ export const initSocket = (httpServer: HttpServer) => {
             SpeedDatingManager.getInstance().leaveLobby(socket.id, userId);
             if (userId) {
                 SpeedDatingManager.getInstance().endActiveMatch(userId);
+                // End any active live speed dating rooms hosted by this user
+                try {
+                    const { endUserLiveEvents } = require('./routes/dates');
+                    endUserLiveEvents(userId).catch(console.error);
+                } catch (e) {}
             }
         });
 

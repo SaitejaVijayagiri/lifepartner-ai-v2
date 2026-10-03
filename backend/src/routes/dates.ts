@@ -391,11 +391,25 @@ async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
     try {
         await ensureLiveEventsTable();
         
-        // Auto-promote upcoming events in DB if start time reached
+        // 1. Auto-expire stale live events older than 45 minutes
+        await prisma.$executeRawUnsafe(`
+            UPDATE live_speed_date_events
+            SET status = 'ended'
+            WHERE status = 'live' AND created_at < now() - INTERVAL '45 minutes';
+        `);
+
+        // 2. Auto-promote upcoming events in DB if start time reached (and within 45 mins)
         await prisma.$executeRawUnsafe(`
             UPDATE live_speed_date_events
             SET status = 'live'
-            WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= now();
+            WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at <= now() AND scheduled_at >= now() - INTERVAL '45 minutes';
+        `);
+
+        // 3. Auto-expire stale upcoming events scheduled in the past
+        await prisma.$executeRawUnsafe(`
+            UPDATE live_speed_date_events
+            SET status = 'ended'
+            WHERE status = 'upcoming' AND scheduled_at IS NOT NULL AND scheduled_at < now() - INTERVAL '45 minutes';
         `);
 
         const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -404,7 +418,7 @@ async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
                    u.full_name as host_name, u.avatar_url as host_avatar
             FROM live_speed_date_events e
             JOIN users u ON e.host_id = u.id
-            WHERE e.status IN ('live', 'upcoming')
+            WHERE e.status = 'upcoming' OR (e.status = 'live' AND e.created_at >= now() - INTERVAL '45 minutes')
             ORDER BY e.created_at DESC;
         `);
 
@@ -432,6 +446,34 @@ async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
         return liveEventsStore;
     }
 }
+
+export async function endUserLiveEvents(userId: string) {
+    if (!userId) return;
+    const eventIndex = liveEventsStore.findIndex(e => e.host_id === userId && e.status === 'live');
+    let endedEvent: LiveSpeedDateEvent | null = null;
+    if (eventIndex !== -1) {
+        endedEvent = liveEventsStore.splice(eventIndex, 1)[0];
+        endedEvent.status = 'ended';
+    }
+
+    try {
+        await ensureLiveEventsTable();
+        await prisma.$executeRawUnsafe(`
+            UPDATE live_speed_date_events SET status = 'ended' WHERE host_id = $1::uuid AND status = 'live';
+        `, userId);
+    } catch (dbErr) {
+        console.error('Failed to end user live events in DB on disconnect:', dbErr);
+    }
+
+    try {
+        const { getIO } = require('../socket');
+        const io = getIO();
+        if (io && endedEvent) {
+            io.emit('live_event_ended', endedEvent);
+        }
+    } catch (e) {}
+}
+
 
 /**
  * POST /api/dates/events/create

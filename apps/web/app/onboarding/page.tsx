@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import ProfileWizard from '@/components/ProfileWizard';
 import { useToast } from '@/components/ui/Toast';
 import { Sparkles } from 'lucide-react';
+import { Notifications } from '@/lib/notifications';
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -127,6 +128,9 @@ export default function OnboardingPage() {
             localStorage.removeItem('lifepartner_onboarding_data');
             localStorage.removeItem('lifepartner_onboarding_step');
             localStorage.removeItem('matches_cache_v2');
+
+            // Collect push notification token for newly onboarded user
+            Notifications.init().catch(console.error);
 
             // Minimal delay just to ensure the success animation renders smoothly
             await new Promise(r => setTimeout(r, 400));

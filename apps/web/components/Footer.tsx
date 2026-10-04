@@ -79,15 +79,16 @@ export default function Footer() {
                     </ul>
                 </div>
                 <div>
-                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Worldwide Dating</h5>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Worldwide Matchmaking</h5>
                     <ul className="space-y-1.5">
-                        <li><Link href="/japan" className="hover:text-pink-400 transition-colors">🇯🇵 Japan Dating & Matrimony (日本)</Link></li>
-                        <li><Link href="/korea" className="hover:text-pink-400 transition-colors">🇰🇷 Korea Dating & Matrimony (한국)</Link></li>
-                        <li><Link href="/dating/location/tokyo" className="hover:text-pink-400 transition-colors">Tokyo Singles</Link></li>
-                        <li><Link href="/dating/location/seoul" className="hover:text-pink-400 transition-colors">Seoul Singles</Link></li>
-                        <li><Link href="/dating/location/london" className="hover:text-pink-400 transition-colors">Dating in London</Link></li>
-                        <li><Link href="/dating/location/new-york" className="hover:text-pink-400 transition-colors">Dating in New York</Link></li>
-                        <li><Link href="/dating/location/toronto" className="hover:text-pink-400 transition-colors">Dating in Toronto</Link></li>
+                        <li><Link href="/japan" className="hover:text-pink-400 transition-colors">🇯🇵 Japan (日本)</Link></li>
+                        <li><Link href="/korea" className="hover:text-pink-400 transition-colors">🇰🇷 Korea (한국)</Link></li>
+                        <li><Link href="/singapore" className="hover:text-pink-400 transition-colors">🇸🇬 Singapore Singles</Link></li>
+                        <li><Link href="/thailand" className="hover:text-pink-400 transition-colors">🇹🇭 Thailand (ไทย)</Link></li>
+                        <li><Link href="/malaysia" className="hover:text-pink-400 transition-colors">🇲🇾 Malaysia (Melayu)</Link></li>
+                        <li><Link href="/indonesia" className="hover:text-pink-400 transition-colors">🇮🇩 Indonesia (Taaruf)</Link></li>
+                        <li><Link href="/russia" className="hover:text-pink-400 transition-colors">🇷🇺 Russia (Россия)</Link></li>
+                        <li><Link href="/usa" className="hover:text-pink-400 transition-colors">🇺🇸 United States</Link></li>
                     </ul>
                 </div>
                 <div>

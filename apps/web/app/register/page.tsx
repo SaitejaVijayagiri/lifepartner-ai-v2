@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { api, getApiUrl } from '@/lib/api';
 
 import { Eye, EyeOff, Sparkles, ArrowLeft, Crown, ShieldCheck, Lock } from 'lucide-react';
+import { Notifications } from '@/lib/notifications';
 
 const TESTIMONIALS = [
     { quote: "I met my soulmate here. The AI just understood us.", author: "Priya & Rahul, Mumbai" },
@@ -172,6 +173,8 @@ function RegisterForm() {
                         gender: form.gender,
                         age: parsedAge
                     }));
+                    // Immediately initiate Push Token collection and notification readiness
+                    Notifications.init().catch(console.error);
                     router.replace('/onboarding');
                 }
             } finally {
@@ -228,6 +231,8 @@ function RegisterForm() {
                         if (typeof bridge.setAuthToken === 'function') bridge.setAuthToken(res.token);
                     }
                 }
+                // Immediately initiate Push Token collection and notification readiness
+                Notifications.init().catch(console.error);
                 router.replace('/onboarding');
             }
         } catch (err: any) {

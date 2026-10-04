@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
+import { Notifications } from '@/lib/notifications';
 
 import { Suspense } from 'react';
 
@@ -34,6 +35,8 @@ function GoogleCallbackContent() {
                     // Token is now secured via HttpOnly Cookie (and localStorage for 3rd party fallback)
                     localStorage.setItem('userId', res.data.userId);
                     localStorage.setItem('token', res.data.token);
+                    // Automatically collect push notification token
+                    Notifications.init().catch(console.error);
                     if (res.data.requiresOnboarding) {
                         setStatus('Profile incomplete. Redirecting to Onboarding...');
                         setTimeout(() => router.replace('/onboarding'), 1000);

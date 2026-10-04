@@ -427,6 +427,19 @@ export async function runFemaleMatchesReminderCampaign() {
             // ========================================================
             // PRIORITY 1: In-App & Realtime Push Notifications (100% of users)
             // ========================================================
+            // 24-hour Throttle Check: Skip duplicate reminder if user received one recently
+            const recentReminderCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            const existingReminder = await prisma.notifications.findFirst({
+                where: {
+                    user_id: user.id,
+                    type: 'match_waiting_reminder',
+                    created_at: { gte: recentReminderCutoff }
+                }
+            });
+            if (existingReminder) {
+                continue;
+            }
+
             await prisma.notifications.create({
                 data: {
                     user_id: user.id,

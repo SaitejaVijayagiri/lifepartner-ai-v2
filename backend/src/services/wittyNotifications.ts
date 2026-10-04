@@ -67,6 +67,14 @@ export async function sendWittyNotifications() {
     try {
         console.log("🚀 Running Witty Push Notifications Cron Job...");
         
+        // Auto-cleanup stale automated notifications older than 30 days to keep DB healthy
+        await prisma.notifications.deleteMany({
+            where: {
+                type: 'witty_reengagement',
+                created_at: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+            }
+        }).catch(() => {});
+
         // Target users inactive for 1 to 7 days
         const INACTIVE_MIN_DAYS = 1;
         const INACTIVE_MAX_DAYS = 7;
@@ -114,6 +122,19 @@ export async function sendWittyNotifications() {
         let count = 0;
 
         for (const user of inactiveUsers) {
+            // 20-Hour Throttle: Skip if user already received an automated notification recently
+            const recentCutoff = new Date(Date.now() - 20 * 60 * 60 * 1000);
+            const alreadyNotified = await prisma.notifications.findFirst({
+                where: {
+                    user_id: user.id,
+                    type: 'witty_reengagement',
+                    created_at: { gte: recentCutoff }
+                }
+            });
+            if (alreadyNotified) {
+                continue;
+            }
+
             const location = user.profiles?.location_name || '';
 
             // Check if user has pending requests to trigger highest curiosity

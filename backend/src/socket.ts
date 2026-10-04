@@ -3,6 +3,7 @@ import { Server as HttpServer } from 'http';
 import { prisma } from './prisma'; // Use Prisma
 import jwt from 'jsonwebtoken';
 import { SpeedDatingManager } from './services/SpeedDatingManager';
+import { sanitizeContent } from './utils/contentFilter';
 
 let io: Server;
 // userId -> count of active sockets
@@ -320,7 +321,7 @@ export const initSocket = (httpServer: HttpServer) => {
         /**
          * CALL USER
          */
-        socket.on("callUser", async ({ userToCall, signalData, name, type }) => {
+        socket.on("callUser", async ({ userToCall, signalData, name, type, _speedDateMode }: any) => {
             const from = userId; // Secure source
             if (!userToCall || userToCall === from) {
                 console.warn(`[callUser] Rejected self-call or invalid target: from ${from} to ${userToCall}`);
@@ -346,7 +347,8 @@ export const initSocket = (httpServer: HttpServer) => {
                     type,
                     location: userLocation,
                     avatarUrl: callerAvatar,
-                    photoUrl: callerAvatar
+                    photoUrl: callerAvatar,
+                    _speedDateMode
                 });
 
                 // Track call partner on this socket so disconnect only notifies them
@@ -398,6 +400,44 @@ export const initSocket = (httpServer: HttpServer) => {
             io.to(to).emit("callEnded");
             if (userId) SpeedDatingManager.getInstance().endActiveMatch(userId);
             if (to) SpeedDatingManager.getInstance().endActiveMatch(to);
+        });
+
+        /**
+         * BUZZ CALL (Immediate push & socket alert to notify offline/unresponsive partner)
+         */
+        socket.on("buzz_call", async ({ to, type }) => {
+            if (!to || !userId) return;
+            try {
+                const caller = await prisma.users.findUnique({
+                    where: { id: userId },
+                    select: { full_name: true, avatar_url: true }
+                });
+                const callerName = caller?.full_name || 'Your match';
+                const callType = type || 'video';
+
+                io.to(to).emit("call_buzz", {
+                    callerId: userId,
+                    callerName,
+                    callerAvatar: caller?.avatar_url,
+                    callType
+                });
+
+                const { NotificationService } = require('./services/notification');
+                NotificationService.getInstance().sendToUser(
+                    to,
+                    `📞 Call Alert from ${callerName}`,
+                    `${callerName} is calling you. Tap to connect!`,
+                    {
+                        type: 'call_buzz',
+                        callerId: userId,
+                        callerName,
+                        callType,
+                        url: '/dashboard?tab=connections'
+                    }
+                ).catch(() => {});
+            } catch (e) {
+                console.error("Socket buzz_call error:", e);
+            }
         });
 
         /**
@@ -675,18 +715,20 @@ export const initSocket = (httpServer: HttpServer) => {
             const user = communityUsers.get(socket.id);
             if (!user) return;
 
+            const sanitizedText = sanitizeContent(text || '');
+
             try {
                 // Save to DB
                 const saved = await prisma.lounge_messages.create({
                     data: {
                         sender_id: from,
-                        text: text
+                        text: sanitizedText
                     }
                 });
 
                 const msgPayload = {
                     id: saved.id,
-                    text,
+                    text: sanitizedText,
                     sender: {
                         id: from,
                         userId: from,

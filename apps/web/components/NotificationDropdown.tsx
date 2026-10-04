@@ -1,18 +1,26 @@
-'use client';
-
 import { useEffect, useRef, useState } from 'react';
-import { Bell, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, Trash2, ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 
-// Individual notification row with visible delete button + swipe support
-function NotifRow({ notif, onDelete }: { notif: any; onDelete: (id: string) => void }) {
+// Individual notification row with visible delete button + swipe support + click navigation
+function NotifRow({ 
+    notif, 
+    onDelete, 
+    onSelect 
+}: { 
+    notif: any; 
+    onDelete: (id: string) => void;
+    onSelect: (notif: any) => void;
+}) {
     const startXRef = useRef<number | null>(null);
     const [translateX, setTranslateX] = useState(0);
     const [removing, setRemoving] = useState(false);
 
     const SWIPE_THRESHOLD = 90;
 
-    const doDelete = async () => {
+    const doDelete = async (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         if (removing) return;
         setRemoving(true);
         try {
@@ -58,25 +66,33 @@ function NotifRow({ notif, onDelete }: { notif: any; onDelete: (id: string) => v
 
             {/* Row content */}
             <div
+                onClick={() => onSelect(notif)}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
-                className={`relative flex items-start gap-3 px-4 py-3 transition-transform duration-150
-                    ${!notif.is_read ? 'bg-indigo-50/60 dark:bg-indigo-900/20' : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60'}
+                className={`relative flex items-start gap-3 px-4 py-3 transition-all duration-150 cursor-pointer group
+                    ${!notif.is_read ? 'bg-indigo-50/70 dark:bg-indigo-900/25 hover:bg-indigo-100/70 dark:hover:bg-indigo-900/40' : 'bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800/60'}
                 `}
                 style={{ transform: `translateX(${translateX}px)` }}
             >
                 {/* Unread dot */}
-                <div className={`mt-2 w-2 h-2 rounded-full shrink-0 ${!notif.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
+                <div className={`mt-2 w-2 h-2 rounded-full shrink-0 transition-colors ${!notif.is_read ? 'bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.6)]' : 'bg-transparent'}`} />
 
                 {/* Text */}
                 <div className="flex-1 min-w-0">
-                    <p className={`text-sm leading-snug ${!notif.is_read ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}`}>
+                    <p className={`text-sm leading-snug transition-colors ${!notif.is_read ? 'font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400' : 'text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'}`}>
                         {notif.message}
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                        {new Date(notif.created_at).toLocaleString()}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-gray-400">
+                            {new Date(notif.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
+                        {notif.data?.actionUrl && (
+                            <span className="text-[10px] text-indigo-500 flex items-center gap-0.5 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                View <ExternalLink size={10} />
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Always-visible delete button */}
@@ -94,6 +110,7 @@ function NotifRow({ notif, onDelete }: { notif: any; onDelete: (id: string) => v
 }
 
 export default function NotificationDropdown() {
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -127,6 +144,43 @@ export default function NotificationDropdown() {
         const wasUnread = notifications.find(n => n.id === id && !n.is_read);
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+    };
+
+    const handleSelectNotif = (notif: any) => {
+        // 1. Mark as read optimistically
+        if (!notif.is_read) {
+            setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+            setUnreadCount(prev => Math.max(0, prev - 1));
+            api.notifications.markRead(notif.id).catch(console.error);
+        }
+
+        setIsOpen(false);
+
+        const data = notif.data || {};
+        const actionUrl = data.actionUrl || data.url || data.targetUrl;
+
+        // Custom window events to trigger instant tab/chat changes in dashboard without page reload
+        if (typeof window !== 'undefined') {
+            if (notif.type === 'request' || actionUrl?.includes('requests')) {
+                window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } }));
+            } else if (notif.type === 'like' || notif.type === 'match' || actionUrl?.includes('matches')) {
+                window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'matches' } }));
+            } else if (data.partnerId) {
+                window.dispatchEvent(new CustomEvent('openChat', { detail: { partnerId: data.partnerId, partnerName: data.partnerName } }));
+            } else if (data.profileId) {
+                window.dispatchEvent(new CustomEvent('openProfile', { detail: { profileId: data.profileId } }));
+            }
+        }
+
+        if (actionUrl) {
+            router.push(actionUrl);
+        } else if (notif.type === 'request') {
+            router.push('/dashboard?tab=requests');
+        } else if (notif.type === 'like' || notif.type === 'match') {
+            router.push('/dashboard?tab=matches');
+        } else if (notif.type === 'direct_message') {
+            router.push('/dashboard?tab=connections');
+        }
     };
 
     return (
@@ -178,7 +232,12 @@ export default function NotificationDropdown() {
                                 </div>
                             ) : (
                                 notifications.map(notif => (
-                                    <NotifRow key={notif.id} notif={notif} onDelete={handleDelete} />
+                                    <NotifRow 
+                                        key={notif.id} 
+                                        notif={notif} 
+                                        onDelete={handleDelete} 
+                                        onSelect={handleSelectNotif} 
+                                    />
                                 ))
                             )}
                         </div>

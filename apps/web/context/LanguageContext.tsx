@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type LanguageCode = 'en' | 'es' | 'hi' | 'te' | 'ta' | 'fr' | 'de' | 'ar' | 'zh' | 'ja' | 'pt';
+export type LanguageCode = 'en' | 'es' | 'hi' | 'te' | 'ta' | 'fr' | 'de' | 'ar' | 'zh' | 'ja' | 'ko' | 'pt';
 
 export interface LanguageOption {
   code: LanguageCode;
@@ -14,6 +14,8 @@ export interface LanguageOption {
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🌐', dir: 'ltr' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', dir: 'ltr' },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', dir: 'ltr' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', dir: 'ltr' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳', dir: 'ltr' },
   { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳', dir: 'ltr' },
@@ -22,7 +24,6 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇦🇪', dir: 'rtl' },
   { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳', dir: 'ltr' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', dir: 'ltr' },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇧🇷', dir: 'ltr' },
 ];
 
@@ -426,6 +427,46 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     step3Desc: '追加料金なしでメッセージ、ボイスメッセージ、HD ビデオ通話を自由に利用可能。',
     step4Title: '4. 安全な対面と結婚への道のり',
     step4Desc: '認証済みのイベントや個別の対面で安心して会い、素敵な結婚生活をスタート。',
+  },
+  ko: {
+    heroDatingPill: '글로벌 데이팅 모드',
+    heroMatrimonyPill: '진지한 결혼·매칭 모드',
+    heroTitlePrefix: '전 세계 싱글과',
+    heroTitleGradient: '100% 무료 연결 & 대화.',
+    heroSub: '세계 1위 AI 기반 글로벌 데이팅 및 결혼 매칭 플랫폼. 강제 유료 결제 없는 즉시 다이렉트 채팅, 철저한 본인 인증 프로필.',
+    quickSearchTitle: '빠른 이상형 검색',
+    iAmA: '본인 성별',
+    lookingFor: '희망 상대',
+    goal: '목적',
+    location: '지역',
+    findMatchesBtn: '무료로 매칭 찾기',
+    trust100Free: '100% 무료 다이렉트 채팅',
+    trustVerified: '인증된 실제 회원 프로필',
+    trustGlobal: '한국 & 글로벌 네트워크',
+    navFeatures: '기능 소개',
+    navStories: '스토리 & 스냅',
+    navMusic: '뮤직 매칭',
+    navWorkflow: '이용 방법',
+    navBlog: '블로그',
+    navCommunity: '커뮤니티',
+    navLogin: '로그인',
+    navGetStarted: '무료로 시작하기',
+    snapTitle: '순간 스냅 (Snaps)',
+    snapDesc: '확인 후 사라지는 일상 사진으로 솔직한 매력을 공유하세요. 필터 부담 없는 자연스러움과 화면 캡처 방지 기능.',
+    storiesTitle: '24시간 일상 스토리',
+    storiesDesc: '사진과 동영상으로 일상을 공유하고, 마음에 드는 스토리에 답장하여 자연스럽게 대화를 시작해보세요.',
+    musicTitle: '음악 취향 매칭',
+    musicDesc: '스포티파이 최애곡을 연동하여 실시간 채팅 중 함께 음악을 들으며 감성을 나눠보세요.',
+    connectTitle: '인연을 맺는 4단계 프로세스',
+    connectSub: '스마트한 AI 매칭부터 진지한 만남과 결혼까지, 안전하고 편리하게 이상형을 찾아드립니다.',
+    step1Title: '1. AI 스마트 궁합 분석',
+    step1Desc: '가치관, 라이프스타일, 연애관을 AI가 정밀 분석하여 최적의 매칭 상대를 추천합니다.',
+    step2Title: '2. 일상 스냅과 음악으로 교감',
+    step2Desc: '스냅 사진과 24시간 스토리, 음악 취향을 통해 상대방의 진짜 분위기를 확인하세요.',
+    step3Title: '3. 100% 무료 다이렉트 대화',
+    step3Desc: '결제 유도 없이 텍스트 메시지, 음성 메시지, 고화질 HD 영상통화까지 자유롭게 이용하세요.',
+    step4Title: '4. 안전한 오프라인 만남과 결혼',
+    step4Desc: '신원 확인을 거친 안전한 만남으로 평생을 함께할 소중한 인연을 만들어보세요.',
   },
   pt: {
     heroDatingPill: 'Modo Namoro Mundial',

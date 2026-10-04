@@ -278,7 +278,11 @@ export const api = {
     },
     calls: {
         getHistory: () => fetchAPI('/calls/history'),
-        log: (data: any) => fetchAPI('/calls/log', { method: 'POST', body: JSON.stringify(data) })
+        log: (data: any) => fetchAPI('/calls/log', { method: 'POST', body: JSON.stringify(data) }),
+        buzz: (receiverId: string, type: 'audio' | 'video' = 'video') => fetchAPI('/calls/buzz', {
+            method: 'POST',
+            body: JSON.stringify({ receiverId, type })
+        })
     },
     admin: {
         getStats: () => fetchAPI('/admin/stats'),

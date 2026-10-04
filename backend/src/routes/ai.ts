@@ -46,59 +46,83 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Missing targetUserId" });
         }
 
-        // 1. Fetch Target User's Profile
-        const target = await prisma.users.findUnique({
-            where: { id: targetUserId },
-            select: {
-                full_name: true,
-                profiles: {
-                    select: { metadata: true }
+        // 1. Fetch Target User's Profile & Caller Info
+        const [target, caller] = await Promise.all([
+            prisma.users.findUnique({
+                where: { id: targetUserId },
+                select: {
+                    full_name: true,
+                    city: true,
+                    state: true,
+                    location_name: true,
+                    age: true,
+                    gender: true,
+                    profiles: {
+                        select: { metadata: true }
+                    }
                 }
-            }
-        });
+            }),
+            prisma.users.findUnique({
+                where: { id: userId },
+                select: {
+                    full_name: true,
+                    profiles: {
+                        select: { metadata: true }
+                    }
+                }
+            })
+        ]);
 
         if (!target) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        // Fix name property map if needed
-        const targetName = target.full_name;
-        // Extract interests from metadata (hobbies or interests)
+        const targetName = target.full_name || 'there';
+        const firstName = targetName.trim().split(' ')[0];
         const meta = (target.profiles?.metadata as any) || {};
         const interests = (meta.interests || meta.hobbies || []) as string[];
+        const profession = meta.career?.profession || '';
+        const city = meta.location?.city || target.city || target.location_name || '';
+        const diet = meta.lifestyle?.diet || '';
+        const motherTongue = meta.motherTongue || '';
 
-        // 2. MONETIZATION CHECK (Future: deduction logic here)
-        // For now, it's a "Teaser" feature (Always free or limited)
+        // Generate high-converting personalized suggestions
+        const candidates: string[] = [];
 
-        // 3. Generate Suggestions (Heuristic AI)
-        let suggestions: string[] = [];
-
-        // Strategy: 1 Interest-based + 2 Random/General
-        interests.forEach((interest: string) => {
-            const key = interest.toLowerCase();
-            if (ICEBREAKERS[key as keyof typeof ICEBREAKERS]) {
-                suggestions.push(...ICEBREAKERS[key as keyof typeof ICEBREAKERS]);
-            }
-        });
-
-        // Fill remaining with generic high-quality openers
-        // Shuffle defaults
-        const shuffledDefaults = ICEBREAKERS.default.sort(() => 0.5 - Math.random());
-
-        while (suggestions.length < 3) {
-            if (shuffledDefaults.length > 0) {
-                suggestions.push(shuffledDefaults.pop()!);
-            } else {
-                break; // Should not happen
-            }
+        // 1. Location / City Hook
+        if (city && city !== 'Unknown' && city !== 'null' && city !== 'India') {
+            candidates.push(`I see you're based in ${city}! What's your absolute favorite place to hang out there? 🌆`);
         }
 
-        // Slice to max 3
-        const finalSuggestions = suggestions.slice(0, 3);
+        // 2. Career Hook
+        if (profession && profession !== 'Member' && profession !== 'Other') {
+            candidates.push(`Being a ${profession} sounds fascinating! What got you inspired to take up this field? 💼`);
+        }
+
+        // 3. Hobbies & Interests Hook
+        if (interests.length > 0) {
+            const h = interests[0];
+            candidates.push(`I noticed you enjoy ${h.toLowerCase()}! How do you like to spend your free weekends? ✨`);
+        }
+
+        // 4. Cultural / Diet Hook
+        if (diet && (diet.toLowerCase().includes('veg') || diet.toLowerCase().includes('food'))) {
+            candidates.push(`Fellow foodie! What is your go-to comfort food on a cozy Sunday? 🍲`);
+        }
+
+        // 5. Lighthearted & Fun Starters
+        candidates.push(`Hi ${firstName}! Loved your profile vibe. What's the highlight of your week so far? 😊`);
+        candidates.push(`Quick question ${firstName}: What's one passion or hobby not listed on your profile that you love talking about? 🌸`);
+        candidates.push(`Hey ${firstName}! Great to connect. Are you more of a spontaneous weekend explorer or chill coffee person? ☕`);
+
+        // Shuffle and pick top 3
+        const shuffled = candidates.sort(() => 0.5 - Math.random());
+        const finalSuggestions = shuffled.slice(0, 3);
 
         res.json({
             suggestions: finalSuggestions,
-            context: `Based on ${targetName}'s interests: ${interests.join(', ')}`
+            targetName: firstName,
+            context: `Personalized for ${firstName}`
         });
 
     } catch (error) {

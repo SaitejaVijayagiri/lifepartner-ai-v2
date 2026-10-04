@@ -69,7 +69,7 @@ export default function LanguageSelector({ isMobile = false }: { isMobile?: bool
         <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800 shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200 ring-1 ring-black/5">
           <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 border-b border-gray-100 dark:border-gray-800 mb-1 flex items-center justify-between">
             <span>Select Language</span>
-            <span className="text-[10px] text-indigo-500 font-mono">11 Languages</span>
+            <span className="text-[10px] text-indigo-500 font-mono">{SUPPORTED_LANGUAGES.length} Languages</span>
           </div>
           <div className="max-h-64 overflow-y-auto space-y-0.5 custom-scrollbar">
             {SUPPORTED_LANGUAGES.map((lang) => (

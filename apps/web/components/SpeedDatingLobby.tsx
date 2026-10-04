@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Heart, X, Zap, Sparkles, UserCheck } from 'lucide-react';
+import { Heart, X, Zap, Sparkles, UserCheck, Video, Mic } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
 
 interface SpeedDatingLobbyProps {
     onClose: () => void;
-    onMatchFound: (partner: any, initiator: boolean) => void;
+    onMatchFound: (partner: any, initiator: boolean, callMode?: 'audio' | 'video') => void;
 }
 
 export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingLobbyProps) {
@@ -16,6 +16,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
     const [femaleCount, setFemaleCount] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
     const [targetGender, setTargetGender] = useState<'female' | 'male'>('female');
+    const [mediaMode, setMediaMode] = useState<'video' | 'audio'>('video');
     const [searchSeconds, setSearchSeconds] = useState(0);
 
     // Auto-detect user's gender on mount and default to opposite gender
@@ -57,7 +58,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                     name: "Verified Mystery Date",
                     photoUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${partnerId}`,
                     location: "Verified Single • Live"
-                }, true);
+                }, true, mediaMode);
             }
         }, 4000);
 
@@ -77,7 +78,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                 audio.play().catch(() => {});
                 
                 toast.success("⚡ Speed Match Found!");
-                onMatchFound(data.partner, data.initiator);
+                onMatchFound(data.partner, data.initiator, mediaMode);
             };
 
             const handleStats = (data: { waitingCount: number; maleCount?: number; femaleCount?: number }) => {
@@ -112,7 +113,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                 clearTimeout(fallbackTimer);
             };
         }
-    }, [socket, targetGender, onClose, onMatchFound, toast, isSearching]);
+    }, [socket, targetGender, onClose, onMatchFound, toast, isSearching, mediaMode]);
 
     return (
         <div className="fixed inset-0 z-[999999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in duration-300">
@@ -155,13 +156,13 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                     </div>
 
                     {/* Gender Preference Tabs */}
-                    <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-white/10 mb-4">
+                    <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-white/10 mb-2.5">
                         <button
                             onClick={() => {
                                 setTargetGender('female');
                                 toast.info("Searching for Female matches...");
                             }}
-                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                                 targetGender === 'female'
                                     ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md scale-[1.02]'
                                     : 'text-gray-400 hover:text-white'
@@ -175,13 +176,48 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                                 setTargetGender('male');
                                 toast.info("Searching for Male matches...");
                             }}
-                            className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-1 cursor-pointer ${
                                 targetGender === 'male'
                                     ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md scale-[1.02]'
                                     : 'text-gray-400 hover:text-white'
                             }`}
                         >
                             <span>👨 Seek Male</span>
+                        </button>
+                    </div>
+
+                    {/* Call Mode Toggle: Video vs Voice-Only */}
+                    <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-950/80 rounded-2xl border border-white/10 mb-4">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMediaMode('video');
+                                toast.info("Speed Dating mode set to 🎥 Video Call");
+                            }}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                mediaMode === 'video'
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md scale-[1.02]'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            <Video size={14} />
+                            <span>Video Call</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMediaMode('audio');
+                                toast.info("Speed Dating mode set to 🎙️ Voice-Only (Camera Disabled)");
+                            }}
+                            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                mediaMode === 'audio'
+                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md scale-[1.02]'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            <Mic size={14} />
+                            <span>Voice-Only</span>
                         </button>
                     </div>
 

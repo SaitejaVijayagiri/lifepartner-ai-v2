@@ -168,7 +168,7 @@ interface VideoCallModalProps {
 }
 
 export default function VideoCallModal({ connectionId, partner: initialPartner, onEndCall, incomingCall, mode = 'video', isInitiator = false }: VideoCallModalProps) {
-    const { socket } = useSocket();
+    const { socket, onlineUsers } = useSocket();
     const toast = useToast();
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -180,6 +180,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
     const [isMaximized, setIsMaximized] = useState(true);
+    const [buzzed, setBuzzed] = useState(false);
+    const [isBuzzing, setIsBuzzing] = useState(false);
 
     // UI Enhancements
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
@@ -196,7 +198,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     const isSpeedDate = mode === 'speed_date';
     const isHostRoom = !!(initialPartner as any)?._isHostRoom;
     const isSpeedDateInitiator = isSpeedDate && !isHostRoom && !!(initialPartner as any)?._speedDateInitiator;
-    const isVideo = ((mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate) || isHostRoom;
+    const isSpeedDateAudio = isSpeedDate && ((initialPartner as any)?._speedDateMode === 'audio' || (incomingCall as any)?._speedDateMode === 'audio');
+    const isVideo = ((mode === 'video' || incomingCall?.type === 'video') && !isSpeedDate) || isHostRoom || (isSpeedDate && !isSpeedDateAudio);
     const partner = {
         id: initialPartner?.id || incomingCall?.from || 'unknown',
         name: initialPartner?.name || incomingCall?.name || 'Unknown User',
@@ -204,6 +207,31 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             ? initialPartner.photoUrl
             : (incomingCall?.photoUrl || incomingCall?.avatarUrl || initialPartner?.photoUrl || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(initialPartner?.name || incomingCall?.name || 'U'))),
         location: initialPartner?.location || incomingCall?.location
+    };
+
+    const isOutboundNormalCall = !incomingCall && !isSpeedDate && !isHostRoom;
+    const isPartnerOnline = partner?.id && partner.id !== 'unknown' ? (onlineUsers || []).includes(partner.id) : true;
+
+    const handleBuzzCall = async () => {
+        if (!partner.id || partner.id === 'unknown' || buzzed || isBuzzing) return;
+        setIsBuzzing(true);
+        try {
+            if (socket) {
+                socket.emit('buzz_call', { to: partner.id, type: isVideo ? 'video' : 'audio' });
+            }
+            await api.calls.buzz(partner.id, isVideo ? 'video' : 'audio');
+            setBuzzed(true);
+            toast.success(`Sent call alert to ${partner.name}!`);
+        } catch (e) {
+            toast.error("Could not send alert.");
+        } finally {
+            setIsBuzzing(false);
+        }
+    };
+
+    const handleLeaveVoiceNote = () => {
+        leaveCall();
+        toast.info(`Opening conversation with ${partner.name} to send a voice note.`);
     };
 
     useEffect(() => {
@@ -476,7 +504,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     signalData: data,
                     from: myId,
                     name: myName,
-                    type: mode
+                    type: mode,
+                    _speedDateMode: (initialPartner as any)?._speedDateMode || (isSpeedDateAudio ? 'audio' : 'video')
                 };
 
                 // Emit full SDP offer once
@@ -1026,7 +1055,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                                 </p>
                                             ) : (
                                                 <p className="text-xs font-semibold text-emerald-400 tracking-widest uppercase bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                                                    📞 Audio Call Connected
+                                                    {isSpeedDate ? '🎙️ Speed Date (Voice Only)' : '📞 Audio Call Connected'}
                                                 </p>
                                             )}
                                         </div>
@@ -1075,9 +1104,51 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                             Dialing Securely
                                         </span>
                                         <h2 className="text-xl font-bold tracking-tight text-white mt-4">
-                                            {status}
+                                            {isOutboundNormalCall && !isPartnerOnline ? `${partner.name} is Offline` : status}
                                         </h2>
                                     </div>
+
+                                    {/* Partner Offline or Alert Helper Card */}
+                                    {isOutboundNormalCall && (
+                                        <div className="w-full mt-1 p-3.5 rounded-2xl bg-slate-800/80 border border-white/10 text-xs space-y-2.5">
+                                            <div className="flex items-center justify-center gap-1.5 font-bold">
+                                                <span className={`w-2 h-2 rounded-full ${isPartnerOnline ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+                                                <span className={isPartnerOnline ? 'text-emerald-300' : 'text-amber-300'}>
+                                                    {isPartnerOnline ? `${partner.name} is ringing...` : `${partner.name} is offline right now`}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-slate-300 leading-snug">
+                                                {isPartnerOnline 
+                                                    ? "Taking longer than usual? Buzz them with an instant call notification."
+                                                    : "They might have their browser closed. Send a call alert to buzz their device!"}
+                                            </p>
+                                            <div className="flex items-center gap-2 justify-center pt-1">
+                                                <button
+                                                    onClick={handleBuzzCall}
+                                                    disabled={isBuzzing || buzzed}
+                                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md ${
+                                                        buzzed
+                                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
+                                                            : 'bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white active:scale-95'
+                                                    }`}
+                                                >
+                                                    {buzzed ? (
+                                                        <><span>✅</span> Alert Sent</>
+                                                    ) : isBuzzing ? (
+                                                        <><span>⏳</span> Sending...</>
+                                                    ) : (
+                                                        <><span>🔔</span> Buzz {partner.name.split(' ')[0]}</>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={handleLeaveVoiceNote}
+                                                    className="px-3 py-1.5 rounded-xl font-bold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 flex items-center gap-1.5 transition-all active:scale-95"
+                                                >
+                                                    <span>🎙️</span> Voice Note
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

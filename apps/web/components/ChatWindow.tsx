@@ -1118,7 +1118,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         setLoadingAi(true);
         try {
             const res = await api.ai.getIcebreaker(partner.id);
-            if (res.suggestions) {
+            if (res.suggestions && Array.isArray(res.suggestions)) {
                 setAiSuggestions(res.suggestions);
             }
         } catch (e) {
@@ -1127,6 +1127,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             setLoadingAi(false);
         }
     };
+
+    // Auto-fetch personalized AI icebreakers on new/quiet conversations
+    useEffect(() => {
+        if (partner?.id && messages.length <= 1 && aiSuggestions.length === 0 && !loadingAi) {
+            handleIcebreaker();
+        }
+    }, [partner?.id, messages.length]);
 
     const handleToggleMute = async () => {
         if (isMuting) return;
@@ -2047,19 +2054,35 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                         {/* 1-Click Interactive Starters */}
                         <div className="flex flex-col gap-2 pt-1 text-left">
-                            {[
+                            <div className="flex items-center justify-between px-1">
+                                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                                    <Sparkles size={13} className="text-purple-500" />
+                                    AI Starters for {partnerInfo.name.split(' ')[0]}
+                                </span>
+                                <button 
+                                    type="button"
+                                    onClick={handleIcebreaker} 
+                                    disabled={loadingAi} 
+                                    className="text-[10px] text-gray-400 hover:text-indigo-500 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                                >
+                                    <RotateCw size={10} className={loadingAi ? 'animate-spin' : ''} />
+                                    <span>{loadingAi ? 'Thinking...' : 'Refresh'}</span>
+                                </button>
+                            </div>
+
+                            {(aiSuggestions.length > 0 ? aiSuggestions : [
                                 `👋 Hi ${(partnerInfo.name || 'there').split(' ')[0]}! Loved your profile, let's connect!`,
                                 `✨ Hey! How has your week been going?`,
                                 `☕ Would love to connect and get to know you!`,
                                 `🌟 Great to match! What kind of partner are you looking for?`
-                            ].map((starter, sIdx) => (
+                            ]).map((starter, sIdx) => (
                                 <button
                                     key={sIdx}
                                     type="button"
                                     onClick={() => handleSend(undefined, starter)}
                                     className="w-full text-left px-3.5 py-2.5 rounded-2xl bg-white dark:bg-gray-800/90 hover:bg-purple-50 dark:hover:bg-purple-950/40 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600/50 text-xs font-semibold text-gray-800 dark:text-gray-200 shadow-sm transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-between group cursor-pointer"
                                 >
-                                    <span>{starter}</span>
+                                    <span className="line-clamp-2">{starter}</span>
                                     <span className="text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">Send ➔</span>
                                 </button>
                             ))}
@@ -2783,18 +2806,53 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     </div>
                     <div className="flex flex-col gap-2">
                         {aiSuggestions.map((suggestion, idx) => (
-                            <button
+                            <div
                                 key={idx}
-                                onClick={() => {
-                                    setInputText(suggestion);
-                                    setAiSuggestions([]);
-                                }}
-                                className="text-left text-sm bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-900/50 p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-gray-700 transition-all text-gray-700 dark:text-gray-200 shadow-sm"
+                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-900/50 p-2.5 rounded-xl shadow-xs hover:border-indigo-300 dark:hover:border-indigo-700 transition-all group"
                             >
-                                {suggestion}
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setInputText(suggestion);
+                                        setAiSuggestions([]);
+                                    }}
+                                    className="flex-1 text-left text-xs text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-300 cursor-pointer"
+                                >
+                                    {suggestion}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        handleSend(undefined, suggestion);
+                                        setAiSuggestions([]);
+                                    }}
+                                    className="shrink-0 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                                    title="Send this icebreaker directly"
+                                >
+                                    <span>Send</span>
+                                    <span>➔</span>
+                                </button>
+                            </div>
                         ))}
                     </div>
+                </div>
+            )}
+
+            {/* Quick AI Icebreaker Pill for new conversations */}
+            {messages.length <= 2 && aiSuggestions.length === 0 && (
+                <div className="px-3 py-1.5 bg-gradient-to-r from-purple-50/70 via-indigo-50/70 to-pink-50/70 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20 border-t border-purple-100/50 dark:border-purple-900/30 flex items-center justify-between">
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <span>💬</span> Need a fun conversation starter?
+                    </span>
+                    <button
+                        type="button"
+                        onClick={handleIcebreaker}
+                        disabled={loadingAi}
+                        className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-800 shadow-xs cursor-pointer active:scale-95 transition-all"
+                    >
+                        <Sparkles size={11} className={loadingAi ? 'animate-spin text-purple-500' : 'text-purple-500'} />
+                        <span>{loadingAi ? 'Thinking...' : '✨ Get AI Icebreakers'}</span>
+                    </button>
                 </div>
             )}
 

@@ -1953,13 +1953,13 @@ function DashboardContent() {
             {showSpeedDatingLobby && (
                 <SpeedDatingLobby
                     onClose={() => setShowSpeedDatingLobby(false)}
-                    onMatchFound={(partner: any, initiator: boolean) => {
+                    onMatchFound={(partner: any, initiator: boolean, callMode?: 'audio' | 'video') => {
                         setShowSpeedDatingLobby(false);
                         // Both sides open the modal immediately.
                         // Initiator: no incomingCall → calls callUser() to send WebRTC offer
                         // Receiver: waits; when offer arrives via socket, CallContext replaces this
                         //           state with incomingCallData so auto-answer fires correctly
-                        startCall({ ...partner, _speedDateInitiator: initiator }, 'speed_date');
+                        startCall({ ...partner, _speedDateInitiator: initiator, _speedDateMode: callMode || 'video' }, 'speed_date');
                     }}
                 />
             )}

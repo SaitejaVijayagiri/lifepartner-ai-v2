@@ -21,12 +21,15 @@ export const authenticateToken = (req: any, res: Response, next: NextFunction) =
         try {
             const user = await prisma.users.findUnique({
                 where: { id: decoded.userId },
-                select: { is_banned: true, is_deactivated: true, deactivated_until: true }
+                select: { is_banned: true, is_deactivated: true, deactivated_until: true, is_verified: true }
             });
 
             if (!user) return res.sendStatus(401);
             if (user.is_banned) {
                 return res.status(403).json({ error: "Your account is banned." });
+            }
+            if (user.is_verified === false) {
+                return res.status(403).json({ error: "Please verify your email via OTP before continuing.", requiresVerification: true });
             }
 
             if (user.is_deactivated) {

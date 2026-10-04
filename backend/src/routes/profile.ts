@@ -946,6 +946,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
 
         try {
             await prisma.$transaction(async (tx) => {
+                const isFemaleUser = Boolean(finalGender && String(finalGender).trim().toLowerCase() === 'female');
                 // 2. Update Core User Info
                 await tx.users.update({
                     where: { id: userId },
@@ -959,7 +960,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         phone: phone || undefined,
                         city: location?.city,
                         district: location?.district,
-                        state: location?.state
+                        state: location?.state,
+                        ...(isFemaleUser ? { free_direct_messages: 999999, is_premium: true } : {})
                     }
                 });
 
@@ -1040,31 +1042,33 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     }
                 }
 
-                // --- WELCOME ONBOARDING BONUS (25 COINS) ---
-                // Every user completing onboarding receives 25 Welcome Coins to start chatting and exploring
+                // --- WELCOME ONBOARDING BONUS ---
+                // Standard: 25 coins. Female VIP Queen: 100 coins.
                 try {
                     const existingWelcomeBonus = await tx.transactions.findFirst({
                         where: {
                             user_id: userId,
                             type: 'REWARD',
-                            description: 'Welcome bonus for completing onboarding'
+                            description: { contains: 'Welcome bonus' }
                         }
                     });
 
                     if (!existingWelcomeBonus) {
-                        console.log(`🎉 Minting 25 Welcome Coins for User ${userId}`);
+                        const bonusCoins = isFemaleUser ? 100 : 25;
+                        const bonusDesc = isFemaleUser ? 'Welcome Queen VIP bonus for completing onboarding' : 'Welcome bonus for completing onboarding';
+                        console.log(`🎉 Minting ${bonusCoins} Welcome Coins for User ${userId} (Female VIP: ${isFemaleUser})`);
                         await tx.users.update({
                             where: { id: userId },
-                            data: { coins: { increment: 25 } }
+                            data: { coins: { increment: bonusCoins } }
                         });
                         await tx.transactions.create({
                             data: {
                                 user_id: userId,
-                                amount: 25,
+                                amount: bonusCoins,
                                 type: 'REWARD',
                                 status: 'SUCCESS',
-                                description: 'Welcome bonus for completing onboarding',
-                                metadata: { reason: 'WELCOME_ONBOARDING_BONUS' }
+                                description: bonusDesc,
+                                metadata: { reason: 'WELCOME_ONBOARDING_BONUS', isFemaleVIP: isFemaleUser }
                             }
                         });
                     }

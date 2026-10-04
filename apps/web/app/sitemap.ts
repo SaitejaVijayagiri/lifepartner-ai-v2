@@ -7,6 +7,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Static Pages
     const routes = [
         '',
+        '/for-women',
         '/japan',
         '/korea',
         '/stranger-chat',
@@ -23,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
-        priority: route === '' || route === '/japan' || route === '/korea' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
+        priority: route === '' || route === '/for-women' || route === '/japan' || route === '/korea' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
     }));
 
     // Dynamic Blog Posts (fallback to static data, try to fetch from API)

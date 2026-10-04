@@ -1245,6 +1245,17 @@ function DashboardContent() {
                         </button>
                     )}
 
+                    {/* Queen VIP Badge for Female Users */}
+                    {currentUser?.gender === 'Female' && (
+                        <div
+                            className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-pink-500/15 via-rose-500/15 to-purple-500/15 text-pink-700 dark:text-pink-300 px-3 py-1.5 rounded-full text-xs font-black border border-pink-300/80 dark:border-pink-800/60 shadow-sm shrink-0"
+                            title="Queen VIP Active - 100% Free Lifetime Messaging & Anti-Creep Shield"
+                        >
+                            <Crown size={14} className="fill-amber-400 text-amber-500 shrink-0 animate-pulse" />
+                            <span className="font-extrabold tracking-wide">Queen VIP</span>
+                        </div>
+                    )}
+
 
 
 
@@ -1612,13 +1623,15 @@ function DashboardContent() {
                                                 <Crown size={20} />
                                             </div>
                                             <div className="text-left sm:text-center">
-                                                <div className={`font-bold text-sm ${currentUser.is_premium ? 'text-amber-800 dark:text-amber-500' : 'text-gray-700 dark:text-gray-300'}`}>
-                                                    {currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
+                                                <div className={`font-bold text-sm ${currentUser.gender === 'Female' ? 'text-pink-600 dark:text-pink-400' : currentUser.is_premium ? 'text-amber-800 dark:text-amber-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                    {currentUser.gender === 'Female' ? '👑 Queen VIP' : currentUser.is_premium ? 'Premium Active' : 'Get Premium'}
                                                 </div>
-                                                <div className={`text-[10px] ${currentUser.is_premium ? 'text-amber-700 dark:text-amber-600/80' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
-                                                    {currentUser.is_premium && currentUser.premium_expiry
-                                                        ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
-                                                        : 'Unlock Features'}
+                                                <div className={`text-[10px] ${currentUser.gender === 'Female' ? 'text-pink-600/80 dark:text-pink-400/80 font-bold' : currentUser.is_premium ? 'text-amber-700 dark:text-amber-600/80' : 'text-gray-500 dark:text-gray-400'} font-medium`}>
+                                                    {currentUser.gender === 'Female'
+                                                        ? '100% Free Lifetime VIP'
+                                                        : currentUser.is_premium && currentUser.premium_expiry
+                                                            ? `${Math.ceil((new Date(currentUser.premium_expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} Days Left`
+                                                            : 'Unlock Features'}
                                                 </div>
                                             </div>
                                         </div>

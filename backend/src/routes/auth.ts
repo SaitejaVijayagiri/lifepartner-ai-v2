@@ -221,6 +221,7 @@ router.post('/register', async (req, res) => {
             const randomSuffix = Math.floor(1000 + Math.random() * 9000);
             const myReferralCode = `${baseName}${randomSuffix}`;
 
+            const isFemale = cleanGender === 'Female';
             const user = await tx.users.create({
                 data: {
                     email,
@@ -234,7 +235,10 @@ router.post('/register', async (req, res) => {
                     otp_expires_at: otpExpiresAt,
                     is_verified: false,
                     referral_code: myReferralCode,
-                    referred_by: referredByUserId
+                    referred_by: referredByUserId,
+                    free_direct_messages: isFemale ? 999999 : 3,
+                    coins: isFemale ? 100 : 0,
+                    is_premium: isFemale ? true : false
                 },
                 select: { id: true, full_name: true, gender: true, age: true }
             });

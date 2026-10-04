@@ -21,6 +21,7 @@ export default function Footer() {
                 <div>
                     <h4 className="font-bold text-lg mb-4 text-gray-100">Company</h4>
                     <ul className="space-y-2 text-gray-400 text-sm">
+                        <li><Link href="/for-women" className="text-pink-400 font-bold hover:text-pink-300 transition-colors">👑 For Women (VIP Free)</Link></li>
                         <li><Link href="/about" className="hover:text-indigo-400 transition-colors">About Us</Link></li>
                         <li><Link href="/careers" className="hover:text-indigo-400 transition-colors">Careers</Link></li>
                         <li><Link href="/contact" className="hover:text-indigo-400 transition-colors">Contact</Link></li>

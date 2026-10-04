@@ -85,6 +85,9 @@ export default function Navbar() {
                     <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
                         {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">SEO</span>
                     </Link>
+                    <Link href="/for-women" className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors tracking-wide flex items-center gap-1">
+                        <span>For Women</span> <span className="bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">👑 VIP Free</span>
+                    </Link>
                 </div>
 
                 {/* Desktop Actions + Language Selector + Download App */}
@@ -204,6 +207,16 @@ export default function Navbar() {
                         >
                             <span>Stranger Chat</span>
                             <span className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-green-200 dark:border-green-800">🔥 Free Video</span>
+                        </Link>
+                        <Link
+                            href="/for-women"
+                            className="text-base font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 flex items-center justify-between px-1 py-1"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            <span className="flex items-center gap-1.5 font-bold">
+                                <span>For Women (VIP Free)</span>
+                            </span>
+                            <span className="bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border border-pink-200 dark:border-pink-800">👑 Queen VIP</span>
                         </Link>
 
                         <hr className="border-gray-100 dark:border-gray-800 my-1" />

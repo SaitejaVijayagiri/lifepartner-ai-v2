@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, getApiUrl } from '@/lib/api';
 
-import { Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, ArrowLeft, Crown, ShieldCheck, Lock } from 'lucide-react';
 
 const TESTIMONIALS = [
     { quote: "I met my soulmate here. The AI just understood us.", author: "Priya & Rahul, Mumbai" },
@@ -422,6 +422,17 @@ function RegisterForm() {
                         </p>
                     </div>
 
+                    {/* Women Safety & VIP Guarantee Banner */}
+                    <div className="p-3 rounded-2xl bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-purple-500/10 border border-pink-200 dark:border-pink-900/60 flex items-center gap-2.5 text-left">
+                        <div className="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-950 flex items-center justify-center shrink-0">
+                            <ShieldCheck size={16} className="text-pink-600 dark:text-pink-400" />
+                        </div>
+                        <div className="text-[11px] leading-tight">
+                            <p className="font-extrabold text-pink-700 dark:text-pink-300">Women-First Safety Guarantee</p>
+                            <p className="text-slate-500 dark:text-slate-400 mt-0.5">100% Free Lifetime VIP • Masked Contacts • AI Anti-Creep Shield</p>
+                        </div>
+                    </div>
+
                     <div className="space-y-4">
                         <div className="space-y-1">
                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Full Name</label>
@@ -452,16 +463,23 @@ function RegisterForm() {
                                 <button
                                     type="button"
                                     onClick={() => setForm({ ...form, gender: 'Female' })}
-                                    className={`h-11 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
+                                    className={`relative h-11 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 border transition-all ${
                                         form.gender === 'Female'
-                                            ? 'bg-rose-600 text-white border-rose-600 shadow-sm'
+                                            ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
                                             : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300'
                                     }`}
                                 >
                                     <span>👰</span>
                                     <span>{isDating ? 'Female / Woman' : 'Female / Bride'}</span>
+                                    <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ml-0.5">VIP Free</span>
                                 </button>
                             </div>
+                            {form.gender === 'Female' && (
+                                <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-[11px] text-pink-800 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200 mt-1.5">
+                                    <Crown size={15} className="text-amber-500 fill-amber-500 shrink-0" />
+                                    <span><strong>Queen VIP Active:</strong> 100 free coins, unlimited direct chat, and private masked phone number.</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Age Input */}

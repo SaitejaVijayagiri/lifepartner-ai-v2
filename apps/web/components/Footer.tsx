@@ -89,6 +89,7 @@ export default function Footer() {
                         <li><Link href="/indonesia" className="hover:text-pink-400 transition-colors">🇮🇩 Indonesia (Taaruf)</Link></li>
                         <li><Link href="/russia" className="hover:text-pink-400 transition-colors">🇷🇺 Russia (Россия)</Link></li>
                         <li><Link href="/usa" className="hover:text-pink-400 transition-colors">🇺🇸 United States</Link></li>
+                        <li><Link href="/philippines" className="hover:text-pink-400 transition-colors">🇵🇭 Philippines (Filipinas)</Link></li>
                     </ul>
                 </div>
                 <div>

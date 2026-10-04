@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         '/indonesia',
         '/russia',
         '/usa',
+        '/philippines',
         '/stranger-chat',
         '/omegle-alternative',
         '/about',
@@ -30,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
-        priority: route === '' || route === '/for-women' || route === '/japan' || route === '/korea' || route === '/singapore' || route === '/thailand' || route === '/malaysia' || route === '/indonesia' || route === '/russia' || route === '/usa' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
+        priority: route === '' || route === '/for-women' || route === '/japan' || route === '/korea' || route === '/singapore' || route === '/thailand' || route === '/malaysia' || route === '/indonesia' || route === '/russia' || route === '/usa' || route === '/philippines' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
     }));
 
     // Dynamic Blog Posts (fallback to static data, try to fetch from API)

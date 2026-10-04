@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type LanguageCode = 'en' | 'es' | 'hi' | 'te' | 'ta' | 'fr' | 'de' | 'ar' | 'zh' | 'ja' | 'ko' | 'pt' | 'th' | 'ms' | 'id' | 'ru';
+export type LanguageCode = 'en' | 'es' | 'hi' | 'te' | 'ta' | 'fr' | 'de' | 'ar' | 'zh' | 'ja' | 'ko' | 'pt' | 'th' | 'ms' | 'id' | 'ru' | 'vi';
 
 export interface LanguageOption {
   code: LanguageCode;
@@ -16,6 +16,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'en', name: 'English', nativeName: 'English', flag: '🌐', dir: 'ltr' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', dir: 'ltr' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', dir: 'ltr' },
+  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳', dir: 'ltr' },
   { code: 'th', name: 'Thai', nativeName: 'ไทย', flag: '🇹🇭', dir: 'ltr' },
   { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flag: '🇲🇾', dir: 'ltr' },
   { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', dir: 'ltr' },
@@ -671,6 +672,46 @@ export const TRANSLATIONS: Record<LanguageCode, Record<string, string>> = {
     step3Desc: 'Безлимитные сообщения, HD-видеозвонки и монеты для подарков без оплат.',
     step4Title: '4. Полная безопасность',
     step4Desc: 'AI Anti-Creep Shield блокирует грубость и защищает номер телефона.'
+  },
+  vi: {
+    heroDatingPill: 'Chế độ Hẹn hò Toàn cầu',
+    heroMatrimonyPill: 'Chế độ Kết hôn Nghiêm túc',
+    heroTitlePrefix: 'Kết Nối & Trò Chuyện',
+    heroTitleGradient: 'Miễn Phí Toàn Cầu.',
+    heroSub: 'Nền tảng AI #1 thế giới cho hẹn hò an toàn & kết hôn nghiêm túc. Nhắn tin trực tiếp miễn phí, hồ sơ xác thực OTP 100%.',
+    quickSearchTitle: 'Tìm Kiếm Cặp Đôi Nhanh',
+    iAmA: 'Tôi là',
+    lookingFor: 'Tìm kiếm',
+    goal: 'Mục tiêu',
+    location: 'Địa điểm',
+    findMatchesBtn: 'Tìm Cặp Đôi Miễn Phí',
+    trust100Free: 'Nhắn Tin Trực Tiếp 100% Miễn Phí',
+    trustVerified: 'Hồ Sơ Thật Xác Thực OTP',
+    trustGlobal: 'Kết Nối Toàn Cầu & Kiều Bào',
+    navFeatures: 'Tính Năng',
+    navStories: 'Stories & Snaps',
+    navMusic: 'Gu Âm Nhạc',
+    navWorkflow: 'Cách Hoạt Động',
+    navBlog: 'Blog',
+    navCommunity: 'Cộng Đồng',
+    navLogin: 'Đăng Nhập',
+    navGetStarted: 'Bắt Đầu Miễn Phí',
+    snapTitle: 'Snap Ảnh Tự Xóa',
+    snapDesc: 'Chia sẻ ảnh biến mất sau khi xem kèm chống chụp màn hình an toàn.',
+    storiesTitle: 'Bảng Tin Stories 24 Giờ',
+    storiesDesc: 'Chia sẻ khoảnh khắc thường ngày qua ảnh và video.',
+    musicTitle: 'Kết Đôi Theo Gu Nhạc',
+    musicDesc: 'Đồng bộ bài hát Spotify yêu thích và cùng nghe nhạc trong phòng trò chuyện.',
+    connectTitle: 'Cách Các Cặp Đôi Đến Với Nhau',
+    connectSub: 'Từ gợi ý AI thông minh đến hôn nhân hạnh phúc bền vững.',
+    step1Title: '1. Gợi Ý AI Thông Minh',
+    step1Desc: 'AI phân tích sự tương thích về giá trị và lối sống.',
+    step2Title: '2. Stories, Nhạc & Tính Cách',
+    step2Desc: 'Hiểu đối phương qua lối sống và sở thích hàng ngày.',
+    step3Title: '3. 100% Miễn Phí Cho Nữ',
+    step3Desc: 'Queen VIP trọn đời với nhắn tin và gọi video call thoải mái.',
+    step4Title: '4. An Toàn Tuyệt Đối',
+    step4Desc: 'AI Anti-Creep bảo vệ số điện thoại và ngăn chặn quấy rối.'
   }
 };
 

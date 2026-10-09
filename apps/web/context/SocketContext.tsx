@@ -65,7 +65,7 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
 
         const newSocket = io(socketUrl, {
             path: '/socket.io',
-            transports: ['websocket'], // Force WebSocket only to avoid polling issues
+            transports: ['websocket', 'polling'], // Try WebSocket first, gracefully fallback to polling
             auth: {
                 token: token
             },
@@ -75,6 +75,18 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
 
         // Connection Events
         newSocket.on('connect', () => {
+            setIsConnected(true);
+            const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (freshToken) {
+                newSocket.emit('authenticate', { token: freshToken });
+            }
+            if (userId) {
+                newSocket.emit('join-room', userId);
+            }
+        });
+
+        // Reconnect Events (e.g. after network glitch or sleep)
+        newSocket.io.on('reconnect', () => {
             setIsConnected(true);
             const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
             if (freshToken) {
@@ -140,6 +152,20 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             }
         });
 
+        // Visibility change presence sync (when user unlocks phone or switches back to tab)
+        const handleVisibilityChange = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+                if (freshToken && newSocket.connected) {
+                    newSocket.emit('authenticate', { token: freshToken });
+                }
+            }
+        };
+
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
         setSocket(newSocket);
 
         // Join Personal Room if UserID exists (Legacy fallback)
@@ -148,6 +174,9 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         }
 
         return () => {
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
             newSocket.disconnect();
         };
     }, [userId]);

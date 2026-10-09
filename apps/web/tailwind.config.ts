@@ -91,8 +91,9 @@ const config: Config = {
                 shake: 'shake 3s ease-in-out infinite',
             },
             fontFamily: {
-                sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-                heading: ["var(--font-heading)", "serif"],
+                sans: ["var(--font-sans)", "system-ui", "-apple-system", "sans-serif"],
+                heading: ["var(--font-heading)", "var(--font-sans)", "sans-serif"],
+                serif: ["var(--font-serif)", "serif"],
                 mono: ["var(--font-mono)", "monospace"],
             },
         },

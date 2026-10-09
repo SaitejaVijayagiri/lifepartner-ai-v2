@@ -17,6 +17,162 @@ const activeChats = new Map<string, string>();
 // socketId -> { id, userId, name, photo, isVerified }
 const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean }>();
 
+const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
+    try {
+        const userDetails = await prisma.users.findUnique({
+            where: { id: targetUserId },
+            select: { 
+                full_name: true, 
+                avatar_url: true, 
+                profiles: { 
+                    select: { 
+                        photos: true, 
+                        metadata: true 
+                    } 
+                } 
+            }
+        });
+        
+        if (userDetails) {
+            const connectionsList = await prisma.interactions.findMany({
+                where: {
+                    OR: [
+                        { from_user_id: targetUserId },
+                        { to_user_id: targetUserId }
+                    ],
+                    status: 'connected'
+                },
+                select: {
+                    from_user_id: true,
+                    to_user_id: true
+                }
+            });
+
+            const name = userDetails.full_name || 'Someone';
+            const { sanitizePhotoUrl } = require('./utils/photoUrl');
+            let rawPhoto = userDetails.avatar_url || (userDetails.profiles?.photos as any)?.[0] || null;
+            if (rawPhoto && rawPhoto.startsWith('data:image')) {
+                rawPhoto = null;
+            }
+            const fromUserPhoto = rawPhoto 
+                ? sanitizePhotoUrl(rawPhoto, name)
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=256`;
+
+            const uniqueTargetUserIds = new Set<string>();
+            for (const conn of connectionsList) {
+                const partnerId = conn.from_user_id === targetUserId ? conn.to_user_id : conn.from_user_id;
+                if (partnerId) {
+                    uniqueTargetUserIds.add(partnerId);
+                }
+            }
+
+            for (const otherUserId of uniqueTargetUserIds) {
+                const isOtherOnline = (onlineUsers.get(otherUserId) || 0) > 0;
+
+                const wittyMsgs = [
+                    `Your match ${name} just logged on! Strike a conversation while they are active! ⚡`,
+                    `${name} is online now! Send a quick hello to see what they are up to. 💬`,
+                    `Look who is online! ${name} is active now. Don't keep them waiting! 😉`,
+                    `⚡ Chemistry alert! ${name} just came online. Perfect time to ask them about their day!`
+                ];
+                const msg = wittyMsgs[Math.floor(Math.random() * wittyMsgs.length)];
+
+                if (isOtherOnline) {
+                    io.to(otherUserId).emit('notification:new', {
+                        id: `conn-online-${targetUserId}-${Date.now()}`,
+                        type: 'connection_online',
+                        message: msg,
+                        timestamp: new Date(),
+                        fromUserId: targetUserId,
+                        fromUserName: name,
+                        fromUserPhoto: fromUserPhoto
+                    });
+                } else {
+                    try {
+                        const { NotificationService } = require('./services/notification');
+                        NotificationService.getInstance().sendToUser(
+                            otherUserId,
+                            `Match Active ⚡`,
+                            msg,
+                            {
+                                type: 'connection_online',
+                                fromUserId: targetUserId,
+                                fromUserName: name,
+                                fromUserPhoto: fromUserPhoto
+                            }
+                        ).catch((e: any) => console.warn("Push failed for connection online alert", e));
+                    } catch (pushErr) {
+                        console.error("Push service error on connection online alert", pushErr);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to notify online status to connections:", e);
+    }
+};
+
+export const addSocketToOnlineUser = (socket: Socket | any, targetUserId: string) => {
+    if (!targetUserId) return;
+
+    // Detach any previous user ID tracked by this socket
+    if (socket.data?.trackedUserId && socket.data.trackedUserId !== targetUserId) {
+        removeSocketFromOnlineUser(socket, socket.data.trackedUserId);
+    }
+
+    if (socket.data) {
+        socket.data.trackedUserId = targetUserId;
+    }
+    if (socket.join) {
+        socket.join(targetUserId);
+    }
+
+    const currentCount = onlineUsers.get(targetUserId) || 0;
+    onlineUsers.set(targetUserId, currentCount + 1);
+
+    // Send CURRENT online list to this socket
+    if (socket.emit) {
+        socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
+    }
+
+    // Notify others that this user is online ONLY if they just came online (0 -> 1)
+    if (currentCount === 0) {
+        if (socket.broadcast && socket.broadcast.emit) {
+            socket.broadcast.emit('userOnline', targetUserId);
+        }
+        if (io) {
+            io.to('public_updates').emit('public_stats', {
+                onlineCount: onlineUsers.size,
+                loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
+            });
+        }
+        notifyConnectionsOfOnlineStatus(targetUserId);
+    }
+};
+
+export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: string) => {
+    const uId = targetUserId || socket.data?.trackedUserId || socket.data?.user?.userId;
+    if (!uId) return;
+
+    if (socket.data) {
+        socket.data.trackedUserId = undefined;
+    }
+    const currentCount = onlineUsers.get(uId) || 0;
+    if (currentCount <= 1) {
+        onlineUsers.delete(uId);
+        activeChats.delete(uId);
+        if (io) {
+            io.emit('userOffline', uId);
+            io.to('public_updates').emit('public_stats', {
+                onlineCount: onlineUsers.size,
+                loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
+            });
+        }
+    } else {
+        onlineUsers.set(uId, currentCount - 1);
+    }
+};
+
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -79,120 +235,11 @@ export const initSocket = (httpServer: HttpServer) => {
             loungeCount: loungeCount
         });
 
+        // Send current online user IDs even to guests/initial connects
+        socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
+
         if (userId) {
-            socket.join(userId);
-
-            // Add to Online Map (track connection count)
-            const currentCount = onlineUsers.get(userId) || 0;
-            onlineUsers.set(userId, currentCount + 1);
-
-            // Send CURRENT online list to THIS user
-            socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
-
-            // Notify OTHERS that this user is online ONLY if they just came online
-            if (currentCount === 0) {
-                socket.broadcast.emit('userOnline', userId);
-                io.to('public_updates').emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
-
-                // Find active connections to send witty online alerts
-                (async () => {
-                    try {
-                        const userDetails = await prisma.users.findUnique({
-                            where: { id: userId },
-                            select: { 
-                                full_name: true, 
-                                avatar_url: true, 
-                                profiles: { 
-                                    select: { 
-                                        photos: true,
-                                        metadata: true 
-                                    } 
-                                } 
-                            }
-                        });
-                        
-                        if (userDetails) {
-                            const connectionsList = await prisma.interactions.findMany({
-                                where: {
-                                    OR: [
-                                        { from_user_id: userId },
-                                        { to_user_id: userId }
-                                    ],
-                                    status: 'connected'
-                                },
-                                select: {
-                                    from_user_id: true,
-                                    to_user_id: true
-                                }
-                            });
-
-                            const name = userDetails.full_name || 'Someone';
-                            const meta = (userDetails.profiles?.metadata as any) || {};
-                            const { sanitizePhotoUrl } = require('./utils/photoUrl');
-                            let rawPhoto = userDetails.avatar_url || (userDetails.profiles?.photos as any)?.[0] || null;
-                            if (rawPhoto && rawPhoto.startsWith('data:image')) {
-                                rawPhoto = null;
-                            }
-                            const fromUserPhoto = rawPhoto 
-                                ? sanitizePhotoUrl(rawPhoto, name)
-                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff&size=256`;
-
-                            // De-duplicate target user IDs in case of multiple interaction rows between the same two users
-                            const uniqueTargetUserIds = new Set<string>();
-                            for (const conn of connectionsList) {
-                                const targetUserId = conn.from_user_id === userId ? conn.to_user_id : conn.from_user_id;
-                                if (targetUserId) {
-                                    uniqueTargetUserIds.add(targetUserId);
-                                }
-                            }
-
-                            for (const targetUserId of uniqueTargetUserIds) {
-                                const targetOnlineCount = onlineUsers.get(targetUserId) || 0;
-
-                                const wittyMsgs = [
-                                    `Your match ${name} just logged on! Strike a conversation while they are active! ⚡`,
-                                    `${name} is online now! Send a quick hello to see what they are up to. 💬`,
-                                    `Look who is online! ${name} is active now. Don't keep them waiting! 😉`,
-                                    `⚡ Chemistry alert! ${name} just came online. Perfect time to ask them about their day!`
-                                ];
-                                const msg = wittyMsgs[Math.floor(Math.random() * wittyMsgs.length)];
-
-                                if (targetOnlineCount > 0) {
-                                    io.to(targetUserId).emit('notification:new', {
-                                        id: `conn-online-${userId}-${Date.now()}`,
-                                        type: 'connection_online',
-                                        message: msg,
-                                        timestamp: new Date(),
-                                        fromUserId: userId,
-                                        fromUserName: name,
-                                        fromUserPhoto: fromUserPhoto
-                                    });
-                                } else {
-                                    // Target user is offline: Send push notification to bring them online!
-                                    try {
-                                        const { NotificationService } = require('./services/notification');
-                                        NotificationService.getInstance().sendToUser(
-                                            targetUserId,
-                                            `Match Active ⚡`,
-                                            msg,
-                                            {
-                                                type: 'connection_online',
-                                                fromUserId: userId,
-                                                fromUserName: name,
-                                                fromUserPhoto: fromUserPhoto
-                                            }
-                                        ).catch((e: any) => console.warn("Push failed for connection online alert", e));
-                                    } catch (pushErr) {
-                                        console.error("Push service error on connection online alert", pushErr);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error("Failed to notify online status to connections:", e);
-                    }
-                })();
-            }
+            addSocketToOnlineUser(socket, userId);
         }
 
         const leaveCommunity = () => {
@@ -220,28 +267,20 @@ export const initSocket = (httpServer: HttpServer) => {
                 socket.data.callPartnerId = null;
             }
 
-            if (userId) {
-                const currentCount = onlineUsers.get(userId) || 0;
-                if (currentCount <= 1) {
-                    // Last connection dying
-                    onlineUsers.delete(userId);
-                    activeChats.delete(userId);
-                    io.emit('userOffline', userId);
-                    io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size });
-                } else {
-                    onlineUsers.set(userId, currentCount - 1);
-                }
+            const activeUserId = socket.data.trackedUserId || socket.data.user?.userId || userId;
+            if (activeUserId) {
+                removeSocketFromOnlineUser(socket, activeUserId);
             }
 
             leaveCommunity();
             // Automatically remove user from speed dating queue/active match
-            SpeedDatingManager.getInstance().leaveLobby(socket.id, userId);
-            if (userId) {
-                SpeedDatingManager.getInstance().endActiveMatch(userId);
+            SpeedDatingManager.getInstance().leaveLobby(socket.id, activeUserId);
+            if (activeUserId) {
+                SpeedDatingManager.getInstance().endActiveMatch(activeUserId);
                 // End any active live speed dating rooms hosted by this user
                 try {
                     const { endUserLiveEvents } = require('./routes/dates');
-                    endUserLiveEvents(userId).catch(console.error);
+                    endUserLiveEvents(activeUserId).catch(console.error);
                 } catch (e) {}
             }
         });
@@ -264,14 +303,8 @@ export const initSocket = (httpServer: HttpServer) => {
                     const uId = decoded.userId;
                     socket.data.user = decoded;
                     socket.data.isGuest = false;
-                    socket.join(uId);
 
-                    const currentCount = onlineUsers.get(uId) || 0;
-                    if (currentCount === 0) {
-                        onlineUsers.set(uId, 1);
-                        socket.broadcast.emit('userOnline', uId);
-                    }
-                    socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
+                    addSocketToOnlineUser(socket, uId);
                     console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
                 });
             } catch (err) {
@@ -786,9 +819,17 @@ export const getIO = () => {
 };
 
 export const isUserOnline = (userId: string): boolean => {
-    if (!io) return false;
-    const room = io.sockets.adapter.rooms.get(userId);
-    return !!room && room.size > 0;
+    if (!userId) return false;
+    if (onlineUsers.has(userId) && (onlineUsers.get(userId) || 0) > 0) return true;
+    if (io) {
+        const room = io.sockets.adapter.rooms.get(userId);
+        if (room && room.size > 0) return true;
+    }
+    return false;
+};
+
+export const getOnlineUserIds = (): string[] => {
+    return Array.from(onlineUsers.keys());
 };
 
 export const isUserActiveInChat = (userId: string, partnerId: string): boolean => {

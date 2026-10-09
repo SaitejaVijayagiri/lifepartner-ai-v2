@@ -199,7 +199,8 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         photoUrl: sanitizePhotoUrl(partner.avatar_url, partner.full_name || partner.id),
                         role: (partner.profiles?.metadata as any)?.career?.profession || "Member",
                         location: getLocationString(partner),
-                        stories: activeStories
+                        stories: activeStories,
+                        isOnline: isUserOnline(partner.id)
                     },
                     timestamp: r.created_at,
                     unreadCount: 0 // Default

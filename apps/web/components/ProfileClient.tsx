@@ -27,7 +27,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     const toast = useToast();
     const { user } = useAuth();
     const { onlineUsers } = useSocket();
-    const isUserOnline = profile ? (profile.isOnline || onlineUsers.includes(profile.id)) : false;
+    const isUserOnline = profile ? Boolean(profile.isOnline || (Array.isArray(onlineUsers) && (onlineUsers.includes(profile.id) || (profile.userId && onlineUsers.includes(profile.userId))))) : false;
 
     // Effect: Refetch profile if user is logged in (to get full details + match info)
     // or if initial load failed but user might have access

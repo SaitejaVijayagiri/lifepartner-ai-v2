@@ -32,9 +32,14 @@ export default function ConnectionsTab({
     const toast = useToast();
     const [searchQuery, setSearchQuery] = useState('');
 
+    const isConnOnline = (c: any) => Boolean(
+        c.partner?.isOnline ||
+        (Array.isArray(onlineUsers) && c.partner?.id && onlineUsers.includes(c.partner.id))
+    );
+
     // Sort connections so online users appear at the top, preserving recent-message order within groups
-    const onlineConns = connections.filter(c => c.partner && onlineUsers.includes(c.partner.id));
-    const offlineConns = connections.filter(c => c.partner && !onlineUsers.includes(c.partner.id));
+    const onlineConns = connections.filter(c => c.partner && isConnOnline(c));
+    const offlineConns = connections.filter(c => c.partner && !isConnOnline(c));
     const sortedConnections = [...onlineConns, ...offlineConns];
 
     // Filter connections based on search query (matches name, role, or location)
@@ -168,7 +173,7 @@ export default function ConnectionsTab({
                                         />
                                     </div>
                                 </div>
-                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.includes(conn.partner.id) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${isConnOnline(conn) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
                             </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -182,7 +187,7 @@ export default function ConnectionsTab({
                                 )}
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
-                                {onlineUsers.includes(conn.partner.id) ? 'Online' : 'Offline'} • Click to chat
+                                {isConnOnline(conn) ? 'Online' : 'Offline'} • Click to chat
                             </p>
                         </div>
                     </div>

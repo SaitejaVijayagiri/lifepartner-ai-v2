@@ -4,7 +4,7 @@ import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
-import { isUserOnline } from '../socket';
+import { isUserOnline, getOnlineUserIds } from '../socket';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
 
@@ -176,6 +176,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
                   AND (p.metadata->'location'->>'lng') != ''
+                  AND COALESCE(p.metadata->'location'->>'live_enabled', 'true') != 'false'
                 LIMIT 500
             `;
         } else if (myGender === 'female') {
@@ -197,6 +198,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
                   AND (p.metadata->'location'->>'lng') != ''
+                  AND COALESCE(p.metadata->'location'->>'live_enabled', 'true') != 'false'
                 LIMIT 500
             `;
         } else {
@@ -218,6 +220,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
                   AND (p.metadata->'location'->>'lng') != ''
+                  AND COALESCE(p.metadata->'location'->>'live_enabled', 'true') != 'false'
                 LIMIT 500
             `;
         }
@@ -235,7 +238,8 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                 city: u.city || '',
                 state: u.state || ''
             },
-            role: u.profession || 'Member'
+            role: u.profession || 'Member',
+            isOnline: isUserOnline(u.id)
         }));
 
         res.json({ profiles });
@@ -403,6 +407,73 @@ router.get('/public-preview', async (req: any, res) => {
     }
 });
 
+// Live Online Opposite-Gender Users endpoint (instant access for both Females and Males)
+router.get('/online-now', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const me = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { gender: true }
+        });
+        const myGender = (me?.gender || "").trim().toLowerCase();
+        const targetGender = myGender === 'female' ? ['Male', 'male'] : (myGender === 'male' ? ['Female', 'female'] : undefined);
+
+        const onlineIds = getOnlineUserIds().filter(id => id !== userId);
+        if (onlineIds.length === 0) {
+            return res.json({ onlineMembers: [] });
+        }
+
+        const onlineUsersDB = await prisma.users.findMany({
+            where: {
+                id: { in: onlineIds },
+                ...(targetGender ? { gender: { in: targetGender } } : {}),
+                is_verified: true,
+                is_banned: false,
+                AND: [
+                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                ]
+            },
+            select: {
+                id: true,
+                full_name: true,
+                age: true,
+                gender: true,
+                avatar_url: true,
+                city: true,
+                state: true,
+                location_name: true,
+                profiles: {
+                    select: {
+                        photos: true,
+                        metadata: true
+                    }
+                }
+            }
+        });
+
+        const onlineMembers = onlineUsersDB.map(u => {
+            const meta = (u.profiles?.metadata as any) || {};
+            const photo = sanitizePhotoUrl(u.avatar_url || (u.profiles?.photos as any)?.[0] || meta.photos?.[0], u.full_name || u.id);
+            return {
+                id: u.id,
+                name: u.full_name || 'Member',
+                age: u.age,
+                gender: u.gender,
+                photoUrl: photo,
+                avatar_url: photo,
+                location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'India',
+                role: meta.career?.profession || 'Member',
+                isOnline: true
+            };
+        });
+
+        res.json({ onlineMembers });
+    } catch (err) {
+        console.error("Failed to fetch online members:", err);
+        res.status(500).json({ error: "Failed to fetch online members" });
+    }
+});
+
 router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -415,7 +486,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const cacheKey = `${userId}_page_${page}`;
         const cached = matchCache.get(cacheKey);
         if (cached && cached.expiresAt > Date.now()) {
-            return res.json({ matches: cached.data });
+            const liveMatches = (cached.data || []).map((m: any) => ({
+                ...m,
+                isOnline: isUserOnline(m.id)
+            }));
+            return res.json({ matches: liveMatches });
         }
 
         // 1. Get Me
@@ -470,8 +545,29 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             `;
         }
 
-        // Step B: Extract IDs
-        const shuffledIds = randomCandidates.map(c => c.id);
+        // Prioritize actively online candidates of opposite gender on Page 1
+        const onlineIds = getOnlineUserIds().filter(id => id !== userId);
+        const targetGenderClause = myGender === 'female' ? ['Male', 'male'] : (myGender === 'male' ? ['Female', 'female'] : undefined);
+        const onlineOppositeCandidateIds = (onlineIds.length > 0 && page === 1)
+            ? (await prisma.users.findMany({
+                where: {
+                    id: { in: onlineIds },
+                    ...(targetGenderClause ? { gender: { in: targetGenderClause } } : {}),
+                    is_verified: true,
+                    is_banned: false,
+                    AND: [
+                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                    ]
+                },
+                select: { id: true }
+            })).map(u => u.id)
+            : [];
+
+        // Step B: Extract IDs, prepending online candidates
+        const rawDbIds = randomCandidates.map(c => c.id);
+        const shuffledIds = page === 1
+            ? Array.from(new Set([...onlineOppositeCandidateIds, ...rawDbIds])).slice(0, limit)
+            : rawDbIds;
 
         // Parallelise candidates + gift stats fetches
         const [shuffledCandidates, giftStatsRaw] = await Promise.all([
@@ -609,6 +705,13 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 reasons.push("🌍 Worldwide Suitor");
             }
 
+            // 7. Live Online Presence Boost
+            const isCandidateOnline = isUserOnline(c.id);
+            if (isCandidateOnline) {
+                score += 25;
+                reasons.push("⚡ Active Online Now");
+            }
+
             // Cap
             if (score > 99) score = 99;
 
@@ -732,6 +835,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 match_status: matchStatus,
                 is_liked: matchRecord?.is_liked || false,
                 isPremium: c.is_premium || false,
+                isOnline: isUserOnline(c.id),
 
                 // Privacy logic
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
@@ -746,19 +850,34 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         if (myGender === 'female') {
             matches.sort((a, b) => {
-                // Photo-First Priority: Always surface suitors with verified real photos first
+                // 1. Live Online Priority: Always surface active online suitors first
+                if (a.isOnline && !b.isOnline) return -1;
+                if (!a.isOnline && b.isOnline) return 1;
+
+                // 2. Photo-First Priority: Surface suitors with verified real photos next
                 if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
                 if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
+
                 return b.score - a.score;
             });
         } else {
-            matches.sort((a, b) => b.score - a.score);
+            matches.sort((a, b) => {
+                if (a.isOnline && !b.isOnline) return -1;
+                if (!a.isOnline && b.isOnline) return 1;
+                return b.score - a.score;
+            });
         }
 
         // Save to in-memory Cache
         matchCache.set(cacheKey, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });
 
-        res.json({ matches });
+        // Ensure live online status is 100% current upon response
+        const liveMatches = matches.map(m => ({
+            ...m,
+            isOnline: isUserOnline(m.id)
+        }));
+
+        res.json({ matches: liveMatches });
 
     } catch (e) {
         console.error("Matches Error", e);

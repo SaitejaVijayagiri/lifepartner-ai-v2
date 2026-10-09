@@ -1158,6 +1158,59 @@ function DashboardContent() {
         }
     };
 
+    const handleToggleSettingsLiveLocation = async () => {
+        const isCurrentlyEnabled = currentUser?.location?.live_enabled !== false;
+        const nextState = !isCurrentlyEnabled;
+        try {
+            if (nextState) {
+                // Turning ON: Attempt high-accuracy GPS update
+                if (typeof window !== 'undefined' && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        async (pos) => {
+                            try {
+                                const { latitude, longitude } = pos.coords;
+                                await api.profile.toggleLiveLocation(true, { lat: latitude, lng: longitude });
+                                toast.success("Live Location enabled! Visible on the map radar.");
+                                setCurrentUser((prev: any) => ({
+                                    ...prev,
+                                    location: { ...(prev?.location || {}), lat: latitude, lng: longitude, live_enabled: true }
+                                }));
+                            } catch (e: any) {
+                                toast.error(e?.message || "Failed to update location");
+                            }
+                        },
+                        async () => {
+                            await api.profile.toggleLiveLocation(true);
+                            toast.success("Live Location enabled with profile location.");
+                            setCurrentUser((prev: any) => ({
+                                ...prev,
+                                location: { ...(prev?.location || {}), live_enabled: true }
+                            }));
+                        },
+                        { timeout: 8000 }
+                    );
+                } else {
+                    await api.profile.toggleLiveLocation(true);
+                    toast.success("Live Location enabled.");
+                    setCurrentUser((prev: any) => ({
+                        ...prev,
+                        location: { ...(prev?.location || {}), live_enabled: true }
+                    }));
+                }
+            } else {
+                // Turning OFF
+                await api.profile.toggleLiveLocation(false);
+                toast.info("Live Location disabled. You are now hidden from the map radar.");
+                setCurrentUser((prev: any) => ({
+                    ...prev,
+                    location: { ...(prev?.location || {}), live_enabled: false }
+                }));
+            }
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to update live location setting");
+        }
+    };
+
     const handleAcceptRequest = async (requestId: string) => {
         try {
             await api.interactions.acceptRequest(requestId);
@@ -1478,7 +1531,13 @@ function DashboardContent() {
 
                     <div className={activeTab === 'map' ? 'block h-full' : 'hidden'}>
                         {visitedTabs.has('map') && (
-                            <InteractiveMap profiles={mapProfiles} currentUser={currentUser} onViewProfile={setSelectedProfile} onBack={() => setActiveTab('matches')} />
+                            <InteractiveMap 
+                                profiles={mapProfiles} 
+                                currentUser={currentUser} 
+                                onViewProfile={setSelectedProfile} 
+                                onBack={() => setActiveTab('matches')} 
+                                onUpdateCurrentUser={(updated) => setCurrentUser(updated)}
+                            />
                         )}
                     </div>
 
@@ -1731,6 +1790,42 @@ function DashboardContent() {
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {/* Live Location Privacy Setting */}
+                                            <div className="p-4 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/30 dark:bg-indigo-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:col-span-2">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <Radio size={18} className="text-indigo-600 dark:text-indigo-400" />
+                                                        <h4 className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                            Live Location & Map Visibility
+                                                        </h4>
+                                                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                                            currentUser?.location?.live_enabled !== false
+                                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                        }`}>
+                                                            {currentUser?.location?.live_enabled !== false ? 'ON' : 'OFF'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Control whether nearby verified singles can discover you on the Interactive Live Map. Turn this off anytime to browse the map incognito without sharing your live GPS coordinates.
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    <Button
+                                                        variant={currentUser?.location?.live_enabled !== false ? "primary" : "outline"}
+                                                        size="sm"
+                                                        onClick={handleToggleSettingsLiveLocation}
+                                                        className={`font-bold transition-all ${
+                                                            currentUser?.location?.live_enabled !== false
+                                                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                                                : 'border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30'
+                                                        }`}
+                                                    >
+                                                        {currentUser?.location?.live_enabled !== false ? 'Turn OFF Live Location' : 'Turn ON Live Location'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+
                                             {/* Deactivate Option */}
                                             <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/80 transition-colors flex flex-col justify-between space-y-4">
                                                 <div>

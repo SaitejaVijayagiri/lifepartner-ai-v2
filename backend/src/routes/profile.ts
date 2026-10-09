@@ -17,6 +17,7 @@ import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
+import { isUserOnline } from '../socket';
 
 export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[] = []) {
     const storyMap = new Map<string, any>();
@@ -253,7 +254,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             state: meta.location?.state || user.state || "",
             country: meta.location?.country || "India",
             lat: meta.location?.lat,
-            lng: meta.location?.lng
+            lng: meta.location?.lng,
+            live_enabled: meta.location?.live_enabled !== false && meta.location?.live_enabled !== 'false'
         };
 
         const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
@@ -716,6 +718,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             })(),
             match_status: matchStatus,
             is_liked: isLiked,
+            isOnline: isUserOnline(user.id),
             ...contactInfo,
             isContactUnlocked: isRequesterPremium
         });
@@ -977,7 +980,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     maritalStatus, // Store maritalStatus in metadata too
                     photos: finalPhotos,
                     dob,
-                    location, // already sanitized
+                    location: location ? {
+                        ...(existingMeta?.location || {}),
+                        ...location,
+                        live_enabled: location.live_enabled !== undefined 
+                            ? Boolean(location.live_enabled) 
+                            : (existingMeta?.location?.live_enabled !== undefined ? existingMeta.location.live_enabled : true)
+                    } : (existingMeta?.location || undefined),
                     height, // Added Height
                     phone: phone || existingUser?.phone || undefined, // Added Phone
                     bio: cleanBio || finalBio, // Sync aboutMe to bio
@@ -1191,6 +1200,81 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         // Show real reason if it's 400 (Validation) or 500 (DB constraint context added)
         const message = e?.message && (status === 400 || e.message.includes('Database error')) ? e.message : 'Failed to save profile';
         res.status(status).json({ error: message });
+    }
+});
+
+// Toggle or update live location manually
+router.post('/live-location', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { enabled, lat, lng, city, state, country } = req.body;
+
+        if (typeof enabled !== 'boolean') {
+            return res.status(400).json({ error: "Field 'enabled' (boolean) is required" });
+        }
+
+        const profile = await prisma.profiles.findUnique({
+            where: { user_id: userId },
+            select: { metadata: true }
+        });
+
+        const currentMeta: any = profile?.metadata || {};
+        const currentLocation: any = currentMeta.location || {};
+
+        const parsedLat = lat !== undefined && lat !== null && !isNaN(Number(lat)) ? Number(lat) : currentLocation.lat;
+        const parsedLng = lng !== undefined && lng !== null && !isNaN(Number(lng)) ? Number(lng) : currentLocation.lng;
+
+        const updatedLocation = {
+            ...currentLocation,
+            live_enabled: enabled,
+            ...(parsedLat !== undefined ? { lat: parsedLat } : {}),
+            ...(parsedLng !== undefined ? { lng: parsedLng } : {}),
+            ...(city ? { city } : {}),
+            ...(state ? { state } : {}),
+            ...(country ? { country } : {})
+        };
+
+        const newMeta = {
+            ...currentMeta,
+            location: updatedLocation
+        };
+
+        await prisma.profiles.upsert({
+            where: { user_id: userId },
+            create: {
+                user_id: userId,
+                metadata: newMeta
+            },
+            update: {
+                metadata: newMeta
+            }
+        });
+
+        // If coordinates provided or available and enabled, update PostGIS in users table
+        if (enabled && updatedLocation.lat && updatedLocation.lng) {
+            try {
+                const numericLat = parseFloat(updatedLocation.lat);
+                const numericLng = parseFloat(updatedLocation.lng);
+                if (!isNaN(numericLat) && !isNaN(numericLng)) {
+                    await prisma.$executeRaw`
+                        UPDATE users 
+                        SET location_coords = ST_SetSRID(ST_MakePoint(${numericLng}, ${numericLat}), 4326)::geography 
+                        WHERE id = ${userId}::uuid
+                    `;
+                }
+            } catch (postgisErr) {
+                console.warn('[profile] PostGIS update skipped:', postgisErr);
+            }
+        }
+
+        res.json({
+            success: true,
+            live_enabled: enabled,
+            location: updatedLocation
+        });
+    } catch (e: any) {
+        console.error("Failed to toggle live location:", e);
+        res.status(500).json({ error: "Failed to update live location" });
     }
 });
 

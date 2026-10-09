@@ -1791,22 +1791,40 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </div>
                                 );
                             })()}
-                            <div className={`absolute bottom-0 right-0 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white shadow-lg ${onlineUsers?.includes(partner.id) ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                            {(() => {
+                                const partnerActualId = partnerInfo?.id || partner?.id || (partner as any)?.userId || (partner as any)?.user_id;
+                                const isPartnerOnline = Boolean(
+                                    (partnerInfo as any)?.isOnline ||
+                                    (partner as any)?.isOnline ||
+                                    (Array.isArray(onlineUsers) && partnerActualId && onlineUsers.includes(partnerActualId))
+                                );
+                                return (
+                                    <div className={`absolute bottom-0 right-0 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white shadow-lg ${isPartnerOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                                );
+                            })()}
                         </div>
                         <div className="min-w-0 flex-1">
                             <h3 className="font-extrabold text-base sm:text-lg leading-tight truncate text-white drop-shadow-sm">{partnerInfo.name}</h3>
                             <div className="text-[11px] sm:text-xs text-white/80 flex items-center gap-1.5 flex-wrap">
-                                {onlineUsers?.includes(partner.id) ? (
-                                    <>
-                                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
-                                        <span className="truncate">Online now</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="w-1.5 h-1.5 bg-gray-300 rounded-full flex-shrink-0"></span>
-                                        <span className="truncate">Offline</span>
-                                    </>
-                                )}
+                                {(() => {
+                                    const partnerActualId = partnerInfo?.id || partner?.id || (partner as any)?.userId || (partner as any)?.user_id;
+                                    const isPartnerOnline = Boolean(
+                                        (partnerInfo as any)?.isOnline ||
+                                        (partner as any)?.isOnline ||
+                                        (Array.isArray(onlineUsers) && partnerActualId && onlineUsers.includes(partnerActualId))
+                                    );
+                                    return isPartnerOnline ? (
+                                        <>
+                                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
+                                            <span className="truncate">Online now</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="w-1.5 h-1.5 bg-gray-300 rounded-full flex-shrink-0"></span>
+                                            <span className="truncate">Offline</span>
+                                        </>
+                                    );
+                                })()}
                                 {isIncognito && (
                                     <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 text-[10px] font-extrabold border border-purple-400/50 flex items-center gap-1 animate-pulse shrink-0">
                                         🕵️ Incognito

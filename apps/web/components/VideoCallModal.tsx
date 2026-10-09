@@ -210,7 +210,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     };
 
     const isOutboundNormalCall = !incomingCall && !isSpeedDate && !isHostRoom;
-    const isPartnerOnline = partner?.id && partner.id !== 'unknown' ? (onlineUsers || []).includes(partner.id) : true;
+    const partnerActualId = partner?.id || (partner as any)?.userId || (partner as any)?.user_id;
+    const isPartnerOnline = partnerActualId && partnerActualId !== 'unknown'
+        ? Boolean((partner as any)?.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(partnerActualId)))
+        : true;
 
     const handleBuzzCall = async () => {
         if (!partner.id || partner.id === 'unknown' || buzzed || isBuzzing) return;

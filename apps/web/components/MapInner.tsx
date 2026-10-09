@@ -27,7 +27,23 @@ function MapCaptureRef({ mapRef }: { mapRef: React.MutableRefObject<LeafletMap |
     return null;
 }
 
-export default function MapInner({ profiles, currentUser, onViewProfile, onBack, astrologyMode = false }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void, astrologyMode?: boolean }) {
+export default function MapInner({ 
+    profiles, 
+    currentUser, 
+    onViewProfile, 
+    onBack, 
+    astrologyMode = false,
+    isLiveLocationOn = true,
+    onToggleLiveLocation
+}: { 
+    profiles: any[], 
+    currentUser: any, 
+    onViewProfile?: (p: any) => void, 
+    onBack?: () => void, 
+    astrologyMode?: boolean,
+    isLiveLocationOn?: boolean,
+    onToggleLiveLocation?: () => void
+}) {
     const mapRef = useRef<LeafletMap | null>(null);
     useEffect(() => {
         // Fix Leaflet default icon URLs broken by webpack
@@ -40,6 +56,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
             });
         });
     }, []);
+
+    const isLiveLocation = isLiveLocationOn !== false && currentUser?.location?.live_enabled !== false;
 
     const myLat = currentUser?.location?.lat ? parseFloat(currentUser.location.lat) : 20.5937;
     const myLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : 78.9629;
@@ -57,8 +75,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
     const L = typeof window !== 'undefined' ? require('leaflet') : null;
     if (!L) return null;
 
-    // Custom Icon for Current User (Radar Pulse)
-    const myIconHtml = `
+    // Custom Icon for Current User (Radar Pulse if live, Muted if live location is off)
+    const myIconHtml = isLiveLocation ? `
         <div style="position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center;">
             <div style="position:absolute;inset:-10px;border-radius:50%;background:radial-gradient(circle,rgba(79,70,229,0.4),transparent);animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
             <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,rgba(79,70,229,0.6),transparent);animation:ping 3s cubic-bezier(0,0,0.2,1) infinite reverse;"></div>
@@ -69,6 +87,16 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                 }
             </div>
             <div style="position:absolute;bottom:-6px;background:#4f46e5;color:white;font-size:10px;font-weight:bold;padding:2px 8px;border-radius:999px;white-space:nowrap;z-index:20;border:2px solid white;">You</div>
+        </div>
+    ` : `
+        <div style="position:relative;width:60px;height:60px;display:flex;align-items:center;justify-content:center;">
+            <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2.5px solid #64748b;background:#334155;display:flex;align-items:center;justify-content:center;color:white;position:relative;z-index:10;opacity:0.85;">
+                ${currentUser?.photoUrl 
+                    ? `<img src="${currentUser.photoUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';" />`
+                    : `<span style="font-weight:bold;font-size:16px;">${(currentUser?.name || 'Y')[0]}</span>`
+                }
+            </div>
+            <div style="position:absolute;bottom:-6px;background:#475569;color:white;font-size:9px;font-weight:bold;padding:1px 6px;border-radius:999px;white-space:nowrap;z-index:20;border:1.5px solid white;">You (Hidden)</div>
         </div>
     `;
 
@@ -103,12 +131,26 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                 {currentUser?.location?.lat && (
                     <Marker position={[myLat, myLng]} icon={myIcon} zIndexOffset={2000}>
                         <Popup className="premium-popup">
-                            <div className="text-center p-2 min-w-[140px]">
-                                <p className="text-sm font-bold text-gray-900 mb-1">Your Live Location</p>
+                            <div className="text-center p-2 min-w-[160px]">
+                                <p className="text-sm font-bold text-gray-900 mb-1">
+                                    {isLiveLocation ? "Your Live Location" : "Live Location: Paused"}
+                                </p>
                                 <p className="text-xs text-indigo-600 font-medium flex items-center justify-center gap-1">
                                     <MapPin size={12} /> {currentUser.location?.city || 'Scanning...'}
                                 </p>
-                                <p className="text-[10px] text-gray-500 mt-2">Discovering nearby singles</p>
+                                <p className="text-[10px] text-gray-500 mt-1">
+                                    {isLiveLocation ? "Discovering nearby singles on radar" : "You are hidden from other users on the map radar"}
+                                </p>
+                                {onToggleLiveLocation && (
+                                    <button
+                                        onClick={onToggleLiveLocation}
+                                        className={`mt-2 text-[11px] font-bold py-1 px-3 rounded-full transition text-white ${
+                                            isLiveLocation ? 'bg-gray-700 hover:bg-gray-800' : 'bg-emerald-600 hover:bg-emerald-700 shadow-sm'
+                                        }`}
+                                    >
+                                        {isLiveLocation ? "Turn OFF Live Radar" : "Turn ON Live Radar"}
+                                    </button>
+                                )}
                             </div>
                         </Popup>
                     </Marker>
@@ -129,8 +171,8 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     const fuzzyLat = exactLat + latOffset;
                     const fuzzyLng = exactLng + lngOffset;
 
-                    // Calculate precise distance using the fuzzed location
-                    const distanceKm = currentUser?.location?.lat 
+                    // Calculate precise distance using the fuzzed location if user has live location enabled
+                    const distanceKm = (currentUser?.location?.lat && isLiveLocation)
                         ? getDistance(myLat, myLng, fuzzyLat, fuzzyLng)
                         : null;
 
@@ -143,7 +185,7 @@ export default function MapInner({ profiles, currentUser, onViewProfile, onBack,
                     const showIcebreaker = !astrologyMode && profile.id.charCodeAt(profile.id.length - 1) % 4 === 0;
                     const icebreakerText = icebreakers[profile.id.charCodeAt(0) % icebreakers.length];
 
-                    const isOnline = onlineUsers?.includes(profile.id);
+                    const isOnline = Boolean(profile.isOnline || (Array.isArray(onlineUsers) && (onlineUsers.includes(profile.id) || (profile.userId && onlineUsers.includes(profile.userId)))));
 
                     const photoHtml = profile.photoUrl
                         ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.style.display='none';this.parentNode.innerHTML='<span style=\\'color:white;font-weight:bold;font-size:14px;\\'>${(profile.name || '?')[0]}</span>';" />`

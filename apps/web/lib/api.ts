@@ -108,9 +108,15 @@ export const api = {
         }),
         deactivateAccount: (days: number) => fetchAPI('/profile/deactivate', { method: 'POST', body: JSON.stringify({ days }) }),
         deleteAccount: () => fetchAPI('/profile/me', { method: 'DELETE' }),
+        toggleLiveLocation: (enabled: boolean, coords?: { lat?: number; lng?: number; city?: string; state?: string; country?: string }) =>
+            fetchAPI('/profile/live-location', {
+                method: 'POST',
+                body: JSON.stringify({ enabled, ...(coords || {}) })
+            }),
     },
     matches: {
         getAll: (page: number = 1) => fetchAPI(`/matches/recommendations?page=${page}`),
+        getOnlineNow: () => fetchAPI('/matches/online-now'),
         getMapUsers: () => fetchAPI('/matches/map-users'),
         search: (query: string) => fetchAPI('/matches/search', {
             method: 'POST',

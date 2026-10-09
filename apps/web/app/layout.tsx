@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Sans, Playfair_Display, Roboto_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Outfit, Playfair_Display, Roboto_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import ClientProviders from '@/components/ClientProviders';
@@ -15,15 +15,22 @@ import GlobalViewsBadge from '@/components/GlobalViewsBadge';
 import AppModeHandler from '@/components/AppModeHandler';
 import AnimatedSplash from '@/components/AnimatedSplash';
 
-const fontSans = DM_Sans({
+const fontSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
-const fontHeading = Playfair_Display({
+const fontHeading = Outfit({
   variable: "--font-heading",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+});
+
+const fontSerif = Playfair_Display({
+  variable: "--font-serif",
   subsets: ["latin"],
   display: "swap",
 });
@@ -264,7 +271,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${fontSans.variable} ${fontHeading.variable} ${fontMono.variable} font-sans antialiased`}
+        className={`${fontSans.variable} ${fontHeading.variable} ${fontSerif.variable} ${fontMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

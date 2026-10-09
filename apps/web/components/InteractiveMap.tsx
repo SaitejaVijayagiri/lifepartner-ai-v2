@@ -2,8 +2,10 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Users } from 'lucide-react';
+import { ChevronLeft, Users, Radio, MapPin } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
+import { useToast } from './ui/Toast';
+import { api } from '../lib/api';
 
 // Dynamically import the entire inner map component with SSR disabled.
 const MapInner = dynamic(() => import('./MapInner'), {
@@ -16,10 +18,131 @@ const MapInner = dynamic(() => import('./MapInner'), {
     )
 });
 
-export default function InteractiveMap({ profiles, currentUser, onViewProfile, onBack }: { profiles: any[], currentUser: any, onViewProfile?: (p: any) => void, onBack?: () => void }) {
+export default function InteractiveMap({ 
+    profiles, 
+    currentUser, 
+    onViewProfile, 
+    onBack,
+    onUpdateCurrentUser
+}: { 
+    profiles: any[], 
+    currentUser: any, 
+    onViewProfile?: (p: any) => void, 
+    onBack?: () => void,
+    onUpdateCurrentUser?: (u: any) => void
+}) {
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     const [astrologyMode, setAstrologyMode] = useState(false);
     const { publicStats, onlineUsers } = useSocket() as any;
+    const toast = useToast();
+
+    const [isLiveLocationOn, setIsLiveLocationOn] = useState<boolean>(() => {
+        return currentUser?.location?.live_enabled !== false;
+    });
+    const [isTogglingLocation, setIsTogglingLocation] = useState(false);
+
+    useEffect(() => {
+        if (currentUser?.location?.live_enabled !== undefined) {
+            setIsLiveLocationOn(currentUser.location.live_enabled !== false);
+        }
+    }, [currentUser?.location?.live_enabled]);
+
+    const handleToggleLiveLocation = async () => {
+        const nextState = !isLiveLocationOn;
+        setIsTogglingLocation(true);
+
+        if (nextState) {
+            // Turning ON: Request fresh high-accuracy GPS coordinates if available
+            if (typeof window !== 'undefined' && navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        try {
+                            const { latitude, longitude } = position.coords;
+                            await api.profile.toggleLiveLocation(true, { lat: latitude, lng: longitude });
+                            setIsLiveLocationOn(true);
+                            toast.success("Live Location ON: Your pin is now visible on the live radar!");
+                            if (onUpdateCurrentUser && currentUser) {
+                                onUpdateCurrentUser({
+                                    ...currentUser,
+                                    location: {
+                                        ...(currentUser.location || {}),
+                                        lat: latitude,
+                                        lng: longitude,
+                                        live_enabled: true
+                                    }
+                                });
+                            }
+                        } catch (e: any) {
+                            toast.error(e?.message || "Failed to enable live location");
+                        } finally {
+                            setIsTogglingLocation(false);
+                        }
+                    },
+                    async (err) => {
+                        // If device GPS denied or timed out, toggle on using existing city coordinates
+                        try {
+                            await api.profile.toggleLiveLocation(true);
+                            setIsLiveLocationOn(true);
+                            toast.success("Live Location ON: Showing profile location on map radar.");
+                            if (onUpdateCurrentUser && currentUser) {
+                                onUpdateCurrentUser({
+                                    ...currentUser,
+                                    location: {
+                                        ...(currentUser.location || {}),
+                                        live_enabled: true
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            toast.error("Failed to enable live location");
+                        } finally {
+                            setIsTogglingLocation(false);
+                        }
+                    },
+                    { timeout: 8000, enableHighAccuracy: true }
+                );
+            } else {
+                try {
+                    await api.profile.toggleLiveLocation(true);
+                    setIsLiveLocationOn(true);
+                    toast.success("Live Location ON: Visible on map radar.");
+                    if (onUpdateCurrentUser && currentUser) {
+                        onUpdateCurrentUser({
+                            ...currentUser,
+                            location: {
+                                ...(currentUser.location || {}),
+                                live_enabled: true
+                            }
+                        });
+                    }
+                } catch (e) {
+                    toast.error("Failed to enable live location");
+                } finally {
+                    setIsTogglingLocation(false);
+                }
+            }
+        } else {
+            // Turning OFF: Incognito / hidden from map
+            try {
+                await api.profile.toggleLiveLocation(false);
+                setIsLiveLocationOn(false);
+                toast.info("Live Location OFF: Your profile is now hidden from the map radar.");
+                if (onUpdateCurrentUser && currentUser) {
+                    onUpdateCurrentUser({
+                        ...currentUser,
+                        location: {
+                            ...(currentUser.location || {}),
+                            live_enabled: false
+                        }
+                    });
+                }
+            } catch (e: any) {
+                toast.error("Failed to disable live location");
+            } finally {
+                setIsTogglingLocation(false);
+            }
+        }
+    };
 
     // Hide the floating Love Guru button while map is open
     useEffect(() => {
@@ -36,7 +159,7 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
 
         switch (activeFilter) {
             case 'Online Now':
-                return onlineUsers?.includes(p.id);
+                return Boolean(p.isOnline || (Array.isArray(onlineUsers) && (onlineUsers.includes(p.id) || (p.userId && onlineUsers.includes(p.userId)))));
             case 'New Here':
                 // Deterministic mock for "New Here" if created_at is not available
                 return p.id.charCodeAt(p.id.length - 1) % 3 === 0;
@@ -85,6 +208,30 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
                     <div className="bg-gray-900/80 backdrop-blur-md text-white text-[10px] sm:text-xs px-2.5 py-1.5 rounded-full border border-gray-700 shadow-sm w-max">
                         <span className="text-gray-300 font-bold">{mapProfilesCount}</span> nearby
                     </div>
+
+                    {/* Live Location Manual On/Off Button */}
+                    <button
+                        onClick={handleToggleLiveLocation}
+                        disabled={isTogglingLocation}
+                        className={`flex items-center gap-1.5 text-[10px] sm:text-xs font-bold px-3 py-1.5 rounded-full shadow-sm transition-all border w-max cursor-pointer ${
+                            isLiveLocationOn
+                                ? 'bg-emerald-600/90 hover:bg-emerald-600 text-white border-emerald-400/50 shadow-emerald-500/20'
+                                : 'bg-gray-900/85 hover:bg-gray-900 text-gray-300 border-gray-700'
+                        }`}
+                        title={isLiveLocationOn ? "Live location is ON (visible on map radar). Click to turn OFF." : "Live location is OFF (hidden from map). Click to turn ON."}
+                    >
+                        {isTogglingLocation ? (
+                            <span className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : isLiveLocationOn ? (
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-300"></span>
+                            </span>
+                        ) : (
+                            <span className="h-2 w-2 rounded-full bg-gray-400"></span>
+                        )}
+                        <span>{isLiveLocationOn ? 'Live Location: ON' : 'Live Location: OFF'}</span>
+                    </button>
                 </div>
 
                 {/* Row 2: Filters (Hidden Scrollbar) */}
@@ -127,6 +274,8 @@ export default function InteractiveMap({ profiles, currentUser, onViewProfile, o
                 currentUser={currentUser}
                 onViewProfile={onViewProfile}
                 astrologyMode={astrologyMode}
+                isLiveLocationOn={isLiveLocationOn}
+                onToggleLiveLocation={handleToggleLiveLocation}
             />
         </div>
     );

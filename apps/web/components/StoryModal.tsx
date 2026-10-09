@@ -438,7 +438,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 {/* Header */}
                 <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-30">
                     {(() => {
-                        const isOnline = Array.isArray(onlineUsers) && onlineUsers.includes(user.id);
+                        const isOnline = Boolean((user as any)?.isOnline || (Array.isArray(onlineUsers) && ((user.id && onlineUsers.includes(user.id)) || ((user as any).userId && onlineUsers.includes((user as any).userId)))));
                         return (
                             <div 
                                 className={`flex items-center gap-3 ${onViewProfile && !isOwner ? 'cursor-pointer hover:opacity-90 active:scale-95 transition-all group/header' : ''}`}
@@ -990,7 +990,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                                 onError={(e) => { const t = e.target as HTMLImageElement; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'U')}`; }}
                                             />
                                             {/* Online indicator dot */}
-                                            {Array.isArray(onlineUsers) && onlineUsers.includes(viewer.userId) && (
+                                            {Boolean((viewer as any)?.isOnline || (Array.isArray(onlineUsers) && ((viewer.userId && onlineUsers.includes(viewer.userId)) || (viewer.id && onlineUsers.includes(viewer.id))))) && (
                                                 <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>
                                             )}
                                         </div>

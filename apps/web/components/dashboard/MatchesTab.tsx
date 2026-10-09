@@ -108,6 +108,39 @@ export default function MatchesTab({
         };
     }, [socket]);
 
+    /* Live Online Members State */
+    const [liveOnlineMembers, setLiveOnlineMembers] = useState<any[]>([]);
+
+    const fetchOnlineMembers = useCallback(() => {
+        api.matches.getOnlineNow()
+            .then((data: any) => {
+                if (Array.isArray(data?.onlineMembers)) {
+                    setLiveOnlineMembers(data.onlineMembers);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        fetchOnlineMembers();
+    }, [fetchOnlineMembers]);
+
+    // Live Socket Updates for online/offline events
+    useEffect(() => {
+        if (!socket) return;
+        const handlePresenceUpdate = () => {
+            fetchOnlineMembers();
+        };
+        socket.on('userOnline', handlePresenceUpdate);
+        socket.on('userOffline', handlePresenceUpdate);
+        socket.on('onlineUsers', handlePresenceUpdate);
+        return () => {
+            socket.off('userOnline', handlePresenceUpdate);
+            socket.off('userOffline', handlePresenceUpdate);
+            socket.off('onlineUsers', handlePresenceUpdate);
+        };
+    }, [socket, fetchOnlineMembers]);
+
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
@@ -301,8 +334,19 @@ export default function MatchesTab({
 
     const onlineUsersKey = Array.isArray(onlineUsers) ? onlineUsers.join(',') : '';
     const onlineMatchesList = useMemo(() => {
-        return matches.filter(m => m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)));
-    }, [matches, onlineUsersKey]);
+        const memberMap = new Map<string, any>();
+        // 1. Add from dedicated live online members endpoint
+        liveOnlineMembers.forEach(m => {
+            if (m && m.id) memberMap.set(m.id, { ...m, isOnline: true });
+        });
+        // 2. Add from matches feed
+        matches.forEach(m => {
+            if (m && m.id && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)))) {
+                memberMap.set(m.id, { ...m, isOnline: true });
+            }
+        });
+        return Array.from(memberMap.values());
+    }, [matches, liveOnlineMembers, onlineUsersKey]);
 
     const baseMatches = activeFilters ? filterMatches(matches) : matches;
     let displayMatches = showHighlightsOnly

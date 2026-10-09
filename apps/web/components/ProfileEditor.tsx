@@ -813,6 +813,35 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     onChange={e => handleChange('location', 'country', e.target.value)}
                                 />
                             </div>
+
+                            {/* Live Location Radar Privacy Toggle */}
+                            <div className="mt-2.5 pt-2 border-t border-gray-200 dark:border-gray-700/60 flex items-center justify-between">
+                                <div>
+                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        📍 Share Live Location on Map Radar
+                                    </span>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                        Allow verified singles near you to discover your profile on the live map radar.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const current = formData.location?.live_enabled !== false;
+                                        handleChange('location', 'live_enabled', !current);
+                                    }}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 cursor-pointer ${
+                                        formData.location?.live_enabled !== false ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600'
+                                    }`}
+                                    title={formData.location?.live_enabled !== false ? "Live location is ON" : "Live location is OFF"}
+                                >
+                                    <span
+                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                            formData.location?.live_enabled !== false ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

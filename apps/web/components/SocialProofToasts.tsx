@@ -7,10 +7,14 @@ import { Heart, UserCheck, Sparkles, MapPin } from 'lucide-react';
 const MOCK_EVENTS = [
     { type: 'verify', text: 'Priya from Hyderabad just verified her profile', icon: <UserCheck size={15} className="text-blue-500" /> },
     { type: 'match', text: 'Vikram & Anjali just matched! 💖', icon: <Heart size={15} className="text-pink-500" /> },
-    { type: 'join', text: 'Someone in Bangalore just joined', icon: <MapPin size={15} className="text-green-500" /> },
+    { type: 'join', text: 'Sarah from New York just joined', icon: <MapPin size={15} className="text-green-500" /> },
+    { type: 'verify', text: 'Kenji from Tokyo just verified his profile', icon: <UserCheck size={15} className="text-blue-500" /> },
     { type: 'premium', text: 'Rahul just unlocked Advanced Cosmic Matching 🚀', icon: <Sparkles size={15} className="text-amber-500" /> },
+    { type: 'match', text: 'Liam & Emma from London just matched! 💖', icon: <Heart size={15} className="text-purple-500" /> },
+    { type: 'join', text: 'Elena from Moscow just joined', icon: <MapPin size={15} className="text-green-500" /> },
     { type: 'verify', text: 'Neha from Pune just verified her profile', icon: <UserCheck size={15} className="text-blue-500" /> },
     { type: 'match', text: 'Arjun & Sneha had a great Speed Date! ⚡', icon: <Heart size={15} className="text-indigo-500" /> },
+    { type: 'join', text: 'Lucas from São Paulo just joined', icon: <MapPin size={15} className="text-rose-500" /> },
 ];
 
 export default function SocialProofToasts() {

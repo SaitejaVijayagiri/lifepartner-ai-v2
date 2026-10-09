@@ -182,7 +182,7 @@ export default function FeatureShowcaseSection() {
                   <div className="relative h-full flex flex-col justify-between p-5 min-h-[460px] bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-950">
                     <div className="flex justify-between items-center z-10">
                       <div className="flex items-center gap-2">
-                        <img src="/images/avatars/user-2.jpg" alt="Anya - Snap Profile" className="w-9 h-9 rounded-full border-2 border-amber-400 object-cover" />
+                        <img src="/images/instant-snap.jpg" alt="Anya - Snap Profile" className="w-9 h-9 rounded-full border-2 border-amber-400 object-cover" />
                         <div>
                           <span className="text-xs font-bold text-white block">Anya, 26</span>
                           <span className="text-[10px] text-amber-300 font-mono">📍 New York • Snap 2m ago</span>
@@ -193,26 +193,38 @@ export default function FeatureShowcaseSection() {
                       </div>
                     </div>
 
-                    <div className="my-auto text-center py-8 relative">
-                      <div className="w-44 h-56 mx-auto rounded-3xl overflow-hidden border-2 border-amber-400/40 shadow-2xl relative group">
-                        <img src="/images/orbital.jpg" alt="Snap Moment Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                          <button className="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                            <Eye size={20} />
-                          </button>
+                    <div className="my-auto text-center py-6 relative">
+                      <div className="w-48 h-64 mx-auto rounded-3xl overflow-hidden border-2 border-amber-400/50 shadow-2xl relative group">
+                        <img src="/images/instant-snap.jpg" alt="Instant Snap Moment" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        
+                        {/* Snap Overlays: Timer badge, Protection badge, and Authentic Caption */}
+                        <div className="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md text-amber-300 px-2 py-0.5 rounded-full text-[10px] font-black font-mono border border-amber-400/30 flex items-center gap-1 shadow-md">
+                          <Flame size={11} className="text-amber-400 fill-amber-400" />
+                          <span>10s</span>
+                        </div>
+                        <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-emerald-300 px-2 py-0.5 rounded-full text-[9px] font-bold border border-emerald-500/30 flex items-center gap-1 shadow-md">
+                          <ShieldCheck size={11} />
+                          <span>Protected</span>
+                        </div>
+
+                        {/* In-Photo Snapchat Style Caption Bar */}
+                        <div className="absolute bottom-3 inset-x-3 bg-black/65 backdrop-blur-md px-3 py-1.5 rounded-xl text-center border border-white/10 shadow-lg">
+                          <p className="text-[11px] text-white font-semibold tracking-wide">
+                            Sunday coffee & sunshine ☕✨
+                          </p>
                         </div>
                       </div>
-                      <p className="text-xs text-amber-200 mt-3 font-medium">"Sunday coffee & reading in Central Park ☕📚"</p>
+                      <p className="text-[11px] text-amber-200/90 mt-3 font-medium">⚡ Disappears in 10s • Screenshot Protected</p>
                     </div>
 
                     <div className="bg-slate-950/80 backdrop-blur-md rounded-2xl p-3 border border-slate-800 flex items-center gap-2">
                       <input
                         type="text"
                         placeholder="Reply to Anya's Snap..."
-                        className="bg-slate-900 border border-slate-800 text-xs text-white px-3 py-2 rounded-xl flex-1 focus:outline-none focus:border-amber-400"
+                        className="bg-slate-900 border border-slate-800 text-xs text-white px-3 py-2 rounded-xl flex-1 focus:outline-none focus:border-amber-400 placeholder:text-slate-500"
                         readOnly
                       />
-                      <button className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                      <button className="w-9 h-9 rounded-xl bg-gradient-to-r from-amber-500 to-rose-500 text-white flex items-center justify-center shrink-0 hover:opacity-95 transition-all shadow-md">
                         <Send size={14} />
                       </button>
                     </div>

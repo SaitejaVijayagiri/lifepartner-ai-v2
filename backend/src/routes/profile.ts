@@ -479,14 +479,30 @@ router.get('/public/featured', async (req, res) => {
         };
         const countryOverrideMap: Record<string, string> = {
             'hamoudi': 'Indonesia',
+            'awais': 'United Arab Emirates',
+            'sunny': 'United States',
         };
 
         const allProfiles = shuffled.map(user => {
             const meta = (user.profiles?.metadata as any) || {};
             const rawFirstName = (user.full_name?.split(' ')[0] || 'User').toLowerCase();
             const displayName = nameAliasMap[rawFirstName] || (user.full_name?.split(' ')[0] || 'User');
-            const country = countryOverrideMap[rawFirstName] || meta.location?.country || user.state || 'India';
-            const locationStr = user.city ? `${user.city}, ${country}` : country !== 'India' ? country : 'Hidden';
+            const country = countryOverrideMap[rawFirstName] || meta.location?.country || (user.state && user.state !== 'India' ? user.state : null) || 'India';
+            
+            // Clean deduplicated location string (prevents "India, India")
+            let locationStr = 'India';
+            const userCity = user.city?.trim();
+            const cleanCountry = country?.trim() || 'India';
+            
+            if (userCity && cleanCountry) {
+                if (userCity.toLowerCase() === cleanCountry.toLowerCase()) {
+                    locationStr = cleanCountry;
+                } else {
+                    locationStr = `${userCity}, ${cleanCountry}`;
+                }
+            } else {
+                locationStr = userCity || cleanCountry || 'Worldwide';
+            }
 
             return {
                 id: user.id,

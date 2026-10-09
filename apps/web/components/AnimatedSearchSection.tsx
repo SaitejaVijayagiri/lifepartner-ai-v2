@@ -8,18 +8,36 @@ import Link from 'next/link';
 const PROMPTS = [
     "Software engineer in Hyderabad who loves hiking",
     "Doctor in Mumbai looking for a serious relationship",
-    "Life partner whose gothra is Bharadwaja and vegetarian",
-    "Creative designer who speaks Telugu and loves pets"
+    "Product designer in Tokyo who loves art and music",
+    "Finance manager in New York seeking a life partner",
+    "Creative architect in London who loves travel",
+    "Life partner whose gothra is Bharadwaja and vegetarian"
 ];
 
 const MOCK_RESULTS = [
     [
-        { name: "Vikram S.", role: "Sr. Software Engineer", loc: "Hyderabad", match: "98%", img: "https://randomuser.me/api/portraits/men/32.jpg" },
-        { name: "Arjun R.", role: "Tech Lead", loc: "Hyderabad", match: "95%", img: "https://randomuser.me/api/portraits/men/44.jpg" }
+        { name: "Vikram S.", role: "Sr. Software Engineer", loc: "Hyderabad, India", match: "98%", img: "https://randomuser.me/api/portraits/men/32.jpg" },
+        { name: "Arjun R.", role: "Tech Lead", loc: "Hyderabad, India", match: "95%", img: "https://randomuser.me/api/portraits/men/44.jpg" }
     ],
     [
-        { name: "Dr. Anisha M.", role: "Pediatrician", loc: "Mumbai", match: "99%", img: "https://randomuser.me/api/portraits/women/44.jpg" },
-        { name: "Dr. Rohan K.", role: "Surgeon", loc: "Mumbai", match: "94%", img: "https://randomuser.me/api/portraits/men/22.jpg" }
+        { name: "Dr. Anisha M.", role: "Pediatrician", loc: "Mumbai, India", match: "99%", img: "https://randomuser.me/api/portraits/women/44.jpg" },
+        { name: "Dr. Rohan K.", role: "Surgeon", loc: "Mumbai, India", match: "94%", img: "https://randomuser.me/api/portraits/men/22.jpg" }
+    ],
+    [
+        { name: "Kenji T.", role: "UI/UX Designer", loc: "Tokyo, Japan", match: "97%", img: "https://randomuser.me/api/portraits/men/52.jpg" },
+        { name: "Yumi S.", role: "Art Director", loc: "Tokyo, Japan", match: "96%", img: "https://randomuser.me/api/portraits/women/53.jpg" }
+    ],
+    [
+        { name: "Sarah L.", role: "Portfolio Manager", loc: "New York, USA", match: "98%", img: "https://randomuser.me/api/portraits/women/28.jpg" },
+        { name: "David M.", role: "Fintech Lead", loc: "New York, USA", match: "93%", img: "https://randomuser.me/api/portraits/men/68.jpg" }
+    ],
+    [
+        { name: "Liam C.", role: "Principal Architect", loc: "London, UK", match: "96%", img: "https://randomuser.me/api/portraits/men/36.jpg" },
+        { name: "Emma W.", role: "Design Consultant", loc: "London, UK", match: "95%", img: "https://randomuser.me/api/portraits/women/36.jpg" }
+    ],
+    [
+        { name: "Kavya P.", role: "Data Scientist", loc: "Bengaluru, India", match: "99%", img: "https://randomuser.me/api/portraits/women/65.jpg" },
+        { name: "Rahul V.", role: "Product Manager", loc: "Hyderabad, India", match: "94%", img: "https://randomuser.me/api/portraits/men/75.jpg" }
     ]
 ];
 

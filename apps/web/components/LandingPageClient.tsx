@@ -191,9 +191,6 @@ export default function LandingPageClient() {
     try {
       const detected = detectVisitorGeo();
       setVisitorGeo(detected);
-      if (detected.country && detected.country !== 'Worldwide') {
-        setQuickCountry(detected.country);
-      }
     } catch (_) {}
 
     // Check if user is already logged in
@@ -342,45 +339,48 @@ export default function LandingPageClient() {
               
               {/* Live Geo & Curiosity Pulse */}
               <div className="flex items-center justify-between bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 dark:from-pink-950/30 dark:to-indigo-950/30 border border-pink-200/60 dark:border-pink-900/40 rounded-2xl px-3.5 py-2 mb-3.5 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2.5 w-2.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="relative flex h-2.5 w-2.5 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                   </span>
-                  <span className="font-bold text-gray-800 dark:text-gray-200">
-                    {visitorGeo.flag} {visitorGeo.city ? `${visitorGeo.city}, ` : ''}{visitorGeo.country}
+                  <span className="font-bold text-gray-800 dark:text-gray-200 truncate">
+                    {visitorGeo.flag}{' '}
+                    {visitorGeo.city && visitorGeo.city.trim().toLowerCase() !== visitorGeo.country.trim().toLowerCase()
+                      ? `${visitorGeo.city}, ${visitorGeo.country}`
+                      : visitorGeo.country}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-indigo-600 text-[11px] sm:text-xs">
+                <div className="flex items-center gap-1.5 font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-indigo-600 text-[11px] sm:text-xs shrink-0 pl-2">
                   <span>🔥 {visitorGeo.activeCount} Singles Active Today</span>
                 </div>
               </div>
 
               {/* Tab Selector */}
-              <div className="flex items-center p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-4 border border-gray-200/60 dark:border-gray-800">
+              <div className="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl mb-4 border border-gray-200/60 dark:border-gray-800 gap-1">
                 <button
                   type="button"
                   onClick={() => setHeroTab('signup')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2.5 sm:py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 min-w-0 select-none ${
                     heroTab === 'signup'
                       ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-gray-800/60'
                   }`}
                 >
-                  <UserPlus size={14} />
-                  <span>⚡ Instant Free Sign Up</span>
+                  <UserPlus size={14} className="shrink-0" />
+                  <span className="truncate">Instant Free Sign Up</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setHeroTab('search')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2.5 sm:py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center gap-1.5 min-w-0 select-none ${
                     heroTab === 'search'
                       ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-gray-800/60'
                   }`}
                 >
-                  <BrainCircuit size={14} />
-                  <span>🔍 Filter Matches First</span>
+                  <BrainCircuit size={14} className="shrink-0" />
+                  <span className="truncate">Filter Matches First</span>
                 </button>
               </div>
 
@@ -494,10 +494,10 @@ export default function LandingPageClient() {
                     <button
                       type="button"
                       onClick={handleGoogleSignIn}
-                      className="w-full h-12 flex items-center justify-center gap-3 px-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-bold text-sm shadow-sm hover:shadow transition-all group cursor-pointer"
+                      className="w-full h-12 flex items-center justify-center gap-2.5 px-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all group cursor-pointer min-w-0"
                     >
-                      <img src="/icons/google.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
-                      <span>Continue with Google (1-Click Instant)</span>
+                      <img src="/icons/google.svg" className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" alt="Google" />
+                      <span className="truncate">Continue with Google (1-Click Instant)</span>
                     </button>
 
                     <div className="relative flex items-center justify-center my-2">

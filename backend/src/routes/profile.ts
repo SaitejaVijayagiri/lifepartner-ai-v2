@@ -895,19 +895,23 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
-        // 1. Data Integrity: Auto-calculate Age from DOB (Server Side Truth)
-        let finalAge = parseInt(age as string);
-        if (isNaN(finalAge)) finalAge = undefined as any;
+        // 1. Data Integrity: Auto-calculate Age from DOB (Server Side Truth, only if valid 18..99)
+        let parsedAgeNum = parseInt(age as string, 10);
+        let finalAge: number | undefined = (!isNaN(parsedAgeNum) && parsedAgeNum >= 18 && parsedAgeNum <= 99) ? parsedAgeNum : undefined;
 
         if (dob) {
             const birthDate = new Date(dob);
-            const today = new Date();
-            let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-            const m = today.getMonth() - birthDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                calculatedAge--;
+            if (!isNaN(birthDate.getTime())) {
+                const today = new Date();
+                let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    calculatedAge--;
+                }
+                if (calculatedAge >= 18 && calculatedAge <= 99) {
+                    finalAge = calculatedAge;
+                }
             }
-            finalAge = calculatedAge;
         }
 
         // 1.5 Auto-Geocode city → lat/lng if not already provided via GPS

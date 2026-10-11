@@ -61,6 +61,14 @@ export function sanitizeContent(text: string): string {
     const intlPhoneRegex = /(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g;
     sanitized = sanitized.replace(intlPhoneRegex, "[Hidden Contact - Upgrade to Share]");
 
+    // 4. AI Anti-Creep & Harassment Shield (Protects women from unsolicited explicit language & harassment)
+    const harassmentPatterns = [
+        /\b(?:send nudes?|send pics? of your|show bobs?|send bobs?|show vagene|send naked|sleep with me|have sex with me|hook up tonight|send nude|booty call)\b/gi,
+    ];
+    for (const pattern of harassmentPatterns) {
+        sanitized = sanitized.replace(pattern, "[Blocked by AI Anti-Creep Shield 🛡️]");
+    }
+
     // Restore protected URLs
     urls.forEach((url, i) => {
         sanitized = sanitized.replace(`__URL_PLACEHOLDER_${i}__`, url);

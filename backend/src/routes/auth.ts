@@ -103,88 +103,48 @@ router.post('/register', async (req, res) => {
         });
 
         if (existingUser) {
-            // Self-Healing Logic: If user is UNVERIFIED, allow overwrite and resend OTP
+            // Self-Healing Logic: If user was previously unverified, update their profile and log them in immediately
             if (existingUser.is_verified === false) {
                 console.log(`♻️ Self-Healing Registration for unverified user: ${email || phone}`);
 
-                // 3. Hash New Password (Optimized: reuse existing hash if password passes compare)
                 const isSamePassword = (password && existingUser.password_hash) ? await bcrypt.compare(password, existingUser.password_hash) : false;
                 const passwordHash = isSamePassword ? existingUser.password_hash : await bcrypt.hash(password, 10);
+                const isFemale = cleanGender === 'Female' || existingUser.gender === 'Female';
 
-                // 4. Generate New OTP
-                const otp = Math.floor(100000 + Math.random() * 900000).toString();
-                const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-                // Update User Record
-                await prisma.users.update({
+                const updatedUser = await prisma.users.update({
                     where: { id: existingUser.id },
                     data: {
-                        email: email, // Update email in case of typo fix
-                        phone: phone, // Update phone
+                        email: email,
+                        phone: phone,
                         password_hash: passwordHash,
-                        full_name: full_name,
-                        age: validAge,
-                        gender: cleanGender,
-                        location_name: location_name || undefined,
-                        otp_code: otp,
-                        otp_expires_at: otpExpiresAt,
-                        // Don't reset created_at, keep original timestamp or not?
-                        // Let's keep ID same. 
-                    }
+                        full_name: full_name || existingUser.full_name,
+                        age: validAge || existingUser.age,
+                        gender: cleanGender || existingUser.gender,
+                        location_name: location_name || existingUser.location_name || undefined,
+                        is_verified: true,
+                        otp_code: null,
+                        otp_expires_at: null,
+                        ...(isFemale ? { free_direct_messages: 999999, is_premium: true, coins: Math.max(existingUser.coins || 0, 100) } : {})
+                    },
+                    select: { id: true, full_name: true, gender: true, age: true }
                 });
 
-                // Send OTP Email
-                if (email) {
-                    try {
-                        const apiKey = process.env.RESEND_API_KEY;
-                        if (apiKey && !apiKey.toLowerCase().includes('mock')) {
-                            const { data, error } = await resend.emails.send({
-                                from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
-                                to: email,
-                                subject: 'Your Verification Code (Resend)',
-                                html: `
-                                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                                    <div style="background: linear-gradient(135deg, #E11D48 0%, #4F46E5 100%); padding: 30px; text-align: center;">
-                                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">LifePartner AI</h1>
-                                        <p style="color: rgba(255,255,255,0.9); margin-top: 5px; font-size: 14px;">Where Tradition Meets Technology</p>
-                                    </div>
-                                    <div style="padding: 40px 30px; text-align: center;">
-                                        <h2 style="color: #1e293b; margin-bottom: 20px; font-size: 20px;">Verify Your Email Address</h2>
-                                        <p style="color: #64748b; margin-bottom: 30px; line-height: 1.6;">
-                                            Please enter the following verification code to complete your registration. This code is valid for 10 minutes.
-                                        </p>
-                                        <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 5px; margin-bottom: 30px; display: inline-block;">
-                                            ${otp}
-                                        </div>
-                                        <p style="color: #94a3b8; font-size: 12px; margin-top: 20px;">
-                                            If you didn't request this code, you can safely ignore this email.
-                                        </p>
-                                    </div>
-                                    <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                                        <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LifePartner AI. All rights reserved.</p>
-                                    </div>
-                                </div>
-                                `
-                            });
+                const token = generateToken(updatedUser.id);
+                setTokenCookie(res, token);
 
-                            if (error) {
-                                console.error("❌ Self-Heal Email Rejected by Resend:", error);
-                                return res.status(400).json({ error: "Invalid email address. Unable to send verification code." });
-                            }
-                            console.log(`✅ Self-Heal OTP sent to ${email}`);
-                        }
-                    } catch (e) {
-                        console.error("Self-Heal Email Error", e);
-                        return res.status(500).json({ error: "Failed to send verification email." });
-                    }
-                }
-
-                // Return Success
                 return res.json({
                     success: true,
-                    requiresVerification: true,
+                    requiresVerification: false,
+                    token,
+                    userId: updatedUser.id,
+                    user: {
+                        id: updatedUser.id,
+                        name: updatedUser.full_name,
+                        gender: updatedUser.gender,
+                        age: updatedUser.age
+                    },
                     email: email,
-                    message: "Verification code resent (Profile updated)"
+                    message: "Account verified and logged in"
                 });
             }
 
@@ -195,13 +155,7 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        // 4. Generate OTP
-        // SECURITY: Removed demo-email OTP backdoor ('123456' for emails containing 'demo').
-        // All users now receive a real random OTP regardless of email address.
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
-        // 5. Transaction: Insert User + Handle Referral
+        // 4. Transaction: Insert Verified User + Handle Referral
         const newUser = await prisma.$transaction(async (tx: any) => {
             // Referral Logic
             let referredByUserId = null;
@@ -231,9 +185,9 @@ router.post('/register', async (req, res) => {
                     age: validAge || null,
                     gender: cleanGender || null,
                     location_name,
-                    otp_code: otp,
-                    otp_expires_at: otpExpiresAt,
-                    is_verified: false,
+                    otp_code: null,
+                    otp_expires_at: null,
+                    is_verified: true,
                     referral_code: myReferralCode,
                     referred_by: referredByUserId,
                     free_direct_messages: isFemale ? 999999 : 3,
@@ -247,14 +201,16 @@ router.post('/register', async (req, res) => {
             await tx.profiles.create({
                 data: {
                     user_id: user.id,
-                    metadata: {},
+                    metadata: {
+                        ...(cleanGender ? { gender: cleanGender } : {}),
+                        ...(validAge ? { age: validAge } : {})
+                    },
                     photos: [],
                     stories: [],
                     reels: []
                 }
             });
 
-            // Referral Tracking (Coins are now deferred to Onboarding completion in profile.ts)
             if (referredByUserId) {
                 console.log(`🤝 Referral logged for User ${user.id} -> Referrer ${referredByUserId} (Pending Onboarding)`);
             }
@@ -262,67 +218,30 @@ router.post('/register', async (req, res) => {
             return user;
         });
 
-        // 6. Send OTP
+        // 5. Send Welcome Email in background (non-blocking)
         if (targetEmail) {
-            try {
-                const apiKey = process.env.RESEND_API_KEY;
-                console.log(`📧 Sending OTP with Key: ${apiKey?.substring(0, 5)}... From: ${process.env.EMAIL_FROM}`);
-                if (apiKey && !apiKey.toLowerCase().includes('mock')) {
-                    // Synchronous send to catch invalid emails immediately
-                    const { data, error } = await resend.emails.send({
-                        from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
-                        to: targetEmail,
-                        subject: 'Your Verification Code',
-                        text: `Your verification code is: ${otp}\n\nThis code expires in 10 minutes.\n\nSent from LifePartner AI.`,
-                        html: `
-                        <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                            <div style="background: linear-gradient(135deg, #E11D48 0%, #4F46E5 100%); padding: 30px; text-align: center;">
-                                <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">LifePartner AI</h1>
-                                <p style="color: rgba(255,255,255,0.9); margin-top: 5px; font-size: 14px;">Where Tradition Meets Technology</p>
-                            </div>
-                            <div style="padding: 40px 30px; text-align: center;">
-                                <h2 style="color: #1e293b; margin-bottom: 20px; font-size: 20px;">Verify Your Email Address</h2>
-                                <p style="color: #64748b; margin-bottom: 30px; line-height: 1.6;">
-                                    Please enter the following verification code to complete your registration. This code is valid for 10 minutes.
-                                </p>
-                                <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 5px; margin-bottom: 30px; display: inline-block;">
-                                    ${otp}
-                                </div>
-                                <p style="color: #94a3b8; font-size: 12px; margin-top: 20px;">
-                                    If you didn't request this code, you can safely ignore this email.
-                                </p>
-                            </div>
-                            <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                                <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LifePartner AI. All rights reserved.</p>
-                            </div>
-                        </div>
-                        `
-                    });
-
-                    if (error) {
-                        console.error("❌ Register Email Rejected by Resend:", error);
-                        // Rollback User Creation!
-                        await prisma.users.delete({ where: { id: newUser.id } });
-                        return res.status(400).json({ error: "Invalid email address. We could not deliver a verification code to this address." });
-                    }
-                    console.log(`✅ Register OTP sent: ${data?.id}`);
-
-                } else {
-                    console.warn(`⚠️ Email skipped: RESEND_API_KEY is missing or mock. OTP: ${otp}`);
-                }
-            } catch (emailError) {
-                console.error("Email sending setup exception:", emailError);
-                // Rollback User Creation on critical failure
-                await prisma.users.delete({ where: { id: newUser.id } });
-                return res.status(500).json({ error: "Failed to send verification email. Please try again later." });
-            }
+            EmailService.sendWelcomeEmail(targetEmail, full_name || 'User').catch(err =>
+                console.warn("Background welcome email warning:", err?.message || err)
+            );
         }
+
+        // 6. Issue JWT Token immediately so user goes straight to Onboarding without OTP drop-off
+        const token = generateToken(newUser.id);
+        setTokenCookie(res, token);
 
         res.json({
             success: true,
-            requiresVerification: true,
+            requiresVerification: false,
+            token,
+            userId: newUser.id,
+            user: {
+                id: newUser.id,
+                name: newUser.full_name,
+                gender: newUser.gender,
+                age: newUser.age
+            },
             email: targetEmail,
-            message: "OTP sent to email"
+            message: "Account created successfully"
         });
 
     } catch (error: any) {
@@ -435,56 +354,14 @@ router.post('/login', async (req, res) => {
             user.deactivated_until = null;
         }
 
-        // Enforce Email Verification — Auto-dispatch fresh OTP so user is never locked out with an expired code
+        // Auto-verify legacy unverified accounts when they authenticate with a valid password
         if (!user.is_verified) {
-            console.log(`❌ Login prevented: Unverified email for ${email}. Auto-dispatching fresh OTP...`);
-            const freshOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-
+            console.log(`✅ Auto-verifying previously unverified user on valid password login: ${email}`);
             await prisma.users.update({
                 where: { id: user.id },
-                data: { otp_code: freshOtp, otp_expires_at: otpExpiresAt }
+                data: { is_verified: true, otp_code: null, otp_expires_at: null }
             });
-
-            if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('mock')) {
-                resend.emails.send({
-                    from: process.env.EMAIL_FROM || 'LifePartner AI <no-reply@lifepartnerai.in>',
-                    to: emailNormalized,
-                    subject: 'Your Verification Code',
-                    text: `Your verification code is: ${freshOtp}\n\nThis code expires in 10 minutes.\n\nSent from LifePartner AI.`,
-                    html: `
-                    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-                        <div style="background: linear-gradient(135deg, #E11D48 0%, #4F46E5 100%); padding: 30px; text-align: center;">
-                            <h1 style="color: white; margin: 0; font-size: 24px; font-weight: bold;">LifePartner AI</h1>
-                            <p style="color: rgba(255,255,255,0.9); margin-top: 5px; font-size: 14px;">Where Tradition Meets Technology</p>
-                        </div>
-                        <div style="padding: 40px 30px; text-align: center;">
-                            <h2 style="color: #1e293b; margin-bottom: 20px; font-size: 20px;">Verify Your Email Address</h2>
-                            <p style="color: #64748b; margin-bottom: 30px; line-height: 1.6;">
-                                Hello ${user.full_name || 'there'},<br />
-                                Please enter your verification code below to complete your login. This code is valid for 10 minutes.
-                            </p>
-                            <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 32px; font-weight: bold; color: #4F46E5; letter-spacing: 5px; margin-bottom: 30px; display: inline-block;">
-                                ${freshOtp}
-                            </div>
-                            <p style="color: #94a3b8; font-size: 12px; margin-top: 20px;">
-                                If you didn't request this code, you can safely ignore this email.
-                            </p>
-                        </div>
-                        <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
-                            <p style="color: #94a3b8; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} LifePartner AI. All rights reserved.</p>
-                        </div>
-                    </div>
-                    `
-                }).catch(e => console.error("Auto-dispatch login OTP email error:", e));
-            }
-
-            return res.status(403).json({
-                error: "Please verify your email address. A fresh verification code has been sent to your email.",
-                requiresVerification: true,
-                email: emailNormalized,
-                otpSent: true
-            });
+            user.is_verified = true;
         }
 
         console.log(`✅ Login successful: ${email} (Admin: ${user.is_admin})`);
@@ -506,7 +383,13 @@ router.post('/login', async (req, res) => {
         res.json({ 
             token, 
             userId: user.id, 
-            user: { id: user.id, name: user.full_name, is_admin: user.is_admin },
+            user: {
+                id: user.id,
+                name: user.full_name,
+                gender: user.gender || meta.gender || null,
+                age: user.age || meta.age || null,
+                is_admin: user.is_admin
+            },
             requiresOnboarding 
         });
 
@@ -732,7 +615,12 @@ router.get('/token', authenticateToken, (req: any, res) => {
 // 7. Google Auth Code Exchange
 router.post('/google', async (req, res) => {
     try {
-        const { code } = req.body;
+        const { code, gender: pendingGender, age: pendingAge } = req.body;
+        const parsedGoogleAge = pendingAge ? parseInt(String(pendingAge), 10) : undefined;
+        const validGoogleAge = (parsedGoogleAge && !isNaN(parsedGoogleAge) && parsedGoogleAge >= 18 && parsedGoogleAge <= 99) ? parsedGoogleAge : undefined;
+        const cleanGoogleGender = pendingGender
+            ? (String(pendingGender).trim().toLowerCase() === 'female' ? 'Female' : (String(pendingGender).trim().toLowerCase() === 'male' ? 'Male' : undefined))
+            : undefined;
 
         // 1. Exchange Code for Tokens
         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
@@ -788,13 +676,23 @@ router.post('/google', async (req, res) => {
                 user.deactivated_until = null;
             }
 
+            const finalGender = user.gender || cleanGoogleGender || undefined;
+            const isFemale = finalGender === 'Female';
+
             // Update existing
             user = await prisma.users.update({
                 where: { id: user.id },
-                data: { google_id: googleId, is_verified: true }
+                data: {
+                    google_id: googleId,
+                    is_verified: true,
+                    ...(!user.gender && cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
+                    ...(!user.age && validGoogleAge ? { age: validGoogleAge } : {}),
+                    ...(isFemale ? { is_premium: true, free_direct_messages: 999999 } : {})
+                }
             });
         } else {
             // Create new
+            const isFemale = cleanGoogleGender === 'Female';
             user = await prisma.$transaction(async (tx: any) => {
                 const newUser = await tx.users.create({
                     data: {
@@ -803,12 +701,24 @@ router.post('/google', async (req, res) => {
                         google_id: googleId,
                         is_verified: true,
                         password_hash: 'google_auth_placeholder',
-                        avatar_url: picture
+                        avatar_url: picture,
+                        gender: cleanGoogleGender || null,
+                        age: validGoogleAge || null,
+                        free_direct_messages: isFemale ? 999999 : 3,
+                        coins: isFemale ? 100 : 0,
+                        is_premium: isFemale ? true : false
                     }
                 });
                 // Init Profile
                 await tx.profiles.create({
-                    data: { user_id: newUser.id, raw_prompt: '', metadata: {} }
+                    data: {
+                        user_id: newUser.id,
+                        raw_prompt: '',
+                        metadata: {
+                            ...(cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
+                            ...(validGoogleAge ? { age: validGoogleAge } : {})
+                        }
+                    }
                 });
                 return newUser;
             });
@@ -828,7 +738,19 @@ router.post('/google', async (req, res) => {
         const requiresOnboarding = !Boolean(googleMeta.onboarding_completed || (googleHasAge && googleHasGender));
 
         setTokenCookie(res, token);
-        res.json({ success: true, token, userId: user!.id, requiresOnboarding });
+        res.json({
+            success: true,
+            token,
+            userId: user!.id,
+            user: {
+                id: user!.id,
+                name: user!.full_name,
+                gender: (user as any).gender || googleMeta.gender || null,
+                age: (user as any).age || googleMeta.age || null,
+                avatar_url: (user as any).avatar_url || picture || null
+            },
+            requiresOnboarding
+        });
 
     } catch (e: any) {
         console.error("Google Auth Error", e);

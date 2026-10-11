@@ -83,7 +83,7 @@ export default function Navbar() {
                         {t('navWorkflow')}
                     </Link>
                     <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
-                        {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">SEO</span>
+                        {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Guides</span>
                     </Link>
                     <Link href="/for-women" className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors tracking-wide flex items-center gap-1">
                         <span>For Women</span> <span className="bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">👑 VIP Free</span>

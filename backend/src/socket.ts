@@ -629,9 +629,10 @@ export const initSocket = (httpServer: HttpServer) => {
 
         socket.on("anonymous_chat_message", ({ to, text }: { to: string; text: string }) => {
             if (userId && to && text) {
+                const sanitizedText = sanitizeContent(text);
                 io.to(to).emit("anonymous_chat_message", {
                     from: userId,
-                    text: text,
+                    text: sanitizedText,
                     timestamp: Date.now()
                 });
             }

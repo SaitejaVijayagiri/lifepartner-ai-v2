@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe, Eye, EyeOff, UserPlus, Crown } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
@@ -13,6 +13,7 @@ import AnimatedSearchSection from '@/components/AnimatedSearchSection';
 import PublicMatchCard from '@/components/PublicMatchCard';
 import SocialProofToasts from '@/components/SocialProofToasts';
 import FeatureShowcaseSection from '@/components/FeatureShowcaseSection';
+import WomenSafetyBanner from '@/components/WomenSafetyBanner';
 import ConnectionWorkflowSection from '@/components/ConnectionWorkflowSection';
 import GlobalOverviewBanner from '@/components/GlobalOverviewBanner';
 import { useLanguage } from '@/context/LanguageContext';
@@ -47,7 +48,7 @@ export default function LandingPageClient() {
     email: '',
     password: '',
     age: '',
-    gender: 'Male',
+    gender: '',
     looking_for: 'Female',
     intent: 'matrimony'
   });
@@ -69,7 +70,13 @@ export default function LandingPageClient() {
     const redirectUri = `${window.location.origin}/auth/callback/google`;
     const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
     
-    // Save detected country to avoid defaulting to India on onboarding
+    // Save selected gender, age, and detected country so Google OAuth & Onboarding preserve them
+    if (signupForm.gender) {
+      localStorage.setItem('pendingUserGender', signupForm.gender);
+    }
+    if (signupForm.age) {
+      localStorage.setItem('pendingUserAge', signupForm.age);
+    }
     if (visitorGeo.country && visitorGeo.country !== 'Worldwide') {
       localStorage.setItem('pendingUserCountry', visitorGeo.country);
     }
@@ -88,6 +95,10 @@ export default function LandingPageClient() {
       toast.error("Please fill in your name, email, and password.");
       return;
     }
+    if (!signupForm.gender) {
+      toast.error("Please select whether you are a Woman or a Man.");
+      return;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(signupForm.email.trim())) {
       toast.error("Please enter a valid email address.");
@@ -104,6 +115,13 @@ export default function LandingPageClient() {
     }
 
     setSignupLoading(true);
+    localStorage.setItem('pendingUserGender', signupForm.gender);
+    localStorage.setItem('pendingUserAge', String(ageNum));
+    localStorage.setItem('pendingUserName', signupForm.full_name.trim());
+    if (visitorGeo.country && visitorGeo.country !== 'Worldwide') {
+      localStorage.setItem('pendingUserCountry', visitorGeo.country);
+    }
+
     try {
       const res = await api.auth.register({
         ...signupForm,
@@ -118,9 +136,27 @@ export default function LandingPageClient() {
         toast.success(`Verification code sent to ${signupForm.email}!`);
       } else if (res.token) {
         localStorage.removeItem('matches_cache_v2');
+        localStorage.removeItem('lifepartner_onboarding_data');
+        localStorage.removeItem('lifepartner_onboarding_step');
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('token', res.token);
-        toast.success("Account created successfully! Welcome 🎉");
+        localStorage.setItem('user', JSON.stringify({
+          id: res.userId,
+          name: signupForm.full_name.trim(),
+          gender: signupForm.gender,
+          age: ageNum
+        }));
+        if (typeof window !== 'undefined') {
+          const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+          if (bridge) {
+            if (typeof bridge.loginUser === 'function') bridge.loginUser(res.userId);
+            if (typeof bridge.setAuthToken === 'function') bridge.setAuthToken(res.token);
+          }
+        }
+        toast.success(signupForm.gender === 'Female'
+          ? "Welcome Queen! 👑 Your Free Lifetime VIP is active!"
+          : "Account created successfully! Welcome 🎉"
+        );
         router.replace('/onboarding');
       }
     } catch (err: any) {
@@ -148,8 +184,16 @@ export default function LandingPageClient() {
       const res = await api.auth.verifyOtp({ email: signupForm.email, otp: signupOtp });
       if (res.token) {
         localStorage.removeItem('matches_cache_v2');
+        localStorage.removeItem('lifepartner_onboarding_data');
+        localStorage.removeItem('lifepartner_onboarding_step');
         localStorage.setItem('userId', res.userId);
         localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify({
+          id: res.userId,
+          name: signupForm.full_name.trim(),
+          gender: signupForm.gender,
+          age: parseInt(signupForm.age, 10) || 24
+        }));
         if (typeof window !== 'undefined') {
           const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
           if (bridge) {
@@ -297,7 +341,7 @@ export default function LandingPageClient() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
           <div className="text-left relative">
 
-            {/* Dual Intent Selector Pills */}
+            {/* Dual Intent Selector Pills + Women VIP Pill */}
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <button
                 onClick={() => setQuickIntent('dating')}
@@ -307,8 +351,8 @@ export default function LandingPageClient() {
                     : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:border-pink-300'
                 }`}
               >
-                <Sparkles size={14} className={quickIntent === 'dating' ? 'text-white' : 'text-pink-500'} />
-                <span>🌍 {t('heroDatingPill')}</span>
+                <Sparkles size={14} className={`shrink-0 ${quickIntent === 'dating' ? 'text-white' : 'text-pink-500'}`} />
+                <span>{t('heroDatingPill')}</span>
               </button>
               <button
                 onClick={() => setQuickIntent('matrimony')}
@@ -318,9 +362,16 @@ export default function LandingPageClient() {
                     : 'bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:border-indigo-300'
                 }`}
               >
-                <Heart size={14} className={quickIntent === 'matrimony' ? 'text-white' : 'text-indigo-500'} />
-                <span>💍 {t('heroMatrimonyPill')}</span>
+                <Heart size={14} className={`shrink-0 ${quickIntent === 'matrimony' ? 'text-white' : 'text-indigo-500'}`} />
+                <span>{t('heroMatrimonyPill')}</span>
               </button>
+              <Link
+                href="/for-women"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 dark:from-pink-950/40 dark:to-purple-950/40 text-pink-700 dark:text-pink-300 border border-pink-300/70 dark:border-pink-800 hover:scale-105 hover:bg-pink-100/50 dark:hover:bg-pink-900/30 transition-all shadow-sm"
+              >
+                <Crown size={14} className="text-amber-500 fill-amber-500 shrink-0" />
+                <span>👑 For Women: Free Lifetime VIP & Anti-Creep Shield</span>
+              </Link>
             </div>
 
             <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-black tracking-tighter text-gray-900 dark:text-gray-100 mb-4 leading-[1.05]">
@@ -490,19 +541,69 @@ export default function LandingPageClient() {
                 ) : (
                   /* Instant Quick Registration Form */
                   <form onSubmit={handleInstantRegister} className="space-y-3">
+                    {/* Prominent Top Gender Toggle so Female Perks are Front & Center */}
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1.5 uppercase tracking-wider">I am joining as:</label>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSignupForm({ ...signupForm, gender: 'Female', looking_for: 'Male' });
+                            localStorage.setItem('pendingUserGender', 'Female');
+                          }}
+                          className={`h-11 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                            signupForm.gender === 'Female'
+                              ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white border-rose-500 shadow-md ring-2 ring-rose-300 dark:ring-rose-800'
+                              : 'bg-pink-50/70 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800/70 hover:border-pink-400'
+                          }`}
+                        >
+                          <span>👰</span>
+                          <span>Woman</span>
+                          <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">👑 Free VIP</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSignupForm({ ...signupForm, gender: 'Male', looking_for: 'Female' });
+                            localStorage.setItem('pendingUserGender', 'Male');
+                          }}
+                          className={`h-11 px-3 rounded-xl font-extrabold text-xs flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                            signupForm.gender === 'Male'
+                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-300 dark:ring-indigo-800'
+                              : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-indigo-400'
+                          }`}
+                        >
+                          <span>🤵</span>
+                          <span>Man</span>
+                        </button>
+                      </div>
+                      {signupForm.gender === 'Female' && (
+                        <div className="mt-2 p-2.5 rounded-xl bg-gradient-to-r from-pink-50 via-rose-50 to-purple-50 dark:from-pink-950/50 dark:via-purple-950/40 dark:to-gray-900 border border-pink-200 dark:border-pink-800 text-[11px] text-pink-900 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200">
+                          <Crown size={15} className="text-amber-500 fill-amber-500 shrink-0" />
+                          <span>
+                            <strong>Queen VIP Active:</strong> 100% Free Unlimited Direct Chat • 100 Welcome Coins • AI Anti-Creep Shield.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
                     {/* 1-Click Fast Google Sign-Up for Global Visitors */}
                     <button
                       type="button"
                       onClick={handleGoogleSignIn}
-                      className="w-full h-12 flex items-center justify-center gap-2.5 px-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all group cursor-pointer min-w-0"
+                      className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all group cursor-pointer min-w-0"
                     >
-                      <img src="/icons/google.svg" className="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" alt="Google" />
-                      <span className="truncate">Continue with Google (1-Click Instant)</span>
+                      <img src="/icons/google.svg" className="w-4 h-4 shrink-0 group-hover:scale-110 transition-transform" alt="Google" />
+                      <span className="truncate">
+                        {signupForm.gender === 'Female'
+                          ? 'Continue with Google (Claim Free Queen VIP 👑)'
+                          : 'Continue with Google (1-Click Instant)'}
+                      </span>
                     </button>
 
-                    <div className="relative flex items-center justify-center my-2">
+                    <div className="relative flex items-center justify-center my-1.5">
                       <div className="border-t border-gray-200 dark:border-gray-800 w-full"></div>
-                      <span className="bg-white dark:bg-gray-950 px-2.5 text-[11px] text-gray-400 font-bold uppercase tracking-wider">or fast email signup</span>
+                      <span className="bg-white dark:bg-gray-950 px-2.5 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or fast email signup</span>
                       <div className="border-t border-gray-200 dark:border-gray-800 w-full"></div>
                     </div>
 
@@ -531,7 +632,7 @@ export default function LandingPageClient() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                       <div className="col-span-2 sm:col-span-1">
                         <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Password</label>
                         <div className="relative">
@@ -554,7 +655,7 @@ export default function LandingPageClient() {
                       </div>
 
                       <div>
-                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Age</label>
+                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">Age (18+)</label>
                         <input
                           type="number"
                           required
@@ -562,21 +663,9 @@ export default function LandingPageClient() {
                           max="80"
                           value={signupForm.age}
                           onChange={(e) => setSignupForm({ ...signupForm, age: e.target.value })}
-                          placeholder="e.g. 25"
+                          placeholder="e.g. 24"
                           className="w-full h-11 px-3.5 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
                         />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 block mb-1">I am a</label>
-                        <select
-                          value={signupForm.gender}
-                          onChange={(e) => setSignupForm({ ...signupForm, gender: e.target.value, looking_for: e.target.value === 'Male' ? 'Female' : 'Male' })}
-                          className="w-full h-11 px-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-bold text-gray-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500"
-                        >
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
                       </div>
 
                       <div>
@@ -595,7 +684,11 @@ export default function LandingPageClient() {
                     <button
                       type="submit"
                       disabled={signupLoading}
-                      className="w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-xl shadow-indigo-200 dark:shadow-none flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                      className={`w-full h-13 py-3.5 rounded-2xl text-white font-black text-base hover:opacity-95 hover:scale-[1.01] active:scale-95 transition-all shadow-xl dark:shadow-none flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer ${
+                        signupForm.gender === 'Female'
+                          ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 shadow-pink-200'
+                          : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 shadow-indigo-200'
+                      }`}
                     >
                       {signupLoading ? (
                         <>
@@ -604,7 +697,11 @@ export default function LandingPageClient() {
                         </>
                       ) : (
                         <>
-                          <span>Create Free Account in 10s 🚀</span>
+                          <span>
+                            {signupForm.gender === 'Female'
+                              ? 'Claim Free Queen VIP Account 👑'
+                              : 'Create Free Account in 10s 🚀'}
+                          </span>
                           <ArrowRight size={18} />
                         </>
                       )}
@@ -679,7 +776,10 @@ export default function LandingPageClient() {
                   </div>
 
                   <Link 
-                    href={`/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`}
+                    href={isLoggedIn 
+                      ? `/dashboard?tab=matches&intent=${quickIntent}&gender=${quickLookingFor}&country=${quickCountry}`
+                      : `/register?new=true&intent=${quickIntent}&gender=${quickGender}&looking_for=${quickLookingFor}&country=${quickCountry}`
+                    }
                     onClick={() => {
                       if (quickCountry && quickCountry !== 'Worldwide') {
                         localStorage.setItem('pendingUserCountry', quickCountry);
@@ -696,15 +796,18 @@ export default function LandingPageClient() {
             </div>
 
             {/* High Conversion Trust Bar */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-8">
-              <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-gray-500 dark:text-gray-400 mb-8">
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle size={14} /> {t('trust100Free')}
+              </span>
+              <span className="flex items-center gap-1 text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/40 px-2 py-0.5 rounded-full border border-pink-200 dark:border-pink-800">
+                <Crown size={13} className="shrink-0 text-amber-500 fill-amber-500" /> Free VIP for Women
               </span>
               <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
                 <ShieldCheck size={14} /> {t('trustVerified')}
               </span>
-              <span className="flex items-center gap-1 text-pink-600 dark:text-pink-400">
-                <MapPin size={14} /> {t('trustGlobal')}
+              <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                <Lock size={13} className="shrink-0" /> 100% Screenshot-Proof
               </span>
             </div>
 
@@ -785,6 +888,9 @@ export default function LandingPageClient() {
 
       {/* --- SNAPS, STORIES & MUSIC FEATURE SHOWCASE --- */}
       <FeatureShowcaseSection />
+
+      {/* --- WOMEN SAFETY & QUEEN VIP PROMISE --- */}
+      <WomenSafetyBanner />
 
       {/* --- HOW LIFE PARTNER GETS CONNECTED WORKFLOW --- */}
       <ConnectionWorkflowSection />

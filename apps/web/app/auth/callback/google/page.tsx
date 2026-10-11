@@ -26,26 +26,37 @@ function GoogleCallbackContent() {
                 // Dynamic redirect URI to match what initiated the flow
                 const redirect_uri = window.location.origin + '/auth/callback/google';
 
+                const pendingGender = localStorage.getItem('pendingUserGender') || undefined;
+                const pendingAge = localStorage.getItem('pendingUserAge') || undefined;
+
                 const res = await axios.post(`${apiUrl}/auth/google`, {
                     code,
-                    redirect_uri
+                    redirect_uri,
+                    gender: pendingGender,
+                    age: pendingAge
                 });
 
                 if (res.data.token) {
                     // Token is now secured via HttpOnly Cookie (and localStorage for 3rd party fallback)
                     localStorage.setItem('userId', res.data.userId);
                     localStorage.setItem('token', res.data.token);
+                    if (res.data.user) {
+                        localStorage.setItem('user', JSON.stringify(res.data.user));
+                        if (res.data.user.gender) {
+                            localStorage.setItem('pendingUserGender', res.data.user.gender);
+                        }
+                    }
                     // Automatically collect push notification token
                     Notifications.init().catch(console.error);
                     if (res.data.requiresOnboarding) {
                         setStatus('Profile incomplete. Redirecting to Onboarding...');
-                        setTimeout(() => router.replace('/onboarding'), 1000);
+                        setTimeout(() => router.replace('/onboarding'), 800);
                     } else {
                         try {
                             localStorage.setItem('onboarding_completed', 'true');
                         } catch (_) {}
                         setStatus('Success! Redirecting...');
-                        setTimeout(() => router.replace('/dashboard'), 1000);
+                        setTimeout(() => router.replace('/dashboard'), 800);
                     }
                 }
             } catch (err: any) {

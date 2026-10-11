@@ -35,7 +35,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const [direction, setDirection] = useState('forward');
     const [data, setData] = useState<any>({
         // Basics
-        name: '', age: '', gender: 'Male', height: '', city: '', country: 'India', aboutMe: '',
+        name: '', age: '', gender: '', height: '', city: '', country: 'India', aboutMe: '',
         // Horoscope
         zodiacSign: '', nakshatra: '', manglik: 'No', birthTime: '',
         // Religion
@@ -57,10 +57,11 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     useEffect(() => {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
+            let savedGender = '';
             if (saved) {
                 const parsed = JSON.parse(saved);
+                savedGender = parsed.gender || '';
                 setData((prev: any) => ({ ...prev, ...parsed }));
-                // console.log('Restored onboarding progress from localStorage');
             }
             // Restore step position
             const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
@@ -81,44 +82,35 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             const detectedGeo = detectVisitorGeo();
             const resolvedCountry = pendingCountry || (detectedGeo.country !== 'Worldwide' ? detectedGeo.country : 'India');
 
+            let u: any = {};
             const storedUser = localStorage.getItem('user');
             if (storedUser) {
                 try {
-                    const u = JSON.parse(storedUser);
+                    u = JSON.parse(storedUser) || {};
+                } catch (_) {}
+            }
+
+            setData((prev: any) => ({
+                ...prev,
+                name: prev.name || u.name || u.full_name || pendingName || '',
+                gender: pendingGender || u.gender || savedGender || prev.gender || '',
+                age: prev.age || (u.age && u.age >= 18 ? String(u.age) : '') || pendingAge || '',
+                country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
+            }));
+
+            // Always fetch getMe() to ensure Google OAuth / server-persisted name, gender, age, and avatar are populated
+            api.profile.getMe().then((me: any) => {
+                if (me) {
                     setData((prev: any) => ({
                         ...prev,
-                        name: prev.name || u.name || pendingName || '',
-                        gender: prev.gender || u.gender || pendingGender || 'Male',
-                        age: prev.age || (u.age ? String(u.age) : '') || pendingAge || '',
-                        country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
+                        name: prev.name || me.name || me.full_name || pendingName || '',
+                        gender: pendingGender || me.gender || u.gender || prev.gender || '',
+                        age: prev.age || (me.age && me.age >= 18 ? String(me.age) : '') || pendingAge || '',
+                        city: prev.city || me.city || '',
+                        photos: (prev.photos && prev.photos.length > 0) ? prev.photos : (me.photos && me.photos.length > 0 ? me.photos : (me.avatar_url ? [me.avatar_url] : []))
                     }));
-                } catch (_) {}
-            } else if (pendingName || pendingGender || pendingAge || pendingCountry) {
-                setData((prev: any) => ({
-                    ...prev,
-                    name: prev.name || pendingName || '',
-                    gender: prev.gender || pendingGender || 'Male',
-                    age: prev.age || pendingAge || '',
-                    country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
-                }));
-            } else {
-                setData((prev: any) => ({
-                    ...prev,
-                    country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
-                }));
-                api.profile.getMe().then((me: any) => {
-                    if (me) {
-                        setData((prev: any) => ({
-                            ...prev,
-                            name: prev.name || me.name || me.full_name || '',
-                            gender: prev.gender || me.gender || 'Male',
-                            age: prev.age || (me.age ? String(me.age) : ''),
-                            city: prev.city || me.city || '',
-                            photos: (prev.photos && prev.photos.length > 0) ? prev.photos : (me.photos || [])
-                        }));
-                    }
-                }).catch(() => {});
-            }
+                }
+            }).catch(() => {});
         } catch (e) {
             console.error('Failed to load saved onboarding data', e);
         }
@@ -232,22 +224,21 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         setCurrentStep(s => s - 1);
     };
 
-    // Silent check for button disabled state (no toasts)
-    const isStepValid = () => {
-        const stepId = STEPS[currentStep].id;
-        if (stepId === 'basics') {
-            return !!(data.name && data.age && data.gender);
-        }
-        // Photos are optional for onboarding to prevent dropoff
-        return true;
-    };
-
-    // Validation with toasts (only called on button click)
+    // Validation with clear, specific toasts (called on button click)
     const validateStep = () => {
         const stepId = STEPS[currentStep].id;
         if (stepId === 'basics') {
-            if (!(data.name && data.age && data.gender)) {
-                toast.error("Please fill in required fields (*)");
+            if (!data.name || !String(data.name).trim()) {
+                toast.error("Please enter your Full Name (*)");
+                return false;
+            }
+            if (!data.gender) {
+                toast.error("Please select your Gender (Woman or Man) (*)");
+                return false;
+            }
+            const parsedAge = parseInt(String(data.age), 10);
+            if (!data.age || isNaN(parsedAge) || parsedAge < 18 || parsedAge > 95) {
+                toast.error("Please enter a valid Age between 18 and 95 (*)");
                 return false;
             }
         }
@@ -318,12 +309,42 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
 
-                                <Input label="Age *" type="number" value={data.age} onChange={e => update('age', e.target.value)} />
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Gender *</label>
-                                    <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.gender} onChange={e => update('gender', e.target.value)}>
-                                        <option>Male</option><option>Female</option>
-                                    </select>
+                                <Input label="Age (18+) *" type="number" min={18} max={95} value={data.age} onChange={e => update('age', e.target.value)} />
+                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                    <label className="text-sm font-medium dark:text-gray-200">Select Your Gender *</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                update('gender', 'Female');
+                                                localStorage.setItem('pendingUserGender', 'Female');
+                                            }}
+                                            className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
+                                                data.gender === 'Female'
+                                                    ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:border-rose-400'
+                                            }`}
+                                        >
+                                            <span>👰</span>
+                                            <span>Female / Woman</span>
+                                            <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">👑 VIP Free</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                update('gender', 'Male');
+                                                localStorage.setItem('pendingUserGender', 'Male');
+                                            }}
+                                            className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
+                                                data.gender === 'Male'
+                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-300'
+                                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:border-indigo-400'
+                                            }`}
+                                        >
+                                            <span>🤵</span>
+                                            <span>Male / Man</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium dark:text-gray-200">Marital Status (Optional)</label>
@@ -623,8 +644,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         )}
                         <Button
                             onClick={handleNext}
-                            className="w-28 sm:w-32 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 font-bold"
-                            disabled={!isStepValid()}
+                            className="w-28 sm:w-32 bg-indigo-600 hover:bg-indigo-700 font-bold"
                         >
                             {currentStep === STEPS.length - 1 ? "Finish" : "Next"}
                         </Button>

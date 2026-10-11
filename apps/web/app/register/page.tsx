@@ -24,7 +24,7 @@ function RegisterForm() {
     const intentParam = searchParams.get('intent') || 'dating';
     const isDating = intentParam.toLowerCase() === 'dating';
 
-    const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '', gender: 'Male', age: '' });
+    const [form, setForm] = useState({ full_name: '', email: '', password: '', referralCode: '', gender: '', age: '' });
     const [loading, setLoading] = useState(false);
     const [activeTestimonial, setActiveTestimonial] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
@@ -64,6 +64,11 @@ function RegisterForm() {
         if (genderParam) {
             setForm(prev => ({ ...prev, gender: genderParam }));
             localStorage.setItem('pendingUserGender', genderParam);
+        } else {
+            const savedGender = localStorage.getItem('pendingUserGender');
+            if (savedGender === 'Female' || savedGender === 'Male') {
+                setForm(prev => ({ ...prev, gender: savedGender }));
+            }
         }
     }, [referralCodeParam, searchParams, router]);
 
@@ -126,6 +131,10 @@ function RegisterForm() {
 
     const handleRegister = async () => {
         try {
+            if (!form.gender) {
+                toast.error('Please select whether you are joining as a Woman or Man.');
+                return;
+            }
             if (!form.full_name || !form.email || !form.password) {
                 toast.error('Please fill in all fields.');
                 return;
@@ -146,7 +155,7 @@ function RegisterForm() {
             }
             setLoading(true);
             // Save pending demographic details so they survive OTP flow
-            localStorage.setItem('pendingUserGender', form.gender || 'Male');
+            localStorage.setItem('pendingUserGender', form.gender);
             localStorage.setItem('pendingUserAge', String(parsedAge));
             localStorage.setItem('pendingUserName', form.full_name);
 
@@ -165,6 +174,8 @@ function RegisterForm() {
                     setShowOtp(true);
                 } else if (res.token) {
                     localStorage.removeItem('matches_cache_v2');
+                    localStorage.removeItem('lifepartner_onboarding_data');
+                    localStorage.removeItem('lifepartner_onboarding_step');
                     localStorage.setItem('userId', res.userId);
                     localStorage.setItem('token', res.token);
                     localStorage.setItem('user', JSON.stringify({
@@ -173,6 +184,10 @@ function RegisterForm() {
                         gender: form.gender,
                         age: parsedAge
                     }));
+                    toast.success(form.gender === 'Female'
+                        ? 'Welcome Queen! 👑 Your Free Lifetime VIP is active!'
+                        : 'Account created! Let’s complete your profile 🎉'
+                    );
                     // Immediately initiate Push Token collection and notification readiness
                     Notifications.init().catch(console.error);
                     router.replace('/onboarding');
@@ -201,6 +216,8 @@ function RegisterForm() {
             if (res.token) {
                 localStorage.removeItem('pendingVerificationEmail');
                 localStorage.removeItem('matches_cache_v2');
+                localStorage.removeItem('lifepartner_onboarding_data');
+                localStorage.removeItem('lifepartner_onboarding_step');
                 localStorage.setItem('userId', res.userId);
                 localStorage.setItem('token', res.token);
 
@@ -439,24 +456,33 @@ function RegisterForm() {
                     </div>
 
                     <div className="space-y-4">
+                        {/* Gender Selection at the top so women immediately see Free Queen VIP */}
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Full Name</label>
-                            <Input
-                                placeholder="e.g. Aditi Rao"
-                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
-                                value={form.full_name}
-                                onChange={e => setForm({ ...form, full_name: e.target.value })}
-                            />
-                        </div>
-
-                        {/* Gender Selection */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Gender</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">I am joining as</label>
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setForm({ ...form, gender: 'Male' })}
-                                    className={`h-11 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
+                                    onClick={() => {
+                                        setForm({ ...form, gender: 'Female' });
+                                        localStorage.setItem('pendingUserGender', 'Female');
+                                    }}
+                                    className={`relative h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 border transition-all ${
+                                        form.gender === 'Female'
+                                            ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                            : 'bg-pink-50/70 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800 hover:border-pink-400'
+                                    }`}
+                                >
+                                    <span>👰</span>
+                                    <span>{isDating ? 'Female / Woman' : 'Female / Bride'}</span>
+                                    <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ml-0.5">VIP Free</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setForm({ ...form, gender: 'Male' });
+                                        localStorage.setItem('pendingUserGender', 'Male');
+                                    }}
+                                    className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
                                         form.gender === 'Male'
                                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                                             : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300'
@@ -465,19 +491,6 @@ function RegisterForm() {
                                     <span>🤵</span>
                                     <span>{isDating ? 'Male / Man' : 'Male / Groom'}</span>
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setForm({ ...form, gender: 'Female' })}
-                                    className={`relative h-11 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1 border transition-all ${
-                                        form.gender === 'Female'
-                                            ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
-                                            : 'bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800 hover:border-gray-300'
-                                    }`}
-                                >
-                                    <span>👰</span>
-                                    <span>{isDating ? 'Female / Woman' : 'Female / Bride'}</span>
-                                    <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ml-0.5">VIP Free</span>
-                                </button>
                             </div>
                             {form.gender === 'Female' && (
                                 <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-[11px] text-pink-800 dark:text-pink-200 flex items-center gap-2 animate-in fade-in duration-200 mt-1.5">
@@ -485,6 +498,16 @@ function RegisterForm() {
                                     <span><strong>Queen VIP Active:</strong> 100 free coins, unlimited direct chat, and private masked phone number.</span>
                                 </div>
                             )}
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Full Name</label>
+                            <Input
+                                placeholder="e.g. Aditi Rao"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                value={form.full_name}
+                                onChange={e => setForm({ ...form, full_name: e.target.value })}
+                            />
                         </div>
 
                         {/* Age Input */}
@@ -569,6 +592,12 @@ function RegisterForm() {
                     <div>
                         <button
                             onClick={() => {
+                                if (form.gender) {
+                                    localStorage.setItem('pendingUserGender', form.gender);
+                                }
+                                if (form.age) {
+                                    localStorage.setItem('pendingUserAge', form.age);
+                                }
                                 const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
                                 const redirectUri = `${window.location.origin}/auth/callback/google`;
                                 const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;

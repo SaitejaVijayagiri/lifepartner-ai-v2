@@ -44,18 +44,7 @@ const fontMono = Roboto_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://lifepartnerai.in'),
   alternates: {
-    canonical: 'https://lifepartnerai.in',
-    languages: {
-      'en': 'https://lifepartnerai.in',
-      'en-US': 'https://lifepartnerai.in',
-      'en-GB': 'https://lifepartnerai.in',
-      'en-IN': 'https://lifepartnerai.in',
-      'en-CA': 'https://lifepartnerai.in',
-      'en-AU': 'https://lifepartnerai.in',
-      'en-AE': 'https://lifepartnerai.in',
-      'en-SG': 'https://lifepartnerai.in',
-      'x-default': 'https://lifepartnerai.in',
-    },
+    canonical: './',
   },
   robots: {
     index: true,
@@ -69,41 +58,40 @@ export const metadata: Metadata = {
     },
   },
   title: {
-    default: "LifePartner AI | Free Online Chat with Strangers, Matrimony & Dating App",
-    template: "%s | LifePartner AI - Free Online Chat & Matchmaking App"
+    default: "LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App (100% Verified)",
+    template: "%s | LifePartner AI - Free AI Matrimony & Worldwide Dating"
   },
-  description: "Chat with strangers, random people & verified singles worldwide for 100% Free. LifePartner AI is the #1 Free Matrimony & Dating app. Talk to international guys, single Indian girls, and global NRI matches with zero payment, instant chat, and verified video calls.",
+  description: "Meet 100% verified singles for serious matrimony and meaningful dating worldwide—100% free. Zero subscription paywalls, AI compatibility matching, instant direct chat, HD video calls, and Women-First privacy protection.",
   keywords: [
-    // High-Volume Global Stranger Chat & International Terms
-    "online chat with strangers", "chat with random people", "chat with international guys",
-    "talk to random people online", "free random video chat", "chat with single girls online",
-    "talk to strangers free", "free international dating chat", "global chat with verified singles",
-    "random chat online free no login", "chat with foreign guys online", "worldwide single chat",
-    
-    // High-Volume Indian & NRI Matrimony / Dating Terms
-    "free matrimony chat without payment", "talk to single Indian girls", "free chat with verified girls",
-    "best online chat app for matrimony India", "free Telugu matrimony chat", "free Tamil matrimony chat",
-    "free Hindi matrimony chat", "jeevansathi free message chat alternative", "shaadi free chat app",
-    "marriage bureau online chat free", "NRI matrimony chat", "NRI dating app free",
-    
-    // Core Matrimony & Matchmaking Terms
-    "Matrimony", "Free Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Best Matchmaking Site",
-    "AI Dating", "Free Dating App", "Dating App Worldwide", "Find Love Globally", "Jeevansathi Alternative", "Shaadi Alternative", "Bharat Matrimony",
-    "Free Chat Matrimony", "Online Chat", "Chat with Strangers", "Video Dating",
-    "Marriage Bureau", "Safe Matrimony", "Verified Profiles", "NRI Matrimony", "Global Matchmaking",
-    "No Payment Matrimony", "100% Free Matchmaking", "Free Kundli Matching", "Biodata Maker",
-    "Singles Meetups", "Local Dating Events", "Offline Dating", "Meet Singles Near Me", "Verified Lounge"
+    // Women-First & High-Trust Dating / Matrimony Keywords
+    "safe dating app for women", "free matrimony app without payment", "women first dating app",
+    "verified matrimony profiles", "100% free matchmaking app", "AI matrimony and dating",
+    "free direct chat matrimony", "anti harassment dating app", "screenshot proof dating app",
+
+    // Global & NRI Matchmaking Keywords
+    "worldwide dating app free", "global matchmaking platform", "NRI matrimony free chat",
+    "NRI dating app USA UK Canada Australia", "international matchmaking verified singles",
+    "dating app USA", "dating app UK", "dating app Canada", "dating app Australia",
+    "dating app Japan", "dating app Korea", "dating app Singapore", "dating app UAE",
+
+    // Indian & Regional Matrimony Keywords
+    "Matrimony", "Free Matrimony", "Telugu Matrimony Free", "Tamil Matrimony Free", "Hindi Matrimony Free",
+    "Kerala Matrimony Free", "Marathi Matrimony", "Kannada Matrimony", "Bengali Matrimony",
+    "Jeevansathi Alternative Free", "Shaadi Alternative Free", "Bharat Matrimony Alternative",
+    "Bumble Alternative Free", "Hinge Alternative", "Free Kundli Matching", "AI Biodata Maker",
+    "Verified Singles Meetups", "Doctor Matrimony", "Software Engineer Matrimony", "IAS IPS Matrimony"
   ],
   authors: [{ name: "LifePartner AI Team" }],
   creator: "LifePartner AI",
+  publisher: "LifePartner AI",
   manifest: 'https://lifepartnerai.in/manifest.json',
   openGraph: {
     type: "website",
     locale: "en_US",
-    alternateLocale: ["en_GB", "en_CA", "en_AU", "en_IN", "hi_IN", "te_IN", "ta_IN"],
+    alternateLocale: ["en_GB", "en_CA", "en_AU", "en_IN", "ja_JP", "ko_KR", "hi_IN", "te_IN", "ta_IN"],
     url: "https://lifepartnerai.in",
-    title: "LifePartner AI | The Best Free Matrimony & Dating App Worldwide",
-    description: "Don't just swipe. Connect. The only offline-first, AI-driven worldwide matrimony & dating platform for Verified Singles. Free Registration. Safe. Secure.",
+    title: "LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App",
+    description: "Meet verified singles for serious matrimony and meaningful dating worldwide—100% free. Zero paywalls, instant direct chat, HD video calls, and Women-First privacy protection.",
     siteName: "LifePartner AI",
     images: [
       {
@@ -122,8 +110,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "LifePartner AI | Best Free Matrimony & Dating App in India",
-    description: "Join 10,000+ verified singles finding love on LifePartner AI. The smarter, safer alternative to Shaadi, Jeevansathi, and dating apps.",
+    title: "LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App",
+    description: "Join 10,000+ verified singles finding love on LifePartner AI. 100% Free Direct Chat, AI Compatibility & Women-First Privacy Protection.",
     images: ["https://lifepartnerai.in/opengraph-image", "https://lifepartnerai.in/og-image.jpg"],
   },
   category: "Dating Application",

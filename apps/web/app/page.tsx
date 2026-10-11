@@ -3,20 +3,21 @@ import LandingPageClient from '@/components/LandingPageClient';
 
 // 1. GENERATE METADATA FOR GLOBAL BROWSER RANKINGS (Server Side)
 export const metadata: Metadata = {
-  title: 'LifePartner AI | #1 Free Worldwide Dating, Matrimony & Snaps App',
-  description: "The world's first AI-powered 100% free worldwide dating and matrimony platform. Connect & chat with verified singles in Russia (Moscow, St. Petersburg), USA, UK, Japan, Korea, China, Philippines, Indonesia, Malaysia, Vietnam, Venezuela, Africa, India, Europe & worldwide with zero paywalls.",
+  title: 'LifePartner AI | #1 Free AI Matrimony, Worldwide Dating & Safe Matchmaking App',
+  description: "The world's #1 AI-powered 100% free matrimony and worldwide dating platform. Connect & chat with verified singles across India, USA, UK, Canada, Australia, UAE, Singapore, Japan, Korea & 190+ countries with zero subscription paywalls and Women-First privacy protection.",
   keywords: [
     // Global & Multi-Country Target Keywords
     "Worldwide Dating App", "Free Worldwide Dating", "Global Matchmaking App", "NRI Dating App", "Free Dating App Worldwide",
-    "Russia Dating App", "Moscow Matchmaking", "Saint Petersburg Singles", "Знакомства в России", "Бесплатный Сайт Знакомств", "Матримония Россия",
-    "Japan Dating App", "Tokyo Matchmaking", "South Korea Dating App", "Seoul Matchmaking", "China Dating App",
-    "Philippines Dating App", "Manila Singles Chat", "Indonesia Dating App", "Aplikasi Cari Jodoh Gratis",
-    "Malaysia Dating App", "Vietnam Dating App", "App Hẹn Hò Miễn Phí", "Venezuela Dating App", "Citas Gratis Venezuela",
-    "Africa Dating App", "Nigeria Matchmaking", "Kenya Singles", "Latin America Dating", "International Singles Chat",
+    "Safe Dating App for Women", "Women First Dating App", "Free VIP Dating for Women", "Verified Single Profiles",
+    "USA Dating App", "UK Dating App", "Canada Dating App", "Australia Dating App", "UAE Dating App", "Singapore Dating App",
+    "Japan Dating App", "Tokyo Matchmaking", "South Korea Dating App", "Seoul Matchmaking",
+    "Philippines Dating App", "Indonesia Dating App", "Aplikasi Cari Jodoh Gratis",
+    "Malaysia Dating App", "Vietnam Dating App", "App Hẹn Hò Miễn Phí",
+    "Russia Dating App", "Знакомства в России", "Brazil Dating App", "Germany Dating App", "France Dating App",
     
     // Snaps, Stories & Music Features
     "Instant Photo Snaps Dating", "24h Stories Dating App", "Music Match Dating App", "Spotify Playlist Dating",
-    "Screenshot Proof Snaps", "Safe Dating App for Women", "Verified Single Profiles",
+    "Screenshot Proof Snaps", "AI Anti-Creep Shield",
     
     // Matrimony & Marriage Keywords
     "Free Matrimony App", "Global Matrimony", "NRI Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Hindi Matrimony", "Best Matchmaking Site",
@@ -24,53 +25,61 @@ export const metadata: Metadata = {
     "100% Free Matchmaking", "Direct Chat Matrimony", "No Subscription Dating",
     
     // Multilingual & Multi-region Terms
-    "Dating App Russia", "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
-    "Знакомства Онлайн", "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "婚恋交友", "App de Rencontres Gratuite"
+    "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
+    "Знакомства Онлайн", "Citas Gratis en Todo el Mundo", "無料マッチングアプリ", "한국 데이팅 앱", "App de Rencontres Gratuite"
   ],
   alternates: {
     canonical: 'https://lifepartnerai.in',
     languages: {
+      'x-default': 'https://lifepartnerai.in',
       'en': 'https://lifepartnerai.in',
-      'ru': 'https://lifepartnerai.in?lang=ru',
-      'es': 'https://lifepartnerai.in?lang=es',
-      'ja': 'https://lifepartnerai.in?lang=ja',
-      'ko': 'https://lifepartnerai.in?lang=ko',
-      'zh': 'https://lifepartnerai.in?lang=zh',
-      'tl': 'https://lifepartnerai.in?lang=tl',
-      'id': 'https://lifepartnerai.in?lang=id',
-      'ms': 'https://lifepartnerai.in?lang=ms',
-      'vi': 'https://lifepartnerai.in?lang=vi',
-      'th': 'https://lifepartnerai.in?lang=th',
-      'hi': 'https://lifepartnerai.in?lang=hi',
-      'te': 'https://lifepartnerai.in?lang=te',
-      'ta': 'https://lifepartnerai.in?lang=ta',
-      'fr': 'https://lifepartnerai.in?lang=fr',
-      'de': 'https://lifepartnerai.in?lang=de',
-      'pt': 'https://lifepartnerai.in?lang=pt',
-      'ar': 'https://lifepartnerai.in?lang=ar',
+      'en-IN': 'https://lifepartnerai.in',
+      'en-US': 'https://lifepartnerai.in/usa',
+      'en-GB': 'https://lifepartnerai.in/uk',
+      'en-CA': 'https://lifepartnerai.in/canada',
+      'en-AU': 'https://lifepartnerai.in/australia',
+      'en-SG': 'https://lifepartnerai.in/singapore',
+      'en-PH': 'https://lifepartnerai.in/philippines',
+      'en-AE': 'https://lifepartnerai.in/uae',
+      'ja-JP': 'https://lifepartnerai.in/japan',
+      'ko-KR': 'https://lifepartnerai.in/korea',
+      'ru-RU': 'https://lifepartnerai.in/russia',
+      'id-ID': 'https://lifepartnerai.in/indonesia',
+      'ms-MY': 'https://lifepartnerai.in/malaysia',
+      'vi-VN': 'https://lifepartnerai.in/vietnam',
+      'th-TH': 'https://lifepartnerai.in/thailand',
+      'pt-BR': 'https://lifepartnerai.in/brazil',
+      'de-DE': 'https://lifepartnerai.in/germany',
+      'fr-FR': 'https://lifepartnerai.in/france',
     }
   },
   openGraph: {
-    title: 'LifePartner AI | #1 Free Worldwide Dating, Matrimony & Snaps App',
-    description: "Connect & chat with verified singles globally on LifePartner AI. Safe & 100% Free for women & men in Japan, Korea, China, Philippines, Indonesia, Venezuela, USA, UK, India & worldwide.",
+    title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',
+    description: "Connect & chat with verified singles globally on LifePartner AI. 100% Free Direct Chat, AI Compatibility, and Women-First Privacy Protection across India, USA, UK, Canada, Australia, Japan, Korea & worldwide.",
     url: 'https://lifepartnerai.in',
     siteName: 'LifePartner AI',
     locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: 'https://lifepartnerai.in/api/og?title=Connect%20%26%20Chat%20Free%20Worldwide&subtitle=Snaps%2C%20Stories%2C%20Music%20%26%20AI%20Matchmaking',
+        url: 'https://lifepartnerai.in/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI - #1 Free Worldwide Dating & Matrimony Platform',
+      },
+      {
+        url: 'https://lifepartnerai.in/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'LifePartner AI - Verified Matrimony & Matchmaking',
       }
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LifePartner AI | Best Free Worldwide Dating & Matrimony App',
-    description: 'Join verified singles finding love globally on LifePartner AI. Featuring Snaps, 24h Stories, Music Matching & 100% Free Chat.',
-    images: ['https://lifepartnerai.in/api/og?title=LifePartner%20AI%20Worldwide'],
+    title: 'LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App',
+    description: 'Join verified singles finding love globally on LifePartner AI. Featuring 100% Free Direct Chat, AI Matchmaking, Snaps, Stories & Women-First Safety.',
+    images: ['https://lifepartnerai.in/opengraph-image', 'https://lifepartnerai.in/og-image.jpg'],
   }
 };
 
@@ -81,12 +90,13 @@ export default function LandingPage() {
     "@type": "Organization",
     "name": "LifePartner AI",
     "url": "https://lifepartnerai.in",
-    "logo": "https://lifepartnerai.in/icons/icon-512x512.png",
+    "logo": "https://lifepartnerai.in/icon-512x512.png",
     "sameAs": [
       "https://twitter.com/lifepartnerai",
-      "https://www.instagram.com/lifepartnerai.in"
+      "https://www.instagram.com/lifepartnerai.in",
+      "https://www.youtube.com/@lifepartnerai"
     ],
-    "description": "The world's first AI-powered worldwide dating & matrimony platform offering Snaps, 24h Stories, Music Vibe matching, semantic AI search, and verified connections with zero paywalls.",
+    "description": "The world's #1 AI-powered worldwide dating & matrimony platform offering 100% free direct chat, AI compatibility matching, Women-First safety protection, Snaps, 24h Stories, and Music Vibe matching with zero paywalls.",
     "address": {
       "@type": "PostalAddress",
       "addressLocality": "Hyderabad",
@@ -99,11 +109,22 @@ export default function LandingPage() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "LifePartner AI",
+    "alternateName": ["LifePartner AI Matrimony", "LifePartner AI Dating"],
+    "url": "https://lifepartnerai.in"
+  };
+
+  const jsonLdApp = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "LifePartner AI",
     "url": "https://lifepartnerai.in",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://lifepartnerai.in/matches?q={search_term_string}",
-      "query-input": "required name=search_term_string"
+    "applicationCategory": "SocialNetworkingApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "100% Free Registration, Direct Chat, and Lifetime Queen VIP for Female Users"
     }
   };
 
@@ -120,14 +141,14 @@ export default function LandingPage() {
       {
         "@type": "ListItem",
         "position": 2,
-        "name": "Free Matrimony & Matchmaking",
-        "item": "https://lifepartnerai.in/matrimony"
+        "name": "For Women (100% Free VIP & Safety)",
+        "item": "https://lifepartnerai.in/for-women"
       },
       {
         "@type": "ListItem",
         "position": 3,
-        "name": "Worldwide Dating & Chat",
-        "item": "https://lifepartnerai.in/stranger-chat"
+        "name": "Matchmaking & Relationship Guides",
+        "item": "https://lifepartnerai.in/blog"
       }
     ]
   };
@@ -162,7 +183,7 @@ export default function LandingPage() {
         "itemOffered": {
           "@type": "Service",
           "name": "NRI & Worldwide Matchmaking",
-          "description": "Connect with verified single Indian girls, NRI guys, and international singles in USA, UK, Canada, Australia, and worldwide."
+          "description": "Connect with verified Indian singles, NRI professionals, and international singles in USA, UK, Canada, Australia, and worldwide."
         },
         "price": "0",
         "priceCurrency": "INR"
@@ -192,18 +213,18 @@ export default function LandingPage() {
       },
       {
         "@type": "Question",
-        "name": "How does LifePartner AI protect photo privacy and prevent screenshots?",
+        "name": "How does LifePartner AI protect female privacy and prevent screenshots?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "LifePartner AI implements instant ephemeral Snaps with built-in screenshot protection, photo blur controls, and watermarks to ensure complete privacy, especially for women."
+          "text": "LifePartner AI provides every female member with 100% Free Lifetime Queen VIP status, an AI Anti-Creep harassment filter, masked contact details, and disappearing Snaps with built-in screenshot protection."
         }
       },
       {
         "@type": "Question",
-        "name": "Can NRI singles in USA, UK, Canada, and Australia find Indian matrimony matches for free?",
+        "name": "Can NRI singles in USA, UK, Canada, and Australia find matrimony and dating matches for free?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes! LifePartner AI supports NRI matchmaking across 190+ countries including USA, UK, Canada, Australia, UAE, Singapore, and Europe with multi-language support in English, Telugu, Hindi, Tamil, and 7 other languages."
+          "text": "Yes! LifePartner AI supports NRI and worldwide matchmaking across 190+ countries including USA, UK, Canada, Australia, UAE, Singapore, Japan, Korea, and Europe with multi-language support."
         }
       },
       {
@@ -211,7 +232,7 @@ export default function LandingPage() {
         "name": "How does the AI Wingman and Cosmic Matching work?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Our context-aware AI analyzes deep personal values, lifestyle habits, Vedic astrology compatibility, and shared music tastes to suggest highest quality soulmate matches."
+          "text": "Our context-aware AI analyzes deep personal values, lifestyle habits, Vedic astrology compatibility, and shared music tastes to suggest the highest quality soulmate matches."
         }
       }
     ]
@@ -226,6 +247,10 @@ export default function LandingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdApp) }}
       />
       <script
         type="application/ld+json"

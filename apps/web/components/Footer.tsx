@@ -121,13 +121,13 @@ export default function Footer() {
                     </ul>
                 </div>
                 <div>
-                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Global Intent SEO</h5>
+                    <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Global & Women-First</h5>
                     <ul className="space-y-1.5">
-                        <li><Link href="/dating/intent/global-chat-with-verified-singles" className="hover:text-indigo-400 transition-colors">Global Singles Chat</Link></li>
+                        <li><Link href="/for-women" className="text-pink-400 hover:text-pink-300 transition-colors">Safe Dating for Women</Link></li>
+                        <li><Link href="/dating/intent/safe-dating-app-for-women" className="hover:text-indigo-400 transition-colors">Women-First Dating App</Link></li>
+                        <li><Link href="/dating/intent/global-chat-with-verified-singles" className="hover:text-indigo-400 transition-colors">Global Verified Singles</Link></li>
                         <li><Link href="/matrimony/intent/nri-matrimony-chat" className="hover:text-indigo-400 transition-colors">NRI Matrimony Chat</Link></li>
-                        <li><Link href="/dating/intent/chat-with-international-guys" className="hover:text-indigo-400 transition-colors">International Dating</Link></li>
                         <li><Link href="/matrimony/intent/free-matrimony-chat-without-payment" className="hover:text-indigo-400 transition-colors">Free Direct Chat</Link></li>
-                        <li><Link href="/dating/intent/free-random-video-chat" className="hover:text-indigo-400 transition-colors">Free Video Dating</Link></li>
                     </ul>
                 </div>
             </div>

@@ -132,7 +132,7 @@ function RegisterForm() {
     const handleRegister = async () => {
         try {
             if (!form.gender) {
-                toast.error('Please select whether you are joining as a Woman or Man.');
+                toast.error('Please select whether you are joining as Female or Male.');
                 return;
             }
             if (!form.full_name || !form.email || !form.password) {
@@ -476,7 +476,7 @@ function RegisterForm() {
                                     }`}
                                 >
                                     <span>👰</span>
-                                    <span>{isDating ? 'Female / Woman' : 'Female / Bride'}</span>
+                                    <span>{isDating ? 'Female' : 'Female / Bride'}</span>
                                     <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase ml-0.5">VIP Free</span>
                                 </button>
                                 <button
@@ -492,7 +492,7 @@ function RegisterForm() {
                                     }`}
                                 >
                                     <span>🤵</span>
-                                    <span>{isDating ? 'Male / Man' : 'Male / Groom'}</span>
+                                    <span>{isDating ? 'Male' : 'Male / Groom'}</span>
                                 </button>
                             </div>
                             {form.gender === 'Female' && (

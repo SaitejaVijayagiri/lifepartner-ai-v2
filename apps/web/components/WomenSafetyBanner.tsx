@@ -95,7 +95,7 @@ export default function WomenSafetyBanner() {
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
             <Link href="/register?new=true&gender=Female" className="w-full sm:w-auto">
               <button className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white font-black text-sm hover:opacity-95 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-pink-500/25 flex items-center justify-center gap-2 cursor-pointer">
-                <span>Join Free as a Woman 👑</span>
+                <span>Join Free as Female 👑</span>
                 <ArrowRight size={16} />
               </button>
             </Link>

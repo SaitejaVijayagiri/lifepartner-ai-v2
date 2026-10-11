@@ -33,6 +33,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         '/login',
         '/register',
         '/community',
+        '/safety',
+        '/guidelines',
+        '/careers',
+        '/refund-policy',
         '/privacy',
         '/terms',
     ].map((route) => ({
@@ -106,13 +110,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const COMMUNITIES = ['Brahmin', 'Iyer', 'Iyengar', 'Reddy', 'Kamma', 'Kapu', 'Ezhava', 'Nair', 'Muslim-Sunni', 'Muslim-Shia', 'Christian-Roman-Catholic', 'Sikh-Jat', 'Aggarwal', 'Baniya', 'Yadav', 'Kayastha', 'Maratha', 'Rajput', 'Jain-Digambar', 'Jain-Shwetambar'];
     const PROFESSIONS = ['Software-Engineer', 'Doctor', 'Civil-Engineer', 'Chartered-Accountant', 'IAS-IPS', 'Teacher', 'Professor', 'Lawyer', 'Architect', 'Business-Owner'];
     const INTENTS = [
-        'online-chat-with-strangers',
-        'chat-with-random-people',
-        'chat-with-international-guys',
-        'talk-to-random-people-online',
-        'free-random-video-chat',
-        'chat-with-single-girls-online',
-        'talk-to-single-indian-girls',
+        'safe-dating-app-for-women',
+        'women-first-dating-app',
+        'free-vip-dating-for-women',
+        'safe-matrimony-for-women',
+        'anti-harassment-dating-app',
         'free-matrimony-chat-without-payment',
         'nri-matrimony-chat',
         'global-chat-with-verified-singles',
@@ -132,7 +134,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'chat-with-singles-vietnam',
         'chat-with-singles-venezuela',
         'chat-with-singles-africa',
-        'safe-dating-app-for-women'
+        'online-chat-with-strangers',
+        'chat-with-random-people',
+        'chat-with-international-guys',
+        'talk-to-random-people-online',
+        'free-random-video-chat'
     ];
 
     const cityRoutes = ALL_LOCATIONS.map(city => ({

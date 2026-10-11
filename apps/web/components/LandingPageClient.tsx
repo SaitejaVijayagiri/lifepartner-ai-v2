@@ -68,8 +68,7 @@ export default function LandingPageClient() {
   const handleGoogleSignIn = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
     const redirectUri = `${window.location.origin}/auth/callback/google`;
-    const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
-    
+
     // Save selected gender, age, and detected country so Google OAuth & Onboarding preserve them
     if (signupForm.gender) {
       localStorage.setItem('pendingUserGender', signupForm.gender);
@@ -80,6 +79,15 @@ export default function LandingPageClient() {
     if (visitorGeo.country && visitorGeo.country !== 'Worldwide') {
       localStorage.setItem('pendingUserCountry', visitorGeo.country);
     }
+
+    const oauthState = encodeURIComponent(JSON.stringify({
+      gender: signupForm.gender || 'Female',
+      age: signupForm.age || '24',
+      country: visitorGeo.country && visitorGeo.country !== 'Worldwide' ? visitorGeo.country : '',
+      intent: signupForm.intent || 'matrimony'
+    }));
+
+    const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent&state=${oauthState}`;
     window.location.href = startUrl;
   };
 
@@ -96,7 +104,7 @@ export default function LandingPageClient() {
       return;
     }
     if (!signupForm.gender) {
-      toast.error("Please select whether you are a Woman or a Man.");
+      toast.error("Please select whether you are Female or Male.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,8 +112,8 @@ export default function LandingPageClient() {
       toast.error("Please enter a valid email address.");
       return;
     }
-    if (signupForm.password.length < 8) {
-      toast.error("Password must be at least 8 characters long.");
+    if (signupForm.password.length < 6) {
+      toast.error("Password must be at least 6 characters long.");
       return;
     }
     const ageNum = parseInt(signupForm.age);
@@ -558,7 +566,7 @@ export default function LandingPageClient() {
                           }`}
                         >
                           <span>👰</span>
-                          <span>Woman</span>
+                          <span>Female</span>
                           <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">👑 Free VIP</span>
                         </button>
                         <button
@@ -574,7 +582,7 @@ export default function LandingPageClient() {
                           }`}
                         >
                           <span>🤵</span>
-                          <span>Man</span>
+                          <span>Male</span>
                         </button>
                       </div>
                       {signupForm.gender === 'Female' && (
@@ -641,7 +649,7 @@ export default function LandingPageClient() {
                             required
                             value={signupForm.password}
                             onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
-                            placeholder="Min 8 chars"
+                            placeholder="Min 6 chars"
                             className="w-full h-11 pl-3.5 pr-8 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500"
                           />
                           <button

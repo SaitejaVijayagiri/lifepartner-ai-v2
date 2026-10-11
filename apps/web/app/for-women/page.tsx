@@ -29,19 +29,31 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'LifePartner AI for Women | Safe, 100% Free VIP Dating & Matrimony',
-    description: 'Designed by women, for women. Zero creeps, zero paywalls, lifetime VIP status, and verified gentlemen worldwide.',
+    description: 'Designed for women\'s privacy and peace of mind. Zero creeps, zero paywalls, lifetime VIP status, and verified profiles worldwide.',
     url: 'https://lifepartnerai.in/for-women',
     siteName: 'LifePartner AI',
     locale: 'en_US',
     type: 'website',
     images: [
       {
-        url: 'https://lifepartnerai.in/api/og?title=LifePartner%20AI%20for%20Women&subtitle=100%25%20Free%20VIP%20%E2%80%A2%20Anti-Creep%20Shield%20%E2%80%A2%20Safe%20Worldwide%20Dating',
+        url: 'https://lifepartnerai.in/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'LifePartner AI for Women - 100% Free VIP & Anti-Creep Protection'
+      },
+      {
+        url: 'https://lifepartnerai.in/og-image.jpg',
         width: 1200,
         height: 630,
         alt: 'LifePartner AI for Women'
       }
     ]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LifePartner AI for Women | Safe, 100% Free VIP Dating & Matrimony',
+    description: 'Zero creeps, zero paywalls, lifetime Queen VIP status, and verified profiles worldwide.',
+    images: ['https://lifepartnerai.in/opengraph-image', 'https://lifepartnerai.in/og-image.jpg'],
   }
 };
 
@@ -91,7 +103,7 @@ export default function ForWomenPage() {
       },
       {
         '@type': 'Question',
-        'name': 'Can I connect with verified gentlemen from other countries?',
+        'name': 'Can I connect with verified profiles from other countries?',
         'acceptedAnswer': {
           '@type': 'Answer',
           'text': 'Yes! You can explore and chat with verified singles across USA, UK, Canada, Australia, Japan, Korea, Europe, and India.'
@@ -124,22 +136,22 @@ export default function ForWomenPage() {
           <h1 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight max-w-5xl mx-auto leading-tight sm:leading-tight">
             Dating on your terms.<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-600 via-rose-500 to-purple-600">
-              Zero creeps. Pure romance. Verified gentlemen.
+              Zero creeps. Real connections. Verified profiles.
             </span>
           </h1>
 
           <p className="mt-6 text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
             Tired of aggressive DMs, unwanted phone number requests, and paywalls?
             LifePartner AI is built to give women complete privacy, respect, and control.
-            Connect with verified, career-focused gentlemen across 50+ countries with zero forced subscriptions.
+            Connect with verified, career-focused professionals across 50+ countries with zero forced subscriptions.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/register"
+              href="/register?new=true&gender=Female"
               className="w-full sm:w-auto px-10 py-4 rounded-full bg-gradient-to-r from-pink-600 via-rose-500 to-purple-600 text-white font-extrabold text-base shadow-xl shadow-pink-500/25 hover:shadow-pink-500/40 hover:scale-105 transition-all flex items-center justify-center gap-2"
             >
-              <span>Join Free as a VIP Queen</span>
+              <span>Join Free as Female (VIP 👑)</span>
               <ArrowRight size={18} />
             </Link>
             <Link
@@ -187,10 +199,10 @@ export default function ForWomenPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-extrabold">
-              Why Women Around the World Fall in Love with LifePartner AI
+              Why Women Around the World Trust LifePartner AI
             </h2>
             <p className="mt-3 text-slate-600 dark:text-slate-400 text-sm sm:text-base">
-              Traditional dating apps make women feel overwhelmed, unsafe, or monetized. Here is how we revolutionized the experience.
+              Traditional dating apps make women feel overwhelmed, unsafe, or monetized. Here is how we redesigned the experience.
             </p>
           </div>
 
@@ -202,7 +214,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">1. Automatic Queen VIP Status</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                When you sign up as a woman, your account is instantly upgraded to Queen VIP with 100 free bonus coins. Enjoy unlimited direct messages, priority match visibility, and free HD video calls without spending a single cent.
+                When you sign up as Female, your account is instantly upgraded to Queen VIP with 100 free bonus coins. Enjoy unlimited direct messages, priority match visibility, and free HD video calls without spending a single cent.
               </p>
             </div>
 
@@ -213,7 +225,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">2. AI Anti-Creep & Harassment Shield</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Our proprietary AI algorithms filter out creepy pickup lines, unsolicited phone number pushes, and inappropriate media before they reach your eyes. One tap instantly blocks and reports any disrespectful user.
+                Our proprietary AI algorithms filter out unwanted messages, unsolicited phone number pushes, and inappropriate media before they reach your inbox. One tap instantly blocks and reports any disrespectful user.
               </p>
             </div>
 
@@ -224,7 +236,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">3. Screenshot-Proof Disappearing Snaps</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Want to share a fun, spontaneous moment without it remaining on someone else's camera roll? Send photos that vanish after 1 view. Screenshot prevention safeguards your personal moments.
+                Want to share a spontaneous moment without it remaining on someone else's camera roll? Send photos that vanish after 1 view. Screenshot prevention safeguards your personal moments.
               </p>
             </div>
 
@@ -235,7 +247,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">4. Music Vibe & Spotify Connection</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Skip superficial resumes and boring biodatas. Share your favorite Spotify anthems and listen to music together during live chat. Music reveals someone's true soul and personality effortlessly.
+                Skip superficial resumes and boring biodatas. Share your favorite Spotify anthems and listen to music together during live chat. Music reveals someone's true personality effortlessly.
               </p>
             </div>
 
@@ -257,7 +269,7 @@ export default function ForWomenPage() {
               </div>
               <h3 className="text-xl font-bold mb-3">6. Global Reach & Safe Meetups</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                Connect locally in your city or meet charming partners in USA, UK, Canada, Australia, Japan, and Korea. Our built-in MeetSpot safety suggestions guide you to verified public venues for romantic dates.
+                Connect locally in your city or meet verified partners in USA, UK, Canada, Australia, Japan, and Korea. Our built-in MeetSpot safety suggestions guide you to verified public venues for safe, comfortable meetups.
               </p>
             </div>
           </div>
@@ -390,7 +402,7 @@ export default function ForWomenPage() {
                 Take back control of your dating life. Sign up in 60 seconds and experience the safest, most respectful dating and matrimony community in the world.
               </p>
               <Link
-                href="/register"
+                href="/register?new=true&gender=Female"
                 className="inline-flex items-center gap-2 px-9 py-4 rounded-full bg-white text-pink-700 font-extrabold text-base shadow-xl hover:scale-105 hover:bg-pink-50 transition-all"
               >
                 <span>Claim Your Free Queen VIP Account</span>

@@ -233,7 +233,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 return false;
             }
             if (!data.gender) {
-                toast.error("Please select your Gender (Woman or Man) (*)");
+                toast.error("Please select your Gender (Female or Male) (*)");
                 return false;
             }
             const parsedAge = parseInt(String(data.age), 10);
@@ -345,7 +345,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             }`}
                                         >
                                             <span>👰</span>
-                                            <span>Female / Woman</span>
+                                            <span>Female</span>
                                             <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">👑 VIP Free</span>
                                         </button>
                                         <button
@@ -361,7 +361,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             }`}
                                         >
                                             <span>🤵</span>
-                                            <span>Male / Man</span>
+                                            <span>Male</span>
                                         </button>
                                     </div>
                                     {data.gender === 'Female' && (

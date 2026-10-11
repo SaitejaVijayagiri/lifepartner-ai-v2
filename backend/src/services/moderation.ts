@@ -117,22 +117,22 @@ export class ModerationService {
                 }
             }
 
-            const promptText = `Analyze this image strictly as a moderator for a dating platform. 
-Is there a real, clear human face visible as the primary subject?
+            const promptText = `Analyze this image as a moderator for a dating & matrimony platform.
+Is there a real human person / face visible in this photo?
 
-You MUST REJECT (return hasFace: false) if the image contains:
+You MUST ACCEPT (return hasFace: true) if the image shows:
+- Any real human selfie, portrait, full-body photo, mirror selfie, or side-profile photo.
+- Photos with beauty filters, Snapchat/Instagram filters, makeup, glasses/sunglasses, or traditional attire (e.g. saree, dupatta, veil, hijab).
+
+You MUST REJECT (return hasFace: false) ONLY if the image contains NO real human and instead shows:
 - Gods, deities, idols, or religious statues.
-- Cartoons, anime, illustrations, AI-generated art, or drawings.
-- Animals, pets, scenery, landscapes, memes, text, or inanimate objects.
-- A human face that is completely obscured by a mask, helmet, or heavy sunglasses.
-- Only children without an adult present.
+- Pure cartoons, anime, illustrations, or memes.
+- Only animals, pets, scenery, landscapes, flowers, food, or inanimate objects.
 
-You MUST ACCEPT (return hasFace: true) ONLY if there is at least one clear, real human face visible.
-
-If you reject it, provide a short, polite reason (e.g., "The photo appears to be a scenery.", "The photo contains a deity/idol.", "No clear human face is visible.").`;
+If you reject it, provide a short, polite reason (e.g., "The photo appears to be scenery.", "The photo contains a deity/idol.", "No human person is visible.").`;
 
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -152,7 +152,7 @@ If you reject it, provide a short, polite reason (e.g., "The photo appears to be
                                 properties: {
                                     hasFace: { 
                                         type: "BOOLEAN", 
-                                        description: "True if a real human face is clearly visible, False otherwise." 
+                                        description: "True if a real human person/face is visible, False otherwise." 
                                     },
                                     reason: { 
                                         type: "STRING", 

@@ -28,25 +28,25 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
         return () => document.removeEventListener('mousedown', handler);
     }, [showMore]);
 
-    // Primary nav — 5 items always visible
+    // Primary nav — 5 core tabs always visible on mobile & tablet
     const primaryItems = useMemo(() => [
         { id: 'home', label: 'Home', icon: Home, gradient: 'from-indigo-500 to-purple-600' },
         { id: 'matches', label: 'Matches', icon: Heart, gradient: 'from-rose-500 to-pink-500' },
         { id: 'live_events', label: 'Live Video', icon: Video, gradient: 'from-rose-500 to-indigo-600' },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadCount, gradient: 'from-emerald-500 to-teal-500' },
-        { id: 'profile', label: 'Profile', icon: User, gradient: 'from-blue-500 to-cyan-500' },
-    ], [unreadCount]);
+        { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount, gradient: 'from-amber-500 to-orange-500' },
+    ], [unreadCount, requestsCount]);
 
     // Secondary items in "More"
-    const secondaryItems = useMemo(() => [
-        { id: 'map', label: 'Map', icon: MapPin, gradient: 'from-purple-500 to-indigo-500' },
-        { id: 'events', label: 'Meetups', icon: Calendar, gradient: 'from-violet-500 to-purple-600' },
-        { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount, gradient: 'from-amber-500 to-orange-500' },
-        { id: 'community', label: 'Lounge', icon: Coffee, gradient: 'from-indigo-500 to-blue-500' },
-    ], [requestsCount]);
+    const secondaryItems: Array<{ id: string; label: string; icon: any; gradient: string; badge?: number }> = useMemo(() => [
+        { id: 'profile', label: 'My Profile & Settings', icon: User, gradient: 'from-blue-500 to-cyan-500' },
+        { id: 'map', label: 'Interactive Live Map', icon: MapPin, gradient: 'from-purple-500 to-indigo-500' },
+        { id: 'events', label: 'Real-World Meetups', icon: Calendar, gradient: 'from-violet-500 to-purple-600' },
+        { id: 'community', label: 'Verified Lounge', icon: Coffee, gradient: 'from-indigo-500 to-blue-500' },
+    ], []);
 
     const isMoreActive = secondaryItems.some(i => i.id === activeTab);
-    const moreBadge = requestsCount || 0;
+    const moreBadge = 0;
 
     const handleSelect = (id: string) => {
         setActiveTab(id);
@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-6 px-4 md:hidden transform-gpu">
+        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-4 sm:pb-6 px-3 sm:px-4 lg:hidden transform-gpu">
             <div className="relative flex justify-center">
 
                 {/* ─── More Popup (renders ABOVE the nav bar) ─── */}

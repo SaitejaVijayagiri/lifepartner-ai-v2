@@ -306,12 +306,31 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP 1: BASICS */}
                     {stepId === 'basics' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
+                            {/* Fast-Track Banner when Name, Gender, and Age are already filled */}
+                            {Boolean(data.name && String(data.name).trim() && data.gender && parseInt(String(data.age), 10) >= 18) && (
+                                <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/10 via-indigo-500/10 to-purple-500/10 border border-indigo-200 dark:border-indigo-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="text-xs sm:text-sm">
+                                        <p className="font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                            <span>✨</span>
+                                            <span>{data.gender === 'Female' ? 'Queen VIP Account Ready!' : 'Your Core Profile is Ready!'}</span>
+                                        </p>
+                                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
+                                            Add optional details & photos below for +50 Bonus Coins, or jump straight into your matches now.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={() => onComplete(data)}
+                                        className="bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2 h-9 rounded-xl shrink-0 shadow-sm"
+                                    >
+                                        Explore Matches Now →
+                                    </Button>
+                                </div>
+                            )}
 
-                                <Input label="Age (18+) *" type="number" min={18} max={95} value={data.age} onChange={e => update('age', e.target.value)} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="col-span-1 md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Select Your Gender *</label>
+                                    <label className="text-sm font-bold dark:text-gray-200">Select Your Gender *</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
                                             type="button"
@@ -322,7 +341,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
                                                 data.gender === 'Female'
                                                     ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
-                                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:border-rose-400'
+                                                    : 'bg-pink-50/70 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800 hover:border-rose-400'
                                             }`}
                                         >
                                             <span>👰</span>
@@ -345,7 +364,17 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             <span>Male / Man</span>
                                         </button>
                                     </div>
+                                    {data.gender === 'Female' && (
+                                        <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-xs text-pink-800 dark:text-pink-200 flex items-center gap-2">
+                                            <span>👑</span>
+                                            <span><strong>Queen VIP Active:</strong> 100 Free Coins + Unlimited Free Direct Chat + Private Masked Phone Number.</span>
+                                        </div>
+                                    )}
                                 </div>
+
+                                <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
+
+                                <Input label="Age (18+) *" type="number" min={18} max={95} placeholder="e.g. 24" value={data.age} onChange={e => update('age', e.target.value)} />
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium dark:text-gray-200">Marital Status (Optional)</label>
                                     <select className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-600" value={data.maritalStatus || ''} onChange={e => update('maritalStatus', e.target.value)}>
@@ -580,9 +609,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-indigo-500/20 border border-amber-500/40 rounded-xl text-amber-600 dark:text-amber-300 text-xs font-extrabold shadow-sm animate-pulse">
                                     <span className="text-base">🎁</span> <span>Bonus Reward: Upload at least 1 photo to earn +50 FREE coins instantly!</span>
                                 </div>
-                                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-900/40 max-w-sm">
-                                    <p className="text-amber-700 dark:text-amber-400 text-sm font-medium">
-                                        📸 Your first photo is your profile photo — it <strong>must show your face clearly</strong>. Our AI (Gemini Vision) verifies every photo and will reject scenery, cartoons, or obscured faces.
+                                <div className="mt-4 p-3 bg-indigo-50/70 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/40 max-w-sm">
+                                    <p className="text-indigo-700 dark:text-indigo-300 text-xs font-medium">
+                                        📸 Upload a clear selfie or portrait of yourself. You can also skip this step and add photos anytime from your profile!
                                     </p>
                                 </div>
                                 <div className="mt-3">
@@ -632,21 +661,21 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <div />
                     )}
                     <div className="flex items-center gap-3">
-                        {stepId === 'photos' && (
+                        {(stepId === 'photos' || Boolean(data.name && String(data.name).trim() && data.gender && parseInt(String(data.age), 10) >= 18)) && (
                             <Button
                                 variant="ghost"
                                 type="button"
                                 onClick={() => onComplete(data)}
                                 className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white font-semibold text-xs sm:text-sm"
                             >
-                                Skip photo
+                                {stepId === 'photos' ? 'Skip photo' : 'Skip & Explore Matches →'}
                             </Button>
                         )}
                         <Button
                             onClick={handleNext}
-                            className="w-28 sm:w-32 bg-indigo-600 hover:bg-indigo-700 font-bold"
+                            className="w-28 sm:w-36 bg-indigo-600 hover:bg-indigo-700 font-bold"
                         >
-                            {currentStep === STEPS.length - 1 ? "Finish" : "Next"}
+                            {currentStep === STEPS.length - 1 ? "Finish" : "Next: Photos"}
                         </Button>
                     </div>
                 </div>

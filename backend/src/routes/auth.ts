@@ -37,10 +37,12 @@ router.post('/logout', (req, res) => {
     res.json({ success: true, message: "Logged out" });
 });
 
-// 1. Register with OTP
+// 1. Register with Instant Verification
 router.post('/register', async (req, res) => {
     try {
-        const { email, phone, password, full_name, age, gender, location_name } = req.body;
+        const rawEmail = req.body.email;
+        const email = rawEmail ? String(rawEmail).trim().toLowerCase() : undefined;
+        const { phone, password, full_name, age, gender, location_name } = req.body;
 
         // Clean & parse demographic values
         const parsedAge = age ? parseInt(String(age), 10) : undefined;
@@ -52,82 +54,98 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: "Email/Phone and Password required" });
         }
 
-        // 1.5 Deep Email Validation (SMTP/MX check)
+        // 1.5 Deterministic Email Validation (Regex + Disposable Domain Blocker)
+        // NOTE: Live DNS MX and mailcheck typo validators are intentionally disabled because
+        // container DNS timeouts and regional/academic domains (.co.in, .ac.in, .org.in) caused false rejections.
         if (email) {
-            // Block custom disposable email domains immediately
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({ error: "Please enter a valid email address." });
+            }
+
             const { isDisposableEmail } = require('../utils/disposableEmailBlocker');
             if (isDisposableEmail(email)) {
                 return res.status(400).json({ error: "Please use a valid, non-disposable email address." });
             }
-
-            try {
-                const emailValidation = await validateEmail({
-                    email: email,
-                    validateRegex: true,
-                    validateMx: true,
-                    validateTypo: true,
-                    validateDisposable: true,
-                    validateSMTP: false, // Turned off to prevent false positives for real users
-                });
-
-                if (!emailValidation.valid) {
-                    // Check if it failed SMTP (mailbox doesn't exist) or something else
-                    const isTypoOrDisposable = emailValidation.validators.typo?.valid === false || emailValidation.validators.disposable?.valid === false;
-                    const reason = emailValidation.reason;
-                    
-                    console.log(`❌ Email Validation Failed: ${email} -> ${reason}`);
-                    
-                    if (isTypoOrDisposable) {
-                        return res.status(400).json({ error: "Please use a valid, non-disposable email address." });
-                    } else {
-                        return res.status(400).json({ error: "This email address does not appear to exist. Please check for typos." });
-                    }
-                }
-            } catch (validationErr) {
-                console.error("Deep Email Validation Error:", validationErr);
-                // Continue if the validation service itself errors out, to not block signups
-            }
         }
 
-        const identifier = email || phone;
-        const targetEmail = email; // For now only email OTP
+        const targetEmail = email;
 
-        // 2. Check existence
+        // 2. Check existence (case-insensitive email lookup)
         const existingUser = await prisma.users.findFirst({
             where: {
                 OR: [
-                    { email: email || undefined },
-                    { phone: phone || undefined }
+                    ...(email ? [{ email: { equals: email, mode: 'insensitive' as const } }] : []),
+                    ...(phone ? [{ phone }] : [])
                 ]
             }
         });
 
         if (existingUser) {
-            // Self-Healing Logic: If user was previously unverified, update their profile and log them in immediately
-            if (existingUser.is_verified === false) {
-                console.log(`♻️ Self-Healing Registration for unverified user: ${email || phone}`);
+            const isMatchingPassword = (password && existingUser.password_hash && existingUser.password_hash !== 'google_auth_placeholder')
+                ? await bcrypt.compare(password, existingUser.password_hash)
+                : false;
 
-                const isSamePassword = (password && existingUser.password_hash) ? await bcrypt.compare(password, existingUser.password_hash) : false;
-                const passwordHash = isSamePassword ? existingUser.password_hash : await bcrypt.hash(password, 10);
-                const isFemale = cleanGender === 'Female' || existingUser.gender === 'Female';
+            // Self-Healing / Idempotent Retry Logic:
+            // If user was previously unverified OR retried signup with the exact same password (e.g. mobile double-tap / slow network retry),
+            // update their demographic fields and log them in seamlessly instead of blocking with an error!
+            if ((existingUser.is_verified === false || isMatchingPassword) && !existingUser.is_banned) {
+                console.log(`♻️ Self-Healing / Idempotent Registration for user: ${email || phone}`);
+
+                const passwordHash = isMatchingPassword ? existingUser.password_hash : await bcrypt.hash(password, 10);
+                const resolvedGender = cleanGender || existingUser.gender || null;
+                const resolvedAge = validAge || existingUser.age || null;
+                const isFemale = resolvedGender === 'Female';
 
                 const updatedUser = await prisma.users.update({
                     where: { id: existingUser.id },
                     data: {
-                        email: email,
-                        phone: phone,
+                        email: email || existingUser.email,
+                        phone: phone || existingUser.phone,
                         password_hash: passwordHash,
                         full_name: full_name || existingUser.full_name,
-                        age: validAge || existingUser.age,
-                        gender: cleanGender || existingUser.gender,
+                        age: resolvedAge,
+                        gender: resolvedGender,
                         location_name: location_name || existingUser.location_name || undefined,
                         is_verified: true,
+                        is_deactivated: false,
+                        deactivated_until: null,
                         otp_code: null,
                         otp_expires_at: null,
                         ...(isFemale ? { free_direct_messages: 999999, is_premium: true, coins: Math.max(existingUser.coins || 0, 100) } : {})
                     },
-                    select: { id: true, full_name: true, gender: true, age: true }
+                    select: { id: true, full_name: true, gender: true, age: true, is_premium: true, coins: true }
                 });
+
+                // Ensure profile row exists and has gender/age/onboarding_completed synced
+                try {
+                    const existingProf = await prisma.profiles.findUnique({ where: { user_id: existingUser.id } });
+                    const prevMeta = (existingProf?.metadata as any) || {};
+                    await prisma.profiles.upsert({
+                        where: { user_id: existingUser.id },
+                        create: {
+                            user_id: existingUser.id,
+                            metadata: {
+                                ...(resolvedGender ? { gender: resolvedGender } : {}),
+                                ...(resolvedAge ? { age: resolvedAge } : {}),
+                                onboarding_completed: Boolean(resolvedGender && resolvedAge)
+                            },
+                            photos: [],
+                            stories: [],
+                            reels: []
+                        },
+                        update: {
+                            metadata: {
+                                ...prevMeta,
+                                ...(resolvedGender ? { gender: resolvedGender } : {}),
+                                ...(resolvedAge ? { age: resolvedAge } : {}),
+                                onboarding_completed: Boolean(prevMeta.onboarding_completed || (resolvedGender && resolvedAge))
+                            }
+                        }
+                    });
+                } catch (profErr) {
+                    console.warn("Self-healing profile upsert warning:", profErr);
+                }
 
                 const token = generateToken(updatedUser.id);
                 setTokenCookie(res, token);
@@ -141,14 +159,16 @@ router.post('/register', async (req, res) => {
                         id: updatedUser.id,
                         name: updatedUser.full_name,
                         gender: updatedUser.gender,
-                        age: updatedUser.age
+                        age: updatedUser.age,
+                        is_premium: updatedUser.is_premium,
+                        coins: updatedUser.coins
                     },
                     email: email,
                     message: "Account verified and logged in"
                 });
             }
 
-            return res.status(400).json({ error: "User already exists" });
+            return res.status(400).json({ error: "User already exists. Please Sign In instead." });
         }
 
         // 3. Hash Password
@@ -171,7 +191,7 @@ router.post('/register', async (req, res) => {
 
             // Generate Self Referral Code
             const safeName = full_name || "User";
-            const baseName = safeName.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase();
+            const baseName = safeName.replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
             const randomSuffix = Math.floor(1000 + Math.random() * 9000);
             const myReferralCode = `${baseName}${randomSuffix}`;
 
@@ -194,7 +214,7 @@ router.post('/register', async (req, res) => {
                     coins: isFemale ? 100 : 0,
                     is_premium: isFemale ? true : false
                 },
-                select: { id: true, full_name: true, gender: true, age: true }
+                select: { id: true, full_name: true, gender: true, age: true, is_premium: true, coins: true }
             });
 
             // Initialize profile row immediately so joins, recommendations, and campaigns never omit this user
@@ -203,7 +223,8 @@ router.post('/register', async (req, res) => {
                     user_id: user.id,
                     metadata: {
                         ...(cleanGender ? { gender: cleanGender } : {}),
-                        ...(validAge ? { age: validAge } : {})
+                        ...(validAge ? { age: validAge } : {}),
+                        onboarding_completed: Boolean(cleanGender && validAge)
                     },
                     photos: [],
                     stories: [],
@@ -238,7 +259,9 @@ router.post('/register', async (req, res) => {
                 id: newUser.id,
                 name: newUser.full_name,
                 gender: newUser.gender,
-                age: newUser.age
+                age: newUser.age,
+                is_premium: newUser.is_premium,
+                coins: newUser.coins
             },
             email: targetEmail,
             message: "Account created successfully"
@@ -317,7 +340,7 @@ router.post('/login', async (req, res) => {
         const user = await prisma.users.findFirst({
             where: {
                 OR: [
-                    { email: emailNormalized },
+                    { email: { equals: emailNormalized, mode: 'insensitive' as const } },
                     { phone: emailNormalized }
                 ]
             },
@@ -375,10 +398,20 @@ router.post('/login', async (req, res) => {
             data: { metadata: { ...meta, last_seen_at: new Date().toISOString() } }
         }).catch(e => console.error('last_seen_at update failed (non-blocking):', e));
         
-        const hasAge = Boolean(user.age || meta.age || meta.dob);
-        const hasGender = Boolean(user.gender || meta.gender);
+        const resolvedGender = user.gender || meta.gender || null;
+        const resolvedAge = user.age || meta.age || null;
+        const hasAge = Boolean(resolvedAge || meta.dob);
+        const hasGender = Boolean(resolvedGender);
         const isCompleted = Boolean(meta.onboarding_completed || (hasAge && hasGender));
         const requiresOnboarding = !isCompleted;
+
+        // Ensure Female Queen VIP perks are always active
+        if (String(resolvedGender || '').trim().toLowerCase() === 'female' && (!user.is_premium || (user.free_direct_messages ?? 0) < 999999)) {
+            prisma.users.update({
+                where: { id: user.id },
+                data: { is_premium: true, free_direct_messages: 999999, coins: Math.max(user.coins || 0, 100) }
+            }).catch(() => {});
+        }
         
         res.json({ 
             token, 
@@ -386,9 +419,10 @@ router.post('/login', async (req, res) => {
             user: {
                 id: user.id,
                 name: user.full_name,
-                gender: user.gender || meta.gender || null,
-                age: user.age || meta.age || null,
-                is_admin: user.is_admin
+                gender: resolvedGender,
+                age: resolvedAge,
+                is_admin: user.is_admin,
+                is_premium: String(resolvedGender || '').trim().toLowerCase() === 'female' ? true : user.is_premium
             },
             requiresOnboarding 
         });
@@ -645,17 +679,17 @@ router.post('/google', async (req, res) => {
         const profile = await profileRes.json();
 
         // 3. Upsert User
-        const email = profile.email;
+        const email = profile.email ? String(profile.email).trim().toLowerCase() : undefined;
         const googleId = profile.id;
-        const name = profile.name;
+        const name = profile.name || (email ? email.split('@')[0] : 'Member');
         const picture = profile.picture;
 
-        // Check if user exists by google_id OR email
+        // Check if user exists by google_id OR email (case-insensitive)
         let user = await prisma.users.findFirst({
             where: {
                 OR: [
-                    { google_id: googleId },
-                    { email: email }
+                    ...(googleId ? [{ google_id: googleId }] : []),
+                    ...(email ? [{ email: { equals: email, mode: 'insensitive' as const } }] : [])
                 ]
             }
         });
@@ -676,7 +710,10 @@ router.post('/google', async (req, res) => {
                 user.deactivated_until = null;
             }
 
-            const finalGender = user.gender || cleanGoogleGender || undefined;
+            // If user didn't have a gender yet, or explicitly selected Female before clicking Google OAuth, apply it
+            const finalGender = (cleanGoogleGender === 'Female')
+                ? 'Female'
+                : (user.gender || cleanGoogleGender || undefined);
             const isFemale = finalGender === 'Female';
 
             // Update existing
@@ -685,14 +722,48 @@ router.post('/google', async (req, res) => {
                 data: {
                     google_id: googleId,
                     is_verified: true,
-                    ...(!user.gender && cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
+                    ...(finalGender ? { gender: finalGender } : {}),
                     ...(!user.age && validGoogleAge ? { age: validGoogleAge } : {}),
-                    ...(isFemale ? { is_premium: true, free_direct_messages: 999999 } : {})
+                    ...(!user.avatar_url && picture ? { avatar_url: picture } : {}),
+                    ...(isFemale ? { is_premium: true, free_direct_messages: 999999, coins: Math.max(user.coins || 0, 100) } : {})
                 }
             });
+
+            // Ensure profile row exists for existing user
+            try {
+                const existingProf = await prisma.profiles.findUnique({ where: { user_id: user.id } });
+                const prevMeta = (existingProf?.metadata as any) || {};
+                const effGender = finalGender || prevMeta.gender;
+                const effAge = user.age || validGoogleAge || prevMeta.age;
+                await prisma.profiles.upsert({
+                    where: { user_id: user.id },
+                    create: {
+                        user_id: user.id,
+                        raw_prompt: '',
+                        metadata: {
+                            ...(effGender ? { gender: effGender } : {}),
+                            ...(effAge ? { age: effAge } : {}),
+                            onboarding_completed: Boolean(effGender && effAge)
+                        }
+                    },
+                    update: {
+                        metadata: {
+                            ...prevMeta,
+                            ...(effGender ? { gender: effGender } : {}),
+                            ...(effAge ? { age: effAge } : {}),
+                            onboarding_completed: Boolean(prevMeta.onboarding_completed || (effGender && effAge))
+                        }
+                    }
+                });
+            } catch (profErr) {
+                console.warn("Google login profile upsert warning:", profErr);
+            }
         } else {
             // Create new
             const isFemale = cleanGoogleGender === 'Female';
+            const baseName = String(name || 'LP').replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
+            const myReferralCode = `${baseName}${Math.floor(1000 + Math.random() * 9000)}`;
+
             user = await prisma.$transaction(async (tx: any) => {
                 const newUser = await tx.users.create({
                     data: {
@@ -702,6 +773,7 @@ router.post('/google', async (req, res) => {
                         is_verified: true,
                         password_hash: 'google_auth_placeholder',
                         avatar_url: picture,
+                        referral_code: myReferralCode,
                         gender: cleanGoogleGender || null,
                         age: validGoogleAge || null,
                         free_direct_messages: isFemale ? 999999 : 3,
@@ -716,7 +788,8 @@ router.post('/google', async (req, res) => {
                         raw_prompt: '',
                         metadata: {
                             ...(cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
-                            ...(validGoogleAge ? { age: validGoogleAge } : {})
+                            ...(validGoogleAge ? { age: validGoogleAge } : {}),
+                            onboarding_completed: Boolean(cleanGoogleGender && validGoogleAge)
                         }
                     }
                 });
@@ -747,7 +820,9 @@ router.post('/google', async (req, res) => {
                 name: user!.full_name,
                 gender: (user as any).gender || googleMeta.gender || null,
                 age: (user as any).age || googleMeta.age || null,
-                avatar_url: (user as any).avatar_url || picture || null
+                avatar_url: (user as any).avatar_url || picture || null,
+                is_premium: (user as any).is_premium || false,
+                coins: (user as any).coins || 0
             },
             requiresOnboarding
         });

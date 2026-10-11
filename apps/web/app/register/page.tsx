@@ -149,8 +149,8 @@ function RegisterForm() {
                 toast.error('Please enter a valid email address.');
                 return;
             }
-            if (form.password.trim().length < 8) {
-                toast.error('Password must be at least 8 characters.');
+            if (form.password.trim().length < 6) {
+                toast.error('Password must be at least 6 characters.');
                 return;
             }
             setLoading(true);
@@ -178,14 +178,17 @@ function RegisterForm() {
                     localStorage.removeItem('lifepartner_onboarding_step');
                     localStorage.setItem('userId', res.userId);
                     localStorage.setItem('token', res.token);
+                    localStorage.setItem('onboarding_completed', 'true');
                     localStorage.setItem('user', JSON.stringify({
                         id: res.userId,
                         name: form.full_name,
                         gender: form.gender,
-                        age: parsedAge
+                        age: parsedAge,
+                        is_premium: form.gender === 'Female',
+                        onboarding_completed: true
                     }));
                     toast.success(form.gender === 'Female'
-                        ? 'Welcome Queen! 👑 Your Free Lifetime VIP is active!'
+                        ? 'Welcome Queen! 👑 Your Free Lifetime VIP & 100 Coins are active!'
                         : 'Account created! Let’s complete your profile 🎉'
                     );
                     // Immediately initiate Push Token collection and notification readiness
@@ -540,10 +543,13 @@ function RegisterForm() {
                             <div className="relative">
                                 <Input
                                     type={showPassword ? "text" : "password"}
-                                    placeholder="Min 8 characters"
+                                    placeholder="Min 6 characters"
                                     className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
                                     value={form.password}
                                     onChange={e => setForm({ ...form, password: e.target.value })}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && !loading) handleRegister();
+                                    }}
                                 />
                                 <button
                                     type="button"
@@ -592,15 +598,18 @@ function RegisterForm() {
                     <div>
                         <button
                             onClick={() => {
-                                if (form.gender) {
-                                    localStorage.setItem('pendingUserGender', form.gender);
+                                const selectedGender = form.gender || localStorage.getItem('pendingUserGender') || '';
+                                const selectedAge = form.age || localStorage.getItem('pendingUserAge') || '';
+                                if (selectedGender) {
+                                    localStorage.setItem('pendingUserGender', selectedGender);
                                 }
-                                if (form.age) {
-                                    localStorage.setItem('pendingUserAge', form.age);
+                                if (selectedAge) {
+                                    localStorage.setItem('pendingUserAge', selectedAge);
                                 }
+                                const oauthState = encodeURIComponent(JSON.stringify({ gender: selectedGender, age: selectedAge }));
                                 const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
                                 const redirectUri = `${window.location.origin}/auth/callback/google`;
-                                const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
+                                const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=select_account&state=${oauthState}`;
                                 window.location.href = startUrl;
                             }}
                             className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"

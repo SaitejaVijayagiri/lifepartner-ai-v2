@@ -10,13 +10,15 @@ export default function CommunityChat({
     onOpenStore, 
     onClose,
     onViewProfile,
-    onInstantMessage
+    onInstantMessage,
+    isActive = true
 }: { 
     currentUser: any, 
     onOpenStore?: () => void, 
     onClose?: () => void,
     onViewProfile?: (member: any) => void,
-    onInstantMessage?: (member: any) => void
+    onInstantMessage?: (member: any) => void,
+    isActive?: boolean
 }) {
     const { socket } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
@@ -28,8 +30,7 @@ export default function CommunityChat({
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (!socket) return;
-        if (!currentUser) return;
+        if (!socket || !currentUser || !isActive) return;
 
         // Join Room
         socket.emit('join_community');
@@ -66,7 +67,7 @@ export default function CommunityChat({
             socket.off('community_message_deleted');
             socket.emit('leave_community');
         };
-    }, [socket, currentUser]);
+    }, [socket, currentUser, isActive]);
 
     // Auto-scroll
     useEffect(() => {
@@ -129,7 +130,7 @@ export default function CommunityChat({
 
     if (!currentUser) {
         return (
-            <div className="fixed inset-0 z-[2000] h-[100dvh] flex items-center justify-center bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 md:rounded-2xl">
+            <div className="relative w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
         );
@@ -137,7 +138,7 @@ export default function CommunityChat({
 
     if (status === 'denied') {
         return (
-            <div className="fixed inset-0 z-[2000] h-[100dvh] md:inset-auto md:h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900 md:rounded-2xl border border-gray-200 dark:border-gray-800">
+            <div className="relative w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
                 {onClose && (
                     <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-800 dark:hover:text-white bg-gray-200 dark:bg-gray-800 rounded-full">
                         <X size={20} />
@@ -159,20 +160,20 @@ export default function CommunityChat({
     }
 
     return (
-        <div className="fixed inset-0 w-full h-[100dvh] md:relative md:h-full bg-white dark:bg-gray-900 md:rounded-2xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 flex flex-col z-[2000] md:z-auto animate-in slide-in-from-bottom duration-300">
+        <div className="relative w-full h-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 flex flex-col animate-in fade-in duration-300">
             {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0">
+            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-indigo-900 via-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="bg-white/10 p-2 rounded-lg backdrop-blur-md">
-                        <ShieldCheck size={24} className="text-blue-300" />
+                    <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md border border-white/10">
+                        <ShieldCheck size={22} className="text-blue-300" />
                     </div>
                     <div>
-                        <h2 className="font-bold text-lg flex items-center gap-2">
+                        <h2 className="font-bold text-base sm:text-lg flex items-center gap-2">
                             Verified Lounge
-                            <span className="bg-green-500/10 text-[10px] px-2 py-0.5 rounded-full border border-green-500/20 text-green-600 ml-2">LIVE</span>
+                            <span className="bg-emerald-500/20 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-400/30 text-emerald-300">LIVE</span>
                         </h2>
-                        <p className="text-xs text-indigo-400/80 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                        <p className="text-xs text-indigo-200/90 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
                             Open to all Verified Members
                         </p>
                     </div>
@@ -180,13 +181,13 @@ export default function CommunityChat({
                 <div className="flex items-center gap-2">
                     <button 
                         onClick={() => setShowMobileUsersModal(true)}
-                        className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 hover:bg-white/20 transition-colors"
+                        className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 hover:bg-white/20 transition-colors border border-white/10"
                     >
-                        <Users size={14} /> 
+                        <Users size={14} className="text-emerald-300" /> 
                         <span>{onlineMembers.length} <span className="hidden sm:inline">Online</span></span>
                     </button>
                     {onClose && (
-                        <button onClick={onClose} className="p-1.5 ml-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+                        <button onClick={onClose} className="p-1.5 ml-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors" title="Back to Home">
                             <X size={18} />
                         </button>
                     )}

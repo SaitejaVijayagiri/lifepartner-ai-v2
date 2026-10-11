@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X } from 'lucide-react';
+import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHorizontal } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -34,6 +34,7 @@ interface MatchesTabProps {
     setActiveTab: (tab: string) => void;
     setShowCoinStore: (show: boolean) => void;
     setShowSpeedDatingLobby: (show: boolean) => void;
+    onOpenFilters?: () => void;
 }
 
 export default function MatchesTab({
@@ -54,7 +55,8 @@ export default function MatchesTab({
     openChat,
     setActiveTab,
     setShowCoinStore,
-    setShowSpeedDatingLobby
+    setShowSpeedDatingLobby,
+    onOpenFilters
 }: MatchesTabProps) {
     const toast = useToast();
     const [loading, setLoading] = useState(false);
@@ -65,7 +67,6 @@ export default function MatchesTab({
     const [showHighlightsOnly, setShowHighlightsOnly] = useState(false);
 
     /* Story State */
-    const [storyFeed, setStoryFeed] = useState<any[]>([]);
     const [activeStorySet, setActiveStorySet] = useState<any>(null);
     const [storyFiles, setStoryFiles] = useState<File[] | null>(null);
     const [storyPreviewUrls, setStoryPreviewUrls] = useState<string[] | null>(null);
@@ -81,9 +82,8 @@ export default function MatchesTab({
         api.interactions.getVisitors().then(setVisitorsData).catch(() => {});
     }, []);
 
-    // Fetch story feed and visitors on mount
+    // Fetch visitors and likes on mount
     useEffect(() => {
-        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || [])).catch(() => {});
         fetchVisitorsAndLikes();
     }, [fetchVisitorsAndLikes]);
 
@@ -365,101 +365,6 @@ export default function MatchesTab({
         ));
     }
 
-    const renderStoriesView = () => (
-        <div className="relative">
-            <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
-
-            <div className="flex gap-3 sm:gap-5 overflow-x-auto pb-2 sm:pb-4 no-scrollbar px-2 sm:px-6 pt-1">
-                {/* My Story Upload */}
-                <div className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group">
-                    <label className="relative cursor-pointer">
-                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] sm:p-[3px] border-2 border-dashed border-gray-300 dark:border-gray-700 group-hover:border-indigo-500 transition-all duration-300 group-hover:scale-105 relative">
-                            <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-lg shadow-indigo-500/30">
-                                    +
-                                </div>
-                            </div>
-                            <div className="absolute inset-0 rounded-full bg-indigo-500/20 opacity-0 group-hover:opacity-100 blur-xl transition-opacity"></div>
-                        </div>
-                        <input type="file" className="hidden" accept="image/*,video/*" multiple onChange={handleStoryFileSelect} />
-                    </label>
-                    <span className="text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Your Story</span>
-                </div>
-
-                {/* My Active Story */}
-                {currentUser?.stories?.filter((s: any) => new Date(s.expiresAt) > new Date()).map((story: any, i: number) => (
-                    <div key={'me' + i} className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group" onClick={() => {
-                        setActiveStorySet({
-                            stories: currentUser.stories.filter((s: any) => new Date(s.expiresAt) > new Date()),
-                            user: { ...currentUser, id: currentUser.id || currentUser.userId, name: currentUser.full_name || currentUser.name }
-                        });
-                    }}>
-                        <div className="relative">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] sm:p-[3px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 group-hover:shadow-xl group-hover:shadow-purple-500/40 transition-all duration-300 group-hover:scale-105">
-                                <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                    <img 
-                                        src={currentUser.photos?.[0] || currentUser.photoUrl || '/avatar-fallback.svg'} 
-                                        className="w-full h-full rounded-full object-cover" 
-                                        alt="You" 
-                                        onError={(e) => { 
-                                            const t = e.target as HTMLImageElement; 
-                                            t.onerror = null; 
-                                            t.src = '/avatar-fallback.svg'; 
-                                        }} 
-                                    />
-                                </div>
-                            </div>
-                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-md">
-                                You
-                            </div>
-                        </div>
-                        <span className="text-[11px] sm:text-xs font-semibold text-foreground mt-0.5">Your Story</span>
-                    </div>
-                ))}
-
-                {/* Other Users' Stories */}
-                {storyFeed.map((feedUser, idx) => {
-                    const currentUserId = currentUser?.id || currentUser?.userId;
-                    const isAllViewed = currentUserId && feedUser.stories && feedUser.stories.length > 0 && feedUser.stories.every((s: any) => s.views?.some((v: any) => v.userId === currentUserId));
-                    return (
-                        <div
-                            key={feedUser.id}
-                            className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
-                            style={{ animationDelay: `${idx * 50}ms` }}
-                            onClick={() => handleViewStory(feedUser)}
-                        >
-                            <div className="relative">
-                                <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2px] sm:p-[3px] transition-all duration-300 group-hover:scale-105 ${
-                                    isAllViewed 
-                                        ? 'bg-slate-200 dark:bg-slate-800 shadow-sm border border-slate-300/30 dark:border-slate-700/30' 
-                                        : 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-lg shadow-orange-500/30 group-hover:shadow-xl group-hover:shadow-rose-500/40'
-                                }`}>
-                                    <div className="w-full h-full rounded-full p-[2px] bg-background">
-                                        <img 
-                                            src={feedUser.photoUrl || '/avatar-fallback.svg'} 
-                                            className="w-full h-full rounded-full object-cover" 
-                                            alt={feedUser.name} 
-                                            onError={(e) => { 
-                                                const t = e.target as HTMLImageElement; 
-                                                t.onerror = null; 
-                                                t.src = '/avatar-fallback.svg'; 
-                                            }} 
-                                        />
-                                    </div>
-                                </div>
-                                {!isAllViewed && (
-                                    <div className="absolute top-0 right-0 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full border-2 border-background shadow-lg"></div>
-                                )}
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-semibold text-foreground max-w-[64px] sm:max-w-[70px] truncate text-center">{feedUser.name}</span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-
     if (loading && matches.length === 0) {
         return (
             <div className="w-full space-y-8 pb-32">
@@ -567,146 +472,213 @@ export default function MatchesTab({
             )}
 
             {/* AI Matchmaker Search & Filters Bar */}
-            <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-4 overflow-hidden">
+            <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-3.5 overflow-hidden">
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-400/30 to-purple-500/30 rounded-full blur-3xl"></div>
                 <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-pink-400/20 to-rose-500/20 rounded-full blur-2xl"></div>
 
-                    <div className="relative z-10">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2.5 mb-1">
-                                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
-                                    <Sparkles className="text-white" size={18} />
-                                </div>
-                                <span className="text-gradient">AI Matchmaker Search</span>
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/30">
+                                <Sparkles className="text-white" size={16} />
+                            </div>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                                <span className="text-gradient">AI Matchmaker & Smart Filters</span>
                             </h2>
-                            {(searchQuery || aiFilters) && (
+                        </div>
+                        <p className="text-xs text-gray-500 ml-9 mt-0.5">Search by Name, Profile ID (e.g. LP-8291A), or describe your ideal partner</p>
+                    </div>
+
+                    {/* Integrated Visitors & Likes Insights Pills */}
+                    <div className="flex flex-wrap items-center gap-2 ml-9 sm:ml-0">
+                        {visitorsData && visitorsData.visitors?.length > 0 && (
+                            <button
+                                onClick={() => setActiveInsightModal('visitors')}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 hover:scale-105 transition-all text-[11px] font-extrabold shadow-sm group"
+                            >
+                                <Eye size={13} className="text-blue-500 group-hover:animate-pulse" />
+                                <span>Visitors ({visitorsData.visitors.length})</span>
+                            </button>
+                        )}
+
+                        {whoLikedMe && whoLikedMe.totalLikes > 0 && (
+                            <button
+                                onClick={() => setActiveInsightModal('likes')}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/40 dark:to-rose-950/40 border border-pink-200/60 dark:border-pink-800/40 text-pink-700 dark:text-pink-300 hover:scale-105 transition-all text-[11px] font-extrabold shadow-sm group"
+                            >
+                                <Heart size={13} className="text-pink-500 fill-pink-500 group-hover:animate-bounce" />
+                                <span>Liked You ({whoLikedMe.totalLikes})</span>
+                            </button>
+                        )}
+
+                        {(searchQuery || aiFilters) && (
+                            <button
+                                onClick={handleClearSearch}
+                                className="text-xs font-semibold text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 flex items-center gap-1 transition-colors px-2 py-1"
+                            >
+                                <X size={13} />
+                                <span>Reset</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="space-y-3 relative z-10">
+                    <div className="flex gap-2 relative">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                placeholder="Search by Name, Profile ID (e.g. LP-8291A), or AI ('Doctor in Mumbai')..."
+                                className="w-full bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl pl-4 pr-10 py-3 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
+                            />
+                            {searchQuery && (
                                 <button
                                     onClick={handleClearSearch}
-                                    className="text-xs font-semibold text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 flex items-center gap-1 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full transition-colors"
+                                    title="Clear search"
                                 >
-                                    <X size={13} />
-                                    <span>Reset</span>
+                                    <X size={14} />
                                 </button>
                             )}
                         </div>
-                        <p className="text-xs text-gray-500 ml-9">Search by Name, Profile ID (e.g. LP-8291A), or describe your ideal partner</p>
+                        <button
+                            onClick={() => handleSearch()}
+                            disabled={loading}
+                            className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-4 sm:px-5 py-3 rounded-2xl font-bold text-xs md:text-sm hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-70 cursor-pointer"
+                        >
+                            <Search size={16} />
+                            <span className="hidden xs:inline">{loading ? 'Searching...' : 'Search'}</span>
+                        </button>
+                        {onOpenFilters && (
+                            <button
+                                onClick={onOpenFilters}
+                                className={`px-3.5 sm:px-4 py-3 rounded-2xl font-bold text-xs md:text-sm transition-all flex items-center gap-1.5 shrink-0 border cursor-pointer relative ${
+                                    activeFilters
+                                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 shadow-sm'
+                                        : 'bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200/80 dark:border-gray-700'
+                                }`}
+                                title="Open Advanced Partner Filters"
+                            >
+                                <SlidersHorizontal size={16} className={activeFilters ? 'text-indigo-600 dark:text-indigo-400' : ''} />
+                                <span className="hidden sm:inline">Filters</span>
+                                {activeFilters && (
+                                    <span className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400 animate-pulse" />
+                                )}
+                            </button>
+                        )}
                     </div>
 
-                    <div className="space-y-3 relative z-10">
-                        <div className="flex gap-2 relative">
-                            <div className="relative flex-1">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                    placeholder="Search by Name, Profile ID (e.g. LP-8291A), or AI ('Doctor in Mumbai')..."
-                                    className="w-full bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl pl-4 pr-10 py-3 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
-                                />
-                                {searchQuery && (
-                                    <button
-                                        onClick={handleClearSearch}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full transition-colors"
-                                        title="Clear search"
-                                    >
-                                        <X size={14} />
-                                    </button>
+                    {/* Active Filters Summary Bar */}
+                    {activeFilters && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 text-xs">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-bold text-indigo-800 dark:text-indigo-300 mr-1">Active Filters:</span>
+                                {activeFilters.ageRange && (
+                                    <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
+                                        Age {activeFilters.ageRange[0]}–{activeFilters.ageRange[1]}
+                                    </span>
+                                )}
+                                {activeFilters.location && (
+                                    <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
+                                        📍 {activeFilters.location}
+                                    </span>
+                                )}
+                                {activeFilters.religions?.length > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
+                                        🕉️ {activeFilters.religions.join(', ')}
+                                    </span>
+                                )}
+                                {activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0 && (
+                                    <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
+                                        💍 {activeFilters.maritalStatus.join(', ')}
+                                    </span>
+                                )}
+                                {activeFilters.diet && (
+                                    <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
+                                        🥗 {activeFilters.diet}
+                                    </span>
                                 )}
                             </div>
-                            <button
-                                onClick={() => handleSearch()}
-                                disabled={loading}
-                                className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-5 py-3 rounded-2xl font-bold text-xs md:text-sm hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-70 cursor-pointer"
-                            >
-                                <Search size={16} />
-                                <span>{loading ? 'Searching...' : 'Search'}</span>
-                            </button>
-                        </div>
-                        {/* Quick Prompts & Gender Chips & Online Filter */}
-                        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                            <button
-                                onClick={() => setShowOnlineOnly(!showOnlineOnly)}
-                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border ${
-                                    showOnlineOnly
-                                        ? 'bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/20 scale-105'
-                                        : 'bg-emerald-50/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
-                                }`}
-                            >
-                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span>{showOnlineOnly ? 'Showing 🟢 Online Only' : '🟢 Online Members'}</span>
-                            </button>
-
-                            <button
-                                onClick={() => setShowHighlightsOnly(!showHighlightsOnly)}
-                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
-                                    showHighlightsOnly
-                                        ? 'bg-amber-500 text-white border-amber-400 shadow-md shadow-amber-500/20 scale-105'
-                                        : 'bg-amber-50/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
-                                }`}
-                            >
-                                <span>⭐</span>
-                                <span>{showHighlightsOnly ? 'Showing ⭐ Highlights' : '⭐ Story Highlights'}</span>
-                            </button>
-
-                            <button
-                                onClick={() => setShowWorldwideOnly(!showWorldwideOnly)}
-                                className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
-                                    showWorldwideOnly
-                                        ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-500/20 scale-105'
-                                        : 'bg-blue-50/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100'
-                                }`}
-                            >
-                                <span>🌍</span>
-                                <span>{showWorldwideOnly ? 'Showing 🌍 Worldwide Only' : '🌍 Worldwide / NRI'}</span>
-                            </button>
-
-                            {/* Quick Action Chips */}
-                            <button
-                                onClick={() => setSearchQuery("LP-")}
-                                className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
-                            >
-                                🆔 Search by ID
-                            </button>
-
-                            {['Doctor / Healthcare', 'Software Engineer', 'Loves Travel', 'Fitness & Yoga'].map(prompt => (
+                            <div className="flex items-center gap-2 shrink-0">
+                                {onOpenFilters && (
+                                    <button
+                                        onClick={onOpenFilters}
+                                        className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                    >
+                                        Edit
+                                    </button>
+                                )}
                                 <button
-                                    key={prompt}
-                                    onClick={() => handleSearch(prompt)}
-                                    className="bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full transition-colors font-medium active:scale-95"
+                                    onClick={() => setActiveFilters(null)}
+                                    className="font-bold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-0.5"
                                 >
-                                    + {prompt}
+                                    <X size={12} /> Clear All
                                 </button>
-                            ))}
+                            </div>
                         </div>
+                    )}
+
+                    {/* Quick Prompts & Gender Chips & Online Filter */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <button
+                            onClick={() => setShowOnlineOnly(!showOnlineOnly)}
+                            className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border ${
+                                showOnlineOnly
+                                    ? 'bg-emerald-500 text-white border-emerald-400 shadow-md shadow-emerald-500/20 scale-105'
+                                    : 'bg-emerald-50/80 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100'
+                            }`}
+                        >
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>{showOnlineOnly ? 'Showing 🟢 Online Only' : '🟢 Online Members'}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setShowHighlightsOnly(!showHighlightsOnly)}
+                            className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
+                                showHighlightsOnly
+                                    ? 'bg-amber-500 text-white border-amber-400 shadow-md shadow-amber-500/20 scale-105'
+                                    : 'bg-amber-50/80 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50 hover:bg-amber-100'
+                            }`}
+                        >
+                            <span>⭐</span>
+                            <span>{showHighlightsOnly ? 'Showing ⭐ Highlights' : '⭐ Story Highlights'}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setShowWorldwideOnly(!showWorldwideOnly)}
+                            className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
+                                showWorldwideOnly
+                                    ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-500/20 scale-105'
+                                    : 'bg-blue-50/80 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50 hover:bg-blue-100'
+                            }`}
+                        >
+                            <span>🌍</span>
+                            <span>{showWorldwideOnly ? 'Showing 🌍 Worldwide Only' : '🌍 Worldwide / NRI'}</span>
+                        </button>
+
+                        {/* Quick Action Chips */}
+                        <button
+                            onClick={() => setSearchQuery("LP-")}
+                            className="bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 px-2.5 py-1 rounded-full transition-all font-semibold active:scale-95"
+                        >
+                            🆔 Search by ID
+                        </button>
+
+                        {['Doctor / Healthcare', 'Software Engineer', 'Loves Travel', 'Fitness & Yoga'].map(prompt => (
+                            <button
+                                key={prompt}
+                                onClick={() => handleSearch(prompt)}
+                                className="bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full transition-colors font-medium active:scale-95"
+                            >
+                                + {prompt}
+                            </button>
+                        ))}
                     </div>
                 </div>
-
-            {/* Compact Insights Row: Visitors & Likes Pills */}
-            {((visitorsData && visitorsData.visitors?.length > 0) || (whoLikedMe && whoLikedMe.totalLikes > 0)) && (
-                <div className="flex flex-wrap items-center gap-3 mb-5">
-                    {visitorsData && visitorsData.visitors?.length > 0 && (
-                        <button
-                            onClick={() => setActiveInsightModal('visitors')}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200/60 dark:border-blue-800/40 text-blue-700 dark:text-blue-300 hover:scale-105 transition-all text-xs font-extrabold shadow-sm group"
-                        >
-                            <Eye size={15} className="text-blue-500 group-hover:animate-pulse" />
-                            <span>Recent Visitors ({visitorsData.visitors.length})</span>
-                            <span className="text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold ml-1">Full View →</span>
-                        </button>
-                    )}
-
-                    {whoLikedMe && whoLikedMe.totalLikes > 0 && (
-                        <button
-                            onClick={() => setActiveInsightModal('likes')}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950/40 dark:to-rose-950/40 border border-pink-200/60 dark:border-pink-800/40 text-pink-700 dark:text-pink-300 hover:scale-105 transition-all text-xs font-extrabold shadow-sm group"
-                        >
-                            <Heart size={15} className="text-pink-500 fill-pink-500 group-hover:animate-bounce" />
-                            <span>Who Liked You ({whoLikedMe.totalLikes})</span>
-                            <span className="text-[10px] bg-pink-500/10 text-pink-600 dark:text-pink-400 px-2 py-0.5 rounded-full font-bold ml-1">Full View →</span>
-                        </button>
-                    )}
-                </div>
-            )}
+            </div>
 
             {/* Full View Modal for Visitors / Likes */}
             {activeInsightModal && (
@@ -1006,7 +978,6 @@ export default function MatchesTab({
                     onClose={() => {
                         setActiveStorySet(null);
                         api.profile.getMe().then(setCurrentUser).catch(() => {});
-                        api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || [])).catch(() => {});
                     }}
                     onHighlightToggle={(storyId, isHighlight) => {
                         setCurrentUser((prev: any) => {
@@ -1033,7 +1004,6 @@ export default function MatchesTab({
                                 return { ...prev, stories: remaining };
                             });
                             api.profile.getMe().then(setCurrentUser);
-                            api.profile.getStoryFeed().then(data => setStoryFeed(data?.feed || []));
                         } catch (e: any) {
                             console.error('Delete Story Error:', e);
                         }

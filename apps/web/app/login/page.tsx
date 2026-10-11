@@ -174,6 +174,9 @@ export default function LoginPage() {
                                     className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
                                     value={form.password}
                                     onChange={e => setForm({ ...form, password: e.target.value })}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter' && !loading) handleLogin();
+                                    }}
                                 />
                                 <button
                                     type="button"
@@ -220,9 +223,12 @@ export default function LoginPage() {
                     <div>
                         <button
                             onClick={() => {
+                                const selectedGender = localStorage.getItem('pendingUserGender') || '';
+                                const selectedAge = localStorage.getItem('pendingUserAge') || '';
+                                const oauthState = encodeURIComponent(JSON.stringify({ gender: selectedGender, age: selectedAge }));
                                 const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
                                 const redirectUri = `${window.location.origin}/auth/callback/google`;
-                                const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=consent`;
+                                const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=select_account&state=${oauthState}`;
                                 window.location.href = startUrl;
                             }}
                             className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"

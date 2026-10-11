@@ -1252,7 +1252,7 @@ function DashboardContent() {
                         </div>
                     </div>
 
-                    <nav className="hidden md:flex items-center gap-1 p-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-full border border-gray-200/60 dark:border-gray-700/60 shadow-sm overflow-x-auto no-scrollbar">
+                    <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-full border border-gray-200/60 dark:border-gray-700/60 shadow-sm overflow-x-auto no-scrollbar">
                         {navItems.map((item: any) => (
                             <button
                                 key={item.id}
@@ -1309,24 +1309,20 @@ function DashboardContent() {
                         </div>
                     )}
 
-
-
-
-
-
                     {(activeTab === 'matches' || activeTab === 'map') && (
                         <button
                             onClick={() => setShowFilterModal(true)}
-                            className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50' : ''}`}
+                            className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/60' : ''}`}
+                            title="Filter Matches"
                         >
-                            <Filter size={20} className={activeFilters ? 'text-indigo-600' : 'text-foreground'} />
+                            <Filter size={20} className={activeFilters ? 'text-indigo-600 dark:text-indigo-400' : 'text-foreground'} />
                             {activeFilters && (
                                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 rounded-full border-2 border-white"></span>
                             )}
                         </button>
                     )}
 
-                    {activeTab === 'connections' && (
+                    {(activeTab === 'connections' || activeTab === 'requests') && (
                         <button
                             onClick={() => setShowCallHistory(true)}
                             className="w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
@@ -1335,26 +1331,30 @@ function DashboardContent() {
                             <Clock size={20} />
                         </button>
                     )}
-                    {/* Theme Toggle - Mobile Only */}
+
+                    {/* Theme Toggle - Visible on All Screens (Mobile, Tablet & Desktop) */}
                     <button
                         onClick={() => setTheme(mounted && theme === 'dark' ? 'light' : 'dark')}
-                        className="md:hidden w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
-                        title="Toggle theme"
+                        className="w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
+                        title={mounted && theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                         aria-label="Toggle dark mode"
                     >
-                        {mounted && theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                        {mounted && theme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} />}
                     </button>
                     <NotificationBell />
 
-
-
-
-
-
                     {currentUser && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer" onClick={() => setActiveTab('profile')}>
+                        <button
+                            onClick={() => setActiveTab('profile')}
+                            title="My Profile & Settings"
+                            className={`w-9 h-9 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer transition-all ${
+                                activeTab === 'profile'
+                                    ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-background scale-105 shadow-md'
+                                    : 'hover:scale-105'
+                            }`}
+                        >
                             <img src={currentUser.photos?.[0] || currentUser.photoUrl || "/avatar-fallback.svg"} className="rounded-full w-full h-full border-2 border-background object-cover" alt="Profile" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = () => { t.onerror = null; t.src = '/avatar-fallback.svg'; }; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.full_name || 'Me')}`; }} />
-                        </div>
+                        </button>
                     )}
                 </div>
 
@@ -1407,6 +1407,10 @@ function DashboardContent() {
                                 currentUser={currentUser}
                                 setCurrentUser={setCurrentUser}
                                 matches={matches}
+                                setMatches={setMatches}
+                                connections={connections}
+                                openChat={openChat}
+                                setGiftData={setGiftData}
                                 onNavigateTab={(tab) => {
                                     if (tab === 'profile_edit') {
                                         setActiveTab('profile');
@@ -1524,6 +1528,7 @@ function DashboardContent() {
                                     setActiveTab={setActiveTab}
                                     setShowCoinStore={setShowCoinStore}
                                     setShowSpeedDatingLobby={setShowSpeedDatingLobby}
+                                    onOpenFilters={() => setShowFilterModal(true)}
                                 />
                             </>
                         )}
@@ -1548,6 +1553,10 @@ function DashboardContent() {
                                 handleAcceptRequest={handleAcceptRequest}
                                 handleDeclineRequest={handleDeclineRequest}
                                 loading={loading}
+                                onViewProfile={setSelectedProfile}
+                                onNavigateTab={setActiveTab}
+                                connectionsCount={connections.length}
+                                onOpenCallHistory={() => setShowCallHistory(true)}
                             />
                         )}
                     </div>
@@ -1564,6 +1573,10 @@ function DashboardContent() {
                                 setGameTarget={setGameTarget}
                                 setUnreadMessageCount={setUnreadMessageCount}
                                 onOpenStory={(storySet) => setActiveStorySet(storySet)}
+                                onViewProfile={setSelectedProfile}
+                                onNavigateTab={setActiveTab}
+                                requestsCount={requestsCount || requests.length}
+                                onOpenCallHistory={() => setShowCallHistory(true)}
                             />
                         )}
                     </div>
@@ -1576,10 +1589,11 @@ function DashboardContent() {
 
                     <div className={activeTab === 'community' ? 'block' : 'hidden'}>
                         {visitedTabs.has('community') && (
-                            <div className="h-[calc(100dvh-180px)] md:h-[calc(100vh-140px)] pt-2">
+                            <div className="h-[calc(100dvh-180px)] lg:h-[calc(100vh-140px)] pt-2">
                                 <CommunityChat 
                                     currentUser={currentUser} 
-                                    onClose={() => setActiveTab('matches')} 
+                                    isActive={activeTab === 'community'}
+                                    onClose={() => setActiveTab('home')} 
                                     onOpenStore={() => {
                                         setInitialStoreTab('premium');
                                         setShowCoinStore(true);
@@ -1647,38 +1661,53 @@ function DashboardContent() {
                                     />
 
                                     {/* Profile Stats Row */}
-                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80">
-                                        <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-2 sm:gap-8 mb-4 sm:mb-0">
-                                            <div className="text-center min-w-[80px]">
-                                                <div className="text-2xl font-bold text-gray-900 dark:text-white">{connections.length}</div>
+                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/80 gap-4">
+                                        <div className="flex w-full sm:w-auto justify-around sm:justify-start gap-4 sm:gap-8">
+                                            <button
+                                                onClick={() => setActiveTab('connections')}
+                                                className="text-center min-w-[90px] hover:bg-gray-100/80 dark:hover:bg-gray-700/50 px-3 py-1.5 rounded-xl transition-colors"
+                                            >
+                                                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{connections.length}</div>
                                                 <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Connections</div>
-                                            </div>
-                                            <div className="w-[1px] h-10 bg-gray-200 dark:bg-gray-700 sm:hidden"></div>
-                                            <div className="text-center min-w-[80px]">
-                                                <div className="text-2xl font-bold text-gray-900 dark:text-white">{requests.length}</div>
+                                            </button>
+                                            <div className="w-[1px] h-10 bg-gray-200 dark:bg-gray-700 self-center"></div>
+                                            <button
+                                                onClick={() => setActiveTab('requests')}
+                                                className="text-center min-w-[90px] hover:bg-gray-100/80 dark:hover:bg-gray-700/50 px-3 py-1.5 rounded-xl transition-colors"
+                                            >
+                                                <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{requestsCount || requests.length}</div>
                                                 <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wide">Requests</div>
-                                            </div>
+                                            </button>
                                         </div>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full sm:w-auto border-indigo-200 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold"
-                                            onClick={() => setActiveTab('connections')}
-                                        >
-                                            Manage Connections
-                                        </Button>
+                                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1 sm:flex-none border-indigo-200 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 font-semibold"
+                                                onClick={() => setActiveTab('connections')}
+                                            >
+                                                Manage Chats
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1 sm:flex-none border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 font-semibold"
+                                                onClick={() => setActiveTab('requests')}
+                                            >
+                                                Requests ({requestsCount || requests.length})
+                                            </Button>
+                                        </div>
                                     </div>
 
-                                    {/* Mobile Quick Actions - Visible on all screens for better UX */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    {/* Quick Actions - Symmetrical 5-Column Grid on Desktop, Balanced on Mobile/Tablet */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                                         {/* Premium Status Card */}
                                         <div
                                             onClick={() => {
                                                 setInitialStoreTab('premium');
                                                 setShowCoinStore(true);
                                             }}
-                                            className={`col-span-2 sm:col-span-1 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500/50'}`}
+                                            className={`col-span-2 sm:col-span-1 p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-row sm:flex-col items-center justify-between sm:justify-center gap-2 ${currentUser.is_premium || currentUser.gender === 'Female' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-500/50'}`}
                                         >
-                                            <div className={`p-2 rounded-full ${currentUser.is_premium ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                                            <div className={`p-2 rounded-full ${currentUser.is_premium || currentUser.gender === 'Female' ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-orange-500/30' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                                                 <Crown size={20} />
                                             </div>
                                             <div className="text-left sm:text-center">
@@ -1711,7 +1740,7 @@ function DashboardContent() {
                                                     } catch (e) { toast.error("Boost failed."); }
                                                 }
                                             }}
-                                            className="p-3 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                            className="p-3.5 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-800 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
                                         >
                                             <div className="p-2 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
                                                 <Zap size={20} className="fill-indigo-600 dark:fill-indigo-400" />
@@ -1725,21 +1754,21 @@ function DashboardContent() {
                                         {/* Free Coins Card */}
                                         <div
                                             onClick={() => router.push('/refer')}
-                                            className="p-3 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                            className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-100 dark:border-emerald-800 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
                                         >
                                             <div className="p-2 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
                                                 <Users size={20} />
                                             </div>
                                             <div className="text-center">
                                                 <div className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Free Coins</div>
-                                                <div className="text-[10px] text-emerald-600 dark:text-indigo-400">Refer Friend</div>
+                                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400">Refer Friend</div>
                                             </div>
                                         </div>
 
                                         {/* Push Notifications Toggle Card */}
                                         <div
                                             onClick={togglePushNotifications}
-                                            className={`p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2 ${
+                                            className={`p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2 ${
                                                 pushEnabled
                                                     ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 hover:border-blue-300'
                                                     : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-400'
@@ -1765,7 +1794,7 @@ function DashboardContent() {
                                         {/* Logout Card */}
                                         <div
                                             onClick={handleLogout}
-                                            className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 cursor-pointer hover:border-red-300 dark:hover:border-red-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
+                                            className="p-3.5 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 cursor-pointer hover:border-red-300 dark:hover:border-red-500/50 transition-all hover:scale-[1.02] flex flex-col items-center justify-center gap-2"
                                         >
                                             <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400">
                                                 <LogOut size={20} />

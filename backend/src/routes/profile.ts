@@ -287,17 +287,27 @@ router.get('/me', authenticateToken, async (req: any, res) => {
         if (!resolvedGender && meta.gender) {
             resolvedGender = String(meta.gender).trim();
         }
+        if (resolvedGender) {
+            resolvedGender = String(resolvedGender).trim().toLowerCase() === 'female' ? 'Female' : 'Male';
+        }
 
         let resolvedName = user.full_name || meta.name || user.email?.split('@')[0] || "Member";
+        const isFemaleResolved = resolvedGender === 'Female';
+        const needsFemaleVipHeal = isFemaleResolved && (!user.is_premium || (user.free_direct_messages ?? 0) < 999999 || (user.coins ?? 0) === 0);
 
         // Asynchronously persist healed fields to database so subsequent queries have them immediately
-        if ((!user.age && resolvedAge) || (!user.gender && resolvedGender) || (!user.full_name && resolvedName)) {
+        if ((!user.age && resolvedAge) || (!user.gender && resolvedGender) || (!user.full_name && resolvedName) || needsFemaleVipHeal) {
             prisma.users.update({
                 where: { id: user.id },
                 data: {
                     age: (!user.age && resolvedAge) ? resolvedAge : undefined,
                     gender: (!user.gender && resolvedGender) ? resolvedGender : undefined,
                     full_name: (!user.full_name && resolvedName) ? resolvedName : undefined,
+                    ...(needsFemaleVipHeal ? {
+                        is_premium: true,
+                        free_direct_messages: 999999,
+                        coins: Math.max(user.coins || 0, 100)
+                    } : {})
                 }
             }).catch(e => console.warn('[profile /me self-heal users row error]:', e?.message));
         }
@@ -357,10 +367,10 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             photos: photosList,
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
-            is_premium: user.is_premium || false,
+            is_premium: isFemaleResolved ? true : (user.is_premium || false),
             is_admin: user.is_admin || false, // Exposed to Frontend
-            free_direct_messages: user.free_direct_messages ?? 3,
-            coins: user.coins || 0, // Added Coin Balance
+            free_direct_messages: isFemaleResolved ? 999999 : (user.free_direct_messages ?? 3),
+            coins: isFemaleResolved ? Math.max(user.coins || 0, 100) : (user.coins || 0), // Added Coin Balance
             phone: user.phone || meta.phone || "", // Hydrate phone from users table or metadata
             referral_code: user.referral_code || "", // Added Referral Code
             profile_id: user.referral_code ? `LP-${user.referral_code.toUpperCase()}` : `LP-${user.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
@@ -771,9 +781,13 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             metadata: rawMetadata
         } = req.body;
 
-        // Lock Gender: If gender is already set in the database, do not allow changing it.
-        let finalGender = gender;
-        if (existingUser && existingUser.gender) {
+        // Normalize incoming gender and allow setting/correcting it during onboarding
+        const normalizedGender = gender
+            ? (String(gender).trim().toLowerCase() === 'female' ? 'Female' : (String(gender).trim().toLowerCase() === 'male' ? 'Male' : undefined))
+            : undefined;
+        let finalGender = normalizedGender || existingUser?.gender || undefined;
+        // Preserve existing Female status if no explicit gender was sent in a partial profile update
+        if (!normalizedGender && existingUser?.gender) {
             finalGender = existingUser.gender;
         }
 

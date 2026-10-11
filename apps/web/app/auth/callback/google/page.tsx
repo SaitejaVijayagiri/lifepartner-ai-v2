@@ -26,8 +26,21 @@ function GoogleCallbackContent() {
                 // Dynamic redirect URI to match what initiated the flow
                 const redirect_uri = window.location.origin + '/auth/callback/google';
 
-                const pendingGender = localStorage.getItem('pendingUserGender') || undefined;
-                const pendingAge = localStorage.getItem('pendingUserAge') || undefined;
+                let stateGender: string | undefined;
+                let stateAge: string | undefined;
+                const rawState = searchParams.get('state');
+                if (rawState) {
+                    try {
+                        const parsedState = JSON.parse(decodeURIComponent(rawState));
+                        if (parsedState?.gender) stateGender = parsedState.gender;
+                        if (parsedState?.age) stateAge = String(parsedState.age);
+                    } catch (_) {}
+                }
+
+                const pendingGender = localStorage.getItem('pendingUserGender') || stateGender || undefined;
+                const pendingAge = localStorage.getItem('pendingUserAge') || stateAge || undefined;
+                if (pendingGender) localStorage.setItem('pendingUserGender', pendingGender);
+                if (pendingAge) localStorage.setItem('pendingUserAge', pendingAge);
 
                 const res = await axios.post(`${apiUrl}/auth/google`, {
                     code,
@@ -49,14 +62,14 @@ function GoogleCallbackContent() {
                     // Automatically collect push notification token
                     Notifications.init().catch(console.error);
                     if (res.data.requiresOnboarding) {
-                        setStatus('Profile incomplete. Redirecting to Onboarding...');
-                        setTimeout(() => router.replace('/onboarding'), 800);
+                        setStatus('Almost ready! Completing your profile...');
+                        setTimeout(() => router.replace('/onboarding'), 500);
                     } else {
                         try {
                             localStorage.setItem('onboarding_completed', 'true');
                         } catch (_) {}
                         setStatus('Success! Redirecting...');
-                        setTimeout(() => router.replace('/dashboard'), 800);
+                        setTimeout(() => router.replace('/dashboard'), 500);
                     }
                 }
             } catch (err: any) {

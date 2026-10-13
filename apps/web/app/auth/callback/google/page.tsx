@@ -32,12 +32,16 @@ function GoogleCallbackContent() {
                 if (rawState) {
                     try {
                         const parsedState = JSON.parse(decodeURIComponent(rawState));
-                        if (parsedState?.gender) stateGender = parsedState.gender;
+                        if (parsedState?.gender && (parsedState.gender === 'Female' || parsedState.gender === 'Male')) {
+                            stateGender = parsedState.gender;
+                        }
                         if (parsedState?.age) stateAge = String(parsedState.age);
                     } catch (_) {}
                 }
 
-                const pendingGender = localStorage.getItem('pendingUserGender') || stateGender || undefined;
+                const rawStoredGender = localStorage.getItem('pendingUserGender');
+                const validStoredGender = (rawStoredGender === 'Female' || rawStoredGender === 'Male') ? rawStoredGender : undefined;
+                const pendingGender = stateGender || validStoredGender || undefined;
                 const pendingAge = localStorage.getItem('pendingUserAge') || stateAge || undefined;
                 if (pendingGender) localStorage.setItem('pendingUserGender', pendingGender);
                 if (pendingAge) localStorage.setItem('pendingUserAge', pendingAge);

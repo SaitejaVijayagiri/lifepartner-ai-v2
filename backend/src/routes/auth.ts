@@ -710,10 +710,8 @@ router.post('/google', async (req, res) => {
                 user.deactivated_until = null;
             }
 
-            // If user didn't have a gender yet, or explicitly selected Female before clicking Google OAuth, apply it
-            const finalGender = (cleanGoogleGender === 'Female')
-                ? 'Female'
-                : (user.gender || cleanGoogleGender || undefined);
+            // Existing user's gender always takes precedence; only apply cleanGoogleGender if user has no gender yet
+            const finalGender = user.gender || cleanGoogleGender || undefined;
             const isFemale = finalGender === 'Female';
 
             // Update existing

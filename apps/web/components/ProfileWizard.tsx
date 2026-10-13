@@ -90,10 +90,12 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 } catch (_) {}
             }
 
+            const validPendingGender = (pendingGender === 'Female' || pendingGender === 'Male') ? pendingGender : '';
+
             setData((prev: any) => ({
                 ...prev,
                 name: prev.name || u.name || u.full_name || pendingName || '',
-                gender: pendingGender || u.gender || savedGender || prev.gender || '',
+                gender: u.gender || validPendingGender || savedGender || prev.gender || '',
                 age: prev.age || (u.age && u.age >= 18 ? String(u.age) : '') || pendingAge || '',
                 country: prev.country && prev.country !== 'India' ? prev.country : resolvedCountry
             }));
@@ -104,7 +106,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     setData((prev: any) => ({
                         ...prev,
                         name: prev.name || me.name || me.full_name || pendingName || '',
-                        gender: pendingGender || me.gender || u.gender || prev.gender || '',
+                        gender: me.gender || u.gender || validPendingGender || prev.gender || '',
                         age: prev.age || (me.age && me.age >= 18 ? String(me.age) : '') || pendingAge || '',
                         city: prev.city || me.city || '',
                         photos: (prev.photos && prev.photos.length > 0) ? prev.photos : (me.photos && me.photos.length > 0 ? me.photos : (me.avatar_url ? [me.avatar_url] : []))

@@ -66,13 +66,16 @@ export default function LandingPageClient() {
   const [quickCountry, setQuickCountry] = useState('Worldwide');
 
   const handleGoogleSignIn = () => {
+    if (!signupForm.gender) {
+      toast.error("Please select whether you are Female or Male before continuing with Google.");
+      return;
+    }
+
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
     const redirectUri = `${window.location.origin}/auth/callback/google`;
 
     // Save selected gender, age, and detected country so Google OAuth & Onboarding preserve them
-    if (signupForm.gender) {
-      localStorage.setItem('pendingUserGender', signupForm.gender);
-    }
+    localStorage.setItem('pendingUserGender', signupForm.gender);
     if (signupForm.age) {
       localStorage.setItem('pendingUserAge', signupForm.age);
     }
@@ -81,7 +84,7 @@ export default function LandingPageClient() {
     }
 
     const oauthState = encodeURIComponent(JSON.stringify({
-      gender: signupForm.gender || 'Female',
+      gender: signupForm.gender,
       age: signupForm.age || '24',
       country: visitorGeo.country && visitorGeo.country !== 'Worldwide' ? visitorGeo.country : '',
       intent: signupForm.intent || 'matrimony'

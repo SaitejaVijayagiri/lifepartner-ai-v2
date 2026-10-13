@@ -65,15 +65,18 @@ function GoogleCallbackContent() {
                     }
                     // Automatically collect push notification token
                     Notifications.init().catch(console.error);
-                    if (res.data.requiresOnboarding) {
-                        setStatus('Almost ready! Completing your profile...');
-                        setTimeout(() => router.replace('/onboarding'), 500);
+                    if (res.data.requiresOnboarding || res.data.isNewUser) {
+                        try {
+                            localStorage.removeItem('onboarding_completed');
+                        } catch (_) {}
+                        setStatus('Welcome! Setting up your profile & photo upload...');
+                        setTimeout(() => router.replace('/onboarding'), 400);
                     } else {
                         try {
                             localStorage.setItem('onboarding_completed', 'true');
                         } catch (_) {}
                         setStatus('Success! Redirecting...');
-                        setTimeout(() => router.replace('/dashboard'), 500);
+                        setTimeout(() => router.replace('/dashboard'), 400);
                     }
                 }
             } catch (err: any) {

@@ -599,11 +599,8 @@ function DashboardContent() {
 
                 const profile = profileResult.value;
                 const isCompleted = Boolean(
-                    profile?.onboarding_completed ||
-                    localStorage.getItem('onboarding_completed') === 'true' ||
-                    profile?.gender ||
-                    profile?.age ||
-                    (profile?.name && profile?.email)
+                    profile?.onboarding_completed === true ||
+                    (localStorage.getItem('onboarding_completed') === 'true' && profile?.gender && profile?.age && (profile?.photos?.length > 0 || profile?.photoUrl))
                 );
                 if (!isCompleted) {
                     router.push('/onboarding');

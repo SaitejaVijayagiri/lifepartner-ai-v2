@@ -109,16 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         Notifications.init().catch(console.error);
 
                         // Mandatory 2-Step Onboarding Redirect for incomplete profiles
-                        // Only trigger if onboarding has NEVER been completed AND essential fields are missing
+                        // Only trigger if onboarding has NOT been completed
                         const hasCompletedOnboarding = Boolean(
-                            freshProfile.onboarding_completed ||
-                            localStorage.getItem('onboarding_completed') === 'true' ||
-                            freshProfile.gender ||
-                            freshProfile.age ||
-                            (freshProfile.name && freshProfile.email)
+                            freshProfile.onboarding_completed === true ||
+                            (localStorage.getItem('onboarding_completed') === 'true' && freshProfile.gender && freshProfile.age && (freshProfile.photos?.length > 0 || freshProfile.photoUrl))
                         );
                         const isIncomplete = !hasCompletedOnboarding;
-                        if (isIncomplete && pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login')) {
+                        if (isIncomplete && pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login') && !pathname.startsWith('/auth/callback')) {
                             console.warn("⚠️ Mandatory Onboarding Redirect triggered: Incomplete profile");
                             router.replace('/onboarding');
                         } else if (hasCompletedOnboarding) {
@@ -180,12 +177,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Auto-Register FCM Push Token on Login
         Notifications.init().catch(console.error);
 
-        const isCompleted = Boolean(
-            !requiresOnboarding &&
-            ((userData.gender && userData.age) || (typeof window !== 'undefined' && localStorage.getItem('onboarding_completed') === 'true'))
-        );
-
-        if (!isCompleted && requiresOnboarding) {
+        if (requiresOnboarding) {
+            try {
+                localStorage.removeItem('onboarding_completed');
+            } catch (_) {}
             router.replace('/onboarding');
         } else {
             try {

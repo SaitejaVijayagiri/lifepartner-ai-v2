@@ -313,8 +313,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
         }
 
         const isOnboardingCompleted = Boolean(
-            meta.onboarding_completed || 
-            (resolvedAge && resolvedGender && resolvedName)
+            meta.onboarding_completed === true || 
+            (meta.onboarding_completed !== false && (meta.bio || meta.aboutMe) && photosList.length > 0 && resolvedAge && resolvedGender && (locationObj.city || user.city))
         );
 
         const profile = {

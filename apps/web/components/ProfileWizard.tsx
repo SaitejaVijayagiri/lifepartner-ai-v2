@@ -308,24 +308,24 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP 1: BASICS */}
                     {stepId === 'basics' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500">
-                            {/* Fast-Track Banner when Name, Gender, and Age are already filled */}
+                            {/* Banner when Name, Gender, and Age are filled */}
                             {Boolean(data.name && String(data.name).trim() && data.gender && parseInt(String(data.age), 10) >= 18) && (
                                 <div className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-500/10 via-indigo-500/10 to-purple-500/10 border border-indigo-200 dark:border-indigo-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div className="text-xs sm:text-sm">
                                         <p className="font-extrabold text-gray-900 dark:text-white flex items-center gap-1.5">
                                             <span>✨</span>
-                                            <span>{data.gender === 'Female' ? 'Queen VIP Account Ready!' : 'Your Core Profile is Ready!'}</span>
+                                            <span>{data.gender === 'Female' ? 'Queen VIP Account Active!' : 'Basic Details Saved!'}</span>
                                         </p>
                                         <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-                                            Add optional details & photos below for +50 Bonus Coins, or jump straight into your matches now.
+                                            Proceed to Step 2 to upload your photo, earn +50 Bonus Coins, and start matching!
                                         </p>
                                     </div>
                                     <Button
                                         type="button"
-                                        onClick={() => onComplete(data)}
+                                        onClick={handleNext}
                                         className="bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-bold text-xs px-4 py-2 h-9 rounded-xl shrink-0 shadow-sm"
                                     >
-                                        Explore Matches Now →
+                                        Next: Upload Photos (+50 Coins) →
                                     </Button>
                                 </div>
                             )}
@@ -616,37 +616,48 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         📸 Upload a clear selfie or portrait of yourself. You can also skip this step and add photos anytime from your profile!
                                     </p>
                                 </div>
-                                <div className="mt-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => onComplete(data)}
-                                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline py-1 px-3 transition-all"
-                                    >
-                                        Skip photo for now & complete setup →
-                                    </button>
+                                <div className="mt-4 flex flex-col items-center gap-1.5 pointer-events-none">
+                                    <span className="px-5 py-2.5 bg-indigo-600 group-hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-transform group-hover:scale-105">
+                                        📁 Choose from Camera or Gallery
+                                    </span>
+                                    <p className="text-[11px] text-gray-400">JPG, PNG, WebP up to 5MB</p>
                                 </div>
                             </div>
 
                             {/* Preview */}
                             {data.photos && data.photos.length > 0 && (
-                                <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-4">
-                                    {data.photos.map((p: string, i: number) => (
-                                        <div key={i} className="relative aspect-square rounded-lg overflow-hidden shadow-sm border group">
-                                            <img src={p} className="w-full h-full object-cover" />
-                                            {i === 0 && (
-                                                <div className="absolute bottom-1 left-1 bg-yellow-400 text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm font-bold z-10">
-                                                    Main
+                                <div className="space-y-2 mt-4 text-left">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                                            Your Photos ({data.photos.length}/5)
+                                        </p>
+                                        {data.photos.some((p: string) => typeof p === 'string' && p.includes('googleusercontent.com')) && (
+                                            <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+                                                ✨ Google profile photo imported
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                                        {data.photos.map((p: string, i: number) => {
+                                            const isGoogle = typeof p === 'string' && p.includes('googleusercontent.com');
+                                            return (
+                                                <div key={i} className="relative aspect-square rounded-lg overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 group">
+                                                    <img src={p} className="w-full h-full object-cover" alt="Profile" />
+                                                    <div className="absolute bottom-1 left-1 bg-black/70 backdrop-blur-xs text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm font-bold z-10">
+                                                        {i === 0 ? (isGoogle ? 'Google Avatar' : 'Main Photo') : `Photo ${i + 1}`}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            const newP = data.photos.filter((_: any, idx: number) => idx !== i);
+                                                            update('photos', newP);
+                                                        }}
+                                                        className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity shadow-sm"
+                                                        title="Remove photo"
+                                                    >✕</button>
                                                 </div>
-                                            )}
-                                            <button
-                                                onClick={() => {
-                                                    const newP = data.photos.filter((_: any, idx: number) => idx !== i);
-                                                    update('photos', newP);
-                                                }}
-                                                className="absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >✕</button>
-                                        </div>
-                                    ))}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -663,21 +674,21 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         <div />
                     )}
                     <div className="flex items-center gap-3">
-                        {(stepId === 'photos' || Boolean(data.name && String(data.name).trim() && data.gender && parseInt(String(data.age), 10) >= 18)) && (
+                        {stepId === 'photos' && (
                             <Button
                                 variant="ghost"
                                 type="button"
                                 onClick={() => onComplete(data)}
                                 className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white font-semibold text-xs sm:text-sm"
                             >
-                                {stepId === 'photos' ? 'Skip photo' : 'Skip & Explore Matches →'}
+                                Skip photo & Complete →
                             </Button>
                         )}
                         <Button
                             onClick={handleNext}
                             className="w-28 sm:w-36 bg-indigo-600 hover:bg-indigo-700 font-bold"
                         >
-                            {currentStep === STEPS.length - 1 ? "Finish" : "Next: Photos"}
+                            {currentStep === STEPS.length - 1 ? "Finish Profile" : "Next: Photos"}
                         </Button>
                     </div>
                 </div>

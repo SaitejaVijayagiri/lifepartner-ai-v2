@@ -224,7 +224,7 @@ router.post('/register', async (req, res) => {
                     metadata: {
                         ...(cleanGender ? { gender: cleanGender } : {}),
                         ...(validAge ? { age: validAge } : {}),
-                        onboarding_completed: Boolean(cleanGender && validAge)
+                        onboarding_completed: false
                     },
                     photos: [],
                     stories: [],
@@ -263,6 +263,8 @@ router.post('/register', async (req, res) => {
                 is_premium: newUser.is_premium,
                 coins: newUser.coins
             },
+            isNewUser: true,
+            requiresOnboarding: true,
             email: targetEmail,
             message: "Account created successfully"
         });
@@ -402,7 +404,10 @@ router.post('/login', async (req, res) => {
         const resolvedAge = user.age || meta.age || null;
         const hasAge = Boolean(resolvedAge || meta.dob);
         const hasGender = Boolean(resolvedGender);
-        const isCompleted = Boolean(meta.onboarding_completed || (hasAge && hasGender));
+        const isCompleted = Boolean(
+            meta.onboarding_completed === true || 
+            (meta.onboarding_completed !== false && (meta.bio || meta.aboutMe) && hasAge && hasGender)
+        );
         const requiresOnboarding = !isCompleted;
 
         // Ensure Female Queen VIP perks are always active
@@ -694,6 +699,8 @@ router.post('/google', async (req, res) => {
             }
         });
 
+        const isNewUser = !user;
+
         if (user) {
             if (user.is_banned) {
                 console.log(`❌ Google Login failed: Banned user - ${email}`);
@@ -701,7 +708,7 @@ router.post('/google', async (req, res) => {
             }
 
             if (user.is_deactivated) {
-                console.log(`🔄 Google Login: Reactivating deactivated user - ${email}`);
+                console.log(`🔄 Google Login: Reactactivating deactivated user - ${email}`);
                 await prisma.users.update({
                     where: { id: user.id },
                     data: { is_deactivated: false, deactivated_until: null }
@@ -745,7 +752,7 @@ router.post('/google', async (req, res) => {
                         metadata: {
                             ...(effGender ? { gender: effGender } : {}),
                             ...(effAge ? { age: effAge } : {}),
-                            onboarding_completed: Boolean(effGender && effAge)
+                            onboarding_completed: false
                         }
                     },
                     update: {
@@ -754,7 +761,7 @@ router.post('/google', async (req, res) => {
                             ...prevMeta,
                             ...(effGender ? { gender: effGender } : {}),
                             ...(effAge ? { age: effAge } : {}),
-                            onboarding_completed: Boolean(prevMeta.onboarding_completed || (effGender && effAge))
+                            onboarding_completed: Boolean(prevMeta.onboarding_completed === true)
                         }
                     }
                 });
@@ -784,7 +791,7 @@ router.post('/google', async (req, res) => {
                         is_premium: isFemale ? true : false
                     }
                 });
-                // Init Profile
+                // Init Profile with onboarding_completed: false so user is prompted to upload photos and complete onboarding
                 await tx.profiles.create({
                     data: {
                         user_id: newUser.id,
@@ -793,7 +800,7 @@ router.post('/google', async (req, res) => {
                         metadata: {
                             ...(cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
                             ...(validGoogleAge ? { age: validGoogleAge } : {}),
-                            onboarding_completed: Boolean(cleanGoogleGender && validGoogleAge)
+                            onboarding_completed: false
                         }
                     }
                 });
@@ -804,15 +811,22 @@ router.post('/google', async (req, res) => {
         // 4. Generate Token
         const token = generateToken(user!.id);
 
-        // Check if onboarding is needed (missing gender or age)
+        // Check if onboarding is needed
         const userProfile = await prisma.profiles.findUnique({
             where: { user_id: user!.id },
-            select: { metadata: true }
+            select: { metadata: true, photos: true }
         });
         const googleMeta = (userProfile?.metadata as any) || {};
         const googleHasAge = Boolean((user as any).age || googleMeta.age || googleMeta.dob);
         const googleHasGender = Boolean((user as any).gender || googleMeta.gender);
-        const requiresOnboarding = !Boolean(googleMeta.onboarding_completed || (googleHasAge && googleHasGender));
+        const userPhotos = Array.isArray(userProfile?.photos) ? userProfile.photos : [];
+        const hasRealPhotos = userPhotos.length > 0 && !userPhotos.every((p: any) => typeof p === 'string' && p.includes('googleusercontent.com'));
+
+        const requiresOnboarding = Boolean(
+            isNewUser ||
+            googleMeta.onboarding_completed === false ||
+            (!googleMeta.onboarding_completed && (!googleHasAge || !googleHasGender || !hasRealPhotos))
+        );
 
         setTokenCookie(res, token);
         res.json({
@@ -828,6 +842,7 @@ router.post('/google', async (req, res) => {
                 is_premium: (user as any).is_premium || false,
                 coins: (user as any).coins || 0
             },
+            isNewUser,
             requiresOnboarding
         });
 

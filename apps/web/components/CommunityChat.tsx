@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
-import { Send, Users, ShieldCheck, Lock, X, Trash2, MessageCircle, User, Eye } from 'lucide-react';
+import { Send, Users, ShieldCheck, Lock, X, Trash2, MessageCircle, User, Eye, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 import VerificationBadge from './VerificationBadge';
 
 export default function CommunityChat({ 
@@ -11,60 +11,92 @@ export default function CommunityChat({
     onClose,
     onViewProfile,
     onInstantMessage,
-    isActive = true
+    isActive = true,
+    defaultFullscreen = false
 }: { 
     currentUser: any, 
     onOpenStore?: () => void, 
     onClose?: () => void,
     onViewProfile?: (member: any) => void,
     onInstantMessage?: (member: any) => void,
-    isActive?: boolean
+    isActive?: boolean,
+    defaultFullscreen?: boolean
 }) {
     const { socket } = useSocket() as any;
     const [messages, setMessages] = useState<any[]>([]);
     const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
     const [status, setStatus] = useState<'connecting' | 'connected' | 'denied'>('connecting');
+    const [errorMessage, setErrorMessage] = useState<string>("");
+    const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen);
     const [showMobileUsersModal, setShowMobileUsersModal] = useState(false);
     const [selectedMember, setSelectedMember] = useState<any | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
+    // Escape key listener to exit full screen
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [isFullscreen]);
+
+    const joinRoom = () => {
+        if (!socket || !currentUser || !isActive) return;
+        setStatus('connecting');
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        if (token) {
+            socket.emit('authenticate', { token });
+        }
+        socket.emit('join_community');
+    };
+
     useEffect(() => {
         if (!socket || !currentUser || !isActive) return;
 
-        // Join Room
-        socket.emit('join_community');
+        joinRoom();
 
         // Listeners
-        socket.on('joined_community', (data: any) => {
+        const onJoined = (data: any) => {
             setStatus('connected');
+            setErrorMessage("");
             if (data?.history && Array.isArray(data.history)) {
                 setMessages(data.history);
             }
-        });
+        };
 
-        socket.on('community_error', () => {
+        const onError = (data: any) => {
             setStatus('denied');
-        });
+            if (data?.message) setErrorMessage(data.message);
+        };
 
-        socket.on('receive_community_message', (msg: any) => {
+        const onMsg = (msg: any) => {
             setMessages(prev => [...prev, msg].slice(-100)); // Keep last 100
-        });
+        };
 
-        socket.on('update_community_users', (users: any[]) => {
+        const onUsers = (users: any[]) => {
             setOnlineMembers(users);
-        });
+        };
 
-        socket.on('community_message_deleted', ({ messageId }: { messageId: string }) => {
+        const onDeleted = ({ messageId }: { messageId: string }) => {
             setMessages(prev => prev.filter(m => m.id !== messageId));
-        });
+        };
+
+        socket.on('joined_community', onJoined);
+        socket.on('community_error', onError);
+        socket.on('receive_community_message', onMsg);
+        socket.on('update_community_users', onUsers);
+        socket.on('community_message_deleted', onDeleted);
 
         return () => {
-            socket.off('joined_community');
-            socket.off('community_error');
-            socket.off('receive_community_message');
-            socket.off('update_community_users');
-            socket.off('community_message_deleted');
+            socket.off('joined_community', onJoined);
+            socket.off('community_error', onError);
+            socket.off('receive_community_message', onMsg);
+            socket.off('update_community_users', onUsers);
+            socket.off('community_message_deleted', onDeleted);
             socket.emit('leave_community');
         };
     }, [socket, currentUser, isActive]);
@@ -149,18 +181,30 @@ export default function CommunityChat({
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Verification Required</h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-xs">
-                    The Community Lounge is a safe space for genuine singles. <br />
-                    <b>Verify your profile for FREE to join!</b>
+                    {errorMessage || "The Community Lounge is a safe space for genuine singles. Verify your profile for FREE to join!"}
                 </p>
-                <button onClick={() => { if(onClose) onClose(); window.location.href = '/dashboard?tab=profile'; }} className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
-                    Go to Profile to Verify
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button 
+                        type="button"
+                        onClick={joinRoom} 
+                        className="px-5 py-2 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-full font-bold text-sm hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
+                    >
+                        <RotateCcw size={15} /> Reconnect
+                    </button>
+                    <button onClick={() => { if(onClose) onClose(); window.location.href = '/dashboard?tab=profile'; }} className="px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                        Go to Profile to Verify
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="relative w-full h-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800 flex flex-col animate-in fade-in duration-300">
+        <div className={`transition-all duration-300 flex flex-col ${
+            isFullscreen
+                ? 'fixed inset-0 z-[2200] w-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-gray-950 rounded-none border-0 shadow-none'
+                : 'relative w-full h-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800'
+        } animate-in fade-in duration-300`}>
             {/* Header */}
             <div className="p-3.5 sm:p-4 bg-gradient-to-r from-indigo-900 via-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
@@ -178,17 +222,33 @@ export default function CommunityChat({
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                     <button 
+                        type="button"
                         onClick={() => setShowMobileUsersModal(true)}
-                        className="bg-white/10 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 hover:bg-white/20 transition-colors border border-white/10"
+                        className="bg-white/10 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 hover:bg-white/20 transition-colors border border-white/10"
+                        title="View online members"
                     >
                         <Users size={14} className="text-emerald-300" /> 
                         <span>{onlineMembers.length} <span className="hidden sm:inline">Online</span></span>
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setIsFullscreen(prev => !prev)}
+                        className="p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all text-white active:scale-95 flex items-center justify-center border border-white/10"
+                        title={isFullscreen ? "Exit Fullscreen (Esc)" : "Full Screen View"}
+                        aria-label={isFullscreen ? "Exit Fullscreen" : "Full Screen View"}
+                    >
+                        {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    </button>
                     {onClose && (
-                        <button onClick={onClose} className="p-1.5 ml-1 bg-white/10 hover:bg-white/20 rounded-full transition-colors" title="Back to Home">
-                            <X size={18} />
+                        <button 
+                            type="button"
+                            onClick={onClose} 
+                            className="p-1.5 sm:p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors border border-white/10" 
+                            title={isFullscreen ? "Close Full Screen" : "Back to Home"}
+                        >
+                            <X size={16} />
                         </button>
                     )}
                 </div>

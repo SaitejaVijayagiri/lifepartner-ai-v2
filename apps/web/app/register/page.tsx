@@ -597,12 +597,15 @@ function RegisterForm() {
 
                     <div>
                         <button
+                            type="button"
                             onClick={() => {
                                 const selectedGender = form.gender || localStorage.getItem('pendingUserGender') || '';
-                                const selectedAge = form.age || localStorage.getItem('pendingUserAge') || '';
-                                if (selectedGender) {
-                                    localStorage.setItem('pendingUserGender', selectedGender);
+                                if (!selectedGender) {
+                                    toast.error("Please select whether you are Female or Male above before continuing with Google.");
+                                    return;
                                 }
+                                const selectedAge = form.age || localStorage.getItem('pendingUserAge') || '';
+                                localStorage.setItem('pendingUserGender', selectedGender);
                                 if (selectedAge) {
                                     localStorage.setItem('pendingUserAge', selectedAge);
                                 }

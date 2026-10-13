@@ -733,11 +733,15 @@ router.post('/google', async (req, res) => {
                 const prevMeta = (existingProf?.metadata as any) || {};
                 const effGender = finalGender || prevMeta.gender;
                 const effAge = user.age || validGoogleAge || prevMeta.age;
+                const existingPhotos = Array.isArray(existingProf?.photos) ? (existingProf.photos as any[]) : [];
+                const photoToUse = user.avatar_url || picture;
+                const newPhotos = existingPhotos.length === 0 && photoToUse ? [photoToUse] : existingPhotos;
                 await prisma.profiles.upsert({
                     where: { user_id: user.id },
                     create: {
                         user_id: user.id,
                         raw_prompt: '',
+                        photos: photoToUse ? [photoToUse] : [],
                         metadata: {
                             ...(effGender ? { gender: effGender } : {}),
                             ...(effAge ? { age: effAge } : {}),
@@ -745,6 +749,7 @@ router.post('/google', async (req, res) => {
                         }
                     },
                     update: {
+                        ...(newPhotos.length > 0 ? { photos: newPhotos } : {}),
                         metadata: {
                             ...prevMeta,
                             ...(effGender ? { gender: effGender } : {}),
@@ -784,6 +789,7 @@ router.post('/google', async (req, res) => {
                     data: {
                         user_id: newUser.id,
                         raw_prompt: '',
+                        photos: picture ? [picture] : [],
                         metadata: {
                             ...(cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
                             ...(validGoogleAge ? { age: validGoogleAge } : {}),

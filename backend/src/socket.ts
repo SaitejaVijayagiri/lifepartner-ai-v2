@@ -219,7 +219,8 @@ export const initSocket = (httpServer: HttpServer) => {
     });
 
     io.on('connection', (socket: Socket) => {
-        const userId = socket.data.user?.userId;
+        let userId = socket.data.user?.userId;
+        const getUserId = () => socket.data.user?.userId || socket.data.trackedUserId || userId;
         const isGuest = socket.data.isGuest;
         console.log(`Socket Connected: ${socket.id} (User: ${userId || 'Guest'})`);
 
@@ -301,6 +302,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 jwt.verify(token, secret, (err: any, decoded: any) => {
                     if (err || !decoded?.userId) return;
                     const uId = decoded.userId;
+                    userId = uId;
                     socket.data.user = decoded;
                     socket.data.isGuest = false;
 
@@ -651,14 +653,18 @@ export const initSocket = (httpServer: HttpServer) => {
          * COMMUNITY LOUNGE LOGIC
          */
         socket.on('join_community', async () => {
-            if (!userId) {
-                socket.emit('community_error', { message: "Authentication required to join community." });
+            const currentUserId = getUserId();
+            if (!currentUserId) {
+                socket.emit('community_error', { 
+                    message: "Authentication required to join community.",
+                    code: "AUTH_REQUIRED" 
+                });
                 return;
             }
 
             // Check if user is verified (Open to all verified users)
             const user = await prisma.users.findUnique({
-                where: { id: userId },
+                where: { id: currentUserId },
                 select: { is_verified: true, full_name: true, avatar_url: true }
             });
 
@@ -675,8 +681,8 @@ export const initSocket = (httpServer: HttpServer) => {
             // Add to Community Map
             if (user) {
                 communityUsers.set(socket.id, {
-                    id: userId,
-                    userId: userId,
+                    id: currentUserId,
+                    userId: currentUserId,
                     name: user.full_name || 'Verified Member',
                     photo: user.avatar_url || '',
                     isVerified: true
@@ -731,7 +737,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });
             }
 
-            console.log(`User ${userId} joined verified_lounge`);
+            console.log(`User ${currentUserId} joined verified_lounge`);
         });
 
         socket.on('leave_community', () => {
@@ -740,7 +746,7 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         socket.on('send_community_message', async ({ text }) => {
-            const from = userId;
+            const from = getUserId();
             if (!from || !communityUsers.has(socket.id)) {
                 socket.emit('community_error', { message: "Not authorized or not in community." });
                 return;
@@ -781,7 +787,8 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         socket.on('delete_community_message', async ({ messageId }) => {
-            if (!userId || !messageId) return;
+            const currentUserId = getUserId();
+            if (!currentUserId || !messageId) return;
 
             try {
                 const msg = await prisma.lounge_messages.findUnique({
@@ -791,7 +798,7 @@ export const initSocket = (httpServer: HttpServer) => {
                 if (!msg) return;
 
                 // Strictly only the sender can delete their own message
-                if (msg.sender_id !== userId) {
+                if (msg.sender_id !== currentUserId) {
                     socket.emit('community_error', { message: "You can only delete your own messages." });
                     return;
                 }

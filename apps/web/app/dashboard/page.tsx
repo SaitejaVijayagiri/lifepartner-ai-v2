@@ -1398,9 +1398,17 @@ function DashboardContent() {
     return (
         <div className={`flex flex-col bg-background font-sans text-foreground pb-safe ${activeTab === 'map' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'}`}>
             {renderHeader()}
-            <main className={`flex-1 w-full max-w-7xl mx-auto lg:px-8 flex gap-8 ${activeTab === 'map' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' : 'pt-3 sm:pt-6 px-3 sm:px-4'}`}>
+            <main className={`flex-1 w-full max-w-7xl mx-auto flex gap-8 ${
+                activeTab === 'map' ? 'pt-0 px-0 sm:pt-6 overflow-hidden' :
+                activeTab === 'community' ? 'pt-1 px-1 sm:px-4 sm:pt-4 max-w-7xl lg:px-8' :
+                'pt-3 sm:pt-6 px-3 sm:px-4 lg:px-8'
+            }`}>
                 {/* Main Feed Column */}
-                <div className={`flex-1 min-w-0 flex flex-col ${activeTab === 'map' ? 'pb-0 h-full' : 'pb-28 sm:pb-24'}`}>
+                <div className={`flex-1 min-w-0 flex flex-col ${
+                    activeTab === 'map' ? 'pb-0 h-full' :
+                    activeTab === 'community' ? 'pb-20 sm:pb-4 h-[calc(100dvh-80px)] sm:h-[calc(100vh-95px)]' :
+                    'pb-28 sm:pb-24'
+                }`}>
                     <div className={activeTab === 'home' ? 'block' : 'hidden'}>
                         {visitedTabs.has('home') && (
                             <HomeTab
@@ -1587,9 +1595,9 @@ function DashboardContent() {
                         )}
                     </div>
 
-                    <div className={activeTab === 'community' ? 'block' : 'hidden'}>
+                    <div className={activeTab === 'community' ? 'block h-full' : 'hidden'}>
                         {visitedTabs.has('community') && (
-                            <div className="h-[calc(100dvh-180px)] lg:h-[calc(100vh-140px)] pt-2">
+                            <div className="h-full w-full">
                                 <CommunityChat 
                                     currentUser={currentUser} 
                                     isActive={activeTab === 'community'}

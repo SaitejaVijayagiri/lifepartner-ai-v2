@@ -3,7 +3,7 @@
 import { getZodiacSymbol } from '@/lib/religionUtils';
 
 import { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2, Copy, Check, Share2 } from 'lucide-react';
+import { X, ArrowLeft, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2, Copy, Check, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
@@ -186,6 +186,19 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
             <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-screen h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
+
+                {/* Top Left Floating Back Button */}
+                <div className="absolute top-4 left-4 z-[999] flex items-center gap-2">
+                    <button
+                        onClick={onClose}
+                        className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1.5 group/back"
+                        aria-label="Back to matches"
+                        title="Back to matches"
+                    >
+                        <ArrowLeft size={18} className="transition-transform group-hover/back:-translate-x-0.5" />
+                        <span className="hidden sm:inline text-xs font-bold pr-1">Back</span>
+                    </button>
+                </div>
 
                 {/* Top Right Floating Action Buttons */}
                 <div className="absolute top-4 right-4 z-[999] flex items-center gap-2">

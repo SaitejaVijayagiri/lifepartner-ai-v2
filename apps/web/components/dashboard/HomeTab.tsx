@@ -351,31 +351,37 @@ export default function HomeTab({
 
                 {topMatches.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {topMatches.map((m) => (
-                            <MatchCard
-                                key={m.id}
-                                match={m}
-                                onConnect={() => {
-                                    if (setMatches) {
-                                        setMatches(prev => prev.map(item =>
-                                            item.id === m.id ? { ...item, match_status: 'pending' } : item
-                                        ));
-                                    }
-                                    try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
-                                }}
-                                onViewProfile={() => onSelectProfile(m)}
-                                onShowKundli={(kundli) => onSelectKundli({ data: kundli, names: { me: currentUser?.full_name || 'You', partner: m.name } })}
-                                onGift={setGiftData ? () => setGiftData({ userId: m.id, userName: m.name }) : undefined}
-                                isConnectedProp={connections.some((c: any) => c.partner?.id === m.id)}
-                                onChat={() => {
-                                    const conn = connections.find((c: any) => c.partner?.id === m.id);
-                                    if (conn && openChat) {
-                                        openChat(conn);
-                                    } else {
-                                        onNavigateTab('connections');
-                                    }
-                                }}
-                            />
+                        {topMatches.map((m, idx) => (
+                            <div
+                                key={m.id || idx}
+                                id={m.id ? `match-card-${m.id}` : `match-card-home-${idx}`}
+                                data-match-id={m.id}
+                                className="h-full transition-all duration-300"
+                            >
+                                <MatchCard
+                                    match={m}
+                                    onConnect={() => {
+                                        if (setMatches) {
+                                            setMatches(prev => prev.map(item =>
+                                                item.id === m.id ? { ...item, match_status: 'pending' } : item
+                                            ));
+                                        }
+                                        try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
+                                    }}
+                                    onViewProfile={() => onSelectProfile(m)}
+                                    onShowKundli={(kundli) => onSelectKundli({ data: kundli, names: { me: currentUser?.full_name || 'You', partner: m.name } })}
+                                    onGift={setGiftData ? () => setGiftData({ userId: m.id, userName: m.name }) : undefined}
+                                    isConnectedProp={connections.some((c: any) => c.partner?.id === m.id)}
+                                    onChat={() => {
+                                        const conn = connections.find((c: any) => c.partner?.id === m.id);
+                                        if (conn && openChat) {
+                                            openChat(conn);
+                                        } else {
+                                            onNavigateTab('connections');
+                                        }
+                                    }}
+                                />
+                            </div>
                         ))}
                     </div>
                 ) : (

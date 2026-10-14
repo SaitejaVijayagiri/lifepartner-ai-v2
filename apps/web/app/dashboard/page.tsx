@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, Suspense, useMemo } from 'react';
+import { useEffect, useState, useRef, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -279,9 +279,83 @@ function DashboardContent() {
         }
     };
 
+    // Profile Viewport & Scroll Retention Refs
+    const savedProfileScrollRef = useRef<number>(0);
+    const lastOpenedMatchIdRef = useRef<string | null>(null);
+    const profileSourceTabRef = useRef<string>('matches');
+
+    // Smoothly restore viewport and highlight the clicked match card
+    const restoreMatchScroll = useCallback((targetId?: string | null, targetScrollY?: number) => {
+        if (typeof window === 'undefined') return;
+
+        const id = targetId || lastOpenedMatchIdRef.current;
+        const fallbackY = targetScrollY ?? savedProfileScrollRef.current;
+
+        const performScroll = () => {
+            let scrolled = false;
+            if (id) {
+                const cardEl = document.getElementById(`match-card-${id}`);
+                if (cardEl) {
+                    cardEl.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
+                    cardEl.classList.add('ring-2', 'ring-rose-500/80', 'transition-all', 'duration-500');
+                    setTimeout(() => {
+                        cardEl.classList.remove('ring-2', 'ring-rose-500/80');
+                    }, 1800);
+                    scrolled = true;
+                }
+            }
+            if (!scrolled && typeof fallbackY === 'number' && fallbackY >= 0) {
+                window.scrollTo({ top: fallbackY, behavior: 'instant' });
+                scrolled = true;
+            }
+            return scrolled;
+        };
+
+        // Attempt immediately and across subsequent frames/delays to handle modal unmount & DOM layout
+        performScroll();
+        requestAnimationFrame(() => {
+            performScroll();
+        });
+        setTimeout(() => {
+            performScroll();
+        }, 40);
+        setTimeout(() => {
+            performScroll();
+        }, 120);
+        setTimeout(() => {
+            performScroll();
+        }, 250);
+    }, []);
+
+    const handleOpenProfile = useCallback((profile: any) => {
+        if (!profile) return;
+        savedProfileScrollRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+        lastOpenedMatchIdRef.current = profile.id || profile.userId || null;
+        profileSourceTabRef.current = activeTab;
+
+        setSelectedProfile(profile);
+    }, [activeTab]);
+
+    const handleCloseProfile = useCallback((fromPopState = false) => {
+        const targetId = lastOpenedMatchIdRef.current || selectedProfile?.id || selectedProfile?.userId;
+        const targetScroll = savedProfileScrollRef.current;
+
+        setSelectedProfile(null);
+
+        // Keep user on the source tab where they opened the profile from
+        if (profileSourceTabRef.current && activeTab !== profileSourceTabRef.current) {
+            setActiveTab(profileSourceTabRef.current);
+        }
+
+        restoreMatchScroll(targetId, targetScroll);
+    }, [selectedProfile, activeTab, restoreMatchScroll]);
+
     // Open Profile / Match Card Helper
     const handleOpenProfileById = async (profileId: string, fallbackData?: any) => {
         if (!profileId) return;
+        savedProfileScrollRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+        lastOpenedMatchIdRef.current = profileId;
+        profileSourceTabRef.current = activeTab;
         setActiveTab('matches');
 
         // 1. Instant optimistic match card display (0ms)
@@ -346,8 +420,7 @@ function DashboardContent() {
             if (profileId) {
                 handleOpenProfileById(profileId, e.detail);
             } else if (e.detail?.profile) {
-                setActiveTab('matches');
-                setSelectedProfile(e.detail.profile);
+                handleOpenProfile(e.detail.profile);
             }
         };
 
@@ -410,6 +483,11 @@ function DashboardContent() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
+        // Disable automatic browser scroll restoration so popstate navigation never resets window scroll to 0
+        if ('scrollRestoration' in window.history) {
+            window.history.scrollRestoration = 'manual';
+        }
+
         // Push an initial history entry so browser back button triggers popstate inside dashboard
         window.history.pushState({ inDashboard: true }, '', window.location.href);
 
@@ -423,9 +501,9 @@ function DashboardContent() {
                 return;
             }
 
-            // 2. Close profile modal if open
+            // 2. Close profile modal if open and restore viewport to the clicked match card
             if (current.selectedProfile) {
-                setSelectedProfile(null);
+                handleCloseProfile(true);
                 window.history.pushState({ inDashboard: true }, '', window.location.href);
                 return;
             }
@@ -1424,7 +1502,7 @@ function DashboardContent() {
                                         setActiveTab(tab);
                                     }
                                 }}
-                                onSelectProfile={setSelectedProfile}
+                                onSelectProfile={handleOpenProfile}
                                 onSelectKundli={setSelectedKundli}
                                 onJoinLiveRoom={async (event?: any) => {
                                     if (event && (event.host_name || event.host_id)) {
@@ -1525,7 +1603,7 @@ function DashboardContent() {
                                     page={page}
                                     activeFilters={activeFilters}
                                     setActiveFilters={setActiveFilters}
-                                    setSelectedProfile={setSelectedProfile}
+                                    setSelectedProfile={handleOpenProfile}
                                     setSelectedKundli={setSelectedKundli}
                                     setGiftData={setGiftData}
                                     connections={connections}
@@ -1544,7 +1622,7 @@ function DashboardContent() {
                             <InteractiveMap 
                                 profiles={mapProfiles} 
                                 currentUser={currentUser} 
-                                onViewProfile={setSelectedProfile} 
+                                onViewProfile={handleOpenProfile} 
                                 onBack={() => setActiveTab('matches')} 
                                 onUpdateCurrentUser={(updated) => setCurrentUser(updated)}
                             />
@@ -1558,7 +1636,7 @@ function DashboardContent() {
                                 handleAcceptRequest={handleAcceptRequest}
                                 handleDeclineRequest={handleDeclineRequest}
                                 loading={loading}
-                                onViewProfile={setSelectedProfile}
+                                onViewProfile={handleOpenProfile} 
                                 onNavigateTab={setActiveTab}
                                 connectionsCount={connections.length}
                                 onOpenCallHistory={() => setShowCallHistory(true)}
@@ -1578,7 +1656,7 @@ function DashboardContent() {
                                 setGameTarget={setGameTarget}
                                 setUnreadMessageCount={setUnreadMessageCount}
                                 onOpenStory={(storySet) => setActiveStorySet(storySet)}
-                                onViewProfile={setSelectedProfile}
+                                onViewProfile={handleOpenProfile}
                                 onNavigateTab={setActiveTab}
                                 requestsCount={requestsCount || requests.length}
                                 onOpenCallHistory={() => setShowCallHistory(true)}
@@ -1603,15 +1681,15 @@ function DashboardContent() {
                                         setInitialStoreTab('premium');
                                         setShowCoinStore(true);
                                     }}
-                                    onViewProfile={async (member: any) => {
+                                     onViewProfile={async (member: any) => {
                                         const targetId = member.userId || member.id;
                                         if (!targetId) return;
                                         try {
                                             const fullProfile = await api.profile.getById(targetId);
-                                            setSelectedProfile(fullProfile);
+                                            handleOpenProfile(fullProfile);
                                         } catch (e) {
                                             const matchFound = matches.find((m: any) => m.id === targetId);
-                                            setSelectedProfile(matchFound || {
+                                            handleOpenProfile(matchFound || {
                                                 id: targetId,
                                                 userId: targetId,
                                                 name: member.name,
@@ -2061,7 +2139,7 @@ function DashboardContent() {
                     <ProfileModal
                         profile={profileToShow}
                         currentUser={currentUser}
-                        onClose={() => setSelectedProfile(null)}
+                        onClose={() => handleCloseProfile(false)}
                         onConnect={() => {
                             // Mark this match as pending in-state so "Request Sent" shows immediately
                             setMatches(prev => prev.map(m =>

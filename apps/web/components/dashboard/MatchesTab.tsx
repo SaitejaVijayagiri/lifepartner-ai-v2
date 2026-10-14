@@ -882,7 +882,9 @@ export default function MatchesTab({
                     return (
                         <div
                             key={match.id ? `${match.id}-${idx}` : `match-${idx}`}
-                            className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium"
+                            id={match.id ? `match-card-${match.id}` : `match-card-${idx}`}
+                            data-match-id={match.id}
+                            className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium transition-all duration-300"
                             style={{ animationDelay: `${Math.min(idx, 15) * 50}ms` }}
                         >
                             <MatchCard

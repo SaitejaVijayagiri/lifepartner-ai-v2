@@ -587,6 +587,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploadingMedia, setIsUploadingMedia] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+    const isSendingMediaRef = useRef(false);
+    const isSendingMessageRef = useRef(false);
+    const [nowTime, setNowTime] = useState<number>(Date.now());
     
     // Internal state for partner info to handle missing query params
     const [partnerInfo, setPartnerInfo] = useState(partner);
@@ -1247,8 +1250,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         if (!socket) return;
 
         const handleReceiveMessage = (newMsg: any) => {
+            const myId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
             // Ignore my own messages from socket (handled optimistically)
-            if (newMsg.senderId === 'me' || newMsg.senderId === user?.id) {
+            if (newMsg.senderId === 'me' || newMsg.senderId === myId) {
                 return;
             }
 
@@ -1257,6 +1261,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     // Resolve replyToId -> replyTo object so the receiver sees the reply preview
                     let enrichedMsg = { ...newMsg };
+                    const isIncog = Boolean(newMsg.isIncognito || (typeof newMsg.text === 'string' && newMsg.text.startsWith('[INCOGNITO]')));
+                    if (isIncog) {
+                        enrichedMsg.isIncognito = true;
+                        if (!enrichedMsg.expiresAt) {
+                            enrichedMsg.expiresAt = Date.now() + 30000;
+                        }
+                    }
                     if (newMsg.replyToId && !newMsg.replyTo) {
                         // Prefer the replyToPreview sent directly from the backend (works even if message not yet in local state)
                         if (newMsg.replyToPreview) {
@@ -1422,7 +1433,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         const handleIncognitoToggle = (data: { from: string; enabled: boolean }) => {
             if (data.from === partner.id) {
                 setIsIncognito(data.enabled);
-                toast.info(data.enabled ? `🕵️ ${partnerInfo.name} enabled Incognito Mode` : `🕵️ ${partnerInfo.name} disabled Incognito Mode`);
+                if (!data.enabled) {
+                    setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !(typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'))));
+                    toast.info(`🕵️ ${partnerInfo.name} disabled Incognito Mode. Incognito messages vanished!`);
+                } else {
+                    toast.info(`🕵️ ${partnerInfo.name} enabled Incognito Mode (Messages auto-disappear)`);
+                }
+            }
+        };
+
+        const handleIncognitoVanish = (data: { messageId?: string }) => {
+            if (data?.messageId) {
+                setMessages(prev => prev.filter(m => m.id !== data.messageId));
+            } else {
+                setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !(typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'))));
             }
         };
 
@@ -1432,6 +1456,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         socket.on("music_play_sync", handleMusicSync);
         socket.on("music_stop_sync", handleMusicStopSync);
         socket.on("incognito_toggle", handleIncognitoToggle);
+        socket.on("incognito_vanish", handleIncognitoVanish);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
@@ -1446,12 +1471,47 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("music_play_sync", handleMusicSync);
             socket.off("music_stop_sync", handleMusicStopSync);
             socket.off("incognito_toggle", handleIncognitoToggle);
+            socket.off("incognito_vanish", handleIncognitoVanish);
             if (syncedAudioRef.current) {
                 syncedAudioRef.current.pause();
                 syncedAudioRef.current = null;
             }
         };
     }, [socket, partner.id, user]);
+
+    // Active 1-second interval to tick countdown and vanish expired incognito messages in real time
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const now = Date.now();
+            setNowTime(now);
+            setMessages(prev => {
+                const expiredIds: string[] = [];
+                const remaining = prev.filter(m => {
+                    const isIncog = m.isIncognito || m.is_incognito || (typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'));
+                    if (isIncog) {
+                        const expireAt = m.expiresAt || (m.timestamp ? new Date(m.timestamp).getTime() + 30000 : 0);
+                        if (expireAt > 0 && now >= expireAt) {
+                            if (m.id && !m.id.toString().startsWith('temp-')) {
+                                expiredIds.push(m.id);
+                            }
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+
+                if (expiredIds.length > 0 && socket && partner?.id) {
+                    expiredIds.forEach(id => {
+                        socket.emit("incognito_vanish", { to: partner.id, messageId: id });
+                    });
+                }
+
+                return remaining.length !== prev.length ? remaining : prev;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [socket, partner?.id]);
 
     const prevMsgCountRef = useRef(0);
     const isUserScrollingRef = useRef(false);
@@ -1487,19 +1547,28 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const handleSend = async (e?: React.FormEvent, forcedText?: string) => {
         if (e) e.preventDefault();
 
+        // Concurrency guard: prevent multiple triggers during active media upload
+        if (isSendingMediaRef.current && !forcedText) return;
+
         // High-resiliency Staged Attachment Upload & Dispatch
         if (stagedFile && !forcedText) {
-            const fileToUpload = stagedFile;
-            const previewToClear = stagedPreviewUrl;
-
+            if (isSendingMediaRef.current || isUploadingMedia) return;
+            isSendingMediaRef.current = true;
             setIsUploadingMedia(true);
             setUploadProgress(0);
+
+            const fileToUpload = stagedFile;
+            const previewToClear = stagedPreviewUrl;
+            const captionToSend = inputText;
+
+            // Instantly clear staging states to prevent duplicate upload
+            setStagedFile(null);
+            setStagedPreviewUrl(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+
             try {
                 const res = await api.chat.uploadMedia(fileToUpload, (percent) => setUploadProgress(percent));
                 if (res.url) {
-                    // Instantly clear staging states on success
-                    setStagedFile(null);
-                    setStagedPreviewUrl(null);
                     if (previewToClear) {
                         URL.revokeObjectURL(previewToClear);
                     }
@@ -1510,8 +1579,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     await handleSend(undefined, `${tag}${res.url}`);
                     
                     // If the user had written text, dispatch it sequentially as a caption!
-                    if (inputText.trim()) {
-                        await handleSend(undefined, inputText);
+                    if (captionToSend.trim()) {
+                        setInputText("");
+                        await handleSend(undefined, captionToSend);
                     }
                     toast.success(isVideo ? "Video sent!" : "Photo sent!");
                 }
@@ -1521,6 +1591,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 setStagedFile(fileToUpload);
                 setStagedPreviewUrl(previewToClear);
             } finally {
+                isSendingMediaRef.current = false;
                 setIsUploadingMedia(false);
                 setUploadProgress(null);
             }
@@ -1530,11 +1601,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         const textToSend = forcedText || inputText;
         if (!textToSend.trim()) return;
 
+        if (isSendingMessageRef.current && !forcedText) return;
+        isSendingMessageRef.current = true;
+
         if (!forcedText) setInputText("");
 
         const currentReply = replyTo;
         setReplyTo(null);
 
+        const msgExpiresAt = isIncognito ? (Date.now() + 30000) : undefined;
         const tempMsg = {
             id: 'temp-' + Date.now(),
             text: textToSend,
@@ -1542,20 +1617,32 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             timestamp: new Date(),
             status: 'sending',
             replyTo: currentReply || undefined,
-            isIncognito: isIncognito
+            isIncognito: isIncognito,
+            expiresAt: msgExpiresAt
         };
-        setMessages(prev => [...prev, tempMsg]);
+        setMessages(prev => {
+            // Deduplicate: avoid pushing duplicate tempMsg for identical text in quick succession
+            const exists = prev.some(m => m.id?.toString().startsWith('temp-') && m.text === textToSend && m.senderId === 'me');
+            if (exists) return prev;
+            return [...prev, tempMsg];
+        });
         // Force scroll to bottom on send
         isUserScrollingRef.current = false;
 
         try {
             const response = await api.chat.sendMessage(partner.id, textToSend, currentReply?.id, isIncognito);
             if (response && response.message) {
-                setMessages(prev => prev.map(m => m.id === tempMsg.id ? { ...response.message, replyTo: currentReply || undefined } : m));
+                setMessages(prev => prev.map(m => m.id === tempMsg.id ? { 
+                    ...response.message, 
+                    replyTo: currentReply || undefined,
+                    expiresAt: response.message.expiresAt || msgExpiresAt
+                } : m));
             }
             if (onMessageSent) onMessageSent();
         } catch (err) {
             console.error("Send failed", err);
+        } finally {
+            isSendingMessageRef.current = false;
         }
     };
 
@@ -1871,17 +1958,19 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             onClick={() => {
                                 const nextState = !isIncognito;
                                 setIsIncognito(nextState);
-                                if (socket && partner?.id) {
-                                    socket.emit("incognito_toggle", { to: partner.id, enabled: nextState });
-                                }
-                                if (nextState) {
-                                    toast.success("🕵️ Incognito Mode Activated!");
+                                if (!nextState) {
+                                    setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !(typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'))));
+                                    toast.info("🕵️ Incognito Mode Deactivated. Incognito messages vanished!");
                                 } else {
-                                    toast.info("🕵️ Incognito Mode Deactivated.");
+                                    toast.success("🕵️ Incognito Mode Activated! Messages auto-disappear.");
+                                }
+                                if (socket && partner?.id) {
+                                    const myId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
+                                    socket.emit("incognito_toggle", { to: partner.id, from: myId, enabled: nextState });
                                 }
                             }}
                             className={`p-1.5 sm:p-2 rounded-xl transition-all relative group ${isIncognito ? 'bg-purple-600 text-white shadow-lg animate-pulse' : 'text-purple-200 hover:text-white hover:bg-purple-500/20'}`}
-                            title={isIncognito ? "Incognito Mode Active (Click to disable)" : "Enable Incognito Mode (Disappearing Chat)"}
+                            title={isIncognito ? "Incognito Mode Active (Click to disable and clear secret messages)" : "Enable Incognito Mode (Disappearing Chat)"}
                         >
                             <EyeOff size={18} />
                         </button>
@@ -2120,6 +2209,10 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     // Safe sender determination: Since it's a 1-on-1 chat, if they aren't the partner, they are me.
                     // This completely avoids mobile Capacitor / Safari localStorage sync bugs.
                     const isMe = msg.senderId !== partner.id;
+                    const isIncogMsg = Boolean(msg.isIncognito || msg.is_incognito || (typeof msg.text === 'string' && msg.text.startsWith('[INCOGNITO]')));
+                    const cleanMsgText = typeof msg.text === 'string' && msg.text.startsWith('[INCOGNITO]') ? msg.text.replace('[INCOGNITO]', '') : (msg.text || '');
+                    const msgExpireTime = msg.expiresAt || (msg.timestamp ? new Date(msg.timestamp).getTime() + 30000 : 0);
+                    const remainingSecs = Math.max(0, Math.ceil((msgExpireTime - nowTime) / 1000));
 
                     const msgDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
 
@@ -2196,7 +2289,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                     </div>
                                 )}
 
-                                <div className={`flex flex-col relative ${msg.text.startsWith('[MUSIC_SHARE:') ? 'w-[85%] sm:w-auto max-w-[320px] sm:max-w-[340px]' : 'max-w-[75%]'} ${isMe ? 'items-end' : 'items-start'} ${activeMsgId === msg.id || emojiPickerMsgId === msg.id ? 'z-30' : 'z-0'}`}>
+                                <div className={`flex flex-col relative ${cleanMsgText.startsWith('[MUSIC_SHARE:') ? 'w-[85%] sm:w-auto max-w-[320px] sm:max-w-[340px]' : 'max-w-[75%]'} ${isMe ? 'items-end' : 'items-start'} ${activeMsgId === msg.id || emojiPickerMsgId === msg.id ? 'z-30' : 'z-0'}`}>
                                     {/* Emoji picker popup */}
                                     {emojiPickerMsgId === msg.id && (
                                         <div
@@ -2238,12 +2331,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                         onTouchMove={() => {
                                             if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                                         }}
-                                        className={`relative w-fit text-sm shadow-sm transition-colors duration-150 cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${msg.text.startsWith('[STICKER]')
+                                        className={`relative w-fit text-sm shadow-sm transition-colors duration-150 cursor-pointer select-none ${highlightedMsgId === msg.id ? 'ring-2 ring-amber-400 ring-offset-1 msg-highlight-blink' : ''} ${cleanMsgText.startsWith('[STICKER]')
                                         ? 'bg-transparent shadow-none p-0 max-w-[50%]'
-                                        : msg.text.startsWith('[MUSIC_SHARE:')
+                                        : cleanMsgText.startsWith('[MUSIC_SHARE:')
                                         ? 'bg-transparent shadow-none p-0 w-full'
-                                        : (isMe ? 'px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'px-4 py-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words')
+                                        : (isIncogMsg
+                                            ? 'px-4 py-3 bg-gradient-to-r from-purple-950/90 to-slate-900 border border-purple-500/50 text-purple-100 rounded-2xl shadow-[0_0_15px_rgba(168,85,247,0.25)] whitespace-pre-wrap break-words'
+                                            : (isMe ? 'px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'px-4 py-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words'))
                                         }`}>
+                                        {/* Incognito Disappearing Countdown Banner */}
+                                        {isIncogMsg && (
+                                            <div className="flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded-xl bg-purple-900/60 border border-purple-400/40 text-purple-200 text-[10px] font-extrabold shadow-inner w-fit select-none">
+                                                <EyeOff size={12} className="text-purple-400 animate-pulse shrink-0" />
+                                                <span>Incognito • Vanishing in {remainingSecs}s 🔥</span>
+                                            </div>
+                                        )}
                                         {/* Reply preview inside bubble — polished UI, clickable to scroll to original */}
                                         {(() => {
                                             const replyMsg = msg.replyTo || (msg.replyToId ? messages.find(m => m.id === msg.replyToId) : null);
@@ -2288,8 +2390,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 </div>
                                             );
                                         })()}
-                                        {msg.text.includes('[INSTANT:') ? (() => {
-                                            const rawPayload = msg.text.split('[INSTANT:')[1].split(']')[0];
+                                        {cleanMsgText.includes('[INSTANT:') ? (() => {
+                                            const rawPayload = cleanMsgText.split('[INSTANT:')[1].split(']')[0];
                                             const parts = rawPayload.split(':');
                                             const instantId = parts[0];
                                             const initialUrl = parts[1] ? decodeURIComponent(parts[1]) : null;
@@ -2315,17 +2417,17 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     </button>
                                                 </div>
                                             );
-                                        })() : msg.text.startsWith('[STICKER]') ? (
+                                        })() : cleanMsgText.startsWith('[STICKER]') ? (
                                             <div className="relative group inline-block transition-all duration-300">
                                                 <img 
-                                                    src={msg.text.replace('[STICKER]', '')} 
+                                                    src={cleanMsgText.replace('[STICKER]', '')} 
                                                     className="w-32 h-32 object-contain drop-shadow-lg select-none transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer" 
                                                     alt="sticker" 
                                                 />
                                                 <div className="absolute -top-1 -right-1 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
                                                     <button
                                                         type="button"
-                                                        onClick={(e) => handleSaveStickerToLibrary(msg.text.replace('[STICKER]', ''), e)}
+                                                        onClick={(e) => handleSaveStickerToLibrary(cleanMsgText.replace('[STICKER]', ''), e)}
                                                         className="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
                                                         title="Save to My Stickers Library"
                                                     >
@@ -2333,7 +2435,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={(e) => handleDownloadWebpChat(msg.text.replace('[STICKER]', ''), e)}
+                                                        onClick={(e) => handleDownloadWebpChat(cleanMsgText.replace('[STICKER]', ''), e)}
                                                         className="p-1.5 bg-slate-950/80 border border-white/10 hover:bg-slate-900 text-white rounded-full transition-all hover:scale-110 active:scale-95 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
                                                         title="Download WebP File"
                                                     >
@@ -2341,22 +2443,22 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     </button>
                                                 </div>
                                             </div>
-                                        ) : msg.text.startsWith('[IMAGE]') ? (
-                                            <img src={resolveMediaUrl(msg.text.replace('[IMAGE]', ''))} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: resolveMediaUrl(msg.text.replace('[IMAGE]', '')), type: 'image' })} />
-                                        ) : msg.text.startsWith('[VIDEO]') ? (
-                                            <div className="relative max-w-[220px] sm:max-w-[260px] rounded-xl overflow-hidden mt-1 cursor-pointer group bg-black" onClick={() => setFullscreenMedia({ url: resolveMediaUrl(msg.text.replace('[VIDEO]', '')), type: 'video' })}>
-                                                <video src={resolveMediaUrl(msg.text.replace('[VIDEO]', ''))} className="w-full max-h-[260px] object-cover rounded-xl" controls preload="metadata" />
+                                        ) : cleanMsgText.startsWith('[IMAGE]') ? (
+                                            <img src={resolveMediaUrl(cleanMsgText.replace('[IMAGE]', ''))} className="max-w-[200px] sm:max-w-[250px] max-h-[300px] rounded-xl object-cover cursor-pointer hover:opacity-90 mt-1" alt="attachment" onClick={() => setFullscreenMedia({ url: resolveMediaUrl(cleanMsgText.replace('[IMAGE]', '')), type: 'image' })} />
+                                        ) : cleanMsgText.startsWith('[VIDEO]') ? (
+                                            <div className="relative max-w-[220px] sm:max-w-[260px] rounded-xl overflow-hidden mt-1 cursor-pointer group bg-black" onClick={() => setFullscreenMedia({ url: resolveMediaUrl(cleanMsgText.replace('[VIDEO]', '')), type: 'video' })}>
+                                                <video src={resolveMediaUrl(cleanMsgText.replace('[VIDEO]', ''))} className="w-full max-h-[260px] object-cover rounded-xl" controls preload="metadata" />
                                             </div>
-                                        ) : msg.text.startsWith('[AUDIO]') ? (
-                                            <VoiceNoteWaveformPlayer audioUrl={resolveMediaUrl(msg.text.replace('[AUDIO]', ''))} isMe={isMe} />
-                                        ) : msg.text.startsWith('[MUSIC_SHARE:') ? (() => {
+                                        ) : cleanMsgText.startsWith('[AUDIO]') ? (
+                                            <VoiceNoteWaveformPlayer audioUrl={resolveMediaUrl(cleanMsgText.replace('[AUDIO]', ''))} isMe={isMe} />
+                                        ) : cleanMsgText.startsWith('[MUSIC_SHARE:') ? (() => {
                                             let title = 'Music Track';
                                             let artist = 'Artist';
                                             let coverUrl = '';
                                             let audioUrl = '';
                                             let videoUrl = '';
 
-                                            let rawPayload = msg.text.replace(/^\[MUSIC_SHARE:/, '');
+                                            let rawPayload = cleanMsgText.replace(/^\[MUSIC_SHARE:/, '');
                                             if (rawPayload.endsWith(']')) {
                                                 rawPayload = rawPayload.slice(0, -1);
                                             }
@@ -2399,8 +2501,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     onStartSync={(track) => setActiveSyncedTrack(track)}
                                                 />
                                             );
-                                        })() : msg.text.startsWith('[STORY_REPLY:') ? (() => {
-                                            const parsed = parseStoryReplyText(msg.text);
+                                        })() : cleanMsgText.startsWith('[STORY_REPLY:') ? (() => {
+                                            const parsed = parseStoryReplyText(cleanMsgText);
                                             if (parsed) {
                                                 const { storyUrl, storyType, textsMetadata, cId, cNameEncoded, cPhotoEncoded, replyText } = parsed;
                                                 const isVideo = storyType === 'video';
@@ -2559,9 +2661,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     </div>
                                                 );
                                             }
-                                            return msg.text;
-                                        })() : msg.text.startsWith('[DATE_INVITE:') ? (() => {
-                                            const dateId = msg.text.replace('[DATE_INVITE:', '').replace(']', '');
+                                             return cleanMsgText;
+                                        })() : cleanMsgText.startsWith('[DATE_INVITE:') ? (() => {
+                                            const dateId = cleanMsgText.replace('[DATE_INVITE:', '').replace(']', '');
                                             return (
                                                 <div className="bg-white/10 dark:bg-black/20 p-4 rounded-xl border border-white/20 dark:border-gray-700 min-w-[200px] flex flex-col items-center">
                                                     <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 text-rose-500 rounded-full flex items-center justify-center mb-2">
@@ -2584,8 +2686,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     )}
                                                 </div>
                                             );
-                                        })() : msg.text.startsWith('[DATE_RESPONSE:') ? (() => {
-                                            const parts = msg.text.replace('[DATE_RESPONSE:', '').replace(']', '').split(':');
+                                        })() : cleanMsgText.startsWith('[DATE_RESPONSE:') ? (() => {
+                                            const parts = cleanMsgText.replace('[DATE_RESPONSE:', '').replace(']', '').split(':');
                                             const status = parts[1];
                                             const accepted = status === 'accepted';
                                             const cancelled = status === 'cancelled';
@@ -2616,25 +2718,25 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                 </div>
                                             );
                                         })() : (() => {
-                                            const ytId = getYoutubeId(msg.text);
+                                            const ytId = getYoutubeId(cleanMsgText);
                                             if (ytId) {
                                                 return (
                                                     <div className="flex flex-col gap-2">
-                                                        <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                                                        <p className="whitespace-pre-wrap break-words">{cleanMsgText}</p>
                                                         <YoutubeEmbedCard videoId={ytId} onFullscreen={setFullscreenYoutubeId} />
                                                     </div>
                                                 );
                                             }
-                                            return msg.text;
+                                            return cleanMsgText;
                                         })()}
-                                        <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${msg.text.startsWith('[STICKER]') || msg.text.startsWith('[MUSIC_SHARE:') ? 'text-gray-400 dark:text-gray-500 font-medium drop-shadow-sm px-1' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
+                                        <div className={`text-[10px] mt-1 flex items-center justify-end gap-1 ${cleanMsgText.startsWith('[STICKER]') || cleanMsgText.startsWith('[MUSIC_SHARE:') ? 'text-gray-400 dark:text-gray-500 font-medium drop-shadow-sm px-1' : (isMe ? 'text-white/80' : 'text-gray-400')}`}>
                                             {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                                             {isMe && (
                                                 <div className="flex items-center justify-center">
                                                     {msg.status === 'sending' && <Check size={12} className="opacity-50" />}
                                                     {msg.status === 'sent' && <Check size={12} />}
                                                     {msg.status === 'delivered' && <CheckCheck size={12} />}
-                                                    {msg.status === 'read' && <CheckCheck size={12} className={msg.text.startsWith('[STICKER]') || msg.text.startsWith('[MUSIC_SHARE:') ? 'text-pink-400' : 'text-blue-300'} />}
+                                                    {msg.status === 'read' && <CheckCheck size={12} className={cleanMsgText.startsWith('[STICKER]') || cleanMsgText.startsWith('[MUSIC_SHARE:') ? 'text-pink-400' : 'text-blue-300'} />}
                                                 </div>
                                             )}
                                         </div>
@@ -2989,6 +3091,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             <form
                 onSubmit={e => {
                     e.preventDefault();
+                    if (isUploadingMedia || isSendingMediaRef.current) return;
                     handleSend(e);
                 }}
                 className="p-2 sm:p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-1.5 sm:gap-2 items-center pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] relative"
@@ -3002,7 +3105,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         }}
                     />
                 )}
-                <input type="file" accept="image/*,video/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                <input type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                 {/* 📎 Paperclip Attachment Menu & AI Icebreaker Launcher */}
                 <div className="relative flex-shrink-0" ref={attachmentMenuRef}>
                     {isRecording ? (
@@ -3149,6 +3252,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     type="text"
                     value={inputText}
                     onChange={handleInput}
+                    disabled={isUploadingMedia}
                     placeholder={isIncognito ? "🕵️ Type a secret incognito message..." : (replyTo ? `Reply to ${replyTo.senderName}...` : "Type...")}
                     className={`flex-1 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none transition-all ${
                         isIncognito
@@ -3159,10 +3263,15 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                 <button
                     type="submit"
-                    disabled={!inputText.trim() && !stagedFile}
-                    className="p-2 sm:p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full sm:rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none transition-all flex-shrink-0 cursor-pointer"
+                    disabled={isUploadingMedia || (!inputText.trim() && !stagedFile)}
+                    className="p-2 sm:p-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full sm:rounded-xl hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:hover:shadow-none disabled:cursor-not-allowed transition-all flex-shrink-0 cursor-pointer"
+                    title={isUploadingMedia ? "Uploading attachment..." : "Send Message"}
                 >
-                    <Send className="w-4 h-4 sm:w-5 sm:h-5 relative -ml-0.5 sm:ml-0" />
+                    {isUploadingMedia ? (
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                        <Send className="w-4 h-4 sm:w-5 sm:h-5 relative -ml-0.5 sm:ml-0" />
+                    )}
                 </button>
             </form>
 

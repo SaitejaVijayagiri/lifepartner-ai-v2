@@ -554,7 +554,15 @@ export const initSocket = (httpServer: HttpServer) => {
 
         socket.on("incognito_toggle", (data) => {
             if (data?.to) {
-                io.to(data.to).emit("incognito_toggle", { ...data, from: userId });
+                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+                io.to(data.to).emit("incognito_toggle", { ...data, from: senderId });
+            }
+        });
+
+        socket.on("incognito_vanish", (data) => {
+            if (data?.to) {
+                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+                io.to(data.to).emit("incognito_vanish", { ...data, from: senderId });
             }
         });
 

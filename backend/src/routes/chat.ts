@@ -181,6 +181,36 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "You cannot message this user." });
         }
 
+        // DEBOUNCE / IDEMPOTENCY: Prevent rapid duplicate messages (especially multi-sent videos or accidental double clicks)
+        const recentDuplicate = await prisma.messages.findFirst({
+            where: {
+                sender_id: senderId,
+                receiver_id: connectionId,
+                content: dbContent,
+                created_at: {
+                    gte: new Date(Date.now() - 2500) // 2.5s window
+                }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        if (recentDuplicate) {
+            console.warn(`[Chat Send] Debounced duplicate message from ${senderId} to ${connectionId}`);
+            return res.json({
+                success: true,
+                message: {
+                    id: recentDuplicate.id,
+                    text: cleanText,
+                    senderId,
+                    timestamp: recentDuplicate.created_at,
+                    status: "sent",
+                    replyToId: replyToId || null,
+                    isIncognito: !!isIncognito,
+                    expiresAt: isIncognito ? (Date.now() + 30000) : undefined
+                }
+            });
+        }
+
         let finalContent = dbContent;
         let newMessageRecord;
         try {
@@ -224,7 +254,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             timestamp: newMessageRecord.created_at,
             status: "sent",
             replyToId: replyToId || null,
-            isIncognito: !!isIncognito
+            isIncognito: !!isIncognito,
+            expiresAt: isIncognito ? (Date.now() + 30000) : undefined
         };
 
         // Auto-connect interaction so user appears in Connections list

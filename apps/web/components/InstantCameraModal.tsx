@@ -42,6 +42,7 @@ export default function InstantCameraModal({
     const [selectedFilter, setSelectedFilter] = useState('none');
     const [selectedMusicTrack, setSelectedMusicTrack] = useState<{ title: string; artist: string; coverUrl: string; audioUrl: string } | null>(initialMusicTrack);
     const [isUploading, setIsUploading] = useState(false);
+    const isSubmittingRef = useRef(false);
     const [cameraError, setCameraError] = useState<string | null>(null);
     const [zoom, setZoom] = useState<number>(1);
 
@@ -216,8 +217,8 @@ export default function InstantCameraModal({
 
     // Post / Send Instant Snap
     const submitInstant = async () => {
-        if (!capturedImage) return;
-
+        if (!capturedImage || isUploading || isSubmittingRef.current) return;
+        isSubmittingRef.current = true;
         setIsUploading(true);
         try {
             const finalCaption = selectedMusicTrack
@@ -241,6 +242,7 @@ export default function InstantCameraModal({
             console.error('[InstantCamera] Upload error:', err);
             toast.error(err.message || 'Failed to send Instant Snap.');
         } finally {
+            isSubmittingRef.current = false;
             setIsUploading(false);
         }
     };

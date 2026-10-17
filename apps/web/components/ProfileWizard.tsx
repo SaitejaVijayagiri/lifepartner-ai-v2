@@ -43,7 +43,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
         // Career
         education: "Bachelor's", profession: '', income: '', company: '',
         // Family
-        familyType: 'Nuclear', familyValues: 'Moderate', fatherOccupation: '', motherTongue: 'Hindi', maritalStatus: 'Single',
+        familyType: 'Nuclear', familyValues: 'Moderate', fatherOccupation: '', motherTongue: 'English', maritalStatus: 'Single',
         // Lifestyle
         diet: 'Vegetarian', smoke: 'No', drink: 'No',
         // Partner
@@ -208,7 +208,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     },
                     motherTongue: data.motherTongue,
                     aboutMe: data.aboutMe || '',
-                    maritalStatus: data.maritalStatus || 'Single'
+                    maritalStatus: data.maritalStatus || 'Single',
+                    managed_by: data.managed_by || 'Self',
+                    photo_privacy: data.photo_privacy || 'public'
                 }).catch((e: any) => console.warn('Intermediate profile auto-save:', e?.message));
             } catch (_) {}
         }
@@ -331,6 +333,35 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                             )}
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="col-span-1 md:col-span-2 space-y-2">
+                                    <label className="text-sm font-bold dark:text-gray-200">This profile is managed by</label>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {[
+                                            { label: 'Self', icon: '👤', desc: 'Candidate' },
+                                            { label: 'Parent', icon: '👨‍👩‍👧', desc: 'Father / Mother' },
+                                            { label: 'Sibling', icon: '👫', desc: 'Brother / Sister' },
+                                            { label: 'Relative', icon: '🤝', desc: 'Relative / Friend' }
+                                        ].map(m => (
+                                            <button
+                                                key={m.label}
+                                                type="button"
+                                                onClick={() => update('managed_by', m.label)}
+                                                className={`p-2.5 rounded-xl text-left border transition-all flex flex-col justify-center cursor-pointer ${
+                                                    (data.managed_by || 'Self') === m.label
+                                                        ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-300 shadow-sm'
+                                                        : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm">
+                                                    <span>{m.icon}</span>
+                                                    <span>{m.label}</span>
+                                                </div>
+                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{m.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div className="col-span-1 md:col-span-2 space-y-2">
                                     <label className="text-sm font-bold dark:text-gray-200">Select Your Gender *</label>
                                     <div className="grid grid-cols-2 gap-3">
@@ -512,22 +543,29 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
 
                                 <Input
-                                    label="Caste / Community (Optional)"
-                                    placeholder="e.g. Brahmin, Reddy, Patel, Khan, etc."
+                                    label={data.country && data.country !== 'India' ? "Community / Ethnicity (Optional)" : "Caste / Community (Optional)"}
+                                    placeholder={data.country && data.country !== 'India' ? "e.g. Irish, Caucasian, Hispanic, Asian, etc." : "e.g. Brahmin, Reddy, Patel, Khan, etc."}
                                     value={data.caste || ''}
                                     onChange={e => update('caste', e.target.value)}
                                 />
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Mother Tongue (Optional)</label>
+                                    <label className="text-sm font-medium dark:text-gray-200">Mother Tongue / Language (Optional)</label>
                                     <select
                                         className="flex h-10 w-full rounded-md border border-gray-300 dark:border-gray-700 bg-transparent dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                                        value={data.motherTongue || "Hindi"}
+                                        value={data.motherTongue || "English"}
                                         onChange={e => update('motherTongue', e.target.value)}
                                     >
-                                        {["Hindi", "Telugu", "Tamil", "Marathi", "Bengali", "Kannada", "Gujarati", "Punjabi", "Malayalam", "Odia", "Urdu", "Assamese", "English", "Other"].map(lang => (
-                                            <option key={lang} value={lang}>{lang}</option>
-                                        ))}
+                                        <optgroup label="Global & International">
+                                            {["English", "Spanish", "French", "German", "Arabic", "Portuguese", "Italian", "Russian", "Japanese", "Mandarin Chinese", "Irish", "Dutch", "Korean", "Turkish", "Polish", "Tagalog", "Vietnamese", "Indonesian", "Persian"].map(lang => (
+                                                <option key={lang} value={lang}>{lang}</option>
+                                            ))}
+                                        </optgroup>
+                                        <optgroup label="Indian & South Asian">
+                                            {["Hindi", "Telugu", "Tamil", "Marathi", "Bengali", "Kannada", "Gujarati", "Punjabi", "Malayalam", "Odia", "Urdu", "Assamese", "Nepali", "Sindhi", "Konkani", "Kashmiri", "Other"].map(lang => (
+                                                <option key={lang} value={lang}>{lang}</option>
+                                            ))}
+                                        </optgroup>
                                     </select>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
@@ -560,13 +598,22 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         if (!files) return;
 
                                         const currentPhotos = data.photos || [];
-                                        if (currentPhotos.length >= 5) {
+                                        const isImportedGoogle = (p: string) => typeof p === 'string' && p.includes('googleusercontent.com');
+                                        const isDicebear = (p: string) => typeof p === 'string' && p.includes('dicebear.com');
+
+                                        // If current photos only contain the default imported Google avatar or placeholder,
+                                        // treat as empty so the new photo replaces it
+                                        const basePhotos = (currentPhotos.length === 1 && (isImportedGoogle(currentPhotos[0]) || isDicebear(currentPhotos[0])))
+                                            ? []
+                                            : currentPhotos.filter((p: string) => !isDicebear(p));
+
+                                        if (basePhotos.length >= 5) {
                                             toast.error('Maximum 5 photos allowed. Remove one to add more.');
                                             return;
                                         }
 
                                         const newPhotos: string[] = [];
-                                        const slotsLeft = 5 - currentPhotos.length;
+                                        const slotsLeft = 5 - basePhotos.length;
 
                                         for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
                                             const file = files[i];
@@ -602,7 +649,12 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                                             if (base64) newPhotos.push(base64);
                                         }
-                                        update('photos', [...currentPhotos, ...newPhotos]);
+
+                                        if (newPhotos.length > 0) {
+                                            // Put new photos first and discard any imported Google placeholder avatar
+                                            const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
+                                            update('photos', [...newPhotos, ...cleanExisting]);
+                                        }
                                     }}
                                 />
                                 <div className="w-20 h-20 bg-white dark:bg-gray-800 shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>
@@ -660,6 +712,31 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </div>
                                 </div>
                             )}
+
+                            {/* Photo Privacy & Safety Shield */}
+                            <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 border border-pink-200 dark:border-pink-800/60 text-left mt-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-base">🛡️</span>
+                                            <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">Photo Privacy Shield</span>
+                                            <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300">Safety First</span>
+                                        </div>
+                                        <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                                            Keep your photos blurred until you accept a connection request from a member.
+                                        </p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={data.photo_privacy === 'blurred_until_accept'}
+                                            onChange={(e) => update('photo_privacy', e.target.checked ? 'blurred_until_accept' : 'public')}
+                                        />
+                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     )}
 

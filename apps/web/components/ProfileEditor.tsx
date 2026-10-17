@@ -383,12 +383,21 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 if (!files || files.length === 0) return;
 
                                 const currentPhotos = formData.photos || [];
-                                if (currentPhotos.length >= 5) {
+                                const isImportedGoogle = (p: string) => typeof p === 'string' && p.includes('googleusercontent.com');
+                                const isDicebear = (p: string) => typeof p === 'string' && p.includes('dicebear.com');
+
+                                // If current photos only contain the default imported Google avatar or placeholder,
+                                // treat as empty so the new photo replaces it
+                                const basePhotos = (currentPhotos.length === 1 && (isImportedGoogle(currentPhotos[0]) || isDicebear(currentPhotos[0])))
+                                    ? []
+                                    : currentPhotos.filter((p: string) => !isDicebear(p));
+
+                                if (basePhotos.length >= 5) {
                                     toast.error('Maximum 5 photos allowed. Remove one to add more.');
                                     return;
                                 }
 
-                                const slotsLeft = 5 - currentPhotos.length;
+                                const slotsLeft = 5 - basePhotos.length;
                                 const newPhotos: string[] = [];
 
                                 for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
@@ -427,14 +436,15 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     if (base64) newPhotos.push(base64);
                                 }
 
-                                // Append new photos to existing
-                                const updatedPhotos = [...currentPhotos, ...newPhotos];
-                                setFormData((prev: any) => ({
-                                    ...prev,
-                                    photos: updatedPhotos
-                                    // Note: DO NOT set photoUrl here if it's base64
-                                    // The backend derives finalPhotoUrl from the processed photos[] array
-                                }));
+                                if (newPhotos.length > 0) {
+                                    // Put new photos first and discard any imported Google placeholder avatar
+                                    const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
+                                    const updatedPhotos = [...newPhotos, ...cleanExisting].slice(0, 5);
+                                    setFormData((prev: any) => ({
+                                        ...prev,
+                                        photos: updatedPhotos
+                                    }));
+                                }
                             }}
                         />
                         <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -502,6 +512,31 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                             })}
                         </div>
                     )}
+
+                    {/* Women & User Safety: Photo Privacy Control */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-indigo-500/10 border border-pink-200 dark:border-pink-800/60 mt-3">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-base">🛡️</span>
+                                    <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">Photo Privacy Shield</span>
+                                    <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300">Safety First</span>
+                                </div>
+                                <p className="text-[11px] text-gray-600 dark:text-gray-400">
+                                    Keep your photos blurred until you accept a connection request from a member.
+                                </p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer ml-3 shrink-0">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={formData.photo_privacy === 'blurred_until_accept'}
+                                    onChange={(e) => handleChange('root', 'photo_privacy', e.target.checked ? 'blurred_until_accept' : 'public')}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-pink-600"></div>
+                            </label>
+                        </div>
+                    </div>
                 </div>
 
                 {/* About Me */}
@@ -655,45 +690,74 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 <option value="Awaiting Divorce">Awaiting Divorce</option>
                             </select>
                         </div>
+                        {/* Profile Managed By (Trust Signal) */}
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Profile Managed By</label>
+                            <select
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
+                                value={formData.managed_by || formData.managedBy || 'Self'}
+                                onChange={e => handleChange('root', 'managed_by', e.target.value)}
+                            >
+                                <option value="Self">Self (Candidate)</option>
+                                <option value="Parent">Parent (Father / Mother)</option>
+                                <option value="Sibling">Sibling (Brother / Sister)</option>
+                                <option value="Relative">Relative</option>
+                                <option value="Friend">Friend</option>
+                            </select>
+                        </div>
                         {/* Mother Tongue */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mother Tongue / Language</label>
                             <select className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500" value={formData.motherTongue || ''} onChange={e => handleChange('root', 'motherTongue', e.target.value)}>
                                 <option value="">Select Language</option>
-                                <option>Assamese</option>
-                                <option>Bengali</option>
-                                <option>Bhojpuri</option>
-                                <option>Bodo</option>
-                                <option>Chhattisgarhi</option>
-                                <option>Dogri</option>
-                                <option>English</option>
-                                <option>Gujarati</option>
-                                <option>Haryanvi</option>
-                                <option>Hindi</option>
-                                <option>Kannada</option>
-                                <option>Kashmiri</option>
-                                <option>Khasi</option>
-                                <option>Konkani</option>
-                                <option>Kumaoni</option>
-                                <option>Ladakhi</option>
-                                <option>Maithili</option>
-                                <option>Malayalam</option>
-                                <option>Manipuri (Meitei)</option>
-                                <option>Marathi</option>
-                                <option>Mizo</option>
-                                <option>Nagamese</option>
-                                <option>Nepali</option>
-                                <option>Odia</option>
-                                <option>Punjabi</option>
-                                <option>Rajasthani</option>
-                                <option>Sanskrit</option>
-                                <option>Santali</option>
-                                <option>Sindhi</option>
-                                <option>Tamil</option>
-                                <option>Telugu</option>
-                                <option>Tulu</option>
-                                <option>Urdu</option>
-                                <option>Other</option>
+                                <optgroup label="Global & International">
+                                    <option>English</option>
+                                    <option>Spanish</option>
+                                    <option>French</option>
+                                    <option>German</option>
+                                    <option>Arabic</option>
+                                    <option>Portuguese</option>
+                                    <option>Italian</option>
+                                    <option>Russian</option>
+                                    <option>Japanese</option>
+                                    <option>Mandarin Chinese</option>
+                                    <option>Irish</option>
+                                    <option>Dutch</option>
+                                    <option>Korean</option>
+                                    <option>Turkish</option>
+                                    <option>Polish</option>
+                                    <option>Tagalog</option>
+                                    <option>Vietnamese</option>
+                                    <option>Indonesian</option>
+                                    <option>Persian</option>
+                                </optgroup>
+                                <optgroup label="Indian & South Asian">
+                                    <option>Hindi</option>
+                                    <option>Telugu</option>
+                                    <option>Tamil</option>
+                                    <option>Marathi</option>
+                                    <option>Bengali</option>
+                                    <option>Kannada</option>
+                                    <option>Gujarati</option>
+                                    <option>Punjabi</option>
+                                    <option>Malayalam</option>
+                                    <option>Odia</option>
+                                    <option>Urdu</option>
+                                    <option>Assamese</option>
+                                    <option>Bhojpuri</option>
+                                    <option>Bodo</option>
+                                    <option>Dogri</option>
+                                    <option>Haryanvi</option>
+                                    <option>Kashmiri</option>
+                                    <option>Konkani</option>
+                                    <option>Maithili</option>
+                                    <option>Manipuri (Meitei)</option>
+                                    <option>Nepali</option>
+                                    <option>Rajasthani</option>
+                                    <option>Sindhi</option>
+                                    <option>Tulu</option>
+                                    <option>Other</option>
+                                </optgroup>
                             </select>
                         </div>
                         {/* Date of Birth (Calculates Age) */}

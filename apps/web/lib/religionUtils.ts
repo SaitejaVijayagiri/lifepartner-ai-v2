@@ -7,7 +7,11 @@ export const RELIGION_SYMBOLS: Record<string, string> = {
     'Sikh': '🛕',
     'Jain': '🔆',
     'Buddhist': '☸️',
+    'Jewish': '✡️',
     'Parsi': '🔥',
+    'Spiritual': '✨',
+    'Agnostic': '⚛️',
+    'Atheist': '🌌',
     'Other': '🙏',
 };
 

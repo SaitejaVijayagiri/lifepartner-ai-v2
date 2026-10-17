@@ -28,7 +28,10 @@ export interface FilterState {
 }
 
 const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', 'Parsi', 'Other'];
-const MOTHER_TONGUES = ['Assamese', 'Bengali', 'Bhojpuri', 'Bodo', 'Chhattisgarhi', 'Dogri', 'English', 'Gujarati', 'Haryanvi', 'Hindi', 'Kannada', 'Kashmiri', 'Khasi', 'Konkani', 'Kumaoni', 'Ladakhi', 'Maithili', 'Malayalam', 'Manipuri (Meitei)', 'Marathi', 'Mizo', 'Nagamese', 'Nepali', 'Odia', 'Punjabi', 'Rajasthani', 'Sanskrit', 'Santali', 'Sindhi', 'Tamil', 'Telugu', 'Tulu', 'Urdu', 'Other'];
+const MOTHER_TONGUES = [
+    'English', 'Spanish', 'French', 'German', 'Arabic', 'Portuguese', 'Italian', 'Russian', 'Japanese', 'Mandarin Chinese', 'Irish', 'Dutch', 'Korean', 'Turkish', 'Polish', 'Tagalog', 'Vietnamese', 'Indonesian', 'Persian',
+    'Hindi', 'Telugu', 'Tamil', 'Marathi', 'Bengali', 'Kannada', 'Gujarati', 'Punjabi', 'Malayalam', 'Odia', 'Urdu', 'Assamese', 'Nepali', 'Sindhi', 'Konkani', 'Other'
+];
 const DIETS = ['Vegetarian', 'Non-Vegetarian', 'Eggetarian', 'Vegan'];
 const EDUCATION = ['High School', 'Bachelor\'s', 'Master\'s', 'PhD', 'Professional Degree'];
 const MARITAL_STATUS = ['Single', 'Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];

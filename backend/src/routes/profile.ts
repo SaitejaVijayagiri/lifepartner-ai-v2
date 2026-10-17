@@ -379,9 +379,13 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
             muted_users: meta.muted_users || [],
             emergency_contact: meta.emergency_contact || null,
+            photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+            managed_by: meta.managed_by || meta.managedBy || 'Self',
             metadata: {
                 ...meta,
-                emergency_contact: meta.emergency_contact || null
+                emergency_contact: meta.emergency_contact || null,
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                managed_by: meta.managed_by || meta.managedBy || 'Self'
             },
 
             // Profile Completeness Engine
@@ -745,6 +749,9 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             match_status: matchStatus,
             is_liked: isLiked,
             isOnline: isUserOnline(user.id),
+            photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+            isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && user.id !== requesterId,
+            managed_by: meta.managed_by || meta.managedBy || 'Self',
             ...contactInfo,
             isContactUnlocked: isRequesterPremium
         });
@@ -778,6 +785,10 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             savedStickers,
             interests, // Added interests/hobbies
             emergency_contact,
+            photo_privacy,
+            photoPrivacy,
+            managed_by,
+            managedBy,
             metadata: rawMetadata
         } = req.body;
 
@@ -843,13 +854,22 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
+        // If user has custom uploaded photos (Cloudinary, Supabase, base64),
+        // strip any imported Google placeholder avatar so real photos are prioritized as main photo
+        const hasCustomPhotos = finalPhotos.some((p: string) =>
+            typeof p === 'string' && (p.includes('cloudinary') || p.includes('supabase') || p.startsWith('data:image') || p.startsWith('/uploads/'))
+        );
+        if (hasCustomPhotos) {
+            finalPhotos = finalPhotos.filter((p: string) => typeof p === 'string' && !p.includes('googleusercontent.com'));
+        }
+
         // Derive finalPhotoUrl: never allow saving an empty string ""
         let finalPhotoUrl: string;
         if (finalPhotos.length > 0 && typeof finalPhotos[0] === 'string' && finalPhotos[0].trim()) {
             finalPhotoUrl = finalPhotos[0].trim();
-        } else if (photoUrl && typeof photoUrl === 'string' && photoUrl.trim()) {
+        } else if (photoUrl && typeof photoUrl === 'string' && photoUrl.trim() && (!hasCustomPhotos || !photoUrl.includes('googleusercontent.com'))) {
             finalPhotoUrl = photoUrl.trim();
-        } else if (existingUser?.avatar_url && existingUser.avatar_url.trim()) {
+        } else if (existingUser?.avatar_url && existingUser.avatar_url.trim() && (!hasCustomPhotos || !existingUser.avatar_url.includes('googleusercontent.com'))) {
             finalPhotoUrl = existingUser.avatar_url.trim();
         } else {
             const seed = (name || existingUser?.full_name || userId || 'Member').trim();
@@ -991,13 +1011,21 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         full_name: name || undefined, // COALESCE equivalent: standard undefined ignored
                         age: finalAge,
                         gender: finalGender,
-                        location_name: location?.city ? `${location.city}, ${location.country || ''}`.trim().replace(/,$/, '') : undefined, // Better location string
+                        location_name: (() => {
+                            const c = location?.city?.trim();
+                            const s = location?.state?.trim();
+                            const co = location?.country?.trim();
+                            if (c && co && c.toLowerCase() === co.toLowerCase()) {
+                                return s ? `${s}, ${co}` : co;
+                            }
+                            return c ? `${c}, ${co || ''}`.trim().replace(/,$/, '') : (s && co ? `${s}, ${co}` : undefined);
+                        })(),
                         avatar_url: finalPhotoUrl,
                         email: email?.trim() ? email.trim() : undefined, // FIX: Never allow explicitly saving a blank email
                         phone: phone || undefined,
-                        city: location?.city,
-                        district: location?.district,
-                        state: location?.state,
+                        city: location?.city?.trim(),
+                        district: location?.district?.trim(),
+                        state: location?.state?.trim(),
                         ...(isFemaleUser ? { free_direct_messages: 999999, is_premium: true } : {})
                     }
                 });
@@ -1029,6 +1057,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     savedStickers,
                     interests: interests || (lifestyle?.hobbies ? (typeof lifestyle.hobbies === 'string' ? lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : lifestyle.hobbies) : undefined),
                     emergency_contact: emergencyContact || existingMeta?.emergency_contact || undefined,
+                    photo_privacy: photo_privacy || photoPrivacy || rawMetadata?.photo_privacy || existingMeta?.photo_privacy || 'public',
+                    managed_by: managed_by || managedBy || rawMetadata?.managed_by || existingMeta?.managed_by || 'Self',
                     onboarding_completed: true,
                     age: finalAge || existingMeta?.age || undefined,
                     gender: finalGender || existingMeta?.gender || undefined

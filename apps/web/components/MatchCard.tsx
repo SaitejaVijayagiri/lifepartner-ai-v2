@@ -59,6 +59,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
     // Derived states
     const isConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (matchStatus === 'accepted' || matchStatus === 'connected');
+    const isPhotoBlurred = Boolean(match.isBlurred && !isConnected);
     const isRequestSent = matchStatus === 'pending';
     const hasLiked = isLiked;
 
@@ -269,7 +270,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 <img
                     src={photos[currentPhotoIndex] || photos[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`}
                     alt={match.name || 'Member'}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu"
+                    className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu ${isPhotoBlurred ? 'blur-2xl scale-110 filter' : ''}`}
                     loading="eager"
                     decoding="async"
                     onError={(e) => {
@@ -280,8 +281,24 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     }}
                 />
 
+                {/* Privacy Shield Blurred Overlay */}
+                {isPhotoBlurred && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md p-6 text-center select-none pointer-events-none">
+                        <div className="w-14 h-14 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2.5 shadow-lg shadow-pink-500/10 animate-pulse">
+                            <span className="text-2xl">🔒</span>
+                        </div>
+                        <span className="text-white font-black text-sm tracking-wide">Photo Private</span>
+                        <span className="text-white/80 text-xs mt-1 max-w-[200px] leading-relaxed">
+                            Connect to view full profile photos
+                        </span>
+                        <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-900/60 text-pink-200 border border-pink-400/30">
+                            🛡️ Privacy Shield
+                        </span>
+                    </div>
+                )}
+
                 {/* Intuitive Touch/Tap Navigation Regions (Left 35% prev, Right 35% next) */}
-                {photos.length > 1 && (
+                {!isPhotoBlurred && photos.length > 1 && (
                     <div className="absolute inset-x-0 top-0 h-[60%] z-20 flex pointer-events-auto">
                         <div
                             className="w-[35%] h-full"
@@ -311,7 +328,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                 )}
 
                 {/* Photo Progress Bar & Counter (Card Style) */}
-                {photos.length > 1 && (
+                {!isPhotoBlurred && photos.length > 1 && (
                     <>
                         <div className="absolute top-2 left-3 right-3 flex gap-1 z-30 transition-opacity">
                             {photos.map((_url: string, idx: number) => (
@@ -517,6 +534,12 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                     </span>
                                 )}
                             </>
+                        )}
+                        {/* Managed By Trust Badge */}
+                        {Boolean(match.managed_by && match.managed_by !== 'Self') && (
+                            <span className="inline-flex items-center gap-1 text-teal-200 text-[10px] font-bold bg-teal-950/80 border border-teal-400/40 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md shadow-sm" title={`Profile managed by ${match.managed_by}`}>
+                                {match.managed_by === 'Parent' ? '👨‍👩‍👧 By Parent' : match.managed_by === 'Sibling' ? '👫 By Sibling' : `👤 By ${match.managed_by}`}
+                            </span>
                         )}
                         {/* Profile ID / Matrimony ID Badge */}
                         {(match.profile_id || match.profileId || match.referral_code) && (

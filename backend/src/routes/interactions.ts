@@ -1229,6 +1229,20 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
 
         const totalLikes = likes.length;
 
+        // Check accepted connections for photo privacy shield
+        const acceptedConns = await prisma.interactions.findMany({
+            where: {
+                OR: [
+                    { from_user_id: userId, status: 'accepted' },
+                    { to_user_id: userId, status: 'accepted' }
+                ]
+            },
+            select: { from_user_id: true, to_user_id: true }
+        });
+        const connectedIds = new Set(
+            acceptedConns.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
+        );
+
         // Map Results
         const formattedLikes = likes.map(r => {
             const u = r.users_matches_user_a_idTousers;
@@ -1236,7 +1250,8 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
 
             const meta = (u.profiles?.metadata as any) || {};
 
-            const isBlurred = false;
+            const isPhotoPrivacyShield = (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && !connectedIds.has(u.id);
+            const isBlurred = !isPremium || isPhotoPrivacyShield;
 
             return {
                 id: u.id,
@@ -1246,7 +1261,9 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: getLocationString(u),
                 profession: meta.career?.profession || "Member",
-                isBlurred: false,
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: isBlurred,
+                managed_by: meta.managed_by || meta.managedBy || 'Self',
                 likedAt: r.created_at,
                 career: meta.career || {},
                 family: meta.family || {},
@@ -1513,11 +1530,26 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
             }
         });
 
+        // Check accepted connections for photo privacy shield
+        const acceptedVisitorConns = await prisma.interactions.findMany({
+            where: {
+                OR: [
+                    { from_user_id: userId, status: 'accepted' },
+                    { to_user_id: userId, status: 'accepted' }
+                ]
+            },
+            select: { from_user_id: true, to_user_id: true }
+        });
+        const connectedVisitorIds = new Set(
+            acceptedVisitorConns.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
+        );
+
         const formattedVisitors = visitors.map(r => {
             const u = r.users_interactions_from_user_idTousers;
             if (!u) return null; // Safe guard
 
             const meta = (u.profiles?.metadata as any) || {};
+            const isPhotoPrivacyShield = (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && !connectedVisitorIds.has(u.id);
 
             return {
                 id: u.id,
@@ -1527,8 +1559,10 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
                 photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: getLocationString(u),
                 profession: meta.career?.profession || "Member",
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 viewedAt: r.created_at,
-                isBlurred: false,
+                isBlurred: isPhotoPrivacyShield,
+                managed_by: meta.managed_by || meta.managedBy || 'Self',
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},

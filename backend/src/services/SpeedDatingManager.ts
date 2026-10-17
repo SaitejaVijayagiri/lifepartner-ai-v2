@@ -9,6 +9,9 @@ interface QueuedUser {
     name: string;
     photoUrl: string;
     location: string;
+    country: string;
+    motherTongue: string;
+    interests: string[];
     age: number;
     joinedAt: number;
 }
@@ -46,10 +49,19 @@ export class SpeedDatingManager {
             return;
         }
 
-        // Fetch User Gender and Details
+        // Fetch User Gender, Location, and Profile Metadata
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true, age: true, full_name: true, avatar_url: true, city: true, state: true, location_name: true }
+            select: {
+                gender: true,
+                age: true,
+                full_name: true,
+                avatar_url: true,
+                city: true,
+                state: true,
+                location_name: true,
+                profiles: { select: { metadata: true } }
+            }
         });
 
         if (!user || !user.gender || !user.full_name) {
@@ -57,9 +69,13 @@ export class SpeedDatingManager {
             return;
         }
 
+        const meta = (user.profiles?.metadata as any) || {};
         const gender = user.gender.toLowerCase();
         const effectiveTargetGender = targetGender || (gender === 'male' ? 'female' : 'male');
         const locString = user.city ? (user.state ? `${user.city}, ${user.state}` : user.city) : (user.location_name || 'Verified Location');
+        const country = meta.location?.country || (user.state || user.city ? 'India' : 'Global');
+        const motherTongue = meta.motherTongue || '';
+        const interests = Array.isArray(meta.interests) ? meta.interests : [];
 
         const queuedUser: QueuedUser = {
             socketId: socket.id,
@@ -69,6 +85,9 @@ export class SpeedDatingManager {
             name: user.full_name,
             photoUrl: user.avatar_url || '',
             location: locString,
+            country: country,
+            motherTongue: motherTongue,
+            interests: interests,
             age: user.age || 24,
             joinedAt: Date.now()
         };
@@ -85,7 +104,7 @@ export class SpeedDatingManager {
         socket.join('speed_dating_lobby');
         socket.emit('speed_date_joined', { message: "Joined Lobby. Searching for an instant match..." });
         
-        console.log(`[SPEED DATING] ${userId} (${gender}, seeking ${effectiveTargetGender}) joined. Lobby Stats: M:${this.maleQueue.size} F:${this.femaleQueue.size}`);
+        console.log(`[SPEED DATING] ${userId} (${gender}, seeking ${effectiveTargetGender}, ${country}, ${motherTongue || 'All'}) joined. Lobby Stats: M:${this.maleQueue.size} F:${this.femaleQueue.size}`);
         this.broadcastLobbyStats();
 
         // Trigger Zero-Wait Instant Matchmaking immediately
@@ -138,13 +157,69 @@ export class SpeedDatingManager {
 
         const males = Array.from(this.maleQueue.values());
         const females = Array.from(this.femaleQueue.values());
+        const now = Date.now();
 
-        // 1. Peer-to-Peer Socket Matching
+        // 1. Peer-to-Peer Socket Matching with MNC Proximity, Language & Affinity Intelligence
         for (const maleUser of males) {
-            const candidateIndex = females.findIndex(f => 
+            const eligibleFemales = females.filter(f => 
                 (maleUser.targetGender === 'any' || maleUser.targetGender === 'female') &&
                 (f.targetGender === 'any' || f.targetGender === 'male')
             );
+
+            if (eligibleFemales.length === 0) continue;
+
+            // Score each eligible female candidate against the male user
+            const scoredCandidates = eligibleFemales.map(f => {
+                let affinity = 50;
+
+                // A. Country / Location Affinity
+                const mCountry = (maleUser.country || '').trim().toLowerCase();
+                const fCountry = (f.country || '').trim().toLowerCase();
+                if (mCountry && fCountry && mCountry === fCountry) {
+                    affinity += 40;
+                } else if (mCountry && fCountry && mCountry !== 'india' && fCountry !== 'india') {
+                    affinity += 20; // Shared international diaspora
+                }
+
+                // B. Language Affinity
+                const mLang = (maleUser.motherTongue || '').trim().toLowerCase();
+                const fLang = (f.motherTongue || '').trim().toLowerCase();
+                if (mLang && fLang && mLang === fLang) {
+                    affinity += 30;
+                } else if (mLang === 'english' || fLang === 'english') {
+                    affinity += 15;
+                }
+
+                // C. Age Compatibility
+                const ageDiff = Math.abs((maleUser.age || 25) - (f.age || 24));
+                if (ageDiff <= 3) {
+                    affinity += 20;
+                } else if (ageDiff <= 6) {
+                    affinity += 10;
+                }
+
+                // D. Shared Interests
+                if (Array.isArray(maleUser.interests) && Array.isArray(f.interests)) {
+                    const shared = maleUser.interests.filter(i => f.interests.includes(i));
+                    affinity += Math.min(shared.length * 5, 15);
+                }
+
+                // E. Graceful Waiting Time Boost (Ensures no user waits endlessly in queue)
+                const maxWait = Math.max(now - maleUser.joinedAt, now - f.joinedAt);
+                if (maxWait > 30000) {
+                    affinity += 100;
+                } else if (maxWait > 15000) {
+                    affinity += 50;
+                }
+
+                return { candidate: f, score: affinity };
+            });
+
+            // Pick the highest scoring candidate
+            scoredCandidates.sort((a, b) => b.score - a.score);
+            const bestCandidate = scoredCandidates[0].candidate;
+
+            const candidateIndex = females.findIndex(f => f.userId === bestCandidate.userId);
 
             if (candidateIndex > -1) {
                 const femaleUser = females.splice(candidateIndex, 1)[0];
@@ -155,7 +230,7 @@ export class SpeedDatingManager {
                 this.activeMatches.add(maleUser.userId);
                 this.activeMatches.add(femaleUser.userId);
 
-                console.log(`[SPEED DATING] Live Matched ${maleUser.userId} with ${femaleUser.userId}`);
+                console.log(`[SPEED DATING] Live Matched ${maleUser.userId} with ${femaleUser.userId} (Affinity: ${scoredCandidates[0].score})`);
 
                 this.io.to(maleUser.socketId).emit('speed_date_match_found', {
                     partner: {

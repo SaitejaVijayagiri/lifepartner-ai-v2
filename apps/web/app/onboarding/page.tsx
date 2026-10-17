@@ -100,6 +100,8 @@ export default function OnboardingPage() {
 
                 motherTongue: data.motherTongue,
                 maritalStatus: data.maritalStatus || "Single", // Added Marital Status
+                managed_by: data.managed_by || "Self",
+                photo_privacy: data.photo_privacy || "public",
                 photos: data.photos || [],
                 photoUrl: (Array.isArray(data.photos) && data.photos.length > 0 && data.photos[0])
                     ? data.photos[0]

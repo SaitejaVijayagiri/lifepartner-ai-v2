@@ -30,7 +30,17 @@ export const extractPhotosList = (profileObj: any, meta: any = {}, defaultAvatar
     const colPhotos = Array.isArray(profileObj?.photos) && profileObj.photos.length > 0 ? profileObj.photos : null;
     const metaPhotos = Array.isArray(meta?.photos) && meta.photos.length > 0 ? meta.photos : null;
     const rawList = colPhotos || metaPhotos || (defaultAvatarUrl ? [defaultAvatarUrl] : []);
-    return rawList.filter((p: any) => typeof p === 'string' && p.length > 0);
+    const validStrings = rawList.filter((p: any) => typeof p === 'string' && p.trim().length > 0);
+
+    // If user has custom uploaded photos (Cloudinary, Supabase, base64, uploads),
+    // remove any imported Google placeholder avatars so real photos are not overshadowed
+    const hasCustomPhotos = validStrings.some((p: string) =>
+        p.includes('cloudinary') || p.includes('supabase') || p.startsWith('data:image') || p.startsWith('/uploads/')
+    );
+    if (hasCustomPhotos) {
+        return validStrings.filter((p: string) => !p.includes('googleusercontent.com'));
+    }
+    return validStrings;
 };
 
 /**

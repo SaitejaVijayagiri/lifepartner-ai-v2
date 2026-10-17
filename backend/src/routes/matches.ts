@@ -231,7 +231,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
             age: u.age,
             gender: u.gender,
             photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id),
-            location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'India',
+            location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
             location_data: {
                 lat: u.lat,
                 lng: u.lng,
@@ -461,7 +461,7 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 gender: u.gender,
                 photoUrl: photo,
                 avatar_url: photo,
-                location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'India',
+                location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
                 role: meta.career?.profession || 'Member',
                 isOnline: true
             };
@@ -836,6 +836,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 is_liked: matchRecord?.is_liked || false,
                 isPremium: c.is_premium || false,
                 isOnline: isUserOnline(c.id),
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId,
+                managed_by: meta.managed_by || meta.managedBy || 'Self',
 
                 // Privacy logic
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
@@ -1001,6 +1004,11 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             conditions.push(Prisma.sql`COALESCE(NULLIF(regexp_replace(p.metadata->'career'->>'income', '[^0-9]', '', 'g'), ''), '0')::int >= ${parseInt(filters.minIncome)}`);
         }
 
+        // Language / Mother Tongue (Native JSONB)
+        if (filters.motherTongue) {
+            conditions.push(Prisma.sql`p.metadata->>'motherTongue' ILIKE ${`%${filters.motherTongue}%`}`);
+        }
+
         const whereSql = Prisma.join(conditions, ' AND ');
 
         // Validate vector: must be an array of exactly 384 floats
@@ -1092,6 +1100,19 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             const nums = str.match(/(\d+)/);
             return nums ? parseInt(nums[0]) : 0;
         };
+
+        const acceptedInteractions = await prisma.interactions.findMany({
+            where: {
+                OR: [
+                    { from_user_id: userId, status: 'accepted' },
+                    { to_user_id: userId, status: 'accepted' }
+                ]
+            },
+            select: { from_user_id: true, to_user_id: true }
+        });
+        const connectedUserIds = new Set(
+            acceptedInteractions.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
+        );
 
         const scoredMatchesArray = await Promise.all(rows.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
@@ -1329,7 +1350,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
-                isPremium: c.is_premium || false
+                isPremium: c.is_premium || false,
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && !connectedUserIds.has(c.id) && c.id !== userId,
+                managed_by: meta.managed_by || meta.managedBy || 'Self'
             };
         }));
 
@@ -1365,7 +1389,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
             const matchStatus = sentRequest?.status || receivedRequest?.status || null;
 
-            const locString = [c.city, c.district, c.state, meta.location?.country].filter(Boolean).join(', ') || "India";
+            const locString = [c.city, c.district, c.state, meta.location?.country].filter(Boolean).join(', ') || c.location_name || "Global";
 
             return {
                 id: c.id,
@@ -1410,7 +1434,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
-                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra)
+                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId,
+                managed_by: meta.managed_by || meta.managedBy || 'Self'
             };
         });
 

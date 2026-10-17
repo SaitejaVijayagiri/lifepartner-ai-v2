@@ -116,6 +116,10 @@ export class AIService {
         religion?: string;
         diet?: string;
         smoking?: string;
+        motherTongue?: string;
+        targetGender?: string;
+        exactProfileId?: string;
+        exactName?: string;
     }> {
         const lower = query.toLowerCase().trim();
         const filters: any = {};
@@ -142,13 +146,15 @@ export class AIService {
         }
 
         // --- Location Detection ---
-        // Common city/state names
+        // Common city/state/country names (Indian & International)
         const locationPatterns = [
             'hyderabad', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'chennai',
             'pune', 'kolkata', 'jaipur', 'ahmedabad', 'surat', 'lucknow',
             'vizag', 'visakhapatnam', 'telangana', 'andhra', 'kerala', 'karnataka',
             'tamil nadu', 'maharashtra', 'united states', 'usa', 'uk', 'united kingdom',
-            'canada', 'australia', 'singapore', 'dubai', 'usa'
+            'canada', 'australia', 'singapore', 'dubai', 'ireland', 'dublin', 'cavan',
+            'germany', 'france', 'poland', 'finland', 'japan', 'malaysia', 'philippines',
+            'qatar', 'uae', 'new zealand', 'london', 'sydney', 'toronto'
         ];
 
         for (const city of locationPatterns) {
@@ -183,10 +189,50 @@ export class AIService {
             filters.maxAge = age + 3;
         }
 
-        // --- Income Detection ---
+        // --- Income Detection (INR LPA or International $ / € / £ / k) ---
         const incomeMatch = lower.match(/(\d+)\s*(?:lpa|lakh|l\.?p\.?a)/);
         if (incomeMatch) {
             filters.minIncome = parseInt(incomeMatch[1]);
+        }
+        const foreignIncomeMatch = lower.match(/(?:\$|€|£|usd|eur|gbp)?\s*(\d+)\s*(?:k|thousand)/);
+        if (foreignIncomeMatch && !filters.minIncome) {
+            filters.minIncome = parseInt(foreignIncomeMatch[1]);
+        }
+
+        // --- Language / Mother Tongue Detection ---
+        const languageMap: Record<string, string[]> = {
+            'English': ['english', 'angrezi'],
+            'Spanish': ['spanish', 'español'],
+            'French': ['french', 'français'],
+            'German': ['german', 'deutsch'],
+            'Arabic': ['arabic', 'arabi'],
+            'Russian': ['russian'],
+            'Japanese': ['japanese'],
+            'Mandarin Chinese': ['chinese', 'mandarin'],
+            'Irish': ['irish', 'gaeilge'],
+            'Italian': ['italian'],
+            'Portuguese': ['portuguese'],
+            'Polish': ['polish'],
+            'Dutch': ['dutch'],
+            'Korean': ['korean'],
+            'Turkish': ['turkish'],
+            'Hindi': ['hindi'],
+            'Telugu': ['telugu'],
+            'Tamil': ['tamil'],
+            'Marathi': ['marathi'],
+            'Bengali': ['bengali', 'bangla'],
+            'Kannada': ['kannada'],
+            'Gujarati': ['gujarati'],
+            'Punjabi': ['punjabi'],
+            'Malayalam': ['malayalam'],
+            'Urdu': ['urdu']
+        };
+
+        for (const [canonicalLang, keywords] of Object.entries(languageMap)) {
+            if (keywords.some(k => lower.includes(k))) {
+                filters.motherTongue = canonicalLang;
+                break;
+            }
         }
 
         // --- Religion Detection ---

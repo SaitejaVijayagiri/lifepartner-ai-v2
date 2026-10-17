@@ -15,6 +15,7 @@ interface RegisterCardProps {
 export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps) {
     const toast = useToast();
     const [method, setMethod] = useState<'mobile' | 'email'>('mobile');
+    const [countryCode, setCountryCode] = useState('+91');
     const [step, setStep] = useState<'details' | 'otp'>('details');
     const [loading, setLoading] = useState(false);
 
@@ -45,9 +46,14 @@ export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps
             }
         } else {
             // Verify OTP
+            const fullIdentifier = method === 'mobile'
+                ? (formData.identifier.startsWith('+') ? formData.identifier : `${countryCode}${formData.identifier.replace(/^0+/, '')}`)
+                : formData.identifier;
+
             await onRegister({
                 method,
-                ...formData
+                ...formData,
+                identifier: fullIdentifier
             });
             setLoading(false);
         }
@@ -98,10 +104,30 @@ export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps
                                 <div className="space-y-1">
                                     <label className="text-sm font-semibold text-gray-700">Mobile Number</label>
                                     <div className="flex">
-                                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-100 text-gray-500 font-medium">+91</span>
+                                        <select
+                                            value={countryCode}
+                                            onChange={(e) => setCountryCode(e.target.value)}
+                                            className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-gray-200 bg-gray-100 text-gray-700 text-xs font-semibold focus:outline-none cursor-pointer"
+                                        >
+                                            <option value="+91">+91 (IN)</option>
+                                            <option value="+1">+1 (US/CA)</option>
+                                            <option value="+44">+44 (UK)</option>
+                                            <option value="+353">+353 (IE)</option>
+                                            <option value="+61">+61 (AU)</option>
+                                            <option value="+971">+971 (UAE)</option>
+                                            <option value="+49">+49 (DE)</option>
+                                            <option value="+33">+33 (FR)</option>
+                                            <option value="+48">+48 (PL)</option>
+                                            <option value="+81">+81 (JP)</option>
+                                            <option value="+65">+65 (SG)</option>
+                                            <option value="+974">+974 (QA)</option>
+                                            <option value="+60">+60 (MY)</option>
+                                            <option value="+63">+63 (PH)</option>
+                                            <option value="+966">+966 (SA)</option>
+                                        </select>
                                         <Input
                                             className="rounded-l-none h-11 bg-gray-50"
-                                            placeholder="98765 43210"
+                                            placeholder="Mobile number"
                                             value={formData.identifier}
                                             onChange={(e) => handleChange('identifier', e.target.value)}
                                         />

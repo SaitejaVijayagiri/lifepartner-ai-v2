@@ -12,6 +12,7 @@ interface PublicMatchCardProps {
 export default function PublicMatchCard({ match }: PublicMatchCardProps) {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const isPhotoBlurred = Boolean(match.isBlurred || match.blur);
 
     // Photos Array (with robust fallback)
     const fallbackAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`;
@@ -43,7 +44,7 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                 <img
                     src={photos[currentPhotoIndex] || photos[0] || fallbackAvatar}
                     alt={match.name || 'Member'}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu"
+                    className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu ${isPhotoBlurred ? 'blur-2xl scale-110 filter' : ''}`}
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
@@ -54,8 +55,24 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                     }}
                 />
 
+                {/* Privacy Shield Blurred Overlay */}
+                {isPhotoBlurred && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md p-4 text-center select-none pointer-events-none">
+                        <div className="w-12 h-12 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2 shadow-lg shadow-pink-500/10 animate-pulse">
+                            <span className="text-xl">🔒</span>
+                        </div>
+                        <span className="text-white font-black text-xs tracking-wide">Photo Private</span>
+                        <span className="text-white/80 text-[11px] mt-0.5 max-w-[170px] leading-tight">
+                            Register & connect to view
+                        </span>
+                        <span className="mt-1.5 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-pink-900/60 text-pink-200 border border-pink-400/30">
+                            🛡️ Privacy Shield
+                        </span>
+                    </div>
+                )}
+
                 {/* Photo Progress Bar */}
-                {photos.length > 1 && (
+                {!isPhotoBlurred && photos.length > 1 && (
                     <div className="absolute top-2 left-3 right-3 flex gap-1 z-30 transition-opacity">
                         {photos.map((_url: string, idx: number) => (
                             <div key={idx} className="h-0.5 flex-1 bg-black/40 rounded-full overflow-hidden backdrop-blur-md border border-white/10">
@@ -91,6 +108,11 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 text-gray-100 text-[10px] font-medium mb-4 opacity-95">
+                    {Boolean(match.managed_by && match.managed_by !== 'Self') && (
+                        <span className="px-2.5 py-1 rounded-full bg-teal-950/80 backdrop-blur-md border border-teal-400/30 text-teal-200 uppercase tracking-wider text-[9px] font-bold">
+                            {match.managed_by === 'Parent' ? '👨‍👩‍👧 By Parent' : match.managed_by === 'Sibling' ? '👫 By Sibling' : `👤 By ${match.managed_by}`}
+                        </span>
+                    )}
                     {match.profession && match.profession !== '-' && match.profession !== 'Member' && (
                         <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
                             💼 {match.profession}

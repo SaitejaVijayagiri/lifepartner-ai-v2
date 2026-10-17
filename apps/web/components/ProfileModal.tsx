@@ -49,6 +49,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         setMatchStatus(profile.match_status || null);
     }, [profile.match_status]);
 
+    const isConnected = Boolean(isConnectedProp || matchStatus === 'accepted' || matchStatus === 'connected');
+    const isPhotoBlurred = Boolean(profile.isBlurred && !isConnected);
+
     const handleConnect = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -226,8 +229,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     <img
                         src={photos[currentPhotoIndex]}
                         alt={profile.name}
-                        onClick={() => setIsFullscreen(true)}
-                        className="w-full h-full object-cover bg-black/90 block transition-opacity duration-500 cursor-zoom-in"
+                        onClick={() => !isPhotoBlurred && setIsFullscreen(true)}
+                        className={`w-full h-full object-cover bg-black/90 block transition-opacity duration-500 ${isPhotoBlurred ? 'blur-2xl scale-110 filter cursor-default' : 'cursor-zoom-in'}`}
                         loading="eager"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -235,6 +238,22 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
                         }}
                     />
+
+                    {/* Privacy Shield Blurred Overlay */}
+                    {isPhotoBlurred && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md p-6 text-center select-none pointer-events-none">
+                            <div className="w-14 h-14 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2.5 shadow-lg shadow-pink-500/10 animate-pulse">
+                                <span className="text-2xl">🔒</span>
+                            </div>
+                            <span className="text-white font-black text-sm tracking-wide">Photo Private</span>
+                            <span className="text-white/80 text-xs mt-1 max-w-[200px] leading-relaxed">
+                                Connect to view full profile photos
+                            </span>
+                            <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-900/60 text-pink-200 border border-pink-400/30">
+                                🛡️ Privacy Shield
+                            </span>
+                        </div>
+                    )}
 
                     {/* Gradient Overlay for Text Readability */}
                     <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end p-6 z-20 pointer-events-none">
@@ -284,6 +303,11 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     {displayHandle}
                                 </span>
                             )}
+                            {Boolean(profile.managed_by && profile.managed_by !== 'Self') && (
+                                <span className="inline-flex items-center gap-1 text-teal-200 text-[11px] font-bold bg-teal-950/80 border border-teal-400/40 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm" title={`Profile managed by ${profile.managed_by}`}>
+                                    {profile.managed_by === 'Parent' ? '👨‍👩‍👧 Managed by Parent' : profile.managed_by === 'Sibling' ? '👫 Managed by Sibling' : `👤 Managed by ${profile.managed_by}`}
+                                </span>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-2 mb-1">
@@ -301,7 +325,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
 
                     {/* Photo Progress Bar (Instagram Story Style) */}
-                    {photos.length > 1 && (
+                    {!isPhotoBlurred && photos.length > 1 && (
                         <div className="absolute top-4 left-4 right-16 flex gap-1 z-30">
                             {photos.map((_, idx) => (
                                 <div key={idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
@@ -314,7 +338,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     )}
 
                     {/* Navigation Arrows for Visibility */}
-                    {photos.length > 1 && (
+                    {!isPhotoBlurred && photos.length > 1 && (
                         <>
                             <button
                                 onClick={(e) => {

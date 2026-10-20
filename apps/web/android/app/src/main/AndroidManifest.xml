@@ -28,13 +28,15 @@
                 <data android:scheme="lifepartner" />
             </intent-filter>
 
-            <!-- Web App Links (https://lifepartnerai.in/...) -->
+            <!-- Web App Links (https://lifepartnerai.in/ and https://www.lifepartnerai.in/) -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="lifepartnerai.in" />
+                <data android:scheme="https" android:host="www.lifepartnerai.in" />
                 <data android:scheme="http" android:host="lifepartnerai.in" />
+                <data android:scheme="http" android:host="www.lifepartnerai.in" />
             </intent-filter>
         </activity>
 

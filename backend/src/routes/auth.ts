@@ -652,6 +652,24 @@ router.get('/token', authenticateToken, (req: any, res) => {
 });
 
 // 7. Google Auth Code Exchange
+const FEMALE_FIRST_NAMES = new Set([
+    'anamika', 'aditi', 'priya', 'ananya', 'pooja', 'sneha', 'neha', 'ritu', 'divya', 'kavya', 'swati', 'swathi',
+    'shreya', 'deepa', 'meera', 'anjali', 'deepika', 'sunita', 'radhika', 'tanvi', 'sakshi', 'aishwarya', 'anita',
+    'geeta', 'seema', 'rekha', 'kavita', 'komal', 'monika', 'payal', 'shruti', 'simran', 'preeti', 'khushi', 'isha',
+    'riya', 'rhea', 'sonia', 'tanya', 'vani', 'shweta', 'pallavi', 'rashmi', 'richa', 'nandini', 'sanya', 'alisha',
+    'madhuri', 'bhavna', 'megha', 'vidya', 'jyoti', 'laxmi', 'lakshmi', 'arti', 'aarti', 'neetu', 'sunayana', 'kiran',
+    'harika', 'niharika', 'keerthana', 'amrita', 'amulya', 'chetna', 'archna', 'bhavi', 'suhani', 'ria', 'krithi',
+    'monalisha', 'sheriya', 'ankita', 'tanu', 'tanishka', 'lucy', 'sofia', 'sadaf', 'swetha', 'parul', 'ramya',
+    'soumya', 'shagun', 'aastha', 'sobika', 'rajnandini', 'saba', 'fatima', 'aisha', 'zoya', 'sarah', 'sara',
+    'chahat', 'prachi', 'kanika', 'shikha', 'garima', 'mansi', 'tannu', 'saloni', 'ishita', 'muskan', 'varsha'
+]);
+
+function isClearlyFemaleName(name?: string | null): boolean {
+    if (!name) return false;
+    const tokens = name.trim().toLowerCase().split(/\s+/).map(t => t.replace(/[^a-z]/g, ''));
+    return tokens.some(t => FEMALE_FIRST_NAMES.has(t));
+}
+
 router.post('/google', async (req, res) => {
     try {
         const { code, gender: pendingGender, age: pendingAge } = req.body;
@@ -717,8 +735,9 @@ router.post('/google', async (req, res) => {
                 user.deactivated_until = null;
             }
 
-            // Existing user's gender always takes precedence; only apply cleanGoogleGender if user has no gender yet
-            const finalGender = user.gender || cleanGoogleGender || undefined;
+            // Name-based safety check to prevent female users from staying misclassified as Male
+            const nameIsFemale = isClearlyFemaleName(name) || isClearlyFemaleName(user.full_name);
+            const finalGender = nameIsFemale ? 'Female' : (user.gender || cleanGoogleGender || undefined);
             const isFemale = finalGender === 'Female';
 
             // Update existing
@@ -770,7 +789,9 @@ router.post('/google', async (req, res) => {
             }
         } else {
             // Create new
-            const isFemale = cleanGoogleGender === 'Female';
+            const nameIsFemale = isClearlyFemaleName(name);
+            const resolvedGender = nameIsFemale ? 'Female' : (cleanGoogleGender || null);
+            const isFemale = resolvedGender === 'Female';
             const baseName = String(name || 'LP').replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
             const myReferralCode = `${baseName}${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -784,7 +805,7 @@ router.post('/google', async (req, res) => {
                         password_hash: 'google_auth_placeholder',
                         avatar_url: picture,
                         referral_code: myReferralCode,
-                        gender: cleanGoogleGender || null,
+                        gender: resolvedGender,
                         age: validGoogleAge || null,
                         free_direct_messages: isFemale ? 999999 : 3,
                         coins: isFemale ? 100 : 0,
@@ -798,7 +819,7 @@ router.post('/google', async (req, res) => {
                         raw_prompt: '',
                         photos: picture ? [picture] : [],
                         metadata: {
-                            ...(cleanGoogleGender ? { gender: cleanGoogleGender } : {}),
+                            ...(resolvedGender ? { gender: resolvedGender } : {}),
                             ...(validGoogleAge ? { age: validGoogleAge } : {}),
                             onboarding_completed: false
                         }

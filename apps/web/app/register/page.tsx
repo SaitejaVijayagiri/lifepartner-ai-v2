@@ -60,15 +60,14 @@ function RegisterForm() {
             localStorage.setItem('pendingUserCountry', countryParam);
         }
 
+        const isExplicitNew = searchParams.get('new') === 'true';
         const genderParam = searchParams.get('gender');
-        if (genderParam) {
+        if (genderParam && (genderParam === 'Female' || genderParam === 'Male') && !isExplicitNew) {
             setForm(prev => ({ ...prev, gender: genderParam }));
             localStorage.setItem('pendingUserGender', genderParam);
-        } else {
-            const savedGender = localStorage.getItem('pendingUserGender');
-            if (savedGender === 'Female' || savedGender === 'Male') {
-                setForm(prev => ({ ...prev, gender: savedGender }));
-            }
+        } else if (isExplicitNew) {
+            localStorage.removeItem('pendingUserGender');
+            setForm(prev => ({ ...prev, gender: '' }));
         }
     }, [referralCodeParam, searchParams, router]);
 
@@ -599,7 +598,7 @@ function RegisterForm() {
                         <button
                             type="button"
                             onClick={() => {
-                                const selectedGender = form.gender || localStorage.getItem('pendingUserGender') || '';
+                                const selectedGender = form.gender || '';
                                 if (!selectedGender) {
                                     toast.error("Please select whether you are Female or Male above before continuing with Google.");
                                     return;

@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'LifePartner',
   webDir: 'out',
   server: {
-    url: 'https://lifepartnerai.in',
+    url: 'https://www.lifepartnerai.in/register',
     cleartext: false,
     allowNavigation: [
       'lifepartnerai.in',

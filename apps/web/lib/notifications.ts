@@ -4,9 +4,14 @@ import { requestWebPushPermission, onMessageListener } from './firebasePlugin';
 
 export const isNativePlatform = () => {
     if (typeof window === 'undefined') return false;
-    if (Capacitor.isNativePlatform()) return true;
+    try {
+        if (Capacitor.isNativePlatform()) return true;
+    } catch (_) {}
     const w = window as any;
     if (w.AndroidBridge || w.androidBridge) return true;
+    if (typeof navigator !== 'undefined' && navigator.userAgent) {
+        if (/LifePartnerApp|Capacitor/i.test(navigator.userAgent)) return true;
+    }
     return false;
 };
 

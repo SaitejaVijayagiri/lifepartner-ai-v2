@@ -20,6 +20,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/components/ui/Toast';
 import { api, getApiUrl } from '@/lib/api';
 import { detectVisitorGeo, VisitorGeo } from '@/lib/geoDetect';
+import { isNativePlatform } from '@/lib/notifications';
 
 export default function LandingPageClient() {
   const { t } = useLanguage();
@@ -242,6 +243,18 @@ export default function LandingPageClient() {
   };
 
   useEffect(() => {
+    // If running inside the native Android app, bypass the web landing page completely
+    if (isNativePlatform()) {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('userId');
+      if (token && userId) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/register');
+      }
+      return;
+    }
+
     // Detect visitor geo & curiosity signals
     try {
       const detected = detectVisitorGeo();

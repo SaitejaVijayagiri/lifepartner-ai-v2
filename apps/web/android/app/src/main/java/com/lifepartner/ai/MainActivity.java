@@ -450,6 +450,10 @@ public class MainActivity extends BridgeActivity {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
                 webView.addJavascriptInterface(new NativeBridge(), "AndroidBridge");
+                String ua = webView.getSettings().getUserAgentString();
+                if (ua != null && !ua.contains("LifePartnerApp")) {
+                    webView.getSettings().setUserAgentString(ua + " LifePartnerApp");
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error injecting AndroidBridge: ", e);

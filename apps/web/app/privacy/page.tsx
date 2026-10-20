@@ -47,9 +47,19 @@ export default function PrivacyPage() {
                     <p>We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorized way, altered or disclosed.</p>
                 </section>
 
+                <section id="deletion">
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">5. Account and Data Deletion</h2>
+                    <p>Users have the right to request the deletion of their account and all associated personal data at any time. You can request account deletion through:</p>
+                    <ul className="list-disc pl-5 space-y-1 mt-2">
+                        <li><strong>In-App:</strong> Navigate to Profile Settings &gt; Account Security &gt; Delete Account.</li>
+                        <li><strong>Email Request:</strong> Send an email from your registered email address to <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.in@gmail.com</a> with the subject line <em>"Account Deletion Request"</em>.</li>
+                    </ul>
+                    <p className="mt-2 text-sm text-gray-600">Upon receiving your request, your profile, photos, chat history, and personal data will be permanently removed from our active databases within 30 days, except where retention is required by law.</p>
+                </section>
+
                 <section>
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">5. Contact Us</h2>
-                    <p>If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.in@gmail.com</a></p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">6. Contact Us</h2>
+                    <p>If you have any questions about this privacy policy, data deletion, or our privacy practices, please contact us at: <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 hover:underline">lifepartnerai.in@gmail.com</a></p>
                 </section>
             </div>
         </div>

@@ -1,16 +1,11 @@
 'use client';
-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { Sparkles, Heart, User, Volume2, VolumeX, Maximize2, Minimize2, Send, Play, Square, Compass, ShieldCheck } from 'lucide-react';
+import { Sparkles, Heart, User } from 'lucide-react';
 import ProfileModal from './ProfileModal';
 import { useToast } from '@/components/ui/Toast';
-
-// Dynamically import the elegant Avatar Canvas (No SSR)
-const GuruAvatarCanvas = dynamic(() => import('./GuruAvatarCanvas'), { ssr: false });
 
 interface MatchCandidate {
     id: string;
@@ -37,23 +32,14 @@ export default function FloatingLoveGuru() {
     const [messages, setMessages] = useState<MessageItem[]>([
         { 
             role: 'assistant', 
-            content: "Namaste! 🙏 I am your LifePartner AI Guru.\n\nI combine sacred relationship wisdom with modern AI bio-data matching. Ask me for compatible matches, personalized icebreakers, profile advice, or first date guidance — and tap any advice to hear me speak!" 
+            content: "Namaste! 🙏 I'm your LifePartner AI Guru.\n\nI analyze your bio-data to find your most compatible platform matches, offer profile advice, or suggest icebreakers! Tap a quick suggestion below or ask me anything!" 
         }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
     const [userBio, setUserBio] = useState<any | null>(null);
-
-    // Avatar & Voice Engine State
-    const [isSpeaking, setIsSpeaking] = useState(false);
-    const [speakingMsgIndex, setSpeakingMsgIndex] = useState<number | null>(null);
-    const [isVoiceMuted, setIsVoiceMuted] = useState(false);
-    const [viewMode, setViewMode] = useState<'split' | 'sanctuary'>('split');
-    const [guruMood, setGuruMood] = useState<'meditating' | 'greeting' | 'talking' | 'thinking'>('meditating');
-
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
-    const currentUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
     // Fetch User Profile Bio Data on mount
     useEffect(() => {
@@ -62,16 +48,6 @@ export default function FloatingLoveGuru() {
                 if (res?.user) setUserBio(res.user);
             })
             .catch(() => {});
-    }, []);
-
-    // Load voice preference from localStorage
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedMute = localStorage.getItem('guru_voice_muted');
-            if (savedMute !== null) {
-                setIsVoiceMuted(savedMute === 'true');
-            }
-        }
     }, []);
 
     // Auto-open if query param is set
@@ -84,23 +60,12 @@ export default function FloatingLoveGuru() {
         }
     }, []);
 
-    // Pre-warm Speech Synthesis voices asynchronously
-    useEffect(() => {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            const loadVoices = () => {
-                try { window.speechSynthesis.getVoices(); } catch (_) {}
-            };
-            loadVoices();
-            window.speechSynthesis.onvoiceschanged = loadVoices;
-        }
-    }, []);
-
     // Scroll to bottom when messages update
     useEffect(() => {
-        if (endOfMessagesRef.current && viewMode === 'split') {
+        if (endOfMessagesRef.current) {
             endOfMessagesRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages, isOpen, loading, viewMode]);
+    }, [messages, isOpen, loading]);
 
     // Lock body scroll on mobile when chat is open
     useEffect(() => {
@@ -111,178 +76,6 @@ export default function FloatingLoveGuru() {
         }
         return () => { document.body.style.overflow = ''; };
     }, [isOpen]);
-
-    // Stop speech synthesis on unmount or close
-    useEffect(() => {
-        if (!isOpen) {
-            stopSpeaking();
-        }
-    }, [isOpen]);
-
-    // Unlock browser audio context on user gesture
-    const unlockAudioContext = () => {
-        if (typeof window !== 'undefined') {
-            if ('speechSynthesis' in window) {
-                try {
-                    window.speechSynthesis.resume();
-                } catch (_) {}
-            }
-            try {
-                const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-                if (AudioCtx) {
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') ctx.resume();
-                }
-            } catch (_) {}
-        }
-    };
-
-    // Play a gentle, soothing meditative crystal chime using Web Audio API
-    const playDivineChime = () => {
-        try {
-            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioCtx) return;
-            const ctx = new AudioCtx();
-            if (ctx.state === 'suspended') ctx.resume();
-
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            osc.type = 'sine';
-            // 528Hz Solfeggio frequency (Sacred Love & Transformation tone)
-            osc.frequency.setValueAtTime(528, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(264, ctx.currentTime + 1.2);
-
-            gain.gain.setValueAtTime(0.18, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
-
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-
-            osc.start();
-            osc.stop(ctx.currentTime + 1.2);
-        } catch (_) {}
-    };
-
-    // Clean text for speech synthesis
-    const cleanTextForSpeech = (text: string): string => {
-        return text
-            .replace(/\*\*([^*]+)\*\*/g, '$1')
-            .replace(/\*([^*]+)\*/g, '$1')
-            .replace(/•/g, '')
-            .replace(/https?:\/\/\S+/g, '')
-            .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
-            .replace(/\n+/g, '. ')
-            .replace(/\s+/g, ' ')
-            .trim();
-    };
-
-    // Robust Guru Voice Engine
-    const speakGuru = useCallback((text: string, msgIndex?: number) => {
-        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-            toast.info("Voice synthesis is not supported on this browser.");
-            return;
-        }
-
-        unlockAudioContext();
-
-        if (isVoiceMuted) {
-            toast.info("Guru voice is currently muted. Tap 🔊 to unmute.");
-            return;
-        }
-
-        try {
-            window.speechSynthesis.cancel();
-            if (window.speechSynthesis.paused) {
-                window.speechSynthesis.resume();
-            }
-
-            const clean = cleanTextForSpeech(text);
-            if (!clean) return;
-
-            // Natural, crisp excerpt for speech
-            const spokenExcerpt = clean.length > 340 ? clean.substring(0, clean.lastIndexOf('.', 340) || 340) + '.' : clean;
-
-            // Play sacred chime tone
-            playDivineChime();
-
-            const utterance = new SpeechSynthesisUtterance(spokenExcerpt);
-            currentUtteranceRef.current = utterance;
-            // Prevent Chromium garbage-collection bug
-            (window as any).__guruSpeechUtterance = utterance;
-
-            // Select warm, elegant voice
-            const voices = window.speechSynthesis.getVoices();
-            const preferredVoice =
-                voices.find(v => v.lang.includes('en-IN')) ||
-                voices.find(v => v.name.toLowerCase().includes('india') || v.name.toLowerCase().includes('rishi') || v.name.toLowerCase().includes('neerja')) ||
-                voices.find(v => v.lang.includes('en-GB')) ||
-                voices.find(v => v.lang.includes('en-US')) ||
-                voices[0];
-
-            if (preferredVoice) utterance.voice = preferredVoice;
-
-            utterance.volume = 1.0; // Full volume
-            utterance.rate = 0.94;   // Calm, natural cadence
-            utterance.pitch = 0.96;  // Warm, serene pitch
-
-            utterance.onstart = () => {
-                setIsSpeaking(true);
-                if (typeof msgIndex === 'number') setSpeakingMsgIndex(msgIndex);
-                setGuruMood('talking');
-            };
-
-            utterance.onend = () => {
-                setIsSpeaking(false);
-                setSpeakingMsgIndex(null);
-                setGuruMood('meditating');
-            };
-
-            utterance.onerror = (e) => {
-                console.warn("Speech synthesis notice:", e);
-                setIsSpeaking(false);
-                setSpeakingMsgIndex(null);
-                setGuruMood('meditating');
-            };
-
-            window.speechSynthesis.speak(utterance);
-        } catch (err) {
-            console.error("Speech playback error:", err);
-            setIsSpeaking(false);
-            setSpeakingMsgIndex(null);
-            setGuruMood('meditating');
-        }
-    }, [isVoiceMuted]);
-
-    const stopSpeaking = () => {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            try { window.speechSynthesis.cancel(); } catch (_) {}
-        }
-        setIsSpeaking(false);
-        setSpeakingMsgIndex(null);
-        setGuruMood('meditating');
-    };
-
-    const toggleVoiceMute = () => {
-        unlockAudioContext();
-        const nextState = !isVoiceMuted;
-        setIsVoiceMuted(nextState);
-        if (nextState) {
-            stopSpeaking();
-            toast.info("Guru voice muted 🔇");
-        } else {
-            toast.success("Guru voice enabled 🔊");
-            // Play latest advice aloud
-            const lastIdx = messages.length - 1;
-            const lastMsg = messages[lastIdx];
-            if (lastMsg && lastMsg.role === 'assistant') {
-                speakGuru(lastMsg.content, lastIdx);
-            }
-        }
-        try {
-            localStorage.setItem('guru_voice_muted', String(nextState));
-        } catch (_) {}
-    };
 
     // Render ONLY on the dashboard page
     if (pathname !== '/dashboard') return null;
@@ -348,7 +141,6 @@ export default function FloatingLoveGuru() {
     };
 
     const handleSend = async (customText?: string) => {
-        unlockAudioContext();
         const userMsg = (customText || input).trim();
         if (!userMsg || loading) return;
 
@@ -357,15 +149,11 @@ export default function FloatingLoveGuru() {
         const newHistory = [...messages, { role: 'user', content: userMsg } as MessageItem];
         setMessages(newHistory);
         setLoading(true);
-        setGuruMood('thinking');
-        stopSpeaking();
 
         try {
             const isMatchQuery = /(find.*match|best.*match|recommend.*candidate|show.*match|compatible.*partner|top.*match)/i.test(userMsg);
             const isBioAnalysisQuery = /(analyze.*bio|profile.*analysis|improve.*profile|bio.*rate|profile.*bio)/i.test(userMsg);
             const isIcebreakerQuery = /(icebreaker|first.*message|opener|conversation.*starter)/i.test(userMsg);
-            const isDateAdviceQuery = /(first.*date|date.*idea|date.*advice|where.*meet|meeting.*offline)/i.test(userMsg);
-            const isKundliQuery = /(kundli|horoscope|nakshatra|astrology|guna|marriage.*readiness)/i.test(userMsg);
 
             let matchResults: MatchCandidate[] = [];
             let replyText = "";
@@ -373,41 +161,30 @@ export default function FloatingLoveGuru() {
             if (isMatchQuery) {
                 matchResults = await computeSmartMatches(userMsg);
                 if (matchResults.length > 0) {
-                    replyText = `🔮 Based on your bio-data (${userBio?.city ? userBio.city : 'India'}, ${userBio?.occupation || 'Profession'}) and spiritual compatibility, I analyzed our platform database and found your top 3 most aligned matches:`;
+                    replyText = `🔮 Based on your personal bio-data (${userBio?.city ? userBio.city : 'India'}, ${userBio?.occupation || 'Profession'}) and requirements, I analyzed our platform database and found your top 3 most compatible matches:`;
                 } else {
-                    replyText = "🔮 I searched the platform cosmos, but couldn't find exact candidate matches right now. Try updating your profile city or partner preferences to expand your circle!";
+                    replyText = "🔮 I searched our platform database, but couldn't find exact candidate matches right now. Try updating your profile location or preferences!";
                 }
             } else if (isBioAnalysisQuery) {
-                const bioScore = userBio?.bio ? (userBio.bio.length > 50 ? 94 : 78) : 65;
+                const bioScore = userBio?.bio ? (userBio.bio.length > 50 ? 92 : 78) : 65;
                 replyText = `💖 **Profile Bio Analysis & Optimization Report**\n\n` +
-                    `• **Profile Magnetism Score:** ${bioScore}/100 🌟\n` +
+                    `• **Profile Strength Score:** ${bioScore}/100 🌟\n` +
                     `• **Location Alignment:** 📍 ${userBio?.city || 'Not specified (Add your city to get 3x more local matches!)'}\n` +
                     `• **Profession Badge:** 💼 ${userBio?.occupation || 'Member'}\n\n` +
-                    `✨ **Guru's Top 3 Golden Tips:**\n` +
-                    `1. **Add Passion Hooks:** Mention 2 favorite passions (e.g. filter coffee, weekend drives, old vinyl records) to give matches an effortless first message!\n` +
-                    `2. **High-Confidence Photos:** Profiles with at least 3 genuine, smiling photos receive 400% more connection responses.\n` +
-                    `3. **Music Vibe Badge:** Connect your favorite song to unlock instant musical chemistry on your profile!`;
+                    `✨ **Guru's Top 3 Actionable Tips to Double Your Matches:**\n` +
+                    `1. **Add Passion Hooks:** Mention 2 favorite hobbies (e.g. coffee, hiking, vinyl records) in your bio to give matches an easy opening line.\n` +
+                    `2. **Use Clear HD Photos:** Profiles with at least 3 bright photos get 400% more connection responses!\n` +
+                    `3. **Vibe Jukebox Badge:** Share a favorite song on your profile to trigger instant music compatibility!`;
             } else if (isIcebreakerQuery) {
                 replyText = `💬 **3 Creative First Message Openers:**\n\n` +
-                    `🌟 **1. Warm & Playful:**\n"Hey! Quick debate: Filter coffee date, scenic sunset walk, or competitive board games first? ☕🌅"\n\n` +
-                    `💡 **2. Witty & Genuine:**\n"Your profile caught my eye! On a scale of 1-10, how likely are you to join an impromptu weekend road trip? 🚗✨"\n\n` +
-                    `☕ **3. Deep & Authentic:**\n"Hey! I noticed we both share great calm energy. What has been the most exciting moment of your week so far? 😊"`;
-            } else if (isDateAdviceQuery) {
-                replyText = `☕ **Guru's First Date Wisdom & Etiquette:**\n\n` +
-                    `1. **Choose a Low-Pressure Venue:** A cozy cafe or art walk allows conversation to flow naturally without the stiffness of formal dinners.\n` +
-                    `2. **The 70/30 Listening Rule:** Listen 70% of the time, speak 30%. True connection begins when someone feels genuinely heard.\n` +
-                    `3. **Spotting Green Flags:** Look for consistency, punctuality, kindness to servers, and genuine curiosity about your family and aspirations!`;
-            } else if (isKundliQuery) {
-                replyText = `💍 **Sacred Kundli & Matrimony Insights:**\n\n` +
-                    `• **Vedic Harmony:** True marital synergy blends 8 Gunas (Ashtakoota) with emotional maturity and shared long-term life vision.\n` +
-                    `• **Manglik & Gothra Balance:** Spiritual alignment focuses on understanding, calm communication, and mutual respect between both families.\n` +
-                    `• **Actionable Step:** Tap on any match card in your dashboard to view instant Guna Milan compatibility score!`;
+                    `🌟 **1. Fun & Playful:**\n"Hey! Quick debate: Coffee date, sunset walk, or competitive arcade game first? ☕🌅🎮"\n\n` +
+                    `💡 **2. Witty & Curious:**\n"Your profile caught my eye! On a scale of 1-10, how likely are you to join a spontaneous weekend road trip? 🚗✨"\n\n` +
+                    `☕ **3. Warm & Authentic:**\n"Hey! I noticed we both share great vibes and deep conversation energy. What's been the highlight of your week so far? 😊"`;
             } else {
                 const res = await api.ai.chat(userMsg, messages);
-                replyText = res.reply || "I have meditated on your query. May your heart find its destined partner!";
+                replyText = res.reply || "I have meditated on your query!";
             }
 
-            const newAssistantIndex = newHistory.length;
             setMessages(prev => [
                 ...prev,
                 {
@@ -416,17 +193,11 @@ export default function FloatingLoveGuru() {
                     matches: matchResults.length > 0 ? matchResults : undefined
                 }
             ]);
-
-            // Speak the response automatically if unmuted
-            speakGuru(replyText, newAssistantIndex);
         } catch (err: any) {
             console.error("Guru Error:", err);
-            const fallback = "Oops! My spiritual connection to the cosmos is weak right now. Please try again in a moment!";
-            setMessages(prev => [...prev, { role: 'assistant', content: fallback }]);
-            speakGuru(fallback);
+            setMessages(prev => [...prev, { role: 'assistant', content: "Oops! My connection to the cosmos is weak right now. Please try again!" }]);
         } finally {
             setLoading(false);
-            setGuruMood('meditating');
         }
     };
 
@@ -455,277 +226,134 @@ export default function FloatingLoveGuru() {
 
     // ── Shared chat panel UI ──────────────────────────────────────────────
     const chatPanel = (extraClass: string) => (
-        <div className={`bg-white dark:bg-gray-900 flex flex-col overflow-hidden shadow-2xl border border-rose-200/50 dark:border-rose-900/30 ${extraClass}`}>
-            {/* Header with Avatar Controls */}
-            <div className="bg-gradient-to-r from-amber-500 via-rose-600 to-purple-700 p-3.5 text-white flex justify-between items-center shadow-md flex-shrink-0 relative overflow-hidden">
-                <div className="flex items-center gap-2.5 z-10">
-                    <div className="relative w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-inner border border-white/30">
-                        <span>🔮</span>
-                        {isSpeaking && (
-                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-300 rounded-full border-2 border-white animate-ping"></span>
-                        )}
+        <div className={`bg-white dark:bg-gray-900 flex flex-col overflow-hidden ${extraClass}`}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-pink-500 via-purple-600 to-rose-500 p-4 text-white flex justify-between items-center shadow-md flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-xl shadow-inner">
+                        🔮
                     </div>
                     <div>
-                        <div className="flex items-center gap-1.5">
-                            <h3 className="font-extrabold text-sm tracking-tight drop-shadow-sm">Divine AI Guru</h3>
-                            <span className="px-1.5 py-0.2 bg-amber-400/90 text-amber-950 text-[9px] font-black rounded-md uppercase tracking-wider">
-                                AI GUIDE
-                            </span>
-                        </div>
+                        <h3 className="font-extrabold text-sm tracking-tight drop-shadow-sm">LifePartner AI Guru</h3>
                         <p className="text-[10px] text-pink-100 font-medium flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${isSpeaking ? 'bg-amber-300 animate-ping' : 'bg-green-400 animate-pulse'}`}></span>
-                            {isSpeaking ? 'Guru is speaking aloud...' : 'Spiritual Guidance & Matchmaking'}
+                            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                            Bio-Data Smart Matchmaker Active
                         </p>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-1.5 z-10">
-                    {/* Voice Toggle Button */}
-                    <button
-                        type="button"
-                        onClick={toggleVoiceMute}
-                        className={`p-1.5 rounded-full transition-all cursor-pointer ${isVoiceMuted ? 'bg-white/10 text-white/60 hover:bg-white/20' : 'bg-amber-400 text-amber-950 font-bold shadow-sm hover:scale-105'}`}
-                        title={isVoiceMuted ? "Enable Guru Voice 🔊" : "Mute Guru Voice 🔇"}
-                    >
-                        {isVoiceMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                    </button>
-
-                    {/* View Mode Toggle (Sanctuary vs Split) */}
-                    <button
-                        type="button"
-                        onClick={() => setViewMode(prev => prev === 'split' ? 'sanctuary' : 'split')}
-                        className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all cursor-pointer"
-                        title={viewMode === 'split' ? "Expand Sanctuary View" : "Split Chat View"}
-                    >
-                        {viewMode === 'split' ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
-                    </button>
-
-                    {/* Close Button */}
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            stopSpeaking();
-                            setIsOpen(false);
-                        }} 
-                        className="text-white/80 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+                <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
-            {/* Elegant Animated Spiritual Avatar Viewport */}
-            <div className={`relative transition-all duration-300 bg-gradient-to-b from-slate-950 via-purple-950 to-slate-900 border-b border-rose-500/20 overflow-hidden flex flex-col items-center justify-center shrink-0 ${viewMode === 'sanctuary' ? 'flex-1' : 'h-48 sm:h-52'}`}>
-                {/* WebGL Canvas */}
-                <GuruAvatarCanvas
-                    isSpeaking={isSpeaking}
-                    mood={guruMood}
-                    className="w-full h-full"
-                    onCanvasClick={() => {
-                        unlockAudioContext();
-                        if (!isSpeaking) {
-                            speakGuru("Greetings! I am meditating upon your destiny. Choose a topic below or ask me any question!");
-                        }
-                    }}
-                />
+            {/* Chat Body */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-gray-50/50 dark:bg-gray-950/50">
+                {messages.map((msg, i) => (
+                    <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`max-w-[90%] sm:max-w-[85%] rounded-2xl p-3 sm:p-3.5 text-sm shadow-sm whitespace-pre-line leading-relaxed ${
+                            msg.role === 'user'
+                                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-br-xs font-medium'
+                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-xs'
+                        }`}>
+                            {msg.content}
+                        </div>
 
-                {/* Floating Divine Guide Badge */}
-                <div className="absolute top-2.5 left-3 flex items-center gap-1.5 pointer-events-none">
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-amber-500/40 text-[10px] text-amber-300 font-bold flex items-center gap-1 shadow-md">
-                        <Sparkles size={11} className="text-amber-400 animate-spin" />
-                        <span>Interactive Spiritual Guide</span>
-                    </span>
-                </div>
-
-                {/* Live Speech Sound Wave Indicator */}
-                {isSpeaking && (
-                    <div className="absolute bottom-2.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/95 border border-amber-500/60 backdrop-blur-md shadow-xl animate-in fade-in duration-200">
-                        <span className="text-[10px] font-bold text-amber-300 mr-1 flex items-center gap-1">
-                            <Volume2 size={12} className="animate-pulse text-amber-400" /> Speaking
-                        </span>
-                        <span className="w-1 h-3 bg-amber-400 rounded-full animate-bounce"></span>
-                        <span className="w-1 h-4 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '0.12s' }}></span>
-                        <span className="w-1 h-2.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.24s' }}></span>
-                        <span className="w-1 h-3.5 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0.18s' }}></span>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                stopSpeaking();
-                            }}
-                            className="ml-2 px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[9px] font-bold text-white cursor-pointer"
-                        >
-                            Stop
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {/* Chat Body (Rendered when in split mode) */}
-            {viewMode === 'split' && (
-                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-gray-50/70 dark:bg-gray-950/70">
-                    {messages.map((msg, i) => {
-                        const isSpeakingThisMsg = isSpeaking && speakingMsgIndex === i;
-
-                        return (
-                            <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                <div className={`relative group max-w-[90%] sm:max-w-[85%] rounded-2xl p-3 sm:p-3.5 text-sm shadow-sm whitespace-pre-line leading-relaxed ${
-                                    msg.role === 'user'
-                                        ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-br-xs font-medium'
-                                        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200/80 dark:border-gray-700/80 rounded-bl-xs'
-                                }`}>
-                                    {msg.content}
-
-                                    {/* Prominent Voice Listen & Play Button on Every Guru Message */}
-                                    {msg.role === 'assistant' && (
-                                        <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between gap-2 text-[11px]">
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    unlockAudioContext();
-                                                    if (isSpeakingThisMsg) {
-                                                        stopSpeaking();
-                                                    } else {
-                                                        speakGuru(msg.content, i);
-                                                    }
-                                                }}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold transition-all cursor-pointer shadow-xs ${
-                                                    isSpeakingThisMsg
-                                                        ? 'bg-rose-500 text-white animate-pulse'
-                                                        : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200/70 dark:border-amber-800/50'
-                                                }`}
-                                                title="Hear Guru speak this advice aloud"
-                                            >
-                                                {isSpeakingThisMsg ? (
-                                                    <>
-                                                        <Square size={11} className="fill-current" />
-                                                        <span>Stop Voice</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Volume2 size={12} className="text-amber-600 dark:text-amber-400" />
-                                                        <span>Listen to Advice 🔊</span>
-                                                    </>
-                                                )}
-                                            </button>
-
-                                            <span className="text-[10px] text-gray-400 font-medium">Spiritual Advice</span>
-                                        </div>
-                                    )}
+                        {/* Interactive Bio-Data Match Cards */}
+                        {msg.matches && msg.matches.length > 0 && (
+                            <div className="mt-3 space-y-3 w-full max-w-[95%]">
+                                <div className="text-[11px] font-extrabold uppercase tracking-wider text-rose-500 flex items-center gap-1">
+                                    <Sparkles size={13} className="animate-spin" />
+                                    <span>Top Bio-Data Compatible Matches</span>
                                 </div>
 
-                                {/* Interactive Bio-Data Match Cards */}
-                                {msg.matches && msg.matches.length > 0 && (
-                                    <div className="mt-3 space-y-3 w-full max-w-[95%]">
-                                        <div className="text-[11px] font-extrabold uppercase tracking-wider text-rose-500 flex items-center gap-1">
-                                            <Sparkles size={13} className="animate-spin" />
-                                            <span>Top Bio-Data Compatible Matches</span>
-                                        </div>
-
-                                        {msg.matches.map((m) => (
-                                            <div key={m.id} className="bg-gradient-to-br from-white via-rose-50/40 to-purple-50/30 dark:from-gray-800 dark:via-gray-850 dark:to-gray-900 border border-rose-200/80 dark:border-rose-900/50 rounded-2xl p-3 shadow-md hover:shadow-lg transition-all">
-                                                <div className="flex items-center gap-3">
-                                                    <img 
-                                                        src={m.photoUrl} 
-                                                        className="w-12 h-12 rounded-full border-2 border-rose-500 object-cover shadow-sm shrink-0" 
-                                                        alt={m.name}
-                                                        onError={(e) => { 
-                                                            (e.target as any).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}`; 
-                                                        }} 
-                                                    />
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center justify-between gap-1">
-                                                            <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate">{m.name}, {m.age}</h4>
-                                                            <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold shadow-sm shrink-0 flex items-center gap-0.5">
-                                                                ⚡ {m.compatibility}% Bio Match
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{m.occupation || 'Member'} • 📍 {m.city || 'India'}</p>
-                                                    </div>
+                                {msg.matches.map((m) => (
+                                    <div key={m.id} className="bg-gradient-to-br from-white via-rose-50/40 to-purple-50/30 dark:from-gray-800 dark:via-gray-850 dark:to-gray-900 border border-rose-200/80 dark:border-rose-900/50 rounded-2xl p-3 shadow-md hover:shadow-lg transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <img 
+                                                src={m.photoUrl} 
+                                                className="w-12 h-12 rounded-full border-2 border-rose-500 object-cover shadow-sm shrink-0" 
+                                                alt={m.name}
+                                                onError={(e) => { 
+                                                    (e.target as any).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}`; 
+                                                }} 
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center justify-between gap-1">
+                                                    <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate">{m.name}, {m.age}</h4>
+                                                    <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-extrabold shadow-sm shrink-0 flex items-center gap-0.5">
+                                                        ⚡ {m.compatibility}% Bio Match
+                                                    </span>
                                                 </div>
-
-                                                {m.guruInsight && (
-                                                    <div className="mt-2.5 p-2 rounded-xl bg-purple-50/90 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-800/40 text-[11px] text-purple-900 dark:text-purple-200 leading-snug">
-                                                        ✨ <strong>Guru Insight:</strong> {m.guruInsight}
-                                                    </div>
-                                                )}
-
-                                                <div className="mt-3 flex gap-2">
-                                                    <button 
-                                                        onClick={() => handleViewProfile(m.id)} 
-                                                        className="flex-1 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                                    >
-                                                        <User size={13} /> Profile
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleConnect(m.id)} 
-                                                        className="flex-1 py-1.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-xs font-bold rounded-xl shadow-md hover:scale-102 transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                                    >
-                                                        <Heart size={13} fill="currentColor" /> Connect
-                                                    </button>
-                                                </div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{m.occupation || 'Member'} • 📍 {m.city || 'India'}</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                        </div>
 
-                    {loading && (
-                        <div className="flex justify-start">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 rounded-bl-xs shadow-sm border border-gray-100 dark:border-gray-700">
-                                <div className="flex gap-1.5 items-center px-1">
-                                    <span className="text-xs text-rose-500 font-bold mr-1">Guru is meditating on sacred wisdom...</span>
-                                    <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-bounce"></div>
-                                    <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
-                                    <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
-                                </div>
+                                        {m.guruInsight && (
+                                            <div className="mt-2.5 p-2 rounded-xl bg-purple-50/90 dark:bg-purple-950/50 border border-purple-200/60 dark:border-purple-800/40 text-[11px] text-purple-900 dark:text-purple-200 leading-snug">
+                                                ✨ <strong>Guru Insight:</strong> {m.guruInsight}
+                                            </div>
+                                        )}
+
+                                        <div className="mt-3 flex gap-2">
+                                            <button 
+                                                onClick={() => handleViewProfile(m.id)} 
+                                                className="flex-1 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                            >
+                                                <User size={13} /> Profile
+                                            </button>
+                                            <button 
+                                                onClick={() => handleConnect(m.id)} 
+                                                className="flex-1 py-1.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-xs font-bold rounded-xl shadow-md hover:scale-102 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                            >
+                                                <Heart size={13} fill="currentColor" /> Connect
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+
+                {loading && (
+                    <div className="flex justify-start">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 rounded-bl-xs shadow-sm border border-gray-100 dark:border-gray-700">
+                            <div className="flex gap-1.5 items-center px-1">
+                                <span className="text-xs text-rose-500 font-bold mr-1">Guru is meditating...</span>
+                                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-bounce"></div>
+                                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+                                <div className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
                             </div>
                         </div>
-                    )}
-                    <div ref={endOfMessagesRef} />
-                </div>
-            )}
+                    </div>
+                )}
+                <div ref={endOfMessagesRef} />
+            </div>
 
             {/* Quick Action Suggestion Chips */}
-            <div className="px-3 py-2 bg-gray-100/90 dark:bg-gray-850 border-t border-gray-200/50 dark:border-gray-800 flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
+            <div className="px-3 py-2 bg-gray-100/80 dark:bg-gray-850 border-t border-gray-200/50 dark:border-gray-800 flex gap-1.5 overflow-x-auto scrollbar-none shrink-0">
                 <button
                     onClick={() => handleSend("🎯 Find my most compatible matches based on my bio-data")}
                     disabled={loading}
                     className="whitespace-nowrap px-3 py-1 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 rounded-full text-[11px] font-extrabold transition-all shrink-0 cursor-pointer shadow-xs"
                 >
-                    🎯 Find Matches
-                </button>
-                <button
-                    onClick={() => handleSend("💬 Give me 3 creative first message icebreakers for a new match")}
-                    disabled={loading}
-                    className="whitespace-nowrap px-3 py-1 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/50 rounded-full text-[11px] font-extrabold transition-all shrink-0 cursor-pointer shadow-xs"
-                >
-                    💬 3 Icebreakers
+                    🎯 Find My Best Match
                 </button>
                 <button
                     onClick={() => handleSend("💖 Analyze my profile bio and tell me how to improve my match rate")}
                     disabled={loading}
                     className="whitespace-nowrap px-3 py-1 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-900/50 rounded-full text-[11px] font-extrabold transition-all shrink-0 cursor-pointer shadow-xs"
                 >
-                    💖 Profile Bio Review
+                    💖 Profile Bio Analysis
                 </button>
                 <button
-                    onClick={() => handleSend("☕ What are the best first date ideas and etiquette to make a great impression?")}
+                    onClick={() => handleSend("💬 Give me 3 creative first message icebreakers for a new match")}
                     disabled={loading}
-                    className="whitespace-nowrap px-3 py-1 bg-white dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900/50 rounded-full text-[11px] font-extrabold transition-all shrink-0 cursor-pointer shadow-xs"
+                    className="whitespace-nowrap px-3 py-1 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-900/50 rounded-full text-[11px] font-extrabold transition-all shrink-0 cursor-pointer shadow-xs"
                 >
-                    ☕ First Date Guide
-                </button>
-                <button
-                    onClick={() => handleSend("💍 How do I check Kundli compatibility, family values, and marriage readiness?")}
-                    disabled={loading}
-                    className="whitespace-nowrap px-3 py-1 bg-white dark:bg-gray-800 hover:bg-teal-50 dark:hover:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-900/50 rounded-full text-[11px] font-extrabold transition-all shrink-0 cursor-pointer shadow-xs"
-                >
-                    💍 Kundli & Marriage
+                    💬 Icebreaker Idea
                 </button>
             </div>
 
@@ -735,7 +363,7 @@ export default function FloatingLoveGuru() {
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask Guru for guidance, tips, icebreakers..."
+                    placeholder="Ask about matches, profiles, dating..."
                     className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 dark:focus:ring-rose-800 transition-all placeholder:text-gray-400"
                     disabled={loading}
                 />
@@ -743,9 +371,10 @@ export default function FloatingLoveGuru() {
                     type="submit"
                     disabled={!input.trim() || loading}
                     className="bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 active:scale-95 disabled:opacity-50 disabled:active:scale-100 text-white rounded-full w-10 h-10 flex items-center justify-center transition-all shadow-md focus:outline-none cursor-pointer"
-                    title="Send to Guru"
                 >
-                    <Send size={16} className="ml-0.5" />
+                    <svg className="w-4 h-4 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
                 </button>
             </form>
 
@@ -790,36 +419,31 @@ export default function FloatingLoveGuru() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 20, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
-                            className="absolute bottom-16 right-0 w-[420px] rounded-3xl shadow-2xl border border-rose-200/60 dark:border-rose-900/40 overflow-hidden"
-                            style={{ height: '620px', maxHeight: '88vh' }}
+                            className="absolute bottom-16 right-0 w-96 rounded-3xl shadow-2xl border border-gray-200/80 dark:border-gray-800 overflow-hidden"
+                            style={{ height: '540px', maxHeight: '82vh' }}
                         >
                             {chatPanel('h-full')}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Desktop FAB Launcher */}
+                {/* Desktop FAB */}
                 {!isOpen && (
                     <motion.div
                         className="relative group"
                         animate={{ y: [0, -8, 0] }}
                         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                     >
-                        <div className="absolute -inset-2.5 rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 opacity-75 blur-xl group-hover:opacity-100 transition duration-1000 animate-pulse"></div>
+                        <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 blur-xl group-hover:opacity-100 transition duration-1000 animate-pulse"></div>
                         <button
-                            onClick={() => {
-                                unlockAudioContext();
-                                setIsOpen(true);
-                            }}
-                            className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 via-rose-600 to-purple-700 text-white shadow-2xl shadow-rose-500/50 transition-all duration-300 hover:scale-110 active:scale-95 border-2 border-amber-300/60 cursor-pointer overflow-hidden"
-                            title="Ask Divine Love Guru"
+                            onClick={() => setIsOpen(true)}
+                            className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white shadow-2xl shadow-purple-500/50 transition-all duration-300 hover:scale-110 active:scale-95 border-2 border-white/30 cursor-pointer"
+                            title="LifePartner AI Guru Matchmaker"
                         >
-                            <span className="text-2xl drop-shadow-md select-none transform hover:rotate-12 transition-transform">
-                                🔮
-                            </span>
-                            <Sparkles className="w-4 h-4 text-amber-300 absolute top-1 right-1 drop-shadow-md animate-spin" />
-                            <span className="absolute bottom-0.5 px-2 py-0.2 rounded-full bg-slate-950/90 text-[8px] font-black text-amber-300 uppercase tracking-widest border border-amber-400/40 shadow-sm">
-                                AI GURU
+                            <Sparkles className="w-6 h-6 text-yellow-300 drop-shadow-md animate-pulse" fill="currentColor" />
+                            <Heart className="w-3.5 h-3.5 text-pink-300 absolute -top-1 -right-1 fill-pink-500 animate-bounce" />
+                            <span className="absolute -bottom-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 text-[8px] font-black text-indigo-300 uppercase tracking-widest border border-white/20 shadow-sm">
+                                GURU
                             </span>
                         </button>
                     </motion.div>
@@ -833,19 +457,16 @@ export default function FloatingLoveGuru() {
                     animate={{ y: [0, -6, 0] }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 >
-                    <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 opacity-75 blur-md transition duration-1000 animate-pulse"></div>
+                    <div className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-70 blur-md transition duration-1000 animate-pulse"></div>
                     <button
-                        onClick={() => {
-                            unlockAudioContext();
-                            setIsOpen(true);
-                        }}
-                        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 via-rose-600 to-purple-700 text-white shadow-2xl shadow-rose-500/50 transition-transform duration-300 active:scale-95 border-2 border-amber-300/60 cursor-pointer"
-                        title="Ask Divine Love Guru"
+                        onClick={() => setIsOpen(true)}
+                        className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white shadow-2xl shadow-purple-500/50 transition-transform duration-300 active:scale-95 border-2 border-white/30 cursor-pointer"
+                        title="LifePartner AI Guru Matchmaker"
                     >
-                        <span className="text-xl select-none">🔮</span>
-                        <Sparkles className="w-3.5 h-3.5 text-amber-300 absolute top-1 right-1 animate-spin" />
-                        <span className="absolute bottom-0.5 px-1.5 py-0.2 rounded-full bg-slate-950/90 text-[7px] font-black text-amber-300 uppercase tracking-widest border border-amber-400/40 shadow-sm">
-                            AI GURU
+                        <Sparkles className="w-6 h-6 text-yellow-300 drop-shadow-md animate-pulse" fill="currentColor" />
+                        <Heart className="w-3.5 h-3.5 text-pink-300 absolute -top-1 -right-1 fill-pink-500 animate-bounce" />
+                        <span className="absolute -bottom-1 px-1.5 py-0.5 rounded-full bg-slate-950/90 text-[8px] font-black text-indigo-300 uppercase tracking-widest border border-white/20 shadow-sm">
+                            GURU
                         </span>
                     </button>
                 </motion.div>

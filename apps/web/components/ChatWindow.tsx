@@ -668,6 +668,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     const [isMuting, setIsMuting] = useState(false);
 
     const [messages, setMessages] = useState<any[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(true);
     const [inputText, setInputText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [fullscreenMedia, setFullscreenMedia] = useState<{ 
@@ -1131,13 +1132,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         }
     };
 
-    // Auto-fetch personalized AI icebreakers on new/quiet conversations
-    useEffect(() => {
-        if (partner?.id && messages.length <= 1 && aiSuggestions.length === 0 && !loadingAi) {
-            handleIcebreaker();
-        }
-    }, [partner?.id, messages.length]);
-
     const handleToggleMute = async () => {
         if (isMuting) return;
         setIsMuting(true);
@@ -1190,12 +1184,22 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     }, [messages, partner.id]);
 
     useEffect(() => {
+        // Clear suggestions when switching partner/opening chat
+        setAiSuggestions([]);
+
         // Optimistic SWR: Immediately load cached chat history to paint the conversation instantly
+        let hasCache = false;
         if (typeof window !== 'undefined') {
             try {
                 const cached = localStorage.getItem(`chat_history_${partner.id}`);
                 if (cached) {
-                    setMessages(JSON.parse(cached));
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setMessages(parsed);
+                        hasCache = true;
+                    } else {
+                        setMessages([]);
+                    }
                 } else {
                     setMessages([]);
                 }
@@ -1205,6 +1209,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         } else {
             setMessages([]);
         }
+
+        setLoadingHistory(!hasCache);
 
         const loadHistory = async () => {
             try {
@@ -1219,6 +1225,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             } catch (e: any) {
                 console.error("Chat history fetch error:", e);
                 // Keep the cached messages if offline/network error, don't wipe them!
+            } finally {
+                setLoadingHistory(false);
             }
         };
 
@@ -1600,6 +1608,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
         const textToSend = forcedText || inputText;
         if (!textToSend.trim()) return;
+
+        // Dismiss any active AI suggestions drawer upon sending a message
+        if (aiSuggestions.length > 0) {
+            setAiSuggestions([]);
+        }
 
         if (isSendingMessageRef.current && !forcedText) return;
         isSendingMessageRef.current = true;
@@ -2149,7 +2162,13 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
             {/* Messages - Premium Design */}
             <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 pb-12 space-y-3 transition-colors duration-300 ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
-                {messages.length === 0 && (
+                {loadingHistory && messages.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                        <RotateCw size={22} className="animate-spin text-purple-500/70" />
+                        <p className="text-xs text-gray-400 font-medium">Loading conversation...</p>
+                    </div>
+                )}
+                {!loadingHistory && messages.length === 0 && (
                     <div className="text-center py-10 px-4 max-w-sm mx-auto space-y-4">
                         <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/60 dark:to-purple-900/60 rounded-full flex items-center justify-center mx-auto shadow-md">
                             <span className="text-3xl">👋</span>
@@ -2912,8 +2931,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             )}
             </div>
 
-            {/* AI Icebreaker Suggestions */}
-            {aiSuggestions.length > 0 && (
+            {/* AI Icebreaker Suggestions (Shown only when explicitly requested in ongoing chat via attachment menu) */}
+            {messages.length > 0 && aiSuggestions.length > 0 && (
                 <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/40 dark:to-purple-900/40 border-t border-indigo-100 dark:border-indigo-900 animate-in slide-in-from-bottom duration-300">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-bold text-indigo-600 flex items-center gap-1.5">
@@ -2955,24 +2974,6 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
-
-            {/* Quick AI Icebreaker Pill for new conversations */}
-            {messages.length <= 2 && aiSuggestions.length === 0 && (
-                <div className="px-3 py-1.5 bg-gradient-to-r from-purple-50/70 via-indigo-50/70 to-pink-50/70 dark:from-purple-950/20 dark:via-indigo-950/20 dark:to-pink-950/20 border-t border-purple-100/50 dark:border-purple-900/30 flex items-center justify-between">
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                        <span>💬</span> Need a fun conversation starter?
-                    </span>
-                    <button
-                        type="button"
-                        onClick={handleIcebreaker}
-                        disabled={loadingAi}
-                        className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 px-2.5 py-1 rounded-full bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-800 shadow-xs cursor-pointer active:scale-95 transition-all"
-                    >
-                        <Sparkles size={11} className={loadingAi ? 'animate-spin text-purple-500' : 'text-purple-500'} />
-                        <span>{loadingAi ? 'Thinking...' : '✨ Get AI Icebreakers'}</span>
-                    </button>
                 </div>
             )}
 

@@ -36,6 +36,17 @@ export default function RequestsTab({
         }
     }, []);
 
+    // Pre-cache request user profiles so clicking any request opens details instantly in 0ms
+    useEffect(() => {
+        if (Array.isArray(requests)) {
+            requests.forEach((req: any) => {
+                if (req?.fromUser?.id) {
+                    api.profile.setCachedProfile(req.fromUser);
+                }
+            });
+        }
+    }, [requests]);
+
     const handleEnablePush = async () => {
         setIsEnabling(true);
         try {
@@ -54,10 +65,14 @@ export default function RequestsTab({
         const photos = Array.isArray(fromUser.photos) && fromUser.photos.length > 0
             ? fromUser.photos
             : (fromUser.photoUrl ? [fromUser.photoUrl] : []);
+
+        // Instant optimistic full-profile dispatch (0ms)
+        api.profile.setCachedProfile(fromUser);
         onViewProfile({
             ...fromUser,
             photos
         });
+
         if (fromUser.id) {
             api.profile.getById(fromUser.id).then((full: any) => {
                 if (full) {

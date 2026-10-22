@@ -11,6 +11,7 @@ export const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 let storyFeedCache: { data: any; timestamp: number } | null = null;
+const profileDetailsCache = new Map<string, { data: any; timestamp: number }>();
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -83,7 +84,24 @@ export const api = {
             });
         },
         toggleMute: (targetId: string) => fetchAPI(`/profile/mute/${targetId}`, { method: 'POST' }),
-        getById: (id: string) => fetchAPI(`/profile/${id}`),
+        getById: async (id: string, forceRefresh = false) => {
+            const now = Date.now();
+            const cached = profileDetailsCache.get(id);
+            if (!forceRefresh && cached && (now - cached.timestamp < 120000)) {
+                return cached.data;
+            }
+            const data = await fetchAPI(`/profile/${id}`);
+            if (data && data.id) {
+                profileDetailsCache.set(id, { data, timestamp: now });
+            }
+            return data;
+        },
+        setCachedProfile: (profile: any) => {
+            if (profile && (profile.id || profile.userId)) {
+                const id = profile.id || profile.userId;
+                profileDetailsCache.set(id, { data: profile, timestamp: Date.now() });
+            }
+        },
         getStoryFeed: async (forceRefresh = false) => {
             const now = Date.now();
             if (!forceRefresh && storyFeedCache && (now - storyFeedCache.timestamp < 30000)) {

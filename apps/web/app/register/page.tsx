@@ -42,7 +42,8 @@ function RegisterForm() {
         // Auth check
         const userId = localStorage.getItem('userId');
         if (userId) {
-            router.replace('/dashboard');
+            const isOnboarded = localStorage.getItem('onboarding_completed') === 'true';
+            router.replace(isOnboarded ? '/dashboard' : '/onboarding');
             return;
         }
 
@@ -175,16 +176,16 @@ function RegisterForm() {
                     localStorage.removeItem('matches_cache_v2');
                     localStorage.removeItem('lifepartner_onboarding_data');
                     localStorage.removeItem('lifepartner_onboarding_step');
+                    localStorage.removeItem('onboarding_completed');
                     localStorage.setItem('userId', res.userId);
                     localStorage.setItem('token', res.token);
-                    localStorage.setItem('onboarding_completed', 'true');
                     localStorage.setItem('user', JSON.stringify({
                         id: res.userId,
                         name: form.full_name,
                         gender: form.gender,
                         age: parsedAge,
                         is_premium: form.gender === 'Female',
-                        onboarding_completed: true
+                        onboarding_completed: false
                     }));
                     toast.success(form.gender === 'Female'
                         ? 'Welcome Queen! 👑 Your Free Lifetime VIP & 100 Coins are active!'

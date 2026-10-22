@@ -2134,7 +2134,7 @@ function DashboardContent() {
 
             {selectedProfile && (() => {
                 const latestMatch = matches.find((m: any) => m.id === selectedProfile.id);
-                const profileToShow = latestMatch ? { ...selectedProfile, match_status: latestMatch.match_status } : selectedProfile;
+                const profileToShow = latestMatch ? { ...latestMatch, ...selectedProfile, match_status: latestMatch.match_status } : selectedProfile;
                 return (
                     <ProfileModal
                         profile={profileToShow}

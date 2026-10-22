@@ -429,9 +429,26 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 ...(targetGender ? { gender: { in: targetGender } } : {}),
                 is_verified: true,
                 is_banned: false,
+                full_name: { not: null },
+                age: { gte: 18 },
                 AND: [
-                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
-                ]
+                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] },
+                    {
+                        OR: [
+                            { city: { not: null } },
+                            { location_name: { not: null } },
+                            { profiles: { location_name: { not: null } } }
+                        ]
+                    }
+                ],
+                profiles: {
+                    NOT: {
+                        metadata: {
+                            path: ['onboarding_completed'],
+                            equals: false
+                        }
+                    }
+                }
             },
             select: {
                 id: true,
@@ -509,39 +526,63 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         let randomCandidates: { id: string }[];
         if (myGender === 'male') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT id FROM users
-                WHERE id != ${userId}::uuid 
-                  AND is_verified = true 
-                  AND is_banned = false 
-                  AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
-                  AND full_name IS NOT NULL AND TRIM(full_name) != ''
-                  AND age IS NOT NULL AND age >= 18
-                  AND gender IN ('Female', 'female')
-                ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+                SELECT u.id FROM users u
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE u.id != ${userId}::uuid 
+                  AND u.is_verified = true 
+                  AND u.is_banned = false 
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
+                  AND u.age IS NOT NULL AND u.age >= 18
+                  AND u.gender IN ('Female', 'female')
+                  AND (
+                    (u.city IS NOT NULL AND TRIM(u.city) != '')
+                    OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '')
+                    OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '')
+                    OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != '')
+                  )
+                  AND (p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')
+                ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else if (myGender === 'female') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT id FROM users
-                WHERE id != ${userId}::uuid 
-                  AND is_verified = true 
-                  AND is_banned = false 
-                  AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
-                  AND full_name IS NOT NULL AND TRIM(full_name) != ''
-                  AND age IS NOT NULL AND age >= 18
-                  AND gender IN ('Male', 'male')
-                ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+                SELECT u.id FROM users u
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE u.id != ${userId}::uuid 
+                  AND u.is_verified = true 
+                  AND u.is_banned = false 
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
+                  AND u.age IS NOT NULL AND u.age >= 18
+                  AND u.gender IN ('Male', 'male')
+                  AND (
+                    (u.city IS NOT NULL AND TRIM(u.city) != '')
+                    OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '')
+                    OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '')
+                    OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != '')
+                  )
+                  AND (p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')
+                ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT id FROM users
-                WHERE id != ${userId}::uuid 
-                  AND is_verified = true 
-                  AND is_banned = false 
-                  AND (is_deactivated = false OR is_deactivated IS NULL OR deactivated_until IS NULL OR deactivated_until < NOW())
-                  AND full_name IS NOT NULL AND TRIM(full_name) != ''
-                  AND age IS NOT NULL AND age >= 18
-                  AND gender IS NOT NULL
-                ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+                SELECT u.id FROM users u
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE u.id != ${userId}::uuid 
+                  AND u.is_verified = true 
+                  AND u.is_banned = false 
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
+                  AND u.age IS NOT NULL AND u.age >= 18
+                  AND u.gender IS NOT NULL
+                  AND (
+                    (u.city IS NOT NULL AND TRIM(u.city) != '')
+                    OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '')
+                    OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '')
+                    OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != '')
+                  )
+                  AND (p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')
+                ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         }
 
@@ -555,9 +596,26 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     ...(targetGenderClause ? { gender: { in: targetGenderClause } } : {}),
                     is_verified: true,
                     is_banned: false,
+                    full_name: { not: null },
+                    age: { gte: 18 },
                     AND: [
-                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
-                    ]
+                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] },
+                        {
+                            OR: [
+                                { city: { not: null } },
+                                { location_name: { not: null } },
+                                { profiles: { location_name: { not: null } } }
+                            ]
+                        }
+                    ],
+                    profiles: {
+                        NOT: {
+                            metadata: {
+                                path: ['onboarding_completed'],
+                                equals: false
+                            }
+                        }
+                    }
                 },
                 select: { id: true }
             })).map(u => u.id)
@@ -978,7 +1036,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             Prisma.sql`u.is_verified = true`,
             Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
             Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
-            Prisma.sql`u.gender IS NOT NULL`
+            Prisma.sql`u.gender IS NOT NULL`,
+            Prisma.sql`((u.city IS NOT NULL AND TRIM(u.city) != '') OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '') OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '') OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != ''))`,
+            Prisma.sql`(p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')`
         ];
 
         // Target Gender SQL Condition
@@ -1052,7 +1112,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 Prisma.sql`u.is_verified = true`,
                 Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
                 Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
-                Prisma.sql`u.gender IS NOT NULL`
+                Prisma.sql`u.gender IS NOT NULL`,
+                Prisma.sql`((u.city IS NOT NULL AND TRIM(u.city) != '') OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '') OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '') OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != ''))`,
+                Prisma.sql`(p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')`
             ];
             if (targetGender === 'Female') relaxedConditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
             else if (targetGender === 'Male') relaxedConditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);

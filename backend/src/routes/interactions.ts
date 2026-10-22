@@ -3,7 +3,7 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { getIO, isUserOnline } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
-import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
 import { mergeStoriesHelper } from './profile';
 
@@ -51,11 +51,21 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                         full_name: true,
                         avatar_url: true,
                         city: true,
+                        district: true,
+                        state: true,
                         location_name: true,
+                        age: true,
+                        gender: true,
+                        is_verified: true,
+                        is_premium: true,
+                        referral_code: true,
+                        voice_bio_url: true,
                         profiles: {
                             select: {
-                                metadata: true // Unfortunately Prisma doesn't support selecting specific JSON keys inside a select yet. 
-                                // BUT omitting 'raw_prompt', 'traits', 'embedding' drastically reduces memory footprint vs include: true.
+                                raw_prompt: true,
+                                metadata: true,
+                                stories: true,
+                                photos: true
                             }
                         }
                     }
@@ -67,14 +77,65 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
             const fromUser = r.users_interactions_from_user_idTousers;
             if (!fromUser) return null; // Safe guard for deleted accounts
 
+            const meta: any = fromUser.profiles?.metadata || {};
+            const rawPhotoList = extractPhotosList(fromUser.profiles, meta, fromUser.avatar_url);
+            const sanitizedPhotos = rawPhotoList.map((p: string) => sanitizePhotoUrl(p, fromUser.full_name || fromUser.id)).filter(Boolean);
+            const mainPhoto = sanitizePhotoUrl(
+                (sanitizedPhotos.length > 0 ? sanitizedPhotos[0] : null) || (fromUser.avatar_url && fromUser.avatar_url.trim() ? fromUser.avatar_url : null),
+                fromUser.full_name || fromUser.id
+            );
+            const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+
+            const profileId = fromUser.referral_code ? `LP-${fromUser.referral_code.toUpperCase()}` : `LP-${fromUser.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+            const handle = `@${fromUser.full_name ? fromUser.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${fromUser.referral_code ? '_' + fromUser.referral_code.toLowerCase().slice(-4) : ''}`;
+
+            const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
+                ? meta.interests
+                : (typeof meta.lifestyle?.hobbies === 'string'
+                    ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
+                    : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : []));
+
             return {
                 interactionId: r.id,
                 fromUser: {
                     id: fromUser.id,
-                    name: fromUser.full_name,
-                    photoUrl: sanitizePhotoUrl(fromUser.avatar_url, fromUser.full_name || fromUser.id),
-                    career: { profession: (fromUser.profiles?.metadata as any)?.career?.profession || "Member" },
-                    location: getLocationString(fromUser)
+                    userId: fromUser.id,
+                    profile_id: profileId,
+                    handle: handle,
+                    name: fromUser.full_name || 'Member',
+                    age: fromUser.age,
+                    gender: fromUser.gender,
+                    isVerified: fromUser.is_verified ?? false,
+                    isPremium: fromUser.is_premium ?? false,
+                    photoUrl: mainPhoto,
+                    photos: finalPhotos,
+                    location: getLocationString(fromUser),
+                    aboutMe: fromUser.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                    bio: meta.bio || fromUser.profiles?.raw_prompt || "",
+                    expectations: meta.expectations || "",
+                    height: meta.height || "Not Specified",
+                    profession: meta.career?.profession || "",
+                    education: meta.career?.education || meta.career?.educationLevel || "",
+                    maritalStatus: meta.maritalStatus || "Single",
+                    motherTongue: meta.motherTongue || "",
+                    career: meta.career || {},
+                    family: meta.family || {},
+                    religion: meta.religion || {},
+                    horoscope: meta.horoscope || {},
+                    lifestyle: {
+                        ...meta.lifestyle,
+                        smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
+                        smoke: meta.lifestyle?.smoke || meta.lifestyle?.smoking || "No",
+                        drinking: meta.lifestyle?.drinking || meta.lifestyle?.drink || "No",
+                        drink: meta.lifestyle?.drink || meta.lifestyle?.drinking || "No",
+                        hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
+                    },
+                    partnerPreferences: meta.partnerPreferences || {},
+                    interests: hobbiesList,
+                    dob: meta.dob || null,
+                    reels: meta.reels || [],
+                    match_status: 'pending',
+                    voiceBioUrl: fromUser.voice_bio_url || null
                 },
                 timestamp: r.created_at
             };
@@ -578,7 +639,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
 
                 // Realtime
                 getIO().to(toUserId).emit('notification:new', {
-                    id: dbNotif.id,
+                    id: dbNotif?.id,
                     type: 'request',
                     message: msg,
                     timestamp: new Date(),
@@ -1131,7 +1192,7 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                 const { getIO } = require('../socket');
                 const io = getIO();
                 io.to(toUserId).emit('notification:new', {
-                    id: dbNotif.id,
+                    id: dbNotif?.id,
                     type: 'like',
                     message: msg,
                     timestamp: new Date(),
@@ -1240,7 +1301,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
             select: { from_user_id: true, to_user_id: true }
         });
         const connectedIds = new Set(
-            acceptedConns.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
+            (acceptedConns || []).flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
         );
 
         // Map Results
@@ -1255,7 +1316,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
 
             return {
                 id: u.id,
-                name: u.full_name || "User",
+                name: !isPremium ? "???" : (u.full_name || "User"),
                 age: u.age || meta.age,
                 height: meta.height || "Not Specified",
                 photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
@@ -1280,7 +1341,7 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
         }).filter(Boolean);
 
         res.json({
-            isPremium: true,
+            isPremium,
             totalLikes,
             likes: formattedLikes
         });
@@ -1458,7 +1519,7 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                 const { getIO } = require('../socket');
                 const io = getIO();
                 io.to(targetId).emit('notification:new', {
-                    id: dbNotif.id,
+                    id: dbNotif?.id,
                     type: 'view',
                     message: msg,
                     timestamp: new Date(),
@@ -1553,7 +1614,7 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
 
             return {
                 id: u.id,
-                name: u.full_name || "User",
+                name: !isPremium ? "???" : (u.full_name || "User"),
                 age: u.age || meta.age,
                 height: meta.height || "Not Specified",
                 photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),

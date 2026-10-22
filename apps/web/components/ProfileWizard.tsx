@@ -245,6 +245,10 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 toast.error("Please enter a valid Age between 18 and 95 (*)");
                 return false;
             }
+            if (!data.city || !String(data.city).trim()) {
+                toast.error("Please enter your City / Location (*)");
+                return false;
+            }
         }
         // Photos are optional for onboarding (users can add them anytime from profile for bonus coins)
         return true;
@@ -435,10 +439,13 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </select>
                                 </div>
                                 <div className="col-span-1 md:col-span-2 space-y-2">
-                                    <label className="text-sm font-medium dark:text-gray-200">Location (Optional)</label>
+                                    <label className="text-sm font-medium dark:text-gray-200 flex items-center gap-1">
+                                        <span>City / Location</span>
+                                        <span className="text-rose-500 font-bold">*</span>
+                                    </label>
                                     <div className="flex gap-2 w-full">
                                         <div className="flex-1">
-                                            <Input placeholder="City" value={data.city} onChange={e => update('city', e.target.value)} />
+                                            <Input placeholder="Enter your city (e.g. Mumbai, Bangalore, Dallas)" value={data.city} onChange={e => update('city', e.target.value)} />
                                         </div>
                                         <Button
                                             type="button"

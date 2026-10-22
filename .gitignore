@@ -62,3 +62,10 @@ apps/web/android/build_output.txt
 apps/web/build_output.txt
 apps/web/nextbuild_out.txt
 apps/web/next.config.mjs.bak
+last_steps.jsonl
+play_store_assets/debug_*
+play_store_assets/test_*
+play_store_assets/sec*
+play_store_assets/sarah_*
+play_store_assets/phone_*
+play_store_assets/crop_banner.png

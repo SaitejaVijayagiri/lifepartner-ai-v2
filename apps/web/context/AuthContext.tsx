@@ -112,12 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         // Only trigger if onboarding has NOT been completed
                         const hasCompletedOnboarding = Boolean(
                             freshProfile.onboarding_completed === true ||
-                            (localStorage.getItem('onboarding_completed') === 'true' && freshProfile.gender && freshProfile.age && (freshProfile.photos?.length > 0 || freshProfile.photoUrl))
+                            (freshProfile.onboarding_completed !== false && freshProfile.gender && freshProfile.age && (freshProfile.city || freshProfile.location?.city))
                         );
                         const isIncomplete = !hasCompletedOnboarding;
-                        if (isIncomplete && pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login') && !pathname.startsWith('/auth/callback')) {
-                            console.warn("⚠️ Mandatory Onboarding Redirect triggered: Incomplete profile");
-                            router.replace('/onboarding');
+                        if (isIncomplete) {
+                            try {
+                                localStorage.removeItem('onboarding_completed');
+                            } catch (_) {}
+                            if (pathname && !pathname.startsWith('/onboarding') && !pathname.startsWith('/register') && !pathname.startsWith('/login') && !pathname.startsWith('/auth/callback')) {
+                                console.warn("⚠️ Mandatory Onboarding Redirect triggered: Incomplete profile");
+                                router.replace('/onboarding');
+                            }
                         } else if (hasCompletedOnboarding) {
                             try {
                                 localStorage.setItem('onboarding_completed', 'true');

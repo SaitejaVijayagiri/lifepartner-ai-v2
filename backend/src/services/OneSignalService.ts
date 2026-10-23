@@ -40,7 +40,7 @@ export class OneSignalService {
 
         let payload: any = null;
         try {
-            const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
+            const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || data?.callerPhoto || null;
             let bannerUrl = data?.bannerUrl || null;
             if (bannerUrl && bannerUrl.startsWith('/')) {
                 const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
@@ -49,18 +49,27 @@ export class OneSignalService {
             }
 
             const rawUrl = data?.url || 
-                (data?.callerId ? `/chat/${data.callerId}` : 
+                (data?.callerId ? `/chat/${data.callerId}?action=answer_call&callType=${data?.callType || 'video'}` : 
                 (data?.senderId ? `/chat/${data.senderId}` : '/dashboard'));
             const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
             const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
             const targetUrl = rawUrl.startsWith('http') ? rawUrl : `${cleanBase}${rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl}`;
 
             const buttons: any[] = [];
-            // If match / friend request, offer Accept & Decline buttons
-            if (data?.type === 'request') {
+            // If incoming call, offer Answer & Decline buttons
+            if (data?.type === 'incoming_call') {
+                buttons.push(
+                    { id: 'answer', text: 'Answer 📞' },
+                    { id: 'decline', text: 'Decline ❌' }
+                );
+            } else if (data?.type === 'request') {
                 buttons.push(
                     { id: 'accept', text: 'Connect 💖' },
                     { id: 'decline', text: 'Not Now' }
+                );
+            } else if (data?.type === 'match') {
+                buttons.push(
+                    { id: 'chat_now', text: 'Chat Now 💬' }
                 );
             } else if (data?.senderId || data?.connId) {
                 // If chat message, offer quick reply and like

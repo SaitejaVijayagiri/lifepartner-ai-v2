@@ -66,7 +66,11 @@ messaging.onBackgroundMessage((payload) => {
         ];
         notificationOptions.requireInteraction = true;
         notificationOptions.vibrate = [500, 200, 500, 200, 500];
-    } else if ((payload.data?.type === 'match' || payload.data?.type === 'chat' || payload.data?.type === 'message') && (payload.data?.senderId || payload.data?.connId)) {
+    } else if (payload.data?.type === 'match') {
+        notificationOptions.actions = [
+            { action: 'open_chat', title: 'Chat Now 💬' }
+        ];
+    } else if ((payload.data?.type === 'chat' || payload.data?.type === 'message') && (payload.data?.senderId || payload.data?.connId)) {
         // WhatsApp-style inline quick reply and like actions for all chat messages
         const actions = [];
         if (payload.data?.messageId) {
@@ -337,7 +341,7 @@ self.addEventListener('notificationclick', function(event) {
 
     // Connection online action or body click handler
     const type = payloadData.type;
-    if (action === 'chat_now' || type === 'connection_online') {
+    if (action === 'chat_now' || action === 'open_chat' || type === 'connection_online' || type === 'match') {
         const fromUserId = payloadData.fromUserId || payloadData.senderId;
         const fromUserName = payloadData.fromUserName || payloadData.senderName || 'Member';
         const fromUserPhoto = payloadData.fromUserPhoto || payloadData.senderPhoto || '';
@@ -367,11 +371,12 @@ self.addEventListener('notificationclick', function(event) {
     }
 
     if (action === 'answer_call' || type === 'incoming_call') {
-        const callerId = payloadData.callerId || payloadData.senderId;
-        const callerName = payloadData.callerName || 'Partner';
-        const callerPhoto = payloadData.callerPhoto || '';
+        const callerId = payloadData.callerId || payloadData.senderId || payloadData.from;
+        const callerName = payloadData.callerName || payloadData.senderName || 'Partner';
+        const callerPhoto = payloadData.callerPhoto || payloadData.senderPhoto || '';
+        const callType = payloadData.callType || 'video';
         const urlToOpen = callerId
-            ? `/chat/${callerId}?name=${encodeURIComponent(callerName)}&photo=${encodeURIComponent(callerPhoto)}`
+            ? `/chat/${callerId}?action=answer_call&callType=${callType}&callerId=${callerId}&callerName=${encodeURIComponent(callerName)}&callerPhoto=${encodeURIComponent(callerPhoto)}`
             : '/dashboard?tab=connections';
 
         event.waitUntil(

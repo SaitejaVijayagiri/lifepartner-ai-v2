@@ -301,6 +301,7 @@ export const api = {
         profileRoast: () => fetchAPI('/ai/profile-roast', { method: 'POST' })
     },
     calls: {
+        getPending: () => fetchAPI('/calls/pending'),
         getHistory: () => fetchAPI('/calls/history'),
         log: (data: any) => fetchAPI('/calls/log', { method: 'POST', body: JSON.stringify(data) }),
         buzz: (receiverId: string, type: 'audio' | 'video' = 'video') => fetchAPI('/calls/buzz', {

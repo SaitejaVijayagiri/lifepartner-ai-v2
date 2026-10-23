@@ -143,7 +143,7 @@ export class NotificationService {
             }
         }
 
-        const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || null;
+        const senderPhoto = data?.fromUserPhoto || data?.senderPhoto || data?.avatarUrl || data?.callerPhoto || null;
         let bannerUrl = data?.bannerUrl || null;
         if (bannerUrl && bannerUrl.startsWith('/')) {
             const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
@@ -151,7 +151,7 @@ export class NotificationService {
             bannerUrl = `${cleanBase}${bannerUrl}`;
         }
 
-        const targetUrl = data?.url || (data?.callerId ? `/chat/${data.callerId}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections'));
+        const targetUrl = data?.url || (data?.callerId ? `/chat/${data.callerId}?action=answer_call&callType=${data?.callType || 'video'}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections'));
 
         // ==========================================
         // PROVIDER 1: OneSignal (Web & Mobile APK)
@@ -179,10 +179,15 @@ export class NotificationService {
                 actions: data?.type === 'request' ? [
                     { action: 'accept_request', title: 'Connect 💖' },
                     { action: 'decline_request', title: 'Not Now' }
+                ] : (data?.type === 'incoming_call' ? [
+                    { action: 'answer_call', title: 'Answer 📞' },
+                    { action: 'decline_call', title: 'Decline ❌' }
+                ] : (data?.type === 'match' ? [
+                    { action: 'open_chat', title: 'Chat Now 💬' }
                 ] : (data?.senderId || data?.connId ? [
                     ...(data?.messageId ? [{ action: 'like_message', title: 'Like ❤️' }] : []),
                     { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
-                ] : undefined),
+                ] : undefined))),
                 data: {
                     ...data,
                     senderPhoto,
@@ -236,8 +241,12 @@ export class NotificationService {
                             body: String(body),
                             type: String(data?.type || 'message'),
                             interactionId: String(data?.interactionId || ''),
-                            senderId: String(data?.senderId || data?.from || ''),
-                            senderName: String(data?.senderName || title),
+                            senderId: String(data?.senderId || data?.callerId || data?.from || ''),
+                            senderName: String(data?.senderName || data?.callerName || title),
+                            callerId: String(data?.callerId || data?.senderId || data?.from || ''),
+                            callerName: String(data?.callerName || data?.senderName || ''),
+                            callerPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
+                            callType: String(data?.callType || 'video'),
                             senderPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
                             bannerUrl: bannerUrl ? String(bannerUrl) : '',
                             url: targetUrl,
@@ -294,10 +303,13 @@ export class NotificationService {
                             actions: data?.type === 'request' ? [
                                 { action: 'accept_request', title: 'Connect 💖' },
                                 { action: 'decline_request', title: 'Not Now' }
+                            ] : (data?.type === 'incoming_call' ? [
+                                { action: 'answer_call', title: 'Answer 📞' },
+                                { action: 'decline_call', title: 'Decline ❌' }
                             ] : (data?.senderId || data?.connId ? [
                                 { action: 'like_message', title: 'Like ❤️' },
                                 { action: 'reply_to_message', title: 'Reply 💬' }
-                            ] : undefined)
+                            ] : undefined))
                         },
                         fcmOptions: {
                             link: targetUrl

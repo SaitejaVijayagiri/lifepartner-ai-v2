@@ -6,9 +6,34 @@ import { authenticateToken } from '../middleware/auth';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
 import { mergeStoriesHelper } from './profile';
-
+import { generateConnectionBanner } from '../utils/connectionBanner';
 
 const router = express.Router();
+
+// Public endpoint to generate and serve the high-res connection banner PNG
+router.get('/connection-banner', async (req, res) => {
+    try {
+        const nameA = String(req.query.userName || req.query.n1 || 'You');
+        const nameB = String(req.query.partnerName || req.query.n2 || 'Match');
+        const photoA = req.query.userPhoto ? String(req.query.userPhoto) : (req.query.p1 ? String(req.query.p1) : null);
+        const photoB = req.query.partnerPhoto ? String(req.query.partnerPhoto) : (req.query.p2 ? String(req.query.p2) : null);
+
+        const pngBuffer = await generateConnectionBanner({
+            nameA,
+            photoA,
+            nameB,
+            photoB
+        });
+
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+        res.setHeader('Content-Length', pngBuffer.length);
+        return res.send(pngBuffer);
+    } catch (err) {
+        console.error('Failed to generate connection banner:', err);
+        return res.status(500).send('Error generating banner');
+    }
+});
 
 // Get Requests (Pending interactions of type 'REQUEST')
 // Helper for consistent location
@@ -532,7 +557,17 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                                 partnerDetails
                             );
 
-                            const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+                            const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
+                            const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+
+                            const nameA = uA.full_name || "You";
+                            const nameB = uB.full_name || "Match";
+
+                            // Dynamic banner URL displaying both connected users with their profile pics
+                            const bannerUrl = `${cleanBase}/api/og?type=connected&userName=${encodeURIComponent(nameA)}&userPhoto=${encodeURIComponent(userPhotoUrl)}&partnerName=${encodeURIComponent(nameB)}&partnerPhoto=${encodeURIComponent(partnerPhotoUrl)}`;
+
+                            const title = `💖 You & ${nameB} are Connected!`;
+                            const msg = `Good news! You & ${nameB} both liked each other! You are now connected 🎉`;
 
                             // Persist in-app notification
                             await prisma.notifications.create({
@@ -540,13 +575,20 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                                     user_id: toUserId,
                                     type: 'match',
                                     message: msg,
-                                    data: { fromUserId: userId, partnerId: userId }
+                                    data: { 
+                                        fromUserId: userId, 
+                                        partnerId: userId,
+                                        bannerUrl,
+                                        partnerPhoto: partnerPhotoUrl,
+                                        partnerName: nameB
+                                    }
                                 }
                             }).catch(() => {});
 
                             getIO().to(toUserId).emit('notification:new', {
                                 type: 'match',
                                 message: msg,
+                                bannerUrl,
                                 timestamp: new Date()
                             });
 
@@ -554,16 +596,18 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                             const { NotificationService } = await import('../services/notification');
                             NotificationService.getInstance().sendToUser(
                                 toUserId,
-                                "Request Accepted! 🎉",
+                                title,
                                 msg,
                                 {
                                     type: 'match',
                                     from: userId,
                                     fromUserId: userId,
                                     senderId: userId,
-                                    senderName: uB.full_name || "Partner",
-                                    fromUserName: uB.full_name || "Partner",
+                                    senderName: nameB,
+                                    fromUserName: nameB,
                                     fromUserPhoto: partnerPhotoUrl,
+                                    userPhoto: userPhotoUrl,
+                                    bannerUrl: bannerUrl,
                                     url: `/chat/${userId}`
                                 }
                             ).catch(e => console.warn("Push failed in mutual match", e));
@@ -981,7 +1025,17 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
                                 partnerDetails
                             );
 
-                            const msg = `Good news! ${uB.full_name} accepted your request. You can now chat! 🎉`;
+                            const frontendUrl = process.env.FRONTEND_URL || 'https://lifepartnerai.in';
+                            const cleanBase = frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl;
+
+                            const nameA = uA.full_name || "You";
+                            const nameB = uB.full_name || "Match";
+
+                            // Dynamic banner URL displaying both connected users with their profile pics
+                            const bannerUrl = `${cleanBase}/api/og?type=connected&userName=${encodeURIComponent(nameA)}&userPhoto=${encodeURIComponent(userPhotoUrl)}&partnerName=${encodeURIComponent(nameB)}&partnerPhoto=${encodeURIComponent(partnerPhotoUrl)}`;
+
+                            const title = `💖 You & ${nameB} are Connected!`;
+                            const msg = `${nameB} accepted your request. You both are now connected! Tap to chat 💬`;
 
                             // Persist in-app notification
                             await prisma.notifications.create({
@@ -989,13 +1043,20 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
                                     user_id: from_user_id,
                                     type: 'match',
                                     message: msg,
-                                    data: { fromUserId: to_user_id, partnerId: to_user_id }
+                                    data: { 
+                                        fromUserId: to_user_id, 
+                                        partnerId: to_user_id,
+                                        bannerUrl,
+                                        partnerPhoto: partnerPhotoUrl,
+                                        partnerName: nameB
+                                    }
                                 }
                             }).catch(() => {});
 
                             getIO().to(from_user_id).emit('notification:new', {
                                 type: 'match',
                                 message: msg,
+                                bannerUrl,
                                 timestamp: new Date()
                             });
 
@@ -1003,16 +1064,18 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
                             const { NotificationService } = await import('../services/notification');
                             NotificationService.getInstance().sendToUser(
                                 from_user_id,
-                                "Request Accepted! 🎉",
+                                title,
                                 msg,
                                 {
                                     type: 'match',
                                     from: to_user_id,
                                     fromUserId: to_user_id,
                                     senderId: to_user_id,
-                                    senderName: uB.full_name || "Partner",
-                                    fromUserName: uB.full_name || "Partner",
+                                    senderName: nameB,
+                                    fromUserName: nameB,
                                     fromUserPhoto: partnerPhotoUrl,
+                                    userPhoto: userPhotoUrl,
+                                    bannerUrl: bannerUrl,
                                     url: `/chat/${to_user_id}`
                                 }
                             ).catch(e => console.warn("Push failed in accept request", e));

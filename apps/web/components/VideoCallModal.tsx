@@ -185,6 +185,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
     // UI Enhancements
     const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+    const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
     const [localPos, setLocalPos] = useState({ x: 16, y: 96 });
     const [isDragging, setIsDragging] = useState(false);
     const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
@@ -375,7 +376,10 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             autoGainControl: true
         };
 
-        navigator.mediaDevices.getUserMedia({ video: isVideo, audio: audioConstraints })
+        navigator.mediaDevices.getUserMedia({ 
+            video: isVideo ? { facingMode: 'user' } : false, 
+            audio: audioConstraints 
+        })
             .then((currentStream) => {
                 setStream(currentStream);
                 streamRef.current = currentStream; // Keep ref in sync
@@ -481,6 +485,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     useEffect(() => {
         if (myVideo.current && stream) {
             myVideo.current.srcObject = stream;
+            myVideo.current.play().catch(() => {});
         }
     }, [stream, isMaximized, callAccepted, callAnswered]);
 
@@ -648,72 +653,148 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
     };
 
     const switchCamera = async () => {
-        if (!stream || !isVideo) return;
-        try {
-            const nextMode = facingMode === 'user' ? 'environment' : 'user';
-            const currentTrack = stream.getVideoTracks()[0];
+        if (!stream || !isVideo || isSwitchingCamera) return;
+        setIsSwitchingCamera(true);
 
-            let newStream: MediaStream;
+        const currentTrack = stream.getVideoTracks()[0];
+        const oldFacingMode = facingMode;
+        const targetFacingMode = oldFacingMode === 'user' ? 'environment' : 'user';
+        
+        let newStream: MediaStream | null = null;
+
+        try {
+            // Get current deviceId before stopping if available
+            let currentDeviceId = '';
+            try {
+                currentDeviceId = currentTrack?.getSettings()?.deviceId || '';
+            } catch (_) {}
+
+            // CRITICAL FOR MOBILE / ANDROID:
+            // Stop the active video track first to release hardware sensor lock.
+            // On mobile devices, hardware camera HAL cannot start the back camera
+            // while the front camera track is actively holding the sensor.
+            if (currentTrack) {
+                currentTrack.stop();
+            }
+
+            // Strategy 1: Try with exact facingMode constraint
             try {
                 newStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: nextMode } 
+                    video: { facingMode: { exact: targetFacingMode } },
+                    audio: false
                 });
-            } catch (err) {
-                console.warn("Attempt 1 failed, stopping old track first (Hardware lock workaround)...");
-                currentTrack.enabled = false;
-                currentTrack.stop();
-                
+            } catch (exactErr) {
+                console.warn("[switchCamera] Exact facingMode failed, trying ideal facingMode...", exactErr);
+                // Strategy 2: Try with ideal facingMode
                 try {
                     newStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: nextMode }
+                        video: { facingMode: targetFacingMode },
+                        audio: false
                     });
-                } catch (fallbackErr) {
+                } catch (idealErr) {
+                    console.warn("[switchCamera] Ideal facingMode failed, trying device enumeration...", idealErr);
+                    // Strategy 3: Enumerate video devices and select the other camera
                     const devices = await navigator.mediaDevices.enumerateDevices();
-                    const videoInputs = devices.filter(device => device.kind === 'videoinput');
-                    if (videoInputs.length < 2) throw new Error("Only 1 camera found or permission denied");
-
-                    const currentDeviceId = currentTrack.getSettings().deviceId;
-                    let currentIndex = videoInputs.findIndex(d => d.deviceId === currentDeviceId);
-                    const nextIndex = (currentIndex + 1) % videoInputs.length;
-                    const nextDevice = videoInputs[nextIndex];
-
-                    newStream = await navigator.mediaDevices.getUserMedia({
-                        video: { deviceId: { exact: nextDevice.deviceId } }
-                    });
+                    const videoInputs = devices.filter(d => d.kind === 'videoinput');
+                    if (videoInputs.length > 1) {
+                        const nextDevice = videoInputs.find(d => d.deviceId && d.deviceId !== currentDeviceId) || videoInputs[1];
+                        newStream = await navigator.mediaDevices.getUserMedia({
+                            video: { deviceId: { exact: nextDevice.deviceId } },
+                            audio: false
+                        });
+                    } else {
+                        throw new Error("No alternate camera found on this device.");
+                    }
                 }
+            }
+
+            if (!newStream || newStream.getVideoTracks().length === 0) {
+                throw new Error("No video track received from new camera");
             }
 
             const newVideoTrack = newStream.getVideoTracks()[0];
 
-            // Local DOM Update
+            // 1. Update local video DOM element and ensure playback
             if (myVideo.current) {
                 myVideo.current.srcObject = newStream;
+                myVideo.current.play().catch(e => console.warn("[switchCamera] Local preview play:", e));
             }
 
-            // WebRTC Peer Update
+            // 2. WebRTC Peer Update: Replace track at native RTCPeerConnection sender level
             if (connectionRef.current) {
-                connectionRef.current.replaceTrack(currentTrack, newVideoTrack, stream);
+                // Native RTCRtpSender.replaceTrack (100% reliable across all browsers & WebRTC implementations)
+                try {
+                    if (connectionRef.current._pc) {
+                        const senders = connectionRef.current._pc.getSenders();
+                        const videoSender = senders.find((s: any) => s.track && s.track.kind === 'video') ||
+                                            senders.find((s: any) => s.track === currentTrack);
+                        if (videoSender) {
+                            await videoSender.replaceTrack(newVideoTrack);
+                            console.log("[switchCamera] WebRTC video sender track replaced successfully ✓");
+                        }
+                    }
+                } catch (senderErr) {
+                    console.warn("[switchCamera] Native sender replaceTrack failed:", senderErr);
+                }
+
+                // Also update SimplePeer senderMap if available
+                try {
+                    if (typeof connectionRef.current.replaceTrack === 'function') {
+                        connectionRef.current.replaceTrack(currentTrack, newVideoTrack, streamRef.current || stream);
+                    }
+                } catch (spErr) {
+                    // Ignore internal SimplePeer map warnings as native sender is already updated
+                    console.log("[switchCamera] SimplePeer replaceTrack note:", spErr);
+                }
             }
 
-            // State Update
-            const newStreamObj = new MediaStream([...stream.getAudioTracks(), newVideoTrack]);
-            setStream(newStreamObj);
-            setFacingMode(nextMode);
-
-            if (currentTrack.readyState === 'live') {
-                currentTrack.stop();
-            }
+            // 3. Assemble new stream with existing audio tracks + new video track
+            const currentAudioTracks = (streamRef.current || stream).getAudioTracks();
+            const combinedStream = new MediaStream([...currentAudioTracks, newVideoTrack]);
+            
+            // Sync ref & state
+            streamRef.current = combinedStream;
+            setStream(combinedStream);
+            setFacingMode(targetFacingMode);
+            toast.success(`Switched to ${targetFacingMode === 'environment' ? 'back' : 'front'} camera`);
 
         } catch (err: any) {
-            console.error("Failed to switch camera", err);
-            toast.error("Failed to switch camera: " + (err as Error).message);
+            console.error("[switchCamera] Failed to switch camera:", err);
+            toast.error("Could not switch camera: " + (err?.message || "Device error"));
+
+            // Recovery: Try restoring the previous camera so user is not stuck on a black screen
+            try {
+                const recoveredStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: oldFacingMode },
+                    audio: false
+                });
+                const recoveredTrack = recoveredStream.getVideoTracks()[0];
+                if (myVideo.current) {
+                    myVideo.current.srcObject = recoveredStream;
+                    myVideo.current.play().catch(() => {});
+                }
+                if (connectionRef.current?._pc) {
+                    const senders = connectionRef.current._pc.getSenders();
+                    const videoSender = senders.find((s: any) => s.track && s.track.kind === 'video');
+                    if (videoSender) await videoSender.replaceTrack(recoveredTrack);
+                }
+                const audioTracks = (streamRef.current || stream).getAudioTracks();
+                const restoredStream = new MediaStream([...audioTracks, recoveredTrack]);
+                streamRef.current = restoredStream;
+                setStream(restoredStream);
+            } catch (recoverErr) {
+                console.error("[switchCamera] Failed to restore camera:", recoverErr);
+            }
+        } finally {
+            setIsSwitchingCamera(false);
         }
     };
 
-    // Auto-answer Speed Dates & Host Rooms
+    // Auto-answer Speed Dates, Host Rooms, and Answer Call push notification actions
     useEffect(() => {
-        if (incomingCall && (isSpeedDate || isHostRoom) && stream && !callAnswered) {
-             console.log("Auto-answering incoming participant for live room...");
+        const isAnswerFromNotification = typeof window !== 'undefined' && window.location.search.includes('action=answer_call');
+        if (incomingCall && (isSpeedDate || isHostRoom || isAnswerFromNotification) && stream && !callAnswered) {
+             console.log("[VideoCallModal] Auto-answering incoming call...");
              answerCall();
         }
     }, [incomingCall, isSpeedDate, isHostRoom, stream, callAnswered]);
@@ -1236,10 +1317,11 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                     {isVideo && (
                         <button 
                             onClick={switchCamera} 
-                            className="p-3 sm:p-3.5 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/15 hover:scale-110 transition-all"
+                            disabled={isSwitchingCamera}
+                            className={`p-3 sm:p-3.5 rounded-2xl bg-white/10 text-white hover:bg-white/20 border border-white/15 hover:scale-110 transition-all ${isSwitchingCamera ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title="Switch Camera"
                         >
-                            <RefreshCw size={18} />
+                            <RefreshCw size={18} className={isSwitchingCamera ? 'animate-spin' : ''} />
                         </button>
                     )}
 

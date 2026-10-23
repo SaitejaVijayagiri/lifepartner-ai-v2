@@ -6,6 +6,22 @@ import { sanitizePhotoUrl } from '../utils/photoUrl';
 
 const router = express.Router();
 
+// GET /calls/pending - Returns active incoming call offer if any exists for the authenticated user
+router.get('/pending', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { getPendingCallForUser } = require('../socket');
+        const pending = getPendingCallForUser ? getPendingCallForUser(userId) : null;
+        if (pending) {
+            return res.json({ hasPendingCall: true, call: pending });
+        }
+        res.json({ hasPendingCall: false });
+    } catch (e) {
+        console.error("Failed to fetch pending calls:", e);
+        res.status(500).json({ error: "Failed to fetch pending calls" });
+    }
+});
+
 // GET /calls/history
 router.get('/history', authenticateToken, async (req: any, res) => {
     try {
@@ -93,10 +109,26 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
 
         const caller = await prisma.users.findUnique({
             where: { id: callerId },
-            select: { full_name: true, avatar_url: true }
+            select: { 
+                full_name: true, 
+                avatar_url: true,
+                profiles: {
+                    select: {
+                        photos: true,
+                        metadata: true
+                    }
+                }
+            }
         });
-        const callerName = caller?.full_name || 'Your match';
+        const meta = (caller?.profiles?.metadata as any) || {};
+        const callerName = caller?.full_name?.trim() || meta.name?.trim() || 'Your match';
         const callTypeLabel = type === 'audio' ? 'voice' : 'video';
+        let rawPhoto: string | null | undefined = caller?.avatar_url;
+        if (!rawPhoto && Array.isArray(caller?.profiles?.photos) && (caller.profiles.photos as any).length > 0) {
+            rawPhoto = String((caller.profiles.photos as any)[0] || '');
+        }
+        if (rawPhoto && rawPhoto.startsWith('data:image')) rawPhoto = null;
+        const callerPhoto = rawPhoto ? sanitizePhotoUrl(rawPhoto, callerName) : `https://ui-avatars.com/api/?name=${encodeURIComponent(callerName)}&background=e11d48&color=fff&size=256`;
 
         // 1. Create in-app notification
         const title = `📞 Missed ${type === 'audio' ? 'Voice' : 'Video'} Call`;
@@ -110,9 +142,9 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
                 data: {
                     callerId,
                     callerName,
-                    callerAvatar: caller?.avatar_url,
+                    callerAvatar: callerPhoto,
                     callType: type || 'video',
-                    actionUrl: '/dashboard?tab=connections'
+                    actionUrl: `/chat/${callerId}`
                 }
             }
         }).catch(() => {});
@@ -126,9 +158,13 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
             {
                 type: 'call_buzz',
                 callerId,
+                senderId: callerId,
                 callerName,
+                senderName: callerName,
+                callerPhoto,
+                senderPhoto: callerPhoto,
                 callType: type || 'video',
-                url: '/dashboard?tab=connections'
+                url: `/chat/${callerId}`
             }
         ).catch(() => {});
 

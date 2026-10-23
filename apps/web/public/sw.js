@@ -49,6 +49,10 @@ self.addEventListener('push', function (event) {
                 { action: 'answer_call', title: 'Answer 📞' },
                 { action: 'decline_call', title: 'Decline ❌' }
             ];
+        } else if (data.type === 'match') {
+            options.actions = [
+                { action: 'open_chat', title: 'Chat Now 💬' }
+            ];
         } else if (data.senderId || data.connId) {
             const actions = [];
             if (data.messageId) {
@@ -238,6 +242,57 @@ self.addEventListener('notificationclick', function (event) {
                         });
                     });
                 })
+        );
+        return;
+    }
+
+    // 3.5. Decline call action
+    if (action === 'decline_call') {
+        return;
+    }
+
+    // 3.6. Answer call action or incoming call tap
+    if (action === 'answer_call' || (payloadData.type === 'incoming_call' && !action)) {
+        const callerId = payloadData.callerId || payloadData.senderId || payloadData.from;
+        const callerName = payloadData.callerName || payloadData.senderName || 'Partner';
+        const callerPhoto = payloadData.callerPhoto || payloadData.senderPhoto || '';
+        const callType = payloadData.callType || 'video';
+        
+        const targetUrl = callerId
+            ? `/chat/${callerId}?action=answer_call&callType=${callType}&callerName=${encodeURIComponent(callerName)}&callerPhoto=${encodeURIComponent(callerPhoto)}`
+            : '/dashboard?tab=connections';
+
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('/chat') || client.url.includes('/dashboard')) {
+                        if ('navigate' in client) client.navigate(targetUrl);
+                        if ('focus' in client) return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow(targetUrl);
+            })
+        );
+        return;
+    }
+
+    // 3.7. Match connection tap or Chat Now button
+    if (action === 'open_chat' || (payloadData.type === 'match' && !action)) {
+        const targetPartnerId = payloadData.senderId || payloadData.connId || payloadData.fromUserId || payloadData.from;
+        const targetUrl = payloadData.url || (targetPartnerId ? `/chat/${targetPartnerId}` : '/dashboard?tab=connections');
+
+        event.waitUntil(
+            clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+                for (let i = 0; i < windowClients.length; i++) {
+                    const client = windowClients[i];
+                    if (client.url.includes('/chat') || client.url.includes('/dashboard')) {
+                        if ('navigate' in client) client.navigate(targetUrl);
+                        if ('focus' in client) return client.focus();
+                    }
+                }
+                if (clients.openWindow) return clients.openWindow(targetUrl);
+            })
         );
         return;
     }

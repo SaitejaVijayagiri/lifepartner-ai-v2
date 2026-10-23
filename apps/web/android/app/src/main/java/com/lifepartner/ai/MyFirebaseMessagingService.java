@@ -94,11 +94,33 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     } else {
                         title = "New Interest Request! 💖";
                     }
-                } else {
-                    if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
-                        title = extractedSenderName;
+                } else if ("incoming_call".equals(type)) {
+                    String callerName = data.get("callerName");
+                    if (callerName == null || callerName.trim().isEmpty()) callerName = extractedSenderName;
+                    String callType = data.get("callType");
+                    String callKind = "audio".equalsIgnoreCase(callType) ? "Voice Call" : "Video Call";
+                    String icon = "audio".equalsIgnoreCase(callType) ? "📞" : "📹";
+                    if (callerName != null && !callerName.trim().isEmpty() && !callerName.equals("A User")) {
+                        title = icon + " " + callerName + " is calling (" + callKind + ")";
+                        body = callerName + " is calling you on LifePartner AI. Tap to answer!";
                     } else if (dataTitle != null && !dataTitle.isEmpty()) {
                         title = dataTitle;
+                    } else {
+                        title = icon + " Incoming " + callKind;
+                    }
+                } else if ("match".equals(type)) {
+                    if (dataTitle != null && !dataTitle.isEmpty()) {
+                        title = dataTitle;
+                    } else if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                        title = "💖 You & " + extractedSenderName + " are Connected!";
+                    } else {
+                        title = "💖 Request Accepted! You are Connected!";
+                    }
+                } else {
+                    if (dataTitle != null && !dataTitle.isEmpty()) {
+                        title = dataTitle;
+                    } else if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                        title = extractedSenderName;
                     }
                 }
                 
@@ -176,6 +198,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             // Fetch banner image if present
             Bitmap bannerBitmap = null;
             if (bannerUrl != null && !bannerUrl.isEmpty()) {
+                bannerUrl = bannerUrl.trim();
+                if (bannerUrl.startsWith("/")) {
+                    bannerUrl = "https://lifepartnerai.in" + bannerUrl;
+                }
                 bannerBitmap = getBitmapFromURL(bannerUrl);
             }
 
@@ -446,8 +472,64 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.addAction(0, "Not Now", declinePendingIntent);
         }
 
+        // Setup "Answer" Action for Incoming Calls
+        if ("incoming_call".equals(type)) {
+            String callerId = (data != null) ? data.get("callerId") : null;
+            if (callerId == null || callerId.isEmpty()) callerId = connId;
+            String callerName = (data != null) ? data.get("callerName") : null;
+            if (callerName == null || callerName.isEmpty()) callerName = title;
+            String callType = (data != null) ? data.get("callType") : "video";
+            if (callType == null || callType.isEmpty()) callType = "video";
+
+            try {
+                String encodedName = java.net.URLEncoder.encode(callerName, "UTF-8");
+                String answerPath = "/chat/" + callerId + "?action=answer_call&callType=" + callType + "&callerId=" + callerId + "&callerName=" + encodedName;
+                String answerUrl = "https://lifepartnerai.in" + answerPath;
+
+                Intent answerIntent = new Intent(this, MainActivity.class);
+                answerIntent.setPackage(getPackageName());
+                answerIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                answerIntent.setAction(Intent.ACTION_VIEW);
+                answerIntent.putExtra("targetPath", answerPath);
+                answerIntent.setData(android.net.Uri.parse(answerUrl));
+
+                PendingIntent answerPendingIntent = PendingIntent.getActivity(
+                        this,
+                        notificationId + 30,
+                        answerIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                );
+                builder.addAction(R.drawable.ic_stat_notification, "Answer 📞", answerPendingIntent);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to create answer call action: ", e);
+            }
+        }
+
+        // Setup "Chat Now 💬" Action for Accepted Connection / Match
+        if ("match".equals(type)) {
+            String partnerId = connId != null ? connId : (data != null ? (data.get("partnerId") != null ? data.get("partnerId") : data.get("fromUserId")) : null);
+            if (partnerId != null && !partnerId.isEmpty()) {
+                String chatPath = "/chat/" + partnerId;
+                String chatUrl = "https://lifepartnerai.in" + chatPath;
+                Intent chatIntent = new Intent(this, MainActivity.class);
+                chatIntent.setPackage(getPackageName());
+                chatIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                chatIntent.setAction(Intent.ACTION_VIEW);
+                chatIntent.putExtra("targetPath", chatPath);
+                chatIntent.setData(android.net.Uri.parse(chatUrl));
+
+                PendingIntent chatPendingIntent = PendingIntent.getActivity(
+                        this,
+                        notificationId + 40,
+                        chatIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                );
+                builder.addAction(R.drawable.ic_stat_notification, "Chat Now 💬", chatPendingIntent);
+            }
+        }
+
         // 3. Setup "Quick Reply" Action if this is a chat message (connId exists)
-        if (connId != null && !connId.isEmpty()) {
+        if (connId != null && !connId.isEmpty() && !"match".equals(type) && !"incoming_call".equals(type) && !"request".equals(type)) {
             RemoteInput remoteInput = new RemoteInput.Builder("key_text_reply")
                     .setLabel("Type your reply...")
                     .build();

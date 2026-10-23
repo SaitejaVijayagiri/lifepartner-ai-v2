@@ -17,6 +17,51 @@ const activeChats = new Map<string, string>();
 // socketId -> { id, userId, name, photo, isVerified }
 const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean }>();
 
+interface PendingCall {
+    callerId: string;
+    userToCall: string;
+    signalData: any;
+    name: string;
+    type: 'audio' | 'video' | 'speed_date';
+    location?: string | null;
+    avatarUrl?: string | null;
+    photoUrl?: string | null;
+    _speedDateMode?: string;
+    createdAt: number;
+}
+const pendingCalls = new Map<string, PendingCall>();
+
+export const getPendingCallForUser = (userId: string) => {
+    if (!userId || !pendingCalls.has(userId)) return null;
+    const call = pendingCalls.get(userId)!;
+    if (Date.now() - call.createdAt > 45000) {
+        pendingCalls.delete(userId);
+        return null;
+    }
+    return call;
+};
+
+export const clearPendingCallForUser = (userId: string) => {
+    if (userId) pendingCalls.delete(userId);
+};
+
+const deliverPendingCall = (targetSocket: Socket, uId: string) => {
+    const call = getPendingCallForUser(uId);
+    if (call) {
+        console.log(`[Socket] Delivering active pending call from ${call.name} to ${uId}`);
+        targetSocket.emit("callUser", {
+            signal: call.signalData,
+            from: call.callerId,
+            name: call.name,
+            type: call.type,
+            location: call.location,
+            avatarUrl: call.avatarUrl,
+            photoUrl: call.photoUrl,
+            _speedDateMode: call._speedDateMode
+        });
+    }
+};
+
 const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
     try {
         const userDetails = await prisma.users.findUnique({
@@ -265,11 +310,13 @@ export const initSocket = (httpServer: HttpServer) => {
             // Broadcasting callEnded to everyone breaks ongoing calls between other users.
             if (socket.data.callPartnerId) {
                 io.to(socket.data.callPartnerId).emit('callEnded');
+                pendingCalls.delete(socket.data.callPartnerId);
                 socket.data.callPartnerId = null;
             }
 
             const activeUserId = socket.data.trackedUserId || socket.data.user?.userId || userId;
             if (activeUserId) {
+                pendingCalls.delete(activeUserId);
                 removeSocketFromOnlineUser(socket, activeUserId);
             }
 
@@ -291,6 +338,14 @@ export const initSocket = (httpServer: HttpServer) => {
             if (uId && typeof uId === 'string') {
                 socket.join(uId);
                 console.log(`Socket ${socket.id} joined personal room: ${uId}`);
+                deliverPendingCall(socket, uId);
+            }
+        });
+
+        socket.on('checkPendingCall', () => {
+            const currentUserId = socket.data.user?.userId || socket.data.trackedUserId || userId;
+            if (currentUserId) {
+                deliverPendingCall(socket, currentUserId);
             }
         });
 
@@ -308,6 +363,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
                     addSocketToOnlineUser(socket, uId);
                     console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
+                    deliverPendingCall(socket, uId);
                 });
             } catch (err) {
                 console.warn(`Socket authentication error:`, err);
@@ -364,16 +420,54 @@ export const initSocket = (httpServer: HttpServer) => {
             }
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
-        try {
-                // Fetch caller name, location, and avatar for call UI (no premium gate — calls are free for all)
+            try {
+                // Fetch caller name, location, and avatar for call UI
                 const callerData = from ? await prisma.users.findUnique({
                     where: { id: from },
-                    select: { city: true, location_name: true, full_name: true, avatar_url: true }
+                    select: { 
+                        city: true, 
+                        location_name: true, 
+                        full_name: true, 
+                        avatar_url: true,
+                        profiles: {
+                            select: {
+                                photos: true,
+                                metadata: true
+                            }
+                        }
+                    }
                 }) : null;
 
-                const userLocation = callerData?.city || callerData?.location_name || null;
-                const secureName = callerData?.full_name || name || 'A User';
-                const callerAvatar = callerData?.avatar_url || null;
+                const meta = (callerData?.profiles?.metadata as any) || {};
+                const secureName = callerData?.full_name?.trim() || meta.name?.trim() || name?.trim() || 'Someone';
+
+                const { sanitizePhotoUrl } = require('./utils/photoUrl');
+                let rawPhoto: string | null | undefined = callerData?.avatar_url;
+                if (!rawPhoto && Array.isArray(callerData?.profiles?.photos) && (callerData.profiles.photos as any).length > 0) {
+                    rawPhoto = String((callerData.profiles.photos as any)[0] || '');
+                }
+                if (rawPhoto && rawPhoto.startsWith('data:image')) {
+                    rawPhoto = null;
+                }
+                const callerAvatar = rawPhoto 
+                    ? sanitizePhotoUrl(rawPhoto, secureName) 
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(secureName)}&background=e11d48&color=fff&size=256`;
+
+                const userLocation = (callerData?.city || callerData?.location_name || (typeof meta.location?.city === 'string' ? meta.location.city : null) || null) as string | null;
+
+                // Cache active pending call for 45s so receiver can pick up even after launching via push notification
+                pendingCalls.set(userToCall, {
+                    callerId: from,
+                    userToCall,
+                    signalData,
+                    name: secureName,
+                    type: type || 'video',
+                    location: userLocation,
+                    avatarUrl: callerAvatar,
+                    photoUrl: callerAvatar,
+                    _speedDateMode,
+                    createdAt: Date.now()
+                });
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
@@ -389,22 +483,37 @@ export const initSocket = (httpServer: HttpServer) => {
                 // Track call partner on this socket so disconnect only notifies them
                 socket.data.callPartnerId = userToCall;
 
-                // Incoming Call Push notification: Alert target user (always ensure phone rings even if tab is in background)
+                // Incoming Call Push notification: Alert target user with caller's clear name and answer action
                 const lastPush = (socket as any).lastPushTime || 0;
                 
-                if (Date.now() - lastPush > 10000) {
+                if (Date.now() - lastPush > 8000) {
                     (socket as any).lastPushTime = Date.now();
+                    const callTypeDisplay = type === 'audio' ? 'Voice Call' : 'Video Call';
+                    const callIcon = type === 'audio' ? '📞' : '📹';
+                    const pushTitle = `${callIcon} ${secureName} is calling (${callTypeDisplay})`;
+                    const pushBody = `${secureName} is calling you on LifePartner AI. Tap to answer!`;
+                    const callUrl = `/chat/${from}?action=answer_call&callType=${type || 'video'}&callerId=${from}&callerName=${encodeURIComponent(secureName)}&callerPhoto=${encodeURIComponent(callerAvatar)}`;
+
                     const { NotificationService } = require('./services/notification');
                     NotificationService.getInstance().sendToUser(
                         userToCall,
-                        `Incoming ${type === 'audio' ? 'Audio' : 'Video'} Call 📞`,
-                        `${secureName} is calling you. Tap to answer!`,
+                        pushTitle,
+                        pushBody,
                         {
                             type: 'incoming_call',
+                            senderId: from,
                             callerId: from,
+                            from: from,
+                            fromUserId: from,
+                            senderName: secureName,
                             callerName: secureName,
-                            callerPhoto: callerAvatar || '',
-                            callType: type || 'video'
+                            fromUserName: secureName,
+                            senderPhoto: callerAvatar,
+                            callerPhoto: callerAvatar,
+                            avatarUrl: callerAvatar,
+                            fromUserPhoto: callerAvatar,
+                            callType: type || 'video',
+                            url: callUrl
                         }
                     ).catch(console.error);
                 }
@@ -419,6 +528,8 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("answerCall", (data) => {
             io.to(data.to).emit("callAccepted", data.signal);
+            if (data?.to) pendingCalls.delete(data.to);
+            if (userId) pendingCalls.delete(userId);
         });
 
         /**
@@ -433,6 +544,8 @@ export const initSocket = (httpServer: HttpServer) => {
          */
         socket.on("endCall", ({ to }) => {
             io.to(to).emit("callEnded");
+            if (to) pendingCalls.delete(to);
+            if (userId) pendingCalls.delete(userId);
             if (userId) SpeedDatingManager.getInstance().endActiveMatch(userId);
             if (to) SpeedDatingManager.getInstance().endActiveMatch(to);
         });

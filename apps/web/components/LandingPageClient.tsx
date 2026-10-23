@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe, Eye, EyeOff, UserPlus, Crown } from 'lucide-react';
+import { ArrowRight, Bot, Video, Heart, Shield, Sparkles, Smartphone, Users, Play, Star, CheckCircle, Zap, BrainCircuit, Fingerprint, ShieldCheck, Lock, Award, Gift, MapPin, Calendar, Share2, Camera, Music, Globe, Eye, EyeOff, UserPlus, Crown, Download } from 'lucide-react';
 import Footer from '@/components/Footer';
 import Navbar from '@/components/Navbar';
 import WhatsAppFloat from '@/components/WhatsAppFloat';
@@ -395,6 +395,13 @@ export default function LandingPageClient() {
               >
                 <Crown size={14} className="text-amber-500 fill-amber-500 shrink-0" />
                 <span>👑 For Women: Free Lifetime VIP & Anti-Creep Shield</span>
+              </Link>
+              <Link
+                href="#download-app"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-white dark:bg-gray-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:scale-105 hover:border-indigo-400 transition-all shadow-sm"
+              >
+                <Smartphone size={14} className="text-indigo-500 shrink-0" />
+                <span>📱 Android App (APK & AAB)</span>
               </Link>
             </div>
 
@@ -1185,6 +1192,120 @@ export default function LandingPageClient() {
             <StepCard step="02" title="AI Verification" desc="We verify your identity to ensure a safe community." />
             <StepCard step="03" title="Get Matched" desc="Receive daily curated matches based on your preferences." />
             <StepCard step="04" title="Connect" desc="Chat, video call, and meet your future partner." />
+          </div>
+        </div>
+      </section>
+
+      {/* --- NATIVE ANDROID APP DOWNLOAD SECTION (APK & AAB) --- */}
+      <section id="download-app" className="py-24 relative overflow-hidden bg-gradient-to-b from-slate-50 via-purple-50/40 to-white dark:from-gray-900 dark:via-purple-950/20 dark:to-gray-950 border-t border-gray-100 dark:border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/50 border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 text-xs font-black uppercase tracking-wider mb-4 shadow-sm">
+              <Smartphone size={14} className="text-purple-600 dark:text-purple-400" />
+              <span>Official Android App Releases</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-black text-gray-900 dark:text-white tracking-tight mb-4">
+              Download LifePartner AI for Android
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-light">
+              Get real-time incoming call notifications with one-tap answer, instant chat alerts, and Women-First privacy protection directly on your phone.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
+            {/* 1. Direct APK Download Card */}
+            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border-2 border-purple-500/40 p-8 shadow-xl hover:shadow-2xl hover:border-purple-500 transition-all flex flex-col justify-between group">
+              <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+                Direct Install
+              </div>
+              <div>
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg mb-6 group-hover:scale-110 transition-transform">
+                  <Smartphone size={28} />
+                </div>
+                <div className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1">
+                  Android Direct Installer (.apk)
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                  LifePartner.apk
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                  Direct one-click installer for Samsung, OnePlus, Xiaomi, Vivo, Oppo, Realme, Motorola, Google Pixel & all Android 8.0+ devices. No store account required.
+                </p>
+                <div className="space-y-2 mb-8 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                    <span>Direct answer for incoming voice & video calls</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                    <span>Verified v2 signed release binary • 4.4 MB</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+                    <span>Automatic OTA sync for live feature updates</span>
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="/LifePartner.apk"
+                download="LifePartner.apk"
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Download size={18} />
+                <span>Download Android APK (4.4 MB)</span>
+              </a>
+            </div>
+
+            {/* 2. Android App Bundle (AAB) Card */}
+            <div className="relative rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 shadow-xl hover:shadow-2xl hover:border-indigo-400 transition-all flex flex-col justify-between group">
+              <div className="absolute top-4 right-4 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
+                Play Store Bundle
+              </div>
+              <div>
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-600 text-white flex items-center justify-center shadow-lg mb-6 group-hover:scale-110 transition-transform">
+                  <Sparkles size={28} />
+                </div>
+                <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">
+                  Google Play Bundle Format (.aab)
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                  LifePartner.aab
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                  Official Android App Bundle (AAB) release package. Optimized for Google Play distribution, automated split APK generation, testing, or bundletool deployment.
+                </p>
+                <div className="space-y-2 mb-8 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-indigo-500 shrink-0" />
+                    <span>Dynamic delivery & compressed package • 4.2 MB</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-indigo-500 shrink-0" />
+                    <span>Google Play Console production-ready signed binary</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={14} className="text-indigo-500 shrink-0" />
+                    <span>Device-specific architecture optimization</span>
+                  </div>
+                </div>
+              </div>
+
+              <a
+                href="/LifePartner.aab"
+                download="LifePartner.aab"
+                className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-gray-800 text-white hover:bg-gray-800 dark:hover:bg-gray-700 font-bold text-sm active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 border border-gray-700 cursor-pointer"
+              >
+                <Download size={18} className="text-indigo-400" />
+                <span>Download App Bundle AAB (4.2 MB)</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Quick installation callout */}
+          <div className="mt-12 text-center text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+            <ShieldCheck size={16} className="text-emerald-500" />
+            <span>100% Virus-Free & Safe • Release Signed with SHA-256 Key • v1.0.5 Release</span>
           </div>
         </div>
       </section>

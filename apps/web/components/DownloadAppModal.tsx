@@ -12,6 +12,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [downloadingApk, setDownloadingApk] = useState(false);
+  const [downloadingAab, setDownloadingAab] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -65,6 +66,25 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
     setTimeout(() => setDownloadingApk(false), 2500);
   };
 
+  const handleDownloadAab = () => {
+    setDownloadingAab(true);
+    try {
+      const link = document.createElement('a');
+      link.href = '/LifePartner.aab';
+      link.download = 'LifePartner.aab';
+      link.target = '_self';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Link download failed, falling back to direct navigation", e);
+    }
+    setTimeout(() => {
+      window.location.href = '/LifePartner.aab';
+    }, 100);
+    setTimeout(() => setDownloadingAab(false), 2500);
+  };
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-hidden">
       <div className="relative w-full max-w-md my-auto bg-white dark:bg-gray-900 border border-purple-500/30 rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col animate-in zoom-in-95 duration-200">
@@ -100,22 +120,25 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
           
           {/* Direct APK Download Card */}
           <div className="p-4 rounded-2xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/40 space-y-3">
-            <div className="flex items-start gap-2.5">
-              <ShieldCheck size={20} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-xs font-bold text-gray-900 dark:text-white">Download Android App (.apk)</h3>
-                <p className="text-[11px] text-gray-600 dark:text-gray-300">
-                  Official installer with instant push notifications & automatic background updates.
-                </p>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck size={20} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white">Android Direct Installer (.apk)</h3>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                    Direct installation for all Android phones. Automatic live updates.
+                  </p>
+                </div>
               </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/60 text-pink-700 dark:text-pink-300 shrink-0">
+                v1.0.5
+              </span>
             </div>
 
             <a
               href="/LifePartner.apk"
               download="LifePartner.apk"
-              onClick={(e) => {
-                handleDownloadApk();
-              }}
+              onClick={() => handleDownloadApk()}
               className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-xs sm:text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer ${downloadingApk ? 'opacity-50 pointer-events-none' : ''}`}
             >
               {downloadingApk ? (
@@ -126,7 +149,44 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
               ) : (
                 <>
                   <Download size={16} />
-                  <span>Download Android App (4.1 MB)</span>
+                  <span>Download Android APK (4.4 MB)</span>
+                </>
+              )}
+            </a>
+          </div>
+
+          {/* Android App Bundle (AAB) Card */}
+          <div className="p-4 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2.5">
+                <Sparkles size={20} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white">Android App Bundle (.aab)</h3>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                    Official Play Store bundle format for bundletool, side-loading, or release testing.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 shrink-0">
+                AAB
+              </span>
+            </div>
+
+            <a
+              href="/LifePartner.aab"
+              download="LifePartner.aab"
+              onClick={() => handleDownloadAab()}
+              className={`w-full py-3 rounded-xl bg-gray-900 dark:bg-gray-800 text-white font-bold text-xs sm:text-sm hover:bg-gray-800 dark:hover:bg-gray-700 transition-all shadow flex items-center justify-center gap-2 cursor-pointer ${downloadingAab ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              {downloadingAab ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Downloading LifePartner.aab...</span>
+                </>
+              ) : (
+                <>
+                  <Download size={16} className="text-indigo-400" />
+                  <span>Download App Bundle AAB (4.2 MB)</span>
                 </>
               )}
             </a>

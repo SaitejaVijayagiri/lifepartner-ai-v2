@@ -9,6 +9,7 @@ import { Smartphone, Download, ShieldCheck, Zap, Sparkles, RefreshCw, CheckCircl
 
 export default function DownloadPage() {
   const [downloading, setDownloading] = useState(false);
+  const [downloadingAab, setDownloadingAab] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
@@ -46,6 +47,24 @@ export default function DownloadPage() {
       window.location.href = '/LifePartner.apk';
     }, 100);
     setTimeout(() => setDownloading(false), 2000);
+  };
+
+  const handleDownloadAab = () => {
+    setDownloadingAab(true);
+    try {
+      const link = document.createElement('a');
+      link.href = '/LifePartner.aab';
+      link.download = 'LifePartner.aab';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (e) {
+      console.error("Link download failed", e);
+    }
+    setTimeout(() => {
+      window.location.href = '/LifePartner.aab';
+    }, 100);
+    setTimeout(() => setDownloadingAab(false), 2000);
   };
 
   const handleInstallPWA = async () => {
@@ -99,7 +118,25 @@ export default function DownloadPage() {
                   ) : (
                     <>
                       <Download size={18} className="text-purple-700" />
-                      <span>Download Android App (.apk)</span>
+                      <span>Download Android APK (4.4 MB)</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleDownloadAab}
+                  disabled={downloadingAab}
+                  className="px-6 py-4 rounded-2xl bg-purple-900/60 border border-white/30 text-white font-bold text-sm hover:bg-purple-900/80 active:scale-95 transition-all shadow-lg flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {downloadingAab ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Downloading AAB...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} className="text-pink-300" />
+                      <span>Download App Bundle AAB (4.2 MB)</span>
                     </>
                   )}
                 </button>

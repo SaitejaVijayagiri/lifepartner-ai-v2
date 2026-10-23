@@ -70,20 +70,54 @@ const nextConfig = {
                     },
                 ],
             },
+            {
+                source: '/LifePartner.apk',
+                headers: [
+                    {
+                        key: 'Content-Type',
+                        value: 'application/vnd.android.package-archive',
+                    },
+                    {
+                        key: 'Content-Disposition',
+                        value: 'attachment; filename="LifePartner.apk"',
+                    },
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=3600',
+                    },
+                ],
+            },
+            {
+                source: '/LifePartner.aab',
+                headers: [
+                    {
+                        key: 'Content-Type',
+                        value: 'application/octet-stream',
+                    },
+                    {
+                        key: 'Content-Disposition',
+                        value: 'attachment; filename="LifePartner.aab"',
+                    },
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=3600',
+                    },
+                ],
+            },
         ];
     },
-        async rewrites() {
-            return [
-                {
-                    source: '/api/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
-                },
-                {
-                    source: '/socket.io/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/socket.io/:path*`,
-                },
-            ];
-        }
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
+            },
+            {
+                source: '/socket.io/:path*',
+                destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/socket.io/:path*`,
+            },
+        ];
+    }
 };
 
 export default nextConfig;

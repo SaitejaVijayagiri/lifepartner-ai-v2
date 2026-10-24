@@ -423,9 +423,30 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
             return res.json({ onlineMembers: [] });
         }
 
+        // Exclude blocked users in either direction
+        const blockRecords = await prisma.blocks.findMany({
+            where: {
+                OR: [
+                    { blocker_id: userId },
+                    { blocked_id: userId }
+                ]
+            },
+            select: { blocker_id: true, blocked_id: true }
+        });
+        const blockedIdSet = new Set<string>();
+        blockRecords.forEach(b => {
+            if (b.blocker_id === userId) blockedIdSet.add(b.blocked_id);
+            if (b.blocked_id === userId) blockedIdSet.add(b.blocker_id);
+        });
+        const eligibleOnlineIds = onlineIds.filter(id => !blockedIdSet.has(id));
+
+        if (eligibleOnlineIds.length === 0) {
+            return res.json({ onlineMembers: [] });
+        }
+
         const onlineUsersDB = await prisma.users.findMany({
             where: {
-                id: { in: onlineIds },
+                id: { in: eligibleOnlineIds },
                 ...(targetGender ? { gender: { in: targetGender } } : {}),
                 is_verified: true,
                 is_banned: false,
@@ -522,6 +543,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Female', 'female')
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b 
+                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
+                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
+                  )
                 ORDER BY 
                   (CASE 
                     WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
@@ -543,6 +569,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Male', 'male')
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b 
+                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
+                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
+                  )
                 ORDER BY 
                   (CASE 
                     WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
@@ -564,6 +595,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IS NOT NULL
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b 
+                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
+                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
+                  )
                 ORDER BY 
                   (CASE 
                     WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')

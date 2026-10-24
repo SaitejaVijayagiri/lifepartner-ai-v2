@@ -1458,11 +1458,10 @@ router.post('/block', authenticateToken, async (req: any, res) => {
     }
 });
 
-// Unblock User
-router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
+// Unblock User (Supports DELETE /block/:blockedId, DELETE /unblock/:blockedId, and POST /unblock)
+const handleUnblock = async (userId: string, blockedId: string, res: any) => {
     try {
-        const userId = req.user.userId;
-        const { blockedId } = req.params;
+        if (!blockedId) return res.status(400).json({ error: "Missing blockedId" });
 
         await prisma.blocks.deleteMany({
             where: {
@@ -1479,6 +1478,18 @@ router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
         console.error("Unblock Error", e);
         res.status(500).json({ error: "Failed to unblock user" });
     }
+};
+
+router.delete('/block/:blockedId', authenticateToken, async (req: any, res) => {
+    await handleUnblock(req.user.userId, req.params.blockedId, res);
+});
+
+router.delete('/unblock/:blockedId', authenticateToken, async (req: any, res) => {
+    await handleUnblock(req.user.userId, req.params.blockedId, res);
+});
+
+router.post('/unblock', authenticateToken, async (req: any, res) => {
+    await handleUnblock(req.user.userId, req.body.blockedId, res);
 });
 
 // Get Blocked Users

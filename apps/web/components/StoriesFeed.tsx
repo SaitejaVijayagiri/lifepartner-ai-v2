@@ -24,13 +24,27 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
     const fetchStories = async () => {
         try {
             const res = await fetchAPI('/profile/stories/feed');
-            if (res.feed) {
+            if (res.feed && Array.isArray(res.feed)) {
                 setStoryFeed(res.feed);
+                try {
+                    localStorage.setItem('stories_feed_cache_v1', JSON.stringify({ feed: res.feed, ts: Date.now() }));
+                } catch (_) {}
             }
         } catch {}
     };
 
     useEffect(() => {
+        // PERF: Instant 0ms hydration from cache before network roundtrip
+        try {
+            const cached = localStorage.getItem('stories_feed_cache_v1');
+            if (cached) {
+                const { feed } = JSON.parse(cached);
+                if (Array.isArray(feed) && feed.length > 0) {
+                    setStoryFeed(feed);
+                }
+            }
+        } catch (_) {}
+
         fetchStories();
     }, []);
 

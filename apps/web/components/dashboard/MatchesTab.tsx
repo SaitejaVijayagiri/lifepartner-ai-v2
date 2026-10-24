@@ -19,8 +19,8 @@ function formatLocationString(loc: any): string {
     return '';
 }
 
-// Dynamically import heavy components
-const MatchCard = dynamic(() => import('@/components/MatchCard'));
+import MatchCard from '@/components/MatchCard';
+// Dynamically import heavy modals only when requested
 const StoryModal = dynamic(() => import('@/components/StoryModal'));
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
 const LiveEventBanner = dynamic(() => import('@/components/LiveEventBanner'), { ssr: false });
@@ -359,24 +359,40 @@ export default function MatchesTab({
         return Array.from(memberMap.values());
     }, [matches, liveOnlineMembers, onlineUsersKey]);
 
-    const baseMatches = activeFilters ? filterMatches(matches) : (Array.isArray(matches) ? matches : []);
-    let displayMatches = showHighlightsOnly
-        ? baseMatches.filter(m => m && (m.stories || []).some((s: any) => s.isHighlight))
-        : baseMatches;
+    const connectedPartnerIds = useMemo(() => {
+        return new Set((Array.isArray(connections) ? connections : []).map(c => c?.partner?.id || c?.id).filter(Boolean));
+    }, [connections]);
 
-    if (showOnlineOnly) {
-        displayMatches = displayMatches.filter(m => m && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id))));
-    }
+    const connectionsMap = useMemo(() => {
+        const map = new Map<string, any>();
+        (Array.isArray(connections) ? connections : []).forEach(c => {
+            const pId = c?.partner?.id || c?.id;
+            if (pId) map.set(pId, c);
+        });
+        return map;
+    }, [connections]);
 
-    if (showWorldwideOnly) {
-        displayMatches = displayMatches.filter(m => Boolean(
-            m && (
-                m.isWorldwide || 
-                (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes('india')) ||
-                (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes('india'))
-            )
-        ));
-    }
+    const displayMatches = useMemo(() => {
+        const baseMatches = activeFilters ? filterMatches(matches) : (Array.isArray(matches) ? matches : []);
+        let filtered = showHighlightsOnly
+            ? baseMatches.filter(m => m && (m.stories || []).some((s: any) => s.isHighlight))
+            : baseMatches;
+
+        if (showOnlineOnly) {
+            filtered = filtered.filter(m => m && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id))));
+        }
+
+        if (showWorldwideOnly) {
+            filtered = filtered.filter(m => Boolean(
+                m && (
+                    m.isWorldwide || 
+                    (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes('india')) ||
+                    (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes('india'))
+                )
+            ));
+        }
+        return filtered;
+    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, onlineUsers]);
 
     if (loading && matches.length === 0) {
         return (
@@ -914,9 +930,9 @@ export default function MatchesTab({
                                     names: { me: "You", partner: match.name || "Partner" }
                                 })}
                                 onGift={() => setGiftData({ userId: match.id, userName: match.name || "Member" })}
-                                isConnectedProp={(Array.isArray(connections) ? connections : []).some((c: any) => c?.partner?.id === match.id)}
+                                isConnectedProp={connectedPartnerIds.has(match.id)}
                                 onChat={() => {
-                                    const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === match.id);
+                                    const conn = connectionsMap.get(match.id);
                                     if (conn) {
                                         openChat(conn);
                                     } else {

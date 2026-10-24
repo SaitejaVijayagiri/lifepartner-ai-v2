@@ -8,7 +8,7 @@ import StoriesFeed from '@/components/StoriesFeed';
 import GlobalViewsBadge from '@/components/GlobalViewsBadge';
 import ProfileStrengthCard from '@/components/ProfileStrengthCard';
 
-const MatchCard = dynamic(() => import('@/components/MatchCard'));
+import MatchCard from '@/components/MatchCard';
 const AnonymousStrangerChat = dynamic(() => import('@/components/AnonymousStrangerChat'), { ssr: false });
 
 interface HomeTabProps {
@@ -43,6 +43,10 @@ export default function HomeTab({
     const [showStrangerChat, setShowStrangerChat] = React.useState(false);
     const topMatches = (Array.isArray(matches) ? matches : []).slice(0, 4);
     const firstName = (currentUser?.full_name || currentUser?.name || 'User').split(' ')[0];
+
+    const connectedPartnerIds = React.useMemo(() => {
+        return new Set((Array.isArray(connections) ? connections : []).map(c => c?.partner?.id || c?.id).filter(Boolean));
+    }, [connections]);
 
     return (
         <div className="w-full space-y-6 sm:space-y-8 animate-in fade-in duration-300">
@@ -373,7 +377,7 @@ export default function HomeTab({
                                         onViewProfile={() => onSelectProfile(m)}
                                         onShowKundli={(kundli) => onSelectKundli({ data: kundli, names: { me: currentUser?.full_name || 'You', partner: m.name || 'Partner' } })}
                                         onGift={setGiftData ? () => setGiftData({ userId: m.id, userName: m.name || 'Member' }) : undefined}
-                                        isConnectedProp={(Array.isArray(connections) ? connections : []).some((c: any) => c?.partner?.id === m.id)}
+                                        isConnectedProp={connectedPartnerIds.has(m.id)}
                                         onChat={() => {
                                             const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === m.id);
                                             if (conn && openChat) {

@@ -25,13 +25,15 @@ import AppExperienceFeedback from '@/components/AppExperienceFeedback';
 import DailyStreakModal from '@/components/DailyStreakModal';
 import { fetchAPI } from '@/lib/api';
 
-// Performance: Lazy-load heavy components that aren't needed on first paint
-const HomeTab = dynamic(() => import('@/components/dashboard/HomeTab'), { ssr: false });
+// Direct imports for primary dashboard tabs for 0ms instantaneous tab switching
+import HomeTab from '@/components/dashboard/HomeTab';
+import MatchesTab from '@/components/dashboard/MatchesTab';
+import ConnectionsTab from '@/components/dashboard/ConnectionsTab';
+import RequestsTab from '@/components/dashboard/RequestsTab';
+
+// Dynamic imports for secondary features & modals loaded on demand
 const LiveVideoEventsHub = dynamic(() => import('@/components/LiveVideoEventsHub'), { ssr: false });
-const MatchesTab = dynamic(() => import('@/components/dashboard/MatchesTab'), { ssr: false });
 const StoryModal = dynamic(() => import('@/components/StoryModal'), { ssr: false });
-const ConnectionsTab = dynamic(() => import('@/components/dashboard/ConnectionsTab'), { ssr: false });
-const RequestsTab = dynamic(() => import('@/components/dashboard/RequestsTab'), { ssr: false });
 const KundliModal = dynamic(() => import('@/components/KundliModal'));
 const ProfileEditor = dynamic(() => import('@/components/ProfileEditor'), { ssr: false });
 const ProfileModal = dynamic(() => import('@/components/ProfileModal'));
@@ -105,7 +107,10 @@ function DashboardContent() {
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('home');
-    const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(['home']));
+    // Pre-mount primary tabs so switching between Home, Matches, Chat, Requests and Profile is instantaneous (0ms)
+    const [visitedTabs, setVisitedTabs] = useState<Set<string>>(
+        () => new Set(['home', 'matches', 'connections', 'requests', 'profile'])
+    );
 
     useEffect(() => {
         setVisitedTabs(prev => {
@@ -624,7 +629,7 @@ function DashboardContent() {
                 return;
             }
 
-            // PERF: Instant paint from localStorage cache before network waterfall
+            // PERF: Instant paint from localStorage multi-cache before network waterfall
             try {
                 const cachedMatchesStr = localStorage.getItem('matches_cache_v2');
                 if (cachedMatchesStr) {
@@ -641,12 +646,37 @@ function DashboardContent() {
                 // Ignore parse errors
             }
 
-            // PERF: Fire profile check + matches + counts all in parallel
             try {
-                const [profileResult, matchesResult, countsResult] = await Promise.allSettled([
+                const cachedConnsStr = localStorage.getItem('connections_cache_v1');
+                if (cachedConnsStr) {
+                    const { data } = JSON.parse(cachedConnsStr);
+                    if (Array.isArray(data) && data.length > 0) {
+                        setConnections(data);
+                        const totalUnread = data.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
+                        setUnreadMessageCount(totalUnread);
+                    }
+                }
+            } catch (e) {}
+
+            try {
+                const cachedReqsStr = localStorage.getItem('requests_cache_v1');
+                if (cachedReqsStr) {
+                    const { data } = JSON.parse(cachedReqsStr);
+                    if (Array.isArray(data) && data.length > 0) {
+                        setRequests(data);
+                        setRequestsCount(data.length);
+                    }
+                }
+            } catch (e) {}
+
+            // PERF: Fire profile check + matches + counts + connections + requests all in parallel
+            try {
+                const [profileResult, matchesResult, countsResult, connsResult, reqsResult] = await Promise.allSettled([
                     api.profile.getMe(),
                     api.matches.getAll(),
-                    api.interactions.getCounts()
+                    api.interactions.getCounts(),
+                    api.interactions.getConnections(),
+                    api.interactions.getRequests()
                 ]);
 
                 // Handle profile
@@ -712,12 +742,39 @@ function DashboardContent() {
                     } catch (e) {}
                 }
 
+                // Connections - with stale-while-revalidate cache save
+                if (connsResult.status === 'fulfilled') {
+                    hasFetchedConnections.current = true;
+                    const freshConns = Array.isArray(connsResult.value) ? connsResult.value : [];
+                    setConnections(freshConns);
+                    const totalUnread = freshConns.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
+                    setUnreadMessageCount(totalUnread);
+                    try {
+                        localStorage.setItem('connections_cache_v1', JSON.stringify({ data: freshConns, ts: Date.now() }));
+                    } catch (_) {}
+                }
+
+                // Requests - with stale-while-revalidate cache save
+                if (reqsResult.status === 'fulfilled') {
+                    hasFetchedRequests.current = true;
+                    const freshReqs = Array.isArray(reqsResult.value) ? reqsResult.value : [];
+                    setRequests(freshReqs);
+                    setRequestsCount(freshReqs.length);
+                    try {
+                        localStorage.setItem('requests_cache_v1', JSON.stringify({ data: freshReqs, ts: Date.now() }));
+                    } catch (_) {}
+                }
+
                 setLoading(false);
 
                 // Counts (requests badge + unread messages badge)
                 if (countsResult.status === 'fulfilled') {
-                    setRequestsCount(countsResult.value?.requestCount || 0);
-                    setUnreadMessageCount(countsResult.value?.unreadMessages || 0);
+                    if (countsResult.value?.requestCount !== undefined) {
+                        setRequestsCount(countsResult.value.requestCount);
+                    }
+                    if (countsResult.value?.unreadMessages !== undefined) {
+                        setUnreadMessageCount(countsResult.value.unreadMessages);
+                    }
                 }
 
             } catch (err: any) {
@@ -933,8 +990,12 @@ function DashboardContent() {
         try {
             if (requests.length === 0) setLoading(true);
             const data = await api.interactions.getRequests();
-            setRequests(data);
-            setRequestsCount(data.length);
+            const fresh = Array.isArray(data) ? data : [];
+            setRequests(fresh);
+            setRequestsCount(fresh.length);
+            try {
+                localStorage.setItem('requests_cache_v1', JSON.stringify({ data: fresh, ts: Date.now() }));
+            } catch (_) {}
         } catch (e: any) {
             console.error('fetchRequests error:', e);
             toast.error(`Failed to load requests: ${e.message || 'Unknown error'}`);
@@ -947,16 +1008,20 @@ function DashboardContent() {
         try {
             if (connections.length === 0) setLoading(true);
             const data = await api.interactions.getConnections();
-            setConnections(data);
+            const fresh = Array.isArray(data) ? data : [];
+            setConnections(fresh);
 
             // Calculate total unread
-            const totalUnread = data.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
+            const totalUnread = fresh.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
             setUnreadMessageCount(totalUnread);
+            try {
+                localStorage.setItem('connections_cache_v1', JSON.stringify({ data: fresh, ts: Date.now() }));
+            } catch (_) {}
 
             // Handle Push Notification Deep Link
             const urlChatId = searchParams.get('chatId');
             if (urlChatId) {
-                const connToOpen = data.find((c: any) => c.partner?.id === urlChatId);
+                const connToOpen = fresh.find((c: any) => c.partner?.id === urlChatId);
                 if (connToOpen) {
                     setSelectedConnection(connToOpen);
                     // Clean URL

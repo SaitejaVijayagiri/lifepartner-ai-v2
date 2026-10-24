@@ -40,10 +40,12 @@ export default function ConnectionsTab({
     const toast = useToast();
     const [searchQuery, setSearchQuery] = useState('');
 
-    const isConnOnline = (c: any) => Boolean(
-        c.partner?.isOnline ||
-        (Array.isArray(onlineUsers) && c.partner?.id && onlineUsers.includes(c.partner.id))
-    );
+    const isConnOnline = (c: any) => {
+        if (!c || !c.partner || !c.partner.id) return false;
+        return Array.isArray(onlineUsers)
+            ? onlineUsers.includes(c.partner.id)
+            : Boolean(c.partner.isOnline);
+    };
 
     // Sort connections so online users appear at the top, preserving recent-message order within groups
     const safeConns = Array.isArray(connections) ? connections : [];

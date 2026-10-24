@@ -366,13 +366,17 @@ export default function MatchesTab({
     const onlineUsersKey = Array.isArray(onlineUsers) ? onlineUsers.join(',') : '';
     const onlineMatchesList = useMemo(() => {
         const memberMap = new Map<string, any>();
+        const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
+
         // 1. Add from dedicated live online members endpoint
         (Array.isArray(liveOnlineMembers) ? liveOnlineMembers : []).forEach(m => {
-            if (m && m.id) memberMap.set(m.id, { ...m, isOnline: true });
+            if (m && m.id && (onlineSet.size === 0 || onlineSet.has(m.id))) {
+                memberMap.set(m.id, { ...m, isOnline: true });
+            }
         });
         // 2. Add from matches feed
         (Array.isArray(matches) ? matches : []).forEach(m => {
-            if (m && m.id && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)))) {
+            if (m && m.id && (onlineSet.size > 0 ? onlineSet.has(m.id) : m.isOnline)) {
                 memberMap.set(m.id, { ...m, isOnline: true });
             }
         });
@@ -399,7 +403,8 @@ export default function MatchesTab({
             : baseMatches;
 
         if (showOnlineOnly) {
-            filtered = filtered.filter(m => m && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id))));
+            const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
+            filtered = filtered.filter(m => m && (onlineSet.size > 0 ? onlineSet.has(m.id) : Boolean(m.isOnline)));
         }
 
         if (showWorldwideOnly) {

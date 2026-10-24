@@ -332,14 +332,17 @@ export const Notifications = {
                 }
             }
 
-            // 4. Dual-Redundancy Firebase Web Push (runs alongside VAPID)
-            try {
-                const fbToken = await requestWebPushPermission();
-                if (fbToken) {
-                    await api.notifications.register(fbToken, 'web');
-                    console.log('[Web Push] Firebase dual-redundant token registered ✓');
-                }
-            } catch (_) {}
+            // 4. Fallback Firebase Web Push: ONLY register if standard VAPID was not available or failed
+            // (Avoids registering duplicate service workers that fire multiple banners for the same notification)
+            if (!vapidPublicKey || !('PushManager' in window)) {
+                try {
+                    const fbToken = await requestWebPushPermission();
+                    if (fbToken) {
+                        await api.notifications.register(fbToken, 'web');
+                        console.log('[Web Push] Firebase fallback token registered ✓');
+                    }
+                } catch (_) {}
+            }
         } catch (webErr: any) {
             console.error('[Web Push] Initialization failed:', webErr?.message || webErr);
         }

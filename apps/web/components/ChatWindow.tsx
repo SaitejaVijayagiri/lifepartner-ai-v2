@@ -1893,11 +1893,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             })()}
                             {(() => {
                                 const partnerActualId = partnerInfo?.id || partner?.id || (partner as any)?.userId || (partner as any)?.user_id;
-                                const isPartnerOnline = Boolean(
-                                    (partnerInfo as any)?.isOnline ||
-                                    (partner as any)?.isOnline ||
-                                    (Array.isArray(onlineUsers) && partnerActualId && onlineUsers.includes(partnerActualId))
-                                );
+                                const isPartnerOnline = Array.isArray(onlineUsers) && partnerActualId
+                                    ? onlineUsers.includes(partnerActualId)
+                                    : Boolean((partnerInfo as any)?.isOnline || (partner as any)?.isOnline);
                                 return (
                                     <div className={`absolute bottom-0 right-0 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full border-2 border-white shadow-lg ${isPartnerOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
                                 );
@@ -1908,11 +1906,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             <div className="text-[11px] sm:text-xs text-white/80 flex items-center gap-1.5 flex-wrap">
                                 {(() => {
                                     const partnerActualId = partnerInfo?.id || partner?.id || (partner as any)?.userId || (partner as any)?.user_id;
-                                    const isPartnerOnline = Boolean(
-                                        (partnerInfo as any)?.isOnline ||
-                                        (partner as any)?.isOnline ||
-                                        (Array.isArray(onlineUsers) && partnerActualId && onlineUsers.includes(partnerActualId))
-                                    );
+                                    const isPartnerOnline = Array.isArray(onlineUsers) && partnerActualId
+                                        ? onlineUsers.includes(partnerActualId)
+                                        : Boolean((partnerInfo as any)?.isOnline || (partner as any)?.isOnline);
                                     return isPartnerOnline ? (
                                         <>
                                             <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>

@@ -104,26 +104,42 @@ export class WebPushService {
 
             let sentCount = 0;
             const expiredTokens: string[] = [];
+            const seenEndpoints = new Set<string>();
+            const uniqueRecords: { token: string; subObj: any }[] = [];
+            const duplicateTokens: string[] = [];
 
             for (const record of tokens) {
-                try {
-                    // Try parsing token as JSON subscription
-                    let subObj: any = null;
-                    if (record.token.startsWith('{')) {
-                        subObj = JSON.parse(record.token);
-                    }
-
-                    if (subObj && subObj.endpoint) {
-                        const res = await this.sendToSubscription(subObj, payload);
-                        if (res.success) {
-                            sentCount++;
-                        } else if (res.expired) {
-                            expiredTokens.push(record.token);
+                if (record.token.startsWith('{')) {
+                    try {
+                        const subObj = JSON.parse(record.token);
+                        if (subObj && subObj.endpoint) {
+                            if (seenEndpoints.has(subObj.endpoint)) {
+                                duplicateTokens.push(record.token);
+                            } else {
+                                seenEndpoints.add(subObj.endpoint);
+                                uniqueRecords.push({ token: record.token, subObj });
+                            }
                         }
-                    }
-                } catch (_) {
-                    // Not a valid JSON subscription string (e.g. legacy token)
+                    } catch (_) {}
                 }
+            }
+
+            // Clean up duplicate token rows in DB
+            if (duplicateTokens.length > 0) {
+                prisma.device_tokens.deleteMany({
+                    where: { user_id: userId, token: { in: duplicateTokens } }
+                }).catch(() => {});
+            }
+
+            for (const item of uniqueRecords) {
+                try {
+                    const res = await this.sendToSubscription(item.subObj, payload);
+                    if (res.success) {
+                        sentCount++;
+                    } else if (res.expired) {
+                        expiredTokens.push(item.token);
+                    }
+                } catch (_) {}
             }
 
             // Cleanup expired subscriptions

@@ -184,25 +184,44 @@ export class NotificationService {
         }
 
         // ==========================================
-        // PROVIDER 1: OneSignal (Web & Mobile APK)
+        // 1. Fetch user's registered device tokens & channel audit
         // ==========================================
-        const oneSignal = OneSignalService.getInstance();
-        if (oneSignal.isReady()) {
-            oneSignal.sendToUser(userId, title, body, {
-                ...data,
-                senderId: senderId || data?.senderId,
-                connId: senderId || data?.connId,
-                senderPhoto,
-                bannerUrl,
-                url: targetUrl
-            }).catch(err => console.error('[OneSignal Error]:', err));
-        }
+        const tokensRec = await prisma.device_tokens.findMany({
+            where: { user_id: userId },
+            select: { token: true, platform: true }
+        });
+
+        const androidTokens = Array.from(new Set(
+            tokensRec
+                .filter((r: any) => r.platform === 'android')
+                .map((r: any) => r.token)
+                .filter((t: string) => !t.startsWith('{') && t.length > 20)
+        ));
+
+        const hasWebPushTokens = tokensRec.some((r: any) => r.platform === 'webpush' || r.token.startsWith('{'));
+        const onesignalRecords = tokensRec.filter((r: any) => r.platform === 'onesignal');
+        const legacyWebTokens = Array.from(new Set(
+            tokensRec
+                .filter((r: any) => r.platform === 'web' && !r.token.startsWith('{'))
+                .map((r: any) => r.token)
+                .filter((t: string) => t.length > 20)
+        ));
+        const iosTokens = Array.from(new Set(
+            tokensRec
+                .filter((r: any) => r.platform === 'ios')
+                .map((r: any) => r.token)
+                .filter((t: string) => !t.startsWith('{') && t.length > 20)
+        ));
+
+        let webPushDispatched = false;
+        let androidDispatched = false;
 
         // ==========================================
-        // PROVIDER 2: Standard W3C WebPush (VAPID)
+        // PROVIDER 1: Standard W3C WebPush (VAPID)
+        // Primary, high-fidelity channel for all web browsers (Chrome, Edge, Safari, Firefox)
         // ==========================================
         const webPush = WebPushService.getInstance();
-        if (webPush.isReady()) {
+        if (webPush.isReady() && hasWebPushTokens) {
             const webPayload = {
                 title,
                 body,
@@ -218,45 +237,27 @@ export class NotificationService {
                     url: targetUrl
                 }
             };
-            webPush.sendToUser(userId, webPayload).catch(err => console.error('[WebPush Error]:', err));
+            const sent = await webPush.sendToUser(userId, webPayload).catch(err => {
+                console.error('[WebPush Error]:', err);
+                return 0;
+            });
+            if (sent > 0) {
+                webPushDispatched = true;
+            }
         }
 
         // ==========================================
-        // PROVIDER 3: FCM Multicast (Legacy Fallback)
+        // PROVIDER 2: Android Native (FCM Multicast)
+        // High-priority DATA-ONLY message for native Android APK with lockscreen inline replies
         // ==========================================
         if (this.initialized) {
             try {
-                const tokensRec = await prisma.device_tokens.findMany({
-                    where: { 
-                        user_id: userId,
-                        platform: { in: ['android', 'ios', 'web'] }
-                    },
-                    select: { token: true, platform: true }
-                });
-
-                // Separate Android tokens from iOS/Web tokens
-                const androidTokens = Array.from(new Set(
-                    tokensRec
-                        .filter((r: any) => r.platform === 'android')
-                        .map((r: any) => r.token)
-                        .filter((t: string) => !t.startsWith('{') && t.length > 20)
-                ));
-
-                const otherTokens = Array.from(new Set(
-                    tokensRec
-                        .filter((r: any) => r.platform !== 'android')
-                        .map((r: any) => r.token)
-                        .filter((t: string) => !t.startsWith('{') && t.length > 20)
-                ));
-
                 const defaultAppLogo = 'https://lifepartnerai.in/icon-512x512.png';
                 const displayImage = bannerUrl || senderPhoto || defaultAppLogo;
                 const mappedData = data ? Object.keys(data).reduce((acc, k) => ({ ...acc, [k]: String(data[k]) }), {}) : {};
 
-                // A. Android Native Devices: High-priority DATA-ONLY message ensures
-                // MyFirebaseMessagingService.onMessageReceived is always invoked by Android OS
-                // to construct rich interactive action buttons (Accept/Decline for requests, Reply/Like for chat).
                 if (androidTokens.length > 0) {
+                    androidDispatched = true;
                     const androidMessage: any = {
                         tokens: androidTokens,
                         data: {
@@ -305,8 +306,14 @@ export class NotificationService {
                     }
                 }
 
-                // B. iOS & Web FCM Devices: Standard notification payload
-                if (otherTokens.length > 0) {
+                // B. iOS & Legacy Web FCM Fallback:
+                // Only send to legacy web tokens if WebPush VAPID was NOT already dispatched
+                const eligibleOtherTokens = Array.from(new Set([
+                    ...iosTokens,
+                    ...(!webPushDispatched ? legacyWebTokens : [])
+                ]));
+
+                if (eligibleOtherTokens.length > 0) {
                     const apnsPayload: any = {
                         payload: {
                             aps: {
@@ -341,7 +348,7 @@ export class NotificationService {
                     }
 
                     const otherMessage: any = {
-                        tokens: otherTokens,
+                        tokens: eligibleOtherTokens,
                         notification: {
                             title: String(title),
                             body: String(body),
@@ -363,6 +370,10 @@ export class NotificationService {
                     const otherBatchResp = await admin.messaging().sendEachForMulticast(otherMessage);
                     console.log(`FCM iOS/Web: ${otherBatchResp.successCount} sent, ${otherBatchResp.failureCount} failed`);
 
+                    if (otherBatchResp.successCount > 0 && legacyWebTokens.length > 0) {
+                        webPushDispatched = true;
+                    }
+
                     if (otherBatchResp.failureCount > 0) {
                         const staleTokens: string[] = [];
                         otherBatchResp.responses.forEach((resp: any, idx: number) => {
@@ -370,7 +381,7 @@ export class NotificationService {
                                 const code = resp.error.code;
                                 if (code === 'messaging/registration-token-not-registered' || 
                                     code === 'messaging/invalid-registration-token') {
-                                    staleTokens.push(otherTokens[idx] as string);
+                                    staleTokens.push(eligibleOtherTokens[idx] as string);
                                 }
                             }
                         });
@@ -383,6 +394,28 @@ export class NotificationService {
                 }
             } catch (fcmErr) {
                 console.error("FCM Multicast Error:", fcmErr);
+            }
+        }
+
+        // ==========================================
+        // PROVIDER 3: OneSignal Fallback
+        // Only deliver via OneSignal if the user explicitly has onesignal subscriptions
+        // and hasn't already received the notification via Native Android FCM or WebPush
+        // (prevents duplicate banners popping up on the same device)
+        // ==========================================
+        const oneSignal = OneSignalService.getInstance();
+        if (oneSignal.isReady()) {
+            const hasExplicitOneSignal = onesignalRecords.length > 0;
+            const needsFallbackDelivery = !androidDispatched && !webPushDispatched;
+            if (hasExplicitOneSignal || needsFallbackDelivery) {
+                oneSignal.sendToUser(userId, title, body, {
+                    ...data,
+                    senderId: senderId || data?.senderId,
+                    connId: senderId || data?.connId,
+                    senderPhoto,
+                    bannerUrl,
+                    url: targetUrl
+                }).catch(err => console.error('[OneSignal Error]:', err));
             }
         }
     }

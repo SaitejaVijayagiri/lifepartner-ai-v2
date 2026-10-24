@@ -51,6 +51,8 @@ messaging.onBackgroundMessage((payload) => {
         data: payload.data,
         vibrate: [200, 100, 200], // Haptic vibration pattern for Android/mobile devices
         silent: false, // Explicitly tell browser/device to play default system alert sound
+        tag: payload.data?.connId || payload.data?.senderId || payload.data?.notificationId || payload.data?.from || 'lifepartner_alert',
+        renotify: true
     };
 
     // Add Accept/Decline actions if it's an interest request!

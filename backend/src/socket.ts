@@ -6,7 +6,9 @@ import { SpeedDatingManager } from './services/SpeedDatingManager';
 import { sanitizeContent } from './utils/contentFilter';
 
 let io: Server;
-// userId -> count of active sockets
+// Exact set of active socket IDs per user (guarantees accurate presence count without false duplicates)
+const userSockets = new Map<string, Set<string>>();
+// userId -> count of active sockets (kept for backwards compatibility)
 const onlineUsers = new Map<string, number>();
 
 // userId -> active partnerId that user is currently chatting with
@@ -172,26 +174,34 @@ export const addSocketToOnlineUser = (socket: Socket | any, targetUserId: string
         socket.join(targetUserId);
     }
 
-    const currentCount = onlineUsers.get(targetUserId) || 0;
-    onlineUsers.set(targetUserId, currentCount + 1);
+    if (!userSockets.has(targetUserId)) {
+        userSockets.set(targetUserId, new Set<string>());
+    }
+    const socketSet = userSockets.get(targetUserId)!;
+    const isFirstConnectionForSocket = !socketSet.has(socket.id);
 
-    // Send CURRENT online list to this socket
-    if (socket.emit) {
-        socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
+    if (isFirstConnectionForSocket) {
+        socketSet.add(socket.id);
+        onlineUsers.set(targetUserId, socketSet.size);
+
+        // Notify others that this user is online ONLY if they just came online (0 -> 1)
+        if (socketSet.size === 1) {
+            if (socket.broadcast && socket.broadcast.emit) {
+                socket.broadcast.emit('userOnline', targetUserId);
+            }
+            if (io) {
+                io.to('public_updates').emit('public_stats', {
+                    onlineCount: userSockets.size,
+                    loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
+                });
+            }
+            notifyConnectionsOfOnlineStatus(targetUserId);
+        }
     }
 
-    // Notify others that this user is online ONLY if they just came online (0 -> 1)
-    if (currentCount === 0) {
-        if (socket.broadcast && socket.broadcast.emit) {
-            socket.broadcast.emit('userOnline', targetUserId);
-        }
-        if (io) {
-            io.to('public_updates').emit('public_stats', {
-                onlineCount: onlineUsers.size,
-                loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
-            });
-        }
-        notifyConnectionsOfOnlineStatus(targetUserId);
+    // Always send CURRENT live online list to this socket
+    if (socket.emit) {
+        socket.emit('onlineUsers', Array.from(userSockets.keys()));
     }
 };
 
@@ -202,19 +212,49 @@ export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: 
     if (socket.data) {
         socket.data.trackedUserId = undefined;
     }
-    const currentCount = onlineUsers.get(uId) || 0;
-    if (currentCount <= 1) {
+
+    const socketSet = userSockets.get(uId);
+    if (socketSet) {
+        socketSet.delete(socket.id);
+        if (socketSet.size === 0) {
+            userSockets.delete(uId);
+            onlineUsers.delete(uId);
+            activeChats.delete(uId);
+            if (io) {
+                io.emit('userOffline', uId);
+                io.to('public_updates').emit('public_stats', {
+                    onlineCount: userSockets.size,
+                    loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
+                });
+            }
+
+            // Persist accurate last_seen_at timestamp in database profile metadata
+            prisma.profiles.findUnique({
+                where: { user_id: uId },
+                select: { metadata: true }
+            }).then(prof => {
+                if (prof) {
+                    const meta = (prof.metadata as any) || {};
+                    return prisma.profiles.update({
+                        where: { user_id: uId },
+                        data: {
+                            metadata: {
+                                ...meta,
+                                last_seen_at: new Date().toISOString()
+                            }
+                        }
+                    });
+                }
+            }).catch(() => {});
+        } else {
+            onlineUsers.set(uId, socketSet.size);
+        }
+    } else {
         onlineUsers.delete(uId);
         activeChats.delete(uId);
         if (io) {
             io.emit('userOffline', uId);
-            io.to('public_updates').emit('public_stats', {
-                onlineCount: onlineUsers.size,
-                loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
-            });
         }
-    } else {
-        onlineUsers.set(uId, currentCount - 1);
     }
 };
 
@@ -949,6 +989,8 @@ export const getIO = () => {
 
 export const isUserOnline = (userId: string): boolean => {
     if (!userId) return false;
+    const socketSet = userSockets.get(userId);
+    if (socketSet && socketSet.size > 0) return true;
     if (onlineUsers.has(userId) && (onlineUsers.get(userId) || 0) > 0) return true;
     if (io) {
         const room = io.sockets.adapter.rooms.get(userId);
@@ -958,7 +1000,7 @@ export const isUserOnline = (userId: string): boolean => {
 };
 
 export const getOnlineUserIds = (): string[] => {
-    return Array.from(onlineUsers.keys());
+    return Array.from(userSockets.keys());
 };
 
 export const isUserActiveInChat = (userId: string, partnerId: string): boolean => {

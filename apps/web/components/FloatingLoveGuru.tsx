@@ -261,14 +261,14 @@ export default function FloatingLoveGuru() {
                         </div>
 
                         {/* Interactive Bio-Data Match Cards */}
-                        {msg.matches && msg.matches.length > 0 && (
+                        {Array.isArray(msg?.matches) && msg.matches.length > 0 && (
                             <div className="mt-3 space-y-3 w-full max-w-[95%]">
                                 <div className="text-[11px] font-extrabold uppercase tracking-wider text-rose-500 flex items-center gap-1">
                                     <Sparkles size={13} className="animate-spin" />
                                     <span>Top Bio-Data Compatible Matches</span>
                                 </div>
 
-                                {msg.matches.map((m) => (
+                                {(Array.isArray(msg?.matches) ? msg.matches : []).map((m) => (
                                     <div key={m.id} className="bg-gradient-to-br from-white via-rose-50/40 to-purple-50/30 dark:from-gray-800 dark:via-gray-850 dark:to-gray-900 border border-rose-200/80 dark:border-rose-900/50 rounded-2xl p-3 shadow-md hover:shadow-lg transition-all">
                                         <div className="flex items-center gap-3">
                                             <img 

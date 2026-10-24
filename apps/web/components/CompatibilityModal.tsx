@@ -180,7 +180,7 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                                     <CheckCircle2 size={18} /> Cosmic Strengths
                                 </h4>
                                 <ul className="space-y-4">
-                                    {report.strengths.map((str, i) => (
+                                    {(Array.isArray(report?.strengths) ? report.strengths : []).map((str, i) => (
                                         <li key={i} className="flex items-start gap-4">
                                             <div className="w-6 h-6 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center shrink-0 mt-0.5">
                                                 <CheckCircle2 size={12} className="text-green-600" />
@@ -197,7 +197,7 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                                     <AlertTriangle size={18} /> Points of Friction
                                 </h4>
                                 <ul className="space-y-4">
-                                    {report.challenges.map((chal, i) => (
+                                    {(Array.isArray(report?.challenges) ? report.challenges : []).map((chal, i) => (
                                         <li key={i} className="flex items-start gap-4">
                                             <div className="w-6 h-6 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0 mt-0.5">
                                                 <AlertTriangle size={12} className="text-orange-600" />

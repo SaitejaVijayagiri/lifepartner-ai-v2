@@ -571,7 +571,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                                             e.stopPropagation();
                                                                             try {
                                                                                 const res = await api.profile.toggleStoryHighlight(hStory.id);
-                                                                                if (res?.success && profile.stories) {
+                                                                                if (res?.success && Array.isArray(profile.stories)) {
                                                                                     profile.stories = profile.stories.map((s: any) =>
                                                                                         String(s.id) === String(hStory.id) ? { ...s, isHighlight: false, is_highlight: false } : s
                                                                                     );
@@ -633,18 +633,26 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     </p>
 
                                     {/* Match Reasons (AI Similarity Badges) */}
-                                    {safeProfile.match_reasons && safeProfile.match_reasons.length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5 mt-4">
-                                            {safeProfile.match_reasons.map((reason: string, idx: number) => (
-                                                <div 
-                                                    key={idx}
-                                                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold uppercase tracking-wider shadow-sm"
-                                                >
-                                                    <span>✨ {reason}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {(() => {
+                                        const matchReasons = Array.isArray(safeProfile.match_reasons)
+                                            ? safeProfile.match_reasons
+                                            : (typeof safeProfile.match_reasons === 'string'
+                                                ? safeProfile.match_reasons.split(',').map((s: string) => s.trim()).filter(Boolean)
+                                                : []);
+                                        if (matchReasons.length === 0) return null;
+                                        return (
+                                            <div className="flex flex-wrap gap-1.5 mt-4">
+                                                {matchReasons.map((reason: string, idx: number) => (
+                                                    <div 
+                                                        key={idx}
+                                                        className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-200/50 dark:border-indigo-800/50 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold uppercase tracking-wider shadow-sm"
+                                                    >
+                                                        <span>✨ {reason}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })()}
 
                                     <div className="flex gap-3 mt-6">
                                         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">
@@ -1029,14 +1037,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             profile.stories = profile.stories.filter((s: any) => String(s.id) !== String(storyId));
                         }
                         setActiveHighlightSet((prev: any) => {
-                            if (!prev || !prev.stories) return prev;
+                            if (!prev || !Array.isArray(prev.stories)) return prev;
                             const remaining = prev.stories.filter((s: any) => String(s.id) !== String(storyId));
                             return remaining.length > 0 ? { ...prev, stories: remaining } : null;
                         });
                         toast.success("Story deleted!");
                     }}
                     onHighlightToggle={(storyId, isHighlight) => {
-                        if (profile && profile.stories) {
+                        if (profile && Array.isArray(profile.stories)) {
                             profile.stories = profile.stories.map((s: any) => 
                                 String(s.id) === String(storyId) ? { ...s, isHighlight } : s
                             );

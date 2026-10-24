@@ -1014,7 +1014,7 @@ export default function MatchesTab({
                     }}
                     onStoryViewed={(storyId) => {
                         setActiveStorySet((prev: any) => {
-                            if (!prev) return null;
+                            if (!prev || !Array.isArray(prev.stories)) return null;
                             const uid = currentUser?.id || currentUser?.userId;
                             const updatedStories = prev.stories.map((s: any) => {
                                 if (s.id === storyId) {

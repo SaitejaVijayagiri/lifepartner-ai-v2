@@ -31,8 +31,8 @@ export const NotificationBell = () => {
         try {
             const res = await api.notifications.getAll();
             if (res) {
-                setNotifications(res.notifications);
-                setUnreadCount(res.unreadCount);
+                setNotifications(Array.isArray(res.notifications) ? res.notifications : []);
+                setUnreadCount(Number(res.unreadCount) || 0);
             }
         } catch (e) {
             console.error("Failed to fetch notifications", e);
@@ -46,7 +46,7 @@ export const NotificationBell = () => {
             const handleNewNotification = (data: any) => {
                 // console.log("🔔 New Notification:", data);
                 // Add to list, increment unread
-                setNotifications((prev: any[]) => [data, ...prev]);
+                setNotifications((prev: any[]) => [data, ...(Array.isArray(prev) ? prev : [])]);
                 setUnreadCount((prev: number) => prev + 1);
             };
 
@@ -157,14 +157,14 @@ export const NotificationBell = () => {
                     </div>
 
                     <div className="max-h-[60vh] overflow-y-auto overflow-x-hidden">
-                        {notifications.length === 0 ? (
+                        {(Array.isArray(notifications) ? notifications : []).length === 0 ? (
                             <div className="p-8 text-center text-gray-400 dark:text-gray-500">
                                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
                                 <p className="text-sm">No notifications yet</p>
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                                {notifications.map((n, i) => {
+                                {(Array.isArray(notifications) ? notifications : []).map((n, i) => {
                                     const dateStr = n.created_at || n.timestamp;
                                     const dateObj = dateStr ? new Date(dateStr) : new Date();
                                     const isValidDate = !isNaN(dateObj.getTime());

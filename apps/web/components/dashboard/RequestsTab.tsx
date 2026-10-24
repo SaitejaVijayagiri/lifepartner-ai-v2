@@ -26,6 +26,7 @@ export default function RequestsTab({
     connectionsCount = 0,
     onOpenCallHistory
 }: RequestsTabProps) {
+    const safeRequests = Array.isArray(requests) ? requests : [];
     const [actioningIds, setActioningIds] = useState<Set<string>>(new Set());
     const [permissionStatus, setPermissionStatus] = useState<string>('granted');
     const [isEnabling, setIsEnabling] = useState(false);
@@ -194,7 +195,7 @@ export default function RequestsTab({
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         Pending Interest Requests
                         <span className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/40 px-2.5 py-0.5 rounded-full text-sm font-extrabold">
-                            {requests.length}
+                            {safeRequests.length}
                         </span>
                     </h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -203,7 +204,7 @@ export default function RequestsTab({
                 </div>
             </div>
 
-            {requests.length === 0 && (
+            {safeRequests.length === 0 && (
                 <div className="text-center py-16 px-4 bg-white/80 dark:bg-gray-800/40 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 space-y-4">
                     <div className="w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center mx-auto border border-rose-100 dark:border-rose-900/40">
                         <Heart className="w-8 h-8 text-rose-400 dark:text-rose-500" />
@@ -226,20 +227,23 @@ export default function RequestsTab({
                 </div>
             )}
 
-            {requests.map((req: any) => (
+            {safeRequests.map((req: any) => {
+                if (!req || !req.fromUser) return null;
+                const fromUser = req.fromUser;
+                return (
                 <div key={req.interactionId} className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-3xl shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-all duration-300 justify-between group overflow-hidden relative">
                     {/* Decorative gradient blur */}
                     <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-pink-400/10 to-purple-500/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     
                     <div
-                        onClick={() => handleInspectProfile(req.fromUser)}
+                        onClick={() => handleInspectProfile(fromUser)}
                         className={`flex items-center gap-4 w-full sm:w-auto relative z-10 ${onViewProfile ? 'cursor-pointer group/profile' : ''}`}
                     >
                         <div className="relative shrink-0">
                             <img 
-                                src={req.fromUser.photoUrl || '/avatar-fallback.svg'} 
+                                src={fromUser.photoUrl || '/avatar-fallback.svg'} 
                                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-lg shrink-0 group-hover/profile:ring-2 group-hover/profile:ring-indigo-500 transition-all" 
-                                alt={req.fromUser.name || 'User'}
+                                alt={fromUser.name || 'User'}
                                 onError={(e) => { 
                                     const t = e.target as HTMLImageElement; 
                                     t.onerror = null; 
@@ -252,18 +256,18 @@ export default function RequestsTab({
                         </div>
                         <div className="min-w-0">
                             <h4 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 group-hover/profile:text-indigo-600 dark:group-hover/profile:text-indigo-400 transition-colors">
-                                <span className="truncate">{req.fromUser.name || 'Someone'}</span>
-                                {req.fromUser.age && <span className="text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md shrink-0">{req.fromUser.age} yrs</span>}
+                                <span className="truncate">{fromUser.name || 'Someone'}</span>
+                                {fromUser.age && <span className="text-xs font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-md shrink-0">{fromUser.age} yrs</span>}
                             </h4>
                             <div className="flex flex-col gap-1 mt-1">
                                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                                     <MapPin size={14} className="text-indigo-400 shrink-0" />
-                                    <span className="truncate">{typeof req.fromUser.location === 'string' ? req.fromUser.location : (req.fromUser.location?.city || "India")}</span>
+                                    <span className="truncate">{typeof fromUser.location === 'string' ? fromUser.location : (fromUser.location?.city || "India")}</span>
                                 </p>
-                                {req.fromUser.career?.profession && (
+                                {fromUser.career?.profession && (
                                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
                                          <Briefcase size={14} className="text-indigo-400 shrink-0" /> 
-                                         <span className="truncate">{req.fromUser.career.profession}</span>
+                                         <span className="truncate">{fromUser.career.profession}</span>
                                      </p>
                                 )}
                                 {onViewProfile && (
@@ -292,7 +296,8 @@ export default function RequestsTab({
                         </button>
                     </div>
                 </div>
-            ))}
-        </div>
-    );
+            );
+        })}
+    </div>
+);
 }

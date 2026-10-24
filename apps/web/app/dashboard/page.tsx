@@ -635,7 +635,6 @@ function DashboardContent() {
                         if (data.length < 500) {
                             setHasMore(false);
                         }
-                        setLoading(false);
                     }
                 }
             } catch (e) {
@@ -671,6 +670,9 @@ function DashboardContent() {
                             const parsed = JSON.parse(storedUser);
                             setCurrentUser(parsed);
                         } catch (_) {}
+                        setLoading(false);
+                    } else {
+                        router.push('/login');
                     }
                     return;
                 }
@@ -1438,7 +1440,7 @@ function DashboardContent() {
         </header >
     );
 
-    if (loading && !currentUser) {
+    if (loading || !currentUser) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-gray-950 relative overflow-hidden">
                 {/* Decorative background orbs */}
@@ -2314,7 +2316,7 @@ function DashboardContent() {
                     }}
                     onStoryViewed={(storyId) => {
                         setActiveStorySet(prev => {
-                            if (!prev) return null;
+                            if (!prev || !Array.isArray(prev.stories)) return null;
                             const uid = currentUser?.id || currentUser?.userId;
                             const updatedStories = prev.stories.map((s: any) => {
                                 if (s.id === storyId) {
@@ -2337,7 +2339,7 @@ function DashboardContent() {
                             return { ...prev, stories: updated };
                         });
                         setActiveStorySet((prev: any) => {
-                            if (!prev || !prev.stories) return prev;
+                            if (!prev || !Array.isArray(prev.stories)) return prev;
                             const updated = prev.stories.map((s: any) => 
                                 String(s.id) === String(storyId) ? { ...s, isHighlight } : s
                             );

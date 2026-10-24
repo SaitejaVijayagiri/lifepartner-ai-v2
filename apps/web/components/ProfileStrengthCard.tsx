@@ -110,7 +110,7 @@ export default function ProfileStrengthCard({
             </div>
 
             {/* Actionable Chips for Missing Sections */}
-            {missingSections && missingSections.length > 0 && !isGold && (
+            {Array.isArray(missingSections) && missingSections.length > 0 && !isGold && (
                 <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider mr-2">Quick Add:</span>
                     {missingSections.slice(0, 3).map((item) => (

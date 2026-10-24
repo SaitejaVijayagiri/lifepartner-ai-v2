@@ -46,8 +46,9 @@ export default function ConnectionsTab({
     );
 
     // Sort connections so online users appear at the top, preserving recent-message order within groups
-    const onlineConns = connections.filter(c => c.partner && isConnOnline(c));
-    const offlineConns = connections.filter(c => c.partner && !isConnOnline(c));
+    const safeConns = Array.isArray(connections) ? connections : [];
+    const onlineConns = safeConns.filter(c => c && c.partner && isConnOnline(c));
+    const offlineConns = safeConns.filter(c => c && c.partner && !isConnOnline(c));
     const sortedConnections = [...onlineConns, ...offlineConns];
 
     // Filter connections based on search query (matches name, role, or location)
@@ -235,10 +236,11 @@ export default function ConnectionsTab({
             )}
 
             {filteredConnections.map((conn: any) => {
-                const stories: any[] = conn.partner?.stories || [];
-                const activeStories = stories.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date());
+                if (!conn || !conn.partner) return null;
+                const stories: any[] = Array.isArray(conn.partner?.stories) ? conn.partner.stories : [];
+                const activeStories = stories.filter((s: any) => s && (s.isHighlight || (s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) > new Date() : false)));
                 const hasStories = activeStories.length > 0;
-                const isAllViewed = hasStories && activeStories.every((s: any) => s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId));
+                const isAllViewed = Boolean(hasStories && activeStories.every((s: any) => (Array.isArray(s.views) ? s.views : []).some((v: any) => (v.userId || v.user_id) === currentUserId)));
 
                 return (
                     <div

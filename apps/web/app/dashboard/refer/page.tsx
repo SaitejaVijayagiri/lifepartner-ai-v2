@@ -116,9 +116,9 @@ export default function ReferralPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">Your Network</h3>
                     
-                    {referralData?.referrals?.length > 0 ? (
+                    {Array.isArray(referralData?.referrals) && referralData.referrals.length > 0 ? (
                         <div className="space-y-4">
-                            {referralData.referrals.map((ref: any, idx: number) => (
+                            {(Array.isArray(referralData?.referrals) ? referralData.referrals : []).map((ref: any, idx: number) => (
                                 <div key={ref.id || idx} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 font-bold">

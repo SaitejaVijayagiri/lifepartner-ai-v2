@@ -154,17 +154,20 @@ export default function InteractiveMap({
     }, []);
 
     // Apply Live Map Filters
-    const filteredProfiles = profiles.filter((p) => {
+    const safeProfiles = Array.isArray(profiles) ? profiles : [];
+    const filteredProfiles = safeProfiles.filter((p) => {
+        if (!p) return false;
         if (!activeFilter) return true;
+        const pid = String(p.id || p.userId || '');
 
         switch (activeFilter) {
             case 'Online Now':
                 return Boolean(p.isOnline || (Array.isArray(onlineUsers) && (onlineUsers.includes(p.id) || (p.userId && onlineUsers.includes(p.userId)))));
             case 'New Here':
                 // Deterministic mock for "New Here" if created_at is not available
-                return p.id.charCodeAt(p.id.length - 1) % 3 === 0;
+                return pid.length > 0 ? (pid.charCodeAt(pid.length - 1) % 3 === 0) : false;
             case 'High Match':
-                return (p.score && p.score > 80) || (!p.score && p.id.charCodeAt(0) % 2 === 0);
+                return (p.score && p.score > 80) || (!p.score && pid.length > 0 && pid.charCodeAt(0) % 2 === 0);
             case 'Software':
             case 'Doctor':
             case 'Engineer':

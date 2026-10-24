@@ -352,7 +352,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     <span>✨</span> How to Polish Your Profile:
                                 </h4>
                                 <ul className="space-y-2">
-                                    {roastResult.tips.map((tip, i) => (
+                                    {(Array.isArray(roastResult?.tips) ? roastResult.tips : []).map((tip, i) => (
                                         <li key={i} className="flex gap-2 text-xs sm:text-sm text-rose-800/90 dark:text-rose-200/90 items-start">
                                             <span className="text-rose-500 font-bold mt-0.5">✅</span> 
                                             <span>{tip}</span>

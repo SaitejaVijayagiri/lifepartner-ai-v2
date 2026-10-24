@@ -48,7 +48,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
     };
 
     const currentUserId = currentUser?.id || currentUser?.userId;
-    const myActiveStories = currentUser?.stories?.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date()) || [];
+    const myActiveStories = (Array.isArray(currentUser?.stories) ? currentUser.stories : []).filter((s: any) => s && (s.isHighlight || (s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) > new Date() : false)));
 
     return (
         <div className="w-full space-y-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 sm:p-5 rounded-3xl shadow-sm">
@@ -84,7 +84,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                             onClick={() => {
                                 onOpenStory({
                                     stories: myActiveStories,
-                                    user: { ...currentUser, id: currentUserId, name: currentUser.full_name || currentUser.name || 'You' }
+                                    user: { ...currentUser, id: currentUserId, name: currentUser?.full_name || currentUser?.name || 'You' }
                                 });
                             }}
                         >
@@ -92,7 +92,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
                                     <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-900">
                                         <img
-                                            src={currentUser.photos?.[0] || currentUser.photoUrl || '/avatar-fallback.svg'}
+                                            src={currentUser?.photos?.[0] || currentUser?.photoUrl || '/avatar-fallback.svg'}
                                             className="w-full h-full rounded-full object-cover"
                                             alt="Your Story"
                                             onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
@@ -109,16 +109,17 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
 
                     {/* Other Users' Stories Feed */}
                     {storyFeed.map((feedUser, idx) => {
-                        const activeStories = feedUser.stories?.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date()) || [];
+                        if (!feedUser) return null;
+                        const activeStories = (Array.isArray(feedUser.stories) ? feedUser.stories : []).filter((s: any) => s && (s.isHighlight || (s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) > new Date() : false)));
                         if (activeStories.length === 0) return null;
 
-                        const isAllViewed = currentUserId && activeStories.every((s: any) => 
-                            viewedStoryIds.has(s.id) || s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId)
-                        );
+                        const isAllViewed = Boolean(currentUserId && activeStories.every((s: any) => 
+                            viewedStoryIds.has(s.id) || (Array.isArray(s.views) ? s.views : []).some((v: any) => (v.userId || v.user_id) === currentUserId)
+                        ));
 
                         return (
                             <div
-                                key={feedUser.id}
+                                key={feedUser.id || idx}
                                 className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
                                 style={{ animationDelay: `${idx * 40}ms` }}
                                 onClick={() => {
@@ -136,14 +137,14 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                                             <img
                                                 src={feedUser.photoUrl || '/avatar-fallback.svg'}
                                                 className="w-full h-full rounded-full object-cover"
-                                                alt={feedUser.name}
+                                                alt={feedUser.name || 'Member'}
                                                 onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
                                             />
                                         </div>
                                     </div>
                                 </div>
                                 <span className="text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300 truncate max-w-[70px]">
-                                    {feedUser.name?.split(' ')[0]}
+                                    {(feedUser.name || 'Member').split(' ')[0]}
                                 </span>
                             </div>
                         );

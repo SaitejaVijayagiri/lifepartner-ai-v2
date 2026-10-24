@@ -471,18 +471,26 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                     <InfoCard label="Smoking" value={profile.lifestyle?.smoke || profile.lifestyle?.smoking || "No"} />
                                     <InfoCard label="Drinking" value={profile.lifestyle?.drink || profile.lifestyle?.drinking || "No"} />
                                 </div>
-                                {profile.interests && profile.interests.length > 0 && (
-                                    <div className="mt-4">
-                                        <div className="text-[10px] uppercase font-bold text-green-700/70 dark:text-green-400/80 mb-2">Interests</div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {profile.interests.map((tag: string, i: number) => (
-                                                <span key={i} className="bg-white/60 dark:bg-gray-800/60 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-800/50 shadow-sm">
-                                                    {tag}
-                                                </span>
-                                            ))}
+                                {(() => {
+                                    const safeInterests = Array.isArray(profile.interests) 
+                                        ? profile.interests 
+                                        : (typeof profile.interests === 'string' 
+                                            ? profile.interests.split(',').map((s: string) => s.trim()).filter(Boolean) 
+                                            : []);
+                                    if (safeInterests.length === 0) return null;
+                                    return (
+                                        <div className="mt-4">
+                                            <div className="text-[10px] uppercase font-bold text-green-700/70 dark:text-green-400/80 mb-2">Interests</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {safeInterests.map((tag: string, i: number) => (
+                                                    <span key={i} className="bg-white/60 dark:bg-gray-800/60 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-800/50 shadow-sm">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    );
+                                })()}
                             </div>
 
                             <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-2xl border border-teal-100 dark:border-teal-900/50 mt-6">

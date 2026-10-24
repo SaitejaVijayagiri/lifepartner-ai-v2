@@ -212,7 +212,7 @@ export default function HomeTab({
                             className="w-full py-2.5 sm:py-3 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-[11px] sm:text-xs shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-1.5"
                         >
                             <Heart size={14} className="fill-white shrink-0" />
-                            <span className="truncate">Matches ({matches.length})</span>
+                            <span className="truncate">Matches ({(Array.isArray(matches) ? matches : []).length})</span>
                         </button>
                     </div>
 
@@ -344,7 +344,7 @@ export default function HomeTab({
                         onClick={() => onNavigateTab('matches')}
                         className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
                     >
-                        <span>View All ({matches.length})</span>
+                        <span>View All ({(Array.isArray(matches) ? matches : []).length})</span>
                         <ArrowRight size={14} />
                     </button>
                 </div>

@@ -135,8 +135,8 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                                 }`}
                             >
                                 <img
-                                    src={instant.senderAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${instant.senderName}`}
-                                    alt={instant.senderName}
+                                    src={instant.senderAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(instant.senderName || 'Member')}`}
+                                    alt={instant.senderName || 'Member'}
                                     className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 bg-slate-100"
                                 />
 
@@ -153,7 +153,7 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                             </div>
 
                             <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 max-w-[60px] truncate text-center">
-                                {instant.isOwn ? 'Your Snap' : instant.senderName.split(' ')[0]}
+                                {instant.isOwn ? 'Your Snap' : (instant.senderName || 'Member').split(' ')[0]}
                             </span>
                         </div>
                     );

@@ -630,9 +630,9 @@ function DashboardContent() {
                 if (cachedMatchesStr) {
                     const { data, ts } = JSON.parse(cachedMatchesStr);
                     // 2 minute TTL for client cache, then fallback to loading state
-                    if (Date.now() - ts < 120000) {
+                    if (Date.now() - ts < 120000 && Array.isArray(data)) {
                         setMatches(data);
-                        if (Array.isArray(data) && data.length < 500) {
+                        if (data.length < 500) {
                             setHasMore(false);
                         }
                         setLoading(false);
@@ -700,7 +700,9 @@ function DashboardContent() {
 
                 // Matches - with stale-while-revalidate cache save
                 if (matchesResult.status === 'fulfilled') {
-                    const freshMatches = matchesResult.value?.matches || [];
+                    const freshMatches = Array.isArray(matchesResult.value?.matches)
+                        ? matchesResult.value.matches
+                        : (Array.isArray(matchesResult.value) ? matchesResult.value : []);
                     setMatches(freshMatches);
                     if (freshMatches.length < 200) setHasMore(false);
                     try {
@@ -1085,14 +1087,12 @@ function DashboardContent() {
             const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();
 
             // 1. Age Filter
-            if (activeFilters.ageRange) {
-                // Ignore if age is 0 (missing data) - prevent filtering out everyone? 
-                // Currently: if age is outside range, remove it.
+            if (activeFilters.ageRange && Array.isArray(activeFilters.ageRange) && activeFilters.ageRange.length >= 2) {
                 if (age > 0 && (age < activeFilters.ageRange[0] || age > activeFilters.ageRange[1])) return false;
             }
 
             // 2. Height Filter
-            if (heightStr) {
+            if (heightStr && activeFilters.heightRange && Array.isArray(activeFilters.heightRange) && activeFilters.heightRange.length >= 2) {
                 const parseHeight = (h: string): number => {
                     const clean = h.replace(/[^0-9.]/g, ' ').trim().split(/\s+/).map(Number);
                     if (h.includes("'") || clean.length >= 2) return (clean[0] * 12) + (clean[1] || 0);
@@ -1106,7 +1106,7 @@ function DashboardContent() {
             }
 
             // 3. Marital Status (Normalize 'Single' <-> 'Never Married')
-            if (activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0) {
+            if (activeFilters.maritalStatus && Array.isArray(activeFilters.maritalStatus) && activeFilters.maritalStatus.length > 0) {
                 const normalizedFilters = activeFilters.maritalStatus.map(s => {
                     const lower = s.toLowerCase();
                     if (lower.includes('never married') || lower.includes('single')) return 'single';
@@ -1122,21 +1122,21 @@ function DashboardContent() {
             }
 
             // 4. Religion
-            if (activeFilters.religions.length > 0) {
+            if (activeFilters.religions && Array.isArray(activeFilters.religions) && activeFilters.religions.length > 0) {
                 if (!activeFilters.religions.some(r => religionStr.includes(r.toLowerCase()))) return false;
             }
 
             // 5. Caste
-            if (activeFilters.caste && !casteStr.includes(activeFilters.caste.toLowerCase())) return false;
+            if (activeFilters.caste && typeof activeFilters.caste === 'string' && !casteStr.includes(activeFilters.caste.toLowerCase())) return false;
 
             // 6. Lifestyle (Diet, Smoking, Drinking)
-            if (activeFilters.diet && !dietStr.includes(activeFilters.diet.toLowerCase())) return false;
+            if (activeFilters.diet && typeof activeFilters.diet === 'string' && !dietStr.includes(activeFilters.diet.toLowerCase())) return false;
 
-            if (activeFilters.smoking) {
+            if (activeFilters.smoking && typeof activeFilters.smoking === 'string') {
                 const smoking = (match.lifestyle?.smoking || meta.lifestyle?.smoking || 'No').toLowerCase();
                 if (smoking !== activeFilters.smoking.toLowerCase()) return false;
             }
-            if (activeFilters.drinking) {
+            if (activeFilters.drinking && typeof activeFilters.drinking === 'string') {
                 const drinking = (match.lifestyle?.drinking || meta.lifestyle?.drinking || 'No').toLowerCase();
                 if (drinking !== activeFilters.drinking.toLowerCase()) return false;
             }
@@ -1159,10 +1159,10 @@ function DashboardContent() {
             }
 
             // 8. Location
-            if (activeFilters.location && !locStr.includes(activeFilters.location.toLowerCase())) return false;
+            if (activeFilters.location && typeof activeFilters.location === 'string' && !locStr.includes(activeFilters.location.toLowerCase())) return false;
 
             // 9. Mother Tongue
-            if (activeFilters.motherTongue && activeFilters.motherTongue.length > 0) {
+            if (activeFilters.motherTongue && Array.isArray(activeFilters.motherTongue) && activeFilters.motherTongue.length > 0) {
                 const mt = (meta.motherTongue || match.motherTongue || '').toLowerCase();
                 if (!activeFilters.motherTongue.some(lang => mt.includes(lang.toLowerCase()))) return false;
             }
@@ -1173,7 +1173,8 @@ function DashboardContent() {
 
     // Get filtered matches (Memoized for smooth 60fps tab switching)
     const displayMatches = useMemo(() => {
-        return activeFilters ? filterMatches(matches) : matches;
+        const safeMatches = Array.isArray(matches) ? matches : [];
+        return activeFilters ? filterMatches(safeMatches) : safeMatches;
     }, [matches, activeFilters]);
 
     // Incoming Call Listener - REMOVED (Handled by Global CallManager)

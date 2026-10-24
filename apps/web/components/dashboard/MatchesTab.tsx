@@ -250,12 +250,12 @@ export default function MatchesTab({
             const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();
 
             // 1. Age Filter
-            if (activeFilters.ageRange) {
+            if (activeFilters.ageRange && Array.isArray(activeFilters.ageRange) && activeFilters.ageRange.length >= 2) {
                 if (age > 0 && (age < activeFilters.ageRange[0] || age > activeFilters.ageRange[1])) return false;
             }
 
             // 2. Height Filter
-            if (heightStr) {
+            if (heightStr && activeFilters.heightRange && Array.isArray(activeFilters.heightRange) && activeFilters.heightRange.length >= 2) {
                 const parseHeight = (h: string): number => {
                     const clean = h.replace(/[^0-9.]/g, ' ').trim().split(/\s+/).map(Number);
                     if (h.includes("'") || clean.length >= 2) return (clean[0] * 12) + (clean[1] || 0);
@@ -268,7 +268,7 @@ export default function MatchesTab({
             }
 
             // 3. Marital Status
-            if (activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0) {
+            if (activeFilters.maritalStatus && Array.isArray(activeFilters.maritalStatus) && activeFilters.maritalStatus.length > 0) {
                 const normalizedFilters = activeFilters.maritalStatus.map(s => {
                     const lower = s.toLowerCase();
                     if (lower.includes('never married') || lower.includes('single')) return 'single';
@@ -283,21 +283,21 @@ export default function MatchesTab({
             }
 
             // 4. Religion
-            if (activeFilters.religions.length > 0) {
+            if (activeFilters.religions && Array.isArray(activeFilters.religions) && activeFilters.religions.length > 0) {
                 if (!activeFilters.religions.some(r => religionStr.includes(r.toLowerCase()))) return false;
             }
 
             // 5. Caste
-            if (activeFilters.caste && !casteStr.includes(activeFilters.caste.toLowerCase())) return false;
+            if (activeFilters.caste && typeof activeFilters.caste === 'string' && !casteStr.includes(activeFilters.caste.toLowerCase())) return false;
 
             // 6. Lifestyle
-            if (activeFilters.diet && !dietStr.includes(activeFilters.diet.toLowerCase())) return false;
+            if (activeFilters.diet && typeof activeFilters.diet === 'string' && !dietStr.includes(activeFilters.diet.toLowerCase())) return false;
 
-            if (activeFilters.smoking) {
+            if (activeFilters.smoking && typeof activeFilters.smoking === 'string') {
                 const smoking = (match.lifestyle?.smoking || meta.lifestyle?.smoking || 'No').toLowerCase();
                 if (smoking !== activeFilters.smoking.toLowerCase()) return false;
             }
-            if (activeFilters.drinking) {
+            if (activeFilters.drinking && typeof activeFilters.drinking === 'string') {
                 const drinking = (match.lifestyle?.drinking || meta.lifestyle?.drinking || 'No').toLowerCase();
                 if (drinking !== activeFilters.drinking.toLowerCase()) return false;
             }
@@ -317,10 +317,10 @@ export default function MatchesTab({
             }
 
             // 8. Location
-            if (activeFilters.location && !locStr.includes(activeFilters.location.toLowerCase())) return false;
+            if (activeFilters.location && typeof activeFilters.location === 'string' && !locStr.includes(activeFilters.location.toLowerCase())) return false;
 
             // 9. Mother Tongue
-            if (activeFilters.motherTongue && activeFilters.motherTongue.length > 0) {
+            if (activeFilters.motherTongue && Array.isArray(activeFilters.motherTongue) && activeFilters.motherTongue.length > 0) {
                 const mt = (meta.motherTongue || match.motherTongue || '').toLowerCase();
                 if (!activeFilters.motherTongue.some(lang => mt.includes(lang.toLowerCase()))) return false;
             }
@@ -336,11 +336,11 @@ export default function MatchesTab({
     const onlineMatchesList = useMemo(() => {
         const memberMap = new Map<string, any>();
         // 1. Add from dedicated live online members endpoint
-        liveOnlineMembers.forEach(m => {
+        (Array.isArray(liveOnlineMembers) ? liveOnlineMembers : []).forEach(m => {
             if (m && m.id) memberMap.set(m.id, { ...m, isOnline: true });
         });
         // 2. Add from matches feed
-        matches.forEach(m => {
+        (Array.isArray(matches) ? matches : []).forEach(m => {
             if (m && m.id && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)))) {
                 memberMap.set(m.id, { ...m, isOnline: true });
             }
@@ -348,20 +348,22 @@ export default function MatchesTab({
         return Array.from(memberMap.values());
     }, [matches, liveOnlineMembers, onlineUsersKey]);
 
-    const baseMatches = activeFilters ? filterMatches(matches) : matches;
+    const baseMatches = activeFilters ? filterMatches(matches) : (Array.isArray(matches) ? matches : []);
     let displayMatches = showHighlightsOnly
-        ? baseMatches.filter(m => (m.stories || []).some((s: any) => s.isHighlight))
+        ? baseMatches.filter(m => m && (m.stories || []).some((s: any) => s.isHighlight))
         : baseMatches;
 
     if (showOnlineOnly) {
-        displayMatches = displayMatches.filter(m => m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id)));
+        displayMatches = displayMatches.filter(m => m && (m.isOnline || (Array.isArray(onlineUsers) && onlineUsers.includes(m.id))));
     }
 
     if (showWorldwideOnly) {
         displayMatches = displayMatches.filter(m => Boolean(
-            m.isWorldwide || 
-            (m.location && !m.location.toLowerCase().includes('india')) ||
-            (m.location_data?.country && !m.location_data.country.toLowerCase().includes('india'))
+            m && (
+                m.isWorldwide || 
+                (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes('india')) ||
+                (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes('india'))
+            )
         ));
     }
 
@@ -445,7 +447,7 @@ export default function MatchesTab({
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            const conn = connections.find((c: any) => c.partner?.id === member.id);
+                                            const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === member.id);
                                             if (conn) {
                                                 openChat(conn);
                                             } else {
@@ -453,7 +455,7 @@ export default function MatchesTab({
                                                     interactionId: member.id,
                                                     partner: {
                                                         id: member.id,
-                                                        name: member.name,
+                                                        name: member.name || 'Member',
                                                         photoUrl: photo,
                                                         role: 'Online'
                                                     }
@@ -576,7 +578,7 @@ export default function MatchesTab({
                         <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/50 text-xs">
                             <div className="flex flex-wrap items-center gap-1.5">
                                 <span className="font-bold text-indigo-800 dark:text-indigo-300 mr-1">Active Filters:</span>
-                                {activeFilters.ageRange && (
+                                {Array.isArray(activeFilters.ageRange) && activeFilters.ageRange.length >= 2 && (
                                     <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
                                         Age {activeFilters.ageRange[0]}–{activeFilters.ageRange[1]}
                                     </span>
@@ -586,12 +588,12 @@ export default function MatchesTab({
                                         📍 {activeFilters.location}
                                     </span>
                                 )}
-                                {activeFilters.religions?.length > 0 && (
+                                {Array.isArray(activeFilters.religions) && activeFilters.religions.length > 0 && (
                                     <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
                                         🕉️ {activeFilters.religions.join(', ')}
                                     </span>
                                 )}
-                                {activeFilters.maritalStatus && activeFilters.maritalStatus.length > 0 && (
+                                {Array.isArray(activeFilters.maritalStatus) && activeFilters.maritalStatus.length > 0 && (
                                     <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
                                         💍 {activeFilters.maritalStatus.join(', ')}
                                     </span>
@@ -890,20 +892,20 @@ export default function MatchesTab({
                             <MatchCard
                                 match={match}
                                 onConnect={() => {
-                                    setMatches(prev => prev.map(m =>
+                                    setMatches(prev => (Array.isArray(prev) ? prev.map(m =>
                                         m.id === match.id ? { ...m, match_status: 'pending' } : m
-                                    ));
+                                    ) : []));
                                     try { localStorage.removeItem('matches_cache_v2'); } catch (e) {}
                                 }}
                                 onViewProfile={() => setSelectedProfile(match)}
                                 onShowKundli={(data: any) => setSelectedKundli({
                                     data,
-                                    names: { me: "You", partner: match.name }
+                                    names: { me: "You", partner: match.name || "Partner" }
                                 })}
-                                onGift={() => setGiftData({ userId: match.id, userName: match.name })}
-                                isConnectedProp={connections.some((c: any) => c.partner?.id === match.id)}
+                                onGift={() => setGiftData({ userId: match.id, userName: match.name || "Member" })}
+                                isConnectedProp={(Array.isArray(connections) ? connections : []).some((c: any) => c?.partner?.id === match.id)}
                                 onChat={() => {
-                                    const conn = connections.find((c: any) => c.partner?.id === match.id);
+                                    const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === match.id);
                                     if (conn) {
                                         openChat(conn);
                                     } else {

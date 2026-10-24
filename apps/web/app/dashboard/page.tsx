@@ -739,7 +739,7 @@ function DashboardContent() {
                     if (typeof matchesResult.value?.hasMore === 'boolean') {
                         setHasMore(matchesResult.value.hasMore);
                     } else {
-                        setHasMore(freshMatches.length >= 24);
+                        setHasMore(freshMatches.length >= 200);
                     }
                     try {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
@@ -958,13 +958,13 @@ function DashboardContent() {
     const fetchMatches = async (pageNum = 1) => {
         try {
             if (pageNum > 1) setLoadingMore(true);
-            const data = await api.matches.getAll(pageNum, 24);
+            const data = await api.matches.getAll(pageNum, 200);
             const newMatches = Array.isArray(data?.matches) ? data.matches : [];
             
             if (typeof data?.hasMore === 'boolean') {
                 setHasMore(data.hasMore);
             } else {
-                setHasMore(newMatches.length >= 24);
+                setHasMore(newMatches.length >= 200);
             }
 
             if (pageNum === 1) {
@@ -981,7 +981,7 @@ function DashboardContent() {
                         const uniqueNew = newMatches.filter((m: any) => m?.id && !seenIds.has(m.id));
                         const merged = [...prev, ...uniqueNew];
                         try {
-                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 48), ts: Date.now() }));
+                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 200), ts: Date.now() }));
                         } catch (_) {}
                         return merged;
                     });

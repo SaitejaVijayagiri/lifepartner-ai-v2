@@ -411,7 +411,25 @@ export default function MatchesTab({
                 )
             ));
         }
-        return filtered;
+
+        // Stable Photo-First Prioritization: surface profiles with real photos first, deprioritize profiles without photos
+        return filtered.slice().sort((a, b) => {
+            const hasPhotoA = Boolean(
+                a?.hasValidPhoto ?? (
+                    (a?.photoUrl && !a.photoUrl.includes('dicebear') && !a.photoUrl.startsWith('data:')) ||
+                    (a?.avatar_url && !a.avatar_url.includes('dicebear') && !a.avatar_url.startsWith('data:'))
+                )
+            );
+            const hasPhotoB = Boolean(
+                b?.hasValidPhoto ?? (
+                    (b?.photoUrl && !b.photoUrl.includes('dicebear') && !b.photoUrl.startsWith('data:')) ||
+                    (b?.avatar_url && !b.avatar_url.includes('dicebear') && !b.avatar_url.startsWith('data:'))
+                )
+            );
+            if (hasPhotoA && !hasPhotoB) return -1;
+            if (!hasPhotoA && hasPhotoB) return 1;
+            return 0; // Maintain relative backend order (online status, AI score)
+        });
     }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, onlineUsers]);
 
     if (loading && matches.length === 0) {

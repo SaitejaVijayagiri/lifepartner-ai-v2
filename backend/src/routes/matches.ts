@@ -482,8 +482,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         const page = Math.max(1, parseInt(req.query.page as string) || 1);
         const requestedLimit = parseInt(req.query.limit as string);
-        // Instagram-style balanced chunking: default 24 items per page for instant 50ms responses
-        const limit = requestedLimit && requestedLimit > 0 ? Math.min(requestedLimit, 100) : 24;
+        // Default 200 items per page with fast caching (supports requested limit up to 500)
+        const limit = requestedLimit && requestedLimit > 0 ? Math.min(requestedLimit, 500) : 200;
         const offset = (page - 1) * limit;
 
         // Check Cache per page & limit
@@ -522,7 +522,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Female', 'female')
-                ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
+                ORDER BY 
+                  (CASE 
+                    WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
+                      OR (p.photos IS NOT NULL AND p.photos::text != '[]' AND p.photos::text != 'null' AND p.photos::text != '')
+                    THEN 0 
+                    ELSE 1 
+                  END) ASC,
+                  u.created_at DESC 
+                LIMIT ${limit} OFFSET ${offset}
             `;
         } else if (myGender === 'female') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
@@ -535,7 +543,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Male', 'male')
-                ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
+                ORDER BY 
+                  (CASE 
+                    WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
+                      OR (p.photos IS NOT NULL AND p.photos::text != '[]' AND p.photos::text != 'null' AND p.photos::text != '')
+                    THEN 0 
+                    ELSE 1 
+                  END) ASC,
+                  u.created_at DESC 
+                LIMIT ${limit} OFFSET ${offset}
             `;
         } else {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
@@ -548,7 +564,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IS NOT NULL
-                ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
+                ORDER BY 
+                  (CASE 
+                    WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
+                      OR (p.photos IS NOT NULL AND p.photos::text != '[]' AND p.photos::text != 'null' AND p.photos::text != '')
+                    THEN 0 
+                    ELSE 1 
+                  END) ASC,
+                  u.created_at DESC 
+                LIMIT ${limit} OFFSET ${offset}
             `;
         }
 
@@ -761,6 +785,13 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 score -= 10;
             }
 
+            const candidateHasPhoto = hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]);
+            if (candidateHasPhoto) {
+                score += 10;
+            } else {
+                score -= 20; // Deprioritize score for users with missing profile pictures
+            }
+
             // Cap
             if (score > 99) score = 99;
 
@@ -860,25 +891,19 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             };
         }));
 
-        if (myGender === 'female') {
-            matches.sort((a, b) => {
-                // 1. Live Online Priority: Always surface active online suitors first
-                if (a.isOnline && !b.isOnline) return -1;
-                if (!a.isOnline && b.isOnline) return 1;
+        // Photo-First Priority for ALL users: verified real photos always come before profiles without photos
+        matches.sort((a, b) => {
+            // 1. Photo Priority: Profiles with valid photos strictly come first
+            if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
+            if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
 
-                // 2. Photo-First Priority: Surface suitors with verified real photos next
-                if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
-                if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
+            // 2. Live Online Priority within photo tiers
+            if (a.isOnline && !b.isOnline) return -1;
+            if (!a.isOnline && b.isOnline) return 1;
 
-                return b.score - a.score;
-            });
-        } else {
-            matches.sort((a, b) => {
-                if (a.isOnline && !b.isOnline) return -1;
-                if (!a.isOnline && b.isOnline) return 1;
-                return b.score - a.score;
-            });
-        }
+            // 3. Compatibility score
+            return b.score - a.score;
+        });
 
         // Save to in-memory Cache
         matchCache.set(cacheKey, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });
@@ -1488,6 +1513,14 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // Prepend exact matches and deduplicate with vector search results
         const exactIds = new Set(mappedExact.map(e => e.id));
         const deduplicatedAi = finalMatchesWithStatus.filter(m => !exactIds.has(m.id));
+        // Photo-first sorting for search results: deprioritize profiles without photos
+        deduplicatedAi.sort((a: any, b: any) => {
+            if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
+            if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
+            if (a.isOnline && !b.isOnline) return -1;
+            if (!a.isOnline && b.isOnline) return 1;
+            return (b.score || 0) - (a.score || 0);
+        });
         const combined = [...mappedExact, ...deduplicatedAi];
 
         res.json({ matches: combined, filters, total_count: combined.length });

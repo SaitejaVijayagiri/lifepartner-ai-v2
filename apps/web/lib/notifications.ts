@@ -12,6 +12,9 @@ export const isNativePlatform = () => {
     if (typeof navigator !== 'undefined' && navigator.userAgent) {
         if (/LifePartnerApp|Capacitor/i.test(navigator.userAgent)) return true;
     }
+    if (typeof document !== 'undefined' && (document.documentElement.hasAttribute('data-capacitor') || document.documentElement.classList.contains('native-app-mode'))) {
+        return true;
+    }
     return false;
 };
 

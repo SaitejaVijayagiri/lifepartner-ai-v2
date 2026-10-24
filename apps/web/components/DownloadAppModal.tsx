@@ -32,6 +32,12 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
   }, []);
 
   if (!isOpen) return null;
+  if (typeof window !== 'undefined') {
+    const isNative = !!((window as any).AndroidBridge || (window as any).androidBridge) ||
+                     document.documentElement.hasAttribute('data-capacitor') ||
+                     /LifePartnerApp|Capacitor/i.test(navigator.userAgent);
+    if (isNative) return null;
+  }
 
   const handleInstallShortcut = async () => {
     if (deferredPrompt) {

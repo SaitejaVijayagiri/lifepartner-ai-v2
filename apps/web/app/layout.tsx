@@ -169,19 +169,37 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="LifePartner AI" />
         <meta name="google-site-verification" content="h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-        {/* Capacitor bridge: detect native WebView and enable native plugins */}
-        <Script id="capacitor-bridge-detect" strategy="beforeInteractive">{`
-          if (window.webkit || window.androidBridge || navigator.userAgent.includes('CapacitorApp')) {
-            document.documentElement.setAttribute('data-capacitor', 'true');
-          }
+        {/* Native Android / iOS WebView Optimizer & Pre-hydration Routing */}
+        <Script id="native-app-optimizer" strategy="beforeInteractive">{`
+          (function() {
+            try {
+              var isNative = !!(window.AndroidBridge || window.androidBridge || window.webkit || 
+                                /LifePartnerApp|Capacitor/i.test(navigator.userAgent) ||
+                                window.matchMedia('(display-mode: standalone)').matches ||
+                                location.search.indexOf('app=') !== -1);
+              if (isNative) {
+                document.documentElement.setAttribute('data-capacitor', 'true');
+                document.documentElement.classList.add('native-app-mode');
+                var token = localStorage.getItem('token');
+                var userId = localStorage.getItem('userId');
+                if (token && userId && (location.pathname === '/' || location.pathname === '/register')) {
+                  location.replace('/dashboard');
+                }
+              }
+            } catch(e) {}
+          })();
         `}</Script>
 
-        {/* Google AdSense - Asynchronous Non-blocking strategy */}
-        <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
-        />
+        {/* Google AdSense - only load on desktop/mobile web, NEVER inside native Android app */}
+        <Script id="adsense-loader" strategy="afterInteractive">{`
+          if (!document.documentElement.hasAttribute('data-capacitor') && !window.AndroidBridge && !window.androidBridge && !/LifePartnerApp|Capacitor/i.test(navigator.userAgent)) {
+            var adScript = document.createElement('script');
+            adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1408290775036355";
+            adScript.async = true;
+            adScript.crossOrigin = "anonymous";
+            document.head.appendChild(adScript);
+          }
+        `}</Script>
 
         {/* Google Analytics (GA4) */}
         <Script

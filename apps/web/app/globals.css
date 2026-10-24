@@ -382,3 +382,67 @@ html, body {
   }
 }
 
+/* ============================================================
+   NATIVE ANDROID / MOBILE APP FEEL ENHANCEMENTS
+   Eliminates all browser-like artifacts (tap highlight boxes,
+   text drag, overscroll rubberband, browser scrollbars)
+   ============================================================ */
+html, body {
+  /* Disable browser tap highlight outline completely across all Android/iOS webviews */
+  -webkit-tap-highlight-color: transparent !important;
+  /* Eliminate 300ms click delay and prevent double-tap zooming */
+  touch-action: manipulation;
+}
+
+/* In Native App Mode (data-capacitor="true" or .native-app-mode) */
+[data-capacitor="true"],
+.native-app-mode,
+[data-capacitor="true"] body,
+.native-app-mode body {
+  /* Prevent accidental browser text selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  
+  /* Disable browser overscroll completely */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+}
+
+/* Allow text selection only in user-editable or readable content (chat, bio, inputs) */
+[data-capacitor="true"] input,
+[data-capacitor="true"] textarea,
+[data-capacitor="true"] [contenteditable="true"],
+[data-capacitor="true"] .selectable-text,
+.native-app-mode input,
+.native-app-mode textarea,
+.native-app-mode [contenteditable="true"],
+.native-app-mode .selectable-text {
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+/* Hide website download banners and modals when running inside the native app */
+[data-capacitor="true"] .hide-in-native-app,
+.native-app-mode .hide-in-native-app {
+  display: none !important;
+}
+
+/* Hide browser scrollbars in native app */
+[data-capacitor="true"] ::-webkit-scrollbar,
+.native-app-mode ::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+[data-capacitor="true"] *,
+.native-app-mode * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+

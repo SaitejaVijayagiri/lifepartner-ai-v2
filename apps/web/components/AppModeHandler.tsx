@@ -24,25 +24,30 @@ export default function AppModeHandler() {
     // 3. Launched with explicit manifest app start URL parameter (?app=true or ?mode=standalone)
     const isAppUrlParam = window.location.search.includes('app=true') || window.location.search.includes('mode=standalone');
 
-    // 4. Native User-Agent string check
-    const isNativeUserAgent = typeof navigator !== 'undefined' && (
-      navigator.userAgent.includes('CapacitorApp') || 
-      navigator.userAgent.includes('LifePartnerApp')
-    );
+    // 4. Native Bridge injection check (AndroidBridge / androidBridge)
+    const isNativeBridge = typeof window !== 'undefined' && !!((window as any).AndroidBridge || (window as any).androidBridge);
 
-    const isInstalledApp = isCapacitor || isPwaStandalone || isAppUrlParam || isNativeUserAgent;
+    // 5. Native User-Agent string check
+    const isNativeUserAgent = typeof navigator !== 'undefined' && /LifePartnerApp|Capacitor/i.test(navigator.userAgent);
 
-    // ONLY redirect if running in actual installed App container on root route
-    if (isInstalledApp && (pathname === '/' || pathname === '')) {
+    const isInstalledApp = isCapacitor || isPwaStandalone || isAppUrlParam || isNativeBridge || isNativeUserAgent;
+
+    if (isInstalledApp) {
+      document.documentElement.setAttribute('data-capacitor', 'true');
+      document.documentElement.classList.add('native-app-mode');
+    }
+
+    // Direct routing for installed App container:
+    if (isInstalledApp && (pathname === '/' || pathname === '' || pathname === '/register')) {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('userId');
 
       if (token && userId) {
         console.log('[AppModeHandler] Installed App launched - Redirecting logged-in user to /dashboard');
         router.replace('/dashboard');
-      } else {
-        console.log('[AppModeHandler] Installed App launched - Redirecting unauthenticated user to /login');
-        router.replace('/login');
+      } else if (pathname === '/' || pathname === '') {
+        console.log('[AppModeHandler] Installed App launched - Redirecting unauthenticated user to /register');
+        router.replace('/register');
       }
     }
   }, [pathname, router]);

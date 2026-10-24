@@ -94,7 +94,7 @@ export default function Navbar() {
                 <div className="hidden md:flex items-center gap-3">
                     <button
                         onClick={() => setIsDownloadModalOpen(true)}
-                        className="px-4 py-2 text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        className="hide-in-native-app px-4 py-2 text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                         <Smartphone size={14} className="text-purple-600 dark:text-purple-400" />
                         <span>Download App</span>
@@ -261,7 +261,7 @@ export default function Navbar() {
                                 setIsMobileMenuOpen(false);
                                 setIsDownloadModalOpen(true);
                             }}
-                            className="w-full py-3.5 px-4 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-sm flex items-center justify-center gap-2 border border-purple-200 dark:border-purple-800"
+                            className="hide-in-native-app w-full py-3.5 px-4 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-sm flex items-center justify-center gap-2 border border-purple-200 dark:border-purple-800"
                         >
                             <Smartphone size={18} className="text-purple-600 dark:text-purple-400" />
                             <span>Download Mobile App (APK / PWA)</span>

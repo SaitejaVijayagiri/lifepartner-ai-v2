@@ -40,6 +40,12 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         isAppInForeground = true;
 
+        // Native App Theme: Match status bar and navigation bar with app slate palette
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
+            getWindow().setNavigationBarColor(ContextCompat.getColor(this, R.color.colorPrimaryDark));
+        }
+
         // 0. Ensure Android Notification Channels exist on OS before any push notification arrives
         createNotificationChannels();
 
@@ -449,11 +455,74 @@ public class MainActivity extends BridgeActivity {
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
-                webView.addJavascriptInterface(new NativeBridge(), "AndroidBridge");
+                NativeBridge bridge = new NativeBridge();
+                // Inject both case conventions for 100% interoperability
+                webView.addJavascriptInterface(bridge, "AndroidBridge");
+                webView.addJavascriptInterface(bridge, "androidBridge");
+
+                // Customize User-Agent so web detects native Android app 100% reliably
+                android.webkit.WebSettings settings = webView.getSettings();
+                String ua = settings.getUserAgentString();
+                if (!ua.contains("LifePartnerApp")) {
+                    settings.setUserAgentString(ua + " LifePartnerApp/1.0.5 CapacitorApp NativeAndroidApp");
+                }
+
+                // Smooth Native App rendering optimizations (disables web bounce and scrollbars)
+                webView.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
+                webView.setVerticalScrollBarEnabled(false);
+                webView.setHorizontalScrollBarEnabled(false);
+                webView.setBackgroundColor(0xFF0F172A);
+
+                // DOM storage and caching
+                settings.setDomStorageEnabled(true);
+                settings.setDatabaseEnabled(true);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error injecting AndroidBridge: ", e);
         }
+    }
+
+    private long lastBackPressTime = 0;
+
+    @Override
+    public void onBackPressed() {
+        try {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                WebView webView = getBridge().getWebView();
+                // 1. Let web page close active modals or sheets first
+                webView.evaluateJavascript(
+                    "(function() { " +
+                    "  var closeBtn = document.querySelector('[data-modal-close], .close-modal, button[aria-label=\"Close\"], [data-state=\"open\"] button[aria-label=\"Close\"]'); " +
+                    "  if (closeBtn && closeBtn.offsetParent !== null) { closeBtn.click(); return true; } " +
+                    "  return false; " +
+                    "})();",
+                    value -> {
+                        if ("true".equalsIgnoreCase(value)) {
+                            return;
+                        }
+                        runOnUiThread(() -> {
+                            String url = webView.getUrl();
+                            boolean isMainScreen = url == null || url.endsWith("/dashboard") || url.endsWith("/login") || url.endsWith("/register") || url.endsWith("/") || url.contains("tab=matches") || url.contains("tab=connections");
+                            if (webView.canGoBack() && !isMainScreen) {
+                                webView.goBack();
+                            } else {
+                                long now = System.currentTimeMillis();
+                                if (now - lastBackPressTime < 2000) {
+                                    finish();
+                                } else {
+                                    lastBackPressTime = now;
+                                    android.widget.Toast.makeText(MainActivity.this, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                );
+                return;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error handling back button: ", e);
+        }
+        super.onBackPressed();
     }
 
     private void setupWebChromeClient() {

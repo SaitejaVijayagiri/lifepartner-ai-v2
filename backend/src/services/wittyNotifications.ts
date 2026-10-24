@@ -75,21 +75,26 @@ export async function sendWittyNotifications() {
             }
         }).catch(() => {});
 
-        // Target users inactive for 1 to 7 days
+        // Target users inactive for at least 1 day (up to 180 days to cover all registered users)
         const INACTIVE_MIN_DAYS = 1;
-        const INACTIVE_MAX_DAYS = 7;
+        const INACTIVE_MAX_DAYS = 180;
         
         const minCutoff = new Date();
         minCutoff.setDate(minCutoff.getDate() - INACTIVE_MIN_DAYS);
         const maxCutoff = new Date();
         maxCutoff.setDate(maxCutoff.getDate() - INACTIVE_MAX_DAYS);
 
-        // Fetch users who are not banned, including location_name
+        // Fetch users who are not banned and not deactivated
         const users = await prisma.users.findMany({
-            where: { is_banned: false, profiles: { isNot: null } },
+            where: {
+                is_banned: false,
+                is_deactivated: false,
+                profiles: { isNot: null }
+            },
             select: { 
                 id: true, 
                 full_name: true, 
+                gender: true,
                 created_at: true, 
                 profiles: { 
                     select: { 
@@ -146,8 +151,16 @@ export async function sendWittyNotifications() {
                 }
             }).catch(() => 0);
 
-            // Generate daily curiosity-driven push with rich banner
-            const pushData = generateCuriosityPush(user.full_name, location, pendingRequests);
+            // Generate daily curiosity-driven push with rich banner (gender-tailored)
+            const isFemale = (user.gender || '').toLowerCase() === 'female';
+            const pushData = generateCuriosityPush(
+                user.full_name,
+                location,
+                pendingRequests,
+                20,
+                isFemale ? 'verified men' : 'verified women',
+                user.gender
+            );
 
             // Create notification record in database first to track it
             const dbNotification = await prisma.notifications.create({

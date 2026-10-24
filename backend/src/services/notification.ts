@@ -49,8 +49,10 @@ export class NotificationService {
 
                 const possiblePaths = [
                     '/etc/secrets/firebase-service-account.json', // Render Secret Files
+                    path.resolve(process.cwd(), 'backend/firebase-service-account.json'), // Repo root
+                    path.resolve(process.cwd(), 'firebase-service-account.json'), // CWD
                     path.resolve(__dirname, '../../firebase-service-account.json'), // Local dev relative to dist/
-                    path.resolve(process.cwd(), 'firebase-service-account.json'), // CWD (fallback)
+                    path.resolve(__dirname, '../firebase-service-account.json'), // Local dev relative to src/
                     ...adminSdkFiles,
                 ];
 
@@ -151,7 +153,35 @@ export class NotificationService {
             bannerUrl = `${cleanBase}${bannerUrl}`;
         }
 
-        const targetUrl = data?.url || (data?.callerId ? `/chat/${data.callerId}?action=answer_call&callType=${data?.callType || 'video'}` : (data?.senderId ? `/chat/${data.senderId}` : '/dashboard?tab=connections'));
+        const targetUrl = data?.url || (data?.callerId ? `/chat/${data.callerId}?action=answer_call&callType=${data?.callType || 'video'}` : (senderId ? `/chat/${senderId}` : '/dashboard?tab=connections'));
+
+        // Standardized interactive actions across all web push providers
+        const isRequest = data?.type === 'request';
+        const isCall = data?.type === 'incoming_call';
+        const isMatch = data?.type === 'match';
+        const isChatMessage = data?.type === 'message' || data?.type === 'chat' || (!isRequest && !isCall && !isMatch && !!senderId);
+
+        let notificationActions: any[] | undefined = undefined;
+        if (isRequest) {
+            notificationActions = [
+                { action: 'accept_request', title: 'Connect 💖' },
+                { action: 'decline_request', title: 'Not Now' }
+            ];
+        } else if (isCall) {
+            notificationActions = [
+                { action: 'answer_call', title: 'Answer 📞' },
+                { action: 'decline_call', title: 'Decline ❌' }
+            ];
+        } else if (isMatch) {
+            notificationActions = [
+                { action: 'open_chat', title: 'Chat Now 💬' }
+            ];
+        } else if (isChatMessage && senderId) {
+            notificationActions = [
+                ...(data?.messageId ? [{ action: 'like_message', title: 'Like ❤️' }] : []),
+                { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
+            ];
+        }
 
         // ==========================================
         // PROVIDER 1: OneSignal (Web & Mobile APK)
@@ -160,6 +190,8 @@ export class NotificationService {
         if (oneSignal.isReady()) {
             oneSignal.sendToUser(userId, title, body, {
                 ...data,
+                senderId: senderId || data?.senderId,
+                connId: senderId || data?.connId,
                 senderPhoto,
                 bannerUrl,
                 url: targetUrl
@@ -176,20 +208,11 @@ export class NotificationService {
                 body,
                 icon: senderPhoto || '/icon.png',
                 image: bannerUrl || null,
-                actions: data?.type === 'request' ? [
-                    { action: 'accept_request', title: 'Connect 💖' },
-                    { action: 'decline_request', title: 'Not Now' }
-                ] : (data?.type === 'incoming_call' ? [
-                    { action: 'answer_call', title: 'Answer 📞' },
-                    { action: 'decline_call', title: 'Decline ❌' }
-                ] : (data?.type === 'match' ? [
-                    { action: 'open_chat', title: 'Chat Now 💬' }
-                ] : (data?.senderId || data?.connId ? [
-                    ...(data?.messageId ? [{ action: 'like_message', title: 'Like ❤️' }] : []),
-                    { action: 'reply_to_message', title: 'Reply 💬', type: 'text', placeholder: 'Type your reply...' }
-                ] : undefined))),
+                actions: notificationActions,
                 data: {
                     ...data,
+                    senderId: senderId || data?.senderId,
+                    connId: senderId || data?.connId,
                     senderPhoto,
                     bannerUrl,
                     url: targetUrl
@@ -241,15 +264,17 @@ export class NotificationService {
                             body: String(body),
                             type: String(data?.type || 'message'),
                             interactionId: String(data?.interactionId || ''),
-                            senderId: String(data?.senderId || data?.callerId || data?.from || ''),
+                            senderId: String(senderId || ''),
+                            connId: String(senderId || ''),
                             senderName: String(data?.senderName || data?.callerName || title),
-                            callerId: String(data?.callerId || data?.senderId || data?.from || ''),
+                            callerId: String(data?.callerId || senderId || ''),
                             callerName: String(data?.callerName || data?.senderName || ''),
                             callerPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
                             callType: String(data?.callType || 'video'),
                             senderPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
                             bannerUrl: bannerUrl ? String(bannerUrl) : '',
                             url: targetUrl,
+                            messageId: String(data?.messageId || ''),
                             ...mappedData
                         },
                         android: {
@@ -300,16 +325,7 @@ export class NotificationService {
                             body: String(body),
                             icon: senderPhoto ? String(senderPhoto) : '/icon.png',
                             image: bannerUrl ? String(bannerUrl) : undefined,
-                            actions: data?.type === 'request' ? [
-                                { action: 'accept_request', title: 'Connect 💖' },
-                                { action: 'decline_request', title: 'Not Now' }
-                            ] : (data?.type === 'incoming_call' ? [
-                                { action: 'answer_call', title: 'Answer 📞' },
-                                { action: 'decline_call', title: 'Decline ❌' }
-                            ] : (data?.senderId || data?.connId ? [
-                                { action: 'like_message', title: 'Like ❤️' },
-                                { action: 'reply_to_message', title: 'Reply 💬' }
-                            ] : undefined))
+                            actions: notificationActions
                         },
                         fcmOptions: {
                             link: targetUrl

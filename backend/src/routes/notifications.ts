@@ -117,13 +117,33 @@ router.post('/test', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "Admin access required" });
         }
 
-        const { title, body, type } = req.body;
+        const { title, body, type, templateId } = req.body;
 
-        if (type === 'witty_reengagement') {
-            const bannerUrl = "/images/campaigns/lunch.png";
-            await notificationService.sendToUser(userId, title || "Eating Masala Dosa alone? 🍛", body || "Your future partner is doing the same. Swipe matches now!", {
+        if (type === 'female_curiosity' || type === 'witty_reengagement') {
+            const { FEMALE_CURIOSITY_TEMPLATES } = require('../services/curiosityPush');
+            let bannerUrl = "/images/campaigns/female_gentleman_admirer.png";
+            let pushTitle = title || "👀 Someone in your city viewed your profile...";
+            let pushBody = body || "A verified gentleman spent over 3 minutes reading through your bio and values. Tap to see who's interested! ✨";
+            let targetUrl = "/dashboard?tab=matches";
+
+            if (templateId) {
+                const found = FEMALE_CURIOSITY_TEMPLATES.find((t: any) => t.id === templateId);
+                if (found) {
+                    pushTitle = title || found.title('Aditi', 'Mumbai');
+                    pushBody = body || found.body('Aditi', 'Mumbai', 35);
+                    bannerUrl = found.bannerUrl;
+                    targetUrl = found.targetUrl;
+                }
+            } else if (type === 'witty_reengagement' && !title) {
+                bannerUrl = "/images/campaigns/lunch.png";
+                pushTitle = "Eating Masala Dosa alone? 🍛";
+                pushBody = "Your future partner is doing the same. Swipe matches now!";
+            }
+
+            await notificationService.sendToUser(userId, pushTitle, pushBody, {
                 type: 'witty_reengagement',
-                screen: 'matches',
+                screen: targetUrl.includes('requests') ? 'requests' : 'matches',
+                url: targetUrl,
                 bannerUrl
             });
             try {
@@ -132,8 +152,8 @@ router.post('/test', authenticateToken, async (req: any, res) => {
                 io.to(userId).emit('notification:new', {
                     id: `sample-${Date.now()}`,
                     type: 'witty_reengagement',
-                    message: title || "Eating Masala Dosa alone? 🍛",
-                    body: body || "Your future partner is doing the same. Swipe matches now!",
+                    message: pushTitle,
+                    body: pushBody,
                     bannerUrl,
                     timestamp: new Date()
                 });
@@ -146,6 +166,182 @@ router.post('/test', authenticateToken, async (req: any, res) => {
     } catch (e) {
         console.error("Test Push Error", e);
         res.status(500).json({ error: "Failed" });
+    }
+});
+
+// 2b. Get all Curiosity Push Templates (Female & Standard)
+router.get('/curiosity-templates', (req, res) => {
+    try {
+        const { FEMALE_CURIOSITY_TEMPLATES } = require('../services/curiosityPush');
+        res.json({
+            success: true,
+            femaleTemplates: FEMALE_CURIOSITY_TEMPLATES.map((t: any) => ({
+                id: t.id,
+                category: t.category,
+                sampleTitle: t.title('Priya', 'Bengaluru'),
+                sampleBody: t.body('Priya', 'Bengaluru', 40),
+                bannerUrl: t.bannerUrl,
+                targetUrl: t.targetUrl
+            }))
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2c. Broadcast Push Notification to Multiple Users / Everyone (Admin Only)
+router.post('/broadcast', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true, is_admin: true } });
+        const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
+        if (!user?.is_admin && (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai'))) {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+
+        const { target = 'all', title, body, templateId, bannerUrl, dryRun = false } = req.body;
+
+        const whereClause: any = {
+            is_banned: false,
+            OR: [
+                { is_deactivated: false },
+                { is_deactivated: null },
+                { deactivated_until: { lt: new Date() } }
+            ]
+        };
+
+        if (target === 'female') {
+            whereClause.OR = [
+                { gender: 'Female' },
+                { gender: 'female' },
+                { gender: 'FEMALE' }
+            ];
+        } else if (target === 'male') {
+            whereClause.OR = [
+                { gender: 'Male' },
+                { gender: 'male' },
+                { gender: 'MALE' }
+            ];
+        } else if (target === 'with_tokens') {
+            whereClause.device_tokens = { some: {} };
+        }
+
+        const candidateUsers = await prisma.users.findMany({
+            where: whereClause,
+            select: {
+                id: true,
+                full_name: true,
+                gender: true,
+                city: true,
+                location_name: true,
+                device_tokens: { select: { platform: true } }
+            }
+        });
+
+        if (dryRun) {
+            return res.json({
+                success: true,
+                dryRun: true,
+                matchedUsers: candidateUsers.length,
+                usersWithTokens: candidateUsers.filter(u => u.device_tokens.length > 0).length,
+                target
+            });
+        }
+
+        const ns = NotificationService.getInstance();
+        const { generateCuriosityPush, FEMALE_CURIOSITY_TEMPLATES } = require('../services/curiosityPush');
+
+        // Execute broadcast asynchronously in background
+        (async () => {
+            let dispatched = 0;
+            for (const targetUser of candidateUsers) {
+                try {
+                    const isFemale = (targetUser.gender || '').toLowerCase() === 'female';
+                    let pushTitle = title;
+                    let pushBody = body;
+                    let pushBanner = bannerUrl;
+                    let targetUrl = '/dashboard?tab=matches';
+
+                    if (templateId) {
+                        const t = FEMALE_CURIOSITY_TEMPLATES.find((tpl: any) => tpl.id === templateId);
+                        if (t) {
+                            const name = targetUser.full_name?.split(' ')[0] || 'there';
+                            const city = targetUser.city || targetUser.location_name || 'your city';
+                            pushTitle = pushTitle || t.title(name, city);
+                            pushBody = pushBody || t.body(name, city, 35);
+                            pushBanner = pushBanner || t.bannerUrl;
+                            targetUrl = t.targetUrl;
+                        }
+                    } else if (!pushTitle) {
+                        const autoPush = generateCuriosityPush(
+                            targetUser.full_name,
+                            targetUser.city || targetUser.location_name,
+                            0,
+                            25,
+                            isFemale ? 'verified bachelors' : 'verified women',
+                            targetUser.gender
+                        );
+                        pushTitle = autoPush.title;
+                        pushBody = autoPush.body;
+                        pushBanner = autoPush.bannerUrl;
+                        targetUrl = autoPush.targetUrl;
+                    }
+
+                    // 1. In-app database record
+                    await prisma.notifications.create({
+                        data: {
+                            user_id: targetUser.id,
+                            type: 'witty_reengagement',
+                            message: pushTitle,
+                            data: {
+                                body: pushBody,
+                                bannerUrl: pushBanner,
+                                clicked: false
+                            }
+                        }
+                    }).catch(() => {});
+
+                    // 2. Hardware push delivery via WebPush / FCM / OneSignal
+                    await ns.sendToUser(targetUser.id, pushTitle, pushBody, {
+                        type: 'witty_reengagement',
+                        screen: targetUrl.includes('requests') ? 'requests' : 'matches',
+                        url: targetUrl,
+                        bannerUrl: pushBanner
+                    });
+
+                    // 3. Realtime Socket delivery if user is online
+                    try {
+                        const { getIO } = require('../socket');
+                        const io = getIO();
+                        io.to(targetUser.id).emit('notification:new', {
+                            id: `broadcast-${Date.now()}`,
+                            type: 'witty_reengagement',
+                            message: pushTitle,
+                            body: pushBody,
+                            bannerUrl: pushBanner,
+                            timestamp: new Date()
+                        });
+                    } catch (_) {}
+
+                    dispatched++;
+                    await new Promise(r => setTimeout(r, 60));
+                } catch (err) {
+                    console.error(`[Broadcast Error] Failed for ${targetUser.id}:`, err);
+                }
+            }
+            console.log(`[Broadcast Completed] Dispatched to ${dispatched}/${candidateUsers.length} users.`);
+        })().catch(err => console.error('[Broadcast Task Fatal]:', err));
+
+        res.json({
+            success: true,
+            message: `Broadcast initiated for ${candidateUsers.length} users`,
+            matchedUsers: candidateUsers.length,
+            usersWithTokens: candidateUsers.filter(u => u.device_tokens.length > 0).length,
+            target
+        });
+    } catch (e: any) {
+        console.error("Broadcast Push Error", e);
+        res.status(500).json({ error: e.message || "Failed" });
     }
 });
 

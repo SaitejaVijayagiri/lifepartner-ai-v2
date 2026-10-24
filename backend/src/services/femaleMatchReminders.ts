@@ -421,7 +421,8 @@ export async function runFemaleMatchesReminderCampaign() {
                 userCity,
                 pendingRequests,
                 oppositeCount,
-                oppositeLabel
+                oppositeLabel,
+                user.gender
             );
 
             // ========================================================

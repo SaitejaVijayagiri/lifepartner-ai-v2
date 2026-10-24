@@ -332,14 +332,13 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             console.error("Socket broadcast failed", socketError);
         }
 
-        // Send Push Notification for chat message (suppressed if recipient is actively viewing this chat or is online)
+        // Send Push Notification for chat message (suppressed ONLY if recipient is actively viewing this specific chat)
         try {
-            const { isUserActiveInChat, isUserOnline } = require('../socket');
+            const { isUserActiveInChat } = require('../socket');
             const isViewing = isUserActiveInChat(connectionId, senderId);
-            const isOnline = isUserOnline(connectionId);
 
-            if (isViewing || isOnline) {
-                console.log(`[Chat Push Suppressed] Recipient ${connectionId} is online/active in chat (viewing: ${isViewing}, online: ${isOnline}). Skipping push notification.`);
+            if (isViewing) {
+                console.log(`[Chat Push Suppressed] Recipient ${connectionId} is actively viewing this chat. Skipping push notification.`);
             } else {
                 const { NotificationService } = require('../services/notification');
                 
@@ -392,7 +391,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                         connId: senderId,
                         senderName: senderFirstName,
                         senderPhoto: senderPhotoUrl,
-                        type: 'match'
+                        type: 'message'
                     }
                 );
             }
@@ -468,10 +467,11 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
         // Send Push Notification if recipient is offline
         try {
             const recipientId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-            const { isUserOnline } = require('../socket');
+            const { isUserActiveInChat } = require('../socket');
+            const isViewing = isUserActiveInChat(recipientId, userId);
             const hasReacted = reactions[userId] === emoji;
             
-            if (recipientId && recipientId !== userId && hasReacted && !isUserOnline(recipientId)) {
+            if (recipientId && recipientId !== userId && hasReacted && !isViewing) {
                 const reactorName = reactor?.full_name?.split(' ')[0] || "Someone";
                 const { NotificationService } = require('../services/notification');
                 const { sanitizePhotoUrl } = require('../utils/photoUrl');
@@ -547,9 +547,10 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
         // Send Push Notification if recipient is offline
         try {
             const recipientId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-            const { isUserOnline } = require('../socket');
+            const { isUserActiveInChat } = require('../socket');
+            const isViewing = isUserActiveInChat(recipientId, userId);
             
-            if (recipientId && recipientId !== userId && !isLiked && !isUserOnline(recipientId)) {
+            if (recipientId && recipientId !== userId && !isLiked && !isViewing) {
                 const reactor = await prisma.users.findUnique({
                     where: { id: userId },
                     select: { full_name: true, avatar_url: true }

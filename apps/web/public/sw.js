@@ -53,7 +53,7 @@ self.addEventListener('push', function (event) {
             options.actions = [
                 { action: 'open_chat', title: 'Chat Now 💬' }
             ];
-        } else if (data.senderId || data.connId) {
+        } else if (data.type === 'message' || data.type === 'chat' || data.senderId || data.connId || data.from || data.fromUserId) {
             const actions = [];
             if (data.messageId) {
                 actions.push({ action: 'like_message', title: 'Like ❤️' });
@@ -70,11 +70,18 @@ self.addEventListener('push', function (event) {
         const pushPromise = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
             const incomingSender = data.senderId || data.connId || data.from || data.fromUserId;
             
-            // Suppress system push notification if the user has a focused window open in the app
-            const isClientFocused = clientList.some(client => client.focused);
-            if (isClientFocused) {
-                console.log('[SW] User has a focused window open in the app. Suppressing push notification.');
-                return;
+            // Only suppress system push notification if the user is actively viewing this sender's chat in a focused window
+            if (incomingSender) {
+                const isActivelyChatting = clientList.some(client => 
+                    client.focused && (
+                        client.url.includes(`/chat/${incomingSender}`) || 
+                        client.url.includes(`chatId=${incomingSender}`)
+                    )
+                );
+                if (isActivelyChatting) {
+                    console.log('[SW] User is actively chatting with this sender in focused window. Suppressing push notification.');
+                    return;
+                }
             }
 
             return self.registration.showNotification(title, options);
@@ -91,11 +98,13 @@ self.addEventListener('notificationclick', function (event) {
 
     const payloadData = event.notification.data || {};
     const action = event.action;
-    const senderId = payloadData.senderId || payloadData.connId;
+    const senderId = payloadData.senderId || payloadData.connId || payloadData.from || payloadData.fromUserId;
     const messageId = payloadData.messageId;
     const interactionId = payloadData.interactionId;
     const origin = self.location.origin;
-    const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com';
+    const API_URL = (origin.includes('localhost') || origin.includes('127.0.0.1'))
+        ? 'http://localhost:4000'
+        : (origin.includes('10.0.2.2') ? 'http://10.0.2.2:4000' : 'https://lifepartner-ai.onrender.com');
 
     // 1. Inline quick reply action
     if (action === 'reply_to_message') {

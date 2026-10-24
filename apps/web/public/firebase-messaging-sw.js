@@ -70,7 +70,7 @@ messaging.onBackgroundMessage((payload) => {
         notificationOptions.actions = [
             { action: 'open_chat', title: 'Chat Now 💬' }
         ];
-    } else if ((payload.data?.type === 'chat' || payload.data?.type === 'message') && (payload.data?.senderId || payload.data?.connId)) {
+    } else if (payload.data?.type === 'chat' || payload.data?.type === 'message' || payload.data?.senderId || payload.data?.connId || payload.data?.from) {
         // WhatsApp-style inline quick reply and like actions for all chat messages
         const actions = [];
         if (payload.data?.messageId) {
@@ -265,7 +265,7 @@ self.addEventListener('notificationclick', function(event) {
     // Inline reply action click handler
     if (action === 'reply_to_message') {
         const replyText = event.reply;
-        const senderId = payloadData.senderId || payloadData.connId; // The partner's user ID
+        const senderId = payloadData.senderId || payloadData.connId || payloadData.from || payloadData.fromUserId; // The partner's user ID
         
         if (!replyText) {
             // Browser does not support inline reply input or user tapped reply without typing:
@@ -288,9 +288,10 @@ self.addEventListener('notificationclick', function(event) {
         
         if (!senderId) return;
 
-        const API_URL = self.location.origin.includes('localhost') 
-            ? 'http://localhost:4000' 
-            : 'https://lifepartner-ai.onrender.com';
+        const origin = self.location.origin;
+        const API_URL = (origin.includes('localhost') || origin.includes('127.0.0.1'))
+            ? 'http://localhost:4000'
+            : (origin.includes('10.0.2.2') ? 'http://10.0.2.2:4000' : 'https://lifepartner-ai.onrender.com');
 
         event.waitUntil(
             caches.open('auth-token')

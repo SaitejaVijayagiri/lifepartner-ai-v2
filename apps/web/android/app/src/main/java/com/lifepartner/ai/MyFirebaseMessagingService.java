@@ -529,15 +529,17 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         }
 
         // 3. Setup "Quick Reply" Action if this is a chat message (connId exists)
-        if (connId != null && !connId.isEmpty() && !"match".equals(type) && !"incoming_call".equals(type) && !"request".equals(type)) {
+        if (connId != null && !connId.isEmpty() && !"incoming_call".equals(type) && !"request".equals(type) && !"witty_reengagement".equals(type)) {
             RemoteInput remoteInput = new RemoteInput.Builder("key_text_reply")
                     .setLabel("Type your reply...")
                     .build();
 
             Intent replyIntent = new Intent(this, NotificationReplyReceiver.class);
+            replyIntent.setPackage(getPackageName());
             replyIntent.setAction("com.lifepartner.ai.ACTION_REPLY");
             replyIntent.putExtra("connId", connId);
             replyIntent.putExtra("senderName", title);
+            replyIntent.putExtra("notificationId", notificationId);
             
             PendingIntent replyPendingIntent = PendingIntent.getBroadcast(
                     this,
@@ -548,7 +550,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
             NotificationCompat.Action action = new NotificationCompat.Action.Builder(
                     android.R.drawable.ic_menu_send,
-                    "Reply",
+                    "Reply 💬",
                     replyPendingIntent)
                     .addRemoteInput(remoteInput)
                     .build();

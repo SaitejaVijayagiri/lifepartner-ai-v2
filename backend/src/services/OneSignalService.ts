@@ -71,7 +71,7 @@ export class OneSignalService {
                 buttons.push(
                     { id: 'chat_now', text: 'Chat Now 💬' }
                 );
-            } else if (data?.senderId || data?.connId) {
+            } else if (data?.type === 'message' || data?.type === 'chat' || data?.senderId || data?.connId) {
                 // If chat message, offer quick reply and like
                 buttons.push(
                     { id: 'reply', text: 'Reply 💬', icon: 'ic_menu_send' },

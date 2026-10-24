@@ -7,18 +7,20 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
+import androidx.core.app.NotificationCompat;
 import androidx.core.app.RemoteInput;
 
 public class NotificationReplyReceiver extends BroadcastReceiver {
     private static final String TAG = "ReplyReceiver";
+    private static final String CHANNEL_ID = "lifepartner_chat";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if ("com.lifepartner.ai.ACTION_REPLY".equals(intent.getAction())) {
             CharSequence replyCharSequence = getMessageText(intent);
             String connId = intent.getStringExtra("connId");
-
             String senderName = intent.getStringExtra("senderName");
+            int notificationId = intent.getIntExtra("notificationId", connId != null ? connId.hashCode() : 0);
 
             if (replyCharSequence != null && connId != null) {
                 final String replyText = replyCharSequence.toString().trim();
@@ -26,10 +28,23 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
 
                 Log.d(TAG, "Reply text received for partner: " + connId + ", senderName: " + senderName);
 
-                // 1. Dismiss the notification immediately so the UI feels instantaneous
                 NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+                // 1. Immediately update notification with RemoteInput history to dismiss system progress spinner
+                // and give instant visual feedback that the reply is being sent
                 if (manager != null) {
-                    manager.cancel(connId.hashCode());
+                    try {
+                        NotificationCompat.Builder inFlight = new NotificationCompat.Builder(context, CHANNEL_ID)
+                                .setSmallIcon(R.drawable.ic_stat_notification)
+                                .setContentTitle(senderName != null && !senderName.trim().isEmpty() ? senderName : "LifePartner AI")
+                                .setContentText("Sending: " + replyText)
+                                .setRemoteInputHistory(new CharSequence[]{replyText})
+                                .setPriority(NotificationCompat.PRIORITY_LOW)
+                                .setAutoCancel(true);
+                        manager.notify(notificationId, inFlight.build());
+                    } catch (Exception e) {
+                        Log.w(TAG, "Could not update in-flight notification: " + e.getMessage());
+                    }
                 }
 
                 // 2. Check auth token
@@ -40,6 +55,10 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                     Log.w(TAG, "No auth token in prefs. Queueing reply offline and launching chat.");
                     OfflineSyncManager.queueOfflineReply(context, connId, replyText);
                     OfflineSyncManager.showToast(context, "Opening LifePartner to complete reply 💬");
+
+                    if (manager != null) {
+                        manager.cancel(notificationId);
+                    }
 
                     try {
                         Intent openIntent = new Intent(context, MainActivity.class);
@@ -58,6 +77,18 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                 if (!OfflineSyncManager.isNetworkAvailable(context)) {
                     Log.i(TAG, "Device is offline. Queueing reply for background sync.");
                     OfflineSyncManager.queueOfflineReply(context, connId, replyText);
+                    if (manager != null) {
+                        try {
+                            NotificationCompat.Builder queued = new NotificationCompat.Builder(context, CHANNEL_ID)
+                                    .setSmallIcon(R.drawable.ic_stat_notification)
+                                    .setContentTitle(senderName != null && !senderName.trim().isEmpty() ? senderName : "LifePartner AI")
+                                    .setContentText("Reply queued (will send when online) 💬")
+                                    .setRemoteInputHistory(new CharSequence[]{replyText})
+                                    .setTimeoutAfter(3000)
+                                    .setAutoCancel(true);
+                            manager.notify(notificationId, queued.build());
+                        } catch (Exception ignored) {}
+                    }
                     return;
                 }
 
@@ -70,13 +101,32 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                             String displayName = (senderName != null && !senderName.trim().isEmpty()) ? senderName : "partner";
                             OfflineSyncManager.showToast(context, "Reply sent to " + displayName + "! 💬");
                             Log.i(TAG, "Reply delivered successfully to " + connId);
+
+                            if (manager != null) {
+                                try {
+                                    NotificationCompat.Builder replied = new NotificationCompat.Builder(context, CHANNEL_ID)
+                                            .setSmallIcon(R.drawable.ic_stat_notification)
+                                            .setContentTitle(senderName != null && !senderName.trim().isEmpty() ? senderName : "LifePartner AI")
+                                            .setContentText("Replied: " + replyText)
+                                            .setRemoteInputHistory(new CharSequence[]{replyText})
+                                            .setTimeoutAfter(2500)
+                                            .setAutoCancel(true);
+                                    manager.notify(notificationId, replied.build());
+                                } catch (Exception ignored) {}
+                            }
                         } else {
                             Log.w(TAG, "Server returned error sending reply. Queueing offline.");
                             OfflineSyncManager.queueOfflineReply(context, connId, replyText);
+                            if (manager != null) {
+                                manager.cancel(notificationId);
+                            }
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to send reply: ", e);
                         OfflineSyncManager.queueOfflineReply(context, connId, replyText);
+                        if (manager != null) {
+                            manager.cancel(notificationId);
+                        }
                     } finally {
                         pendingResult.finish();
                     }

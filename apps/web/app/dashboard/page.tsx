@@ -632,7 +632,7 @@ function DashboardContent() {
                     // 2 minute TTL for client cache, then fallback to loading state
                     if (Date.now() - ts < 120000) {
                         setMatches(data);
-                        if (Array.isArray(data) && data.length < 200) {
+                        if (Array.isArray(data) && data.length < 500) {
                             setHasMore(false);
                         }
                         setLoading(false);
@@ -896,7 +896,7 @@ function DashboardContent() {
             const data = await api.matches.getAll(pageNum);
             const newMatches = Array.isArray(data?.matches) ? data.matches : [];
             
-            if (newMatches.length < 200) {
+            if (newMatches.length < 500) {
                 setHasMore(false);
             } else {
                 setHasMore(true);

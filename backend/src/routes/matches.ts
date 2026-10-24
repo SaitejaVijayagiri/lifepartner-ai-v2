@@ -432,23 +432,8 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 full_name: { not: null },
                 age: { gte: 18 },
                 AND: [
-                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] },
-                    {
-                        OR: [
-                            { city: { not: null } },
-                            { location_name: { not: null } },
-                            { profiles: { location_name: { not: null } } }
-                        ]
-                    }
-                ],
-                profiles: {
-                    NOT: {
-                        metadata: {
-                            path: ['onboarding_completed'],
-                            equals: false
-                        }
-                    }
-                }
+                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                ]
             },
             select: {
                 id: true,
@@ -496,7 +481,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
 
         const page = parseInt(req.query.page as string) || 1;
-        const limit = 200; // Show all matches in one page (we have at most ~200 verified users)
+        const limit = 500; // Return all verified matches per page without arbitrary truncation
         const offset = (page - 1) * limit;
 
         // Check Cache per page
@@ -535,13 +520,6 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Female', 'female')
-                  AND (
-                    (u.city IS NOT NULL AND TRIM(u.city) != '')
-                    OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '')
-                    OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '')
-                    OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != '')
-                  )
-                  AND (p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')
                 ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else if (myGender === 'female') {
@@ -555,13 +533,6 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Male', 'male')
-                  AND (
-                    (u.city IS NOT NULL AND TRIM(u.city) != '')
-                    OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '')
-                    OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '')
-                    OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != '')
-                  )
-                  AND (p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')
                 ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         } else {
@@ -575,13 +546,6 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IS NOT NULL
-                  AND (
-                    (u.city IS NOT NULL AND TRIM(u.city) != '')
-                    OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '')
-                    OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '')
-                    OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != '')
-                  )
-                  AND (p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')
                 ORDER BY u.created_at DESC LIMIT ${limit} OFFSET ${offset}
             `;
         }
@@ -599,23 +563,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     full_name: { not: null },
                     age: { gte: 18 },
                     AND: [
-                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] },
-                        {
-                            OR: [
-                                { city: { not: null } },
-                                { location_name: { not: null } },
-                                { profiles: { location_name: { not: null } } }
-                            ]
-                        }
-                    ],
-                    profiles: {
-                        NOT: {
-                            metadata: {
-                                path: ['onboarding_completed'],
-                                equals: false
-                            }
-                        }
-                    }
+                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                    ]
                 },
                 select: { id: true }
             })).map(u => u.id)
@@ -1016,7 +965,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                         }
                     }
                 },
-                take: 10
+                take: 100
             });
         }
 
@@ -1036,9 +985,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             Prisma.sql`u.is_verified = true`,
             Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
             Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
-            Prisma.sql`u.gender IS NOT NULL`,
-            Prisma.sql`((u.city IS NOT NULL AND TRIM(u.city) != '') OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '') OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '') OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != ''))`,
-            Prisma.sql`(p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')`
+            Prisma.sql`u.gender IS NOT NULL`
         ];
 
         // Target Gender SQL Condition
@@ -1089,7 +1036,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             LEFT JOIN profiles p ON u.id = p.user_id
             WHERE ${whereSql}
             ORDER BY p.embedding <=> ${vectorString}::vector ASC
-            LIMIT 50
+            LIMIT 500
         `;
 
         // Map raw query results back to expected Prisma-like structure
@@ -1112,9 +1059,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 Prisma.sql`u.is_verified = true`,
                 Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
                 Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
-                Prisma.sql`u.gender IS NOT NULL`,
-                Prisma.sql`((u.city IS NOT NULL AND TRIM(u.city) != '') OR (u.location_name IS NOT NULL AND TRIM(u.location_name) != '') OR (p.location_name IS NOT NULL AND TRIM(p.location_name) != '') OR (p.metadata->'location'->>'city' IS NOT NULL AND TRIM(p.metadata->'location'->>'city') != ''))`,
-                Prisma.sql`(p.metadata->>'onboarding_completed' IS DISTINCT FROM 'false')`
+                Prisma.sql`u.gender IS NOT NULL`
             ];
             if (targetGender === 'Female') relaxedConditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
             else if (targetGender === 'Male') relaxedConditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
@@ -1130,7 +1075,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE ${relaxedSql}
                 ORDER BY p.embedding <=> ${vectorString}::vector ASC
-                LIMIT 50
+                LIMIT 500
             `;
 
             // Deduplicate
@@ -1421,8 +1366,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         const scoredMatches = scoredMatchesArray.filter(m => m !== null);
 
-        // Final Output
-        const finalMatches = scoredMatches.slice(0, 20).map((m: any) => ({
+        // Final Output - Return all scored matches (up to 500)
+        const finalMatches = scoredMatches.map((m: any) => ({
             ...m,
             // Only add Online status (AI Score is already populated by DB `ai_similarity`)
             isOnline: m.id ? isUserOnline(m.id) : (m.user_id ? isUserOnline(m.user_id) : false),

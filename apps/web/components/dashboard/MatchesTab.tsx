@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHorizontal } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
@@ -151,6 +151,26 @@ export default function MatchesTab({
             socket.off('onlineUsers', handlePresenceUpdate);
         };
     }, [socket, fetchOnlineMembers]);
+
+    // Instagram-style Pre-fetch on scroll: triggers fetchMatches 600px before reaching bottom
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+        if (!hasMore || loadingMore || isSearching || searchQuery) return;
+        const el = sentinelRef.current;
+        if (!el) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && hasMore && !loadingMore) {
+                    fetchMatches(page + 1);
+                }
+            },
+            { rootMargin: '600px' }
+        );
+
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [hasMore, loadingMore, page, fetchMatches, isSearching, searchQuery]);
 
     const handleStoryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -945,23 +965,22 @@ export default function MatchesTab({
                 })}
             </div>
 
-            {/* Load More Matches */}
+            {/* Instagram-style Load Balancing & Infinite Stream Sentinel */}
             {hasMore && displayMatches.length > 0 && (
-                <div className="flex justify-center mt-10 pb-20">
-                    <button
-                        onClick={() => fetchMatches(page + 1)}
-                        disabled={loadingMore}
-                        className="bg-white border-2 border-indigo-100 text-indigo-600 px-8 py-3 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-indigo-50 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                        {loadingMore ? (
-                            <>
-                                <div className="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full" />
-                                Loading...
-                            </>
-                        ) : (
-                            'Load More Matches'
-                        )}
-                    </button>
+                <div ref={sentinelRef} className="flex flex-col items-center justify-center mt-8 pb-20">
+                    {loadingMore ? (
+                        <div className="flex items-center gap-2.5 px-6 py-3 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-md animate-in fade-in">
+                            <div className="animate-spin h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full" />
+                            <span className="text-xs font-bold text-gray-600 dark:text-gray-300">Discovering more matches...</span>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => fetchMatches(page + 1)}
+                            className="bg-white dark:bg-gray-800 border border-indigo-100 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 px-6 py-2.5 rounded-full text-xs font-bold shadow-sm hover:shadow-md hover:bg-indigo-50 dark:hover:bg-gray-700 transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                            <span>Load More Matches</span>
+                        </button>
+                    )}
                 </div>
             )}
 

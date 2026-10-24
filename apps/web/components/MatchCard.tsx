@@ -149,16 +149,16 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         }
     }, [currentPhotoIndex, photos, isInViewport]);
 
-    // Auto-Slide Effect (3s interval, pause on hover)
+    // Auto-Slide Effect (3s interval, pause on hover or when out of viewport)
     useEffect(() => {
-        if (photos.length <= 1 || isHovered) return;
+        if (photos.length <= 1 || isHovered || !isInViewport) return;
 
         const interval = setInterval(() => {
             setCurrentPhotoIndex((prev: number) => (prev + 1) % photos.length);
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [photos.length, isHovered]);
+    }, [photos.length, isHovered, isInViewport]);
 
     // 1. Handle "Send Interest" (Primary Action)
     const handleConnect = async (e: React.MouseEvent) => {
@@ -271,7 +271,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     src={photos[currentPhotoIndex] || photos[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`}
                     alt={match.name || 'Member'}
                     className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu ${isPhotoBlurred ? 'blur-2xl scale-110 filter' : ''}`}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;

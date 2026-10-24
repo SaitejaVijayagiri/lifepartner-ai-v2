@@ -736,7 +736,11 @@ function DashboardContent() {
                         ? matchesResult.value.matches
                         : (Array.isArray(matchesResult.value) ? matchesResult.value : []);
                     setMatches(freshMatches);
-                    if (freshMatches.length < 200) setHasMore(false);
+                    if (typeof matchesResult.value?.hasMore === 'boolean') {
+                        setHasMore(matchesResult.value.hasMore);
+                    } else {
+                        setHasMore(freshMatches.length >= 24);
+                    }
                     try {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
                     } catch (e) {}
@@ -954,25 +958,32 @@ function DashboardContent() {
     const fetchMatches = async (pageNum = 1) => {
         try {
             if (pageNum > 1) setLoadingMore(true);
-            const data = await api.matches.getAll(pageNum);
+            const data = await api.matches.getAll(pageNum, 24);
             const newMatches = Array.isArray(data?.matches) ? data.matches : [];
             
-            if (newMatches.length < 500) {
-                setHasMore(false);
+            if (typeof data?.hasMore === 'boolean') {
+                setHasMore(data.hasMore);
             } else {
-                setHasMore(true);
+                setHasMore(newMatches.length >= 24);
             }
 
             if (pageNum === 1) {
                 setMatches(newMatches);
+                try {
+                    localStorage.setItem('matches_cache_v2', JSON.stringify({ data: newMatches, ts: Date.now() }));
+                } catch (_) {}
             } else {
                 if (newMatches.length === 0) {
-                    toast.info("You've viewed all available recommendations.");
+                    setHasMore(false);
                 } else {
                     setMatches(prev => {
                         const seenIds = new Set(prev.map((m: any) => m?.id).filter(Boolean));
                         const uniqueNew = newMatches.filter((m: any) => m?.id && !seenIds.has(m.id));
-                        return [...prev, ...uniqueNew];
+                        const merged = [...prev, ...uniqueNew];
+                        try {
+                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 48), ts: Date.now() }));
+                        } catch (_) {}
+                        return merged;
                     });
                 }
             }

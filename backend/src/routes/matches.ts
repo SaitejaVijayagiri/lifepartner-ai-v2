@@ -480,19 +480,21 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = 500; // Return all verified matches per page without arbitrary truncation
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const requestedLimit = parseInt(req.query.limit as string);
+        // Instagram-style balanced chunking: default 24 items per page for instant 50ms responses
+        const limit = requestedLimit && requestedLimit > 0 ? Math.min(requestedLimit, 100) : 24;
         const offset = (page - 1) * limit;
 
-        // Check Cache per page
-        const cacheKey = `${userId}_page_${page}`;
+        // Check Cache per page & limit
+        const cacheKey = `${userId}_page_${page}_limit_${limit}`;
         const cached = matchCache.get(cacheKey);
         if (cached && cached.expiresAt > Date.now()) {
             const liveMatches = (cached.data || []).map((m: any) => ({
                 ...m,
                 isOnline: isUserOnline(m.id)
             }));
-            return res.json({ matches: liveMatches });
+            return res.json({ matches: liveMatches, page, limit, hasMore: liveMatches.length >= limit });
         }
 
         // 1. Get Me
@@ -887,7 +889,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             isOnline: isUserOnline(m.id)
         }));
 
-        res.json({ matches: liveMatches });
+        res.json({ matches: liveMatches, page, limit, hasMore: liveMatches.length >= limit });
 
     } catch (e) {
         console.error("Matches Error", e);

@@ -133,7 +133,7 @@ export const api = {
             }),
     },
     matches: {
-        getAll: (page: number = 1) => fetchAPI(`/matches/recommendations?page=${page}`),
+        getAll: (page: number = 1, limit: number = 24) => fetchAPI(`/matches/recommendations?page=${page}&limit=${limit}`),
         getOnlineNow: () => fetchAPI('/matches/online-now'),
         getMapUsers: () => fetchAPI('/matches/map-users'),
         search: (query: string) => fetchAPI('/matches/search', {

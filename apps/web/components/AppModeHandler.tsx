@@ -21,8 +21,8 @@ export default function AppModeHandler() {
     // 2. Launched as standalone PWA app from home screen icon
     const isPwaStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
 
-    // 3. Launched with explicit manifest app start URL parameter (?app=true or ?mode=standalone)
-    const isAppUrlParam = window.location.search.includes('app=true') || window.location.search.includes('mode=standalone');
+    // 3. Launched with explicit manifest app start URL parameter (?app=native, ?app=true, or ?mode=standalone)
+    const isAppUrlParam = window.location.search.includes('app=') || window.location.search.includes('mode=standalone');
 
     // 4. Native Bridge injection check (AndroidBridge / androidBridge)
     const isNativeBridge = typeof window !== 'undefined' && !!((window as any).AndroidBridge || (window as any).androidBridge);

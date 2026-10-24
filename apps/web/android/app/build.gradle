@@ -39,6 +39,8 @@ android {
                 keyPassword keystoreProps['keyPassword']
                 storeFile file(keystoreProps['storeFile'])
                 storePassword keystoreProps['storePassword']
+                v1SigningEnabled true
+                v2SigningEnabled true
             }
         }
     }

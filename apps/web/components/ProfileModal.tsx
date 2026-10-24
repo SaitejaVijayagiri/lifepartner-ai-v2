@@ -1064,11 +1064,33 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 }
 
 // Sub-components for cleaner code
+const safeDisplayValue = (val: any): string => {
+    if (val === null || val === undefined) return "-";
+    if (typeof val === 'string') return val.trim() || "-";
+    if (typeof val === 'number') return String(val);
+    if (typeof val === 'boolean') return val ? "Yes" : "No";
+    if (typeof val === 'object') {
+        if (Array.isArray(val)) return val.map(safeDisplayValue).filter(Boolean).join(', ') || "-";
+        if (val.city || val.state || val.country) {
+            return formatLocationString(val) || "-";
+        }
+        if (val.name || val.title || val.profession || val.label) {
+            return String(val.name || val.title || val.profession || val.label);
+        }
+        try {
+            return Object.values(val).filter(v => typeof v !== 'object').join(', ') || "-";
+        } catch (_) {
+            return "-";
+        }
+    }
+    return String(val);
+};
+
 const InfoCard = ({ label, value, icon }: any) => (
     <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
         <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">{label}</div>
         <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1 break-words">
-            {icon && <span>{icon}</span>} {value}
+            {icon && <span>{icon}</span>} {safeDisplayValue(value)}
         </div>
     </div>
 );
@@ -1077,7 +1099,7 @@ const InfoRow = ({ label, value, highlight, premiumUnlocked }: any) => (
     <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50 last:border-0">
         <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
         <div className="flex items-center gap-2">
-            <span className={`font-medium text-sm ${highlight ? 'text-green-700 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>{value}</span>
+            <span className={`font-medium text-sm ${highlight ? 'text-green-700 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>{safeDisplayValue(value)}</span>
             {premiumUnlocked && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">💎</span>}
         </div>
     </div>
@@ -1088,7 +1110,7 @@ const ContactRow = ({ icon, label, value }: any) => (
         <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-xl">{icon}</div>
         <div>
             <div className="text-[10px] text-green-800 dark:text-green-400 font-bold uppercase tracking-wider">{label}</div>
-            <div className="text-gray-900 dark:text-gray-100 font-mono font-medium">{value}</div>
+            <div className="text-gray-900 dark:text-gray-100 font-mono font-medium">{safeDisplayValue(value)}</div>
         </div>
     </div>
 );

@@ -298,7 +298,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <MapPin size={12} className="text-pink-400" />
-                                        {partner.location || 'Verified Location'}
+                                        {typeof partner.location === 'string' ? partner.location : (((partner.location as any)?.city) || 'Verified Location')}
                                     </span>
                                     <span>•</span>
                                     <span>Age {partner.age || 24}</span>

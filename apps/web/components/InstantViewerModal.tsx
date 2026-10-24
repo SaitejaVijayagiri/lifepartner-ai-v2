@@ -345,7 +345,7 @@ export default function InstantViewerModal({
                             </div>
                             <div>
                                 <h4 className="font-bold text-white text-base">Snap Expired</h4>
-                                <p className="text-xs text-slate-400 mt-1">{error}</p>
+                                <p className="text-xs text-slate-400 mt-1">{typeof error === 'string' ? error : (((error as any)?.message) || 'Error occurred')}</p>
                             </div>
                             <button
                                 onClick={handleClose}

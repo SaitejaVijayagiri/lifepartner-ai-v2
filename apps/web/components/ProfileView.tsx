@@ -628,16 +628,38 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
 }
 
 // Helpers
+const safeDisplayValue = (val: any): string => {
+    if (val === null || val === undefined) return "-";
+    if (typeof val === "string") return val.trim() || "-";
+    if (typeof val === "number") return String(val);
+    if (typeof val === "boolean") return val ? "Yes" : "No";
+    if (typeof val === "object") {
+        if (Array.isArray(val)) return val.map(safeDisplayValue).filter(Boolean).join(", ") || "-";
+        if (val.city || val.state || val.country) {
+            return formatLocationString(val) || "-";
+        }
+        if (val.name || val.title || val.profession || val.label) {
+            return String(val.name || val.title || val.profession || val.label);
+        }
+        try {
+            return Object.values(val).filter(v => typeof v !== "object").join(", ") || "-";
+        } catch (_) {
+            return "-";
+        }
+    }
+    return String(val);
+};
+
 const InfoCard = ({ label, value }: any) => (
     <div className="bg-gray-50 dark:bg-gray-800/40 p-4 rounded-xl border border-gray-100/80 dark:border-gray-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
         <div className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider mb-1">{label}</div>
-        <div className="font-bold text-gray-800 dark:text-gray-200 text-sm sm:text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors break-words">{value}</div>
+        <div className="font-bold text-gray-800 dark:text-gray-200 text-sm sm:text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors break-words">{safeDisplayValue(value)}</div>
     </div>
 );
 
 const InfoRow = ({ label, value }: any) => (
     <div className="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800/50 last:border-0">
         <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
-        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{value}</span>
+        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{safeDisplayValue(value)}</span>
     </div>
 );

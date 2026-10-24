@@ -113,16 +113,21 @@ export default function ProfileStrengthCard({
             {Array.isArray(missingSections) && missingSections.length > 0 && !isGold && (
                 <div className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider mr-2">Quick Add:</span>
-                    {missingSections.slice(0, 3).map((item) => (
-                        <button
-                            key={item.key}
-                            onClick={handleOpenEdit}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs font-semibold text-white transition-all backdrop-blur-sm cursor-pointer"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                            <span>+{item.points}% {item.label}</span>
-                        </button>
-                    ))}
+                    {missingSections.slice(0, 3).map((item: any, idx: number) => {
+                        const itemKey = typeof item === 'object' ? (item?.key || idx) : String(item);
+                        const itemPoints = typeof item === 'object' ? (item?.points ?? 10) : 10;
+                        const itemLabel = typeof item === 'object' ? (item?.label || item?.key || 'Detail') : String(item);
+                        return (
+                            <button
+                                key={itemKey}
+                                onClick={handleOpenEdit}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-xl text-xs font-semibold text-white transition-all backdrop-blur-sm cursor-pointer"
+                            >
+                                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                                <span>+{itemPoints}% {itemLabel}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             )}
         </div>

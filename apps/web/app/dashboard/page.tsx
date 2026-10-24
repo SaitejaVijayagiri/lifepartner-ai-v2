@@ -1351,7 +1351,7 @@ function DashboardContent() {
                                 {'highlight' in item && item.highlight && activeTab !== item.id && (
                                     <span className="inline-flex w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
                                 )}
-                                {item.badge ? (
+                                {item.badge && (typeof item.badge === 'number' || typeof item.badge === 'string') ? (
                                     <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{item.badge}</span>
                                 ) : null}
                             </button>

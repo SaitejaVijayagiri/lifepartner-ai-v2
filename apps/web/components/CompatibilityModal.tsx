@@ -139,7 +139,7 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                         <div className="py-12 text-center">
                             <AlertTriangle className="text-red-500 mx-auto mb-4" size={48} />
                             <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Oops!</h4>
-                            <p className="text-sm text-gray-500">{error}</p>
+                            <p className="text-sm text-gray-500">{typeof error === 'string' ? error : (((error as any)?.message) || 'Failed to calculate compatibility')}</p>
                             <button onClick={onClose} className="mt-6 px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-bold">Try Again Later</button>
                         </div>
                     ) : report ? (

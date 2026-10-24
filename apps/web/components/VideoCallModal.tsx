@@ -992,7 +992,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                     </div>
                                     {partner.location && (
                                         <div className="flex items-center gap-1 text-[10px] text-indigo-300 mt-1 font-bold tracking-wider uppercase opacity-90">
-                                            <span>📍</span> {partner.location}
+                                            <span>📍</span> {typeof partner?.location === 'string' ? partner.location : (((partner?.location as any)?.city) || 'India')}
                                         </div>
                                     )}
                                 </>
@@ -1053,7 +1053,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                 </h2>
                                 {partner.location && (
                                     <p className="text-slate-300/80 text-xs font-semibold mt-1.5 flex justify-center items-center gap-1 tracking-wide uppercase">
-                                        <span>📍</span> From {partner.location}
+                                        <span>📍</span> From {typeof partner?.location === 'string' ? partner.location : (((partner?.location as any)?.city) || 'India')}
                                     </p>
                                 )}
                             </div>

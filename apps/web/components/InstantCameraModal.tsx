@@ -315,7 +315,7 @@ export default function InstantCameraModal({
                             {cameraError ? (
                                 <div className="px-6 text-center text-slate-300 space-y-4">
                                     <Camera className="w-12 h-12 mx-auto text-slate-500" />
-                                    <p className="text-sm text-slate-400">{cameraError}</p>
+                                    <p className="text-sm text-slate-400">{typeof cameraError === 'string' ? cameraError : (((cameraError as any)?.message) || 'Camera error')}</p>
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-pink-500 text-white text-xs font-semibold shadow-md flex items-center justify-center space-x-2 mx-auto"

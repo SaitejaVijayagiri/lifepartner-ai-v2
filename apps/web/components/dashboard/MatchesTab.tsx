@@ -8,6 +8,17 @@ import { useToast } from '@/components/ui/Toast';
 import { FilterState } from '@/components/FilterModal';
 import { useSocket } from '@/context/SocketContext';
 
+function formatLocationString(loc: any): string {
+    if (!loc) return '';
+    if (typeof loc === 'string') return loc;
+    if (typeof loc === 'object') {
+        const parts = [loc.city, loc.district, loc.state].filter(Boolean);
+        if (parts.length > 0) return parts.join(', ');
+        if (loc.country) return loc.country;
+    }
+    return '';
+}
+
 // Dynamically import heavy components
 const MatchCard = dynamic(() => import('@/components/MatchCard'));
 const StoryModal = dynamic(() => import('@/components/StoryModal'));
@@ -748,7 +759,7 @@ export default function MatchesTab({
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-sm text-gray-900 dark:text-white">{visitor.name}</h4>
-                                                <p className="text-xs text-gray-500">{visitor.location || 'Member'}</p>
+                                                <p className="text-xs text-gray-500">{formatLocationString(visitor.location) || 'Member'}</p>
                                             </div>
                                         </div>
                                         <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">View Profile →</span>
@@ -833,8 +844,8 @@ export default function MatchesTab({
                                             👤 Name: {aiFilters.candidate_name}
                                         </span>
                                     )}
-                                    {aiFilters.profession && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">💼 {aiFilters.profession}</span>}
-                                    {aiFilters.location && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">📍 {aiFilters.location}</span>}
+                                    {aiFilters.profession && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">💼 {typeof aiFilters.profession === 'string' ? aiFilters.profession : String(aiFilters.profession)}</span>}
+                                    {aiFilters.location && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">📍 {formatLocationString(aiFilters.location)}</span>}
                                     {aiFilters.values?.length > 0 && <span className="font-bold bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm">💛 {aiFilters.values[0]}</span>}
                                 </div>
                             </div>

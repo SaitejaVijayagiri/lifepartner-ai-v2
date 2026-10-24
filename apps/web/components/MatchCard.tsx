@@ -518,7 +518,8 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
                     <div className="flex items-end gap-2 mb-1.5 flex-wrap">
                         <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
-                            {match.name || 'Member'}{match.age ? `, ${match.age}` : ''}
+                            {typeof match.name === 'string' ? match.name : (match.name?.first ? `${match.name.first} ${match.name.last || ''}`.trim() : 'Member')}
+                            {typeof match.age === 'number' || typeof match.age === 'string' ? `, ${match.age}` : ''}
                             {match.isPremium && <span className="text-amber-400 text-lg sm:text-xl drop-shadow-md animate-pulse" title="Premium Member">👑</span>}
                         </h3>
                         {match.isVerified && (
@@ -539,7 +540,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         {/* Managed By Trust Badge */}
                         {Boolean(match.managed_by && match.managed_by !== 'Self') && (
                             <span className="inline-flex items-center gap-1 text-teal-200 text-[10px] font-bold bg-teal-950/80 border border-teal-400/40 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md shadow-sm" title={`Profile managed by ${match.managed_by}`}>
-                                {match.managed_by === 'Parent' ? '👨‍👩‍👧 By Parent' : match.managed_by === 'Sibling' ? '👫 By Sibling' : `👤 By ${match.managed_by}`}
+                                {match.managed_by === 'Parent' ? '👨‍👩‍👧 By Parent' : match.managed_by === 'Sibling' ? '👫 By Sibling' : `👤 By ${typeof match.managed_by === 'string' ? match.managed_by : 'Family'}`}
                             </span>
                         )}
                         {/* Profile ID / Matrimony ID Badge */}
@@ -576,12 +577,15 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
 
                         // 1. Height (if specified)
                         if (match.height && match.height !== '-' && match.height !== 'Not Specified' && match.height !== 'Unknown') {
-                            chips.push({ icon: '📏', text: match.height });
+                            const hStr = typeof match.height === 'string' ? match.height : (typeof match.height === 'object' ? (match.height?.value || (match.height?.feet ? `${match.height.feet}'${match.height.inches || 0}"` : '')) : String(match.height));
+                            if (hStr) chips.push({ icon: '📏', text: hStr });
                         }
 
                         // 2. Profession or Education
-                        const prof = match.profession || match.career?.profession;
-                        const edu = match.education || match.career?.education || match.career?.educationLevel;
+                        const rawProf = match.profession || match.career?.profession;
+                        const prof = typeof rawProf === 'string' ? rawProf : (typeof rawProf === 'object' ? (rawProf?.profession || rawProf?.title || '') : '');
+                        const rawEdu = match.education || match.career?.education || match.career?.educationLevel;
+                        const edu = typeof rawEdu === 'string' ? rawEdu : (typeof rawEdu === 'object' ? (rawEdu?.degree || rawEdu?.education || rawEdu?.educationLevel || '') : '');
                         if (prof && prof !== '-' && prof !== 'Member' && prof !== 'Not Specified') {
                             chips.push({ icon: '💼', text: prof });
                         } else if (edu && edu !== '-' && edu !== 'Other') {
@@ -589,20 +593,22 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                         }
 
                         // 3. Religion & Caste
-                        const rel = match.religion?.religion || match.religion?.faith;
-                        const caste = match.religion?.caste;
+                        const rel = typeof match.religion === 'string' ? match.religion : (match.religion?.religion || match.religion?.faith || '');
+                        const caste = typeof match.religion === 'object' ? match.religion?.caste : '';
                         if (rel && rel !== '-' && rel !== 'Not Specified' && rel !== 'Unknown') {
                             chips.push({ icon: getReligionSymbol(rel), text: (caste && caste !== '-' && caste !== 'Not Specified') ? `${rel} (${caste})` : rel });
                         } else if (caste && caste !== '-' && caste !== 'Not Specified') {
-                            chips.push({ icon: '🕉️', text: caste });
+                            chips.push({ icon: '🕉️', text: String(caste) });
                         }
 
-                        // 4. Marital Status or Mother Tongue (supplementary if few chips)
-                        const marital = match.maritalStatus || match.metadata?.maritalStatus;
+                        // 4. Marital Status or Mother Tongue
+                        const rawMarital = match.maritalStatus || match.metadata?.maritalStatus;
+                        const marital = typeof rawMarital === 'string' ? rawMarital : '';
                         if (chips.length < 3 && marital && marital !== 'Single' && marital !== '-') {
                             chips.push({ icon: '💍', text: marital });
                         }
-                        const lang = match.motherTongue || match.metadata?.motherTongue;
+                        const rawLang = match.motherTongue || match.metadata?.motherTongue;
+                        const lang = typeof rawLang === 'string' ? rawLang : '';
                         if (chips.length < 3 && lang && lang !== 'Unknown' && lang !== '-') {
                             chips.push({ icon: '🗣️', text: lang });
                         }
@@ -621,7 +627,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                             <div className="flex flex-wrap gap-1.5 text-gray-100 text-xs font-medium mb-3 opacity-95">
                                 {chips.map((c, i) => (
                                     <span key={i} className="px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15">
-                                        {c.icon} {c.text}
+                                        {c.icon} {typeof c.text === 'object' ? formatLocationString(c.text) : String(c.text || '')}
                                     </span>
                                 ))}
                             </div>

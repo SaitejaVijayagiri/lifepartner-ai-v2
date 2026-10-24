@@ -19,7 +19,6 @@
         "@google/generative-ai": "^0.24.1",
         "@langchain/core": "^1.1.7",
         "@mediapipe/face_detection": "^0.4.1646425229",
-        "@napi-rs/canvas": "^0.1.96",
         "@prisma/adapter-pg": "^5.22.0",
         "@prisma/client": "^5.22.0",
         "@supabase/supabase-js": "^2.87.1",

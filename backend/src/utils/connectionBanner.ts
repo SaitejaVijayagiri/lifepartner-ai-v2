@@ -1,8 +1,22 @@
-import { createCanvas, loadImage } from '@napi-rs/canvas';
 import axios from 'axios';
 
 // In-memory cache for generated connection banners (1 hour TTL)
 const bannerCache = new Map<string, { buffer: Buffer; expires: number }>();
+
+// Safe dynamic accessor for optional @napi-rs/canvas native addon
+let canvasModule: any = null;
+let canvasLoadAttempted = false;
+
+function getCanvas() {
+    if (canvasLoadAttempted) return canvasModule;
+    canvasLoadAttempted = true;
+    try {
+        canvasModule = require('@napi-rs/canvas');
+    } catch {
+        canvasModule = null;
+    }
+    return canvasModule;
+}
 
 interface ConnectionBannerOptions {
     nameA: string;
@@ -43,8 +57,10 @@ async function loadSafeImage(url?: string | null): Promise<any | null> {
         const contentType = String(response.headers['content-type'] || '');
         if (contentType.includes('svg')) return null;
 
+        const canvas = getCanvas();
+        if (!canvas) return null;
         const buffer = Buffer.from(response.data);
-        return await loadImage(buffer);
+        return await canvas.loadImage(buffer);
     } catch {
         return null;
     }
@@ -90,9 +106,18 @@ export async function generateConnectionBanner(options: ConnectionBannerOptions)
         return cached.buffer;
     }
 
+    const canvasLib = getCanvas();
+    if (!canvasLib) {
+        // Fallback transparent 1x1 png if native canvas addon is not present
+        return Buffer.from(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+            'base64'
+        );
+    }
+
     const width = 1200;
     const height = 600;
-    const canvas = createCanvas(width, height);
+    const canvas = canvasLib.createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
     // 1. Background Gradient

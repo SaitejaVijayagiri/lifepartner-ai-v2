@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
+export const dynamic = 'force-dynamic';
 export const runtime = 'edge';
 
 function truncate(str: string, maxChars: number = 16): string {

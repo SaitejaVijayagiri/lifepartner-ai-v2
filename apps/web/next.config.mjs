@@ -107,16 +107,20 @@ const nextConfig = {
         ];
     },
     async rewrites() {
-        return [
-            {
-                source: '/api/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
-            },
-            {
-                source: '/socket.io/:path*',
-                destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/socket.io/:path*`,
-            },
-        ];
+        return {
+            beforeFiles: [],
+            afterFiles: [],
+            fallback: [
+                {
+                    source: '/api/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
+                },
+                {
+                    source: '/socket.io/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/socket.io/:path*`,
+                },
+            ]
+        };
     }
 };
 

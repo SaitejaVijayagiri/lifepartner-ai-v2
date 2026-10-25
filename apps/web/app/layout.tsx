@@ -79,7 +79,12 @@ export const metadata: Metadata = {
     "Kerala Matrimony Free", "Marathi Matrimony", "Kannada Matrimony", "Bengali Matrimony",
     "Jeevansathi Alternative Free", "Shaadi Alternative Free", "Bharat Matrimony Alternative",
     "Bumble Alternative Free", "Hinge Alternative", "Free Kundli Matching", "AI Biodata Maker",
-    "Verified Singles Meetups", "Doctor Matrimony", "Software Engineer Matrimony", "IAS IPS Matrimony"
+    "Verified Singles Meetups", "Doctor Matrimony", "Software Engineer Matrimony", "IAS IPS Matrimony",
+    "Punjabi Matrimony Free", "Gujarati Matrimony Free", "Odia Matrimony Free",
+    "safe matrimony for girls", "women-first matrimony app", "career women matrimony",
+    "Kundli Milan free", "Ashtakoot Guna matching", "Kundali matching 36 gun",
+    "NRI matrimony USA", "NRI matrimony UK", "NRI matrimony Canada", "NRI matrimony Australia", "NRI matrimony Dubai",
+    "matrimony without brokers", "free direct video call matrimony", "anti harassment matrimony"
   ],
   authors: [{ name: "LifePartner AI Team" }],
   creator: "LifePartner AI",
@@ -243,7 +248,14 @@ export default function RootLayout({
                 { "@type": "Country", "name": "Malaysia" },
                 { "@type": "Country", "name": "New Zealand" }
               ],
-              "availableLanguage": ["English", "Telugu", "Hindi", "Tamil", "Spanish", "French", "Russian", "Arabic"],
+              "availableLanguage": ["English", "Telugu", "Hindi", "Tamil", "Kannada", "Malayalam", "Marathi", "Bengali", "Punjabi", "Gujarati", "Spanish", "French", "Russian", "Arabic", "Japanese", "Korean"],
+              "serviceType": [
+                "AI Compatibility Matchmaking",
+                "100% Free Matrimony Direct Chat",
+                "Women-First Privacy & Anti-Creep Protection",
+                "Vedic Astrology & Kundali Milan Matching",
+                "Worldwide NRI Cross-Border Matchmaking"
+              ],
               "aggregateRating": {
                 "@type": "AggregateRating",
                 "ratingValue": "4.9",

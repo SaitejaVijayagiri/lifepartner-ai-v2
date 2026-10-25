@@ -20,9 +20,12 @@ export const metadata: Metadata = {
     "Screenshot Proof Snaps", "AI Anti-Creep Shield",
     
     // Matrimony & Marriage Keywords
-    "Free Matrimony App", "Global Matrimony", "NRI Matrimony", "Telugu Matrimony", "Tamil Matrimony", "Hindi Matrimony", "Best Matchmaking Site",
+    "Free Matrimony App", "Global Matrimony", "NRI Matrimony", "Telugu Matrimony Free", "Tamil Matrimony Free", "Hindi Matrimony Free", "Kannada Matrimony Free", "Malayalam Matrimony Free", "Marathi Matrimony Free", "Bengali Matrimony Free", "Punjabi Matrimony Free", "Gujarati Matrimony Free", "Best Matchmaking Site",
     "AI Dating App", "Free Chat Matrimony", "Jeevansathi Alternative", "Shaadi Alternative", "Bumble Alternative",
     "100% Free Matchmaking", "Direct Chat Matrimony", "No Subscription Dating",
+    "Safe Matrimony App for Women", "Career Women Matrimony", "Anti Harassment Matrimonial App",
+    "NRI Matrimony USA", "NRI Matrimony UK", "NRI Matrimony Canada", "NRI Matrimony Australia", "NRI Matrimony Dubai",
+    "Free Kundali Matching Online", "Guna Milan 36 Points",
     
     // Multilingual & Multi-region Terms
     "Dating App USA", "Dating App Japan", "Dating App Korea", "Dating App Philippines", "Dating App Indonesia",
@@ -187,6 +190,26 @@ export default function LandingPage() {
         },
         "price": "0",
         "priceCurrency": "INR"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "100% Free Lifetime Queen VIP for Women",
+          "description": "Exclusive privacy protections, AI Anti-Creep filter, masked contact information, and unlimited free messaging and video calls for women."
+        },
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Vedic Kundali Milan & AI Compatibility",
+          "description": "Free 36 Gunas Vedic astrology compatibility combined with deep psychological personality matching."
+        },
+        "price": "0",
+        "priceCurrency": "INR"
       }
     ]
   };
@@ -233,6 +256,22 @@ export default function LandingPage() {
         "acceptedAnswer": {
           "@type": "Answer",
           "text": "Our context-aware AI analyzes deep personal values, lifestyle habits, Vedic astrology compatibility, and shared music tastes to suggest the highest quality soulmate matches."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Why is LifePartner AI safer for Indian women than traditional matrimony apps?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "LifePartner AI grants 100% Lifetime Queen VIP status to all women with 100 free coins, proactive AI anti-creep message filtering that blocks vulgar language and unsolicited phone numbers, masked contact info, and screenshot-protected disappearing snaps."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Does LifePartner AI support regional Indian languages like Telugu, Tamil, and Hindi?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, LifePartner AI is fully localized in Telugu, Tamil, Hindi, Kannada, Malayalam, Marathi, Bengali, and Punjabi, as well as English, Japanese, Korean, Russian, and Arabic for global users."
         }
       }
     ]

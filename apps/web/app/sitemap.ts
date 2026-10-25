@@ -95,7 +95,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'London', 'New-York', 'Los-Angeles', 'Chicago', 'Houston', 'Dallas', 'San-Francisco', 'San-Jose', 'Seattle', 'Toronto', 'Vancouver', 'Sydney', 'Melbourne', 'Dubai', 'Singapore',
         'Tokyo', 'Osaka', 'Seoul', 'Beijing', 'Shanghai', 'Hong-Kong', 'Manila', 'Jakarta', 'Kuala-Lumpur', 'Ho-Chi-Minh', 'Bangkok',
         'Caracas', 'Sao-Paulo', 'Rio-de-Janeiro', 'Mexico-City', 'Buenos-Aires',
-        'Lagos', 'Nairobi', 'Johannesburg', 'Cairo', 'Paris', 'Berlin', 'Madrid', 'Rome'
+        'Lagos', 'Nairobi', 'Johannesburg', 'Cairo', 'Paris', 'Berlin', 'Madrid', 'Rome', 'Austin', 'New-Jersey', 'Boston', 'Frankfurt', 'Dublin', 'Auckland'
     ];
 
     const COUNTRIES = [
@@ -138,7 +138,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'chat-with-random-people',
         'chat-with-international-guys',
         'talk-to-random-people-online',
-        'free-random-video-chat'
+        'free-random-video-chat',
+        'indian-matrimony-free-chat',
+        'nri-indian-matrimony-usa-uk-canada',
+        'telugu-matrimony-free-chat',
+        'tamil-matrimony-free-chat',
+        'hindi-matrimony-free-chat',
+        'kerala-matrimony-free-chat',
+        'kannada-matrimony-free-chat',
+        'marathi-matrimony-free-chat',
+        'punjabi-matrimony-free-chat',
+        'bengali-matrimony-free-chat',
+        'gujarati-matrimony-free-chat',
+        'free-kundali-matching-online',
+        'matrimony-for-working-women',
+        'safe-matrimony-for-indian-women',
+        'verified-nri-grooms-and-brides',
+        'matrimony-app-without-subscription',
+        'career-women-matrimony-india'
     ];
 
     const cityRoutes = ALL_LOCATIONS.map(city => ({

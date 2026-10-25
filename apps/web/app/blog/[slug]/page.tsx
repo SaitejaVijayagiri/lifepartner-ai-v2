@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Navbar from '../../../components/Navbar';
 import Footer from '../../../components/Footer';
 import GoogleAdBanner from '../../../components/GoogleAdBanner';
+import { BLOG_POSTS } from '../../../lib/blog-data';
 
 interface BlogPost {
     id: string;
@@ -30,11 +31,30 @@ async function getPost(slug: string): Promise<BlogPost | null> {
             next: { revalidate: 3600 }
         });
 
-        if (!res.ok) return null;
-        return res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.title) return data;
+        }
     } catch {
-        return null;
+        // Fallback to static articles below
     }
+
+    const staticPost = BLOG_POSTS.find(p => p.slug === slug);
+    if (staticPost) {
+        return {
+            id: staticPost.slug,
+            slug: staticPost.slug,
+            title: staticPost.title,
+            content: staticPost.content,
+            excerpt: staticPost.excerpt,
+            meta_title: staticPost.title,
+            meta_description: staticPost.excerpt,
+            keywords: [staticPost.category || 'Matrimony', 'LifePartner AI', 'Dating', 'Matchmaking'],
+            created_at: staticPost.date || '2026-10-25'
+        };
+    }
+
+    return null;
 }
 
 export async function generateMetadata(

@@ -218,21 +218,10 @@ if (require.main === module) {
 
             // ⏰ Start Daily SEO Blog Generation
             cron.schedule('0 12 * * *', async () => {
-                const topics = [
-                    "Online Dating Tips for Introverts in India",
-                    "How to Know if someone is serious on a Matrimony App",
-                    "The Science behind successful Relationships",
-                    "Red Flags to look out for on Dating Apps",
-                    "Is Astrology Important for Marriage in Modern Day?",
-                    "Best Places for a First Date in Mumbai",
-                    "How AI is Changing Matchmaking",
-                    "Navigating Long Distance Relationships"
-                ];
-                const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-                console.log(`[CRON] Generating Daily SEO Blog: "${randomTopic}"`);
+                console.log("[CRON] Running Daily SEO Blog Generator for Indian & Global Matrimony...");
                 try {
-                    await generateBlogPost(randomTopic);
-                    console.log("[CRON] Successfully generated daily blog.");
+                    await generateBlogPost();
+                    console.log("[CRON] Successfully generated daily SEO blog post.");
                 } catch (error) {
                     console.error("[CRON] Failed to generate daily blog:", error);
                 }

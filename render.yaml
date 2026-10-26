@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: lifepartner-ai-backend
+    runtime: node
+    buildCommand: npm run build:backend
+    startCommand: npm run start:backend
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production

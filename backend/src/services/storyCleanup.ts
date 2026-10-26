@@ -1,5 +1,5 @@
 import { prisma } from '../prisma';
-import { isStoryActive } from '../routes/profile';
+import { isStoryActive } from '../utils/story';
 
 /**
  * Sweeps all profiles in database and permanently prunes expired non-highlighted stories.

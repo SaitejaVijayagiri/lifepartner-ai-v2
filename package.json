@@ -7,6 +7,12 @@
     "apps/*"
   ],
   "scripts": {
+    "build": "npm run build --workspace=backend",
+    "start": "npm run start --workspace=backend",
+    "build:backend": "npm run build --workspace=backend",
+    "start:backend": "npm run start --workspace=backend",
+    "build:web": "npm run build --workspace=apps/web",
+    "start:web": "npm run start --workspace=apps/web",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:admin": "npm run dev --workspace=apps/admin",

@@ -8,11 +8,6 @@ import { isStoryActive } from '../routes/profile';
 export async function cleanupExpiredStories(): Promise<number> {
     try {
         const profiles = await prisma.profiles.findMany({
-            where: {
-                stories: {
-                    not: null as any
-                }
-            },
             select: {
                 user_id: true,
                 stories: true,

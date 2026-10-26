@@ -77,9 +77,11 @@ function ChatContent() {
         role: partnerRole
     });
 
-    // If name or photo is still unknown or placeholder, fetch authentic profile immediately
+    const hasFetchedProfile = useRef(false);
+
+    // If name or photo is still unknown or placeholder, fetch authentic profile once
     useEffect(() => {
-        if (!connectionId) return;
+        if (!connectionId || hasFetchedProfile.current) return;
 
         const isNamePlaceholder = !partner.name || partner.name === 'Partner' || partner.name === 'User' || partner.name === 'Member';
         const isPhotoPlaceholder = !partner.photoUrl || 
@@ -88,6 +90,7 @@ function ChatContent() {
             partner.photoUrl.includes('dicebear.com');
 
         if (isNamePlaceholder || isPhotoPlaceholder) {
+            hasFetchedProfile.current = true;
             api.profile.getById(connectionId).then((data: any) => {
                 if (data) {
                     setPartner(prev => ({
@@ -98,7 +101,7 @@ function ChatContent() {
                 }
             }).catch(() => {});
         }
-    }, [connectionId, partner.name, partner.photoUrl]);
+    }, [connectionId]);
 
     // When navigated here via "Answer Call" push notification
     useEffect(() => {

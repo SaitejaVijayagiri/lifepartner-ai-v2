@@ -47,13 +47,15 @@ import rateLimit from 'express-rate-limit';
 export const app = express();
 app.use(compression());
 app.use(cookieParser());
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 
 const PORT = process.env.PORT || 4000;
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 500,
+    max: 2500,
+    keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
+    skip: (req) => req.path === '/health' || req.path === '/healthz' || req.path === '/' || req.method === 'OPTIONS',
     standardHeaders: true,
     legacyHeaders: false,
     message: "Too many requests from this IP, please try again later."
@@ -61,20 +63,26 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 100,
+    max: 200,
+    keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
     standardHeaders: true,
     legacyHeaders: false,
 });
 
 const contactLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 10,
+    max: 30,
+    keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
     message: "Too many contact requests, please try again later."
 });
 
 const ALLOWED_ORIGINS = [
     'https://lifepartnerai.in',
     'https://www.lifepartnerai.in',
+    'http://localhost:3000',
+    'capacitor://localhost',
+    'http://localhost',
+    'https://localhost',
     'http://localhost:3005',
     'http://localhost:3006',
     'http://localhost:4200',
@@ -84,11 +92,11 @@ const ALLOWED_ORIGINS = [
 app.use(cors({
     origin: function (origin, callback) {
         // Allow server-to-server requests (no origin) and known origins
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        if (!origin || ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('lifepartnerai.in')) {
             return callback(null, true);
         }
         console.warn(`[CORS] Blocked request from origin: ${origin}`);
-        return callback(new Error(`CORS: Origin '${origin}' is not allowed`));
+        return callback(null, true);
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

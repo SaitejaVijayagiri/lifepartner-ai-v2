@@ -13,7 +13,7 @@ const API_URL = getApiUrl();
 let storyFeedCache: { data: any; timestamp: number } | null = null;
 const profileDetailsCache = new Map<string, { data: any; timestamp: number }>();
 
-export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
+export async function fetchAPI(endpoint: string, options: RequestInit = {}, retries = 1): Promise<any> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const baseUrl = getApiUrl();
 
@@ -29,14 +29,28 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${baseUrl}${endpoint}`, {
-        ...options,
-        headers,
-        credentials: 'include',
-    });
+    let res: Response;
+    try {
+        res = await fetch(`${baseUrl}${endpoint}`, {
+            ...options,
+            headers,
+            credentials: 'include',
+        });
+    } catch (netErr: any) {
+        if (retries > 0 && (!options.method || options.method === 'GET')) {
+            await new Promise(r => setTimeout(r, 1200));
+            return fetchAPI(endpoint, options, retries - 1);
+        }
+        console.error(`[API Network Error] on ${endpoint}:`, netErr);
+        throw new Error("Unable to connect to the server. Please check your internet connection or try again in a few seconds.");
+    }
 
     if (res.status === 413) {
         throw new Error("The file is too large! Please upload a smaller file (under 15MB).");
+    }
+
+    if (res.status === 429) {
+        throw new Error("Server is experiencing high traffic. Please wait a moment and try again.");
     }
 
     let data;

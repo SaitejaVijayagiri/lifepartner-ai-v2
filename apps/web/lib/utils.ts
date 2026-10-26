@@ -82,3 +82,42 @@ export function getProfilePhotoUrl(userObj: any): string {
 
     return '';
 }
+
+/**
+ * Strict 24-Hour Story Expiration Check
+ * Stories expire exactly 24 hours after creation unless marked as Highlight.
+ */
+export function isStoryActive(s: any): boolean {
+    if (!s) return false;
+    // Highlights are permanent
+    if (Boolean(s.isHighlight || s.is_highlight)) return true;
+
+    const now = Date.now();
+    // 1. Explicit expiresAt / expires_at timestamp
+    const expStr = s.expiresAt || s.expires_at;
+    if (expStr) {
+        const expMs = new Date(expStr).getTime();
+        if (!isNaN(expMs)) return expMs > now;
+    }
+
+    // 2. CreatedAt / created_at / timestamp check (strict 24h)
+    const createdStr = s.createdAt || s.created_at || s.timestamp;
+    if (createdStr) {
+        const createdMs = new Date(createdStr).getTime();
+        if (!isNaN(createdMs)) return (now - createdMs) < 24 * 60 * 60 * 1000;
+    }
+
+    // 3. 13-digit Unix Millisecond timestamp ID (Date.now())
+    if (s.id && typeof s.id === 'string' && /^\d{13}$/.test(s.id)) {
+        const idMs = Number(s.id);
+        if (!isNaN(idMs)) return (now - idMs) < 24 * 60 * 60 * 1000;
+    }
+
+    // If no verifiable active timestamp within 24h, treat as expired
+    return false;
+}
+
+export function filterActiveStories<T = any>(stories: T[]): T[] {
+    if (!Array.isArray(stories)) return [];
+    return stories.filter(isStoryActive);
+}

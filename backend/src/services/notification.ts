@@ -153,7 +153,18 @@ export class NotificationService {
             bannerUrl = `${cleanBase}${bannerUrl}`;
         }
 
-        const targetUrl = data?.url || (data?.callerId ? `/chat/${data.callerId}?action=answer_call&callType=${data?.callType || 'video'}` : (senderId ? `/chat/${senderId}` : '/dashboard?tab=connections'));
+        const rawSenderName = data?.senderName || data?.callerName || data?.fromUserName || title;
+        const cleanSenderName = (rawSenderName && typeof rawSenderName === 'string') 
+            ? rawSenderName.replace(/^(New message from|Message from)\s+/i, '').trim() 
+            : '';
+
+        const targetUrl = data?.url || (
+            data?.callerId 
+                ? `/chat/${data.callerId}?action=answer_call&callType=${data?.callType || 'video'}&callerId=${encodeURIComponent(String(data.callerId))}&callerName=${encodeURIComponent(cleanSenderName)}&callerPhoto=${encodeURIComponent(senderPhoto || '')}&partnerName=${encodeURIComponent(cleanSenderName)}&partnerPhoto=${encodeURIComponent(senderPhoto || '')}` 
+                : (senderId 
+                    ? `/chat/${senderId}?partnerName=${encodeURIComponent(cleanSenderName)}&partnerPhoto=${encodeURIComponent(senderPhoto || '')}&name=${encodeURIComponent(cleanSenderName)}&photo=${encodeURIComponent(senderPhoto || '')}` 
+                    : '/dashboard?tab=connections')
+        );
 
         // Standardized interactive actions across all web push providers
         const isRequest = data?.type === 'request';
@@ -232,6 +243,7 @@ export class NotificationService {
                     ...data,
                     senderId: senderId || data?.senderId,
                     connId: senderId || data?.connId,
+                    senderName: cleanSenderName || data?.senderName,
                     senderPhoto,
                     bannerUrl,
                     url: targetUrl
@@ -267,7 +279,7 @@ export class NotificationService {
                             interactionId: String(data?.interactionId || ''),
                             senderId: String(senderId || ''),
                             connId: String(senderId || ''),
-                            senderName: String(data?.senderName || data?.callerName || title),
+                            senderName: String(cleanSenderName || data?.senderName || data?.callerName || title),
                             callerId: String(data?.callerId || senderId || ''),
                             callerName: String(data?.callerName || data?.senderName || ''),
                             callerPhoto: senderPhoto ? String(senderPhoto) : defaultAppLogo,
@@ -413,6 +425,7 @@ export class NotificationService {
                     body: String(body),
                     senderId: senderId || data?.senderId,
                     connId: senderId || data?.connId,
+                    senderName: cleanSenderName || data?.senderName,
                     senderPhoto,
                     bannerUrl,
                     url: targetUrl

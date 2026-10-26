@@ -21,7 +21,38 @@ import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isCon
 import { isR2Configured, uploadBase64ToR2, uploadBufferToR2 } from '../services/r2Storage';
 import { isUserOnline } from '../socket';
 
-export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[] = []) {
+export function isStoryActive(s: any, now: Date = new Date()): boolean {
+    if (!s) return false;
+    if (Boolean(s.isHighlight || s.is_highlight)) return true;
+
+    const nowMs = now.getTime();
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+    const expStr = s.expiresAt || s.expires_at;
+    if (expStr) {
+        const expMs = new Date(expStr).getTime();
+        if (!isNaN(expMs)) return expMs > nowMs;
+    }
+
+    const createdStr = s.createdAt || s.created_at || s.timestamp;
+    if (createdStr) {
+        const createdMs = new Date(createdStr).getTime();
+        if (!isNaN(createdMs)) return (nowMs - createdMs) < TWENTY_FOUR_HOURS_MS;
+    }
+
+    if (s.id && typeof s.id === 'string' && /^\d{13}$/.test(s.id)) {
+        const idMs = Number(s.id);
+        if (!isNaN(idMs)) return (nowMs - idMs) < TWENTY_FOUR_HOURS_MS;
+    }
+
+    return false;
+}
+
+export function filterActiveStories(stories: any[], now: Date = new Date()): any[] {
+    return (stories || []).filter(s => isStoryActive(s, now));
+}
+
+export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[] = [], onlyActive: boolean = true) {
     const storyMap = new Map<string, any>();
     
     for (const s of (metaStories || [])) {
@@ -53,7 +84,8 @@ export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[]
         }
     }
     
-    return Array.from(storyMap.values());
+    const all = Array.from(storyMap.values());
+    return onlyActive ? filterActiveStories(all) : all;
 }
 
 
@@ -409,7 +441,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (meta?.stories as any[]) || [];
                 const combined = mergeStoriesHelper(direct, metaStories);
-                return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+                return combined;
             })()
         };
 
@@ -754,7 +786,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (meta?.stories as any[]) || [];
                 const combined = mergeStoriesHelper(direct, metaStories);
-                return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+                return combined;
             })(),
             match_status: matchStatus,
             is_liked: isLiked,
@@ -1457,7 +1489,7 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
             const metaStories: any[] = (user.profiles as any)?.metadata?.stories || [];
             // Merge and deduplicate by id, prefer directStories
             const stories = mergeStoriesHelper(directStories, metaStories);
-            const activeStories = stories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > now);
+            const activeStories = stories;
             if (activeStories.length > 0) {
                 feed.push({
                     id: user.id,
@@ -1505,7 +1537,7 @@ router.post('/stories', authenticateToken, (req, res, next) => {
 
         // AUTO-CLEANUP: Filter out expired stories
         const now = new Date();
-        const validStories = currentStories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > now);
+        const validStories = filterActiveStories(currentStories);
 
         let publicUrl = '';
         let publicId = '';

@@ -267,7 +267,7 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                 const directStories: any[] = (partner.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (partner.profiles as any)?.metadata?.stories || [];
                 const allStories = mergeStoriesHelper(directStories, metaStories);
-                const activeStories = allStories.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+                const activeStories = allStories;
 
                 uniqueConnections.set(partner.id, {
                     interactionId: r.id,

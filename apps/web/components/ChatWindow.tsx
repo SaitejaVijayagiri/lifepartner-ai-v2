@@ -1231,8 +1231,40 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         };
 
         const loadProfileHeader = async () => {
-            // Optimization: Skip backend round-trip if name & photo are already passed in props
-            if (partner.name && partner.photoUrl && !partner.photoUrl.includes('initials/svg')) {
+            // Check if partner info has placeholders, and check local storage for instantaneous 0ms display
+            const isNamePlaceholder = !partner.name || partner.name === 'Partner' || partner.name === 'User' || partner.name === 'Member';
+            const isPhotoPlaceholder = !partner.photoUrl || 
+                partner.photoUrl.includes('initials/svg') || 
+                partner.photoUrl.includes('ui-avatars.com') || 
+                partner.photoUrl.includes('dicebear.com') ||
+                partner.photoUrl.includes('avatar-fallback');
+
+            if (isNamePlaceholder || isPhotoPlaceholder) {
+                try {
+                    const cachedConns = typeof window !== 'undefined' ? localStorage.getItem('connections_cache_v1') : null;
+                    if (cachedConns) {
+                        const conns = JSON.parse(cachedConns);
+                        if (Array.isArray(conns)) {
+                            const found = conns.find((c: any) => 
+                                c?.partner?.id === partner.id || 
+                                c?.partner?.userId === partner.id || 
+                                c?.interactionId === partner.id ||
+                                c?.id === partner.id
+                            );
+                            if (found?.partner) {
+                                setPartnerInfo(prev => ({
+                                    ...prev,
+                                    name: found.partner.name || found.partner.full_name || prev.name,
+                                    photoUrl: found.partner.photoUrl || found.partner.avatar_url || prev.photoUrl
+                                }));
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            // Optimization: Skip backend round-trip only if authentic name & real photo are already verified
+            if (!isNamePlaceholder && !isPhotoPlaceholder) {
                 return;
             }
             try {

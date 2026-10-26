@@ -220,6 +220,21 @@ if (require.main === module) {
             const { initFemaleMatchRemindersCron } = require('./services/femaleMatchReminders');
             initFemaleMatchRemindersCron();
 
+            // ⏰ Auto-cleanup expired stories (runs once at boot and every hour)
+            const { cleanupExpiredStories } = require('./services/storyCleanup');
+            cleanupExpiredStories()
+                .then((cnt: number) => { if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`); })
+                .catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
+            cron.schedule('0 * * * *', async () => {
+                try {
+                    const cnt = await cleanupExpiredStories();
+                    if (cnt > 0) console.log(`[CRON] Cleaned up expired stories for ${cnt} profiles.`);
+                } catch (err) {
+                    console.error("[CRON] Story cleanup error:", err);
+                }
+            });
+            console.log("⏰ Hourly Story Expiration Cleanup Scheduled.");
+
             // ⏰ Start Daily SEO Blog Generation
             cron.schedule('0 12 * * *', async () => {
                 console.log("[CRON] Running Daily SEO Blog Generator for Indian & Global Matrimony...");

@@ -366,6 +366,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if (customUrl != null && !customUrl.trim().isEmpty()) {
             deepLinkUrl = customUrl.startsWith("http") ? customUrl : "https://lifepartnerai.in" + (customUrl.startsWith("/") ? customUrl : "/" + customUrl);
             intent.putExtra("targetPath", customUrl);
+        } else if (connId != null && !"request".equals(type) && !"witty_reengagement".equals(type)) {
+            String partnerName = (data != null && data.get("senderName") != null) ? data.get("senderName") : title;
+            String partnerPhoto = (data != null && data.get("senderPhoto") != null) ? data.get("senderPhoto") : "";
+            String chatPath = "/chat/" + connId + "?partnerName=" + android.net.Uri.encode(partnerName) + "&partnerPhoto=" + android.net.Uri.encode(partnerPhoto) + "&name=" + android.net.Uri.encode(partnerName) + "&photo=" + android.net.Uri.encode(partnerPhoto);
+            deepLinkUrl = "https://lifepartnerai.in" + chatPath;
+            intent.putExtra("targetPath", chatPath);
         } else if (campaignNotificationId != null) {
             deepLinkUrl += "&notificationId=" + campaignNotificationId + "&action=notification_body";
             intent.putExtra("targetPath", deepLinkUrl);

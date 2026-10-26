@@ -1414,7 +1414,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     const direct: any[] = (c.profiles?.stories as any[]) || [];
                     const metaStories: any[] = (meta?.stories as any[]) || [];
                     const combined = mergeStoriesHelper(direct, metaStories);
-                    return combined.filter((s: any) => Boolean(s.isHighlight) || new Date(s.expiresAt) > new Date());
+                    return combined;
                 })(),
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,

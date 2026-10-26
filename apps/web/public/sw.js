@@ -128,7 +128,9 @@ self.addEventListener('notificationclick', function (event) {
         if (!replyText) {
             // Browser does not support inline reply input or user tapped reply without typing:
             // Fall back to opening the chat window directly
-            const targetUrl = senderId ? `/dashboard?tab=connections&chatId=${senderId}` : '/dashboard';
+            const pName = payloadData.senderName || payloadData.callerName || '';
+            const pPhoto = payloadData.senderPhoto || payloadData.callerPhoto || '';
+            const targetUrl = senderId ? `/dashboard?tab=connections&chatId=${senderId}&name=${encodeURIComponent(pName)}&photo=${encodeURIComponent(pPhoto)}` : '/dashboard';
             event.waitUntil(
                 clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
                     for (let i = 0; i < windowClients.length; i++) {
@@ -325,7 +327,9 @@ self.addEventListener('notificationclick', function (event) {
     // 4. Default click: Open / focus target app window
     let targetUrl = payloadData.url || '/dashboard';
     if (!payloadData.url && senderId) {
-        targetUrl = `/chat/${senderId}`;
+        const pName = payloadData.senderName || payloadData.callerName || '';
+        const pPhoto = payloadData.senderPhoto || payloadData.callerPhoto || '';
+        targetUrl = `/chat/${senderId}?partnerName=${encodeURIComponent(pName)}&partnerPhoto=${encodeURIComponent(pPhoto)}&name=${encodeURIComponent(pName)}&photo=${encodeURIComponent(pPhoto)}`;
     } else if (!payloadData.url && (payloadData.type === 'like' || payloadData.type === 'view') && (payloadData.fromUserId || payloadData.from)) {
         const id = payloadData.fromUserId || payloadData.from;
         targetUrl = `/dashboard?tab=matches&viewProfile=${id}`;

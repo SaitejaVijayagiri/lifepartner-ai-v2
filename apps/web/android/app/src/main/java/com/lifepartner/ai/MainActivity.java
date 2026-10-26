@@ -120,11 +120,15 @@ public class MainActivity extends BridgeActivity {
                             "    window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } })); " +
                             "  } " +
                             "}";
-                    webView.postDelayed(() -> {
-                        try {
-                            webView.evaluateJavascript(script, null);
-                        } catch (Exception ignored) {}
-                    }, 800);
+                    if (webView.getProgress() >= 90) {
+                        webView.evaluateJavascript(script, null);
+                    } else {
+                        webView.postDelayed(() -> {
+                            try {
+                                webView.evaluateJavascript(script, null);
+                            } catch (Exception ignored) {}
+                        }, 200);
+                    }
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error handling deep link navigation: ", e);

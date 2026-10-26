@@ -404,12 +404,26 @@ function DashboardContent() {
     useEffect(() => {
         const handleOpenChatEvent = (e: any) => {
             if (e.detail && e.detail.partnerId) {
+                const pId = e.detail.partnerId;
+                let pName = e.detail.partnerName || '';
+                let pPhoto = e.detail.partnerPhoto || '';
+
+                if (!pName || !pPhoto || pPhoto.includes('dicebear')) {
+                    const found = (Array.isArray(connections) ? connections : []).find((c: any) => 
+                        c?.partner?.id === pId || c?.partner?.userId === pId || c?.interactionId === pId
+                    );
+                    if (found?.partner) {
+                        if (!pName) pName = found.partner.name || found.partner.full_name || '';
+                        if (!pPhoto || pPhoto.includes('dicebear')) pPhoto = found.partner.photoUrl || found.partner.avatar_url || '';
+                    }
+                }
+
                 openChat({
-                    interactionId: e.detail.partnerId,
+                    interactionId: pId,
                     partner: {
-                        id: e.detail.partnerId,
-                        name: e.detail.partnerName || 'User',
-                        photoUrl: e.detail.partnerPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${e.detail.partnerId}`,
+                        id: pId,
+                        name: pName,
+                        photoUrl: pPhoto,
                         role: 'Online'
                     }
                 });
@@ -833,8 +847,8 @@ function DashboardContent() {
         const tab = searchParams.get('tab');
         const edit = searchParams.get('edit');
         const chatId = searchParams.get('chatId');
-        const partnerName = searchParams.get('name');
-        const partnerPhoto = searchParams.get('photo');
+        const partnerName = searchParams.get('partnerName') || searchParams.get('name') || searchParams.get('callerName') || searchParams.get('senderName');
+        const partnerPhoto = searchParams.get('partnerPhoto') || searchParams.get('photo') || searchParams.get('callerPhoto');
 
         if (tab) {
             setActiveTab(tab);
@@ -844,13 +858,27 @@ function DashboardContent() {
         }
         if (chatId) {
             setActiveTab('connections');
+
+            let resolvedName = partnerName ? decodeURIComponent(partnerName) : '';
+            let resolvedPhoto = partnerPhoto ? decodeURIComponent(partnerPhoto) : '';
+
+            if (!resolvedName || !resolvedPhoto) {
+                const found = (Array.isArray(connections) ? connections : []).find((c: any) => 
+                    c?.partner?.id === chatId || c?.partner?.userId === chatId || c?.interactionId === chatId
+                );
+                if (found?.partner) {
+                    if (!resolvedName) resolvedName = found.partner.name || found.partner.full_name || '';
+                    if (!resolvedPhoto) resolvedPhoto = found.partner.photoUrl || found.partner.avatar_url || '';
+                }
+            }
+
             // Auto open the chat window with sender's real name and photo
             setSelectedConnection({
                 interactionId: chatId,
                 partner: {
                     id: chatId,
-                    name: partnerName ? decodeURIComponent(partnerName) : 'Partner',
-                    photoUrl: partnerPhoto ? decodeURIComponent(partnerPhoto) : ''
+                    name: resolvedName,
+                    photoUrl: resolvedPhoto
                 }
             });
             
@@ -859,6 +887,8 @@ function DashboardContent() {
             newUrl.searchParams.delete('chatId');
             newUrl.searchParams.delete('name');
             newUrl.searchParams.delete('photo');
+            newUrl.searchParams.delete('partnerName');
+            newUrl.searchParams.delete('partnerPhoto');
             window.history.replaceState({}, '', newUrl.toString());
         }
 

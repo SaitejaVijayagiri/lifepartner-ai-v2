@@ -423,9 +423,11 @@ self.addEventListener('notificationclick', function(event) {
     }
     
     let urlToOpen = payloadData.url || `/dashboard?tab=${targetTab}`;
-    if (!payloadData.url && type === 'match' && (payloadData.senderId || payloadData.chatId)) {
+    if (!payloadData.url && (type === 'match' || type === 'message' || type === 'chat' || payloadData.senderId || payloadData.chatId)) {
         const id = payloadData.senderId || payloadData.chatId;
-        urlToOpen = `/chat/${id}`;
+        const pName = payloadData.senderName || payloadData.callerName || '';
+        const pPhoto = payloadData.senderPhoto || payloadData.callerPhoto || '';
+        urlToOpen = `/chat/${id}?partnerName=${encodeURIComponent(pName)}&partnerPhoto=${encodeURIComponent(pPhoto)}&name=${encodeURIComponent(pName)}&photo=${encodeURIComponent(pPhoto)}`;
     } else if (!payloadData.url && (type === 'like' || type === 'view') && (payloadData.fromUserId || payloadData.from || payloadData.senderId)) {
         const id = payloadData.fromUserId || payloadData.from || payloadData.senderId;
         urlToOpen = `/dashboard?tab=matches&viewProfile=${id}`;

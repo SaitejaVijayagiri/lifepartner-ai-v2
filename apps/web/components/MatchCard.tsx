@@ -411,13 +411,22 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     const highlightedStories = match.stories.filter((s: any) => s && Boolean(s.isHighlight || s.is_highlight));
                     const active24hStories = match.stories.filter((s: any) => {
                         if (!s) return false;
-                        const isH = Boolean(s.isHighlight || s.is_highlight);
-                        if (isH) return false;
-                        const expDate = s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) : null;
-                        const createdDate = s.createdAt || s.created_at ? new Date(s.createdAt || s.created_at) : null;
-                        if (expDate) return expDate > now;
-                        if (createdDate) return (now.getTime() - createdDate.getTime()) < 24 * 60 * 60 * 1000;
-                        return true;
+                        if (Boolean(s.isHighlight || s.is_highlight)) return false;
+                        const expStr = s.expiresAt || s.expires_at;
+                        if (expStr) {
+                            const expMs = new Date(expStr).getTime();
+                            if (!isNaN(expMs)) return expMs > now.getTime();
+                        }
+                        const createdStr = s.createdAt || s.created_at || s.timestamp;
+                        if (createdStr) {
+                            const createdMs = new Date(createdStr).getTime();
+                            if (!isNaN(createdMs)) return (now.getTime() - createdMs) < 24 * 60 * 60 * 1000;
+                        }
+                        if (s.id && typeof s.id === 'string' && /^\d{13}$/.test(s.id)) {
+                            const idMs = Number(s.id);
+                            if (!isNaN(idMs)) return (now.getTime() - idMs) < 24 * 60 * 60 * 1000;
+                        }
+                        return false;
                     });
 
                     if (highlightedStories.length === 0 && active24hStories.length === 0) return null;

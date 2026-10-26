@@ -5,6 +5,7 @@ import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHoriz
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { filterActiveStories } from '@/lib/utils';
 import { FilterState } from '@/components/FilterModal';
 import { useSocket } from '@/context/SocketContext';
 
@@ -207,8 +208,13 @@ export default function MatchesTab({
 
     const handleViewStory = (user: any) => {
         if (!user.stories || user.stories.length === 0) return;
+        const validStories = filterActiveStories(user.stories);
+        if (validStories.length === 0) {
+            toast.info("This story has expired.");
+            return;
+        }
         setActiveStorySet({
-            stories: user.stories,
+            stories: validStories,
             user: user
         });
     };

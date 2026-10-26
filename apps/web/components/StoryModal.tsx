@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye, Star, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
-import { getProfilePhotoUrl } from '@/lib/utils';
+import { getProfilePhotoUrl, filterActiveStories, isStoryActive } from '@/lib/utils';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
 import { MUSIC_CATALOG } from './StoryMusicStudio';
@@ -54,12 +54,18 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     const [isSending, setIsSending] = useState(false);
     const [isViewsOpen, setIsViewsOpen] = useState(false);
     const [localLikes, setLocalLikes] = useState(0);
-    const [storiesList, setStoriesList] = useState<Story[]>(stories);
+    const initialActive = useMemo(() => filterActiveStories(stories || []), [stories]);
+    const [storiesList, setStoriesList] = useState<Story[]>(initialActive);
     const [isAudioMuted, setIsAudioMuted] = useState(false);
     const [audioCurrentTime, setAudioCurrentTime] = useState(0);
 
     useEffect(() => {
-        setStoriesList(stories);
+        const filtered = filterActiveStories(stories || []);
+        if (filtered.length === 0) {
+            onClose();
+            return;
+        }
+        setStoriesList(filtered);
     }, [stories]);
 
     const story = (storiesList && storiesList[currentIndex]) ? (storiesList[currentIndex] as any) : null;

@@ -35,7 +35,7 @@ export const extractPhotosList = (profileObj: any, meta: any = {}, defaultAvatar
     // If user has custom uploaded photos (Cloudinary, Supabase, base64, uploads),
     // remove any imported Google placeholder avatars so real photos are not overshadowed
     const hasCustomPhotos = validStrings.some((p: string) =>
-        p.includes('cloudinary') || p.includes('supabase') || p.startsWith('data:image') || p.startsWith('/uploads/')
+        p.includes('cloudinary') || p.includes('supabase') || p.includes('r2.dev') || p.includes('r2.cloudflarestorage.com') || p.startsWith('data:image') || p.startsWith('/uploads/')
     );
     if (hasCustomPhotos) {
         return validStrings.filter((p: string) => !p.includes('googleusercontent.com'));

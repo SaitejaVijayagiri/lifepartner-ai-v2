@@ -25,6 +25,8 @@ const nextConfig = {
             { protocol: 'https', hostname: 'i.pravatar.cc' },
             { protocol: 'https', hostname: 'via.placeholder.com' },
             { protocol: 'https', hostname: 'placehold.co' },
+            { protocol: 'https', hostname: '*.r2.dev' },
+            { protocol: 'https', hostname: 'res.cloudinary.com' },
         ],
         unoptimized: true,
     },

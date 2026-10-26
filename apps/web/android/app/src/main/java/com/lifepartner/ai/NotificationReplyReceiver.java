@@ -28,6 +28,10 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
 
                 Log.d(TAG, "Reply text received for partner: " + connId + ", senderName: " + senderName);
 
+                // Clear message history for this contact so the replied conversation resets
+                SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
+                prefs.edit().remove("chat_msg_history_" + connId).apply();
+
                 NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
                 // 1. Immediately update notification with RemoteInput history to dismiss system progress spinner

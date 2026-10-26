@@ -15,6 +15,7 @@
  */
 
 import { v2 as cloudinary } from 'cloudinary';
+import { ContentModerator } from './contentModerator';
 
 // Configure on first import
 cloudinary.config({
@@ -53,6 +54,14 @@ export const uploadToCloudinary = async (
     if (!base64 || !base64.startsWith('data:image')) {
         // Already a URL — return as-is
         return base64;
+    }
+
+    // 🛡️ Pre-Upload NSFW Content Moderation Guard
+    // Rejects prohibited/adult images locally before they can ever reach Cloudinary
+    const moderation = await ContentModerator.checkBase64(base64);
+    if (!moderation.isSafe) {
+        console.warn(`🚨 [Cloudinary Guard] Blocked prohibited base64 photo ${index} for user ${userId}: ${moderation.reason}`);
+        return null;
     }
 
     try {
@@ -97,6 +106,13 @@ export const uploadFileToCloudinary = async (
         return null;
     }
 
+    // 🛡️ Pre-Upload NSFW Content Moderation Guard
+    const moderation = await ContentModerator.checkFile(filePath);
+    if (!moderation.isSafe) {
+        console.warn(`🚨 [Cloudinary Guard] Blocked prohibited file for user ${userId}: ${moderation.reason}`);
+        return null;
+    }
+
     try {
         const uploadOptions: any = {
             folder: `lifepartner/stories/${userId}`,
@@ -135,6 +151,15 @@ export const uploadBufferToCloudinary = async (
     if (!isConfigured()) {
         console.warn('[Cloudinary] Not configured — skipping buffer upload.');
         return null;
+    }
+
+    // 🛡️ Pre-Upload NSFW Content Moderation Guard
+    if (resourceType === 'image' || resourceType === 'auto') {
+        const moderation = await ContentModerator.checkBuffer(buffer);
+        if (!moderation.isSafe) {
+            console.warn(`🚨 [Cloudinary Guard] Blocked prohibited buffer upload to ${folder}: ${moderation.reason}`);
+            return null;
+        }
     }
 
     return new Promise((resolve) => {

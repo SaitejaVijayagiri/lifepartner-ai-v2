@@ -306,6 +306,13 @@ function RegisterForm() {
                         {loading ? 'Verifying...' : 'Verify & Continue'}
                     </Button>
 
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center px-2 leading-relaxed">
+                        By signing up, you agree to our{' '}
+                        <Link href="/terms" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">Terms of Service</Link>
+                        {' '}and{' '}
+                        <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">Privacy Policy</Link>.
+                    </p>
+
                     {/* Resend OTP */}
                     <div className="flex flex-col items-center gap-2">
                         {resendCooldown > 0 ? (
@@ -588,6 +595,13 @@ function RegisterForm() {
                             </span>
                         ) : 'Sign Up Free'}
                     </Button>
+
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center px-2 leading-relaxed">
+                        By signing up, you agree to our{' '}
+                        <Link href="/terms" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">Terms of Service</Link>
+                        {' '}and{' '}
+                        <Link href="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold">Privacy Policy</Link>.
+                    </p>
 
                     <div className="relative flex py-2 items-center">
                         <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>

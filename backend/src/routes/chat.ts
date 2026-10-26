@@ -7,6 +7,8 @@ import { authenticateToken } from '../middleware/auth';
 import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import { isConfigured, uploadBufferToCloudinary } from '../services/cloudinaryStorage';
+import { isR2Configured, uploadBufferToR2 } from '../services/r2Storage';
+import { ContentModerator } from '../services/contentModerator';
 
 const memoryUpload = multer({ 
     storage: multer.memoryStorage(),
@@ -391,7 +393,10 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                         connId: senderId,
                         senderName: senderFirstName,
                         senderPhoto: senderPhotoUrl,
-                        type: 'message'
+                        title: senderFirstName,
+                        body: pushBody,
+                        type: 'message',
+                        timestamp: Date.now()
                     }
                 );
             }
@@ -756,7 +761,33 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
             resourceType = 'video';
         }
 
-        // 1. Primary Storage: Cloudinary CDN (fast, compressed, global)
+        // Content moderation check for chat attachments
+        if (resourceType === 'image') {
+            const moderation = await ContentModerator.checkBuffer(file.buffer, file.mimetype);
+            if (!moderation.isSafe) {
+                console.warn(`🚨 [chat/upload-media] Blocked prohibited chat image for user ${userId}: ${moderation.reason}`);
+                return res.status(400).json({
+                    error: moderation.reason || 'Image violates community guidelines (prohibited or adult content detected).'
+                });
+            }
+        }
+
+        // 1. Primary Storage: Cloudflare R2 (zero egress fees, safe for private media)
+        if (isR2Configured()) {
+            const ext = path.extname(file.originalname || '') || (resourceType === 'image' ? '.jpg' : '.mp4');
+            const key = `chat/${userId}/${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+            const r2Upload = await uploadBufferToR2(file.buffer, key, file.mimetype, true);
+            if (r2Upload?.url) {
+                return res.json({
+                    success: true,
+                    url: r2Upload.url,
+                    key: r2Upload.key,
+                    mimetype: file.mimetype
+                });
+            }
+        }
+
+        // 2. Fallback Storage: Cloudinary CDN (fast, compressed, global)
         if (isConfigured()) {
             const uploadResult = await uploadBufferToCloudinary(
                 file.buffer,

@@ -205,6 +205,10 @@ if (require.main === module) {
             await prisma.$connect();
             console.log("✅ Prisma Connected (Schema Verified)");
 
+            // Preload local NSFW content moderation model (warm up in background)
+            const { ContentModerator } = require('./services/contentModerator');
+            ContentModerator.preload();
+
             // Start Angel Timer
             initAngelTimer();
 

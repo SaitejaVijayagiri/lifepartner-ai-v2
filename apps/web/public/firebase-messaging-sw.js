@@ -87,7 +87,24 @@ messaging.onBackgroundMessage((payload) => {
         ];
     }
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    const incomingSender = payload.data?.connId || payload.data?.senderId || payload.data?.from;
+    const tag = incomingSender ? `chat_${incomingSender}` : (payload.data?.notificationId || 'lifepartner_alert');
+    notificationOptions.tag = tag;
+
+    // WhatsApp-style message stacking
+    self.registration.getNotifications({ tag }).then(existingNotifications => {
+        let finalTitle = notificationTitle;
+        let finalBody = notificationOptions.body;
+        if (existingNotifications && existingNotifications.length > 0 && incomingSender) {
+            const existing = existingNotifications[0];
+            const existingList = (existing.data && existing.data.stacked) || [existing.body];
+            const updatedList = [...existingList, notificationOptions.body].slice(-4);
+            finalTitle = `${notificationTitle} (${updatedList.length} messages)`;
+            finalBody = updatedList.join('\n');
+            notificationOptions.data = { ...notificationOptions.data, stacked: updatedList };
+        }
+        self.registration.showNotification(finalTitle, { ...notificationOptions, body: finalBody });
+    });
 });
 
 // Handle clicks natively for offline notifications

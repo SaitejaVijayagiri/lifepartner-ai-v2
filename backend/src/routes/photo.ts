@@ -1,4 +1,5 @@
 import express from 'express';
+import { getObjectFromR2 } from '../services/r2Storage';
 
 const router = express.Router();
 
@@ -50,6 +51,44 @@ router.get(['/', '/proxy'], async (req, res) => {
  * Helper: Convert a Supabase storage URL to a proxied Render URL.
  * Re-exported from utils/photoUrl.ts for backward compatibility with routes that import from here.
  */
+/**
+ * Cloudflare R2 Public Image Delivery Route
+ * Streams images from R2 with aggressive browser and CDN caching.
+ * 
+ * GET /photo/r2/*
+ */
+router.get('/r2/*', async (req, res) => {
+    const key = (req.params as any)[0] || (req.query.key as string);
+
+    if (!key) {
+        return res.status(400).send('Missing R2 object key');
+    }
+
+    try {
+        const obj = await getObjectFromR2(key);
+        if (!obj || !obj.body) {
+            return res.status(404).send('Image not found in R2');
+        }
+
+        res.set('Content-Type', obj.contentType || 'image/jpeg');
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        res.set('X-Storage-Backend', 'cloudflare-r2');
+
+        if (typeof obj.body.pipe === 'function') {
+            obj.body.pipe(res);
+        } else {
+            const chunks: Buffer[] = [];
+            for await (const chunk of obj.body) {
+                chunks.push(Buffer.from(chunk));
+            }
+            res.send(Buffer.concat(chunks));
+        }
+    } catch (err: any) {
+        console.error(`[PhotoR2] Failed to serve ${key}:`, err?.message || err);
+        return res.status(500).send('Error serving image from R2');
+    }
+});
+
 export { toProxyUrl } from '../utils/photoUrl';
 
 export default router;

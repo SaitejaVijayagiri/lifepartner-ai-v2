@@ -16,7 +16,9 @@ import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
+import { ContentModerator } from '../services/contentModerator';
 import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
+import { isR2Configured, uploadBase64ToR2, uploadBufferToR2 } from '../services/r2Storage';
 import { isUserOnline } from '../socket';
 
 export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[] = []) {
@@ -66,7 +68,15 @@ export function mergeStoriesHelper(directStories: any[] = [], metaStories: any[]
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string | null> {
     if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Already a URL
 
-    // We store only in Cloudinary
+    // 1. Cloudflare R2 Storage (Primary if configured: zero egress fees, unlimited storage)
+    if (isR2Configured()) {
+        const key = `profiles/${userId}/photo_${Date.now()}.jpg`;
+        const r2Url = await uploadBase64ToR2(base64, key, true);
+        if (r2Url) return r2Url;
+        console.warn('[profile] Cloudflare R2 upload failed, trying Cloudinary fallback.');
+    }
+
+    // 2. Cloudinary fallback
     if (cloudinaryConfigured()) {
         const cloudinaryUrl = await uploadToCloudinary(base64, userId);
         if (cloudinaryUrl) return cloudinaryUrl;
@@ -824,6 +834,10 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 const modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
 
                 if (!modResult.isValid) {
+                    if ((modResult as any).isProhibited) {
+                        console.error(`🚨 [profile] Photo ${i} rejected due to prohibited content: ${modResult.reason}`);
+                        throw Object.assign(new Error(modResult.reason || 'This photo contains prohibited or adult content.'), { status: 400 });
+                    }
                     if (isFirstPhoto) {
                         // Hard reject for primary avatar — show error to user
                         throw Object.assign(new Error(modResult.reason), { status: 400 });
@@ -857,7 +871,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         // If user has custom uploaded photos (Cloudinary, Supabase, base64),
         // strip any imported Google placeholder avatar so real photos are prioritized as main photo
         const hasCustomPhotos = finalPhotos.some((p: string) =>
-            typeof p === 'string' && (p.includes('cloudinary') || p.includes('supabase') || p.startsWith('data:image') || p.startsWith('/uploads/'))
+            typeof p === 'string' && (p.includes('cloudinary') || p.includes('supabase') || p.includes('r2.dev') || p.includes('r2.cloudflarestorage.com') || p.startsWith('data:image') || p.startsWith('/uploads/'))
         );
         if (hasCustomPhotos) {
             finalPhotos = finalPhotos.filter((p: string) => typeof p === 'string' && !p.includes('googleusercontent.com'));
@@ -1497,6 +1511,20 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         let publicId = '';
         let type = files[0].mimetype.startsWith('video') ? 'video' : 'image';
 
+        // Check files for prohibited / adult content before upload
+        for (const file of files) {
+            const moderation = await ContentModerator.checkFile(file.path);
+            if (!moderation.isSafe) {
+                console.warn(`🚨 [profile/story] Blocked story upload for user ${userId}: ${moderation.reason}`);
+                for (const f of files) {
+                    try { if (fs.existsSync(f.path)) fs.unlinkSync(f.path); } catch (e) {}
+                }
+                return res.status(400).json({
+                    error: moderation.reason || 'Story contains prohibited content, violating community standards.'
+                });
+            }
+        }
+
         logDebug(`Starting upload to Cloudinary...`);
 
         if (files.length > 1) {
@@ -1527,14 +1555,28 @@ router.post('/stories', authenticateToken, (req, res, next) => {
             if (req.body.startTime !== undefined) uploadOptions.startOffset = parseFloat(req.body.startTime);
             if (req.body.endTime !== undefined) uploadOptions.endOffset = parseFloat(req.body.endTime);
             
-            const uploadResult = await uploadFileToCloudinary(file.path, userId, uploadOptions);
+            if (isR2Configured()) {
+                const ext = path.extname(file.originalname || file.path) || (type === 'video' ? '.mp4' : '.jpg');
+                const key = `stories/${userId}/story_${Date.now()}${ext}`;
+                const fileBuf = fs.readFileSync(file.path);
+                const r2Result = await uploadBufferToR2(fileBuf, key, file.mimetype, true);
+                if (r2Result) {
+                    publicUrl = r2Result.url;
+                    publicId = r2Result.key;
+                    logDebug(`R2 Story Upload Success: ${publicUrl}`);
+                }
+            }
+
+            const uploadResult = !publicUrl ? await uploadFileToCloudinary(file.path, userId, uploadOptions) : null;
             
             if (uploadResult) {
                 publicUrl = uploadResult.url;
                 publicId = uploadResult.publicId;
                 logDebug(`Upload Success: ${publicUrl}`);
             } else {
-                throw new Error("Failed to upload story to Cloudinary. Supabase uploads are disabled.");
+                if (!publicUrl) {
+                    throw new Error("Failed to upload story.");
+                }
             }
         }
 

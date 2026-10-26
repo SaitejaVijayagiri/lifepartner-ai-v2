@@ -84,7 +84,23 @@ self.addEventListener('push', function (event) {
                 }
             }
 
-            return self.registration.showNotification(title, options);
+            // WhatsApp-style notification stacking for chat messages
+            const tag = incomingSender ? `chat_${incomingSender}` : (data.notificationId || 'lifepartner_alert');
+            options.tag = tag;
+
+            return self.registration.getNotifications({ tag }).then(existingNotifications => {
+                let finalTitle = title;
+                let finalBody = options.body;
+                if (existingNotifications && existingNotifications.length > 0 && incomingSender) {
+                    const existing = existingNotifications[0];
+                    const existingList = (existing.data && existing.data.stacked) || [existing.body];
+                    const updatedList = [...existingList, options.body].slice(-4);
+                    finalTitle = `${title} (${updatedList.length} messages)`;
+                    finalBody = updatedList.join('\n');
+                    options.data = { ...options.data, stacked: updatedList };
+                }
+                return self.registration.showNotification(finalTitle, { ...options, body: finalBody });
+            });
         });
 
         event.waitUntil(pushPromise);

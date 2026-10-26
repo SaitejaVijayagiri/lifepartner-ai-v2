@@ -12,7 +12,9 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.Person;
 import androidx.core.app.RemoteInput;
+import androidx.core.graphics.drawable.IconCompat;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -117,15 +119,23 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                         title = "💖 Request Accepted! You are Connected!";
                     }
                 } else {
-                    if (dataTitle != null && !dataTitle.isEmpty()) {
-                        title = dataTitle;
-                    } else if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                    if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
                         title = extractedSenderName;
+                    } else if (dataTitle != null && !dataTitle.isEmpty()) {
+                        title = dataTitle;
                     }
                 }
                 
                 String dataBody = data.get("body");
-                if (dataBody != null && !dataBody.isEmpty()) body = dataBody;
+                if (dataBody != null && !dataBody.isEmpty()) {
+                    body = dataBody;
+                } else if (data.get("message") != null && !data.get("message").isEmpty()) {
+                    body = data.get("message");
+                } else if (data.get("text") != null && !data.get("text").isEmpty()) {
+                    body = data.get("text");
+                } else if (extractedSenderName != null && !extractedSenderName.isEmpty()) {
+                    body = "Sent you a message 💬";
+                }
 
                 // Extract sender photo — fallback chain with proxying and SVG handling
                 String rawPhoto = data.get("senderPhoto");
@@ -393,7 +403,65 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.setSubText(senderDetails);
         }
 
-        if (bannerBitmap != null) {
+        boolean isChatMessage = "message".equals(type) || "chat".equals(type) || 
+                (connId != null && !"incoming_call".equals(type) && !"request".equals(type) && !"witty_reengagement".equals(type));
+
+        if (isChatMessage && connId != null) {
+            builder.setGroup("com.lifepartner.ai.CHATS");
+
+            // WhatsApp-style conversation message history per partner
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            String historyKey = "chat_msg_history_" + connId;
+            String rawHistory = prefs.getString(historyKey, "");
+
+            long now = System.currentTimeMillis();
+            String newEntry = now + "|" + body;
+            String updatedHistory = rawHistory.isEmpty() ? newEntry : rawHistory + "\n" + newEntry;
+
+            // Retain up to 7 recent messages for conversation view
+            String[] lines = updatedHistory.split("\n");
+            if (lines.length > 7) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = lines.length - 7; i < lines.length; i++) {
+                    if (sb.length() > 0) sb.append("\n");
+                    sb.append(lines[i]);
+                }
+                updatedHistory = sb.toString();
+            }
+            prefs.edit().putString(historyKey, updatedHistory).apply();
+
+            Person userPerson = new Person.Builder()
+                    .setName("Me")
+                    .setKey("me")
+                    .build();
+
+            Person.Builder senderPersonBuilder = new Person.Builder()
+                    .setName(title)
+                    .setKey(connId);
+            if (largeIcon != null) {
+                senderPersonBuilder.setIcon(IconCompat.createWithBitmap(largeIcon));
+            }
+            Person senderPerson = senderPersonBuilder.build();
+
+            NotificationCompat.MessagingStyle messagingStyle = new NotificationCompat.MessagingStyle(userPerson)
+                    .setConversationTitle(null);
+
+            for (String line : updatedHistory.split("\n")) {
+                int sep = line.indexOf("|");
+                if (sep != -1) {
+                    try {
+                        long ts = Long.parseLong(line.substring(0, sep));
+                        String msgText = line.substring(sep + 1);
+                        messagingStyle.addMessage(msgText, ts, senderPerson);
+                    } catch (Exception ignored) {
+                        messagingStyle.addMessage(line, now, senderPerson);
+                    }
+                } else {
+                    messagingStyle.addMessage(line, now, senderPerson);
+                }
+            }
+            builder.setStyle(messagingStyle);
+        } else if (bannerBitmap != null) {
             builder.setStyle(new NotificationCompat.BigPictureStyle()
                     .bigPicture(bannerBitmap)
                     .bigLargeIcon((Bitmap) null)); // Hide large icon in expanded view
@@ -584,6 +652,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         // Use method-level notificationId (same value used in Like intent above)
         manager.notify(notificationId, builder.build());
+
+        // WhatsApp-style Group Summary: Bundles multiple conversation threads into a single expandable stack
+        if (isChatMessage) {
+            NotificationCompat.Builder summaryBuilder = new NotificationCompat.Builder(this, "lifepartner_chat")
+                    .setSmallIcon(R.drawable.ic_stat_notification)
+                    .setGroup("com.lifepartner.ai.CHATS")
+                    .setGroupSummary(true)
+                    .setAutoCancel(true);
+            manager.notify(999999, summaryBuilder.build());
+        }
     }
 
     private void sendTokenToBackend(final String token, final String authToken) {

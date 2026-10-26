@@ -4,6 +4,8 @@ import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { uploadToCloudinary, deleteFromCloudinary } from '../services/cloudinaryStorage';
+import { isR2Configured, uploadBase64ToR2 } from '../services/r2Storage';
+import { ContentModerator } from '../services/contentModerator';
 import { getIO } from '../socket';
 
 const router = express.Router();
@@ -92,9 +94,25 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
 
         // Upload snap image to Cloudinary CDN
         if (finalMediaUrl.startsWith('data:image')) {
-            const cloudinaryUrl = await uploadToCloudinary(finalMediaUrl, `instants_${userId}`);
-            if (cloudinaryUrl) {
-                finalMediaUrl = cloudinaryUrl;
+            const moderation = await ContentModerator.checkBase64(finalMediaUrl);
+            if (!moderation.isSafe) {
+                console.warn(`🚨 [instants/create] Blocked prohibited snap for user ${userId}: ${moderation.reason}`);
+                return res.status(400).json({
+                    error: moderation.reason || 'Snap rejected: image contains prohibited or adult content.'
+                });
+            }
+
+            if (isR2Configured()) {
+                const key = `instants/${userId}/snap_${Date.now()}.jpg`;
+                const r2Url = await uploadBase64ToR2(finalMediaUrl, key, true);
+                if (r2Url) {
+                    finalMediaUrl = r2Url;
+                }
+            } else {
+                const cloudinaryUrl = await uploadToCloudinary(finalMediaUrl, `instants_${userId}`);
+                if (cloudinaryUrl) {
+                    finalMediaUrl = cloudinaryUrl;
+                }
             }
         }
 

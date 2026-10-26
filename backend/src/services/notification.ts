@@ -399,17 +399,18 @@ export class NotificationService {
 
         // ==========================================
         // PROVIDER 3: OneSignal Fallback
-        // Only deliver via OneSignal if the user explicitly has onesignal subscriptions
-        // and hasn't already received the notification via Native Android FCM or WebPush
-        // (prevents duplicate banners popping up on the same device)
+        // Only deliver via OneSignal if the user hasn't already received the notification
+        // via Native Android FCM or WebPush (strictly prevents duplicate notifications on the same device)
         // ==========================================
         const oneSignal = OneSignalService.getInstance();
         if (oneSignal.isReady()) {
             const hasExplicitOneSignal = onesignalRecords.length > 0;
-            const needsFallbackDelivery = !androidDispatched && !webPushDispatched;
-            if (hasExplicitOneSignal || needsFallbackDelivery) {
+            const alreadyDispatched = androidDispatched || webPushDispatched;
+            if (!alreadyDispatched && (hasExplicitOneSignal || onesignalRecords.length > 0)) {
                 oneSignal.sendToUser(userId, title, body, {
                     ...data,
+                    title: String(title),
+                    body: String(body),
                     senderId: senderId || data?.senderId,
                     connId: senderId || data?.connId,
                     senderPhoto,

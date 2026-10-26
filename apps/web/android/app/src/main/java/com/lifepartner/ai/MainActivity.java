@@ -723,6 +723,13 @@ public class MainActivity extends BridgeActivity {
             try {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putString("active_chat_id", MainActivity.activeChatPartnerId).apply();
+                if (MainActivity.activeChatPartnerId != null) {
+                    prefs.edit().remove("chat_msg_history_" + MainActivity.activeChatPartnerId).apply();
+                    NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    if (manager != null) {
+                        manager.cancel(MainActivity.activeChatPartnerId.hashCode());
+                    }
+                }
                 Log.d(TAG, "NativeBridge.setActiveChat: " + MainActivity.activeChatPartnerId);
             } catch (Exception e) {
                 Log.e(TAG, "Error in setActiveChat: ", e);

@@ -87,28 +87,8 @@ export default function MessageToastBanner() {
                 } catch (err) {}
             }
 
-            // Fire native browser / device push notification ONLY if tab is hidden or backgrounded
-            if (typeof window !== 'undefined' && 'Notification' in window && document.visibilityState === 'hidden') {
-                if (Notification.permission === 'granted') {
-                    try {
-                        const notif = new Notification(newToast.senderName, {
-                            body: preview,
-                            icon: newToast.senderPhoto || '/icon-192x192.png',
-                            badge: '/icon-192x192.png',
-                            tag: `chat-${newToast.senderId}`,
-                        });
-                        notif.onclick = () => {
-                            window.focus();
-                            router.push(`/chat/${newToast.senderId}`);
-                            notif.close();
-                        };
-                    } catch (e) {
-                        console.error('Native notification error:', e);
-                    }
-                } else if (Notification.permission === 'default') {
-                    Notification.requestPermission();
-                }
-            }
+            // Note: Background push notifications are handled strictly by the Service Worker
+            // (sw.js / WebPush) and native FCM to prevent duplicate notifications.
 
             setToasts(prev => {
                 // Max 3 toasts at once, replace existing toast from same sender

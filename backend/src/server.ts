@@ -213,10 +213,6 @@ if (require.main === module) {
             await prisma.$connect();
             console.log("✅ Prisma Connected (Schema Verified)");
 
-            // Preload local NSFW content moderation model (warm up in background)
-            const { ContentModerator } = require('./services/contentModerator');
-            ContentModerator.preload();
-
             // Start Angel Timer
             initAngelTimer();
 
@@ -228,11 +224,13 @@ if (require.main === module) {
             const { initFemaleMatchRemindersCron } = require('./services/femaleMatchReminders');
             initFemaleMatchRemindersCron();
 
-            // ⏰ Auto-cleanup expired stories (runs once at boot and every hour)
+            // ⏰ Auto-cleanup expired stories (runs 15s after boot and every hour)
             const { cleanupExpiredStories } = require('./services/storyCleanup');
-            cleanupExpiredStories()
-                .then((cnt: number) => { if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`); })
-                .catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
+            setTimeout(() => {
+                cleanupExpiredStories()
+                    .then((cnt: number) => { if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`); })
+                    .catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
+            }, 15000);
             cron.schedule('0 * * * *', async () => {
                 try {
                     const cnt = await cleanupExpiredStories();

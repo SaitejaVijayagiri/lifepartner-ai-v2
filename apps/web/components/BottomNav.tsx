@@ -54,7 +54,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-4 sm:pb-6 px-3 sm:px-4 lg:hidden transform-gpu">
+        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] sm:pb-6 px-3 sm:px-4 lg:hidden transform-gpu">
             <div className="relative flex justify-center">
 
                 {/* ─── More Popup (renders ABOVE the nav bar) ─── */}

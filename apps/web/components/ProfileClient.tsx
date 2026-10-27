@@ -186,7 +186,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-gray-900 pb-20 font-sans transition-colors duration-300">
             {/* Sticky Header */}
-            <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800 px-4 py-3 flex items-center gap-4 transition-colors">
+            <div className="sticky top-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800 px-4 py-3 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.75rem))] flex items-center gap-4 transition-colors">
                 <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                     <ArrowLeft size={24} className="text-gray-700 dark:text-gray-300" />
                 </button>

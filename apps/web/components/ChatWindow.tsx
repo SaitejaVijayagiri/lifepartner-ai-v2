@@ -1890,7 +1890,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             `}</style>
             {/* Premium Header */}
             {!isCallMode && (
-                <div className={`p-3.5 sm:p-4 text-white flex justify-between items-center relative z-50 flex-shrink-0 transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
+                <div className={`pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.875rem))] p-3.5 sm:p-4 text-white flex justify-between items-center relative z-50 flex-shrink-0 transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
                     {/* Decorative elements */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>

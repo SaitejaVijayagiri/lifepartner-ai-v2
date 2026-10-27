@@ -427,7 +427,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 onTouchEnd={() => setIsPaused(false)}
             >
                 {/* Progress Bars - Instagram Style */}
-                <div className="absolute top-3 left-3 right-3 flex gap-1.5 z-30">
+                <div className="absolute top-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.5rem))] left-3 right-3 flex gap-1.5 z-30">
                     {stories.map((s: any, idx: number) => (
                         <div key={s.id} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden backdrop-blur-sm">
                             <div
@@ -442,7 +442,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 </div>
 
                 {/* Header */}
-                <div className="absolute top-8 left-4 right-4 flex items-center justify-between z-30">
+                <div className="absolute top-[max(2rem,calc(env(safe-area-inset-top,0px)+1.5rem))] left-4 right-4 flex items-center justify-between z-30">
                     {(() => {
                         const isOnline = Boolean((user as any)?.isOnline || (Array.isArray(onlineUsers) && ((user.id && onlineUsers.includes(user.id)) || ((user as any).userId && onlineUsers.includes((user as any).userId)))));
                         return (

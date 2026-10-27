@@ -7,7 +7,7 @@ export default function StaticPageLayout({ children }: { children: React.ReactNo
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
             {/* Shared Navbar */}
-            <nav className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 sticky top-0 z-50 backdrop-blur-md bg-white/90">
+            <nav className="flex items-center justify-between px-6 py-4 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+1rem))] bg-white border-b border-gray-100 sticky top-0 z-50 backdrop-blur-md bg-white/90">
                 <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
                     LifePartner AI
                 </Link>

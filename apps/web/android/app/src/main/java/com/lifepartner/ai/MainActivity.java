@@ -1,23 +1,29 @@
 package com.lifepartner.ai;
 
 import android.Manifest;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.net.Uri;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
+import com.getcapacitor.BridgeWebViewClient;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.onesignal.OneSignal;
 
@@ -58,8 +64,8 @@ public class MainActivity extends BridgeActivity {
         // 3. Safely inject JavaScript interface with null check
         setupNativeBridge();
 
-        // 4. Setup WebChromeClient to grant WebRTC Camera/Mic permissions to WebView
-        setupWebChromeClient();
+        // 4. Setup MNC-grade WebViewClient & WebChromeClient to intercept navigation & keep all pages inside app
+        setupWebViewAndChromeClients();
 
         // 5. Fetch & register FCM token safely (legacy fallback)
         fetchAndRegisterToken();
@@ -101,6 +107,12 @@ public class MainActivity extends BridgeActivity {
             }
         }
         if (targetPath != null && !targetPath.isEmpty()) {
+            if (targetPath.startsWith("http://") || targetPath.startsWith("https://")) {
+                try {
+                    java.net.URI u = new java.net.URI(targetPath);
+                    targetPath = u.getPath() + (u.getQuery() != null ? "?" + u.getQuery() : "");
+                } catch (Exception ignored) {}
+            }
             Log.d(TAG, "Notification deep link received: " + targetPath);
             navigateToPath(targetPath);
         }
@@ -529,11 +541,49 @@ public class MainActivity extends BridgeActivity {
         super.onBackPressed();
     }
 
-    private void setupWebChromeClient() {
+    private void setupWebViewAndChromeClients() {
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
-                webView.setWebChromeClient(new WebChromeClient() {
+
+                // 1. MNC-grade WebViewClient: NEVER let internal navigation escape to external Chrome!
+                webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                        if (request == null || request.getUrl() == null) return false;
+                        Uri uri = request.getUrl();
+                        String host = uri.getHost();
+                        String scheme = uri.getScheme();
+
+                        // Stay inside the WebView for all lifepartnerai.in domains, subdomains, and local dev
+                        if (host != null && (
+                                host.equalsIgnoreCase("lifepartnerai.in") ||
+                                host.equalsIgnoreCase("www.lifepartnerai.in") ||
+                                host.endsWith(".lifepartnerai.in") ||
+                                host.equalsIgnoreCase("localhost") ||
+                                host.equalsIgnoreCase("10.0.2.2")
+                        )) {
+                            // Returning false tells Android WebView: handle URL internally in this WebView!
+                            return false;
+                        }
+
+                        // Handle standard external device protocols (phone calls, email, SMS, UPI payments, WhatsApp)
+                        if ("tel".equalsIgnoreCase(scheme) || "mailto".equalsIgnoreCase(scheme) || "sms".equalsIgnoreCase(scheme) || "upi".equalsIgnoreCase(scheme) || "whatsapp".equalsIgnoreCase(scheme)) {
+                            try {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                                startActivity(intent);
+                            } catch (Exception e) {
+                                Log.w(TAG, "No handler for scheme: " + scheme);
+                            }
+                            return true;
+                        }
+
+                        return super.shouldOverrideUrlLoading(view, request);
+                    }
+                });
+
+                // 2. MNC-grade WebChromeClient: Preserves WebRTC permissions, file uploads, and intercepts target="_blank"
+                webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
                     @Override
                     public void onPermissionRequest(final PermissionRequest request) {
                         try {
@@ -544,10 +594,36 @@ public class MainActivity extends BridgeActivity {
                             Log.e(TAG, "Error granting web permission request: ", e);
                         }
                     }
+
+                    @Override
+                    public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
+                        // Capture window.open or <a target="_blank"> and keep inside this WebView
+                        WebView.HitTestResult result = view.getHitTestResult();
+                        String data = result != null ? result.getExtra() : null;
+                        if (data != null && (data.contains("lifepartnerai.in") || data.startsWith("/"))) {
+                            view.loadUrl(data);
+                            return false;
+                        }
+
+                        WebView tempWebView = new WebView(MainActivity.this);
+                        tempWebView.setWebViewClient(new WebViewClient() {
+                            @Override
+                            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                                if (req != null && req.getUrl() != null) {
+                                    view.loadUrl(req.getUrl().toString());
+                                }
+                                return true;
+                            }
+                        });
+                        WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                        transport.setWebView(tempWebView);
+                        resultMsg.sendToTarget();
+                        return true;
+                    }
                 });
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error setting WebChromeClient: ", e);
+            Log.e(TAG, "Error setting custom WebView/ChromeClient: ", e);
         }
     }
 
@@ -558,7 +634,7 @@ public class MainActivity extends BridgeActivity {
             Log.d(TAG, "Runtime permissions processed successfully.");
             // Re-verify bridge injection after permissions are resolved
             setupNativeBridge();
-            setupWebChromeClient();
+            setupWebViewAndChromeClients();
         }
     }
 

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.lifepartner.ai",
+      "sha256_cert_fingerprints": [
+        "FA:3C:B9:45:54:76:5A:C4:BB:67:57:41:C3:68:9C:B8:63:E5:57:9E:AC:67:4F:99:CF:8B:46:B1:A2:39:B7:2C"
+      ]
+    }
+  }
+]

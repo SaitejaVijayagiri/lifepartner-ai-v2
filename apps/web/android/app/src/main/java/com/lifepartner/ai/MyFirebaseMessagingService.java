@@ -353,32 +353,42 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             manager.createNotificationChannel(aliasChannel);
         }
 
-        // 1. Regular Open-App Intent with deep link pathing
+        // 1. MNC-grade Open-App Intent: Strictly explicit, never delegates to external Chrome
         Intent intent = new Intent(this, MainActivity.class);
         intent.setPackage(getPackageName());
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        intent.setAction(Intent.ACTION_VIEW);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         
-        String deepLinkUrl = "request".equals(type)
-                ? "https://lifepartnerai.in/dashboard?tab=requests"
-                : "https://lifepartnerai.in/dashboard?tab=matches";
+        String internalPath;
         String customUrl = (data != null) ? data.get("url") : null;
         if (customUrl != null && !customUrl.trim().isEmpty()) {
-            deepLinkUrl = customUrl.startsWith("http") ? customUrl : "https://lifepartnerai.in" + (customUrl.startsWith("/") ? customUrl : "/" + customUrl);
-            intent.putExtra("targetPath", customUrl);
+            if (customUrl.startsWith("http")) {
+                try {
+                    java.net.URI u = new java.net.URI(customUrl);
+                    internalPath = u.getPath() + (u.getQuery() != null ? "?" + u.getQuery() : "");
+                } catch (Exception e) {
+                    internalPath = customUrl;
+                }
+            } else {
+                internalPath = customUrl.startsWith("/") ? customUrl : "/" + customUrl;
+            }
         } else if (connId != null && !"request".equals(type) && !"witty_reengagement".equals(type)) {
             String partnerName = (data != null && data.get("senderName") != null) ? data.get("senderName") : title;
             String partnerPhoto = (data != null && data.get("senderPhoto") != null) ? data.get("senderPhoto") : "";
-            String chatPath = "/chat/" + connId + "?partnerName=" + android.net.Uri.encode(partnerName) + "&partnerPhoto=" + android.net.Uri.encode(partnerPhoto) + "&name=" + android.net.Uri.encode(partnerName) + "&photo=" + android.net.Uri.encode(partnerPhoto);
-            deepLinkUrl = "https://lifepartnerai.in" + chatPath;
-            intent.putExtra("targetPath", chatPath);
-        } else if (campaignNotificationId != null) {
-            deepLinkUrl += "&notificationId=" + campaignNotificationId + "&action=notification_body";
-            intent.putExtra("targetPath", deepLinkUrl);
+            internalPath = "/chat/" + connId + "?partnerName=" + android.net.Uri.encode(partnerName) + "&partnerPhoto=" + android.net.Uri.encode(partnerPhoto) + "&name=" + android.net.Uri.encode(partnerName) + "&photo=" + android.net.Uri.encode(partnerPhoto);
+        } else if ("request".equals(type)) {
+            internalPath = "/dashboard?tab=requests";
         } else {
-            intent.putExtra("targetPath", deepLinkUrl);
+            internalPath = "/dashboard?tab=matches";
         }
-        intent.setData(android.net.Uri.parse(deepLinkUrl));
+
+        if (campaignNotificationId != null) {
+            internalPath += (internalPath.contains("?") ? "&" : "?") + "notificationId=" + campaignNotificationId + "&action=notification_body";
+        }
+
+        intent.putExtra("targetPath", internalPath);
+        // Use custom internal scheme "lifepartner://" which is strictly bound to MainActivity and never hijacked by Chrome
+        String customSchemeUri = "lifepartner://" + (internalPath.startsWith("/") ? internalPath.substring(1) : internalPath);
+        intent.setData(android.net.Uri.parse(customSchemeUri));
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this, 
@@ -483,12 +493,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // 2. Setup Witty Campaign Action Buttons
         if ("witty_reengagement".equals(type) && campaignNotificationId != null) {
             // Button 1: Swipe Matches 🔍
+            String matchesPath = "/dashboard?tab=matches&notificationId=" + campaignNotificationId + "&action=find_matches";
             Intent matchesIntent = new Intent(this, MainActivity.class);
             matchesIntent.setPackage(getPackageName());
-            matchesIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            matchesIntent.setAction(Intent.ACTION_VIEW);
-            matchesIntent.putExtra("targetPath", "/dashboard?tab=matches&notificationId=" + campaignNotificationId + "&action=find_matches");
-            matchesIntent.setData(android.net.Uri.parse("https://lifepartnerai.in/dashboard?tab=matches&notificationId=" + campaignNotificationId + "&action=find_matches"));
+            matchesIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            matchesIntent.putExtra("targetPath", matchesPath);
+            matchesIntent.setData(android.net.Uri.parse("lifepartner://" + matchesPath.substring(1)));
             PendingIntent matchesPendingIntent = PendingIntent.getActivity(
                     this,
                     campaignNotificationId.hashCode() + 1,
@@ -498,12 +508,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.addAction(0, "Swipe Matches 🔍", matchesPendingIntent);
 
             // Button 2: Ask Love Guru 🤖
+            String guruPath = "/dashboard?tab=matches&openGuru=true&notificationId=" + campaignNotificationId + "&action=love_guru";
             Intent guruIntent = new Intent(this, MainActivity.class);
             guruIntent.setPackage(getPackageName());
-            guruIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            guruIntent.setAction(Intent.ACTION_VIEW);
-            guruIntent.putExtra("targetPath", "/dashboard?tab=matches&openGuru=true&notificationId=" + campaignNotificationId + "&action=love_guru");
-            guruIntent.setData(android.net.Uri.parse("https://lifepartnerai.in/dashboard?tab=matches&openGuru=true&notificationId=" + campaignNotificationId + "&action=love_guru"));
+            guruIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            guruIntent.putExtra("targetPath", guruPath);
+            guruIntent.setData(android.net.Uri.parse("lifepartner://" + guruPath.substring(1)));
             PendingIntent guruPendingIntent = PendingIntent.getActivity(
                     this,
                     campaignNotificationId.hashCode() + 2,
@@ -558,14 +568,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             try {
                 String encodedName = java.net.URLEncoder.encode(callerName, "UTF-8");
                 String answerPath = "/chat/" + callerId + "?action=answer_call&callType=" + callType + "&callerId=" + callerId + "&callerName=" + encodedName;
-                String answerUrl = "https://lifepartnerai.in" + answerPath;
 
                 Intent answerIntent = new Intent(this, MainActivity.class);
                 answerIntent.setPackage(getPackageName());
-                answerIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                answerIntent.setAction(Intent.ACTION_VIEW);
+                answerIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 answerIntent.putExtra("targetPath", answerPath);
-                answerIntent.setData(android.net.Uri.parse(answerUrl));
+                answerIntent.setData(android.net.Uri.parse("lifepartner://" + answerPath.substring(1)));
 
                 PendingIntent answerPendingIntent = PendingIntent.getActivity(
                         this,
@@ -584,13 +592,11 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             String partnerId = connId != null ? connId : (data != null ? (data.get("partnerId") != null ? data.get("partnerId") : data.get("fromUserId")) : null);
             if (partnerId != null && !partnerId.isEmpty()) {
                 String chatPath = "/chat/" + partnerId;
-                String chatUrl = "https://lifepartnerai.in" + chatPath;
                 Intent chatIntent = new Intent(this, MainActivity.class);
                 chatIntent.setPackage(getPackageName());
-                chatIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-                chatIntent.setAction(Intent.ACTION_VIEW);
+                chatIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 chatIntent.putExtra("targetPath", chatPath);
-                chatIntent.setData(android.net.Uri.parse(chatUrl));
+                chatIntent.setData(android.net.Uri.parse("lifepartner://" + chatPath.substring(1)));
 
                 PendingIntent chatPendingIntent = PendingIntent.getActivity(
                         this,

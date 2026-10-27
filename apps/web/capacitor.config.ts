@@ -12,11 +12,12 @@ const config: CapacitorConfig = {
     backgroundColor: '#0F172A'
   },
   server: {
-    url: 'https://lifepartnerai.in?app=native',
+    url: 'https://www.lifepartnerai.in?app=native',
     cleartext: false,
     allowNavigation: [
       'lifepartnerai.in',
       '*.lifepartnerai.in',
+      'www.lifepartnerai.in',
       'accounts.google.com',
       '*.google.com',
       '*.cashfree.com',

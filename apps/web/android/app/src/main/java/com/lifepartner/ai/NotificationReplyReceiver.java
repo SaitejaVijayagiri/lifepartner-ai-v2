@@ -52,7 +52,6 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                 }
 
                 // 2. Check auth token
-                SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
                 String authToken = prefs.getString("auth_token", null);
 
                 if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {

@@ -158,6 +158,7 @@ export const api = {
         getPublicPreviews: (category: string, value: string) => fetchAPI(`/matches/public-preview?category=${category}&value=${value}`),
     },
     interactions: {
+        searchYoutubeVideo: (query: string) => fetchAPI(`/interactions/youtube-search?q=${encodeURIComponent(query)}`),
         getRequests: () => fetchAPI('/interactions/requests'),
         getUnreadCount: () => fetchAPI('/interactions/unread-count'),
         getCounts: () => fetchAPI('/interactions/counts'), // Fast: requestCount + unreadMessages in one shot

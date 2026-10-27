@@ -6,7 +6,7 @@ import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -14,6 +14,8 @@ import StickerPicker from './StickerPicker';
 import InstantCameraModal from './InstantCameraModal';
 import InstantViewerModal from './InstantViewerModal';
 import ChatMusicJukebox from './ChatMusicJukebox';
+import RewardedAdModal from './RewardedAdModal';
+import { isMediaUnlocked } from '@/lib/adRewards';
 import { useToast } from '@/components/ui/Toast';
 import { filterActive24hStories } from '@/lib/utils';
 
@@ -107,12 +109,40 @@ function parseStoryReplyText(text: string) {
     };
 }
 
-const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, socket, partnerId, onStartSync }: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string; socket?: any; partnerId?: string; onStartSync?: (track: any) => void }) => {
+const ChatSharedMediaCard = ({ 
+    title, 
+    artist, 
+    coverUrl, 
+    audioUrl, 
+    videoUrl, 
+    socket, 
+    partnerId, 
+    onStartSync,
+    currentUser,
+    partnerName = 'your match'
+}: { 
+    title: string; 
+    artist: string; 
+    coverUrl: string; 
+    audioUrl: string; 
+    videoUrl?: string; 
+    socket?: any; 
+    partnerId?: string; 
+    onStartSync?: (track: any) => void;
+    currentUser?: any;
+    partnerName?: string;
+}) => {
     const toast = useToast();
     const [showVideo, setShowVideo] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackError, setPlaybackError] = useState(false);
+    const [showRewardModal, setShowRewardModal] = useState(false);
+    const [dynamicYtId, setDynamicYtId] = useState<string | null>(null);
+    const [isResolvingVideo, setIsResolvingVideo] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const isUserVip = Boolean(currentUser?.is_premium || currentUser?.isPremium);
+    const isUnlocked = isUserVip || isMediaUnlocked(currentUser);
 
     useEffect(() => {
         return () => {
@@ -123,7 +153,8 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
         };
     }, []);
 
-    const resolvedYtId = (videoUrl ? getYoutubeId(videoUrl) : null) || (audioUrl ? getYoutubeId(audioUrl) : null);
+    const rawYtId = (videoUrl ? getYoutubeId(videoUrl) : null) || (audioUrl ? getYoutubeId(audioUrl) : null);
+    const resolvedYtId = dynamicYtId || rawYtId;
     const isCorrupted = (audioUrl && audioUrl.includes('[Hidden Contact')) || (videoUrl && videoUrl.includes('[Hidden Contact'));
     const isDirectVideo = (videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && (videoUrl.includes('.mp4') || videoUrl.includes('.m4v') || videoUrl.includes('.webm') || videoUrl.includes('video-ssl'))) ||
                           (audioUrl && (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) && (audioUrl.includes('.mp4') || audioUrl.includes('.m4v') || audioUrl.includes('.webm') || audioUrl.includes('video-ssl')));
@@ -177,13 +208,50 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
         });
     };
 
-    const handleWatchVideo = (e: React.MouseEvent) => {
+    const handleWatchVideo = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (audioRef.current) {
             audioRef.current.pause();
         }
         setIsPlaying(false);
+
+        if (!isUnlocked) {
+            setShowRewardModal(true);
+            return;
+        }
+
         setShowVideo(true);
+
+        if (!resolvedYtId && !isDirectVideo) {
+            setIsResolvingVideo(true);
+            try {
+                const res = await api.interactions.searchYoutubeVideo(`${artist} ${title} official video`);
+                if (res.data?.data?.videoId) {
+                    setDynamicYtId(res.data.data.videoId);
+                }
+            } catch (err) {
+                console.warn('[ChatSharedMediaCard] Failed to resolve YouTube video:', err);
+            } finally {
+                setIsResolvingVideo(false);
+            }
+        }
+    };
+
+    const handleAdUnlocked = async () => {
+        setShowVideo(true);
+        if (!resolvedYtId && !isDirectVideo) {
+            setIsResolvingVideo(true);
+            try {
+                const res = await api.interactions.searchYoutubeVideo(`${artist} ${title} official video`);
+                if (res.data?.data?.videoId) {
+                    setDynamicYtId(res.data.data.videoId);
+                }
+            } catch (err) {
+                console.warn('[ChatSharedMediaCard] Failed to resolve YouTube video:', err);
+            } finally {
+                setIsResolvingVideo(false);
+            }
+        }
     };
 
     return (
@@ -204,7 +272,12 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
 
             {showVideo ? (
                 <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-slate-800 mt-1 flex items-center justify-center flex-col">
-                    {isDirectVideo ? (
+                    {isResolvingVideo ? (
+                        <div className="p-3 text-center flex flex-col items-center justify-center space-y-2 h-full w-full bg-slate-900">
+                            <Loader2 size={24} className="text-pink-400 animate-spin" />
+                            <p className="text-[11px] text-slate-300 font-medium">Finding Full Official HD Video...</p>
+                        </div>
+                    ) : isDirectVideo ? (
                         <video src={effectiveVideoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
                     ) : resolvedYtId ? (
                         <iframe
@@ -228,7 +301,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                             </a>
                             <button
                                 onClick={() => setShowVideo(false)}
-                                className="text-[9px] text-slate-400 underline mt-0.5 hover:text-white"
+                                className="text-[9px] text-slate-400 underline mt-0.5 hover:text-white cursor-pointer"
                             >
                                 Back to Controls
                             </button>
@@ -250,7 +323,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                             )}
                             <button
                                 onClick={() => setShowVideo(false)}
-                                className="p-1 bg-black/70 hover:bg-black/90 text-white rounded-full text-[10px]"
+                                className="p-1 bg-black/70 hover:bg-black/90 text-white rounded-full text-[10px] cursor-pointer"
                                 title="Close Video"
                             >
                                 <X size={12} />
@@ -272,7 +345,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                     <div className="grid grid-cols-3 gap-1.5 w-full pt-0.5">
                         <button
                             onClick={toggleAudio}
-                            className={`py-1.5 px-1 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-[11px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform truncate`}
+                            className={`py-1.5 px-1 rounded-xl ${isPlaying ? 'bg-amber-600 hover:bg-amber-700' : 'bg-pink-500 hover:bg-pink-600'} text-white font-bold text-[11px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform truncate cursor-pointer`}
                             title={isPlaying ? 'Pause' : 'Play'}
                         >
                             {isPlaying ? <Square size={11} fill="white" className="shrink-0" /> : <Play size={11} fill="white" className="shrink-0" />}
@@ -290,7 +363,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                                     onStartSync({ title, artist, coverUrl, audioUrl, videoUrl, isPlaying: true });
                                 }
                             }}
-                            className="py-1.5 px-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform truncate"
+                            className="py-1.5 px-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-[10px] flex items-center justify-center space-x-1 shadow-md active:scale-95 transition-transform truncate cursor-pointer"
                             title="Listen Together in Real-Time"
                         >
                             <Music size={11} className="shrink-0" />
@@ -299,7 +372,7 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
 
                         <button
                             onClick={handleWatchVideo}
-                            className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-[10px] flex items-center justify-center space-x-1 border border-pink-500/30 active:scale-95 transition-transform truncate"
+                            className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-pink-300 font-bold text-[10px] flex items-center justify-center space-x-1 border border-pink-500/30 active:scale-95 transition-transform truncate cursor-pointer"
                             title="Watch Video"
                         >
                             <Video size={11} className="shrink-0" />
@@ -322,6 +395,15 @@ const ChatSharedMediaCard = ({ title, artist, coverUrl, audioUrl, videoUrl, sock
                     </a>
                 </div>
             )}
+
+            {/* Rewarded Video Modal for In-Chat Shared Card */}
+            <RewardedAdModal
+                isOpen={showRewardModal}
+                onClose={() => setShowRewardModal(false)}
+                onUnlocked={handleAdUnlocked}
+                partnerName={partnerName}
+                songTitle={title}
+            />
         </div>
     );
 };
@@ -2547,6 +2629,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     socket={socket}
                                                     partnerId={partner.id}
                                                     onStartSync={(track) => setActiveSyncedTrack(track)}
+                                                    currentUser={user}
+                                                    partnerName={partner?.name}
                                                 />
                                             );
                                         })() : cleanMsgText.startsWith('[STORY_REPLY:') ? (() => {
@@ -3886,6 +3970,8 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {showJukebox && (
                 <ChatMusicJukebox
                     onClose={() => setShowJukebox(false)}
+                    currentUser={user}
+                    partnerName={partner?.name}
                     onShareTrackToChat={(track) => {
                         const payloadObj = {
                             title: track.title,

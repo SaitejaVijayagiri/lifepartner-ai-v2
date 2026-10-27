@@ -27,6 +27,63 @@ router.get('/connection-banner', (req, res) => {
     }
 });
 
+// Cache for YouTube video lookups to ensure instant 0ms responses for full songs
+const ytSearchCache = new Map<string, string>();
+
+// GET /interactions/youtube-search (Resolves full music video IDs for full song playback)
+router.get('/youtube-search', async (req: any, res: any) => {
+    try {
+        const query = String(req.query.q || '').trim();
+        if (!query) {
+            return res.status(400).json({ error: 'Missing query parameter q' });
+        }
+
+        const cleanKey = query.toLowerCase();
+        if (ytSearchCache.has(cleanKey)) {
+            const cachedId = ytSearchCache.get(cleanKey)!;
+            return res.json({
+                success: true,
+                videoId: cachedId,
+                videoUrl: `https://www.youtube.com/watch?v=${cachedId}`
+            });
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4500);
+
+        const response = await fetch(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9'
+            },
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+
+        const text = await response.text();
+        const matches = [...text.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map(x => x[1]);
+        const unique = [...new Set(matches)];
+        const videoId = unique.length > 0 ? unique[0] : null;
+
+        if (videoId) {
+            if (ytSearchCache.size > 2000) {
+                const keys = Array.from(ytSearchCache.keys()).slice(0, 500);
+                for (const k of keys) ytSearchCache.delete(k);
+            }
+            ytSearchCache.set(cleanKey, videoId);
+            return res.json({
+                success: true,
+                videoId: videoId,
+                videoUrl: `https://www.youtube.com/watch?v=${videoId}`
+            });
+        }
+
+        return res.json({ success: false, error: 'No video found' });
+    } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // Get Requests (Pending interactions of type 'REQUEST')
 // Helper for consistent location
 const getLocationString = (u: any) => {

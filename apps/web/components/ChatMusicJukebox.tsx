@@ -4,12 +4,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
+import RewardedAdModal from './RewardedAdModal';
+import { isMediaUnlocked, getRemainingUnlockedMinutes } from '@/lib/adRewards';
+import { api } from '@/lib/api';
 
 interface ChatMusicJukeboxProps {
     onClose: () => void;
     onShareTrackToChat?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => void;
     onCreateStoryWithTrack?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string }) => void;
     onStartSyncTrack?: (track: { title: string; artist: string; coverUrl: string; audioUrl: string; videoUrl?: string }) => void;
+    currentUser?: any;
+    partnerName?: string;
 }
 
 const JUKEBOX_MOODS = [
@@ -34,7 +39,14 @@ const getYoutubeId = (text: string): string | null => {
     return null;
 };
 
-export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreateStoryWithTrack, onStartSyncTrack }: ChatMusicJukeboxProps) {
+export default function ChatMusicJukebox({ 
+    onClose, 
+    onShareTrackToChat, 
+    onCreateStoryWithTrack, 
+    onStartSyncTrack,
+    currentUser,
+    partnerName = 'your match'
+}: ChatMusicJukeboxProps) {
     const [mounted, setMounted] = useState(false);
     const [activeTab, setActiveTab] = useState<'audio' | 'video'>('audio');
     const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +60,15 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
     const [duration, setDuration] = useState(30);
     const [volume, setVolume] = useState(0.8);
     const [isMuted, setIsMuted] = useState(false);
+
+    // Monetization & Full HD Video Resolution State
+    const [showRewardModal, setShowRewardModal] = useState(false);
+    const [pendingTrackForVideo, setPendingTrackForVideo] = useState<(Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) | null>(null);
+    const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
+    const [remainingMins, setRemainingMins] = useState(getRemainingUnlockedMinutes());
+
+    const isUserVip = Boolean(currentUser?.is_premium || currentUser?.isPremium);
+    const isUnlocked = isUserVip || isMediaUnlocked(currentUser);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -289,6 +310,91 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
         });
     };
 
+    const resolveFullVideoTrack = async (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
+        const existingYt = getYoutubeId(track.videoUrl || '') || getYoutubeId(track.audioUrl || '');
+        if (existingYt) {
+            return `https://www.youtube.com/watch?v=${existingYt}`;
+        }
+
+        setIsLoadingFullVideo(true);
+        try {
+            const query = `${track.artist} ${track.title} official video`;
+            const res = await api.interactions.searchYoutubeVideo(query);
+            if (res.data?.data?.videoId) {
+                const fullYtUrl = `https://www.youtube.com/watch?v=${res.data.data.videoId}`;
+                const updated = { ...track, videoUrl: fullYtUrl };
+                setActiveTrack(updated);
+                setTracks(prev => prev.map(t => (t.id === track.id ? { ...t, videoUrl: fullYtUrl } : t)));
+                return fullYtUrl;
+            }
+        } catch (err) {
+            console.warn('[Jukebox] Failed to resolve full YouTube video ID:', err);
+        } finally {
+            setIsLoadingFullVideo(false);
+        }
+        return track.videoUrl;
+    };
+
+    const handleSelectVideoTab = () => {
+        if (!isUnlocked) {
+            setPendingTrackForVideo(activeTrack);
+            setShowRewardModal(true);
+            return;
+        }
+        setActiveTab('video');
+        stopAudioPlayback();
+        if (activeTrack) {
+            resolveFullVideoTrack(activeTrack);
+        }
+    };
+
+    const handleWatchTrackVideo = (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
+        if (!isUnlocked) {
+            setPendingTrackForVideo(track);
+            setShowRewardModal(true);
+            return;
+        }
+        setActiveTrack(track);
+        setActiveTab('video');
+        stopAudioPlayback();
+        resolveFullVideoTrack(track);
+    };
+
+    const handleAdRewardEarned = () => {
+        setRemainingMins(45);
+        setActiveTab('video');
+        const target = pendingTrackForVideo || activeTrack;
+        if (target) {
+            setActiveTrack(target);
+            resolveFullVideoTrack(target);
+        }
+        setPendingTrackForVideo(null);
+    };
+
+    const handleShareTrack = async (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
+        if (!onShareTrackToChat) return;
+
+        let finalVideoUrl = track.videoUrl || '';
+        // If it doesn't have a YouTube video URL yet, resolve it so the chat gets the full official video!
+        if (!getYoutubeId(finalVideoUrl)) {
+            try {
+                const query = `${track.artist} ${track.title} official video`;
+                const res = await api.interactions.searchYoutubeVideo(query);
+                if (res.data?.data?.videoId) {
+                    finalVideoUrl = `https://www.youtube.com/watch?v=${res.data.data.videoId}`;
+                }
+            } catch (_) {}
+        }
+
+        onShareTrackToChat({
+            title: track.title,
+            artist: track.artist,
+            coverUrl: track.coverUrl,
+            audioUrl: track.audioUrl,
+            videoUrl: finalVideoUrl
+        });
+    };
+
     const handleTogglePlay = () => {
         if (activeTab === 'video') return;
 
@@ -359,12 +465,30 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                     </div>
                 </div>
 
-                <button
-                    onClick={handleCloseModal}
-                    className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                >
-                    <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                    {isUserVip ? (
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-full">
+                            👑 VIP Unlimited
+                        </span>
+                    ) : remainingMins > 0 ? (
+                        <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                            ✨ Unlocked ({remainingMins}m)
+                        </span>
+                    ) : (
+                        <button
+                            onClick={() => setShowRewardModal(true)}
+                            className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-pink-300 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 px-2.5 py-1 rounded-full transition-all cursor-pointer"
+                        >
+                            🎁 Unlock 45m Full HD
+                        </button>
+                    )}
+                    <button
+                        onClick={handleCloseModal}
+                        className="p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
 
             {/* View Mode Switcher Tabs */}
@@ -374,7 +498,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                         setActiveTab('audio');
                         if (activeTrack) handlePlayTrack(activeTrack);
                     }}
-                    className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 ${
+                    className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 cursor-pointer ${
                         activeTab === 'audio'
                             ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg'
                             : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -385,11 +509,8 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                 </button>
 
                 <button
-                    onClick={() => {
-                        setActiveTab('video');
-                        stopAudioPlayback();
-                    }}
-                    className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 ${
+                    onClick={handleSelectVideoTab}
+                    className={`flex-1 py-2.5 rounded-2xl font-bold text-xs transition-all flex items-center justify-center space-x-2 cursor-pointer ${
                         activeTab === 'video'
                             ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 text-white shadow-lg'
                             : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -397,6 +518,11 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                 >
                     <Tv className="w-4 h-4" />
                     <span>Watch In-Chat Video</span>
+                    {!isUnlocked && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-300 font-bold ml-1">
+                            45m PASS
+                        </span>
+                    )}
                 </button>
             </div>
 
@@ -559,20 +685,25 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    onShareTrackToChat({
-                                                        title: track.title,
-                                                        artist: track.artist,
-                                                        coverUrl: track.coverUrl,
-                                                        audioUrl: track.audioUrl,
-                                                        videoUrl: track.videoUrl || ''
-                                                    });
+                                                    handleShareTrack(track);
                                                 }}
                                                 className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
-                                                title="Share Song to Chat"
+                                                title="Share Song & Video to Chat"
                                             >
                                                 <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                             </button>
                                         )}
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleWatchTrackVideo(track);
+                                            }}
+                                            className="p-1.5 sm:p-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-amber-400 transition-colors"
+                                            title="Watch Full HD Video Song 🎬"
+                                        >
+                                            <Tv className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                        </button>
 
                                         <button
                                             onClick={(e) => {
@@ -610,16 +741,34 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                 <div className="flex-1 flex flex-col items-center justify-start p-4 bg-black overflow-y-auto no-scrollbar space-y-4">
                     {activeTrack ? (
                         <div className="w-full max-w-2xl bg-slate-900 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl flex flex-col flex-shrink-0">
+                            {/* Value-Exchange Pass Status */}
+                            <div className="flex items-center justify-between px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-xs">
+                                <span className="text-slate-400 font-medium">🎬 Full HD Video Stream</span>
+                                {isUserVip ? (
+                                    <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                                        👑 VIP Ad-Free Active
+                                    </span>
+                                ) : remainingMins > 0 ? (
+                                    <span className="flex items-center gap-1 font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
+                                        ✨ Unlocked Pass ({remainingMins}m remaining)
+                                    </span>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowRewardModal(true)}
+                                        className="flex items-center gap-1 font-bold text-pink-400 bg-pink-500/10 hover:bg-pink-500/20 px-2.5 py-0.5 rounded-full border border-pink-500/30 transition-all cursor-pointer"
+                                    >
+                                        🎁 Extend 45m Pass
+                                    </button>
+                                )}
+                            </div>
+
                             {/* Video Display Container */}
                             <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-                                {activeTrack.videoUrl && (activeTrack.videoUrl.startsWith('http://') || activeTrack.videoUrl.startsWith('https://')) && (activeTrack.videoUrl.includes('.mp4') || activeTrack.videoUrl.includes('.m4v') || activeTrack.videoUrl.includes('.webm') || activeTrack.videoUrl.includes('video-ssl')) ? (
-                                    <video
-                                        src={activeTrack.videoUrl}
-                                        controls
-                                        autoPlay
-                                        playsInline
-                                        className="w-full h-full object-contain bg-black"
-                                    />
+                                {isLoadingFullVideo ? (
+                                    <div className="flex flex-col items-center justify-center p-6 space-y-3">
+                                        <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
+                                        <p className="text-xs text-slate-300 font-medium">Finding Full Official HD Music Video...</p>
+                                    </div>
                                 ) : getYoutubeId(activeTrack.videoUrl || '') ? (
                                     <iframe
                                         src={`https://www.youtube-nocookie.com/embed/${getYoutubeId(activeTrack.videoUrl || '')}?autoplay=1&rel=0`}
@@ -627,6 +776,14 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                         title={activeTrack.title}
+                                    />
+                                ) : activeTrack.videoUrl && (activeTrack.videoUrl.startsWith('http://') || activeTrack.videoUrl.startsWith('https://')) && (activeTrack.videoUrl.includes('.mp4') || activeTrack.videoUrl.includes('.m4v') || activeTrack.videoUrl.includes('.webm') || activeTrack.videoUrl.includes('video-ssl')) ? (
+                                    <video
+                                        src={activeTrack.videoUrl}
+                                        controls
+                                        autoPlay
+                                        playsInline
+                                        className="w-full h-full object-contain bg-black"
                                     />
                                 ) : (
                                     <div className="p-4 text-center flex flex-col items-center justify-center space-y-3 h-full w-full bg-slate-950 text-white">
@@ -643,6 +800,22 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                     </div>
                                 )}
                             </div>
+
+                            {/* YouTube Deep Link Bar */}
+                            {getYoutubeId(activeTrack.videoUrl || '') && (
+                                <div className="px-4 py-1.5 bg-slate-950 flex items-center justify-between border-t border-slate-800/60 text-[11px] text-slate-400">
+                                    <span>Full Song Playing in HD</span>
+                                    <a
+                                        href={`https://www.youtube.com/watch?v=${getYoutubeId(activeTrack.videoUrl || '')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1"
+                                    >
+                                        <span>Open in YouTube App</span>
+                                        <Tv size={12} />
+                                    </a>
+                                </div>
+                            )}
 
                             {/* Video Info & Share Action */}
                             <div className="p-4 bg-slate-900 flex items-center justify-between">
@@ -678,13 +851,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
 
                                     {onShareTrackToChat && (
                                         <button
-                                            onClick={() => onShareTrackToChat({
-                                                title: activeTrack.title,
-                                                artist: activeTrack.artist,
-                                                coverUrl: activeTrack.coverUrl,
-                                                audioUrl: activeTrack.audioUrl,
-                                                videoUrl: activeTrack.videoUrl || ''
-                                            })}
+                                            onClick={() => handleShareTrack(activeTrack)}
                                             className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg flex-shrink-0 hover:scale-105 transition-transform"
                                         >
                                             <Send className="w-4 h-4" />
@@ -707,7 +874,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                             return (
                                 <div
                                     key={track.id}
-                                    onClick={() => handlePlayTrack(track)}
+                                    onClick={() => handleWatchTrackVideo(track)}
                                     className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
                                         isCurrent
                                             ? 'bg-slate-900 border-2 border-pink-500 shadow-xl'
@@ -737,7 +904,7 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handlePlayTrack(track);
+                                            handleWatchTrackVideo(track);
                                         }}
                                         className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition-transform active:scale-95 flex items-center space-x-1.5 ${
                                             isCurrent
@@ -811,17 +978,9 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
 
                             {onShareTrackToChat && (
                                 <button
-                                    onClick={() => {
-                                        onShareTrackToChat({
-                                            title: activeTrack.title,
-                                            artist: activeTrack.artist,
-                                            coverUrl: activeTrack.coverUrl,
-                                            audioUrl: activeTrack.audioUrl,
-                                            videoUrl: activeTrack.videoUrl || ''
-                                        });
-                                    }}
+                                    onClick={() => handleShareTrack(activeTrack)}
                                     className="p-2 rounded-full bg-slate-800 hover:bg-slate-700 text-pink-400 transition-colors"
-                                    title="Share Song to Chat"
+                                    title="Share Song & Video to Chat"
                                 >
                                     <Send className="w-4 h-4" />
                                 </button>
@@ -853,6 +1012,18 @@ export default function ChatMusicJukebox({ onClose, onShareTrackToChat, onCreate
                     </div>
                 </div>
             )}
+
+            {/* Value Exchange Rewarded Video Modal */}
+            <RewardedAdModal
+                isOpen={showRewardModal}
+                onClose={() => {
+                    setShowRewardModal(false);
+                    setPendingTrackForVideo(null);
+                }}
+                onUnlocked={handleAdRewardEarned}
+                partnerName={partnerName}
+                songTitle={pendingTrackForVideo?.title || activeTrack?.title || 'Full HD Music Video'}
+            />
         </div>
     );
 

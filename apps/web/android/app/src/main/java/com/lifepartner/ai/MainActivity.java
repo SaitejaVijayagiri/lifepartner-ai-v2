@@ -29,6 +29,12 @@ import com.getcapacitor.BridgeWebViewClient;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.onesignal.OneSignal;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.LoadAdError;
+import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.rewarded.RewardedAd;
+import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -42,6 +48,9 @@ public class MainActivity extends BridgeActivity {
 
     public static volatile String activeChatPartnerId = null;
     public static volatile boolean isAppInForeground = false;
+
+    private RewardedAd rewardedAd;
+    private boolean isAdLoading = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -86,6 +95,9 @@ public class MainActivity extends BridgeActivity {
 
         // 7. Handle deep link from notification clicks
         handleNotificationDeepLink(getIntent());
+
+        // 8. Initialize Google Mobile Ads (AdMob) for High-eCPM Rewarded Ads
+        initAdMob();
     }
 
     @Override
@@ -127,6 +139,66 @@ public class MainActivity extends BridgeActivity {
             Log.d(TAG, "Notification deep link received: " + targetPath);
             navigateToPath(targetPath);
         }
+    }
+
+    private void initAdMob() {
+        try {
+            MobileAds.initialize(this, initializationStatus -> {
+                Log.d(TAG, "Google Mobile Ads SDK Initialized.");
+                loadRewardedAd();
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Error initializing MobileAds: ", e);
+        }
+    }
+
+    private void loadRewardedAd() {
+        if (isAdLoading || rewardedAd != null) return;
+        isAdLoading = true;
+        AdRequest adRequest = new AdRequest.Builder().build();
+        // Official Google Sample Rewarded Video Ad Unit (safe for testing & Play Store review)
+        RewardedAd.load(this, "ca-app-pub-3940256099942544/5224354917", adRequest, new RewardedAdLoadCallback() {
+            @Override
+            public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
+                Log.w(TAG, "Rewarded ad failed to load: " + loadAdError.getMessage());
+                rewardedAd = null;
+                isAdLoading = false;
+            }
+
+            @Override
+            public void onAdLoaded(@NonNull RewardedAd ad) {
+                Log.d(TAG, "Rewarded ad loaded successfully.");
+                rewardedAd = ad;
+                isAdLoading = false;
+            }
+        });
+    }
+
+    public void showNativeRewardedAd() {
+        runOnUiThread(() -> {
+            if (rewardedAd != null) {
+                rewardedAd.show(MainActivity.this, rewardItem -> {
+                    Log.d(TAG, "User earned reward from rewarded video ad.");
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().evaluateJavascript(
+                            "if (window.onNativeAdRewardEarned) { window.onNativeAdRewardEarned(); }", 
+                            null
+                        );
+                    }
+                });
+                rewardedAd = null;
+                loadRewardedAd(); // Preload next ad
+            } else {
+                Log.w(TAG, "Rewarded ad not loaded yet, triggering web fallback.");
+                loadRewardedAd();
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    getBridge().getWebView().evaluateJavascript(
+                        "if (window.onNativeAdFallback) { window.onNativeAdFallback(); }", 
+                        null
+                    );
+                }
+            }
+        });
     }
 
     private void navigateToPath(String targetPath) {
@@ -837,6 +909,16 @@ public class MainActivity extends BridgeActivity {
             } catch (Exception e) {
                 Log.e(TAG, "Error in setAppForeground: ", e);
             }
+        }
+
+        @JavascriptInterface
+        public void showRewardedVideoAd() {
+            showNativeRewardedAd();
+        }
+
+        @JavascriptInterface
+        public boolean isRewardedAdReady() {
+            return rewardedAd != null;
         }
     }
 }

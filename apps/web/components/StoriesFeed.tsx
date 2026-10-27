@@ -5,6 +5,7 @@ import { Sparkles, Plus, Play } from 'lucide-react';
 import { fetchAPI, api } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ui/Toast';
+import { filterActive24hStories } from '@/lib/utils';
 
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
 
@@ -25,22 +26,30 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
         try {
             const res = await fetchAPI('/profile/stories/feed');
             if (res.feed && Array.isArray(res.feed)) {
-                setStoryFeed(res.feed);
+                const validFeed = res.feed
+                    .map((u: any) => ({ ...u, stories: filterActive24hStories(u.stories) }))
+                    .filter((u: any) => u.stories.length > 0);
+                setStoryFeed(validFeed);
                 try {
-                    localStorage.setItem('stories_feed_cache_v1', JSON.stringify({ feed: res.feed, ts: Date.now() }));
+                    localStorage.setItem('stories_feed_cache_v1', JSON.stringify({ feed: validFeed, ts: Date.now() }));
                 } catch (_) {}
             }
         } catch {}
     };
 
     useEffect(() => {
-        // PERF: Instant 0ms hydration from cache before network roundtrip
+        // PERF: Instant 0ms hydration from cache before network roundtrip (with 24h filter guard)
         try {
             const cached = localStorage.getItem('stories_feed_cache_v1');
             if (cached) {
                 const { feed } = JSON.parse(cached);
                 if (Array.isArray(feed) && feed.length > 0) {
-                    setStoryFeed(feed);
+                    const validFeed = feed
+                        .map((u: any) => ({ ...u, stories: filterActive24hStories(u.stories) }))
+                        .filter((u: any) => u.stories.length > 0);
+                    if (validFeed.length > 0) {
+                        setStoryFeed(validFeed);
+                    }
                 }
             }
         } catch (_) {}
@@ -62,7 +71,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
     };
 
     const currentUserId = currentUser?.id || currentUser?.userId;
-    const myActiveStories = (Array.isArray(currentUser?.stories) ? currentUser.stories : []).filter((s: any) => s && (s.isHighlight || (s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) > new Date() : false)));
+    const myActiveStories = filterActive24hStories(currentUser?.stories);
 
     return (
         <div className="w-full space-y-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-4 sm:p-5 rounded-3xl shadow-sm">
@@ -124,7 +133,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                     {/* Other Users' Stories Feed */}
                     {storyFeed.map((feedUser, idx) => {
                         if (!feedUser) return null;
-                        const activeStories = (Array.isArray(feedUser.stories) ? feedUser.stories : []).filter((s: any) => s && (s.isHighlight || (s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) > new Date() : false)));
+                        const activeStories = filterActive24hStories(feedUser.stories);
                         if (activeStories.length === 0) return null;
 
                         const isAllViewed = Boolean(currentUserId && activeStories.every((s: any) => 

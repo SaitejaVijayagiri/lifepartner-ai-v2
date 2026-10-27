@@ -15,6 +15,7 @@ import InstantCameraModal from './InstantCameraModal';
 import InstantViewerModal from './InstantViewerModal';
 import ChatMusicJukebox from './ChatMusicJukebox';
 import { useToast } from '@/components/ui/Toast';
+import { filterActive24hStories } from '@/lib/utils';
 
 interface ChatWindowProps {
     connectionId: string;
@@ -1900,7 +1901,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         <div className="relative flex-shrink-0">
                             {(() => {
                                 const partnerStories: any[] = (partnerInfo as any).stories || (partner as any).stories || [];
-                                const activePartnerStories = partnerStories.filter((s: any) => new Date(s.expiresAt || s.expires_at) > new Date());
+                                const activePartnerStories = filterActive24hStories(partnerStories);
                                 const hasPartnerStories = activePartnerStories.length > 0;
                                 const currentUserId = user?.id || user?.userId;
                                 const isPartnerStoriesViewed = hasPartnerStories && activePartnerStories.every((s: any) => s.views?.some((v: any) => (v.userId || v.user_id) === currentUserId));

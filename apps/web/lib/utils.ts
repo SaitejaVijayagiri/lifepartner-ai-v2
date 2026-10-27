@@ -84,15 +84,15 @@ export function getProfilePhotoUrl(userObj: any): string {
 }
 
 /**
- * Strict 24-Hour Story Expiration Check
- * Stories expire exactly 24 hours after creation unless marked as Highlight.
+ * Strict 24-Hour Story Expiration Check (Instagram / MNC standard)
+ * Stories expire strictly 24 hours after creation for the active feed/tray and avatar rings.
+ * Highlighting does NOT keep a story in the 24h tray after 24 hours.
  */
-export function isStoryActive(s: any): boolean {
+export function isStory24hActive(s: any): boolean {
     if (!s) return false;
-    // Highlights are permanent
-    if (Boolean(s.isHighlight || s.is_highlight)) return true;
-
     const now = Date.now();
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
     // 1. Explicit expiresAt / expires_at timestamp
     const expStr = s.expiresAt || s.expires_at;
     if (expStr) {
@@ -104,19 +104,55 @@ export function isStoryActive(s: any): boolean {
     const createdStr = s.createdAt || s.created_at || s.timestamp;
     if (createdStr) {
         const createdMs = new Date(createdStr).getTime();
-        if (!isNaN(createdMs)) return (now - createdMs) < 24 * 60 * 60 * 1000;
+        if (!isNaN(createdMs)) return (now - createdMs) < TWENTY_FOUR_HOURS_MS;
     }
 
     // 3. 13-digit Unix Millisecond timestamp ID (Date.now())
     if (s.id && typeof s.id === 'string' && /^\d{13}$/.test(s.id)) {
         const idMs = Number(s.id);
-        if (!isNaN(idMs)) return (now - idMs) < 24 * 60 * 60 * 1000;
+        if (!isNaN(idMs)) return (now - idMs) < TWENTY_FOUR_HOURS_MS;
     }
 
     // If no verifiable active timestamp within 24h, treat as expired
     return false;
 }
 
+/**
+ * Checks if a story is saved as a permanent Profile Highlight.
+ */
+export function isStoryHighlight(s: any): boolean {
+    if (!s) return false;
+    return Boolean(s.isHighlight || s.is_highlight);
+}
+
+/**
+ * Story is retained on profile if it is a permanent Highlight OR strictly within 24h active window.
+ */
+export function isStoryActive(s: any): boolean {
+    if (!s) return false;
+    if (isStoryHighlight(s)) return true;
+    return isStory24hActive(s);
+}
+
+/**
+ * Filters stories strictly for 24-hour feed trays, avatar rings, and real-time viewing.
+ */
+export function filterActive24hStories<T = any>(stories: T[]): T[] {
+    if (!Array.isArray(stories)) return [];
+    return stories.filter(isStory24hActive);
+}
+
+/**
+ * Filters stories saved as permanent profile highlights.
+ */
+export function filterHighlights<T = any>(stories: T[]): T[] {
+    if (!Array.isArray(stories)) return [];
+    return stories.filter(isStoryHighlight);
+}
+
+/**
+ * Filters stories retained for profile view (retains permanent highlights + active 24h stories).
+ */
 export function filterActiveStories<T = any>(stories: T[]): T[] {
     if (!Array.isArray(stories)) return [];
     return stories.filter(isStoryActive);

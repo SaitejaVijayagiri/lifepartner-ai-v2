@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
-import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, filterActive24hStories, filterHighlights } from '@/lib/utils';
 import { trackImageFailure } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
@@ -407,27 +407,8 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
             <div className={`absolute z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
                 {/* 1. Story & Highlight Badges */}
                 {Array.isArray(match?.stories) && match.stories.length > 0 && (() => {
-                    const now = new Date();
-                    const highlightedStories = match.stories.filter((s: any) => s && Boolean(s.isHighlight || s.is_highlight));
-                    const active24hStories = match.stories.filter((s: any) => {
-                        if (!s) return false;
-                        if (Boolean(s.isHighlight || s.is_highlight)) return false;
-                        const expStr = s.expiresAt || s.expires_at;
-                        if (expStr) {
-                            const expMs = new Date(expStr).getTime();
-                            if (!isNaN(expMs)) return expMs > now.getTime();
-                        }
-                        const createdStr = s.createdAt || s.created_at || s.timestamp;
-                        if (createdStr) {
-                            const createdMs = new Date(createdStr).getTime();
-                            if (!isNaN(createdMs)) return (now.getTime() - createdMs) < 24 * 60 * 60 * 1000;
-                        }
-                        if (s.id && typeof s.id === 'string' && /^\d{13}$/.test(s.id)) {
-                            const idMs = Number(s.id);
-                            if (!isNaN(idMs)) return (now.getTime() - idMs) < 24 * 60 * 60 * 1000;
-                        }
-                        return false;
-                    });
+                    const highlightedStories = filterHighlights(match.stories);
+                    const active24hStories = filterActive24hStories(match.stories);
 
                     if (highlightedStories.length === 0 && active24hStories.length === 0) return null;
 

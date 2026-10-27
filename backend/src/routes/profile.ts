@@ -20,8 +20,8 @@ import { ContentModerator } from '../services/contentModerator';
 import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBase64ToR2, uploadBufferToR2 } from '../services/r2Storage';
 import { isUserOnline } from '../socket';
-import { isStoryActive, filterActiveStories, mergeStoriesHelper } from '../utils/story';
-export { isStoryActive, filterActiveStories, mergeStoriesHelper };
+import { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStories, filterHighlights, filterActiveStories, mergeStoriesHelper } from '../utils/story';
+export { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStories, filterHighlights, filterActiveStories, mergeStoriesHelper };
 
 /**
  * Upload a profile image with fallback chain:
@@ -1421,8 +1421,9 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
             const directStories: any[] = (user.profiles?.stories as any[]) || [];
             const metaStories: any[] = (user.profiles as any)?.metadata?.stories || [];
             // Merge and deduplicate by id, prefer directStories
-            const stories = mergeStoriesHelper(directStories, metaStories);
-            const activeStories = stories;
+            const stories = mergeStoriesHelper(directStories, metaStories, false, now);
+            const activeStories = filterActive24hStories(stories, now);
+
             if (activeStories.length > 0) {
                 feed.push({
                     id: user.id,

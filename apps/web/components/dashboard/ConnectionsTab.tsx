@@ -5,6 +5,7 @@ import { MessageCircle, Trash2, Bell, BellOff, Gamepad2, Search, X, Heart, Eye, 
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { filterActive24hStories } from '@/lib/utils';
 
 interface ConnectionsTabProps {
     currentUser: any;
@@ -240,7 +241,7 @@ export default function ConnectionsTab({
             {filteredConnections.map((conn: any) => {
                 if (!conn || !conn.partner) return null;
                 const stories: any[] = Array.isArray(conn.partner?.stories) ? conn.partner.stories : [];
-                const activeStories = stories.filter((s: any) => s && (s.isHighlight || (s.expiresAt || s.expires_at ? new Date(s.expiresAt || s.expires_at) > new Date() : false)));
+                const activeStories = filterActive24hStories(stories);
                 const hasStories = activeStories.length > 0;
                 const isAllViewed = Boolean(hasStories && activeStories.every((s: any) => (Array.isArray(s.views) ? s.views : []).some((v: any) => (v.userId || v.user_id) === currentUserId)));
 

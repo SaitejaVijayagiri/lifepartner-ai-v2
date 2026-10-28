@@ -44,7 +44,11 @@ router.get('/youtube-search', async (req: any, res: any) => {
             return res.json({
                 success: true,
                 videoId: cachedId,
-                videoUrl: `https://www.youtube.com/watch?v=${cachedId}`
+                videoUrl: `https://www.youtube.com/watch?v=${cachedId}`,
+                data: {
+                    videoId: cachedId,
+                    videoUrl: `https://www.youtube.com/watch?v=${cachedId}`
+                }
             });
         }
 
@@ -74,7 +78,11 @@ router.get('/youtube-search', async (req: any, res: any) => {
             return res.json({
                 success: true,
                 videoId: videoId,
-                videoUrl: `https://www.youtube.com/watch?v=${videoId}`
+                videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+                data: {
+                    videoId: videoId,
+                    videoUrl: `https://www.youtube.com/watch?v=${videoId}`
+                }
             });
         }
 

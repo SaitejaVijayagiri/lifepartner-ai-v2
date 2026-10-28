@@ -575,6 +575,11 @@ public class MainActivity extends BridgeActivity {
                 // DOM storage and caching
                 settings.setDomStorageEnabled(true);
                 settings.setDatabaseEnabled(true);
+
+                // Media playback & Full Video support without gesture restrictions
+                settings.setMediaPlaybackRequiresUserGesture(false);
+                settings.setAllowFileAccess(true);
+                settings.setJavaScriptCanOpenWindowsAutomatically(true);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error injecting AndroidBridge: ", e);

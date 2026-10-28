@@ -154,25 +154,43 @@ export default function ChatMusicJukebox({
             if (ytId) {
                 mapped.push({
                     id: `yt_${ytId}`,
-                    title: 'YouTube Video Track',
-                    artist: 'YouTube Media',
-                    mood: 'HD YouTube Stream',
+                    title: 'Custom YouTube Video',
+                    artist: 'Full Video Stream',
+                    mood: 'Full HD Video',
                     coverUrl: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`,
-                    audioUrl: term,
-                    videoUrl: term,
-                    duration: 30
+                    audioUrl: `https://www.youtube.com/watch?v=${ytId}`,
+                    videoUrl: `https://www.youtube.com/watch?v=${ytId}`,
+                    duration: 240
                 });
             } else if (term.startsWith('http://') || term.startsWith('https://')) {
                 mapped.push({
                     id: `custom_${Date.now()}`,
-                    title: 'Custom Web Audio Track',
+                    title: 'Custom Web Video Track',
                     artist: 'Web Link 🔗',
                     mood: 'Custom Stream',
                     coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400',
                     audioUrl: term,
                     videoUrl: term,
-                    duration: 30
+                    duration: 240
                 });
+            } else {
+                // 0.5. Live YouTube Video Search (Enables ANY video or song in the world)
+                try {
+                    const ytRes = await api.interactions.searchYoutubeVideo(`${term} official video`);
+                    const directYtId = ytRes?.videoId || ytRes?.data?.videoId || ytRes?.data?.data?.videoId;
+                    if (directYtId) {
+                        mapped.push({
+                            id: `yt_${directYtId}`,
+                            title: `${term.length > 30 ? term.slice(0, 30) + '...' : term}`,
+                            artist: 'YouTube Full Video',
+                            mood: 'Full HD Video',
+                            coverUrl: `https://img.youtube.com/vi/${directYtId}/hqdefault.jpg`,
+                            audioUrl: `https://www.youtube.com/watch?v=${directYtId}`,
+                            videoUrl: `https://www.youtube.com/watch?v=${directYtId}`,
+                            duration: 240
+                        });
+                    }
+                } catch (_) {}
             }
 
             // Determine best storefront (prioritize IN for Indian / Bollywood / Regional hits)
@@ -320,11 +338,12 @@ export default function ChatMusicJukebox({
         try {
             const query = `${track.artist} ${track.title} official video`;
             const res = await api.interactions.searchYoutubeVideo(query);
-            if (res.data?.data?.videoId) {
-                const fullYtUrl = `https://www.youtube.com/watch?v=${res.data.data.videoId}`;
-                const updated = { ...track, videoUrl: fullYtUrl };
+            const videoId = res?.videoId || res?.data?.videoId || res?.data?.data?.videoId;
+            if (videoId) {
+                const fullYtUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                const updated = { ...track, videoUrl: fullYtUrl, duration: 240 };
                 setActiveTrack(updated);
-                setTracks(prev => prev.map(t => (t.id === track.id ? { ...t, videoUrl: fullYtUrl } : t)));
+                setTracks(prev => prev.map(t => (t.id === track.id ? { ...t, videoUrl: fullYtUrl, duration: 240 } : t)));
                 return fullYtUrl;
             }
         } catch (err) {
@@ -380,8 +399,9 @@ export default function ChatMusicJukebox({
             try {
                 const query = `${track.artist} ${track.title} official video`;
                 const res = await api.interactions.searchYoutubeVideo(query);
-                if (res.data?.data?.videoId) {
-                    finalVideoUrl = `https://www.youtube.com/watch?v=${res.data.data.videoId}`;
+                const videoId = res?.videoId || res?.data?.videoId || res?.data?.data?.videoId;
+                if (videoId) {
+                    finalVideoUrl = `https://www.youtube.com/watch?v=${videoId}`;
                 }
             } catch (_) {}
         }
@@ -769,15 +789,15 @@ export default function ChatMusicJukebox({
                                         <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
                                         <p className="text-xs text-slate-300 font-medium">Finding Full Official HD Music Video...</p>
                                     </div>
-                                ) : getYoutubeId(activeTrack.videoUrl || '') ? (
+                                ) : (getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')) ? (
                                     <iframe
-                                        src={`https://www.youtube-nocookie.com/embed/${getYoutubeId(activeTrack.videoUrl || '')}?autoplay=1&rel=0`}
+                                        src={`https://www.youtube.com/embed/${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
                                         className="w-full h-full border-0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                         title={activeTrack.title}
                                     />
-                                ) : activeTrack.videoUrl && (activeTrack.videoUrl.startsWith('http://') || activeTrack.videoUrl.startsWith('https://')) && (activeTrack.videoUrl.includes('.mp4') || activeTrack.videoUrl.includes('.m4v') || activeTrack.videoUrl.includes('.webm') || activeTrack.videoUrl.includes('video-ssl')) ? (
+                                ) : activeTrack.videoUrl && (activeTrack.videoUrl.startsWith('http://') || activeTrack.videoUrl.startsWith('https://')) && !activeTrack.videoUrl.includes('video-ssl') && (activeTrack.videoUrl.includes('.mp4') || activeTrack.videoUrl.includes('.webm') || activeTrack.videoUrl.includes('.ogg')) ? (
                                     <video
                                         src={activeTrack.videoUrl}
                                         controls
@@ -788,28 +808,35 @@ export default function ChatMusicJukebox({
                                 ) : (
                                     <div className="p-4 text-center flex flex-col items-center justify-center space-y-3 h-full w-full bg-slate-950 text-white">
                                         <Tv size={32} className="text-pink-400 animate-pulse" />
-                                        <p className="text-xs font-semibold px-2 text-slate-200">Official Music Video for "{activeTrack.title}"</p>
+                                        <p className="text-xs font-semibold px-2 text-slate-200">Full Video for "{activeTrack.title}"</p>
+                                        <button
+                                            onClick={() => resolveFullVideoTrack(activeTrack)}
+                                            className="py-2 px-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-xs font-bold shadow-lg transition-transform active:scale-95 flex items-center space-x-2 cursor-pointer"
+                                        >
+                                            <Play className="w-3.5 h-3.5 fill-white" />
+                                            <span>Play Full HD Video Song</span>
+                                        </button>
                                         <a
                                             href={`https://www.youtube.com/results?search_query=${encodeURIComponent(`${activeTrack.artist} ${activeTrack.title} official video`)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-lg transition-transform active:scale-95 flex items-center space-x-2"
+                                            className="py-1.5 px-3 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg text-[11px] font-semibold transition-colors flex items-center space-x-1.5"
                                         >
-                                            <span>▶ Watch Official Video on YouTube</span>
+                                            <span>▶ Open in YouTube App</span>
                                         </a>
                                     </div>
                                 )}
                             </div>
 
                             {/* YouTube Deep Link Bar */}
-                            {getYoutubeId(activeTrack.videoUrl || '') && (
+                            {(getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')) && (
                                 <div className="px-4 py-1.5 bg-slate-950 flex items-center justify-between border-t border-slate-800/60 text-[11px] text-slate-400">
-                                    <span>Full Song Playing in HD</span>
+                                    <span className="text-emerald-400 font-medium">● Full HD Song Streaming</span>
                                     <a
-                                        href={`https://www.youtube.com/watch?v=${getYoutubeId(activeTrack.videoUrl || '')}`}
+                                        href={`https://www.youtube.com/watch?v=${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1"
+                                        className="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1.5 bg-red-500/10 px-2.5 py-0.5 rounded-lg border border-red-500/20"
                                     >
                                         <span>Open in YouTube App</span>
                                         <Tv size={12} />

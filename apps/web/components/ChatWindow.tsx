@@ -156,8 +156,8 @@ const ChatSharedMediaCard = ({
     const rawYtId = (videoUrl ? getYoutubeId(videoUrl) : null) || (audioUrl ? getYoutubeId(audioUrl) : null);
     const resolvedYtId = dynamicYtId || rawYtId;
     const isCorrupted = (audioUrl && audioUrl.includes('[Hidden Contact')) || (videoUrl && videoUrl.includes('[Hidden Contact'));
-    const isDirectVideo = (videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && (videoUrl.includes('.mp4') || videoUrl.includes('.m4v') || videoUrl.includes('.webm') || videoUrl.includes('video-ssl'))) ||
-                          (audioUrl && (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) && (audioUrl.includes('.mp4') || audioUrl.includes('.m4v') || audioUrl.includes('.webm') || audioUrl.includes('video-ssl')));
+    const isDirectVideo = (videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) && !videoUrl.includes('video-ssl') && (videoUrl.includes('.mp4') || videoUrl.includes('.webm') || videoUrl.includes('.ogg'))) ||
+                          (audioUrl && (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) && !audioUrl.includes('video-ssl') && (audioUrl.includes('.mp4') || audioUrl.includes('.webm') || audioUrl.includes('.ogg')));
     const effectiveVideoUrl = videoUrl || (isDirectVideo ? audioUrl : '');
 
     const toggleAudio = (e: React.MouseEvent) => {
@@ -226,8 +226,9 @@ const ChatSharedMediaCard = ({
             setIsResolvingVideo(true);
             try {
                 const res = await api.interactions.searchYoutubeVideo(`${artist} ${title} official video`);
-                if (res.data?.data?.videoId) {
-                    setDynamicYtId(res.data.data.videoId);
+                const videoId = res?.videoId || res?.data?.videoId || res?.data?.data?.videoId;
+                if (videoId) {
+                    setDynamicYtId(videoId);
                 }
             } catch (err) {
                 console.warn('[ChatSharedMediaCard] Failed to resolve YouTube video:', err);
@@ -243,8 +244,9 @@ const ChatSharedMediaCard = ({
             setIsResolvingVideo(true);
             try {
                 const res = await api.interactions.searchYoutubeVideo(`${artist} ${title} official video`);
-                if (res.data?.data?.videoId) {
-                    setDynamicYtId(res.data.data.videoId);
+                const videoId = res?.videoId || res?.data?.videoId || res?.data?.data?.videoId;
+                if (videoId) {
+                    setDynamicYtId(videoId);
                 }
             } catch (err) {
                 console.warn('[ChatSharedMediaCard] Failed to resolve YouTube video:', err);
@@ -281,7 +283,7 @@ const ChatSharedMediaCard = ({
                         <video src={effectiveVideoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
                     ) : resolvedYtId ? (
                         <iframe
-                            src={`https://www.youtube-nocookie.com/embed/${resolvedYtId}?autoplay=1&rel=0`}
+                            src={`https://www.youtube.com/embed/${resolvedYtId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
                             className="w-full h-full border-0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen

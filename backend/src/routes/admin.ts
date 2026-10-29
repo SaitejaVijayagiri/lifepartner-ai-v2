@@ -14,6 +14,16 @@ router.use(adminAuth);
 router.get('/stats', async (req, res) => {
     try {
         const totalUsers = await prisma.users.count();
+        const femaleUsers = await prisma.users.count({
+            where: {
+                OR: [
+                    { gender: { equals: 'female', mode: 'insensitive' } },
+                    { gender: { equals: 'Female' } }
+                ]
+            }
+        });
+        const maleUsers = Math.max(0, totalUsers - femaleUsers);
+        const femalePercentage = totalUsers > 0 ? Math.round((femaleUsers / totalUsers) * 100) : 0;
         const premiumUsers = await prisma.users.count({ where: { is_premium: true } });
 
         // Revenue Breakdown
@@ -76,6 +86,9 @@ router.get('/stats', async (req, res) => {
 
         res.json({
             totalUsers,
+            femaleUsers,
+            maleUsers,
+            femalePercentage,
             premiumUsers,
             totalRevenue: totalRevenue._sum.amount || 0,
             premiumRevenue: premiumRevenue._sum.amount || 0,

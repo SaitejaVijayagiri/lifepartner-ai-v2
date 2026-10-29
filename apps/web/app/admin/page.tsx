@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle, BarChart3, Star, HeartHandshake, Globe } from 'lucide-react';
+import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle, BarChart3, Star, HeartHandshake, Globe, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -125,7 +125,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
                     <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -135,6 +135,18 @@ export default function AdminDashboard() {
                             <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
                             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                                 {stats?.premiumUsers || 0} Premium
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-gradient-to-br from-pink-50 to-rose-100/40 dark:from-pink-950/20 dark:to-rose-900/10 border-pink-200 dark:border-pink-900/50 text-gray-900 dark:text-gray-100">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-pink-700 dark:text-pink-300">Female Community</CardTitle>
+                            <Heart className="h-4 w-4 text-pink-500 fill-pink-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-pink-950 dark:text-pink-100">{stats?.femaleUsers || 0}</div>
+                            <p className="text-xs text-pink-600 dark:text-pink-400 mt-1 font-semibold">
+                                {stats?.femalePercentage || 0}% of Total Users
                             </p>
                         </CardContent>
                     </Card>
@@ -175,8 +187,19 @@ export default function AdminDashboard() {
                 {/* Analytics Chart */}
                 {stats?.chartData && (
                     <Card className="col-span-4 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100">
-                        <CardHeader>
-                            <CardTitle>User Growth (Last 30 Days)</CardTitle>
+                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2">
+                            <div>
+                                <CardTitle className="text-base font-bold flex items-center gap-2">
+                                    <BarChart3 className="w-5 h-5 text-indigo-500" />
+                                    Daily User Acquisition & Gender Reach (Last 30 Days)
+                                </CardTitle>
+                                <p className="text-xs text-gray-500 mt-0.5">Track daily registration trends and female vs male growth</p>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs font-semibold">
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block"></span> Female Users</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> Male Users</span>
+                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span> Total Signups</span>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <div className="h-[300px] w-full">
@@ -186,18 +209,30 @@ export default function AdminDashboard() {
                                     <AreaChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                                                <stop offset="5%" stopColor="#c084fc" stopOpacity={0.5}/>
+                                                <stop offset="95%" stopColor="#c084fc" stopOpacity={0}/>
+                                            </linearGradient>
+                                            <linearGradient id="colorFemale" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#ec4899" stopOpacity={0.1}/>
+                                            </linearGradient>
+                                            <linearGradient id="colorMale" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.1}/>
                                             </linearGradient>
                                         </defs>
                                         {/* @ts-ignore */}
                                         <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => format(new Date(val), 'MMM dd')} />
                                         {/* @ts-ignore */}
                                         <YAxis tick={{fontSize: 12}} />
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                                         <Tooltip labelFormatter={(val) => format(new Date(val), 'dd MMM yyyy')} />
                                         {/* @ts-ignore */}
-                                        <Area type="monotone" dataKey="users" stroke="#8884d8" fillOpacity={1} fill="url(#colorUsers)" />
+                                        <Area type="monotone" dataKey="female" name="Female Users" stroke="#ec4899" strokeWidth={2} fillOpacity={1} fill="url(#colorFemale)" />
+                                        {/* @ts-ignore */}
+                                        <Area type="monotone" dataKey="male" name="Male Users" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorMale)" />
+                                        {/* @ts-ignore */}
+                                        <Area type="monotone" dataKey="users" name="Total Users" stroke="#c084fc" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorUsers)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             </div>

@@ -144,9 +144,9 @@ export default function HomeTab({
             {/* Music & Video Vibe Jukebox Featured Banner */}
             <div 
                 onClick={() => setShowJukebox(true)}
-                className="group relative rounded-3xl bg-gradient-to-r from-pink-600/25 via-purple-900/35 to-indigo-950/45 border border-pink-500/30 hover:border-pink-500/60 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 hover:shadow-pink-500/10 hover:-translate-y-0.5 overflow-hidden"
+                className="group relative rounded-3xl bg-gradient-to-r from-pink-500/15 via-purple-500/10 to-rose-500/15 dark:from-pink-950/50 dark:via-purple-950/60 dark:to-indigo-950/70 border border-pink-300/80 dark:border-pink-500/30 hover:border-pink-500/60 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl backdrop-blur-md cursor-pointer transition-all duration-300 hover:shadow-pink-500/10 hover:-translate-y-0.5 overflow-hidden"
             >
-                <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-pink-500/15 via-rose-500/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-pink-400/20 via-rose-400/15 to-transparent dark:from-pink-500/15 dark:via-rose-500/10 dark:to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
 
                 <div className="relative z-10 flex items-center gap-3.5 sm:gap-4 min-w-0">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform shrink-0">
@@ -154,21 +154,21 @@ export default function HomeTab({
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-pink-500/20 border border-pink-500/40 text-pink-300 text-[10px] font-black uppercase tracking-wider">
-                                <Sparkles size={11} className="text-amber-400" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-500/20 border border-pink-300 dark:border-pink-500/40 text-pink-700 dark:text-pink-300 text-[10px] font-black uppercase tracking-wider">
+                                <Sparkles size={11} className="text-amber-500 dark:text-amber-400" />
                                 Vibe Music & Video Player
                             </span>
-                            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-bold bg-emerald-100 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-500/30">
                                 🎬 Full HD Videos
                             </span>
-                            <span className="text-[10px] text-amber-300 font-bold bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30">
+                            <span className="text-[10px] text-amber-800 dark:text-amber-300 font-bold bg-amber-100 dark:bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-500/30">
                                 🔥 100% Free
                             </span>
                         </div>
-                        <h3 className="text-base sm:text-lg font-black text-white tracking-tight mt-1 truncate">
+                        <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight mt-1 truncate">
                             Chat & Dating Vibe Jukebox
                         </h3>
-                        <p className="text-xs text-gray-300 line-clamp-1 sm:line-clamp-2">
+                        <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-1 sm:line-clamp-2">
                             Explore trending songs, watch full HD official music videos, bookmark favorites, or share with your match!
                         </p>
                     </div>

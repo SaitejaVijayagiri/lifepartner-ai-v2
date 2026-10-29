@@ -2075,7 +2075,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                         </button>
                         <button
                             onClick={() => setShowJukebox(true)}
-                            className="p-1.5 sm:p-2 text-pink-300 hover:text-white hover:bg-pink-500/20 rounded-xl transition-all relative group"
+                            className="p-1.5 sm:p-2 text-pink-500 dark:text-pink-300 hover:text-pink-600 dark:hover:text-white hover:bg-pink-100 dark:hover:bg-pink-500/20 rounded-xl transition-all relative group"
                             title="Music & Video Vibe Jukebox"
                         >
                             <Music size={18} className="animate-pulse" />

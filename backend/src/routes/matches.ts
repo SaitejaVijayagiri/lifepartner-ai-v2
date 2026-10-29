@@ -69,7 +69,7 @@ const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.
  *   - base64 data URI (Supabase upload failed — photo stored as fallback, no face guarantee)
  */
 const hasValidPhoto = (avatarUrl: string | null | undefined): boolean => {
-    if (!avatarUrl) return false;
+    if (!avatarUrl || typeof avatarUrl !== 'string') return false;
     if (avatarUrl.includes('dicebear')) return false;
     if (avatarUrl.startsWith('data:image')) return false;
     return avatarUrl.startsWith('http');

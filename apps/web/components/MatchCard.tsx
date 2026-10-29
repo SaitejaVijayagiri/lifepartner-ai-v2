@@ -527,7 +527,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                                         🌍 Worldwide
                                     </span>
                                 )}
-                                {photos.length >= 2 && !photos[0].includes('dicebear') && (
+                                {photos.length >= 2 && typeof photos[0] === 'string' && !photos[0].includes('dicebear') && (
                                     <span className="inline-flex items-center gap-1 text-pink-200 text-[10px] font-black uppercase tracking-wider bg-pink-500/30 border border-pink-400/40 px-2 py-0.5 rounded-full mb-0.5 backdrop-blur-md shadow-sm" title={`${photos.length} Verified Photos Uploaded`}>
                                         📸 {photos.length} Photos
                                     </span>

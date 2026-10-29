@@ -454,6 +454,8 @@ export default function MatchesTab({
             filtered = filtered.filter(m => getPhotoTier(m) >= 2);
         }
 
+        const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
+
         // Multiple Photos Priority: Profiles with multiple photos are strictly listed at the very top!
         return filtered.slice().sort((a, b) => {
             // 1. Multiple Photos Tier Priority (Tier 3 > Tier 2 > Tier 1 > Tier 0)
@@ -462,13 +464,13 @@ export default function MatchesTab({
             if (tierA !== tierB) return tierB - tierA; // Higher photo tier strictly first
 
             // 2. Live Online Priority within the same photo tier
-            const isOnlineA = onlineUsers ? onlineUsers.has(a.id) : Boolean(a.isOnline);
-            const isOnlineB = onlineUsers ? onlineUsers.has(b.id) : Boolean(b.isOnline);
+            const isOnlineA = onlineSet.size > 0 ? (a?.id && onlineSet.has(a.id)) : Boolean(a?.isOnline);
+            const isOnlineB = onlineSet.size > 0 ? (b?.id && onlineSet.has(b.id)) : Boolean(b?.isOnline);
             if (isOnlineA && !isOnlineB) return -1;
             if (!isOnlineA && isOnlineB) return 1;
 
             // 3. Match / Compatibility score
-            return (b.score || 0) - (a.score || 0);
+            return (b?.score || 0) - (a?.score || 0);
         });
     }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, showMultiPhotoOnly, onlineUsers]);
 

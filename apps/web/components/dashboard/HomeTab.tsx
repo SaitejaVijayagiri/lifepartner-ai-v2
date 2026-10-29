@@ -184,7 +184,7 @@ export default function HomeTab({
             </div>
 
             {/* Photo Upload Accelerator for Profiles without Multiple Photos */}
-            {(!currentUser?.avatar_url || currentUser?.avatar_url.includes('dicebear') || (Array.isArray(currentUser?.photos) && currentUser.photos.length < 3)) && (
+            {(!currentUser?.avatar_url || (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear')) || (Array.isArray(currentUser?.photos) && currentUser.photos.length < 3)) && (
                 <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
                     <div className="flex items-center gap-3.5">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-white flex items-center justify-center text-2xl shadow-md shrink-0">
@@ -192,7 +192,7 @@ export default function HomeTab({
                         </div>
                         <div>
                             <h4 className="text-sm sm:text-base font-black text-gray-900 dark:text-white">
-                                {(!currentUser?.avatar_url || currentUser?.avatar_url.includes('dicebear')) 
+                                {(!currentUser?.avatar_url || (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear'))) 
                                     ? 'Unlock Top Match Ranking & 10x More Responses!' 
                                     : 'Upload 3+ Photos to Rank at the Top of Matches!'}
                             </h4>
@@ -205,7 +205,7 @@ export default function HomeTab({
                         onClick={() => onNavigateTab('profile_edit')}
                         className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black shadow-md transition-all active:scale-95 shrink-0 cursor-pointer"
                     >
-                        {(!currentUser?.avatar_url || currentUser?.avatar_url.includes('dicebear')) ? 'Upload Photo Now ➔' : 'Add More Photos ➔'}
+                        {(!currentUser?.avatar_url || (typeof currentUser?.avatar_url === 'string' && currentUser.avatar_url.includes('dicebear'))) ? 'Upload Photo Now ➔' : 'Add More Photos ➔'}
                     </button>
                 </div>
             )}

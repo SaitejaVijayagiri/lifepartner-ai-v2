@@ -156,8 +156,8 @@ public class MainActivity extends BridgeActivity {
         if (isAdLoading || rewardedAd != null) return;
         isAdLoading = true;
         AdRequest adRequest = new AdRequest.Builder().build();
-        // Official Google Sample Rewarded Video Ad Unit (safe for testing & Play Store review)
-        RewardedAd.load(this, "ca-app-pub-3940256099942544/5224354917", adRequest, new RewardedAdLoadCallback() {
+        // Production Rewarded Video Ad Unit
+        RewardedAd.load(this, "ca-app-pub-1408290775036355/7913400523", adRequest, new RewardedAdLoadCallback() {
             @Override
             public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
                 Log.w(TAG, "Rewarded ad failed to load: " + loadAdError.getMessage());

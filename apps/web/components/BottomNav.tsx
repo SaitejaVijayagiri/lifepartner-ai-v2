@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Heart, Users, MessageCircle, User, Coffee, MapPin, Calendar, MoreHorizontal, X, Home, Video } from 'lucide-react';
+import { Heart, Users, MessageCircle, User, Coffee, MapPin, Calendar, MoreHorizontal, X, Home, Video, Music } from 'lucide-react';
 
 interface BottomNavProps {
     activeTab: string;
@@ -39,6 +39,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
 
     // Secondary items in "More"
     const secondaryItems: Array<{ id: string; label: string; icon: any; gradient: string; badge?: number }> = useMemo(() => [
+        { id: 'jukebox', label: 'Music & Video Jukebox 🎵', icon: Music, gradient: 'from-pink-500 to-rose-500' },
         { id: 'profile', label: 'My Profile & Settings', icon: User, gradient: 'from-blue-500 to-cyan-500' },
         { id: 'map', label: 'Interactive Live Map', icon: MapPin, gradient: 'from-purple-500 to-indigo-500' },
         { id: 'events', label: 'Real-World Meetups', icon: Calendar, gradient: 'from-violet-500 to-purple-600' },
@@ -49,6 +50,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     const moreBadge = 0;
 
     const handleSelect = (id: string) => {
+        if (id === 'jukebox') {
+            window.dispatchEvent(new CustomEvent('open-jukebox'));
+            setShowMore(false);
+            return;
+        }
         setActiveTab(id);
         setShowMore(false);
     };

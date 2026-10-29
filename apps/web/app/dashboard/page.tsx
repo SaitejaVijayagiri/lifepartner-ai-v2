@@ -431,6 +431,10 @@ function DashboardContent() {
         };
         const handleChangeTabEvent = (e: any) => {
             if (e.detail && e.detail.tab) {
+                if (e.detail.tab === 'jukebox') {
+                    window.dispatchEvent(new CustomEvent('open-jukebox'));
+                    return;
+                }
                 setActiveTab(e.detail.tab);
             }
         };

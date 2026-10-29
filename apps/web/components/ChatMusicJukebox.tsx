@@ -627,7 +627,7 @@ export default function ChatMusicJukebox({
                                         onClick={() => handlePlayTrack(track)}
                                         className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl cursor-pointer transition-all ${
                                             isCurrent
-                                                ? 'bg-gradient-to-r from-pink-50 via-rose-50 to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 border-2 border-pink-500 shadow-md shadow-pink-500/15'
+                                                ? 'bg-pink-50/90 dark:bg-slate-900 border-2 border-pink-500 shadow-md shadow-pink-500/20'
                                                 : 'bg-white dark:bg-slate-900/60 hover:bg-pink-50/40 dark:hover:bg-slate-900 border border-gray-200/80 dark:border-slate-800/80 shadow-sm hover:shadow-md'
                                         }`}
                                     >
@@ -638,8 +638,14 @@ export default function ChatMusicJukebox({
                                                 className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-cover shadow-md bg-gray-100 dark:bg-slate-800 flex-shrink-0"
                                             />
                                             <div className="min-w-0 flex-1">
-                                                <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate max-w-full">{track.title}</h4>
-                                                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium truncate max-w-full">{track.artist}</p>
+                                                <h4 className={`font-black text-xs sm:text-sm truncate max-w-full ${
+                                                    isCurrent
+                                                        ? 'text-pink-600 dark:text-pink-400'
+                                                        : 'text-gray-950 dark:text-white'
+                                                }`}>
+                                                    {track.title}
+                                                </h4>
+                                                <p className="text-[11px] sm:text-xs text-gray-600 dark:text-slate-400 font-medium truncate max-w-full">{track.artist}</p>
                                                 <span className="inline-block mt-0.5 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-md bg-pink-100/90 dark:bg-slate-800 text-pink-700 dark:text-pink-400 font-bold border border-pink-200/80 dark:border-transparent">
                                                     {track.mood} • 30s HD Preview
                                                 </span>
@@ -848,11 +854,11 @@ export default function ChatMusicJukebox({
 
                                 {/* Video Info & Share Action */}
                                 <div className="p-3.5 sm:p-4 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
-                                    <div className="flex items-center space-x-3 min-w-0">
+                                    <div className="flex items-center space-x-3 min-w-0 flex-1 pr-2">
                                         <img src={activeTrack.coverUrl} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 shadow-sm bg-gray-100 dark:bg-slate-800" />
-                                        <div className="min-w-0">
-                                            <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate">{activeTrack.title}</h4>
-                                            <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{activeTrack.artist} • In-Chat Video</p>
+                                        <div className="min-w-0 flex-1">
+                                            <h4 className="font-black text-sm text-gray-950 dark:text-white truncate">{activeTrack.title}</h4>
+                                            <p className="text-xs text-pink-600 dark:text-pink-400 font-bold truncate">{activeTrack.artist} • In-Chat Video</p>
                                         </div>
                                     </div>
 
@@ -906,11 +912,11 @@ export default function ChatMusicJukebox({
                                         onClick={() => handleWatchTrackVideo(track)}
                                         className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
                                             isCurrent
-                                                ? 'bg-gradient-to-r from-pink-50 via-rose-50 to-purple-50 dark:bg-slate-900 border-2 border-pink-500 shadow-xl'
+                                                ? 'bg-pink-50/90 dark:bg-slate-900 border-2 border-pink-500 shadow-xl'
                                                 : 'bg-white dark:bg-slate-900/60 hover:bg-gray-50 dark:hover:bg-slate-900 border border-gray-200 dark:border-slate-800/80 shadow-sm hover:shadow'
                                         }`}
                                     >
-                                        <div className="flex items-center space-x-3.5 min-w-0">
+                                        <div className="flex items-center space-x-3.5 min-w-0 flex-1 pr-2">
                                             <div className="relative flex-shrink-0">
                                                 <img
                                                     src={track.coverUrl}
@@ -921,9 +927,15 @@ export default function ChatMusicJukebox({
                                                     <Tv className="w-5 h-5 text-white drop-shadow-md" />
                                                 </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate">{track.title}</h4>
-                                                <p className="text-xs text-gray-500 dark:text-slate-400 font-medium truncate">{track.artist}</p>
+                                            <div className="min-w-0 flex-1">
+                                                <h4 className={`font-black text-sm truncate ${
+                                                    isCurrent
+                                                        ? 'text-pink-600 dark:text-pink-400'
+                                                        : 'text-gray-950 dark:text-white'
+                                                }`}>
+                                                    {track.title}
+                                                </h4>
+                                                <p className="text-xs text-gray-600 dark:text-slate-400 font-medium truncate">{track.artist}</p>
                                                 <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded-md bg-pink-100 dark:bg-slate-800 text-pink-700 dark:text-pink-400 font-bold border border-pink-200/60 dark:border-transparent">
                                                     {track.mood}
                                                 </span>
@@ -953,18 +965,19 @@ export default function ChatMusicJukebox({
 
                 {/* Active Audio Player Bar */}
                 {activeTab === 'audio' && activeTrack && (
-                    <div className="p-3.5 sm:p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200/80 dark:border-slate-800 shadow-2xl space-y-2.5">
+                    <div className="p-3 sm:p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-gray-200/80 dark:border-slate-800 shadow-2xl space-y-2.5">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3 min-w-0">
-                                <img src={activeTrack.coverUrl} className="w-12 h-12 rounded-2xl object-cover shadow-md flex-shrink-0 bg-gray-100 dark:bg-slate-800" />
-                                <div className="min-w-0">
-                                    <h4 className="font-extrabold text-xs text-gray-900 dark:text-white truncate">{activeTrack.title}</h4>
-                                    <p className="text-[10px] text-gray-500 dark:text-slate-400 font-medium truncate">{activeTrack.artist}</p>
+                            <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0 flex-1 pr-2">
+                                <img src={activeTrack.coverUrl} className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl object-cover shadow-md flex-shrink-0 bg-gray-100 dark:bg-slate-800 border border-gray-200/60 dark:border-slate-700/60" />
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-black text-xs sm:text-sm text-gray-950 dark:text-white truncate">{activeTrack.title}</h4>
+                                    <p className="text-[10px] sm:text-[11px] text-pink-600 dark:text-pink-400 font-bold truncate">{activeTrack.artist}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center space-x-2 sm:space-x-3">
-                                <div className="flex items-center space-x-1.5 bg-gray-100 dark:bg-slate-800/80 px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700/60 shadow-inner">
+                            <div className="flex items-center space-x-1.5 sm:space-x-2.5 flex-shrink-0">
+                                {/* Desktop/Tablet Volume Control: Hidden on mobile so song title has full width */}
+                                <div className="hidden sm:flex items-center space-x-1.5 bg-gray-100 dark:bg-slate-800/80 px-2 py-1 rounded-full border border-gray-200 dark:border-slate-700/60 shadow-inner">
                                     <button
                                         onClick={handleToggleMute}
                                         className="p-1 rounded-full text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white transition-colors"
@@ -979,10 +992,19 @@ export default function ChatMusicJukebox({
                                         step={0.05}
                                         value={isMuted ? 0 : volume}
                                         onChange={e => handleVolumeChange(parseFloat(e.target.value))}
-                                        className="w-14 sm:w-20 h-1.5 bg-gray-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                                        className="w-16 sm:w-20 h-1.5 bg-gray-300 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500"
                                         title={`Volume: ${Math.round((isMuted ? 0 : volume) * 100)}%`}
                                     />
                                 </div>
+
+                                {/* Mobile Compact Mute/Unmute Button: Ultra-compact, doesn't hide song title */}
+                                <button
+                                    onClick={handleToggleMute}
+                                    className="sm:hidden p-2 rounded-xl bg-gray-100 dark:bg-slate-800/80 text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white transition-colors border border-gray-200/80 dark:border-slate-700/60 shadow-sm flex-shrink-0"
+                                    title={isMuted ? "Unmute" : "Mute (Use phone buttons for volume)"}
+                                >
+                                    {isMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4 text-pink-500" />}
+                                </button>
 
                                 {onStartSyncTrack && (
                                     <button
@@ -997,7 +1019,7 @@ export default function ChatMusicJukebox({
                                             });
                                             onClose();
                                         }}
-                                        className="px-3 py-1.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1 shadow-md active:scale-95 transition-transform cursor-pointer"
+                                        className="px-2.5 sm:px-3 py-1.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center space-x-1 shadow-md active:scale-95 transition-transform cursor-pointer"
                                         title="Sync Live with Match (Listen Together)"
                                     >
                                         <Headphones className="w-3.5 h-3.5" />
@@ -1008,7 +1030,7 @@ export default function ChatMusicJukebox({
                                 {onShareTrackToChat && (
                                     <button
                                         onClick={() => handleShareTrack(activeTrack)}
-                                        className="p-2 rounded-full bg-gray-100 hover:bg-pink-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-pink-600 dark:text-pink-400 transition-colors shadow-sm cursor-pointer"
+                                        className="p-1.5 sm:p-2 rounded-full bg-gray-100 hover:bg-pink-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-pink-600 dark:text-pink-400 transition-colors shadow-sm cursor-pointer"
                                         title="Share Song & Video to Chat"
                                     >
                                         <Send className="w-4 h-4" />
@@ -1017,9 +1039,9 @@ export default function ChatMusicJukebox({
 
                                 <button
                                     onClick={handleTogglePlay}
-                                    className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 active:scale-95 hover:scale-105 transition-all cursor-pointer"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 active:scale-95 hover:scale-105 transition-all cursor-pointer flex-shrink-0"
                                 >
-                                    {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
+                                    {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-white" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white ml-0.5" />}
                                 </button>
                             </div>
                         </div>

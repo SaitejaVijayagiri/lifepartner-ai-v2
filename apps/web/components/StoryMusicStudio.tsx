@@ -396,7 +396,7 @@ export default function StoryMusicStudio({ currentMusic, onSelectMusic, onClose 
                                         className="w-14 h-14 rounded-2xl object-cover shadow-md bg-slate-800 flex-shrink-0"
                                     />
                                     <div className="min-w-0">
-                                        <h4 className="font-bold text-sm text-white truncate">{track.title}</h4>
+                                        <h4 className={`font-bold text-sm truncate ${isSelected ? 'text-pink-400 font-extrabold' : 'text-white'}`}>{track.title}</h4>
                                         <p className="text-xs text-slate-400 truncate">{track.artist}</p>
                                         <div className="flex items-center space-x-2 mt-1">
                                             <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-pink-400 font-medium">

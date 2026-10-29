@@ -6,7 +6,7 @@ import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2 } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2, Headphones } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -267,7 +267,7 @@ const ChatSharedMediaCard = ({
                     <h4 className="font-bold text-xs sm:text-sm text-white truncate">{title}</h4>
                     <p className="text-[10px] sm:text-[11px] text-pink-300 truncate">{artist}</p>
                     <span className="inline-block mt-0.5 text-[9px] px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-300 font-medium">
-                        🎵 Shared Music & Video
+                        🎧 Shared Music & Video
                     </span>
                 </div>
             </div>
@@ -2078,7 +2078,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             className="p-1.5 sm:p-2 text-pink-500 dark:text-pink-300 hover:text-pink-600 dark:hover:text-white hover:bg-pink-100 dark:hover:bg-pink-500/20 rounded-xl transition-all relative group"
                             title="Music & Video Vibe Jukebox"
                         >
-                            <Music size={18} className="animate-pulse" />
+                            <Headphones size={18} className="animate-pulse" />
                         </button>
                         <button
                             onClick={() => {
@@ -3350,11 +3350,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 className="w-full flex items-center gap-3 p-2.5 rounded-2xl hover:bg-pink-50 dark:hover:bg-pink-900/30 text-gray-700 dark:text-gray-200 transition-all font-semibold text-xs text-left"
                             >
                                 <span className="p-2 rounded-xl bg-pink-500/10 text-pink-500">
-                                    <Music size={18} />
+                                    <Headphones size={18} />
                                 </span>
                                 <div className="flex flex-col">
                                     <span className="font-bold text-xs text-pink-600 dark:text-pink-400 flex items-center gap-1">
-                                        🎵 Music & Video Jukebox
+                                        🎧 Music & Video Jukebox
                                     </span>
                                     <span className="text-[10px] text-gray-400">Preview songs, watch videos & sync audio live</span>
                                 </div>

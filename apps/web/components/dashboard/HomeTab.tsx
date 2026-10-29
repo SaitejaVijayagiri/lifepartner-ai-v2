@@ -150,7 +150,7 @@ export default function HomeTab({
 
                 <div className="relative z-10 flex items-center gap-3.5 sm:gap-4 min-w-0">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform shrink-0">
-                        <Music size={26} className="fill-white" />
+                        <Headphones size={26} className="text-white" />
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -518,7 +518,7 @@ export default function HomeTab({
                 className="fixed bottom-24 right-4 sm:right-6 z-[900] flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white shadow-2xl shadow-pink-500/40 border border-white/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
                 title="Open Music & Video Vibe Player"
             >
-                <Music size={18} className="fill-white" />
+                <Headphones size={18} className="text-white" />
                 <span className="text-xs font-black tracking-wide hidden xs:inline">Vibe Player</span>
             </button>
 

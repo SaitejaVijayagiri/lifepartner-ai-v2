@@ -475,7 +475,7 @@ export default function ChatMusicJukebox({
                 <div className="flex items-center justify-between p-3.5 sm:p-4 bg-white/95 dark:bg-slate-900/90 border-b border-gray-200/80 dark:border-slate-800 shadow-sm backdrop-blur-md">
                     <div className="flex items-center space-x-3">
                         <span className="flex items-center justify-center w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 via-rose-500 to-amber-500 text-white shadow-lg shadow-pink-500/25">
-                            {activeTab === 'audio' ? <Music className="w-5 h-5 fill-white" /> : <Tv className="w-5 h-5" />}
+                            {activeTab === 'audio' ? <Headphones className="w-5 h-5 text-white" /> : <Tv className="w-5 h-5" />}
                         </span>
                         <div>
                             <h3 className="font-extrabold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
@@ -526,7 +526,7 @@ export default function ChatMusicJukebox({
                                 : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-slate-800'
                         }`}
                     >
-                        <Music className="w-4 h-4" />
+                        <Headphones className="w-4 h-4" />
                         <span>Music Player</span>
                     </button>
 
@@ -585,7 +585,7 @@ export default function ChatMusicJukebox({
                     tracks.length === 0 && !isSearching ? (
                         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-gray-500 dark:text-slate-400 space-y-3">
                             <div className="w-16 h-16 rounded-3xl bg-gray-100 dark:bg-slate-900 flex items-center justify-center text-pink-500 dark:text-pink-400 border border-gray-200 dark:border-slate-800 shadow-xl">
-                                <Music className="w-8 h-8" />
+                                <Headphones className="w-8 h-8" />
                             </div>
                             {selectedMood === '🔖 Saved' ? (
                                 <>

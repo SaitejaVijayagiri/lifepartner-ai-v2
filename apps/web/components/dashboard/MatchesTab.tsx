@@ -368,6 +368,7 @@ export default function MatchesTab({
 
     const [showOnlineOnly, setShowOnlineOnly] = useState(false);
     const [showWorldwideOnly, setShowWorldwideOnly] = useState(false);
+    const [showMultiPhotoOnly, setShowMultiPhotoOnly] = useState(false);
 
     const onlineUsersKey = Array.isArray(onlineUsers) ? onlineUsers.join(',') : '';
     const onlineMatchesList = useMemo(() => {
@@ -423,25 +424,53 @@ export default function MatchesTab({
             ));
         }
 
-        // Stable Photo-First Prioritization: surface profiles with real photos first, deprioritize profiles without photos
+        // Helper to determine candidate photo tier:
+        // Tier 3: 3+ photos (Top rank)
+        // Tier 2: 2 photos (High rank)
+        // Tier 1: 1 photo (Standard rank)
+        // Tier 0: No photos (Bottom rank)
+        const getPhotoTier = (m: any): number => {
+            const photosList = Array.isArray(m?.photos) ? m.photos : [];
+            const validCount = photosList.filter((p: any) => 
+                typeof p === 'string' && 
+                p.trim() && 
+                !p.includes('dicebear') && 
+                !p.includes('avatar-fallback')
+            ).length;
+            const hasSingle = Boolean(
+                m?.hasValidPhoto ?? (
+                    (m?.photoUrl && !m.photoUrl.includes('dicebear') && !m.photoUrl.includes('avatar-fallback')) ||
+                    (m?.avatar_url && !m.avatar_url.includes('dicebear') && !m.avatar_url.includes('avatar-fallback'))
+                )
+            );
+            const count = Math.max(m?.photoCount || 0, validCount, hasSingle ? 1 : 0);
+            if (count >= 3) return 3;
+            if (count === 2) return 2;
+            if (count === 1) return 1;
+            return 0;
+        };
+
+        if (showMultiPhotoOnly) {
+            filtered = filtered.filter(m => getPhotoTier(m) >= 2);
+        }
+
+        // Multiple Photos Priority: Profiles with multiple photos are strictly listed at the very top!
         return filtered.slice().sort((a, b) => {
-            const hasPhotoA = Boolean(
-                a?.hasValidPhoto ?? (
-                    (a?.photoUrl && !a.photoUrl.includes('dicebear') && !a.photoUrl.startsWith('data:')) ||
-                    (a?.avatar_url && !a.avatar_url.includes('dicebear') && !a.avatar_url.startsWith('data:'))
-                )
-            );
-            const hasPhotoB = Boolean(
-                b?.hasValidPhoto ?? (
-                    (b?.photoUrl && !b.photoUrl.includes('dicebear') && !b.photoUrl.startsWith('data:')) ||
-                    (b?.avatar_url && !b.avatar_url.includes('dicebear') && !b.avatar_url.startsWith('data:'))
-                )
-            );
-            if (hasPhotoA && !hasPhotoB) return -1;
-            if (!hasPhotoA && hasPhotoB) return 1;
-            return 0; // Maintain relative backend order (online status, AI score)
+            // 1. Multiple Photos Tier Priority (Tier 3 > Tier 2 > Tier 1 > Tier 0)
+            const tierA = getPhotoTier(a);
+            const tierB = getPhotoTier(b);
+            if (tierA !== tierB) return tierB - tierA; // Higher photo tier strictly first
+
+            // 2. Live Online Priority within the same photo tier
+            const isOnlineA = onlineUsers ? onlineUsers.has(a.id) : Boolean(a.isOnline);
+            const isOnlineB = onlineUsers ? onlineUsers.has(b.id) : Boolean(b.isOnline);
+            if (isOnlineA && !isOnlineB) return -1;
+            if (!isOnlineA && isOnlineB) return 1;
+
+            // 3. Match / Compatibility score
+            return (b.score || 0) - (a.score || 0);
         });
-    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, onlineUsers]);
+    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, showMultiPhotoOnly, onlineUsers]);
 
     if (loading && matches.length === 0) {
         return (
@@ -735,6 +764,18 @@ export default function MatchesTab({
                         >
                             <span>🌍</span>
                             <span>{showWorldwideOnly ? 'Showing 🌍 Worldwide Only' : '🌍 Worldwide / NRI'}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setShowMultiPhotoOnly(!showMultiPhotoOnly)}
+                            className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
+                                showMultiPhotoOnly
+                                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white border-pink-400 shadow-md shadow-pink-500/20 scale-105'
+                                    : 'bg-pink-50/80 dark:bg-pink-950/40 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800/50 hover:bg-pink-100'
+                            }`}
+                        >
+                            <span>📸</span>
+                            <span>{showMultiPhotoOnly ? 'Showing 📸 Multi-Photo Only' : '📸 Multi-Photo Profiles'}</span>
                         </button>
 
                         {/* Quick Action Chips */}

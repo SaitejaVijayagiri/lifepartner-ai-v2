@@ -75,6 +75,28 @@ const hasValidPhoto = (avatarUrl: string | null | undefined): boolean => {
     return avatarUrl.startsWith('http');
 };
 
+/**
+ * Calculates candidate photo tier for top ranking in matches and search:
+ * - Tier 3: 3 or more photos uploaded (Top priority)
+ * - Tier 2: 2 photos uploaded (High priority)
+ * - Tier 1: 1 photo uploaded (Standard priority)
+ * - Tier 0: No photos uploaded (Deprioritized)
+ */
+export const getPhotoTier = (m: any): number => {
+    const photosList = Array.isArray(m?.photos) ? m.photos : [];
+    const validCount = photosList.filter((p: any) => typeof p === 'string' && hasValidPhoto(p)).length;
+    const hasSingle = Boolean(
+        m?.hasValidPhoto || 
+        hasValidPhoto(m?.photoUrl) || 
+        hasValidPhoto(m?.avatar_url)
+    );
+    const count = Math.max(m?.photoCount || 0, validCount, hasSingle ? 1 : 0);
+    if (count >= 3) return 3; // Tier 3: 3+ photos (Top priority)
+    if (count === 2) return 2; // Tier 2: 2 photos (High priority)
+    if (count === 1) return 1; // Tier 1: 1 photo (Standard priority)
+    return 0; // Tier 0: No photos (Bottom priority)
+};
+
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
@@ -550,10 +572,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   )
                 ORDER BY 
                   (CASE 
-                    WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
-                      OR (p.photos IS NOT NULL AND p.photos::text != '[]' AND p.photos::text != 'null' AND p.photos::text != '')
-                    THEN 0 
-                    ELSE 1 
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
+                    THEN 0
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) = 2)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) = 2)
+                    THEN 1
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
+                      OR (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND TRIM(u.avatar_url) != '')
+                    THEN 2 
+                    ELSE 3 
                   END) ASC,
                   u.created_at DESC 
                 LIMIT ${limit} OFFSET ${offset}
@@ -576,10 +605,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   )
                 ORDER BY 
                   (CASE 
-                    WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
-                      OR (p.photos IS NOT NULL AND p.photos::text != '[]' AND p.photos::text != 'null' AND p.photos::text != '')
-                    THEN 0 
-                    ELSE 1 
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
+                    THEN 0
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) = 2)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) = 2)
+                    THEN 1
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
+                      OR (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND TRIM(u.avatar_url) != '')
+                    THEN 2 
+                    ELSE 3 
                   END) ASC,
                   u.created_at DESC 
                 LIMIT ${limit} OFFSET ${offset}
@@ -602,10 +638,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                   )
                 ORDER BY 
                   (CASE 
-                    WHEN (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND u.avatar_url NOT LIKE 'data:%' AND TRIM(u.avatar_url) != '')
-                      OR (p.photos IS NOT NULL AND p.photos::text != '[]' AND p.photos::text != 'null' AND p.photos::text != '')
-                    THEN 0 
-                    ELSE 1 
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
+                    THEN 0
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) = 2)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) = 2)
+                    THEN 1
+                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
+                      OR (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND TRIM(u.avatar_url) != '')
+                    THEN 2 
+                    ELSE 3 
                   END) ASC,
                   u.created_at DESC 
                 LIMIT ${limit} OFFSET ${offset}
@@ -821,23 +864,32 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 score -= 10;
             }
 
-            const candidateHasPhoto = hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]);
-            if (candidateHasPhoto) {
-                score += 10;
-            } else {
-                score -= 20; // Deprioritize score for users with missing profile pictures
-            }
-
-            // Cap
-            if (score > 99) score = 99;
-
             const rawPhotoList = extractPhotosList(c.profiles, meta, c.avatar_url);
             const sanitizedPhotos = rawPhotoList.map((p: string) => sanitizePhotoUrl(p, c.full_name || c.id)).filter(Boolean);
             const mainPhoto = sanitizePhotoUrl(
                 (sanitizedPhotos.length > 0 ? sanitizedPhotos[0] : null) || (c.avatar_url && c.avatar_url.trim() ? c.avatar_url : null),
                 c.full_name || c.id
             );
-            const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+            const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : (mainPhoto ? [mainPhoto] : []);
+            const validPhotos = finalPhotos.filter((p: string) => hasValidPhoto(p));
+            const candidatePhotoCount = validPhotos.length;
+            const candidateHasPhoto = candidatePhotoCount > 0 || hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]);
+
+            // Multi-Photo Priority Boost: Profiles with 3+ or 2 photos get high score boosts and badge reasons
+            if (candidatePhotoCount >= 3) {
+                score += 25;
+                reasons.push("📸 Multi-Photo Verified (3+ Photos)");
+            } else if (candidatePhotoCount === 2) {
+                score += 15;
+                reasons.push("📸 Multi-Photo Profile (2 Photos)");
+            } else if (candidateHasPhoto) {
+                score += 5;
+            } else {
+                score -= 25; // Deprioritize score for users with missing profile pictures
+            }
+
+            // Cap
+            if (score > 99) score = 99;
 
             const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
                 ? meta.interests
@@ -864,7 +916,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 maritalStatus: meta.maritalStatus || "Single",
                 motherTongue: meta.motherTongue || "",
                 photoUrl: mainPhoto,
-                hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
+                photoCount: candidatePhotoCount,
+                hasValidPhoto: candidateHasPhoto,
                 completenessScore: completeness.completenessScore,
                 badgeLevel: completeness.badgeLevel,
                 isWorldwide: isNonIndia,
@@ -927,18 +980,21 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             };
         }));
 
-        // Photo-First Priority for ALL users: verified real photos always come before profiles without photos
+        // Multiple Photos Priority: Profiles with multiple uploaded photos strictly get top priority
         matches.sort((a, b) => {
-            // 1. Photo Priority: Profiles with valid photos strictly come first
-            if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
-            if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
+            // 1. Multiple Photos Tier Priority (Tier 3 >= 3 photos > Tier 2 = 2 photos > Tier 1 = 1 photo > Tier 0 = 0 photos)
+            const tierA = getPhotoTier(a);
+            const tierB = getPhotoTier(b);
+            if (tierA !== tierB) {
+                return tierB - tierA; // Higher tier first
+            }
 
-            // 2. Live Online Priority within photo tiers
+            // 2. Live Online Priority within the same photo tier
             if (a.isOnline && !b.isOnline) return -1;
             if (!a.isOnline && b.isOnline) return 1;
 
             // 3. Compatibility score
-            return b.score - a.score;
+            return (b.score || 0) - (a.score || 0);
         });
 
         // Save to in-memory Cache
@@ -1350,6 +1406,21 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 c.full_name || c.id
             );
             const finalPhotos = sanitizedPhotos.length > 0 ? sanitizedPhotos : [mainPhoto];
+            const validPhotos = finalPhotos.filter((p: string) => hasValidPhoto(p));
+            const candidatePhotoCount = validPhotos.length;
+            const candidateHasPhoto = candidatePhotoCount > 0 || hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]);
+
+            if (candidatePhotoCount >= 3) {
+                score += 25;
+                reasons.push("📸 Multi-Photo Verified (3+ Photos)");
+            } else if (candidatePhotoCount === 2) {
+                score += 15;
+                reasons.push("📸 Multi-Photo Profile (2 Photos)");
+            } else if (candidateHasPhoto) {
+                score += 5;
+            } else {
+                score -= 25;
+            }
 
             const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
                 ? meta.interests
@@ -1377,7 +1448,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 maritalStatus: meta.maritalStatus || "Single",
                 motherTongue: meta.motherTongue || "",
                 photoUrl: mainPhoto,
-                hasValidPhoto: hasValidPhoto(c.avatar_url || (c.profiles?.photos as any)?.[0] || meta.photos?.[0]),
+                photoCount: candidatePhotoCount,
+                hasValidPhoto: candidateHasPhoto,
                 score: Math.max(1, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },
@@ -1549,10 +1621,11 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         // Prepend exact matches and deduplicate with vector search results
         const exactIds = new Set(mappedExact.map(e => e.id));
         const deduplicatedAi = finalMatchesWithStatus.filter(m => !exactIds.has(m.id));
-        // Photo-first sorting for search results: deprioritize profiles without photos
+        // Multi-Photo Priority sorting for search results: profiles with multiple photos strictly ranked first
         deduplicatedAi.sort((a: any, b: any) => {
-            if (a.hasValidPhoto && !b.hasValidPhoto) return -1;
-            if (!a.hasValidPhoto && b.hasValidPhoto) return 1;
+            const tierA = getPhotoTier(a);
+            const tierB = getPhotoTier(b);
+            if (tierA !== tierB) return tierB - tierA;
             if (a.isOnline && !b.isOnline) return -1;
             if (!a.isOnline && b.isOnline) return 1;
             return (b.score || 0) - (a.score || 0);

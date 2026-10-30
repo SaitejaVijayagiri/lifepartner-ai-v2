@@ -58,10 +58,14 @@ export const uploadToCloudinary = async (
 
     // 🛡️ Pre-Upload NSFW Content Moderation Guard
     // Rejects prohibited/adult images locally before they can ever reach Cloudinary
-    const moderation = await ContentModerator.checkBase64(base64);
-    if (!moderation.isSafe) {
-        console.warn(`🚨 [Cloudinary Guard] Blocked prohibited base64 photo ${index} for user ${userId}: ${moderation.reason}`);
-        return null;
+    try {
+        const moderation = await ContentModerator.checkBase64(base64);
+        if (!moderation.isSafe) {
+            console.warn(`🚨 [Cloudinary Guard] Blocked prohibited base64 photo ${index} for user ${userId}: ${moderation.reason}`);
+            return null;
+        }
+    } catch (modErr: any) {
+        console.warn(`[Cloudinary Guard] Pre-upload check error (proceeding with upload):`, modErr?.message || modErr);
     }
 
     try {

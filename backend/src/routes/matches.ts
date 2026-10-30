@@ -71,8 +71,8 @@ const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.
 const hasValidPhoto = (avatarUrl: string | null | undefined): boolean => {
     if (!avatarUrl || typeof avatarUrl !== 'string') return false;
     if (avatarUrl.includes('dicebear')) return false;
-    if (avatarUrl.startsWith('data:image')) return false;
-    return avatarUrl.startsWith('http');
+    if (avatarUrl.startsWith('data:image')) return true;
+    return avatarUrl.startsWith('http') || avatarUrl.startsWith('/');
 };
 
 /**

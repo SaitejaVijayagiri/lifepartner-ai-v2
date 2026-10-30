@@ -39,6 +39,7 @@ const getS3Client = (): S3Client => {
                 accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
                 secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
             },
+            forcePathStyle: true,
         });
     }
     return s3Client;
@@ -94,7 +95,7 @@ export const uploadBufferToR2 = async (
 
         // For public assets (profile photos, stories): generate permanent URL via backend route
         if (isPublic) {
-            const backendUrl = (process.env.BACKEND_URL || 'https://lifepartnerai.in').replace(/\/+$/, '');
+            const backendUrl = (process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com').replace(/\/+$/, '');
             return {
                 url: `${backendUrl}/photo/r2/${key}`,
                 key,

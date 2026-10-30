@@ -598,7 +598,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <input
                                     type="file"
                                     multiple
-                                    accept="image/*"
+                                    accept="image/jpeg,image/png,image/webp,image/jpg,image/*"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                                     onChange={async (e) => {
                                         const files = e.target.files;
@@ -624,8 +624,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                                         for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
                                             const file = files[i];
-                                            if (file.size > 5 * 1024 * 1024) {
-                                                toast.error(`"${file.name}" is too large (>5MB). Please use a smaller photo.`);
+                                            if (file.size > 20 * 1024 * 1024) {
+                                                toast.error(`"${file.name}" is too large (>20MB). Please use a smaller photo.`);
                                                 continue;
                                             }
                                             const base64 = await new Promise<string>((resolve, reject) => {
@@ -662,6 +662,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
                                             update('photos', [...newPhotos, ...cleanExisting]);
                                         }
+                                        e.target.value = '';
                                     }}
                                 />
                                 <div className="w-20 h-20 bg-white dark:bg-gray-800 shadow-md rounded-full flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform">📸</div>
@@ -679,7 +680,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     <span className="px-5 py-2.5 bg-indigo-600 group-hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-transform group-hover:scale-105">
                                         📁 Choose from Camera or Gallery
                                     </span>
-                                    <p className="text-[11px] text-gray-400">JPG, PNG, WebP up to 5MB</p>
+                                    <p className="text-[11px] text-gray-400">JPG, PNG, WebP up to 20MB</p>
                                 </div>
                             </div>
 

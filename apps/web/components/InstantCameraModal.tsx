@@ -189,22 +189,57 @@ export default function InstantCameraModal({
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 15 * 1024 * 1024) {
-            toast.error('File size exceeds 15MB limit.');
+        if (file.size > 20 * 1024 * 1024) {
+            toast.error('File size exceeds 20MB limit.');
+            e.target.value = '';
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            if (event.target?.result) {
-                setCapturedImage(event.target.result as string);
-                if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
-                    setStream(null);
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            try {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+                const maxDim = 1280;
+                if (width > maxDim || height > maxDim) {
+                    const ratio = Math.min(maxDim / width, maxDim / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
                 }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    setCapturedImage(compressedDataUrl);
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        if (event.target?.result) setCapturedImage(event.target.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            } catch (_) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (event.target?.result) setCapturedImage(event.target.result as string);
+                };
+                reader.readAsDataURL(file);
+            }
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                setStream(null);
             }
         };
-        reader.readAsDataURL(file);
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            toast.error('Failed to process image file.');
+        };
+        img.src = url;
+        e.target.value = '';
     };
 
     // Retake snap
@@ -391,7 +426,7 @@ export default function InstantCameraModal({
                 <input
                     type="file"
                     ref={fileInputRef}
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp,image/jpg,image/*"
                     onChange={handleFileSelect}
                     className="hidden"
                 />

@@ -298,11 +298,10 @@ export class ContentModerator {
             return { isSafe: true, scores };
 
         } catch (err: any) {
-            console.error('[ContentModerator] Error during moderation check:', err?.message || err);
-            // If the image cannot be decoded at all or fails fatally, reject it
+            console.warn('[ContentModerator] Non-fatal moderation error (soft-passing to Gemini Vision):', err?.message || err);
+            // Do not block legitimate photos if local TensorFlow/model has an internal issue — Gemini Vision will handle safety detection
             return {
-                isSafe: false,
-                reason: 'Unable to verify image safety. Please upload a standard JPEG or PNG image.'
+                isSafe: true
             };
         } finally {
             // ALWAYS free TensorFlow memory

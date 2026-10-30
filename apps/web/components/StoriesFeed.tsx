@@ -68,6 +68,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
             setStoryFiles(files);
             setStoryPreviewUrls(urls);
         }
+        e.target.value = '';
     };
 
     const currentUserId = currentUser?.id || currentUser?.userId;

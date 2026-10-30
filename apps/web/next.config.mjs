@@ -27,6 +27,7 @@ const nextConfig = {
             { protocol: 'https', hostname: 'placehold.co' },
             { protocol: 'https', hostname: '*.r2.dev' },
             { protocol: 'https', hostname: 'res.cloudinary.com' },
+            { protocol: 'https', hostname: 'lifepartner-ai.onrender.com' },
         ],
         unoptimized: true,
     },
@@ -163,6 +164,10 @@ const nextConfig = {
                 {
                     source: '/api/:path*',
                     destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
+                },
+                {
+                    source: '/photo/:path*',
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/photo/:path*`,
                 },
                 {
                     source: '/socket.io/:path*',

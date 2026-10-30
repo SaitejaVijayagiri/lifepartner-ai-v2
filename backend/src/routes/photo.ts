@@ -58,11 +58,13 @@ router.get(['/', '/proxy'], async (req, res) => {
  * GET /photo/r2/*
  */
 router.get('/r2/*', async (req, res) => {
-    const key = (req.params as any)[0] || (req.query.key as string);
+    const rawKey = (req.params as any)[0] || (req.query.key as string);
 
-    if (!key) {
+    if (!rawKey) {
         return res.status(400).send('Missing R2 object key');
     }
+
+    const key = String(rawKey).replace(/^\/+/, '');
 
     try {
         const obj = await getObjectFromR2(key);
@@ -70,6 +72,7 @@ router.get('/r2/*', async (req, res) => {
             return res.status(404).send('Image not found in R2');
         }
 
+        res.set('Access-Control-Allow-Origin', '*');
         res.set('Content-Type', obj.contentType || 'image/jpeg');
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
         res.set('X-Storage-Backend', 'cloudflare-r2');

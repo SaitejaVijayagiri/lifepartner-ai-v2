@@ -376,7 +376,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <input
                             type="file"
                             multiple
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp,image/jpg,image/*"
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             onChange={async (e) => {
                                 const files = e.target.files;
@@ -394,6 +394,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                                 if (basePhotos.length >= 5) {
                                     toast.error('Maximum 5 photos allowed. Remove one to add more.');
+                                    e.target.value = '';
                                     return;
                                 }
 
@@ -402,8 +403,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
 
                                 for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
                                     const file = files[i];
-                                    if (file.size > 5 * 1024 * 1024) {
-                                        toast.error(`"${file.name}" is too large (>5MB). Please use a smaller photo.`);
+                                    if (file.size > 20 * 1024 * 1024) {
+                                        toast.error(`"${file.name}" is too large (>20MB). Please use a smaller photo.`);
                                         continue;
                                     }
 
@@ -442,16 +443,18 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     const updatedPhotos = [...newPhotos, ...cleanExisting].slice(0, 5);
                                     setFormData((prev: any) => ({
                                         ...prev,
-                                        photos: updatedPhotos
+                                        photos: updatedPhotos,
+                                        photoUrl: updatedPhotos[0]
                                     }));
                                 }
+                                e.target.value = '';
                             }}
                         />
                         <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                             <Camera size={28} />
                         </div>
                         <h5 className="font-semibold text-gray-900 dark:text-gray-100">Upload Photos</h5>
-                        <p className="text-xs text-gray-500 mt-1">Drag & drop or Click to browse (Multiple allowed)</p>
+                        <p className="text-xs text-gray-500 mt-1">Drag & drop or Click to browse (Multiple allowed, up to 20MB)</p>
                     </div>
 
                     {/* Preview Gallery */}

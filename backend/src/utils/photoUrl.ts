@@ -90,6 +90,14 @@ export const sanitizePhotoUrl = (url: string | null | undefined, seed: string): 
     // Cloudinary: own CDN, globally accessible, no proxy needed
     if (trimmed.includes('res.cloudinary.com')) return trimmed;
 
+    // Cloudflare R2: route through backend /photo/r2/ proxy to bypass India ISP DNS restrictions on .r2.dev
+    if (trimmed.includes('r2.dev/') || trimmed.includes('r2.cloudflarestorage.com/')) {
+        const keyMatch = trimmed.match(/(?:profiles|chat|stories|instants)\/.+$/);
+        if (keyMatch) {
+            return `${BACKEND_URL}/photo/r2/${keyMatch[0]}`;
+        }
+    }
+
     // Supabase: ISP-blocked in India → route through backend proxy
     if (trimmed.includes('supabase.co/storage')) {
         return toProxyUrl(trimmed);

@@ -103,9 +103,9 @@ export default function OnboardingPage() {
                 managed_by: data.managed_by || "Self",
                 photo_privacy: data.photo_privacy || "public",
                 photos: data.photos || [],
-                photoUrl: (Array.isArray(data.photos) && data.photos.length > 0 && data.photos[0])
+                photoUrl: (Array.isArray(data.photos) && data.photos.length > 0 && typeof data.photos[0] === 'string' && !data.photos[0].startsWith('data:'))
                     ? data.photos[0]
-                    : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name || 'User')}`
+                    : undefined
             };
 
             await api.profile.updateProfile(payload); // Updated to use correct endpoint

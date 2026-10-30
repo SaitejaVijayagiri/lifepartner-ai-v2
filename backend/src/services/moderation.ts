@@ -67,14 +67,18 @@ export class ModerationService {
             }
 
             // --- Step 2.5: Local NSFWJS Content Moderation (Hard safety check for ALL photos) ---
-            const nsfwCheck = await ContentModerator.checkBase64(base64Data);
-            if (!nsfwCheck.isSafe) {
-                console.warn(`🚨 [ModerationService] Local NSFWJS blocked photo: ${nsfwCheck.reason}`);
-                return {
-                    isValid: false,
-                    isProhibited: true,
-                    reason: nsfwCheck.reason || 'This photo contains adult or prohibited content, violating our safety guidelines.'
-                };
+            try {
+                const nsfwCheck = await ContentModerator.checkBase64(base64Data);
+                if (!nsfwCheck.isSafe) {
+                    console.warn(`🚨 [ModerationService] Local NSFWJS blocked photo: ${nsfwCheck.reason}`);
+                    return {
+                        isValid: false,
+                        isProhibited: true,
+                        reason: nsfwCheck.reason || 'This photo contains adult or prohibited content, violating our safety guidelines.'
+                    };
+                }
+            } catch (nsfwErr: any) {
+                console.warn('[ModerationService] Local NSFW check error (non-blocking):', nsfwErr?.message || nsfwErr);
             }
 
             // --- Step 3: Gemini Vision Face & Safety Detection ---

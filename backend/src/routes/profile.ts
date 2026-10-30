@@ -833,10 +833,10 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             }
         }
 
-        // If user has custom uploaded photos (Cloudinary, Supabase, base64),
+        // If user has custom uploaded photos (Cloudinary, Supabase, R2, base64),
         // strip any imported Google placeholder avatar so real photos are prioritized as main photo
         const hasCustomPhotos = finalPhotos.some((p: string) =>
-            typeof p === 'string' && (p.includes('cloudinary') || p.includes('supabase') || p.includes('r2.dev') || p.includes('r2.cloudflarestorage.com') || p.startsWith('data:image') || p.startsWith('/uploads/'))
+            typeof p === 'string' && (p.includes('cloudinary') || p.includes('supabase') || p.includes('r2.dev') || p.includes('r2.cloudflarestorage.com') || p.includes('/photo/r2/') || p.startsWith('data:image') || p.startsWith('/uploads/'))
         );
         if (hasCustomPhotos) {
             finalPhotos = finalPhotos.filter((p: string) => typeof p === 'string' && !p.includes('googleusercontent.com'));

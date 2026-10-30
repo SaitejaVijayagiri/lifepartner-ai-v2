@@ -93,16 +93,8 @@ export class ModerationService {
             }
 
             if (!faceResult.hasFace) {
-                // Strict for primary photo, soft-fail for secondary photos
-                if (isFirstPhoto) {
-                    return {
-                        isValid: false,
-                        reason: faceResult.reason || 'No human face detected in your primary photo. Please upload a clear selfie or portrait.'
-                    };
-                } else {
-                    // Log but allow — secondary photos can be lifestyle shots
-                    console.warn('[ModerationService] Non-face secondary photo allowed through (soft mode).');
-                }
+                // Log for diagnostics, but do not block legitimate user photo uploads unless prohibited
+                console.warn('[ModerationService] Face not clearly identified by Gemini Vision — allowing photo upload (non-prohibited).');
             }
 
             console.log(`✅ [ModerationService] Photo validated (${Math.round(approxBytes / 1024)}KB, face: ${faceResult.hasFace}).`);

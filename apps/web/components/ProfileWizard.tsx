@@ -598,7 +598,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <input
                                     type="file"
                                     multiple
-                                    accept="image/jpeg,image/png,image/webp,image/jpg,image/*"
+                                    accept="image/*"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
                                     onChange={async (e) => {
                                         const files = e.target.files;
@@ -616,6 +616,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
 
                                         if (basePhotos.length >= 5) {
                                             toast.error('Maximum 5 photos allowed. Remove one to add more.');
+                                            e.target.value = '';
                                             return;
                                         }
 
@@ -629,29 +630,38 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                                 continue;
                                             }
                                             const base64 = await new Promise<string>((resolve, reject) => {
-                                                const url = URL.createObjectURL(file);
-                                                const img = new Image();
-                                                img.onload = () => {
-                                                    URL.revokeObjectURL(url);
-                                                    const canvas = document.createElement('canvas');
-                                                    let { width, height } = img;
-                                                    const maxDim = 900;
+                                                const reader = new FileReader();
+                                                reader.onload = () => {
+                                                    const dataUrl = reader.result as string;
+                                                    const img = new Image();
+                                                    img.onload = () => {
+                                                        try {
+                                                            const canvas = document.createElement('canvas');
+                                                            let { width, height } = img;
+                                                            const maxDim = 900;
 
-                                                    if (width > maxDim || height > maxDim) {
-                                                        const ratio = Math.min(maxDim / width, maxDim / height);
-                                                        width = Math.round(width * ratio);
-                                                        height = Math.round(height * ratio);
-                                                    }
+                                                            if (width > maxDim || height > maxDim) {
+                                                                const ratio = Math.min(maxDim / width, maxDim / height);
+                                                                width = Math.round(width * ratio);
+                                                                height = Math.round(height * ratio);
+                                                            }
 
-                                                    canvas.width = width;
-                                                    canvas.height = height;
-                                                    const ctx = canvas.getContext('2d');
-                                                    if (!ctx) return reject('Failed to get canvas context');
-                                                    ctx.drawImage(img, 0, 0, width, height);
-                                                    resolve(canvas.toDataURL('image/jpeg', 0.75));
+                                                            canvas.width = width;
+                                                            canvas.height = height;
+                                                            const ctx = canvas.getContext('2d');
+                                                            if (ctx) {
+                                                                ctx.drawImage(img, 0, 0, width, height);
+                                                                resolve(canvas.toDataURL('image/jpeg', 0.8));
+                                                                return;
+                                                            }
+                                                        } catch (_) {}
+                                                        resolve(dataUrl);
+                                                    };
+                                                    img.onerror = () => resolve(dataUrl);
+                                                    img.src = dataUrl;
                                                 };
-                                                img.onerror = () => reject('Failed to load image');
-                                                img.src = url;
+                                                reader.onerror = () => reject(new Error('Failed to read image file'));
+                                                reader.readAsDataURL(file);
                                             }).catch(() => null as any);
 
                                             if (base64) newPhotos.push(base64);

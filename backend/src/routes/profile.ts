@@ -339,7 +339,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
             prompt: meta.expectations || "",  // Legacy fallback
             aboutMe: meta.aboutMe || meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
             height: meta.height || "", // Height
-            photos: photosList,
+            photos: photosList.map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             joinedAt: user.created_at,
             is_premium: isFemaleResolved ? true : (user.is_premium || false),

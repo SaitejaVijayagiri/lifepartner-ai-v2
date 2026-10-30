@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
@@ -113,6 +113,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     });
 
     // Image Editor States
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
     const [editingPhotoIdx, setEditingPhotoIdx] = useState<number | null>(null);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -202,10 +203,23 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     };
 
     const handleSave = async () => {
-        // Enforce Location Fields
-        if (!formData.location?.city || !formData.location?.district || !formData.location?.state) {
-            toast.error("Please ensure City, District, and State are filled.");
+        // Enforce Location Fields: require City & State; auto-fill District if omitted
+        const city = formData.location?.city?.trim();
+        const state = formData.location?.state?.trim();
+        const district = formData.location?.district?.trim() || city;
+
+        if (!city || !state) {
+            toast.error("Please ensure City and State are filled.");
             return;
+        }
+
+        if (!formData.location?.district) {
+            formData.location = {
+                ...(formData.location || {}),
+                city,
+                district,
+                state
+            };
         }
 
         setLoading(true);
@@ -372,12 +386,16 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 <div className="space-y-4">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
 
-                    <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group">
+                    <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group cursor-pointer"
+                    >
                         <input
+                            ref={fileInputRef}
                             type="file"
                             multiple
-                            accept="image/jpeg,image/png,image/webp,image/jpg,image/*"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            accept="image/*"
+                            className="hidden"
                             onChange={async (e) => {
                                 const files = e.target.files;
                                 if (!files || files.length === 0) return;
@@ -409,30 +427,48 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                     }
 
                                     const base64 = await new Promise<string>((resolve, reject) => {
-                                        const url = URL.createObjectURL(file);
-                                        const img = new Image();
-                                        img.onload = () => {
-                                            URL.revokeObjectURL(url);
-                                            const canvas = document.createElement('canvas');
-                                            let { width, height } = img;
-                                            const maxDim = 900;
+                                        const reader = new FileReader();
+                                        reader.onload = () => {
+                                            const dataUrl = reader.result as string;
+                                            const img = new Image();
+                                            img.onload = () => {
+                                                try {
+                                                    const canvas = document.createElement('canvas');
+                                                    let { width, height } = img;
+                                                    const maxDim = 900;
 
-                                            if (width > maxDim || height > maxDim) {
-                                                const ratio = Math.min(maxDim / width, maxDim / height);
-                                                width = Math.round(width * ratio);
-                                                height = Math.round(height * ratio);
-                                            }
+                                                    if (width > maxDim || height > maxDim) {
+                                                        const ratio = Math.min(maxDim / width, maxDim / height);
+                                                        width = Math.round(width * ratio);
+                                                        height = Math.round(height * ratio);
+                                                    }
 
-                                            canvas.width = width;
-                                            canvas.height = height;
-                                            const ctx = canvas.getContext('2d');
-                                            if (!ctx) return reject('Failed to get context');
-                                            ctx.drawImage(img, 0, 0, width, height);
-                                            resolve(canvas.toDataURL('image/jpeg', 0.75));
+                                                    canvas.width = width;
+                                                    canvas.height = height;
+                                                    const ctx = canvas.getContext('2d');
+                                                    if (ctx) {
+                                                        ctx.drawImage(img, 0, 0, width, height);
+                                                        resolve(canvas.toDataURL('image/jpeg', 0.8));
+                                                        return;
+                                                    }
+                                                } catch (canvasErr) {
+                                                    console.warn('Canvas resize failed, falling back to dataUrl', canvasErr);
+                                                }
+                                                resolve(dataUrl);
+                                            };
+                                            img.onerror = () => {
+                                                // If Image() fails to decode for canvas, dataUrl is still completely valid
+                                                resolve(dataUrl);
+                                            };
+                                            img.src = dataUrl;
                                         };
-                                        img.onerror = () => reject('Failed to load image');
-                                        img.src = url;
-                                    }).catch(() => null as any);
+                                        reader.onerror = () => reject(new Error('Failed to read image file'));
+                                        reader.readAsDataURL(file);
+                                    }).catch((err) => {
+                                        console.error('File load failed:', err);
+                                        toast.error('Failed to load selected photo.');
+                                        return null as any;
+                                    });
 
                                     if (base64) newPhotos.push(base64);
                                 }
@@ -446,15 +482,16 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                         photos: updatedPhotos,
                                         photoUrl: updatedPhotos[0]
                                     }));
+                                    toast.success(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} added! Tap Save Changes below to save.`);
                                 }
                                 e.target.value = '';
                             }}
                         />
-                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform pointer-events-none">
                             <Camera size={28} />
                         </div>
-                        <h5 className="font-semibold text-gray-900 dark:text-gray-100">Upload Photos</h5>
-                        <p className="text-xs text-gray-500 mt-1">Drag & drop or Click to browse (Multiple allowed, up to 20MB)</p>
+                        <h5 className="font-semibold text-gray-900 dark:text-gray-100 pointer-events-none">Upload Photos</h5>
+                        <p className="text-xs text-gray-500 mt-1 pointer-events-none">Tap to choose from Gallery or Camera (Up to 5 photos, 20MB)</p>
                     </div>
 
                     {/* Preview Gallery */}

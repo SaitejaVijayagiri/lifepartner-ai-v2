@@ -538,6 +538,19 @@ public class MainActivity extends BridgeActivity {
                 permissionsToRequest.add(Manifest.permission.RECORD_AUDIO);
             }
 
+            // Storage / Media permission for Photo Uploads
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES);
+                }
+            } else {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+                }
+            }
+
             if (!permissionsToRequest.isEmpty()) {
                 ActivityCompat.requestPermissions(
                         this,

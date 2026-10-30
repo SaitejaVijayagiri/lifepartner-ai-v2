@@ -592,6 +592,7 @@ public class MainActivity extends BridgeActivity {
                 // Media playback & Full Video support without gesture restrictions
                 settings.setMediaPlaybackRequiresUserGesture(false);
                 settings.setAllowFileAccess(true);
+                settings.setAllowContentAccess(true);
                 settings.setJavaScriptCanOpenWindowsAutomatically(true);
             }
         } catch (Exception e) {

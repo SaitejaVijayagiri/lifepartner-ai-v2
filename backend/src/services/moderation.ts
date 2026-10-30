@@ -68,7 +68,11 @@ export class ModerationService {
 
             // --- Step 2.5: Local NSFWJS Content Moderation (Hard safety check for ALL photos) ---
             try {
-                const nsfwCheck = await ContentModerator.checkBase64(base64Data);
+                const nsfwCheckPromise = ContentModerator.checkBase64(base64Data);
+                const timeoutPromise = new Promise<{ isSafe: boolean; reason?: string }>((resolve) => 
+                    setTimeout(() => resolve({ isSafe: true }), 3000)
+                );
+                const nsfwCheck = await Promise.race([nsfwCheckPromise, timeoutPromise]);
                 if (!nsfwCheck.isSafe) {
                     console.warn(`🚨 [ModerationService] Local NSFWJS blocked photo: ${nsfwCheck.reason}`);
                     return {

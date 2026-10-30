@@ -18,26 +18,32 @@ import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import * as fs from 'fs';
 
+const R2_FALLBACK_ACCOUNT_ID = 'afadbb4d51f8b7624975559e5517a9f8';
+const R2_FALLBACK_ACCESS_KEY_ID = '951f753d3c09607fbd362c2b07ccd50a';
+const R2_FALLBACK_SECRET_ACCESS_KEY = '6c4d739867b8435a8aa09f7899571d090f37e197a6fe58321a3a58640417a81f';
+const R2_FALLBACK_BUCKET = 'lifepartner-media';
+const R2_FALLBACK_PUBLIC_DOMAIN = 'https://pub-3b58a918534743dbadb291e05279a459.r2.dev';
+
 let s3Client: S3Client | null = null;
 
 export const isR2Configured = (): boolean => {
     return !!(
-        process.env.R2_ACCOUNT_ID &&
-        process.env.R2_ACCESS_KEY_ID &&
-        process.env.R2_SECRET_ACCESS_KEY &&
-        process.env.R2_BUCKET_NAME
+        (process.env.R2_ACCOUNT_ID || R2_FALLBACK_ACCOUNT_ID) &&
+        (process.env.R2_ACCESS_KEY_ID || R2_FALLBACK_ACCESS_KEY_ID) &&
+        (process.env.R2_SECRET_ACCESS_KEY || R2_FALLBACK_SECRET_ACCESS_KEY) &&
+        (process.env.R2_BUCKET_NAME || R2_FALLBACK_BUCKET)
     );
 };
 
 const getS3Client = (): S3Client => {
     if (!s3Client) {
-        const accountId = process.env.R2_ACCOUNT_ID || '';
+        const accountId = process.env.R2_ACCOUNT_ID || R2_FALLBACK_ACCOUNT_ID;
         s3Client = new S3Client({
             region: 'auto',
             endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
             credentials: {
-                accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
-                secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+                accessKeyId: process.env.R2_ACCESS_KEY_ID || R2_FALLBACK_ACCESS_KEY_ID,
+                secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || R2_FALLBACK_SECRET_ACCESS_KEY,
             },
             forcePathStyle: true,
         });
@@ -46,7 +52,7 @@ const getS3Client = (): S3Client => {
 };
 
 const getBucketName = (): string => {
-    return process.env.R2_BUCKET_NAME || 'lifepartner-media';
+    return process.env.R2_BUCKET_NAME || R2_FALLBACK_BUCKET;
 };
 
 /**

@@ -386,16 +386,13 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 <div className="space-y-4">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
 
-                    <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group cursor-pointer"
-                    >
+                    <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group cursor-pointer overflow-hidden">
                         <input
                             ref={fileInputRef}
                             type="file"
                             multiple
                             accept="image/*"
-                            className="hidden"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             onChange={async (e) => {
                                 const files = e.target.files;
                                 if (!files || files.length === 0) return;

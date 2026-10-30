@@ -1,5 +1,5 @@
 import express from 'express';
-import { getObjectFromR2 } from '../services/r2Storage';
+import { getObjectFromR2, isR2Configured } from '../services/r2Storage';
 
 const router = express.Router();
 
@@ -65,11 +65,19 @@ router.get('/r2/*', async (req, res) => {
     }
 
     const key = String(rawKey).replace(/^\/+/, '');
+    const publicDomain = (process.env.R2_PUBLIC_DOMAIN || 'https://pub-3b58a918534743dbadb291e05279a459.r2.dev').replace(/\/+$/, '');
+    const directUrl = `${publicDomain}/${key}`;
+
+    // If R2 credentials are not configured in this environment (e.g. Render dashboard),
+    // redirect directly to Cloudflare's public CDN domain so no user gets a 404!
+    if (!isR2Configured()) {
+        return res.redirect(302, directUrl);
+    }
 
     try {
         const obj = await getObjectFromR2(key);
         if (!obj || !obj.body) {
-            return res.status(404).send('Image not found in R2');
+            return res.redirect(302, directUrl);
         }
 
         res.set('Access-Control-Allow-Origin', '*');
@@ -87,8 +95,8 @@ router.get('/r2/*', async (req, res) => {
             res.send(Buffer.concat(chunks));
         }
     } catch (err: any) {
-        console.error(`[PhotoR2] Failed to serve ${key}:`, err?.message || err);
-        return res.status(500).send('Error serving image from R2');
+        console.error(`[PhotoR2] Failed to serve ${key}, redirecting to CDN:`, err?.message || err);
+        return res.redirect(302, directUrl);
     }
 });
 

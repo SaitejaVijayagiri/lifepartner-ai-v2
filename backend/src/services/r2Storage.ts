@@ -84,7 +84,7 @@ export const uploadBufferToR2 = async (
         console.log(`✅ [Cloudflare R2] Uploaded buffer to: ${key}`);
 
         // If a public domain or r2.dev URL is configured and asset is public:
-        const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+        const publicDomain = process.env.R2_PUBLIC_DOMAIN || 'https://pub-3b58a918534743dbadb291e05279a459.r2.dev';
         if (isPublic && publicDomain) {
             const cleanDomain = publicDomain.replace(/\/+$/, '');
             return {

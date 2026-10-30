@@ -90,11 +90,15 @@ export const sanitizePhotoUrl = (url: string | null | undefined, seed: string): 
     // Cloudinary: own CDN, globally accessible, no proxy needed
     if (trimmed.includes('res.cloudinary.com')) return trimmed;
 
-    // Cloudflare R2: route through backend /photo/r2/ proxy to bypass India ISP DNS restrictions on .r2.dev
-    if (trimmed.includes('r2.dev/') || trimmed.includes('r2.cloudflarestorage.com/')) {
+    // Cloudflare R2: direct public CDN delivery (globally fast, zero backend proxy overhead)
+    if (trimmed.includes('r2.dev')) return trimmed;
+
+    // Cloudflare R2 internal S3 endpoint or legacy proxy URL -> map to direct public CDN domain
+    if (trimmed.includes('r2.cloudflarestorage.com') || trimmed.includes('/photo/r2/')) {
+        const publicDomain = (process.env.R2_PUBLIC_DOMAIN || 'https://pub-3b58a918534743dbadb291e05279a459.r2.dev').replace(/\/+$/, '');
         const keyMatch = trimmed.match(/(?:profiles|chat|stories|instants)\/.+$/);
         if (keyMatch) {
-            return `${BACKEND_URL}/photo/r2/${keyMatch[0]}`;
+            return `${publicDomain}/${keyMatch[0]}`;
         }
     }
 

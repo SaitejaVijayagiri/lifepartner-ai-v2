@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.lifepartner.ai',
   appName: 'LifePartner',
   webDir: 'out',
-  appendUserAgent: 'LifePartnerApp/1.0.5 CapacitorApp NativeAndroidApp',
+  appendUserAgent: 'LifePartnerApp/1.0.6 CapacitorApp NativeAndroidApp',
   backgroundColor: '#0F172A',
   android: {
     allowMixedContent: true,

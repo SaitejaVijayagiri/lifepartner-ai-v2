@@ -39,7 +39,9 @@ export default function CompatibilityModal({ isOpen, onClose, targetUserId, targ
                 setLoading(true);
                 setError(null);
                 
-                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/ai/compatibility`, {
+                const envUrl = process.env.NEXT_PUBLIC_API_URL;
+                const apiBase = (envUrl && !envUrl.includes('onrender.com')) ? envUrl : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
+                const res = await fetch(`${apiBase}/ai/compatibility`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

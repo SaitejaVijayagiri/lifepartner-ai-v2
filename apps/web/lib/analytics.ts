@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
+const envUrl = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE = (envUrl && !envUrl.includes('onrender.com')) ? envUrl : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
 // Helper to get or generate persistent anonymous session ID
 function getSessionId(): string {

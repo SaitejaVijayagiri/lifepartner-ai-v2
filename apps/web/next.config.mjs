@@ -158,21 +158,26 @@ const nextConfig = {
         ];
     },
     async rewrites() {
+        const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+        const targetBackend = (rawApiUrl && !rawApiUrl.includes('onrender.com'))
+            ? rawApiUrl
+            : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
+
         return {
             beforeFiles: [],
             afterFiles: [],
             fallback: [
                 {
                     source: '/api/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/:path*`,
+                    destination: `${targetBackend}/:path*`,
                 },
                 {
                     source: '/photo/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/photo/:path*`,
+                    destination: `${targetBackend}/photo/:path*`,
                 },
                 {
                     source: '/socket.io/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/socket.io/:path*`,
+                    destination: `${targetBackend}/socket.io/:path*`,
                 },
             ]
         };

@@ -23,7 +23,8 @@ export default function PageViewTracker() {
         const browserLang = navigator.language || 'en';
 
         const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
+        const envUrl = process.env.NEXT_PUBLIC_API_URL;
+        const API_URL = (envUrl && !envUrl.includes('onrender.com')) ? envUrl : (isLocal ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
 
         fetch(`${API_URL}/analytics/pageview`, {
             method: 'POST',

@@ -630,7 +630,8 @@ function DashboardContent() {
         const notificationId = searchParams.get('notificationId');
         const action = searchParams.get('action') || 'notification_body';
         if (notificationId) {
-            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
+            const envUrl = process.env.NEXT_PUBLIC_API_URL;
+            const API_BASE_URL = (envUrl && !envUrl.includes('onrender.com')) ? envUrl : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
             fetch(`${API_BASE_URL}/notifications/${notificationId}/click`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

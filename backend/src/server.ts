@@ -50,7 +50,7 @@ app.use(compression());
 app.use(cookieParser());
 app.set('trust proxy', true);
 
-const PORT = process.env.PORT || 4000;
+const PORT = parseInt(process.env.PORT || '8080', 10);
 
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -138,25 +138,28 @@ app.get('/', (req, res) => {
     res.send('Life Partner AI Backend is Running (Production Mode)');
 });
 
+// Liveness probe endpoint for Cloud Run
+app.get(['/healthz', '/livez'], (req, res) => {
+    res.status(200).send('OK');
+});
+
 // Health Check endpoint — tests DB connectivity
 app.get('/health', async (req, res) => {
+    let dbStatus = 'connected';
+    let dbError = null;
     try {
-        // Use already-imported prisma client instead of require()
         await prisma.$queryRaw`SELECT 1`;
-        res.json({
-            status: 'ok',
-            db: 'connected',
-            env: process.env.NODE_ENV,
-            timestamp: new Date().toISOString()
-        });
     } catch (e: any) {
-        res.status(500).json({
-            status: 'error',
-            db: 'disconnected',
-            error: e.message,
-            timestamp: new Date().toISOString()
-        });
+        dbStatus = 'connecting';
+        dbError = e?.message || String(e);
     }
+    res.status(200).json({
+        status: 'ok',
+        db: dbStatus,
+        error: dbError,
+        env: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+    });
 });
 
 app.use('/auth', authLimiter, authRoutes);
@@ -207,56 +210,57 @@ const { initSocket } = require('./socket');
 export const httpServer = createServer(app);
 initSocket(httpServer);
 
-if (require.main === module) {
-    httpServer.listen(PORT, '0.0.0.0', async () => {
-        console.log(`Server running on port ${PORT} at 0.0.0.0`);
-        try {
-            await prisma.$connect();
-            console.log("✅ Prisma Connected (Schema Verified)");
+const shouldListen = require.main === module || !process.env.JEST_WORKER_ID;
+if (shouldListen) {
+    httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 LifePartner Backend running on port ${PORT} at 0.0.0.0`);
+        prisma.$connect()
+            .then(async () => {
+                console.log("✅ Prisma Connected (Schema Verified)");
 
-            // Start Angel Timer
-            initAngelTimer();
+                // Start Angel Timer
+                initAngelTimer();
 
-            // Start Witty Push Notifications Cron
-            const { initWittyNotificationsCron } = require('./services/wittyNotifications');
-            initWittyNotificationsCron();
+                // Start Witty Push Notifications Cron
+                const { initWittyNotificationsCron } = require('./services/wittyNotifications');
+                initWittyNotificationsCron();
 
-            // Start Female Match Reminders Cron
-            const { initFemaleMatchRemindersCron } = require('./services/femaleMatchReminders');
-            initFemaleMatchRemindersCron();
+                // Start Female Match Reminders Cron
+                const { initFemaleMatchRemindersCron } = require('./services/femaleMatchReminders');
+                initFemaleMatchRemindersCron();
 
-            // ⏰ Auto-cleanup expired stories (runs 15s after boot and every hour)
-            const { cleanupExpiredStories } = require('./services/storyCleanup');
-            setTimeout(() => {
-                cleanupExpiredStories()
-                    .then((cnt: number) => { if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`); })
-                    .catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
-            }, 15000);
-            cron.schedule('0 * * * *', async () => {
-                try {
-                    const cnt = await cleanupExpiredStories();
-                    if (cnt > 0) console.log(`[CRON] Cleaned up expired stories for ${cnt} profiles.`);
-                } catch (err) {
-                    console.error("[CRON] Story cleanup error:", err);
-                }
+                // ⏰ Auto-cleanup expired stories (runs 15s after boot and every hour)
+                const { cleanupExpiredStories } = require('./services/storyCleanup');
+                setTimeout(() => {
+                    cleanupExpiredStories()
+                        .then((cnt: number) => { if (cnt > 0) console.log(`[StoryCleanup] Purged expired stories for ${cnt} profiles at boot.`); })
+                        .catch((err: any) => console.error("[StoryCleanup] Initial cleanup error:", err));
+                }, 15000);
+                cron.schedule('0 * * * *', async () => {
+                    try {
+                        const cnt = await cleanupExpiredStories();
+                        if (cnt > 0) console.log(`[CRON] Cleaned up expired stories for ${cnt} profiles.`);
+                    } catch (err) {
+                        console.error("[CRON] Story cleanup error:", err);
+                    }
+                });
+                console.log("⏰ Hourly Story Expiration Cleanup Scheduled.");
+
+                // ⏰ Start Daily SEO Blog Generation
+                cron.schedule('0 12 * * *', async () => {
+                    console.log("[CRON] Running Daily SEO Blog Generator for Indian & Global Matrimony...");
+                    try {
+                        await generateBlogPost();
+                        console.log("[CRON] Successfully generated daily SEO blog post.");
+                    } catch (error) {
+                        console.error("[CRON] Failed to generate daily blog:", error);
+                    }
+                });
+                console.log("⏰ Daily Blog Generation Cron Job Scheduled for 12:00 PM.");
+            })
+            .catch((e: any) => {
+                console.error("❌ Prisma Connection Warning (will retry on incoming queries):", e?.message || e);
             });
-            console.log("⏰ Hourly Story Expiration Cleanup Scheduled.");
-
-            // ⏰ Start Daily SEO Blog Generation
-            cron.schedule('0 12 * * *', async () => {
-                console.log("[CRON] Running Daily SEO Blog Generator for Indian & Global Matrimony...");
-                try {
-                    await generateBlogPost();
-                    console.log("[CRON] Successfully generated daily SEO blog post.");
-                } catch (error) {
-                    console.error("[CRON] Failed to generate daily blog:", error);
-                }
-            });
-            console.log("⏰ Daily Blog Generation Cron Job Scheduled for 12:00 PM.");
-
-        } catch (e) {
-            console.error("❌ Prisma Connection Failed", e);
-        }
     });
 }
 

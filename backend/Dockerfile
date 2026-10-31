@@ -1,21 +1,23 @@
 # Build Stage
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 WORKDIR /app
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npx prisma generate && npm run build
 
 # Production Stage
-FROM node:18-alpine
+FROM node:18-slim
 WORKDIR /app
+RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm install --omit=dev
-RUN npx prisma generate
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 
+ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
 CMD ["node", "dist/server.js"]

@@ -4,7 +4,6 @@ import fs from 'fs';
 import { sanitizeContent } from '../utils/contentFilter';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
-import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import { isConfigured, uploadBufferToCloudinary } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBufferToR2 } from '../services/r2Storage';
@@ -14,8 +13,6 @@ const memoryUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 });
-
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
 
 const router = express.Router();
 

@@ -3,7 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 import { prisma } from '../prisma';
 
 const router = express.Router();
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+
+let _supabaseClient: any = null;
+function getSupabase() {
+    if (!_supabaseClient && process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+        try {
+            _supabaseClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+        } catch (e: any) {
+            console.warn('[migrate] Supabase client init error:', e?.message || e);
+        }
+    }
+    return _supabaseClient;
+}
 
 const SECRET = 'lifepartner_migrate_2026';
 
@@ -15,12 +26,17 @@ function base64ToBuffer(base64: string): { buffer: Buffer; mimeType: string } {
 
 async function uploadBase64ToSupabase(base64: string, userId: string, bucket: string): Promise<string | null> {
     try {
+        const sb = getSupabase();
+        if (!sb) {
+            console.error('[migrate] Supabase client not available');
+            return null;
+        }
         const { buffer, mimeType } = base64ToBuffer(base64);
         const ext = mimeType.includes('webp') ? 'webp' : mimeType.includes('png') ? 'png' : 'jpg';
         const filename = `profiles/${userId}/${Date.now()}_migrated.${ext}`;
-        const { error } = await supabase.storage.from(bucket).upload(filename, buffer, { contentType: mimeType, upsert: true });
+        const { error } = await sb.storage.from(bucket).upload(filename, buffer, { contentType: mimeType, upsert: true });
         if (error) { console.error(`Upload error for ${userId}:`, error.message); return null; }
-        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(filename);
+        const { data: { publicUrl } } = sb.storage.from(bucket).getPublicUrl(filename);
         return publicUrl;
     } catch (e: any) {
         console.error(`base64 upload failed for ${userId}:`, e.message);

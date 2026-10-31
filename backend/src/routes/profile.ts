@@ -2,7 +2,17 @@ import express from 'express';
 import { prisma } from '../prisma'; // Centralized Prisma Client
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_KEY!);
+let _supabaseClient: any = null;
+function getSupabase() {
+    if (!_supabaseClient && process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+        try {
+            _supabaseClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+        } catch (e: any) {
+            console.warn('[profile] Supabase client init error:', e?.message || e);
+        }
+    }
+    return _supabaseClient;
+}
 import { AIService } from '../services/ai';
 import { sanitizeContent } from '../utils/contentFilter';
 import fs from 'fs';
@@ -1708,7 +1718,10 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
             } else if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
                 const oldPath = storyToDelete.url.split('stories/')[1];
                 if (oldPath) {
-                    supabase.storage.from('stories').remove([oldPath]).catch(e => console.error("Storage delete error", e));
+                    const sb = getSupabase();
+                    if (sb) {
+                        sb.storage.from('stories').remove([oldPath]).catch((e: any) => console.error("Storage delete error", e));
+                    }
                 }
             }
         }

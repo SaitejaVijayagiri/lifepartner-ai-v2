@@ -2,6 +2,15 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// Global Process Safety Guards (installed early to catch any startup exceptions)
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('⚠️ Uncaught Exception during startup or execution:', err);
+});
+
 // SECURITY: Strict TLS certificate verification is enforced in production.
 // Do NOT disable NODE_TLS_REJECT_UNAUTHORIZED globally as it opens outbound HTTPS calls to MITM attacks.
 

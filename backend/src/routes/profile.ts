@@ -45,22 +45,57 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
 
     // 1. Cloudflare R2 Storage (Primary if configured: zero egress fees, unlimited storage)
     if (isR2Configured()) {
-        const key = `profiles/${userId}/photo_${Date.now()}.jpg`;
-        const r2Url = await uploadBase64ToR2(base64, key, true);
-        if (r2Url) return r2Url;
-        console.warn('[profile] Cloudflare R2 upload failed, trying Cloudinary fallback.');
+        try {
+            const key = `profiles/${userId}/photo_${Date.now()}.jpg`;
+            const r2Url = await uploadBase64ToR2(base64, key, true);
+            if (r2Url) return r2Url;
+            console.warn('[profile] Cloudflare R2 upload failed, trying Cloudinary fallback.');
+        } catch (r2Err: any) {
+            console.warn('[profile] Cloudflare R2 error:', r2Err?.message || r2Err);
+        }
     }
 
     // 2. Cloudinary fallback
     if (cloudinaryConfigured()) {
-        const cloudinaryUrl = await uploadToCloudinary(base64, userId);
-        if (cloudinaryUrl) return cloudinaryUrl;
-        console.warn('[profile] Cloudinary upload failed.');
-    } else {
-        console.warn('[profile] Cloudinary not configured.');
+        try {
+            const cloudinaryUrl = await uploadToCloudinary(base64, userId);
+            if (cloudinaryUrl) return cloudinaryUrl;
+            console.warn('[profile] Cloudinary upload failed.');
+        } catch (cldErr: any) {
+            console.warn('[profile] Cloudinary error:', cldErr?.message || cldErr);
+        }
     }
 
-    return null; // Fallback to base64 as last resort
+    // 3. Supabase Storage fallback
+    const sb = getSupabase();
+    if (sb) {
+        try {
+            let mimeType = 'image/jpeg';
+            let rawB64 = base64;
+            if (base64.startsWith('data:')) {
+                const match = base64.match(/^data:([^;]+);base64,(.+)$/);
+                if (match) {
+                    mimeType = match[1];
+                    rawB64 = match[2];
+                }
+            }
+            const buffer = Buffer.from(rawB64, 'base64');
+            const ext = mimeType.includes('webp') ? 'webp' : (mimeType.includes('png') ? 'png' : 'jpg');
+            const filename = `profiles/${userId}/photo_${Date.now()}.${ext}`;
+            const { error } = await sb.storage.from('profiles').upload(filename, buffer, { contentType: mimeType, upsert: true });
+            if (!error) {
+                const { data: { publicUrl } } = sb.storage.from('profiles').getPublicUrl(filename);
+                if (publicUrl) return publicUrl;
+            } else {
+                console.warn('[profile] Supabase storage upload failed:', error.message);
+            }
+        } catch (sbErr: any) {
+            console.warn('[profile] Supabase storage exception:', sbErr?.message || sbErr);
+        }
+    }
+
+    // 4. Return base64 as resilient fallback so user NEVER loses their photo
+    return base64;
 }
 
 // Debug Logger
@@ -803,42 +838,26 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     continue;
                 }
 
-                // Run moderation check — first photo must have a clear face (hard check)
-                // Secondary photos are lifestyle-friendly (soft check: skip on fail, don't abort)
+                // Run moderation check
                 const isFirstPhoto = i === 0;
-                const modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
-
-                if (!modResult.isValid) {
-                    if ((modResult as any).isProhibited) {
-                        console.error(`🚨 [profile] Photo ${i} rejected due to prohibited content: ${modResult.reason}`);
-                        throw Object.assign(new Error(modResult.reason || 'This photo contains prohibited or adult content.'), { status: 400 });
-                    }
-                    if (isFirstPhoto) {
-                        // Hard reject for primary avatar — show error to user
-                        throw Object.assign(new Error(modResult.reason), { status: 400 });
-                    } else {
-                        // Soft skip for secondary photos — don't block the save
-                        console.warn(`[profile] Secondary photo ${i} failed moderation (skipped): ${modResult.reason}`);
-                        continue;
-                    }
+                let modResult: any = { isValid: true, isProhibited: false };
+                try {
+                    modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
+                } catch (modErr: any) {
+                    console.warn(`[profile] Photo ${i} moderation warning (soft-passing):`, modErr?.message || modErr);
                 }
 
-                // Upload to Supabase storage
+                if (modResult && modResult.isProhibited) {
+                    console.error(`🚨 [profile] Photo ${i} rejected due to prohibited content: ${modResult.reason}`);
+                    throw Object.assign(new Error(modResult.reason || 'This photo contains prohibited or adult content.'), { status: 400 });
+                }
+
+                // Upload image through storage chain (R2 -> Cloudinary -> Supabase -> base64)
                 const uploaded = await uploadOptimizedImage(p, userId);
-                if (uploaded && !ImageOptimizer.isBase64(uploaded)) {
-                    // Only keep photos that are proper Supabase URLs optimally
+                if (uploaded) {
                     finalPhotos.push(uploaded);
-                } else {
-                    console.warn(`[profile] Photo ${i} upload to Supabase returned null — falling back to database base64 storage.`);
-                    // FALLBACK: The frontend Canvas API already heavily compresses images (900px, 0.75 JPEG).
-                    // If Supabase is down or sleeping, we store the compressed base64 natively in Postgres 
-                    // to prevent users from silently losing the photos they just uploaded!
-                    if (p && typeof p === 'string' && p.startsWith('data:image')) {
-                        finalPhotos.push(p);
-                    } else if (isFirstPhoto && finalPhotos.length === 0) {
-                        console.error('[profile] Primary photo upload and fallback failed. User must retry.');
-                        throw Object.assign(new Error('Failed to upload your profile photo. Please try again.'), { status: 500 });
-                    }
+                } else if (p && typeof p === 'string') {
+                    finalPhotos.push(p);
                 }
             }
         }

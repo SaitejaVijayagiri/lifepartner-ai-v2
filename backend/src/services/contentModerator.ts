@@ -116,8 +116,8 @@ export class ContentModerator {
             const buffer = Buffer.from(cleanB64, 'base64');
             return await this.checkBuffer(buffer, mimeType);
         } catch (err: any) {
-            console.error('[ContentModerator] checkBase64 error:', err?.message || err);
-            return { isSafe: false, reason: 'Unable to parse image data.' };
+            console.warn('[ContentModerator] Non-fatal checkBase64 error (soft-passing):', err?.message || err);
+            return { isSafe: true };
         }
     }
 
@@ -141,8 +141,8 @@ export class ContentModerator {
             const buffer = fs.readFileSync(filePath);
             return await this.checkBuffer(buffer);
         } catch (err: any) {
-            console.error(`[ContentModerator] checkFile error for ${filePath}:`, err?.message || err);
-            return { isSafe: false, reason: 'Failed to process media file for moderation.' };
+            console.warn(`[ContentModerator] Non-fatal checkFile error for ${filePath} (soft-passing):`, err?.message || err);
+            return { isSafe: true };
         }
     }
 

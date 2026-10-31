@@ -53,7 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
         const res = await fetch(`${apiUrl}/blog?limit=100`, {
             signal: AbortSignal.timeout(3000)
         });

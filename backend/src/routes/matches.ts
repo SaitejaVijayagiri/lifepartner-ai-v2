@@ -58,7 +58,7 @@ const MATCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased for better scalin
 
 // Helper: Sanitize avatar_url — imported from shared utility
 // (Previously duplicated here, profile.ts, and interactions.ts)
-const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
 /**
  * Returns true only when a user has a proper, face-validated profile photo:

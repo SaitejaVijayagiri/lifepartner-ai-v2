@@ -37,7 +37,7 @@ const staticPosts: BlogPost[] = BLOG_POSTS.map((p, i) => ({
 async function getBlogPosts(): Promise<{ posts: BlogPost[] }> {
     try {
         // In Next.js standalone on Render, NEXT_PUBLIC_API_URL is the public backend URL.
-        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
+        const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
         const fetchUrl = `${apiUrl}/blog`;
         console.log("Fetching SEO Blogs from:", fetchUrl);
 

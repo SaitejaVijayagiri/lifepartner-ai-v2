@@ -22,7 +22,7 @@ function GoogleCallbackContent() {
         const exchangeCode = async () => {
             try {
                 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com');
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
                 // Dynamic redirect URI to match what initiated the flow
                 const redirect_uri = window.location.origin + '/auth/callback/google';
 

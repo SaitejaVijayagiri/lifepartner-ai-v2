@@ -101,7 +101,7 @@ export const uploadBufferToR2 = async (
 
         // For public assets (profile photos, stories): generate permanent URL via backend route
         if (isPublic) {
-            const backendUrl = (process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com').replace(/\/+$/, '');
+            const backendUrl = (process.env.BACKEND_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app').replace(/\/+$/, '');
             return {
                 url: `${backendUrl}/photo/r2/${key}`,
                 key,

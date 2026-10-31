@@ -28,6 +28,7 @@ const nextConfig = {
             { protocol: 'https', hostname: '*.r2.dev' },
             { protocol: 'https', hostname: 'res.cloudinary.com' },
             { protocol: 'https', hostname: 'lifepartner-ai.onrender.com' },
+            { protocol: 'https', hostname: 'lifepartner-backend-295663053086.asia-south1.run.app' },
         ],
         unoptimized: true,
     },
@@ -163,15 +164,15 @@ const nextConfig = {
             fallback: [
                 {
                     source: '/api/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/:path*`,
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/:path*`,
                 },
                 {
                     source: '/photo/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/photo/:path*`,
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/photo/:path*`,
                 },
                 {
                     source: '/socket.io/:path*',
-                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com'}/socket.io/:path*`,
+                    destination: `${process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app'}/socket.io/:path*`,
                 },
             ]
         };

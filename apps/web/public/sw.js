@@ -120,7 +120,7 @@ self.addEventListener('notificationclick', function (event) {
     const origin = self.location.origin;
     const API_URL = (origin.includes('localhost') || origin.includes('127.0.0.1'))
         ? 'http://localhost:4000'
-        : (origin.includes('10.0.2.2') ? 'http://10.0.2.2:4000' : 'https://lifepartner-ai.onrender.com');
+        : (origin.includes('10.0.2.2') ? 'http://10.0.2.2:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
 
     // 1. Inline quick reply action
     if (action === 'reply_to_message') {
@@ -368,7 +368,7 @@ async function flushOfflineActions() {
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const origin = self.location.origin;
-        const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com';
+        const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
         for (const req of keys) {
             try {

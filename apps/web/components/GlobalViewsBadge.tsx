@@ -19,7 +19,7 @@ export default function GlobalViewsBadge({ className = '' }: GlobalViewsBadgePro
         const fetchViews = async () => {
             try {
                 const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com');
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
                 const res = await fetch(`${API_URL}/analytics/views`).then(r => r.json());
                 if (res.success && res.total_views) {
                     setStats({

@@ -58,7 +58,7 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
     useEffect(() => {
         // Connect to Backend URL with intelligent local vs production fallback
         const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-        const socketUrl = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com');
+        const socketUrl = process.env.NEXT_PUBLIC_API_URL || (isLocal ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
 
         // Dynamically get token right before connecting
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;

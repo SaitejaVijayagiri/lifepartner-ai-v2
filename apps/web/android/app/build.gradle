@@ -20,7 +20,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Inject API base URL into BuildConfig so Java code connects to the active production backend
-        buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-ai.onrender.com\""
+        buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-backend-295663053086.asia-south1.run.app\""
 
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
@@ -48,7 +48,7 @@ android {
     buildTypes {
         debug {
             debuggable false
-            buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-ai.onrender.com\""
+            buildConfigField "String", "API_BASE_URL", "\"https://lifepartner-backend-295663053086.asia-south1.run.app\""
             if (keystorePropsFile.exists()) {
                 signingConfig signingConfigs.release
             }

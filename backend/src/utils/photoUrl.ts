@@ -9,7 +9,7 @@
  * Rule: Only Supabase URLs need proxying. Cloudinary + base64 pass through as-is.
  */
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-ai.onrender.com';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
 /**
  * Converts a Supabase storage URL to our proxy URL.

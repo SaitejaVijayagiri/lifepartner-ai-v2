@@ -122,7 +122,7 @@ self.addEventListener('notificationclick', function(event) {
     if (notificationId) {
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:4000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
             
         event.waitUntil(
             fetch(`${API_URL}/notifications/${notificationId}/click`, {
@@ -177,7 +177,7 @@ self.addEventListener('notificationclick', function(event) {
         const actionType = action === 'accept_request' ? 'accept' : 'decline';
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:4000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
         event.waitUntil(
             caches.open('auth-token')
@@ -235,7 +235,7 @@ self.addEventListener('notificationclick', function(event) {
 
         const API_URL = self.location.origin.includes('localhost') 
             ? 'http://localhost:4000' 
-            : 'https://lifepartner-ai.onrender.com';
+            : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
         event.waitUntil(
             caches.open('auth-token')
@@ -310,7 +310,7 @@ self.addEventListener('notificationclick', function(event) {
         const origin = self.location.origin;
         const API_URL = (origin.includes('localhost') || origin.includes('127.0.0.1'))
             ? 'http://localhost:4000'
-            : (origin.includes('10.0.2.2') ? 'http://10.0.2.2:4000' : 'https://lifepartner-ai.onrender.com');
+            : (origin.includes('10.0.2.2') ? 'http://10.0.2.2:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app');
 
         event.waitUntil(
             caches.open('auth-token')
@@ -473,7 +473,7 @@ async function flushOfflineActions() {
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         const origin = self.location.origin;
-        const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-ai.onrender.com';
+        const API_URL = origin.includes('localhost') ? 'http://localhost:4000' : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
         for (const req of keys) {
             try {

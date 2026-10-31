@@ -5,7 +5,7 @@ export const getApiUrl = () => {
     if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         return 'http://localhost:4000';
     }
-    return 'https://lifepartner-ai.onrender.com';
+    return 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 };
 
 const API_URL = getApiUrl();

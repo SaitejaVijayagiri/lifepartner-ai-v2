@@ -13,7 +13,7 @@ jobs:
       - name: Ping Backend Health Check
         run: |
           echo "Pinging backend to prevent sleep..."
-          curl -s -o /dev/null -w "%{http_code}" https://lifepartner-ai.onrender.com/health
+          curl -s -o /dev/null -w "%{http_code}" https://lifepartner-backend-295663053086.asia-south1.run.app/health
       
       - name: Ping Frontend (Optional, keeps Vercel edge warm)
         run: |

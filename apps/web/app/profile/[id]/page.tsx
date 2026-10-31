@@ -4,7 +4,7 @@ import ProfileClient from '@/components/ProfileClient';
 import Script from 'next/script';
 
 // Define the API URL for server-side fetching with production fallback
-const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-ai.onrender.com';
+const API_URL = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app';
 
 type Props = {
     params: { id: string }

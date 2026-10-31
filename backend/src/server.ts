@@ -59,6 +59,7 @@ const globalLimiter = rateLimit({
     skip: (req) => req.path === '/health' || req.path === '/healthz' || req.path === '/' || req.method === 'OPTIONS',
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
     message: "Too many requests from this IP, please try again later."
 });
 
@@ -68,12 +69,14 @@ const authLimiter = rateLimit({
     keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
 });
 
 const contactLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
     max: 30,
     keyGenerator: (req: any) => (req.headers['cf-connecting-ip'] || req.headers['x-real-ip'] || (typeof req.headers['x-forwarded-for'] === 'string' ? req.headers['x-forwarded-for'].split(',')[0].trim() : null) || req.ip || '127.0.0.1'),
+    validate: false,
     message: "Too many contact requests, please try again later."
 });
 

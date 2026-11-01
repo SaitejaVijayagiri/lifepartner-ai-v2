@@ -3520,22 +3520,23 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             {/* Fullscreen YouTube Modal Overlay */}
             {fullscreenYoutubeId && (
                 <div 
-                    className="fixed inset-0 z-[2010] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in zoom-in-95 duration-200" 
+                    className="fixed inset-0 z-[2010] bg-black/95 backdrop-blur-sm flex items-center justify-center p-0 sm:p-6 animate-in fade-in zoom-in-95 duration-200" 
                     onClick={() => setFullscreenYoutubeId(null)}
                 >
                     <button 
-                        className="absolute top-6 right-6 sm:top-8 sm:right-8 z-[2020] p-2.5 bg-white/10 hover:bg-white/25 text-white rounded-full backdrop-blur-md transition-all border border-white/20 cursor-pointer shadow-2xl flex items-center justify-center" 
+                        className="absolute top-4 right-4 sm:top-8 sm:right-8 z-[2020] p-2.5 bg-black/60 hover:bg-black/80 text-white rounded-full backdrop-blur-md transition-all border border-white/20 cursor-pointer shadow-2xl flex items-center justify-center" 
                         onClick={(e) => { e.stopPropagation(); setFullscreenYoutubeId(null); }}
+                        title="Close Video"
                     >
                         <X size={20} strokeWidth={3} />
                     </button>
-                    <div className="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] border border-white/10" onClick={(e) => e.stopPropagation()}>
+                    <div className="w-full sm:max-w-4xl aspect-video bg-black rounded-none sm:rounded-2xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] border-0 sm:border sm:border-white/10" onClick={(e) => e.stopPropagation()}>
                         <iframe
-                            src={`https://www.youtube.com/embed/${fullscreenYoutubeId}?autoplay=1&rel=0`}
-                            className="w-full h-full"
-                            frameBorder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            src={`https://www.youtube.com/embed/${fullscreenYoutubeId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' && window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
+                            title="YouTube Fullscreen Video"
                         ></iframe>
                     </div>
                 </div>

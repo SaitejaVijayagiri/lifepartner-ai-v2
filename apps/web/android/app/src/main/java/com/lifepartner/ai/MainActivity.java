@@ -678,7 +678,7 @@ public class MainActivity extends BridgeActivity {
         runOnUiThread(() -> {
             try {
                 if (enableLandscape) {
-                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                     getWindow().getDecorView().setSystemUiVisibility(
                         View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -896,7 +896,7 @@ public class MainActivity extends BridgeActivity {
                         runOnUiThread(() -> {
                             try {
                                 // Automatically switch to landscape orientation for full screen video view
-                                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
                                 if (mFullscreenContainer == null) {
                                     mFullscreenContainer = new FrameLayout(MainActivity.this);

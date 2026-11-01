@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones, Maximize2, Minimize2 } from 'lucide-react';
+import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 import RewardedAdModal from './RewardedAdModal';
 import GoogleAdBanner from './GoogleAdBanner';
@@ -67,9 +67,6 @@ export default function ChatMusicJukebox({
     const [pendingTrackForVideo, setPendingTrackForVideo] = useState<(Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) | null>(null);
     const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
     const [isSharingTrack, setIsSharingTrack] = useState(false);
-    const [isLandscapeMode, setIsLandscapeMode] = useState(false);
-    const [isPortrait, setIsPortrait] = useState(false);
-    const [rotationAngle, setRotationAngle] = useState<90 | -90>(90);
     const [remainingMins, setRemainingMins] = useState(getRemainingUnlockedMinutes());
 
     const isUserVip = Boolean(currentUser?.is_premium || currentUser?.isPremium);
@@ -395,102 +392,37 @@ export default function ChatMusicJukebox({
         setPendingTrackForVideo(null);
     };
 
-    // Track orientation to seamlessly switch between native landscape and CSS rotated landscape on mobile
+    // Handle native HTML5 fullscreen changes triggered directly by the in-built YouTube player toggle
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const checkOrientation = () => {
-            setIsPortrait(window.innerWidth < window.innerHeight);
-        };
-        checkOrientation();
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', checkOrientation);
-        return () => {
-            window.removeEventListener('resize', checkOrientation);
-            window.removeEventListener('orientationchange', checkOrientation);
-        };
-    }, []);
-
-    const enterLandscapeMode = async () => {
-        setIsLandscapeMode(true);
-        // 1. Tell Android Bridge to force landscape orientation in native app
-        if (typeof window !== 'undefined' && (window as any).AndroidBridge?.setLandscapeMode) {
-            try {
-                (window as any).AndroidBridge.setLandscapeMode(true);
-            } catch (_) {}
-        }
-        // 2. Request browser fullscreen on the document
-        if (typeof document !== 'undefined') {
-            const docEl = document.documentElement as any;
-            if (docEl.requestFullscreen) {
-                try { await docEl.requestFullscreen(); } catch (_) {}
-            } else if (docEl.webkitRequestFullscreen) {
-                try { await docEl.webkitRequestFullscreen(); } catch (_) {}
-            }
-        }
-        // 3. Request screen orientation lock if supported by the browser
-        if (typeof screen !== 'undefined' && screen.orientation && (screen.orientation as any).lock) {
-            try {
-                await (screen.orientation as any).lock('landscape');
-            } catch (_) {}
-        }
-    };
-
-    const exitLandscapeMode = () => {
-        setIsLandscapeMode(false);
-        // 1. Restore portrait in Android Bridge
-        if (typeof window !== 'undefined' && (window as any).AndroidBridge?.setLandscapeMode) {
-            try {
-                (window as any).AndroidBridge.setLandscapeMode(false);
-            } catch (_) {}
-        }
-        // 2. Unlock screen orientation
-        if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
-            try {
-                screen.orientation.unlock();
-            } catch (_) {}
-        }
-        // 3. Exit browser fullscreen
-        if (typeof document !== 'undefined') {
-            const doc = document as any;
-            if (doc.fullscreenElement || doc.webkitFullscreenElement) {
-                if (doc.exitFullscreen) {
-                    try { doc.exitFullscreen(); } catch (_) {}
-                } else if (doc.webkitExitFullscreen) {
-                    try { doc.webkitExitFullscreen(); } catch (_) {}
-                }
-            }
-        }
-    };
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        (window as any).exitLandscapeMode = () => {
-            exitLandscapeMode();
-        };
-
+        if (typeof document === 'undefined') return;
         const handleFullscreenChange = () => {
-            const doc = document as any;
-            const isFs = Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
-            // On desktop/laptop, if user exited browser fullscreen via Esc, also exit landscape overlay
-            if (!isFs && isLandscapeMode && !isPortrait) {
-                exitLandscapeMode();
+            const isFs = Boolean(document.fullscreenElement || (document as any).webkitFullscreenElement);
+            if (isFs) {
+                // If browser allows orientation locking during active fullscreen (e.g. Chrome on Android), lock to landscape
+                if (typeof screen !== 'undefined' && screen.orientation && (screen.orientation as any).lock) {
+                    try {
+                        (screen.orientation as any).lock('landscape').catch(() => {});
+                    } catch (_) {}
+                }
+            } else {
+                if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+                    try {
+                        screen.orientation.unlock();
+                    } catch (_) {}
+                }
             }
         };
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
         return () => {
-            delete (window as any).exitLandscapeMode;
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-            if (typeof window !== 'undefined' && (window as any).AndroidBridge?.setLandscapeMode) {
-                try { (window as any).AndroidBridge.setLandscapeMode(false); } catch (_) {}
-            }
             if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
                 try { screen.orientation.unlock(); } catch (_) {}
             }
         };
-    }, [isLandscapeMode, isPortrait]);
+    }, []);
 
     const handleShareTrack = async (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
         if (!onShareTrackToChat) return;
@@ -906,9 +838,9 @@ export default function ChatMusicJukebox({
                                         </div>
                                     ) : (getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')) ? (
                                         <iframe
-                                            src={`https://www.youtube.com/embed/${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
+                                            src={`https://www.youtube.com/embed/${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}?autoplay=1&enablejsapi=1&fs=1&origin=${encodeURIComponent(typeof window !== 'undefined' && window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
                                             className="w-full h-full border-0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; webkitfullscreen; fullscreen"
                                             allowFullScreen
                                             title={activeTrack.title}
                                         />
@@ -943,30 +875,19 @@ export default function ChatMusicJukebox({
                                     )}
                                 </div>
 
-                                {/* YouTube Deep Link Bar & Landscape Mode Toggle */}
+                                {/* YouTube Stream Status & YouTube App Link */}
                                 {(getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')) && (
                                     <div className="px-4 py-2 bg-gray-50 dark:bg-slate-950 flex items-center justify-between border-t border-gray-200 dark:border-slate-800/60 text-[11px] text-gray-500 dark:text-slate-400">
                                         <span className="text-emerald-700 dark:text-emerald-400 font-bold">● Full HD Song Streaming</span>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={enterLandscapeMode}
-                                                className="text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 font-bold flex items-center gap-1.5 bg-pink-50 dark:bg-pink-500/10 px-2.5 py-1 rounded-lg border border-pink-200 dark:border-pink-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
-                                                title="Rotate to Landscape Full Screen"
-                                            >
-                                                <Maximize2 size={12} />
-                                                <span>Landscape View ⛶</span>
-                                            </button>
-                                            <a
-                                                href={`https://www.youtube.com/watch?v=${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold flex items-center gap-1.5 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-500/20 shadow-sm"
-                                            >
-                                                <span>YouTube App</span>
-                                                <Tv size={12} />
-                                            </a>
-                                        </div>
+                                        <a
+                                            href={`https://www.youtube.com/watch?v=${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold flex items-center gap-1.5 bg-red-50 dark:bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-500/20 shadow-sm"
+                                        >
+                                            <span>YouTube App</span>
+                                            <Tv size={12} />
+                                        </a>
                                     </div>
                                 )}
 
@@ -1191,80 +1112,6 @@ export default function ChatMusicJukebox({
                 )}
             </div>
 
-            {/* True Edge-to-Edge Landscape Video Player Overlay */}
-            {isLandscapeMode && activeTrack && (
-                <div
-                    style={
-                        isPortrait
-                            ? {
-                                  position: 'fixed',
-                                  top: '50%',
-                                  left: '50%',
-                                  width: '100vh',
-                                  height: '100vw',
-                                  transform: `translate(-50%, -50%) rotate(${rotationAngle}deg)`,
-                                  transformOrigin: 'center center',
-                                  zIndex: 999999999,
-                              }
-                            : undefined
-                    }
-                    className={
-                        isPortrait
-                            ? "fixed z-[999999999] bg-black flex flex-col items-center justify-center overflow-hidden shadow-2xl"
-                            : "fixed inset-0 z-[999999999] bg-black flex flex-col items-center justify-center w-screen h-screen overflow-hidden"
-                    }
-                >
-                    {/* Top Floating Info & Exit Controls */}
-                    <div className="absolute top-3 left-4 right-4 z-[1000000000] flex items-center justify-between pointer-events-none">
-                        <div className="bg-black/75 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-white max-w-xs sm:max-w-md pointer-events-auto shadow-xl">
-                            <p className="text-xs font-extrabold truncate">{activeTrack.title}</p>
-                            <p className="text-[10px] text-pink-400 font-bold truncate">{activeTrack.artist}</p>
-                        </div>
-                        <div className="flex items-center gap-2 pointer-events-auto">
-                            {isPortrait && (
-                                <button
-                                    type="button"
-                                    onClick={() => setRotationAngle(prev => prev === 90 ? -90 : 90)}
-                                    className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-full backdrop-blur-md border border-white/30 text-xs font-bold flex items-center gap-1.5 shadow-xl transition-all cursor-pointer active:scale-95"
-                                    title="Flip Landscape Rotation"
-                                >
-                                    <span>↻ Flip</span>
-                                </button>
-                            )}
-                            <button
-                                type="button"
-                                onClick={exitLandscapeMode}
-                                className="px-3.5 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white rounded-full backdrop-blur-md border border-white/30 text-xs font-bold flex items-center gap-1.5 shadow-2xl transition-all cursor-pointer active:scale-95"
-                                title="Exit Landscape"
-                            >
-                                <Minimize2 size={15} />
-                                <span>Exit Landscape</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Edge-to-Edge Player Frame in Landscape */}
-                    <div className="w-full h-full bg-black flex items-center justify-center">
-                        {(getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')) ? (
-                            <iframe
-                                src={`https://www.youtube.com/embed/${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' && window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
-                                className="w-full h-full border-0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                                allowFullScreen
-                                title={activeTrack.title}
-                            />
-                        ) : activeTrack.videoUrl ? (
-                            <video
-                                src={activeTrack.videoUrl}
-                                controls
-                                autoPlay
-                                playsInline
-                                className="w-full h-full object-contain bg-black"
-                            />
-                        ) : null}
-                    </div>
-                </div>
-            )}
 
             {/* Value Exchange Rewarded Video Modal */}
             <RewardedAdModal

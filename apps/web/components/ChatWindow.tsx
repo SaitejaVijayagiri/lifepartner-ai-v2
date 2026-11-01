@@ -285,9 +285,9 @@ const ChatSharedMediaCard = ({
                         <video src={effectiveVideoUrl} controls autoPlay playsInline className="w-full h-full object-contain bg-black" />
                     ) : resolvedYtId ? (
                         <iframe
-                            src={`https://www.youtube.com/embed/${resolvedYtId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
+                            src={`https://www.youtube.com/embed/${resolvedYtId}?autoplay=1&enablejsapi=1&fs=1&origin=${encodeURIComponent(typeof window !== 'undefined' && window.location.origin.startsWith('http') && !window.location.origin.includes('localhost') ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
                             className="w-full h-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; webkitfullscreen; fullscreen"
                             allowFullScreen
                             title={title}
                         />

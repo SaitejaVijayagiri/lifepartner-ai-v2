@@ -69,11 +69,7 @@ public class MainActivity extends BridgeActivity {
 
     public boolean hideCustomFullscreenView() {
         if (mCustomView != null) {
-            if (mActiveChromeClient != null) {
-                mActiveChromeClient.onHideCustomView();
-            } else {
-                onHideCustomViewInternal();
-            }
+            onHideCustomViewInternal();
             return true;
         }
         return false;
@@ -87,11 +83,17 @@ public class MainActivity extends BridgeActivity {
                 setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
             } catch (Exception ignored) {}
 
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            ViewGroup decorView = (ViewGroup) getWindow().getDecorView();
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+
             if (mFullscreenContainer != null) {
-                mFullscreenContainer.removeView(mCustomView);
+                mFullscreenContainer.removeAllViews();
                 mFullscreenContainer.setVisibility(View.GONE);
+                if (mFullscreenContainer.getParent() != null) {
+                    decorView.removeView(mFullscreenContainer);
+                }
             }
+
             if (mCustomViewCallback != null) {
                 try {
                     mCustomViewCallback.onCustomViewHidden();
@@ -99,6 +101,72 @@ public class MainActivity extends BridgeActivity {
                 mCustomViewCallback = null;
             }
             mCustomView = null;
+
+            // Restore the main WebView visibility
+            try {
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    WebView webView = getBridge().getWebView();
+                    webView.setVisibility(View.VISIBLE);
+                    webView.requestFocus();
+                }
+            } catch (Exception ignored) {}
+        });
+    }
+
+    public void showFullscreenVideoView(View view, WebChromeClient.CustomViewCallback callback) {
+        if (mCustomView != null) {
+            onHideCustomViewInternal();
+            return;
+        }
+
+        mCustomView = view;
+        mCustomViewCallback = callback;
+
+        runOnUiThread(() -> {
+            try {
+                // 1. Hide the main WebView so it doesn't block the video
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    getBridge().getWebView().setVisibility(View.GONE);
+                }
+
+                // 2. Automatically switch to full landscape orientation
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
+                ViewGroup decorView = (ViewGroup) getWindow().getDecorView();
+                if (mFullscreenContainer == null) {
+                    mFullscreenContainer = new FrameLayout(MainActivity.this);
+                    mFullscreenContainer.setBackgroundColor(Color.BLACK);
+                }
+
+                if (mFullscreenContainer.getParent() != null) {
+                    ((ViewGroup) mFullscreenContainer.getParent()).removeView(mFullscreenContainer);
+                }
+
+                mFullscreenContainer.removeAllViews();
+                mFullscreenContainer.addView(view, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ));
+
+                decorView.addView(mFullscreenContainer, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ));
+                mFullscreenContainer.setVisibility(View.VISIBLE);
+                mFullscreenContainer.bringToFront();
+
+                // 3. Enter immersive sticky fullscreen for full video viewing
+                decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                );
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing custom fullscreen video view: ", e);
+            }
         });
     }
 
@@ -698,14 +766,14 @@ public class MainActivity extends BridgeActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (hideCustomFullscreenView()) {
+                    return;
+                }
                 if (MainActivity.isLandscapeActive) {
                     setLandscapeModeInternal(false);
                     if (getBridge() != null && getBridge().getWebView() != null) {
                         getBridge().getWebView().evaluateJavascript("window.exitLandscapeMode && window.exitLandscapeMode()", null);
                     }
-                    return;
-                }
-                if (hideCustomFullscreenView()) {
                     return;
                 }
                 handleAppBackNavigation();
@@ -715,14 +783,14 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onBackPressed() {
+        if (hideCustomFullscreenView()) {
+            return;
+        }
         if (MainActivity.isLandscapeActive) {
             setLandscapeModeInternal(false);
             if (getBridge() != null && getBridge().getWebView() != null) {
                 getBridge().getWebView().evaluateJavascript("window.exitLandscapeMode && window.exitLandscapeMode()", null);
             }
-            return;
-        }
-        if (hideCustomFullscreenView()) {
             return;
         }
         handleAppBackNavigation();
@@ -886,44 +954,13 @@ public class MainActivity extends BridgeActivity {
                     @Override
                     public void onShowCustomView(View view, CustomViewCallback callback) {
                         mActiveChromeClient = this;
-                        if (mCustomView != null) {
-                            onHideCustomView();
-                            return;
-                        }
-                        mCustomView = view;
-                        mCustomViewCallback = callback;
+                        showFullscreenVideoView(view, callback);
+                    }
 
-                        runOnUiThread(() -> {
-                            try {
-                                // Automatically switch to landscape orientation for full screen video view
-                                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
-                                if (mFullscreenContainer == null) {
-                                    mFullscreenContainer = new FrameLayout(MainActivity.this);
-                                    mFullscreenContainer.setBackgroundColor(Color.BLACK);
-                                    FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                                        FrameLayout.LayoutParams.MATCH_PARENT,
-                                        FrameLayout.LayoutParams.MATCH_PARENT
-                                    );
-                                    ((ViewGroup) getWindow().getDecorView()).addView(mFullscreenContainer, params);
-                                }
-                                mFullscreenContainer.removeAllViews();
-                                mFullscreenContainer.addView(view, new FrameLayout.LayoutParams(
-                                    FrameLayout.LayoutParams.MATCH_PARENT,
-                                    FrameLayout.LayoutParams.MATCH_PARENT
-                                ));
-                                mFullscreenContainer.setVisibility(View.VISIBLE);
-
-                                // Enter immersive sticky fullscreen for rich video watching
-                                getWindow().getDecorView().setSystemUiVisibility(
-                                    View.SYSTEM_UI_FLAG_FULLSCREEN
-                                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                                );
-                            } catch (Exception e) {
-                                Log.e(TAG, "Error showing custom fullscreen view: ", e);
-                            }
-                        });
+                    @Override
+                    public void onShowCustomView(View view, int requestedOrientation, CustomViewCallback callback) {
+                        mActiveChromeClient = this;
+                        showFullscreenVideoView(view, callback);
                     }
 
                     @Override

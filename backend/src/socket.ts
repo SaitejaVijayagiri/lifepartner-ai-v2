@@ -290,6 +290,10 @@ export const initSocket = (httpServer: HttpServer) => {
             return next();
         }
 
+        if (typeof token === 'string' && token.startsWith('Bearer ')) {
+            token = token.slice(7).trim();
+        }
+
         // JWT_SECRET guaranteed by startup guard in server.ts (throws if missing)
         const secret = process.env.JWT_SECRET!;
         jwt.verify(token as string, secret, (err, decoded) => {
@@ -377,6 +381,9 @@ export const initSocket = (httpServer: HttpServer) => {
         socket.on('join-room', (uId: string) => {
             if (uId && typeof uId === 'string') {
                 socket.join(uId);
+                socket.data.trackedUserId = uId;
+                if (!userId) userId = uId;
+                addSocketToOnlineUser(socket, uId);
                 console.log(`Socket ${socket.id} joined personal room: ${uId}`);
                 deliverPendingCall(socket, uId);
             }
@@ -390,8 +397,11 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         socket.on('authenticate', (data: { token?: string }) => {
-            const token = data?.token || socket.handshake.auth?.token;
+            let token = data?.token || socket.handshake.auth?.token;
             if (!token) return;
+            if (typeof token === 'string' && token.startsWith('Bearer ')) {
+                token = token.slice(7).trim();
+            }
             try {
                 const secret = process.env.JWT_SECRET!;
                 jwt.verify(token, secret, (err: any, decoded: any) => {
@@ -399,8 +409,10 @@ export const initSocket = (httpServer: HttpServer) => {
                     const uId = decoded.userId;
                     userId = uId;
                     socket.data.user = decoded;
+                    socket.data.trackedUserId = uId;
                     socket.data.isGuest = false;
 
+                    socket.join(uId);
                     addSocketToOnlineUser(socket, uId);
                     console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
                     deliverPendingCall(socket, uId);
@@ -452,9 +464,9 @@ export const initSocket = (httpServer: HttpServer) => {
         /**
          * CALL USER
          */
-        socket.on("callUser", async ({ userToCall, signalData, name, type, _speedDateMode }: any) => {
-            const from = userId; // Secure source
-            if (!userToCall || userToCall === from) {
+        socket.on("callUser", async ({ userToCall, signalData, name, type, _speedDateMode, from: clientFrom }: any) => {
+            const from = getUserId() || clientFrom;
+            if (!userToCall || (from && userToCall === from)) {
                 console.warn(`[callUser] Rejected self-call or invalid target: from ${from} to ${userToCall}`);
                 return;
             }
@@ -497,7 +509,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
                 // Cache active pending call for 45s so receiver can pick up even after launching via push notification
                 pendingCalls.set(userToCall, {
-                    callerId: from,
+                    callerId: from || clientFrom,
                     userToCall,
                     signalData,
                     name: secureName,
@@ -511,7 +523,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
-                    from,
+                    from: from || clientFrom,
                     name: secureName,
                     type,
                     location: userLocation,

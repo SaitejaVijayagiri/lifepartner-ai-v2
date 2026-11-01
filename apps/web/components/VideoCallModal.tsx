@@ -294,11 +294,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478' },
         ],
-        iceCandidatePoolSize: 10,
+        iceCandidatePoolSize: 2,
     };
 
     // Call duration timer
@@ -504,8 +501,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
 
         peer.on("signal", (data: any) => {
             if (socket) {
-                const myId = user?.id || localStorage.getItem('userId');
-                const myName = user?.name || localStorage.getItem('userName') || "Unknown User";
+                const myId = user?.id || (typeof window !== 'undefined' ? (localStorage.getItem('userId') || (() => { try { return JSON.parse(localStorage.getItem('user') || '{}')?.id; } catch { return null; } })()) : null);
+                const myName = user?.name || (typeof window !== 'undefined' ? (localStorage.getItem('userName') || (() => { try { return JSON.parse(localStorage.getItem('user') || '{}')?.name; } catch { return null; } })()) : null) || "Partner";
 
                 const callPayload = {
                     userToCall: partner.id,
@@ -557,20 +554,33 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
         // Use streamRef to avoid stale closure — ref is always current even if state isn't
         const localStream = streamRef.current;
         if (!localStream) {
-            console.warn("[answerCall] Stream not ready yet, waiting via ref poll...");
-            let retries = 0;
-            const waitForStream = setInterval(() => {
-                retries++;
-                const s = streamRef.current;
-                if (s) {
-                    clearInterval(waitForStream);
-                    doAnswerCall(s);
-                } else if (retries > 25) { // 5 second timeout
-                    clearInterval(waitForStream);
-                    console.error("[answerCall] Stream never became available after 5s");
-                    toast.error("Microphone not ready. Please try calling again.");
-                }
-            }, 200);
+            console.warn("[answerCall] Stream not ready yet, requesting getUserMedia inside user gesture...");
+            if (navigator?.mediaDevices?.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({
+                    video: isVideo ? { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" } : false,
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                }).then(newStream => {
+                    streamRef.current = newStream;
+                    setStream(newStream);
+                    if (myVideo.current) {
+                        myVideo.current.srcObject = newStream;
+                    }
+                    doAnswerCall(newStream);
+                }).catch(err => {
+                    console.warn("[answerCall] Video+audio prompt failed, trying audio only fallback:", err);
+                    navigator.mediaDevices.getUserMedia({ audio: true }).then(audioStream => {
+                        streamRef.current = audioStream;
+                        setStream(audioStream);
+                        doAnswerCall(audioStream);
+                    }).catch(audioErr => {
+                        console.error("[answerCall] Audio fallback also failed:", audioErr);
+                        toast.error("Microphone access is required to answer the call.");
+                        setStatus("Permission denied");
+                    });
+                });
+            } else {
+                toast.error("WebRTC is not supported on this browser.");
+            }
             return;
         }
         doAnswerCall(localStream);

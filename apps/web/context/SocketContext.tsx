@@ -1,4 +1,3 @@
-
 'use client';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
@@ -55,6 +54,22 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
     } | null>(null);
     const [publicStats, setPublicStats] = useState({ onlineCount: 0 });
 
+    const getStoredUserId = () => {
+        if (typeof window === 'undefined') return null;
+        try {
+            const directId = localStorage.getItem('userId');
+            if (directId) return directId;
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                const parsed = JSON.parse(storedUser);
+                if (parsed?.id) return parsed.id;
+            }
+        } catch {
+            // ignore
+        }
+        return null;
+    };
+
     useEffect(() => {
         // Connect to Backend URL with intelligent local vs production fallback
         const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -81,8 +96,10 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             if (freshToken) {
                 newSocket.emit('authenticate', { token: freshToken });
             }
-            if (userId) {
-                newSocket.emit('join-room', userId);
+            const currentUid = userId || getStoredUserId();
+            if (currentUid) {
+                newSocket.emit('join-room', currentUid);
+                newSocket.emit('checkPendingCall');
             }
         });
 
@@ -93,8 +110,10 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             if (freshToken) {
                 newSocket.emit('authenticate', { token: freshToken });
             }
-            if (userId) {
-                newSocket.emit('join-room', userId);
+            const currentUid = userId || getStoredUserId();
+            if (currentUid) {
+                newSocket.emit('join-room', currentUid);
+                newSocket.emit('checkPendingCall');
             }
         });
 
@@ -160,6 +179,11 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
                 if (freshToken && newSocket.connected) {
                     newSocket.emit('authenticate', { token: freshToken });
                 }
+                const currentUid = userId || getStoredUserId();
+                if (currentUid && newSocket.connected) {
+                    newSocket.emit('join-room', currentUid);
+                    newSocket.emit('checkPendingCall');
+                }
             }
         };
 
@@ -170,8 +194,10 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         setSocket(newSocket);
 
         // Join Personal Room if UserID exists (Legacy fallback)
-        if (userId) {
-            newSocket.emit('join-room', userId);
+        const initialUid = userId || getStoredUserId();
+        if (initialUid) {
+            newSocket.emit('join-room', initialUid);
+            newSocket.emit('checkPendingCall');
         }
 
         return () => {
@@ -180,7 +206,21 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             }
             newSocket.disconnect();
         };
-    }, [userId]);
+    }, []);
+
+    // Sync user auth changes into active socket session without disconnecting socket
+    useEffect(() => {
+        if (!socket) return;
+        const currentUid = userId || getStoredUserId();
+        if (currentUid) {
+            const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (freshToken) {
+                socket.emit('authenticate', { token: freshToken });
+            }
+            socket.emit('join-room', currentUid);
+            socket.emit('checkPendingCall');
+        }
+    }, [socket, userId]);
 
     return (
         <SocketContext.Provider value={{

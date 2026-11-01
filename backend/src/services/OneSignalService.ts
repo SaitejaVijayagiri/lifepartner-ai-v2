@@ -132,7 +132,10 @@ export class OneSignalService {
                 priority: 10,
                 android_visibility: 1,
                 android_accent_color: 'FFFF4081',
-                small_icon: 'ic_stat_notification'
+                small_icon: 'ic_stat_notification',
+                android_group: data?.senderId ? `chat_${data.senderId}` : 'com.lifepartner.ai.CHATS',
+                android_group_message: { en: '$[notif_count] new messages' },
+                collapse_id: data?.senderId ? `chat_${data.senderId}` : undefined
             };
 
             if (subIds.length > 0) {

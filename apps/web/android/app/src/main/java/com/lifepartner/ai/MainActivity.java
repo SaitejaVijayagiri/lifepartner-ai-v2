@@ -472,13 +472,31 @@ public class MainActivity extends BridgeActivity {
             OneSignal.getNotifications().addForegroundLifecycleListener(event -> {
                 try {
                     org.json.JSONObject additionalData = event.getNotification().getAdditionalData();
-                    if (additionalData != null) {
-                        String senderId = additionalData.optString("senderId", null);
-                        if (senderId == null) senderId = additionalData.optString("connId", null);
-                        if (senderId == null) senderId = additionalData.optString("from", null);
+                    SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                    String activeChatId = activeChatPartnerId != null ? activeChatPartnerId : prefs.getString("active_chat_id", null);
 
-                        if (senderId != null && activeChatPartnerId != null && senderId.equals(activeChatPartnerId)) {
-                            Log.i(TAG, "OneSignal: Suppressing notification because user is active in chat with: " + senderId);
+                    if (additionalData != null && activeChatId != null && !activeChatId.trim().isEmpty()) {
+                        String senderId = additionalData.optString("senderId", "");
+                        if (senderId.isEmpty()) senderId = additionalData.optString("connId", "");
+                        if (senderId.isEmpty()) senderId = additionalData.optString("from", "");
+                        if (senderId.isEmpty()) senderId = additionalData.optString("fromUserId", "");
+
+                        if (!senderId.isEmpty()) {
+                            String cleanActive = activeChatId.trim().toLowerCase();
+                            String cleanSender = senderId.trim().toLowerCase();
+                            if (cleanActive.equals(cleanSender) || cleanActive.contains(cleanSender) || cleanSender.contains(cleanActive)) {
+                                Log.i(TAG, "OneSignal: User is actively chatting with " + senderId + ". Suppressing foreground notification.");
+                                event.preventDefault();
+                                return;
+                            }
+                        }
+                    }
+
+                    // If user is actively chatting in foreground, suppress incoming chat toasts to avoid disturbance
+                    if (isAppInForeground && activeChatId != null && !activeChatId.trim().isEmpty()) {
+                        String type = additionalData != null ? additionalData.optString("type", "") : "";
+                        if ("message".equals(type) || "chat".equals(type) || type.isEmpty()) {
+                            Log.i(TAG, "OneSignal: Suppressing message notification because user is active in conversation.");
                             event.preventDefault();
                         }
                     }
@@ -1110,10 +1128,16 @@ public class MainActivity extends BridgeActivity {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putString("active_chat_id", MainActivity.activeChatPartnerId).apply();
                 if (MainActivity.activeChatPartnerId != null) {
-                    prefs.edit().remove("chat_msg_history_" + MainActivity.activeChatPartnerId).apply();
                     NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
                     if (manager != null) {
-                        manager.cancel(MainActivity.activeChatPartnerId.hashCode());
+                        for (String part : MainActivity.activeChatPartnerId.split(",")) {
+                            if (!part.trim().isEmpty()) {
+                                String clean = part.trim().toLowerCase();
+                                prefs.edit().remove("chat_msg_history_" + clean).apply();
+                                manager.cancel(Math.abs(clean.hashCode()));
+                                manager.cancel(Math.abs(("chat_" + clean).hashCode()));
+                            }
+                        }
                     }
                 }
                 Log.d(TAG, "NativeBridge.setActiveChat: " + MainActivity.activeChatPartnerId);

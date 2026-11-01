@@ -168,17 +168,20 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 }
 
                 connId = data.get("senderId");
-                if (connId == null) connId = data.get("connId");
-                if (connId == null) connId = data.get("from");
-                if (connId == null) connId = data.get("fromUserId");
+                if (connId == null || connId.trim().isEmpty()) connId = data.get("connId");
+                if (connId == null || connId.trim().isEmpty()) connId = data.get("from");
+                if (connId == null || connId.trim().isEmpty()) connId = data.get("fromUserId");
                 messageId = data.get("messageId");
 
                 // Suppress push notification if the user is currently in the app and actively chatting with this sender
-                boolean isForeground = prefs.getBoolean("is_foreground", false) || MainActivity.isAppInForeground;
                 String activeChatId = MainActivity.activeChatPartnerId != null ? MainActivity.activeChatPartnerId : prefs.getString("active_chat_id", null);
-                if (isForeground && connId != null && connId.equals(activeChatId)) {
-                    Log.i("FCM", "User is currently active in chat with " + connId + ". Suppressing push notification.");
-                    return;
+                if (activeChatId != null && !activeChatId.trim().isEmpty() && !activeChatId.equalsIgnoreCase("null") && connId != null && !connId.trim().isEmpty()) {
+                    String cleanActive = activeChatId.trim().toLowerCase();
+                    String cleanConn = connId.trim().toLowerCase();
+                    if (cleanActive.equals(cleanConn) || cleanActive.contains(cleanConn) || cleanConn.contains(cleanActive)) {
+                        Log.i("FCM", "User is currently active in chat with " + connId + ". Suppressing push notification completely.");
+                        return;
+                    }
                 }
             }
 
@@ -314,12 +317,20 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             if (interactionId == null) interactionId = data.get("fromUserId");
             if (interactionId == null) interactionId = data.get("from");
         }
-        // Compute notificationId once at method level so all places use the same value
-        int notificationId = (interactionId != null && !interactionId.isEmpty())
-            ? interactionId.hashCode()
-            : ((connId != null) 
-                ? connId.hashCode() 
-                : ((campaignNotificationId != null) ? campaignNotificationId.hashCode() : (int) System.currentTimeMillis()));
+
+        boolean isChatMessage = "message".equals(type) || "chat".equals(type) || 
+                (connId != null && !"incoming_call".equals(type) && !"request".equals(type) && !"witty_reengagement".equals(type));
+
+        // Compute notificationId once at method level so all places use the same value.
+        // For chat messages from the same sender, always use the EXACT same stable ID
+        // so new messages from that user group and stack inside the same notification instead of fragmenting!
+        int notificationId = (isChatMessage && connId != null && !connId.trim().isEmpty())
+            ? Math.abs(connId.trim().toLowerCase().hashCode())
+            : ((interactionId != null && !interactionId.isEmpty())
+                ? Math.abs(interactionId.hashCode())
+                : ((connId != null) 
+                    ? Math.abs(connId.hashCode()) 
+                    : ((campaignNotificationId != null) ? Math.abs(campaignNotificationId.hashCode()) : (int) System.currentTimeMillis())));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -419,11 +430,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             builder.setSubText(senderDetails);
         }
 
-        boolean isChatMessage = "message".equals(type) || "chat".equals(type) || 
-                (connId != null && !"incoming_call".equals(type) && !"request".equals(type) && !"witty_reengagement".equals(type));
-
         if (isChatMessage && connId != null) {
-            builder.setGroup("com.lifepartner.ai.CHATS");
+            String groupKey = "chat_" + connId.trim().toLowerCase();
+            builder.setGroup(groupKey);
+            builder.setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_SUMMARY);
 
             // WhatsApp-style conversation message history per partner
             SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
@@ -665,14 +675,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // Use method-level notificationId (same value used in Like intent above)
         manager.notify(notificationId, builder.build());
 
-        // WhatsApp-style Group Summary: Bundles multiple conversation threads into a single expandable stack
-        if (isChatMessage) {
+        // WhatsApp-style Group Summary: Bundles messages for this sender into a single conversation stack
+        if (isChatMessage && connId != null) {
+            String groupKey = "chat_" + connId.trim().toLowerCase();
             NotificationCompat.Builder summaryBuilder = new NotificationCompat.Builder(this, "lifepartner_chat")
                     .setSmallIcon(R.drawable.ic_stat_notification)
-                    .setGroup("com.lifepartner.ai.CHATS")
+                    .setGroup(groupKey)
                     .setGroupSummary(true)
+                    .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_SUMMARY)
                     .setAutoCancel(true);
-            manager.notify(999999, summaryBuilder.build());
+            manager.notify(Math.abs(groupKey.hashCode()), summaryBuilder.build());
         }
     }
 

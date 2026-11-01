@@ -705,21 +705,30 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
     useEffect(() => {
         if (!partner?.id) return;
         const partnerId = partner.id;
+        const connId = connectionId || partnerId;
+        const myUserId = user?.id || user?.userId || (typeof window !== 'undefined' ? (localStorage.getItem('userId') || localStorage.getItem('user_id')) : null);
 
         const syncChatActive = (isActive: boolean) => {
             if (typeof window === 'undefined') return;
             (window as any).__activeChatPartnerId = isActive ? partnerId : null;
+            try {
+                if (isActive) {
+                    localStorage.setItem('active_chat_id', partnerId);
+                } else {
+                    localStorage.removeItem('active_chat_id');
+                }
+            } catch (_) {}
 
             const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
             if (bridge && typeof bridge.setActiveChat === 'function') {
-                bridge.setActiveChat(isActive ? partnerId : null);
+                bridge.setActiveChat(isActive ? `${partnerId},${connId}` : null);
             }
 
             if (socket) {
                 if (isActive) {
-                    socket.emit('enter_chat', { partnerId, userId: user?.id });
+                    socket.emit('enter_chat', { partnerId, userId: myUserId, connectionId: connId });
                 } else {
-                    socket.emit('leave_chat');
+                    socket.emit('leave_chat', { partnerId, userId: myUserId });
                 }
             }
         };

@@ -423,21 +423,27 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         // --- ACTIVE CHAT TRACKING (SUPPRESS PUSH NOTIFICATIONS WHILE USER IS CHATTING) ---
-        socket.on('enter_chat', (data: { partnerId: string; userId?: string }) => {
-            const currentUserId = socket.data.user?.userId || userId || data?.userId;
-            if (currentUserId && data?.partnerId) {
-                activeChats.set(currentUserId, String(data.partnerId));
-                socket.data.activePartnerId = String(data.partnerId);
-                console.log(`[Active Chat] User ${currentUserId} entered chat with ${data.partnerId}`);
+        socket.on('enter_chat', (data: { partnerId: string; userId?: string; connectionId?: string }) => {
+            const currentUserId = data?.userId || socket.data.user?.userId || socket.data.trackedUserId || userId;
+            const targetPartner = data?.partnerId || data?.connectionId;
+            if (currentUserId && targetPartner) {
+                const u = String(currentUserId).trim().toLowerCase();
+                const p = String(targetPartner).trim().toLowerCase();
+                activeChats.set(u, p);
+                if (data?.partnerId) activeChats.set(u, String(data.partnerId).trim().toLowerCase());
+                if (data?.connectionId) activeChats.set(u, String(data.connectionId).trim().toLowerCase());
+                socket.data.activePartnerId = String(targetPartner);
+                console.log(`[Active Chat] User ${u} entered chat with partner ${p}`);
             }
         });
 
-        socket.on('leave_chat', () => {
-            const currentUserId = socket.data.user?.userId || userId;
+        socket.on('leave_chat', (data?: { partnerId?: string; userId?: string }) => {
+            const currentUserId = data?.userId || socket.data.user?.userId || socket.data.trackedUserId || userId;
             if (currentUserId) {
-                activeChats.delete(currentUserId);
+                const u = String(currentUserId).trim().toLowerCase();
+                activeChats.delete(u);
                 socket.data.activePartnerId = null;
-                console.log(`[Active Chat] User ${currentUserId} left chat`);
+                console.log(`[Active Chat] User ${u} left chat`);
             }
         });
 
@@ -1017,6 +1023,17 @@ export const getOnlineUserIds = (): string[] => {
 
 export const isUserActiveInChat = (userId: string, partnerId: string): boolean => {
     if (!userId || !partnerId) return false;
-    return activeChats.get(userId) === String(partnerId);
+    const u = String(userId).trim().toLowerCase();
+    const p = String(partnerId).trim().toLowerCase();
+    
+    // Check direct activeChats mapping with case-insensitivity & sub-string containment
+    for (const [k, v] of activeChats.entries()) {
+        const key = String(k).trim().toLowerCase();
+        const val = String(v).trim().toLowerCase();
+        if (key === u && (val === p || val.includes(p) || p.includes(val))) {
+            return true;
+        }
+    }
+    return false;
 };
 

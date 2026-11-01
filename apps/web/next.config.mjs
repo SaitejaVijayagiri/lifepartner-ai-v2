@@ -14,6 +14,10 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
+    env: {
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app',
+        NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'https://lifepartner-backend-295663053086.asia-south1.run.app',
+    },
     images: {
         remotePatterns: [
             { protocol: 'https', hostname: 'images.unsplash.com' },

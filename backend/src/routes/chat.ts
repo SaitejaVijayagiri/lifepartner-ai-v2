@@ -334,10 +334,11 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         // Send Push Notification for chat message (suppressed ONLY if recipient is actively viewing this specific chat)
         try {
             const { isUserActiveInChat } = require('../socket');
-            const isViewing = isUserActiveInChat(connectionId, senderId);
+            const targetReceiver = newMessageRecord?.receiver_id || connectionId;
+            const isViewing = isUserActiveInChat(targetReceiver, senderId) || isUserActiveInChat(connectionId, senderId);
 
             if (isViewing) {
-                console.log(`[Chat Push Suppressed] Recipient ${connectionId} is actively viewing this chat. Skipping push notification.`);
+                console.log(`[Chat Push Suppressed] Recipient ${targetReceiver} is actively viewing this chat with ${senderId}. Skipping push notification.`);
             } else {
                 const { NotificationService } = require('../services/notification');
                 

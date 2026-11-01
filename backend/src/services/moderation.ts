@@ -10,8 +10,6 @@
  * is unavailable to avoid blocking legitimate user onboarding.
  */
 
-import { ContentModerator } from './contentModerator';
-
 export class ModerationService {
     // Maximum allowed image size for profile photos (6MB)
     private static readonly MAX_IMAGE_BYTES = 6 * 1024 * 1024;
@@ -66,26 +64,7 @@ export class ModerationService {
                 return { isValid: false, reason: 'Image is too large (max 6MB). Please upload a smaller photo.' };
             }
 
-            // --- Step 2.5: Local NSFWJS Content Moderation (Hard safety check for ALL photos) ---
-            try {
-                const nsfwCheckPromise = ContentModerator.checkBase64(base64Data);
-                const timeoutPromise = new Promise<{ isSafe: boolean; reason?: string; scores?: any }>((resolve) => 
-                    setTimeout(() => resolve({ isSafe: true }), 3000)
-                );
-                const nsfwCheck = await Promise.race([nsfwCheckPromise, timeoutPromise]);
-                if (nsfwCheck && nsfwCheck.isSafe === false && nsfwCheck.scores && (nsfwCheck.scores.porn >= 0.85 || nsfwCheck.scores.hentai >= 0.85)) {
-                    console.warn(`🚨 [ModerationService] Local NSFWJS confirmed prohibited explicit content: ${nsfwCheck.reason}`);
-                    return {
-                        isValid: false,
-                        isProhibited: true,
-                        reason: nsfwCheck.reason || 'This photo contains adult or prohibited content, violating our safety guidelines.'
-                    };
-                }
-            } catch (nsfwErr: any) {
-                console.warn('[ModerationService] Local NSFW check error (non-blocking):', nsfwErr?.message || nsfwErr);
-            }
-
-            // --- Step 3: Gemini Vision Face & Safety Detection ---
+            // --- Step 2: Gemini Vision Face & Safety Detection ---
             const faceResult = await this.detectFaceWithGemini(base64Data);
 
             if (faceResult.isProhibited) {

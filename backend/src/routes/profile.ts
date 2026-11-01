@@ -26,7 +26,6 @@ import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
-import { ContentModerator } from '../services/contentModerator';
 import { deleteFromCloudinary } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBase64ToR2, uploadBufferToR2, deleteFromR2 } from '../services/r2Storage';
 import { isUserOnline } from '../socket';
@@ -1498,20 +1497,6 @@ router.post('/stories', authenticateToken, (req, res, next) => {
         let publicUrl = '';
         let publicId = '';
         let type = files[0].mimetype.startsWith('video') ? 'video' : 'image';
-
-        // Check files for prohibited / adult content before upload
-        for (const file of files) {
-            const moderation = await ContentModerator.checkFile(file.path);
-            if (!moderation.isSafe) {
-                console.warn(`🚨 [profile/story] Blocked story upload for user ${userId}: ${moderation.reason}`);
-                for (const f of files) {
-                    try { if (fs.existsSync(f.path)) fs.unlinkSync(f.path); } catch (e) {}
-                }
-                return res.status(400).json({
-                    error: moderation.reason || 'Story contains prohibited content, violating community standards.'
-                });
-            }
-        }
 
         logDebug(`Starting upload to Cloudflare R2...`);
 

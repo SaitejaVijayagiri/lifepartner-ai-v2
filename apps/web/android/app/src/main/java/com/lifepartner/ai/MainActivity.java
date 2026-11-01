@@ -62,9 +62,6 @@ public class MainActivity extends BridgeActivity {
     private RewardedAd rewardedAd;
     private boolean isAdLoading = false;
 
-    private ValueCallback<Uri[]> mFilePathCallback = null;
-    private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
-
     private View mCustomView = null;
     private WebChromeClient.CustomViewCallback mCustomViewCallback = null;
     private FrameLayout mFullscreenContainer = null;
@@ -103,30 +100,6 @@ public class MainActivity extends BridgeActivity {
             }
             mCustomView = null;
         });
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
-            if (mFilePathCallback != null) {
-                Uri[] results = null;
-                if (resultCode == RESULT_OK && data != null) {
-                    if (data.getClipData() != null) {
-                        int count = data.getClipData().getItemCount();
-                        results = new Uri[count];
-                        for (int i = 0; i < count; i++) {
-                            results[i] = data.getClipData().getItemAt(i).getUri();
-                        }
-                    } else if (data.getData() != null) {
-                        results = new Uri[]{ data.getData() };
-                    }
-                }
-                mFilePathCallback.onReceiveValue(results);
-                mFilePathCallback = null;
-            }
-        }
     }
 
     @Override
@@ -908,37 +881,6 @@ public class MainActivity extends BridgeActivity {
                         transport.setWebView(tempWebView);
                         resultMsg.sendToTarget();
                         return true;
-                    }
-
-                    @Override
-                    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
-                        if (mFilePathCallback != null) {
-                            mFilePathCallback.onReceiveValue(null);
-                            mFilePathCallback = null;
-                        }
-                        mFilePathCallback = filePathCallback;
-
-                        Intent contentSelectionIntent = new Intent(Intent.ACTION_GET_CONTENT);
-                        contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE);
-                        contentSelectionIntent.setType("image/*");
-
-                        boolean allowMultiple = fileChooserParams != null && fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
-                        if (allowMultiple) {
-                            contentSelectionIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-                        }
-
-                        Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
-                        chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
-                        chooserIntent.putExtra(Intent.EXTRA_TITLE, "Select Photos");
-
-                        try {
-                            startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST_CODE);
-                            return true;
-                        } catch (ActivityNotFoundException e) {
-                            mFilePathCallback = null;
-                            android.widget.Toast.makeText(MainActivity.this, "No photo picker available", android.widget.Toast.LENGTH_SHORT).show();
-                            return false;
-                        }
                     }
 
                     @Override

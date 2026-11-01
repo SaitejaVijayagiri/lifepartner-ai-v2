@@ -492,8 +492,8 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 <div className="space-y-4">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
 
-                    <div 
-                        onClick={() => fileInputRef.current?.click()}
+                    <label 
+                        htmlFor="profile-photos-input"
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         onDrop={async (e) => {
                             e.preventDefault();
@@ -503,14 +503,15 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 await handlePhotoFiles(files);
                             }
                         }}
-                        className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50/80 dark:hover:bg-indigo-900/30 transition-all cursor-pointer relative group"
+                        className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50/80 dark:hover:bg-indigo-900/30 transition-all cursor-pointer relative group block"
                     >
                         <input
+                            id="profile-photos-input"
                             ref={fileInputRef}
                             type="file"
                             multiple
-                            accept="image/jpeg,image/png,image/webp,image/jpg,image/heic,image/heif,image/*"
-                            className="hidden"
+                            accept="image/*"
+                            className="sr-only"
                             onChange={async (e) => {
                                 const files = e.target.files;
                                 if (files && files.length > 0) {
@@ -519,25 +520,20 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 e.target.value = '';
                             }}
                         />
-                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform pointer-events-none">
                             {isProcessingPhoto ? <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div> : <Camera size={28} />}
                         </div>
-                        <h5 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                        <h5 className="font-semibold text-gray-900 dark:text-gray-100 text-base pointer-events-none">
                             {isProcessingPhoto ? "Processing Photos..." : "Upload Profile Photos"}
                         </h5>
-                        <p className="text-xs text-gray-500 mt-1 max-w-sm">Tap anywhere here or use the button below to choose from Gallery or Camera (Up to 5 photos, max 20MB)</p>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                fileInputRef.current?.click();
-                            }}
-                            className="mt-3.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2"
+                        <p className="text-xs text-gray-500 mt-1 max-w-sm pointer-events-none">Tap anywhere here to choose from Gallery or Camera (Up to 5 photos, max 20MB)</p>
+                        <span
+                            className="mt-3.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 pointer-events-none"
                         >
                             <Camera size={16} />
                             <span>Browse & Upload Photos</span>
-                        </button>
-                    </div>
+                        </span>
+                    </label>
 
                     {/* Preview Gallery */}
                     {(formData.photos?.length > 0 || formData.photoUrl) && (

@@ -6,7 +6,6 @@ import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
 import { isR2Configured, uploadBufferToR2 } from '../services/r2Storage';
-import { ContentModerator } from '../services/contentModerator';
 
 const memoryUpload = multer({ 
     storage: multer.memoryStorage(),
@@ -756,17 +755,6 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
             resourceType = 'image';
         } else if (file.mimetype.startsWith('video/') || file.mimetype.startsWith('audio/')) {
             resourceType = 'video';
-        }
-
-        // Content moderation check for chat attachments
-        if (resourceType === 'image') {
-            const moderation = await ContentModerator.checkBuffer(file.buffer, file.mimetype);
-            if (!moderation.isSafe) {
-                console.warn(`🚨 [chat/upload-media] Blocked prohibited chat image for user ${userId}: ${moderation.reason}`);
-                return res.status(400).json({
-                    error: moderation.reason || 'Image violates community guidelines (prohibited or adult content detected).'
-                });
-            }
         }
 
         // 1. Primary Storage: Cloudflare R2 (zero egress fees, safe for private media)

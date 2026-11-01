@@ -595,16 +595,17 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP: PHOTOS */}
                     {stepId === 'photos' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center">
-                            <div 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 rounded-xl bg-indigo-50/30 dark:bg-indigo-900/10 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group cursor-pointer"
+                            <label 
+                                htmlFor="wizard-photos-input"
+                                className="border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 rounded-xl bg-indigo-50/30 dark:bg-indigo-900/10 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group cursor-pointer block"
                             >
                                 <input
+                                    id="wizard-photos-input"
                                     ref={fileInputRef}
                                     type="file"
                                     multiple
-                                    accept="image/jpeg,image/png,image/webp,image/jpg,image/heic,image/heif,image/*"
-                                    className="hidden"
+                                    accept="image/*"
+                                    className="sr-only"
                                     onChange={async (e) => {
                                         const files = e.target.files;
                                         if (!files || files.length === 0) return;
@@ -697,20 +698,15 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         📸 Upload a clear selfie or portrait of yourself. You can also skip this step and add photos anytime from your profile!
                                     </p>
                                 </div>
-                                <div className="mt-4 flex flex-col items-center gap-1.5">
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            fileInputRef.current?.click();
-                                        }}
-                                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
+                                <div className="mt-4 flex flex-col items-center gap-1.5 pointer-events-none">
+                                    <span
+                                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer pointer-events-none"
                                     >
                                         📁 Choose from Camera or Gallery
-                                    </button>
+                                    </span>
                                     <p className="text-[11px] text-gray-400">JPG, PNG, WebP up to 20MB</p>
                                 </div>
-                            </div>
+                            </label>
 
                             {/* Preview */}
                             {data.photos && data.photos.length > 0 && (

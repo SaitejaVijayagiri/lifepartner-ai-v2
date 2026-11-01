@@ -8,6 +8,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const routes = [
         '',
         '/for-women',
+        '/matrimony',
+        '/dating',
         '/japan',
         '/korea',
         '/singapore',
@@ -76,7 +78,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             }
         }
     } catch (e) {
-        console.error("Failed to fetch dynamic blog posts for sitemap, using fallback", e);
+        console.warn("[Sitemap] Using static blog data for sitemap generation (backend unreachable during build).");
     }
 
     const blogRoutes = posts.map((post) => ({

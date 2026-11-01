@@ -150,6 +150,8 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
+  themeColor: "#4F46E5",
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -173,7 +175,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="LifePartner AI" />
         <meta name="google-site-verification" content="h1YtVVKUNBUWiRdCy1nBnFSafvk76SNYhcwvwyxPtTE" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        
         {/* Native Android / iOS WebView Optimizer & Pre-hydration Routing */}
         <Script id="native-app-optimizer" strategy="beforeInteractive">{`
           (function() {

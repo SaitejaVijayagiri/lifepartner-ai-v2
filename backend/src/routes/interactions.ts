@@ -646,6 +646,10 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                                 type: 'match',
                                 message: msg,
                                 bannerUrl,
+                                fromUserId: userId,
+                                fromUserName: nameB,
+                                fromUserPhoto: partnerPhotoUrl,
+                                interactionId: oppositeInteraction.id,
                                 timestamp: new Date()
                             });
 
@@ -677,7 +681,13 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     matchCache.deletePrefix(`${userId}_`);
                     matchCache.deletePrefix(`${toUserId}_`);
 
-                    return res.json({ success: true, message: "Connected mutually!" });
+                    return res.json({ 
+                        success: true, 
+                        connected: true, 
+                        status: 'connected', 
+                        interactionId: oppositeInteraction.id,
+                        message: "Connected mutually!" 
+                    });
                 } else {
                     return res.json({ success: true, message: "Already connected" });
                 }
@@ -1114,6 +1124,10 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
                                 type: 'match',
                                 message: msg,
                                 bannerUrl,
+                                fromUserId: to_user_id,
+                                fromUserName: nameB,
+                                fromUserPhoto: partnerPhotoUrl,
+                                interactionId,
                                 timestamp: new Date()
                             });
 
@@ -1142,7 +1156,43 @@ router.post('/requests/:interactionId/accept', authenticateToken, async (req: an
             }
         }
 
-        res.json({ success: true });
+        // Fetch partner details for requester response so frontend can immediately open chat
+        let acceptedPartner: any = null;
+        try {
+            const reqRecord = await prisma.interactions.findUnique({
+                where: { id: interactionId },
+                select: {
+                    from_user_id: true,
+                    users_interactions_from_user_idTousers: {
+                        select: {
+                            id: true,
+                            full_name: true,
+                            avatar_url: true,
+                            city: true,
+                            location_name: true,
+                            profiles: { select: { metadata: true } }
+                        }
+                    }
+                }
+            });
+            const partnerUser = reqRecord?.users_interactions_from_user_idTousers;
+            if (partnerUser) {
+                acceptedPartner = {
+                    id: partnerUser.id,
+                    name: partnerUser.full_name || 'Match',
+                    photoUrl: partnerUser.avatar_url,
+                    role: (partnerUser.profiles?.metadata as any)?.career?.profession || 'Member',
+                    location: partnerUser.city || partnerUser.location_name || ''
+                };
+            }
+        } catch (_) {}
+
+        res.json({ 
+            success: true, 
+            connected: true, 
+            interactionId, 
+            partner: acceptedPartner 
+        });
     } catch (e) {
         console.error("Accept Error", e);
         res.status(500).json({ error: "Failed" });

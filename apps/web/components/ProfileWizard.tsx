@@ -30,6 +30,7 @@ const GRADIENTS = {
 
 export default function ProfileWizard({ onComplete }: { onComplete: (data: any) => void }) {
     const toast = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [currentStep, setCurrentStep] = useState(0);
     const [vibeResult, setVibeResult] = useState<any>(null); // For AI Feedback
     const [direction, setDirection] = useState('forward');
@@ -594,22 +595,24 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                     {/* STEP: PHOTOS */}
                     {stepId === 'photos' && (
                         <div className="space-y-6 animate-in slide-in-from-right duration-500 text-center">
-                            <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 rounded-xl bg-indigo-50/30 dark:bg-indigo-900/10 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group">
+                            <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="border-2 border-dashed border-indigo-200 dark:border-indigo-500/30 rounded-xl bg-indigo-50/30 dark:bg-indigo-900/10 p-10 flex flex-col items-center justify-center relative hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group cursor-pointer"
+                            >
                                 <input
+                                    ref={fileInputRef}
                                     type="file"
                                     multiple
-                                    accept="image/*"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                                    accept="image/jpeg,image/png,image/webp,image/jpg,image/heic,image/heif,image/*"
+                                    className="hidden"
                                     onChange={async (e) => {
                                         const files = e.target.files;
-                                        if (!files) return;
+                                        if (!files || files.length === 0) return;
 
                                         const currentPhotos = data.photos || [];
                                         const isImportedGoogle = (p: string) => typeof p === 'string' && p.includes('googleusercontent.com');
                                         const isDicebear = (p: string) => typeof p === 'string' && p.includes('dicebear.com');
 
-                                        // If current photos only contain the default imported Google avatar or placeholder,
-                                        // treat as empty so the new photo replaces it
                                         const basePhotos = (currentPhotos.length === 1 && (isImportedGoogle(currentPhotos[0]) || isDicebear(currentPhotos[0])))
                                             ? []
                                             : currentPhotos.filter((p: string) => !isDicebear(p));
@@ -620,57 +623,65 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             return;
                                         }
 
-                                        const newPhotos: string[] = [];
                                         const slotsLeft = 5 - basePhotos.length;
+                                        const fileArr = Array.from(files).slice(0, slotsLeft);
 
-                                        for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
-                                            const file = files[i];
+                                        const processOne = (file: File) => new Promise<string | null>((resolve) => {
                                             if (file.size > 20 * 1024 * 1024) {
-                                                toast.error(`"${file.name}" is too large (>20MB). Please use a smaller photo.`);
-                                                continue;
+                                                toast.error(`"${file.name}" is too large (>20MB).`);
+                                                return resolve(null);
                                             }
-                                            const base64 = await new Promise<string>((resolve, reject) => {
-                                                const reader = new FileReader();
-                                                reader.onload = () => {
-                                                    const dataUrl = reader.result as string;
-                                                    const img = new Image();
-                                                    img.onload = () => {
-                                                        try {
-                                                            const canvas = document.createElement('canvas');
-                                                            let { width, height } = img;
-                                                            const maxDim = 900;
+                                            const reader = new FileReader();
+                                            reader.onload = () => {
+                                                const dataUrl = reader.result as string;
+                                                const img = new Image();
+                                                let finished = false;
 
-                                                            if (width > maxDim || height > maxDim) {
-                                                                const ratio = Math.min(maxDim / width, maxDim / height);
-                                                                width = Math.round(width * ratio);
-                                                                height = Math.round(height * ratio);
-                                                            }
-
-                                                            canvas.width = width;
-                                                            canvas.height = height;
-                                                            const ctx = canvas.getContext('2d');
-                                                            if (ctx) {
-                                                                ctx.drawImage(img, 0, 0, width, height);
-                                                                resolve(canvas.toDataURL('image/jpeg', 0.8));
-                                                                return;
-                                                            }
-                                                        } catch (_) {}
-                                                        resolve(dataUrl);
-                                                    };
-                                                    img.onerror = () => resolve(dataUrl);
-                                                    img.src = dataUrl;
+                                                const done = (val: string) => {
+                                                    if (!finished) {
+                                                        finished = true;
+                                                        clearTimeout(safetyTimer);
+                                                        resolve(val);
+                                                    }
                                                 };
-                                                reader.onerror = () => reject(new Error('Failed to read image file'));
-                                                reader.readAsDataURL(file);
-                                            }).catch(() => null as any);
 
-                                            if (base64) newPhotos.push(base64);
-                                        }
+                                                const safetyTimer = setTimeout(() => done(dataUrl), 4000);
+
+                                                img.onload = () => {
+                                                    try {
+                                                        const canvas = document.createElement('canvas');
+                                                        let { width, height } = img;
+                                                        const maxDim = 900;
+                                                        if (width > maxDim || height > maxDim) {
+                                                            const ratio = Math.min(maxDim / width, maxDim / height);
+                                                            width = Math.round(width * ratio);
+                                                            height = Math.round(height * ratio);
+                                                        }
+                                                        canvas.width = width;
+                                                        canvas.height = height;
+                                                        const ctx = canvas.getContext('2d');
+                                                        if (ctx) {
+                                                            ctx.drawImage(img, 0, 0, width, height);
+                                                            done(canvas.toDataURL('image/jpeg', 0.8));
+                                                            return;
+                                                        }
+                                                    } catch (_) {}
+                                                    done(dataUrl);
+                                                };
+                                                img.onerror = () => done(dataUrl);
+                                                img.src = dataUrl;
+                                            };
+                                            reader.onerror = () => resolve(null);
+                                            reader.readAsDataURL(file);
+                                        });
+
+                                        const results = await Promise.all(fileArr.map(processOne));
+                                        const newPhotos = results.filter(Boolean) as string[];
 
                                         if (newPhotos.length > 0) {
-                                            // Put new photos first and discard any imported Google placeholder avatar
                                             const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
                                             update('photos', [...newPhotos, ...cleanExisting]);
+                                            toast.success(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} added!`);
                                         }
                                         e.target.value = '';
                                     }}
@@ -686,10 +697,17 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         📸 Upload a clear selfie or portrait of yourself. You can also skip this step and add photos anytime from your profile!
                                     </p>
                                 </div>
-                                <div className="mt-4 flex flex-col items-center gap-1.5 pointer-events-none">
-                                    <span className="px-5 py-2.5 bg-indigo-600 group-hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-transform group-hover:scale-105">
+                                <div className="mt-4 flex flex-col items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            fileInputRef.current?.click();
+                                        }}
+                                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all cursor-pointer"
+                                    >
                                         📁 Choose from Camera or Gallery
-                                    </span>
+                                    </button>
                                     <p className="text-[11px] text-gray-400">JPG, PNG, WebP up to 20MB</p>
                                 </div>
                             </div>

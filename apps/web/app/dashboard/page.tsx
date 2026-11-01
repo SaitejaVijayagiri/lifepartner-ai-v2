@@ -1113,10 +1113,23 @@ function DashboardContent() {
             });
         };
 
+        const handleNewNotification = (notif: any) => {
+            if (notif?.type === 'match') {
+                fetchConnections();
+                refreshCounts();
+                try { fetchMatches(1); } catch (_) {}
+            } else if (notif?.type === 'request') {
+                fetchRequests();
+                refreshCounts();
+            }
+        };
+
         socket.on('receiveMessage', handleNewMessage);
+        socket.on('notification:new', handleNewNotification);
 
         return () => {
             socket.off('receiveMessage', handleNewMessage);
+            socket.off('notification:new', handleNewNotification);
         };
     }, [socket, activeTab, selectedConnection]);
 
@@ -1402,12 +1415,40 @@ function DashboardContent() {
 
     const handleAcceptRequest = async (requestId: string) => {
         try {
-            await api.interactions.acceptRequest(requestId);
-            // Refresh
-            fetchRequests();
-            refreshCounts();
-        } catch (e) {
-            toast.error("Failed to accept");
+            const targetReq = (Array.isArray(requests) ? requests : []).find(
+                (r: any) => r.interactionId === requestId || r.id === requestId
+            );
+
+            const res = await api.interactions.acceptRequest(requestId);
+            
+            // Parallel refresh of requests, active connections, and badge counts
+            await Promise.all([
+                fetchRequests(),
+                fetchConnections(),
+                refreshCounts()
+            ]);
+
+            // Immediately transition the user directly into chat with their new connection
+            const partnerData = res?.partner || (targetReq?.fromUser ? {
+                id: targetReq.fromUser.id,
+                name: targetReq.fromUser.name || 'Match',
+                photoUrl: targetReq.fromUser.photoUrl,
+                role: targetReq.fromUser.career?.profession || 'Member',
+                location: typeof targetReq.fromUser.location === 'string' ? targetReq.fromUser.location : (targetReq.fromUser.location?.city || '')
+            } : null);
+
+            if (partnerData) {
+                toast.success(`Connected with ${partnerData.name}! Opening chat...`);
+                openChat({
+                    interactionId: res?.interactionId || targetReq?.interactionId || requestId,
+                    partner: partnerData
+                });
+            } else {
+                toast.success("Interest request accepted! You are now connected.");
+            }
+        } catch (e: any) {
+            console.error("Accept request failed:", e);
+            toast.error(e?.message || "Failed to accept");
         }
     };
 
@@ -2265,13 +2306,18 @@ function DashboardContent() {
                         }}
                         isConnectedProp={connections.some((c: any) => c.partner?.id === profileToShow.id)}
                         onChat={() => {
-                            const conn = connections.find((c: any) => c.partner?.id === profileToShow.id);
+                            const conn = connections.find((c: any) => c.partner?.id === profileToShow.id || c.id === profileToShow.id);
                             setSelectedProfile(null);
-                            if (conn) {
-                                openChat(conn);
-                            } else {
-                                setActiveTab('connections');
-                            }
+                            openChat(conn || {
+                                interactionId: profileToShow.interactionId || profileToShow.id,
+                                partner: {
+                                    id: profileToShow.id,
+                                    name: profileToShow.name || 'Match',
+                                    photoUrl: profileToShow.photoUrl || (Array.isArray(profileToShow.photos) ? profileToShow.photos[0] : ''),
+                                    role: profileToShow.career?.profession || 'Member',
+                                    location: typeof profileToShow.location === 'string' ? profileToShow.location : (profileToShow.location?.city || '')
+                                }
+                            });
                         }}
                         onUpgrade={() => {
                             setSelectedProfile(null);

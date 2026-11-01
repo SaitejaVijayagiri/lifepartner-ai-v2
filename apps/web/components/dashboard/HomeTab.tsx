@@ -486,9 +486,17 @@ export default function HomeTab({
                                         onGift={setGiftData ? () => setGiftData({ userId: m.id, userName: m.name || 'Member' }) : undefined}
                                         isConnectedProp={connectedPartnerIds.has(m.id)}
                                         onChat={() => {
-                                            const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === m.id);
-                                            if (conn && openChat) {
-                                                openChat(conn);
+                                            const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === m.id || c?.id === m.id);
+                                            if (openChat) {
+                                                openChat(conn || {
+                                                    interactionId: m.interactionId || m.id,
+                                                    partner: {
+                                                        id: m.id,
+                                                        name: m.name || 'Match',
+                                                        photoUrl: m.photoUrl || (Array.isArray(m.photos) ? m.photos[0] : ''),
+                                                        location: typeof m.location === 'string' ? m.location : (m.location?.city || '')
+                                                    }
+                                                });
                                             } else {
                                                 onNavigateTab('connections');
                                             }

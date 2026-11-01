@@ -1025,8 +1025,16 @@ export default function MatchesTab({
                                 isConnectedProp={connectedPartnerIds.has(match.id)}
                                 onChat={() => {
                                     const conn = connectionsMap.get(match.id);
-                                    if (conn) {
-                                        openChat(conn);
+                                    if (openChat) {
+                                        openChat(conn || {
+                                            interactionId: match.interactionId || match.id,
+                                            partner: {
+                                                id: match.id,
+                                                name: match.name || 'Match',
+                                                photoUrl: match.photoUrl || (Array.isArray(match.photos) ? match.photos[0] : ''),
+                                                location: typeof match.location === 'string' ? match.location : (match.location?.city || '')
+                                            }
+                                        });
                                     } else {
                                         setActiveTab('connections');
                                     }

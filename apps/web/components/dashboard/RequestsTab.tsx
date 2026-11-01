@@ -292,7 +292,7 @@ export default function RequestsTab({
                             disabled={actioningIds.has(req.interactionId)}
                             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Check size={16} strokeWidth={2.5} /> Accept
+                            <Check size={16} strokeWidth={2.5} /> Accept & Chat
                         </button>
                     </div>
                 </div>

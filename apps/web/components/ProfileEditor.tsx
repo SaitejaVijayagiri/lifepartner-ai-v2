@@ -124,6 +124,112 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
     const [originalPhotos, setOriginalPhotos] = useState<Record<string, string>>({});
 
+    const handlePhotoFiles = async (files: FileList | File[]) => {
+        if (!files || files.length === 0) return;
+        const fileArr = Array.from(files);
+
+        const currentPhotos = formData.photos || [];
+        const isImportedGoogle = (p: string) => typeof p === 'string' && p.includes('googleusercontent.com');
+        const isDicebear = (p: string) => typeof p === 'string' && p.includes('dicebear.com');
+
+        const basePhotos = (currentPhotos.length === 1 && (isImportedGoogle(currentPhotos[0]) || isDicebear(currentPhotos[0])))
+            ? []
+            : currentPhotos.filter((p: string) => !isDicebear(p));
+
+        if (basePhotos.length >= 5) {
+            toast.error('Maximum 5 photos allowed. Remove one to add more.');
+            return;
+        }
+
+        const slotsLeft = 5 - basePhotos.length;
+        const toProcess = fileArr.slice(0, slotsLeft);
+        if (fileArr.length > slotsLeft) {
+            toast.info(`Selecting first ${slotsLeft} photo${slotsLeft > 1 ? 's' : ''} (5 photos max limit).`);
+        }
+
+        setIsProcessingPhoto(true);
+        try {
+            const processOne = (file: File) => new Promise<string | null>((resolve) => {
+                if (file.size > 20 * 1024 * 1024) {
+                    toast.error(`"${file.name}" is too large (>20MB).`);
+                    return resolve(null);
+                }
+
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result as string;
+                    const img = new Image();
+                    let finished = false;
+
+                    const done = (val: string) => {
+                        if (!finished) {
+                            finished = true;
+                            clearTimeout(safetyTimer);
+                            resolve(val);
+                        }
+                    };
+
+                    const safetyTimer = setTimeout(() => {
+                        done(dataUrl);
+                    }, 4000);
+
+                    img.onload = () => {
+                        try {
+                            const canvas = document.createElement('canvas');
+                            let { width, height } = img;
+                            const maxDim = 900;
+                            if (width > maxDim || height > maxDim) {
+                                const ratio = Math.min(maxDim / width, maxDim / height);
+                                width = Math.round(width * ratio);
+                                height = Math.round(height * ratio);
+                            }
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            if (ctx) {
+                                ctx.drawImage(img, 0, 0, width, height);
+                                done(canvas.toDataURL('image/jpeg', 0.8));
+                                return;
+                            }
+                        } catch (err) {
+                            console.warn('Canvas resize fallback', err);
+                        }
+                        done(dataUrl);
+                    };
+
+                    img.onerror = () => {
+                        done(dataUrl);
+                    };
+
+                    img.src = dataUrl;
+                };
+
+                reader.onerror = () => {
+                    console.error('FileReader error', file.name);
+                    resolve(null);
+                };
+
+                reader.readAsDataURL(file);
+            });
+
+            const results = await Promise.all(toProcess.map(processOne));
+            const newPhotos = results.filter(Boolean) as string[];
+
+            if (newPhotos.length > 0) {
+                const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
+                const updatedPhotos = [...newPhotos, ...cleanExisting].slice(0, 5);
+                setFormData((prev: any) => ({
+                    ...prev,
+                    photos: updatedPhotos,
+                    photoUrl: updatedPhotos[0]
+                }));
+                toast.success(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} added! Tap Save Changes below to save.`);
+            }
+        } finally {
+            setIsProcessingPhoto(false);
+        }
+    };
+
     const [loading, setLoading] = useState(false);
     const [roasting, setRoasting] = useState(false);
     const [roastResult, setRoastResult] = useState<{roast: string, score: number, tips: string[]} | null>(null);
@@ -386,109 +492,51 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 <div className="space-y-4">
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
 
-                    <div className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50 transition-colors relative group cursor-pointer overflow-hidden">
+                    <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const files = e.dataTransfer?.files;
+                            if (files && files.length > 0) {
+                                await handlePhotoFiles(files);
+                            }
+                        }}
+                        className="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-900/20 p-6 flex flex-col items-center justify-center text-center hover:bg-indigo-50/80 dark:hover:bg-indigo-900/30 transition-all cursor-pointer relative group"
+                    >
                         <input
                             ref={fileInputRef}
                             type="file"
                             multiple
-                            accept="image/*"
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            accept="image/jpeg,image/png,image/webp,image/jpg,image/heic,image/heif,image/*"
+                            className="hidden"
                             onChange={async (e) => {
                                 const files = e.target.files;
-                                if (!files || files.length === 0) return;
-
-                                const currentPhotos = formData.photos || [];
-                                const isImportedGoogle = (p: string) => typeof p === 'string' && p.includes('googleusercontent.com');
-                                const isDicebear = (p: string) => typeof p === 'string' && p.includes('dicebear.com');
-
-                                // If current photos only contain the default imported Google avatar or placeholder,
-                                // treat as empty so the new photo replaces it
-                                const basePhotos = (currentPhotos.length === 1 && (isImportedGoogle(currentPhotos[0]) || isDicebear(currentPhotos[0])))
-                                    ? []
-                                    : currentPhotos.filter((p: string) => !isDicebear(p));
-
-                                if (basePhotos.length >= 5) {
-                                    toast.error('Maximum 5 photos allowed. Remove one to add more.');
-                                    e.target.value = '';
-                                    return;
-                                }
-
-                                const slotsLeft = 5 - basePhotos.length;
-                                const newPhotos: string[] = [];
-
-                                for (let i = 0; i < Math.min(files.length, slotsLeft); i++) {
-                                    const file = files[i];
-                                    if (file.size > 20 * 1024 * 1024) {
-                                        toast.error(`"${file.name}" is too large (>20MB). Please use a smaller photo.`);
-                                        continue;
-                                    }
-
-                                    const base64 = await new Promise<string>((resolve, reject) => {
-                                        const reader = new FileReader();
-                                        reader.onload = () => {
-                                            const dataUrl = reader.result as string;
-                                            const img = new Image();
-                                            img.onload = () => {
-                                                try {
-                                                    const canvas = document.createElement('canvas');
-                                                    let { width, height } = img;
-                                                    const maxDim = 900;
-
-                                                    if (width > maxDim || height > maxDim) {
-                                                        const ratio = Math.min(maxDim / width, maxDim / height);
-                                                        width = Math.round(width * ratio);
-                                                        height = Math.round(height * ratio);
-                                                    }
-
-                                                    canvas.width = width;
-                                                    canvas.height = height;
-                                                    const ctx = canvas.getContext('2d');
-                                                    if (ctx) {
-                                                        ctx.drawImage(img, 0, 0, width, height);
-                                                        resolve(canvas.toDataURL('image/jpeg', 0.8));
-                                                        return;
-                                                    }
-                                                } catch (canvasErr) {
-                                                    console.warn('Canvas resize failed, falling back to dataUrl', canvasErr);
-                                                }
-                                                resolve(dataUrl);
-                                            };
-                                            img.onerror = () => {
-                                                // If Image() fails to decode for canvas, dataUrl is still completely valid
-                                                resolve(dataUrl);
-                                            };
-                                            img.src = dataUrl;
-                                        };
-                                        reader.onerror = () => reject(new Error('Failed to read image file'));
-                                        reader.readAsDataURL(file);
-                                    }).catch((err) => {
-                                        console.error('File load failed:', err);
-                                        toast.error('Failed to load selected photo.');
-                                        return null as any;
-                                    });
-
-                                    if (base64) newPhotos.push(base64);
-                                }
-
-                                if (newPhotos.length > 0) {
-                                    // Put new photos first and discard any imported Google placeholder avatar
-                                    const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
-                                    const updatedPhotos = [...newPhotos, ...cleanExisting].slice(0, 5);
-                                    setFormData((prev: any) => ({
-                                        ...prev,
-                                        photos: updatedPhotos,
-                                        photoUrl: updatedPhotos[0]
-                                    }));
-                                    toast.success(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} added! Tap Save Changes below to save.`);
+                                if (files && files.length > 0) {
+                                    await handlePhotoFiles(files);
                                 }
                                 e.target.value = '';
                             }}
                         />
-                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform pointer-events-none">
-                            <Camera size={28} />
+                        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                            {isProcessingPhoto ? <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-indigo-600"></div> : <Camera size={28} />}
                         </div>
-                        <h5 className="font-semibold text-gray-900 dark:text-gray-100 pointer-events-none">Upload Photos</h5>
-                        <p className="text-xs text-gray-500 mt-1 pointer-events-none">Tap to choose from Gallery or Camera (Up to 5 photos, 20MB)</p>
+                        <h5 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                            {isProcessingPhoto ? "Processing Photos..." : "Upload Profile Photos"}
+                        </h5>
+                        <p className="text-xs text-gray-500 mt-1 max-w-sm">Tap anywhere here or use the button below to choose from Gallery or Camera (Up to 5 photos, max 20MB)</p>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                fileInputRef.current?.click();
+                            }}
+                            className="mt-3.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2"
+                        >
+                            <Camera size={16} />
+                            <span>Browse & Upload Photos</span>
+                        </button>
                     </div>
 
                     {/* Preview Gallery */}

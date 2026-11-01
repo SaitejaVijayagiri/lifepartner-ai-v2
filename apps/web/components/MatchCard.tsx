@@ -177,8 +177,19 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         setMatchStatus('pending');
 
         try {
-            await api.interactions.sendInterest(match.id);
-            if (onConnect) onConnect();
+            const res = await api.interactions.sendInterest(match.id);
+            if (res?.connected || res?.status === 'connected' || res?.message?.includes('Connected') || res?.message?.includes('mutually') || res?.message?.includes('Already connected')) {
+                setMatchStatus('connected');
+                toast.success(`🎉 You and ${match.name || 'your match'} are connected! Opening chat...`);
+                if (onChat) {
+                    onChat();
+                } else if (onConnect) {
+                    onConnect();
+                }
+            } else {
+                toast.success(`Interest sent to ${match.name || 'match'}!`);
+                if (onConnect) onConnect();
+            }
         } catch (err) {
             setMatchStatus(prevStatus);
             toast.error("Connection failed. Please try again.");

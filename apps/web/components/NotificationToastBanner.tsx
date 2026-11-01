@@ -295,16 +295,26 @@ export default function NotificationToastBanner() {
                                     <button
                                         onClick={async () => {
                                             try {
-                                                await api.interactions.acceptRequest(toast.interactionId!);
-                                                toastHook.success("Interest Request Accepted! 🎉");
+                                                const res = await api.interactions.acceptRequest(toast.interactionId!);
+                                                toastHook.success("Connected! Opening chat... 🎉");
                                                 dismiss(toast.id);
+                                                const partnerId = res?.partner?.id || toast.fromUserId;
+                                                if (partnerId && typeof window !== 'undefined') {
+                                                    window.dispatchEvent(new CustomEvent('openChat', {
+                                                        detail: {
+                                                            partnerId,
+                                                            partnerName: res?.partner?.name || toast.fromUserName,
+                                                            partnerPhoto: res?.partner?.photoUrl || toast.fromUserPhoto
+                                                        }
+                                                    }));
+                                                }
                                             } catch (err: any) {
                                                 toastHook.error(err.message || "Failed to accept request.");
                                             }
                                         }}
                                         className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold shadow hover:bg-green-600 transition-colors"
                                     >
-                                        Accept ✅
+                                        Accept & Chat ✅
                                     </button>
                                     <button
                                         onClick={async () => {

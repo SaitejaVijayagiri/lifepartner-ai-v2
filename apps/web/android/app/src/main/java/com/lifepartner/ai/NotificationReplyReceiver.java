@@ -44,6 +44,8 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                                 .setContentText("Sending: " + replyText)
                                 .setRemoteInputHistory(new CharSequence[]{replyText})
                                 .setPriority(NotificationCompat.PRIORITY_LOW)
+                                .setSilent(true)
+                                .setOnlyAlertOnce(true)
                                 .setAutoCancel(true);
                         manager.notify(notificationId, inFlight.build());
                     } catch (Exception e) {
@@ -87,6 +89,9 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                                     .setContentTitle(senderName != null && !senderName.trim().isEmpty() ? senderName : "LifePartner AI")
                                     .setContentText("Reply queued (will send when online) 💬")
                                     .setRemoteInputHistory(new CharSequence[]{replyText})
+                                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                                    .setSilent(true)
+                                    .setOnlyAlertOnce(true)
                                     .setTimeoutAfter(3000)
                                     .setAutoCancel(true);
                             manager.notify(notificationId, queued.build());
@@ -112,9 +117,21 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                                             .setContentTitle(senderName != null && !senderName.trim().isEmpty() ? senderName : "LifePartner AI")
                                             .setContentText("Replied: " + replyText)
                                             .setRemoteInputHistory(new CharSequence[]{replyText})
-                                            .setTimeoutAfter(2500)
+                                            .setPriority(NotificationCompat.PRIORITY_LOW)
+                                            .setSilent(true)
+                                            .setOnlyAlertOnce(true)
+                                            .setTimeoutAfter(1200)
                                             .setAutoCancel(true);
                                     manager.notify(notificationId, replied.build());
+
+                                    // Auto-dismiss cleanly after 1.2 seconds so drawer resets
+                                    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                                        try {
+                                            if (manager != null) {
+                                                manager.cancel(notificationId);
+                                            }
+                                        } catch (Exception ignored) {}
+                                    }, 1200);
                                 } catch (Exception ignored) {}
                             }
                         } else {

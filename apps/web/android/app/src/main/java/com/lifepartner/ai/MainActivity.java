@@ -18,6 +18,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -98,6 +99,9 @@ public class MainActivity extends BridgeActivity {
 
         // 8. Initialize Google Mobile Ads (AdMob) for High-eCPM Rewarded Ads
         initAdMob();
+
+        // 9. Register Back Pressed Dispatcher Callback for Android 10, 11, 12, 13, 14, 15+ (Gesture & Button)
+        setupBackNavigationDispatcher();
     }
 
     @Override
@@ -602,43 +606,88 @@ public class MainActivity extends BridgeActivity {
 
     private long lastBackPressTime = 0;
 
+    private void setupBackNavigationDispatcher() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleAppBackNavigation();
+            }
+        });
+    }
+
     @Override
     public void onBackPressed() {
+        handleAppBackNavigation();
+    }
+
+    private void handleAppBackNavigation() {
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
-                // 1. Let web page close active modals or sheets first
-                webView.evaluateJavascript(
+
+                // Advanced single-page navigation & modal closing script
+                String js = 
                     "(function() { " +
-                    "  var closeBtn = document.querySelector('[data-modal-close], .close-modal, button[aria-label=\"Close\"], [data-state=\"open\"] button[aria-label=\"Close\"]'); " +
-                    "  if (closeBtn && closeBtn.offsetParent !== null) { closeBtn.click(); return true; } " +
-                    "  return false; " +
-                    "})();",
-                    value -> {
-                        if ("true".equalsIgnoreCase(value)) {
-                            return;
-                        }
-                        runOnUiThread(() -> {
-                            String url = webView.getUrl();
-                            boolean isMainScreen = url == null || url.endsWith("/dashboard") || url.endsWith("/login") || url.endsWith("/register") || url.endsWith("/") || url.contains("tab=matches") || url.contains("tab=connections");
-                            if (webView.canGoBack() && !isMainScreen) {
-                                webView.goBack();
-                            } else {
-                                long now = System.currentTimeMillis();
-                                if (now - lastBackPressTime < 2000) {
-                                    finish();
-                                } else {
-                                    lastBackPressTime = now;
-                                    android.widget.Toast.makeText(MainActivity.this, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                        });
+                    "  try { " +
+                    "    // 1. Check for active modals, drawers, image viewers, sheets " +
+                    "    var modalClose = document.querySelector('[data-modal-close], .close-modal, button[aria-label=\"Close\"], button[aria-label=\"close\"], [data-state=\"open\"] button[aria-label=\"Close\"], button[title=\"Close\"], .modal-close'); " +
+                    "    if (modalClose && modalClose.offsetParent !== null) { modalClose.click(); return 'closed_modal'; } " +
+                    "    // 2. Check for active chat close or back button " +
+                    "    var chatClose = document.querySelector('[data-chat-close], .chat-window button[title=\"Close\"], .chat-window button[aria-label=\"Close\"], button[aria-label=\"Back\"]'); " +
+                    "    if (chatClose && chatClose.offsetParent !== null) { chatClose.click(); return 'closed_chat'; } " +
+                    "    // 3. Check current route pathname " +
+                    "    var path = window.location.pathname; " +
+                    "    var search = window.location.search || ''; " +
+                    "    if (path !== '/' && path !== '/dashboard' && path !== '/login' && path !== '/register') { " +
+                    "      if (window.history.length > 1) { " +
+                    "        window.history.back(); " +
+                    "        return 'navigated_history_back'; " +
+                    "      } else { " +
+                    "        window.location.href = '/dashboard'; " +
+                    "        return 'redirected_dashboard'; " +
+                    "      } " +
+                    "    } " +
+                    "    // 4. On /dashboard: if not on root home tab or if sub-view/chat is open, trigger popstate " +
+                    "    var hasActiveSubView = document.querySelector('.chat-window, [data-active-chat=\"true\"], .chat-container, [data-profile-modal], .profile-modal, .story-viewer, [data-story-viewer]'); " +
+                    "    var isHomeTab = (!search || search === '?tab=home' || search.indexOf('tab=home') !== -1) && !hasActiveSubView; " +
+                    "    if (!isHomeTab) { " +
+                    "      window.history.back(); " +
+                    "      return 'dashboard_back'; " +
+                    "    } " +
+                    "    return 'at_root'; " +
+                    "  } catch (e) { return 'error'; } " +
+                    "})();";
+
+                webView.evaluateJavascript(js, value -> {
+                    String cleanVal = value != null ? value.replace("\"", "").trim() : "";
+
+                    if ("closed_modal".equals(cleanVal) || 
+                        "closed_chat".equals(cleanVal) || 
+                        "navigated_history_back".equals(cleanVal) || 
+                        "redirected_dashboard".equals(cleanVal) || 
+                        "dashboard_back".equals(cleanVal)) {
+                        // Handled by web app router/modal handler - do not close app
+                        return;
                     }
-                );
+
+                    runOnUiThread(() -> {
+                        if (webView.canGoBack()) {
+                            webView.goBack();
+                        } else {
+                            long now = System.currentTimeMillis();
+                            if (now - lastBackPressTime < 2000) {
+                                finish();
+                            } else {
+                                lastBackPressTime = now;
+                                android.widget.Toast.makeText(MainActivity.this, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                });
                 return;
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error handling back button: ", e);
+            Log.e(TAG, "Error handling back navigation: ", e);
         }
         super.onBackPressed();
     }

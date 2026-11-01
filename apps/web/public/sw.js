@@ -169,7 +169,9 @@ self.addEventListener('notificationclick', function (event) {
                     return self.registration.showNotification('LifePartner AI', {
                         body: `Reply sent: "${replyText}"`,
                         icon: '/icon.png',
-                        silent: true
+                        silent: true,
+                        tag: 'reply_status',
+                        renotify: false
                     });
                 })
                 .catch(err => {

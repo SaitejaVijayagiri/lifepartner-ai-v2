@@ -2210,7 +2210,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                             )}
                         </div>
 
-                        <button onClick={onClose} className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
+                        <button onClick={onClose} aria-label="Close" data-chat-close="true" title="Close" className="p-2 sm:p-2.5 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-1">
                             <X size={20} />
                         </button>
                     </div>

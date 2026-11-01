@@ -134,7 +134,13 @@ function ChatContent() {
                 connectionId={connectionId}
                 partner={partner}
                 className="w-full h-full md:max-w-2xl md:h-[90vh] bg-white shadow-xl rounded-none md:rounded-2xl flex flex-col overflow-hidden"
-                onClose={() => router.push('/dashboard')}
+                onClose={() => {
+                    if (typeof window !== 'undefined' && window.history.length > 1) {
+                        router.back();
+                    } else {
+                        router.push('/dashboard');
+                    }
+                }}
                 onVideoCall={() => startCall(partner, 'video', connectionId)}
                 onAudioCall={() => startCall(partner, 'audio', connectionId)}
             />

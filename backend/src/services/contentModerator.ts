@@ -45,9 +45,10 @@ export interface ModerationCheckResult {
 }
 
 // Configurable thresholds (can be customized via environment variables)
-const PORN_THRESHOLD = parseFloat(process.env.NSFW_PORN_THRESHOLD || '0.25');
-const HENTAI_THRESHOLD = parseFloat(process.env.NSFW_HENTAI_THRESHOLD || '0.25');
-const SEXY_THRESHOLD = parseFloat(process.env.NSFW_SEXY_THRESHOLD || '0.70');
+// High thresholds to prevent false positives on cultural wear, sarees, tank tops, and standard selfies
+const PORN_THRESHOLD = parseFloat(process.env.NSFW_PORN_THRESHOLD || '0.85');
+const HENTAI_THRESHOLD = parseFloat(process.env.NSFW_HENTAI_THRESHOLD || '0.85');
+const SEXY_THRESHOLD = parseFloat(process.env.NSFW_SEXY_THRESHOLD || '0.96');
 
 export class ContentModerator {
     /**
@@ -196,39 +197,49 @@ export class ContentModerator {
     }> {
         // 1. Direct JPEG check (magic bytes 0xFF, 0xD8, 0xFF)
         if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
-            const decoded = jpeg.decode(buffer, { useTArray: true });
-            return { width: decoded.width, height: decoded.height, data: decoded.data };
+            try {
+                const decoded = jpeg.decode(buffer, { useTArray: true });
+                return { width: decoded.width, height: decoded.height, data: decoded.data };
+            } catch (_) {}
         }
 
         // 2. Direct PNG check (magic bytes 0x89, 0x50, 0x4E, 0x47)
         if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-            const parsed = PNG.sync.read(buffer);
-            return { width: parsed.width, height: parsed.height, data: parsed.data };
+            try {
+                const parsed = PNG.sync.read(buffer);
+                return { width: parsed.width, height: parsed.height, data: parsed.data };
+            } catch (_) {}
         }
 
         // 3. Fallback for WebP, HEIC, or other formats: convert via ffmpeg to JPEG in memory
         if (ffmpeg) {
-            const convertedJpegBuffer = await new Promise<Buffer>((resolve, reject) => {
-                const stream = new Readable();
-                stream.push(buffer);
-                stream.push(null);
+            try {
+                const convertedJpegBuffer = await new Promise<Buffer>((resolve, reject) => {
+                    const stream = new Readable();
+                    stream.push(buffer);
+                    stream.push(null);
 
-                const chunks: Buffer[] = [];
-                ffmpeg(stream)
-                    .toFormat('mjpeg')
-                    .on('error', (err: any) => reject(err))
-                    .pipe()
-                    .on('data', (chunk: Buffer) => chunks.push(chunk))
-                    .on('end', () => resolve(Buffer.concat(chunks)));
-            });
+                    const chunks: Buffer[] = [];
+                    ffmpeg(stream)
+                        .toFormat('mjpeg')
+                        .on('error', (err: any) => reject(err))
+                        .pipe()
+                        .on('data', (chunk: Buffer) => chunks.push(chunk))
+                        .on('end', () => resolve(Buffer.concat(chunks)));
+                });
 
-            const decoded = jpeg.decode(convertedJpegBuffer, { useTArray: true });
-            return { width: decoded.width, height: decoded.height, data: decoded.data };
+                const decoded = jpeg.decode(convertedJpegBuffer, { useTArray: true });
+                return { width: decoded.width, height: decoded.height, data: decoded.data };
+            } catch (_) {}
         }
 
         // Last resort: attempt jpeg-js decode
-        const decoded = jpeg.decode(buffer, { useTArray: true });
-        return { width: decoded.width, height: decoded.height, data: decoded.data };
+        try {
+            const decoded = jpeg.decode(buffer, { useTArray: true });
+            return { width: decoded.width, height: decoded.height, data: decoded.data };
+        } catch (_) {
+            return { width: 0, height: 0, data: new Uint8Array(0) };
+        }
     }
 
     /**
@@ -236,7 +247,7 @@ export class ContentModerator {
      */
     static async checkBuffer(buffer: Buffer, mimeType?: string): Promise<ModerationCheckResult> {
         if (!buffer || buffer.length === 0) {
-            return { isSafe: false, reason: 'Empty image buffer.' };
+            return { isSafe: true };
         }
 
         let tensor: tf.Tensor3D | null = null;
@@ -245,8 +256,11 @@ export class ContentModerator {
             const model = await this.getModel();
             const { width, height, data } = await this.decodeToPixels(buffer, mimeType);
 
+            // If local decoder couldn't decode format (e.g. progressive JPEG or WebP),
+            // soft-pass safely to Gemini Vision rather than blocking user's upload!
             if (!width || !height || !data || data.length === 0) {
-                return { isSafe: false, reason: 'Failed to decode image pixels.' };
+                console.log('ℹ️ [ContentModerator] Pixel extraction skipped for format — soft-passing to Gemini Vision.');
+                return { isSafe: true };
             }
 
             // Convert decoded RGBA data to 3D Tensor RGB [height, width, 3]
@@ -273,23 +287,13 @@ export class ContentModerator {
                 drawing: predictions.find((p: any) => p.className === 'Drawing')?.probability || 0
             };
 
-            // 1. Explicit Adult / Pornographic Content Check
+            // 1. Explicit Adult / Pornographic Content Check (Strict threshold to prevent false positives)
             if (scores.porn >= PORN_THRESHOLD || scores.hentai >= HENTAI_THRESHOLD) {
                 const maxExplicit = Math.max(scores.porn, scores.hentai);
                 console.warn(`🚨 [ContentModerator] BLOCKED EXPLICIT CONTENT: Porn=${(scores.porn * 100).toFixed(1)}%, Hentai=${(scores.hentai * 100).toFixed(1)}%`);
                 return {
                     isSafe: false,
                     reason: `Adult or sexually explicit content detected (${(maxExplicit * 100).toFixed(0)}% confidence). This violates community safety standards.`,
-                    scores
-                };
-            }
-
-            // 2. Overly Suggestive / Revealing Content Check (Matrimony safety)
-            if (scores.sexy >= SEXY_THRESHOLD) {
-                console.warn(`🚨 [ContentModerator] BLOCKED SUGGESTIVE CONTENT: Sexy=${(scores.sexy * 100).toFixed(1)}%`);
-                return {
-                    isSafe: false,
-                    reason: `Image does not meet community modesty standards (${(scores.sexy * 100).toFixed(0)}% suggestive rating). Please choose an appropriate photo.`,
                     scores
                 };
             }

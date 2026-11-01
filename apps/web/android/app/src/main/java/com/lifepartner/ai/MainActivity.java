@@ -57,6 +57,7 @@ public class MainActivity extends BridgeActivity {
 
     public static volatile String activeChatPartnerId = null;
     public static volatile boolean isAppInForeground = false;
+    public static volatile boolean isLandscapeActive = false;
 
     private RewardedAd rewardedAd;
     private boolean isAdLoading = false;
@@ -699,10 +700,38 @@ public class MainActivity extends BridgeActivity {
 
     private long lastBackPressTime = 0;
 
+    public void setLandscapeModeInternal(boolean enableLandscape) {
+        MainActivity.isLandscapeActive = enableLandscape;
+        runOnUiThread(() -> {
+            try {
+                if (enableLandscape) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                    getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    );
+                } else {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error setting landscape mode: ", e);
+            }
+        });
+    }
+
     private void setupBackNavigationDispatcher() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (MainActivity.isLandscapeActive) {
+                    setLandscapeModeInternal(false);
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().evaluateJavascript("window.exitLandscapeMode && window.exitLandscapeMode()", null);
+                    }
+                    return;
+                }
                 if (hideCustomFullscreenView()) {
                     return;
                 }
@@ -713,6 +742,13 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onBackPressed() {
+        if (MainActivity.isLandscapeActive) {
+            setLandscapeModeInternal(false);
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().evaluateJavascript("window.exitLandscapeMode && window.exitLandscapeMode()", null);
+            }
+            return;
+        }
         if (hideCustomFullscreenView()) {
             return;
         }
@@ -1179,17 +1215,7 @@ public class MainActivity extends BridgeActivity {
 
         @JavascriptInterface
         public void setLandscapeMode(boolean enableLandscape) {
-            runOnUiThread(() -> {
-                try {
-                    if (enableLandscape) {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
-                    } else {
-                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-                    }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error setting landscape mode via bridge: ", e);
-                }
-            });
+            setLandscapeModeInternal(enableLandscape);
         }
     }
 }

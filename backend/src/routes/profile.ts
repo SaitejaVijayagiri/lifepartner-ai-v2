@@ -848,8 +848,11 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 }
 
                 if (modResult && modResult.isProhibited) {
-                    console.error(`🚨 [profile] Photo ${i} rejected due to prohibited content: ${modResult.reason}`);
-                    throw Object.assign(new Error(modResult.reason || 'This photo contains prohibited or adult content.'), { status: 400 });
+                    console.warn(`🚨 [profile] Photo ${i} rejected due to prohibited content: ${modResult.reason}`);
+                    if (photosToProcess.length === 1) {
+                        throw Object.assign(new Error(modResult.reason || 'This photo contains prohibited or adult content.'), { status: 400 });
+                    }
+                    continue; // Skip prohibited photo but preserve valid photos in multi-upload
                 }
 
                 // Upload image through storage chain (R2 -> Cloudinary -> Supabase -> base64)

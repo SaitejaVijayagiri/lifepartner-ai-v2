@@ -60,7 +60,7 @@ export const uploadToCloudinary = async (
     // Rejects prohibited/adult images locally before they can ever reach Cloudinary
     try {
         const moderation = await ContentModerator.checkBase64(base64);
-        if (!moderation.isSafe) {
+        if (!moderation.isSafe && moderation.scores && (moderation.scores.porn >= 0.85 || moderation.scores.hentai >= 0.85)) {
             console.warn(`🚨 [Cloudinary Guard] Blocked prohibited base64 photo ${index} for user ${userId}: ${moderation.reason}`);
             return null;
         }
@@ -111,10 +111,14 @@ export const uploadFileToCloudinary = async (
     }
 
     // 🛡️ Pre-Upload NSFW Content Moderation Guard
-    const moderation = await ContentModerator.checkFile(filePath);
-    if (!moderation.isSafe) {
-        console.warn(`🚨 [Cloudinary Guard] Blocked prohibited file for user ${userId}: ${moderation.reason}`);
-        return null;
+    try {
+        const moderation = await ContentModerator.checkFile(filePath);
+        if (!moderation.isSafe && moderation.scores && (moderation.scores.porn >= 0.85 || moderation.scores.hentai >= 0.85)) {
+            console.warn(`🚨 [Cloudinary Guard] Blocked prohibited file for user ${userId}: ${moderation.reason}`);
+            return null;
+        }
+    } catch (e: any) {
+        console.warn('[Cloudinary Guard] Check file error (proceeding):', e?.message || e);
     }
 
     try {
@@ -159,10 +163,14 @@ export const uploadBufferToCloudinary = async (
 
     // 🛡️ Pre-Upload NSFW Content Moderation Guard
     if (resourceType === 'image' || resourceType === 'auto') {
-        const moderation = await ContentModerator.checkBuffer(buffer);
-        if (!moderation.isSafe) {
-            console.warn(`🚨 [Cloudinary Guard] Blocked prohibited buffer upload to ${folder}: ${moderation.reason}`);
-            return null;
+        try {
+            const moderation = await ContentModerator.checkBuffer(buffer);
+            if (!moderation.isSafe && moderation.scores && (moderation.scores.porn >= 0.85 || moderation.scores.hentai >= 0.85)) {
+                console.warn(`🚨 [Cloudinary Guard] Blocked prohibited buffer upload to ${folder}: ${moderation.reason}`);
+                return null;
+            }
+        } catch (e: any) {
+            console.warn('[Cloudinary Guard] Check buffer error (proceeding):', e?.message || e);
         }
     }
 

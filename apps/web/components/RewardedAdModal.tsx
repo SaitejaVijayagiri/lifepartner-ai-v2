@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Play, Crown, X, Volume2, VolumeX, CheckCircle2, ShieldCheck, Heart } from 'lucide-react';
 import { grantMediaUnlockReward } from '@/lib/adRewards';
 import { useToast } from '@/components/ui/Toast';
+import GoogleAdBanner from './GoogleAdBanner';
 
 interface RewardedAdModalProps {
     isOpen: boolean;
@@ -199,6 +200,11 @@ export default function RewardedAdModal({
                                     style={{ width: `${((12 - secondsLeft) / 12) * 100}%` }}
                                 />
                             </div>
+                        </div>
+
+                        {/* Real Google AdSense Display Banner (ca-pub-1408290775036355) */}
+                        <div className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-1">
+                            <GoogleAdBanner slotId="1994444490" format="horizontal" />
                         </div>
 
                         <p className="text-[11px] text-emerald-400 font-semibold flex items-center justify-center gap-1.5">

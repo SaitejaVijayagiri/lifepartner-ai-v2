@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 import RewardedAdModal from './RewardedAdModal';
+import GoogleAdBanner from './GoogleAdBanner';
 import { isMediaUnlocked, getRemainingUnlockedMinutes } from '@/lib/adRewards';
 import { api } from '@/lib/api';
 
@@ -902,6 +903,13 @@ export default function ChatMusicJukebox({
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Companion Google AdSense Banner (Publisher ca-pub-1408290775036355) */}
+                                {!isUserVip && (
+                                    <div className="w-full bg-gray-50/50 dark:bg-slate-950/40 border-t border-gray-100 dark:border-slate-800 p-2">
+                                        <GoogleAdBanner slotId="1994444490" format="horizontal" />
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="text-gray-500 dark:text-slate-500 font-medium text-sm py-8">Select a track from the list to play its video!</div>

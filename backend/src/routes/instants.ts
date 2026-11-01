@@ -3,8 +3,8 @@ import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
 import { ImageOptimizer } from '../services/imageOptimizer';
-import { uploadToCloudinary, deleteFromCloudinary } from '../services/cloudinaryStorage';
-import { isR2Configured, uploadBase64ToR2 } from '../services/r2Storage';
+import { deleteFromCloudinary } from '../services/cloudinaryStorage';
+import { isR2Configured, uploadBase64ToR2, deleteFromR2 } from '../services/r2Storage';
 import { ContentModerator } from '../services/contentModerator';
 import { getIO } from '../socket';
 
@@ -92,7 +92,7 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
             });
         }
 
-        // Upload snap image to Cloudinary CDN
+        // Upload snap image to Cloudflare R2
         if (finalMediaUrl.startsWith('data:image')) {
             const moderation = await ContentModerator.checkBase64(finalMediaUrl);
             if (!moderation.isSafe) {
@@ -107,11 +107,6 @@ router.post('/', authenticateToken, memoryUpload.single('file'), async (req: any
                 const r2Url = await uploadBase64ToR2(finalMediaUrl, key, true);
                 if (r2Url) {
                     finalMediaUrl = r2Url;
-                }
-            } else {
-                const cloudinaryUrl = await uploadToCloudinary(finalMediaUrl, `instants_${userId}`);
-                if (cloudinaryUrl) {
-                    finalMediaUrl = cloudinaryUrl;
                 }
             }
         }
@@ -597,11 +592,19 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
             SELECT media_url FROM instants WHERE id = $1::uuid AND sender_id = $2::uuid;
         `, id, userId);
 
-        if (rows && rows.length > 0 && rows[0].media_url?.includes('res.cloudinary.com')) {
-            const parts = rows[0].media_url.split('/upload/');
-            if (parts[1]) {
-                const publicId = parts[1].replace(/^v\d+\//, '').split('.')[0];
-                deleteFromCloudinary(publicId).catch(e => console.warn('[Cloudinary] Instant cleanup warning:', e));
+        if (rows && rows.length > 0 && rows[0].media_url) {
+            const mediaUrl = rows[0].media_url;
+            if (mediaUrl.includes('r2.dev') || mediaUrl.includes('r2.cloudflarestorage.com') || mediaUrl.includes('/photo/r2/')) {
+                const match = mediaUrl.match(/instants\/[^\/\?]+/);
+                if (match) {
+                    deleteFromR2(match[0]).catch(e => console.warn('[R2] Instant cleanup warning:', e));
+                }
+            } else if (mediaUrl.includes('res.cloudinary.com')) {
+                const parts = mediaUrl.split('/upload/');
+                if (parts[1]) {
+                    const publicId = parts[1].replace(/^v\d+\//, '').split('.')[0];
+                    deleteFromCloudinary(publicId).catch(e => console.warn('[Cloudinary] Instant cleanup warning:', e));
+                }
             }
         }
 

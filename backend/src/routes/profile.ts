@@ -27,46 +27,36 @@ import { ImageOptimizer } from '../services/imageOptimizer';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 import { ContentModerator } from '../services/contentModerator';
-import { uploadToCloudinary, uploadFileToCloudinary, deleteFromCloudinary, isConfigured as cloudinaryConfigured } from '../services/cloudinaryStorage';
-import { isR2Configured, uploadBase64ToR2, uploadBufferToR2 } from '../services/r2Storage';
+import { deleteFromCloudinary } from '../services/cloudinaryStorage';
+import { isR2Configured, uploadBase64ToR2, uploadBufferToR2, deleteFromR2 } from '../services/r2Storage';
 import { isUserOnline } from '../socket';
 import { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStories, filterHighlights, filterActiveStories, mergeStoriesHelper } from '../utils/story';
 export { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStories, filterHighlights, filterActiveStories, mergeStoriesHelper };
 
 /**
- * Upload a profile image with fallback chain:
- *   1. Cloudinary (free 25 GB, no egress fees, global CDN) — primary
- *   2. Return null so caller stores base64 as last resort
+ * Upload a profile image with Cloudflare R2 as exclusive primary storage:
+ *   1. Cloudflare R2 (zero egress fees, unlimited storage, global CDN) — primary
+ *   2. Supabase Storage — fallback
+ *   3. Return base64 as resilient fallback so user NEVER loses their photo
  *
  * If the input is already an https URL (not base64), it is returned as-is.
  */
 async function uploadOptimizedImage(base64: string, userId: string): Promise<string | null> {
     if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Already a URL
 
-    // 1. Cloudflare R2 Storage (Primary if configured: zero egress fees, unlimited storage)
+    // 1. Cloudflare R2 Storage (Exclusive primary remote storage)
     if (isR2Configured()) {
         try {
             const key = `profiles/${userId}/photo_${Date.now()}.jpg`;
             const r2Url = await uploadBase64ToR2(base64, key, true);
             if (r2Url) return r2Url;
-            console.warn('[profile] Cloudflare R2 upload failed, trying Cloudinary fallback.');
+            console.warn('[profile] Cloudflare R2 upload returned null.');
         } catch (r2Err: any) {
             console.warn('[profile] Cloudflare R2 error:', r2Err?.message || r2Err);
         }
     }
 
-    // 2. Cloudinary fallback
-    if (cloudinaryConfigured()) {
-        try {
-            const cloudinaryUrl = await uploadToCloudinary(base64, userId);
-            if (cloudinaryUrl) return cloudinaryUrl;
-            console.warn('[profile] Cloudinary upload failed.');
-        } catch (cldErr: any) {
-            console.warn('[profile] Cloudinary error:', cldErr?.message || cldErr);
-        }
-    }
-
-    // 3. Supabase Storage fallback
+    // 2. Supabase Storage fallback
     const sb = getSupabase();
     if (sb) {
         try {
@@ -94,7 +84,7 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
         }
     }
 
-    // 4. Return base64 as resilient fallback so user NEVER loses their photo
+    // 3. Return base64 as resilient fallback so user NEVER loses their photo
     return base64;
 }
 
@@ -1523,90 +1513,87 @@ router.post('/stories', authenticateToken, (req, res, next) => {
             }
         }
 
-        logDebug(`Starting upload to Cloudinary...`);
+        logDebug(`Starting upload to Cloudflare R2...`);
+
+        let newStory: any = null;
+        const createdStories: any[] = [];
 
         if (files.length > 1) {
-            // MULTI-IMAGE SLIDESHOW
-            type = 'video'; // The final output is a video
-            const publicIds: string[] = [];
-            
-            for (const file of files) {
-                const uploadResult = await uploadFileToCloudinary(file.path, userId);
-                if (uploadResult) {
-                    publicIds.push(uploadResult.publicId);
-                }
-            }
-
-            if (publicIds.length > 0) {
-                // Generate the slideshow URL
-                const { generateSlideshowUrl } = require('../services/cloudinaryStorage');
-                publicUrl = generateSlideshowUrl(publicIds) || '';
-                publicId = publicIds[0]; // Track the first one for deletion (though we'd need to delete all ideally)
-                logDebug(`Generated Slideshow URL: ${publicUrl}`);
-            } else {
-                throw new Error("Failed to upload images to Cloudinary");
-            }
-        } else {
-            // SINGLE FILE UPLOAD
-            const file = files[0];
-            const uploadOptions: any = {};
-            if (req.body.startTime !== undefined) uploadOptions.startOffset = parseFloat(req.body.startTime);
-            if (req.body.endTime !== undefined) uploadOptions.endOffset = parseFloat(req.body.endTime);
-            
-            if (isR2Configured()) {
-                const ext = path.extname(file.originalname || file.path) || (type === 'video' ? '.mp4' : '.jpg');
-                const key = `stories/${userId}/story_${Date.now()}${ext}`;
+            // MULTI-IMAGE / MULTI-FILE STORY BATCH
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileType = file.mimetype.startsWith('video') ? 'video' : 'image';
+                const ext = path.extname(file.originalname || file.path) || (fileType === 'video' ? '.mp4' : '.jpg');
+                const key = `stories/${userId}/story_${Date.now()}_${i}${ext}`;
                 const fileBuf = fs.readFileSync(file.path);
                 const r2Result = await uploadBufferToR2(fileBuf, key, file.mimetype, true);
                 if (r2Result) {
-                    publicUrl = r2Result.url;
-                    publicId = r2Result.key;
-                    logDebug(`R2 Story Upload Success: ${publicUrl}`);
+                    const item: any = {
+                        id: `${Date.now()}_${i}`,
+                        url: r2Result.url,
+                        publicId: r2Result.key,
+                        type: fileType,
+                        createdAt: new Date().toISOString(),
+                        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                        views: []
+                    };
+                    if (req.body.music) item.music = req.body.music;
+                    createdStories.push(item);
+                    logDebug(`R2 Story Batch Upload [${i}]: ${r2Result.url}`);
                 }
             }
 
-            const uploadResult = !publicUrl ? await uploadFileToCloudinary(file.path, userId, uploadOptions) : null;
+            if (createdStories.length === 0) {
+                throw new Error("Failed to upload images to Cloudflare R2");
+            }
+            newStory = createdStories[0];
+        } else {
+            // SINGLE FILE UPLOAD
+            const file = files[0];
+            const ext = path.extname(file.originalname || file.path) || (type === 'video' ? '.mp4' : '.jpg');
+            const key = `stories/${userId}/story_${Date.now()}${ext}`;
+            const fileBuf = fs.readFileSync(file.path);
+            const r2Result = await uploadBufferToR2(fileBuf, key, file.mimetype, true);
             
-            if (uploadResult) {
-                publicUrl = uploadResult.url;
-                publicId = uploadResult.publicId;
-                logDebug(`Upload Success: ${publicUrl}`);
+            if (r2Result) {
+                publicUrl = r2Result.url;
+                publicId = r2Result.key;
+                logDebug(`R2 Story Upload Success: ${publicUrl}`);
             } else {
-                if (!publicUrl) {
-                    throw new Error("Failed to upload story.");
+                throw new Error("Failed to upload story to Cloudflare R2.");
+            }
+
+            newStory = {
+                id: Date.now().toString(),
+                url: publicUrl,
+                publicId: publicId,
+                type,
+                createdAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                views: []
+            };
+
+            if (req.body.music) {
+                newStory.music = req.body.music;
+            }
+            if (req.body.texts) {
+                try {
+                    newStory.texts = JSON.parse(req.body.texts);
+                } catch(e) {
+                    console.error("Failed to parse story texts", e);
                 }
             }
+            if (req.body.stickers) {
+                try {
+                    newStory.stickers = JSON.parse(req.body.stickers);
+                } catch(e) {
+                    console.error("Failed to parse story stickers", e);
+                }
+            }
+            createdStories.push(newStory);
         }
 
-        const newStory: any = {
-            id: Date.now().toString(),
-            url: publicUrl,
-            publicId: publicId,
-            type,
-            createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            views: [] // Initialize views array
-        };
-        
-        if (req.body.music) {
-            newStory.music = req.body.music;
-        }
-        if (req.body.texts) {
-            try {
-                newStory.texts = JSON.parse(req.body.texts);
-            } catch(e) {
-                console.error("Failed to parse story texts", e);
-            }
-        }
-        if (req.body.stickers) {
-            try {
-                newStory.stickers = JSON.parse(req.body.stickers);
-            } catch(e) {
-                console.error("Failed to parse story stickers", e);
-            }
-        }
-
-        const finalStories = [...validStories, newStory];
+        const finalStories = [...validStories, ...createdStories];
 
         // Upsert Profile Stories
         await prisma.profiles.upsert({
@@ -1732,17 +1719,28 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
         const metadataObj: any = (profile.metadata as any) || {};
         const metaStories: any[] = metadataObj?.stories || [];
         
-        // Delete from Storage if publicId exists
+        // Delete from Storage if publicId or URL exists
         const storyToDelete = [...directStories, ...metaStories].find((s: any) => String(s.id) === String(storyId));
         if (storyToDelete) {
             if (storyToDelete.publicId) {
-                await deleteFromCloudinary(storyToDelete.publicId).catch(e => console.error("Cloudinary delete error", e));
-            } else if (storyToDelete.url && storyToDelete.url.includes('supabase.co')) {
-                const oldPath = storyToDelete.url.split('stories/')[1];
-                if (oldPath) {
-                    const sb = getSupabase();
-                    if (sb) {
-                        sb.storage.from('stories').remove([oldPath]).catch((e: any) => console.error("Storage delete error", e));
+                if (storyToDelete.publicId.startsWith('stories/') || storyToDelete.publicId.startsWith('profiles/') || storyToDelete.publicId.startsWith('chat/')) {
+                    await deleteFromR2(storyToDelete.publicId).catch(e => console.error("R2 delete error", e));
+                } else {
+                    await deleteFromCloudinary(storyToDelete.publicId).catch(e => console.error("Cloudinary delete error", e));
+                }
+            } else if (storyToDelete.url) {
+                if (storyToDelete.url.includes('r2.dev') || storyToDelete.url.includes('r2.cloudflarestorage.com') || storyToDelete.url.includes('/photo/r2/')) {
+                    const match = storyToDelete.url.match(/stories\/[^\/\?]+/);
+                    if (match) {
+                        await deleteFromR2(match[0]).catch(e => console.error("R2 delete error", e));
+                    }
+                } else if (storyToDelete.url.includes('supabase.co')) {
+                    const oldPath = storyToDelete.url.split('stories/')[1];
+                    if (oldPath) {
+                        const sb = getSupabase();
+                        if (sb) {
+                            sb.storage.from('stories').remove([oldPath]).catch((e: any) => console.error("Storage delete error", e));
+                        }
                     }
                 }
             }

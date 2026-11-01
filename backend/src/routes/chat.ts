@@ -5,7 +5,6 @@ import { sanitizeContent } from '../utils/contentFilter';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import multer from 'multer';
-import { isConfigured, uploadBufferToCloudinary } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBufferToR2 } from '../services/r2Storage';
 import { ContentModerator } from '../services/contentModerator';
 
@@ -780,22 +779,6 @@ router.post('/upload-media', authenticateToken, memoryUpload.single('file'), asy
                     success: true,
                     url: r2Upload.url,
                     key: r2Upload.key,
-                    mimetype: file.mimetype
-                });
-            }
-        }
-
-        // 2. Fallback Storage: Cloudinary CDN (fast, compressed, global)
-        if (isConfigured()) {
-            const uploadResult = await uploadBufferToCloudinary(
-                file.buffer,
-                `lifepartner/chat/${userId}`,
-                resourceType
-            );
-            if (uploadResult?.url) {
-                return res.json({
-                    success: true,
-                    url: uploadResult.url,
                     mimetype: file.mimetype
                 });
             }

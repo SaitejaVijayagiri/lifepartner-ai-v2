@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.content.ActivityNotFoundException;
 import android.os.Bundle;
@@ -83,6 +84,11 @@ public class MainActivity extends BridgeActivity {
     private void onHideCustomViewInternal() {
         runOnUiThread(() -> {
             if (mCustomView == null) return;
+            try {
+                // Return to portrait orientation when exiting video fullscreen
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            } catch (Exception ignored) {}
+
             getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
             if (mFullscreenContainer != null) {
                 mFullscreenContainer.removeView(mCustomView);
@@ -911,6 +917,9 @@ public class MainActivity extends BridgeActivity {
 
                         runOnUiThread(() -> {
                             try {
+                                // Automatically switch to landscape orientation for full screen video view
+                                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+
                                 if (mFullscreenContainer == null) {
                                     mFullscreenContainer = new FrameLayout(MainActivity.this);
                                     mFullscreenContainer.setBackgroundColor(Color.BLACK);
@@ -1166,6 +1175,21 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public boolean isRewardedAdReady() {
             return rewardedAd != null;
+        }
+
+        @JavascriptInterface
+        public void setLandscapeMode(boolean enableLandscape) {
+            runOnUiThread(() -> {
+                try {
+                    if (enableLandscape) {
+                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                    } else {
+                        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error setting landscape mode via bridge: ", e);
+                }
+            });
         }
     }
 }

@@ -50,6 +50,50 @@ export default function AppModeHandler() {
         router.replace('/register');
       }
     }
+
+    // Dynamic Mobile Fullscreen & Landscape Orientation Handler
+    // Automatically flips mobile screens to landscape on full screen videos
+    const onFullscreenChange = async () => {
+      const doc = document as any;
+      const isFullscreen = !!(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement);
+      const bridge = (window as any).AndroidBridge || (window as any).androidBridge;
+
+      if (isFullscreen) {
+        if (bridge?.setLandscapeMode) {
+          try {
+            bridge.setLandscapeMode(true);
+          } catch (_) {}
+        }
+        if (typeof screen !== 'undefined' && screen.orientation && (screen.orientation as any).lock) {
+          try {
+            await (screen.orientation as any).lock('landscape');
+          } catch (_) {}
+        }
+      } else {
+        if (bridge?.setLandscapeMode) {
+          try {
+            bridge.setLandscapeMode(false);
+          } catch (_) {}
+        }
+        if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.unlock) {
+          try {
+            screen.orientation.unlock();
+          } catch (_) {}
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+    document.addEventListener('mozfullscreenchange', onFullscreenChange);
+    document.addEventListener('MSFullscreenChange', onFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', onFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', onFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', onFullscreenChange);
+    };
   }, [pathname, router]);
 
   return null;

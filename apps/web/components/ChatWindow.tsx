@@ -313,18 +313,6 @@ const ChatSharedMediaCard = ({
                     )}
                     {(isDirectVideo || resolvedYtId) && (
                         <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
-                            {resolvedYtId && onFullscreen && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onFullscreen(resolvedYtId);
-                                    }}
-                                    className="p-1 bg-black/75 hover:bg-black/95 text-white rounded-md text-[10px] cursor-pointer shadow flex items-center justify-center"
-                                    title="View Fullscreen"
-                                >
-                                    <Maximize2 size={11} />
-                                </button>
-                            )}
                             {resolvedYtId && (
                                 <a
                                     href={`https://www.youtube.com/watch?v=${resolvedYtId}`}

@@ -119,7 +119,8 @@ const ChatSharedMediaCard = ({
     partnerId, 
     onStartSync,
     currentUser,
-    partnerName = 'your match'
+    partnerName = 'your match',
+    onFullscreen
 }: { 
     title: string; 
     artist: string; 
@@ -131,6 +132,7 @@ const ChatSharedMediaCard = ({
     onStartSync?: (track: any) => void;
     currentUser?: any;
     partnerName?: string;
+    onFullscreen?: (videoId: string) => void;
 }) => {
     const toast = useToast();
     const [showVideo, setShowVideo] = useState(false);
@@ -285,7 +287,7 @@ const ChatSharedMediaCard = ({
                         <iframe
                             src={`https://www.youtube.com/embed/${resolvedYtId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
                             className="w-full h-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
                             title={title}
                         />
@@ -311,6 +313,18 @@ const ChatSharedMediaCard = ({
                     )}
                     {(isDirectVideo || resolvedYtId) && (
                         <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
+                            {resolvedYtId && onFullscreen && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onFullscreen(resolvedYtId);
+                                    }}
+                                    className="p-1 bg-black/75 hover:bg-black/95 text-white rounded-md text-[10px] cursor-pointer shadow flex items-center justify-center"
+                                    title="View Fullscreen"
+                                >
+                                    <Maximize2 size={11} />
+                                </button>
+                            )}
                             {resolvedYtId && (
                                 <a
                                     href={`https://www.youtube.com/watch?v=${resolvedYtId}`}
@@ -2634,6 +2648,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                                     onStartSync={(track) => setActiveSyncedTrack(track)}
                                                     currentUser={user}
                                                     partnerName={partner?.name}
+                                                    onFullscreen={setFullscreenYoutubeId}
                                                 />
                                             );
                                         })() : cleanMsgText.startsWith('[STORY_REPLY:') ? (() => {

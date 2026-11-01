@@ -65,22 +65,22 @@ export default function HomeTab({
     }, []);
 
     const handleShareTrackFromHome = (track: any) => {
+        setShowJukebox(false);
+        setTrackToShare(track);
         if (!connections || connections.length === 0) {
-            setTrackToShare(track);
             setShowNoConnectionsModal(true);
             return;
         }
-        setTrackToShare(track);
         setShowShareModal(true);
     };
 
     const handleSyncFromHome = (track: any) => {
+        setShowJukebox(false);
+        setTrackToShare(track);
         if (!connections || connections.length === 0) {
-            setTrackToShare(track);
             setShowNoConnectionsModal(true);
             return;
         }
-        setTrackToShare(track);
         setShowShareModal(true);
     };
 
@@ -543,7 +543,7 @@ export default function HomeTab({
 
             {/* Modal 1: Prompt when user wants to share/sync but has 0 connected matches */}
             {showNoConnectionsModal && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[1000005] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
                     <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-pink-500/30 rounded-3xl p-6 text-white shadow-2xl space-y-4 text-center">
                         <div className="w-16 h-16 mx-auto rounded-3xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400">
                             <Heart size={32} className="fill-pink-500 animate-pulse" />
@@ -575,7 +575,10 @@ export default function HomeTab({
                                 Explore Compatible Matches ➔
                             </button>
                             <button
-                                onClick={() => setShowNoConnectionsModal(false)}
+                                onClick={() => {
+                                    setShowNoConnectionsModal(false);
+                                    setShowJukebox(true);
+                                }}
                                 className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white font-bold text-xs transition-colors cursor-pointer"
                             >
                                 Keep Listening (Solo Vibe)
@@ -587,7 +590,7 @@ export default function HomeTab({
 
             {/* Modal 2: Connected Match Selector to Share Track */}
             {showShareModal && (
-                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-[1000005] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
                     <div className="w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-pink-500/30 rounded-3xl p-5 text-white shadow-2xl space-y-4">
                         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                             <div className="flex items-center gap-2">
@@ -600,7 +603,10 @@ export default function HomeTab({
                                 </div>
                             </div>
                             <button
-                                onClick={() => setShowShareModal(false)}
+                                onClick={() => {
+                                    setShowShareModal(false);
+                                    setShowJukebox(true);
+                                }}
                                 className="p-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
                             >
                                 <X size={16} />

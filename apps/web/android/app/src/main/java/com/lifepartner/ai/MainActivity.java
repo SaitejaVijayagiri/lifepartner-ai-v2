@@ -7,16 +7,23 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.content.ActivityNotFoundException;
 import android.os.Bundle;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.graphics.Color;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -52,6 +59,68 @@ public class MainActivity extends BridgeActivity {
 
     private RewardedAd rewardedAd;
     private boolean isAdLoading = false;
+
+    private ValueCallback<Uri[]> mFilePathCallback = null;
+    private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
+
+    private View mCustomView = null;
+    private WebChromeClient.CustomViewCallback mCustomViewCallback = null;
+    private FrameLayout mFullscreenContainer = null;
+    private WebChromeClient mActiveChromeClient = null;
+
+    public boolean hideCustomFullscreenView() {
+        if (mCustomView != null) {
+            if (mActiveChromeClient != null) {
+                mActiveChromeClient.onHideCustomView();
+            } else {
+                onHideCustomViewInternal();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void onHideCustomViewInternal() {
+        runOnUiThread(() -> {
+            if (mCustomView == null) return;
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            if (mFullscreenContainer != null) {
+                mFullscreenContainer.removeView(mCustomView);
+                mFullscreenContainer.setVisibility(View.GONE);
+            }
+            if (mCustomViewCallback != null) {
+                try {
+                    mCustomViewCallback.onCustomViewHidden();
+                } catch (Exception ignored) {}
+                mCustomViewCallback = null;
+            }
+            mCustomView = null;
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
+            if (mFilePathCallback != null) {
+                Uri[] results = null;
+                if (resultCode == RESULT_OK && data != null) {
+                    if (data.getClipData() != null) {
+                        int count = data.getClipData().getItemCount();
+                        results = new Uri[count];
+                        for (int i = 0; i < count; i++) {
+                            results[i] = data.getClipData().getItemAt(i).getUri();
+                        }
+                    } else if (data.getData() != null) {
+                        results = new Uri[]{ data.getData() };
+                    }
+                }
+                mFilePathCallback.onReceiveValue(results);
+                mFilePathCallback = null;
+            }
+        }
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -610,6 +679,9 @@ public class MainActivity extends BridgeActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (hideCustomFullscreenView()) {
+                    return;
+                }
                 handleAppBackNavigation();
             }
         });
@@ -617,10 +689,16 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onBackPressed() {
+        if (hideCustomFullscreenView()) {
+            return;
+        }
         handleAppBackNavigation();
     }
 
     private void handleAppBackNavigation() {
+        if (hideCustomFullscreenView()) {
+            return;
+        }
         try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
@@ -770,6 +848,83 @@ public class MainActivity extends BridgeActivity {
                         transport.setWebView(tempWebView);
                         resultMsg.sendToTarget();
                         return true;
+                    }
+
+                    @Override
+                    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                        if (mFilePathCallback != null) {
+                            mFilePathCallback.onReceiveValue(null);
+                            mFilePathCallback = null;
+                        }
+                        mFilePathCallback = filePathCallback;
+
+                        Intent contentSelectionIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                        contentSelectionIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                        contentSelectionIntent.setType("image/*");
+
+                        boolean allowMultiple = fileChooserParams != null && fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+                        if (allowMultiple) {
+                            contentSelectionIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                        }
+
+                        Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+                        chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
+                        chooserIntent.putExtra(Intent.EXTRA_TITLE, "Select Photos");
+
+                        try {
+                            startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST_CODE);
+                            return true;
+                        } catch (ActivityNotFoundException e) {
+                            mFilePathCallback = null;
+                            android.widget.Toast.makeText(MainActivity.this, "No photo picker available", android.widget.Toast.LENGTH_SHORT).show();
+                            return false;
+                        }
+                    }
+
+                    @Override
+                    public void onShowCustomView(View view, CustomViewCallback callback) {
+                        mActiveChromeClient = this;
+                        if (mCustomView != null) {
+                            onHideCustomView();
+                            return;
+                        }
+                        mCustomView = view;
+                        mCustomViewCallback = callback;
+
+                        runOnUiThread(() -> {
+                            try {
+                                if (mFullscreenContainer == null) {
+                                    mFullscreenContainer = new FrameLayout(MainActivity.this);
+                                    mFullscreenContainer.setBackgroundColor(Color.BLACK);
+                                    FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                                        FrameLayout.LayoutParams.MATCH_PARENT,
+                                        FrameLayout.LayoutParams.MATCH_PARENT
+                                    );
+                                    ((ViewGroup) getWindow().getDecorView()).addView(mFullscreenContainer, params);
+                                }
+                                mFullscreenContainer.removeAllViews();
+                                mFullscreenContainer.addView(view, new FrameLayout.LayoutParams(
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                    FrameLayout.LayoutParams.MATCH_PARENT
+                                ));
+                                mFullscreenContainer.setVisibility(View.VISIBLE);
+
+                                // Enter immersive sticky fullscreen for rich video watching
+                                getWindow().getDecorView().setSystemUiVisibility(
+                                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                    | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                );
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error showing custom fullscreen view: ", e);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onHideCustomView() {
+                        mActiveChromeClient = this;
+                        onHideCustomViewInternal();
                     }
                 });
             }

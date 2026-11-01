@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones } from 'lucide-react';
+import { Music, Tv, Search, Play, Pause, X, Sparkles, Volume2, VolumeX, Send, Loader2, Camera, Heart, Headphones, Maximize2, Minimize2 } from 'lucide-react';
 import { StoryMusicData } from './StoryMusicStudio';
 import RewardedAdModal from './RewardedAdModal';
 import { isMediaUnlocked, getRemainingUnlockedMinutes } from '@/lib/adRewards';
@@ -65,6 +65,8 @@ export default function ChatMusicJukebox({
     const [showRewardModal, setShowRewardModal] = useState(false);
     const [pendingTrackForVideo, setPendingTrackForVideo] = useState<(Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) | null>(null);
     const [isLoadingFullVideo, setIsLoadingFullVideo] = useState(false);
+    const [isFullscreenVideo, setIsFullscreenVideo] = useState(false);
+    const [isSharingTrack, setIsSharingTrack] = useState(false);
     const [remainingMins, setRemainingMins] = useState(getRemainingUnlockedMinutes());
 
     const isUserVip = Boolean(currentUser?.is_premium || currentUser?.isPremium);
@@ -390,29 +392,38 @@ export default function ChatMusicJukebox({
         setPendingTrackForVideo(null);
     };
 
+    const toggleFullscreenVideo = () => {
+        setIsFullscreenVideo(prev => !prev);
+    };
+
     const handleShareTrack = async (track: Omit<StoryMusicData, 'startOffset'> & { videoUrl?: string }) => {
         if (!onShareTrackToChat) return;
+        setIsSharingTrack(true);
 
-        let finalVideoUrl = track.videoUrl || '';
-        // If it doesn't have a YouTube video URL yet, resolve it so the chat gets the full official video!
-        if (!getYoutubeId(finalVideoUrl)) {
-            try {
-                const query = `${track.artist} ${track.title} official video`;
-                const res = await api.interactions.searchYoutubeVideo(query);
-                const videoId = res?.videoId || res?.data?.videoId || res?.data?.data?.videoId;
-                if (videoId) {
-                    finalVideoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-                }
-            } catch (_) {}
+        try {
+            let finalVideoUrl = track.videoUrl || '';
+            // If it doesn't have a YouTube video URL yet, resolve it so the chat gets the full official video!
+            if (!getYoutubeId(finalVideoUrl)) {
+                try {
+                    const query = `${track.artist} ${track.title} official video`;
+                    const res = await api.interactions.searchYoutubeVideo(query);
+                    const videoId = res?.videoId || res?.data?.videoId || res?.data?.data?.videoId;
+                    if (videoId) {
+                        finalVideoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                    }
+                } catch (_) {}
+            }
+
+            onShareTrackToChat({
+                title: track.title,
+                artist: track.artist,
+                coverUrl: track.coverUrl,
+                audioUrl: track.audioUrl,
+                videoUrl: finalVideoUrl
+            });
+        } finally {
+            setIsSharingTrack(false);
         }
-
-        onShareTrackToChat({
-            title: track.title,
-            artist: track.artist,
-            coverUrl: track.coverUrl,
-            audioUrl: track.audioUrl,
-            videoUrl: finalVideoUrl
-        });
     };
 
     const handleTogglePlay = () => {
@@ -791,7 +802,18 @@ export default function ChatMusicJukebox({
                                 </div>
 
                                 {/* Video Display Container */}
-                                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden group">
+                                    {(getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '') || activeTrack.videoUrl) && (
+                                        <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+                                            <button
+                                                onClick={toggleFullscreenVideo}
+                                                className="p-1.5 sm:p-2 bg-black/75 hover:bg-black/95 text-white rounded-xl backdrop-blur-md transition-all border border-white/20 shadow-lg flex items-center justify-center cursor-pointer"
+                                                title="View Fullscreen"
+                                            >
+                                                <Maximize2 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
                                     {isLoadingFullVideo ? (
                                         <div className="flex flex-col items-center justify-center p-6 space-y-3">
                                             <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
@@ -801,7 +823,7 @@ export default function ChatMusicJukebox({
                                         <iframe
                                             src={`https://www.youtube.com/embed/${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
                                             className="w-full h-full border-0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                                             allowFullScreen
                                             title={activeTrack.title}
                                         />
@@ -886,11 +908,12 @@ export default function ChatMusicJukebox({
 
                                         {onShareTrackToChat && (
                                             <button
+                                                disabled={isSharingTrack}
                                                 onClick={() => handleShareTrack(activeTrack)}
-                                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-pink-500/25 flex-shrink-0 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-pink-500/25 flex-shrink-0 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                                             >
-                                                <Send className="w-4 h-4" />
-                                                <span>Share Video to Chat</span>
+                                                {isSharingTrack ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                                                <span>{isSharingTrack ? 'Sharing...' : 'Share Video to Chat'}</span>
                                             </button>
                                         )}
                                     </div>
@@ -1064,6 +1087,70 @@ export default function ChatMusicJukebox({
                     </div>
                 )}
             </div>
+
+            {/* Dedicated Fullscreen Video Overlay for In-Chat Vibe Music */}
+            {isFullscreenVideo && activeTrack && (
+                <div 
+                    className="fixed inset-0 z-[1000000] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-6 animate-in fade-in zoom-in-95 duration-200"
+                    onClick={() => toggleFullscreenVideo()}
+                >
+                    <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[1000010] flex items-center gap-2">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); toggleFullscreenVideo(); }}
+                            className="p-2 sm:p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-md transition-all border border-white/20 cursor-pointer shadow-2xl flex items-center justify-center"
+                            title="Exit Fullscreen"
+                        >
+                            <Minimize2 size={20} strokeWidth={2.5} />
+                        </button>
+                    </div>
+
+                    <div 
+                        className="w-full max-w-5xl aspect-video bg-black rounded-2xl overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.8)] border border-white/10"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {(getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')) ? (
+                            <iframe
+                                src={`https://www.youtube.com/embed/${getYoutubeId(activeTrack.videoUrl || '') || getYoutubeId(activeTrack.audioUrl || '')}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in')}&playsinline=1&rel=0`}
+                                className="w-full h-full border-0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                                allowFullScreen
+                                title={activeTrack.title}
+                            />
+                        ) : activeTrack.videoUrl ? (
+                            <video
+                                src={activeTrack.videoUrl}
+                                controls
+                                autoPlay
+                                playsInline
+                                className="w-full h-full object-contain bg-black"
+                            />
+                        ) : null}
+                    </div>
+
+                    {/* Bottom Info Bar in Fullscreen */}
+                    <div 
+                        className="w-full max-w-5xl mt-3 flex items-center justify-between text-white px-2"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="min-w-0 flex-1 pr-3">
+                            <h4 className="font-extrabold text-sm sm:text-base text-white truncate">{activeTrack.title}</h4>
+                            <p className="text-xs text-pink-400 font-bold truncate">{activeTrack.artist}</p>
+                        </div>
+                        {onShareTrackToChat && (
+                            <button
+                                onClick={() => {
+                                    toggleFullscreenVideo();
+                                    handleShareTrack(activeTrack);
+                                }}
+                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-xs flex items-center space-x-1.5 shadow-md shadow-pink-500/25 shrink-0 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                            >
+                                <Send className="w-4 h-4" />
+                                <span>Share Video to Chat</span>
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Value Exchange Rewarded Video Modal */}
             <RewardedAdModal

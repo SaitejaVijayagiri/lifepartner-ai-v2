@@ -568,10 +568,11 @@ export default function StoryCreator({ storyFiles, storyPreviewUrls, onClose, on
                                     <img
                                         key={index}
                                         src={url}
-                                        className="absolute max-w-full max-h-full object-contain transition-opacity duration-[1500ms] ease-in-out shadow-2xl"
+                                        className="absolute max-w-full max-h-full object-contain transition-opacity ease-in-out shadow-2xl"
                                         style={{ 
                                             opacity: currentSlideIndex === index ? 1 : 0,
-                                            zIndex: currentSlideIndex === index ? 10 : 1
+                                            zIndex: currentSlideIndex === index ? 10 : 1,
+                                            transitionDuration: '1500ms'
                                         }}
                                         alt={`Slide ${index}`}
                                     />

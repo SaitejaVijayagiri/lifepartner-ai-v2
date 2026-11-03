@@ -727,12 +727,30 @@ export const initSocket = (httpServer: HttpServer) => {
             if (data?.to) {
                 const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
                 io.to(data.to).emit("incognito_toggle", { ...data, from: senderId });
+                io.to(data.to).emit("disappearing_toggle", { ...data, from: senderId });
+            }
+        });
+
+        socket.on("disappearing_toggle", (data) => {
+            if (data?.to) {
+                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+                io.to(data.to).emit("disappearing_toggle", { ...data, from: senderId });
+                io.to(data.to).emit("incognito_toggle", { ...data, from: senderId });
             }
         });
 
         socket.on("incognito_vanish", (data) => {
             if (data?.to) {
                 const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+                io.to(data.to).emit("incognito_vanish", { ...data, from: senderId });
+                io.to(data.to).emit("disappearing_vanish", { ...data, from: senderId });
+            }
+        });
+
+        socket.on("disappearing_vanish", (data) => {
+            if (data?.to) {
+                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+                io.to(data.to).emit("disappearing_vanish", { ...data, from: senderId });
                 io.to(data.to).emit("incognito_vanish", { ...data, from: senderId });
             }
         });

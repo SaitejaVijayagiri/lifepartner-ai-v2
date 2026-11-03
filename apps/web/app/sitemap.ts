@@ -10,6 +10,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         '/for-women',
         '/matrimony',
         '/dating',
+        '/korean-dating',
+        '/german-dating',
+        '/international-men',
+        '/chat-with-boys',
         '/japan',
         '/korea',
         '/singapore',
@@ -45,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
-        priority: route === '' || route === '/for-women' || route === '/japan' || route === '/korea' || route === '/singapore' || route === '/thailand' || route === '/malaysia' || route === '/indonesia' || route === '/russia' || route === '/usa' || route === '/philippines' || route === '/uk' || route === '/canada' || route === '/australia' || route === '/vietnam' || route === '/brazil' || route === '/germany' || route === '/france' || route === '/uae' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
+        priority: route === '' || route === '/for-women' || route === '/chat-with-boys' || route === '/korean-dating' || route === '/german-dating' || route === '/international-men' || route === '/japan' || route === '/korea' || route === '/singapore' || route === '/thailand' || route === '/malaysia' || route === '/indonesia' || route === '/russia' || route === '/usa' || route === '/philippines' || route === '/uk' || route === '/canada' || route === '/australia' || route === '/vietnam' || route === '/brazil' || route === '/germany' || route === '/france' || route === '/uae' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
     }));
 
     // Dynamic Blog Posts (fallback to static data, try to fetch from API)
@@ -158,7 +162,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         'safe-matrimony-for-indian-women',
         'verified-nri-grooms-and-brides',
         'matrimony-app-without-subscription',
-        'career-women-matrimony-india'
+        'career-women-matrimony-india',
+        'date-handsome-korean-boys',
+        'meet-korean-oppa-singles',
+        'handsome-german-men-dating',
+        'korean-men-international-dating',
+        'german-gentlemen-matrimony',
+        'meet-handsome-international-guys',
+        'cross-cultural-dating-korea-germany',
+        'date-european-men',
+        'korean-singles-global-dating',
+        'chat-with-boys-online-free',
+        'chat-with-cute-guys-online',
+        'chat-with-handsome-men-online',
+        'safe-apps-to-chat-with-boys',
+        'talk-to-single-boys-online',
+        'chat-with-boys-without-phone-number',
+        'late-night-chat-with-guys-free',
+        'chat-with-korean-boys-free',
+        'talk-to-foreign-guys-online-free',
+        'free-audio-call-with-boys-app'
     ];
 
     const cityRoutes = ALL_LOCATIONS.map(city => ({

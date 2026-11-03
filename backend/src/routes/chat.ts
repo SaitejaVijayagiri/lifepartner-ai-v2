@@ -105,19 +105,36 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
             });
         }
 
-        // Format for frontend and restore chronological order, filtering out cleared & incognito messages
+        const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+        const now = Date.now();
+
+        // Format for frontend and restore chronological order, filtering out cleared & expired disappearing messages (>24h)
         const history = messages
             .filter((row: any) => {
-                if (row.is_incognito || (row.content && row.content.startsWith('[INCOGNITO]'))) {
-                    return false; // Exclude incognito from user-facing history, kept in DB for safety audit
-                }
                 const clearedBy = Array.isArray(row.cleared_by) ? row.cleared_by : [];
-                return !clearedBy.includes(userId);
+                if (clearedBy.includes(userId)) return false;
+
+                const isDisappearing = Boolean(row.is_incognito || (row.content && (row.content.startsWith('[INCOGNITO]') || row.content.startsWith('[DISAPPEARING]'))));
+                if (isDisappearing) {
+                    const messageDate = row.created_at ? new Date(row.created_at).getTime() : now;
+                    const messageAge = now - messageDate;
+                    if (messageAge >= TWENTY_FOUR_HOURS_MS) {
+                        return false; // Disappeared after 24 hours
+                    }
+                }
+                return true;
             })
             .reverse()
             .map((row: any) => {
                 let text = row.content || "";
                 let replyToId = row.reply_to_id || null;
+
+                const isDisappearing = Boolean(row.is_incognito || text.startsWith('[INCOGNITO]') || text.startsWith('[DISAPPEARING]'));
+                if (text.startsWith('[INCOGNITO]')) {
+                    text = text.substring('[INCOGNITO]'.length);
+                } else if (text.startsWith('[DISAPPEARING]')) {
+                    text = text.substring('[DISAPPEARING]'.length);
+                }
 
                 // Check for embedded reply ID in legacy schema mode
                 if (!replyToId && text) {
@@ -128,6 +145,9 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     }
                 }
 
+                const createdAtMs = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+                const expiresAt = isDisappearing ? (createdAtMs + TWENTY_FOUR_HOURS_MS) : undefined;
+
                 return {
                     id: row.id,
                     text: text,
@@ -136,7 +156,10 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
                     status: row.delivery_status,
                     is_liked: row.is_liked ?? false,
                     reactions: row.reactions ?? {},
-                    replyToId: replyToId
+                    replyToId: replyToId,
+                    isIncognito: isDisappearing,
+                    isDisappearing: isDisappearing,
+                    expiresAt: expiresAt
                 };
             });
 
@@ -153,7 +176,7 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
 // SEND Message
 router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params; // receiverId
-    const { text, replyToId, isIncognito } = req.body;
+    const { text, replyToId, isIncognito, isDisappearing } = req.body;
     const senderId = req.user.userId;
 
     if (!text) {
@@ -161,7 +184,9 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
     }
 
     const cleanText = sanitizeContent(text);
-    const dbContent = isIncognito ? `[INCOGNITO]${cleanText}` : cleanText;
+    const shouldDisappear = Boolean(isIncognito || isDisappearing);
+    const dbContent = shouldDisappear ? `[DISAPPEARING]${cleanText}` : cleanText;
+    const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
     try {
         // SECURITY FIX: Check block status FIRST before creating any message.
@@ -202,8 +227,9 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     timestamp: recentDuplicate.created_at,
                     status: "sent",
                     replyToId: replyToId || null,
-                    isIncognito: !!isIncognito,
-                    expiresAt: isIncognito ? (Date.now() + 30000) : undefined
+                    isIncognito: shouldDisappear,
+                    isDisappearing: shouldDisappear,
+                    expiresAt: shouldDisappear ? ((recentDuplicate.created_at ? new Date(recentDuplicate.created_at).getTime() : Date.now()) + TWENTY_FOUR_HOURS_MS) : undefined
                 }
             });
         }
@@ -218,7 +244,7 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     content: dbContent,
                     delivery_status: "sent",
                     reply_to_id: replyToId || null,
-                    is_incognito: !!isIncognito
+                    is_incognito: shouldDisappear
                 }
             });
         } catch (dbErr) {
@@ -251,8 +277,9 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             timestamp: newMessageRecord.created_at,
             status: "sent",
             replyToId: replyToId || null,
-            isIncognito: !!isIncognito,
-            expiresAt: isIncognito ? (Date.now() + 30000) : undefined
+            isIncognito: shouldDisappear,
+            isDisappearing: shouldDisappear,
+            expiresAt: shouldDisappear ? ((newMessageRecord.created_at ? new Date(newMessageRecord.created_at).getTime() : Date.now()) + TWENTY_FOUR_HOURS_MS) : undefined
         };
 
         // Auto-connect interaction so user appears in Connections list
@@ -340,8 +367,8 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             } else {
                 const { NotificationService } = require('../services/notification');
                 
-                const pushBody = isIncognito
-                    ? '🕵️ Sent an incognito message'
+                const pushBody = shouldDisappear
+                    ? '⏳ Sent a disappearing message (24h)'
                     : cleanText.startsWith('[IMAGE]')
                     ? '📷 Sent a photo'
                     : cleanText.startsWith('[VIDEO]')

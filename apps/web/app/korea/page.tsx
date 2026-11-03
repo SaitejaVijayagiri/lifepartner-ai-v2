@@ -237,6 +237,20 @@ export default function KoreaLandingPage() {
               </span>
             ))}
           </div>
+
+          {/* Cross-Cultural & Global Men Portal Link */}
+          <div className="mt-8 pt-6 border-t border-slate-200/60 dark:border-gray-700/60 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+              🌍 한국 남성을 좋아하는 전 세계 여성들과의 글로벌 소개팅을 원하시나요?
+            </span>
+            <Link
+              href="/korean-dating"
+              className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
+            >
+              <span>글로벌 코리안 데이팅 허브 바로가기</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </section>
 
         {/* FAQ Section */}

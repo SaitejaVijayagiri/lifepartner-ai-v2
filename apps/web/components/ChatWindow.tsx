@@ -6,7 +6,7 @@ import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCall } from '@/context/CallContext';
-import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2, Headphones } from 'lucide-react';
+import { Sparkles, Video, Phone, Gift, Send, X, Check, CheckCheck, SmilePlus, Trash2, Camera, Mic, Square, Image as ImageIcon, Reply, CalendarClock, MoreVertical, Maximize2, RotateCw, Sliders, Download, Zap, Music, Play, Pause, Tv, Gamepad2, HelpCircle, EyeOff, Paperclip, PlusCircle, ChevronDown, Bell, BellOff, Ban, ShieldAlert, Flag, Loader2, Headphones, Clock } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import GiftModal from './GiftModal';
 import ProfileModal from './ProfileModal';
@@ -1398,11 +1398,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     if (prev.some(m => m.id === newMsg.id)) return prev;
                     // Resolve replyToId -> replyTo object so the receiver sees the reply preview
                     let enrichedMsg = { ...newMsg };
-                    const isIncog = Boolean(newMsg.isIncognito || (typeof newMsg.text === 'string' && newMsg.text.startsWith('[INCOGNITO]')));
+                    const isIncog = Boolean(newMsg.isIncognito || newMsg.isDisappearing || (typeof newMsg.text === 'string' && (newMsg.text.startsWith('[INCOGNITO]') || newMsg.text.startsWith('[DISAPPEARING]'))));
                     if (isIncog) {
                         enrichedMsg.isIncognito = true;
                         if (!enrichedMsg.expiresAt) {
-                            enrichedMsg.expiresAt = Date.now() + 30000;
+                            enrichedMsg.expiresAt = Date.now() + 24 * 60 * 60 * 1000;
                         }
                     }
                     if (newMsg.replyToId && !newMsg.replyTo) {
@@ -1571,10 +1571,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             if (data.from === partner.id) {
                 setIsIncognito(data.enabled);
                 if (!data.enabled) {
-                    setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !(typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'))));
-                    toast.info(`🕵️ ${partnerInfo.name} disabled Incognito Mode. Incognito messages vanished!`);
+                    toast.info(`⏳ ${partnerInfo.name} turned off Disappearing Chat.`);
                 } else {
-                    toast.info(`🕵️ ${partnerInfo.name} enabled Incognito Mode (Messages auto-disappear)`);
+                    toast.info(`⏳ ${partnerInfo.name} turned on Disappearing Chat (Messages vanish after 24 hours)`);
                 }
             }
         };
@@ -1583,7 +1582,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             if (data?.messageId) {
                 setMessages(prev => prev.filter(m => m.id !== data.messageId));
             } else {
-                setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !(typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'))));
+                setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !m.isDisappearing && !(typeof m.text === 'string' && (m.text.startsWith('[INCOGNITO]') || m.text.startsWith('[DISAPPEARING]')))));
             }
         };
 
@@ -1593,7 +1592,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         socket.on("music_play_sync", handleMusicSync);
         socket.on("music_stop_sync", handleMusicStopSync);
         socket.on("incognito_toggle", handleIncognitoToggle);
+        socket.on("disappearing_toggle", handleIncognitoToggle);
         socket.on("incognito_vanish", handleIncognitoVanish);
+        socket.on("disappearing_vanish", handleIncognitoVanish);
 
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
@@ -1608,7 +1609,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             socket.off("music_play_sync", handleMusicSync);
             socket.off("music_stop_sync", handleMusicStopSync);
             socket.off("incognito_toggle", handleIncognitoToggle);
+            socket.off("disappearing_toggle", handleIncognitoToggle);
             socket.off("incognito_vanish", handleIncognitoVanish);
+            socket.off("disappearing_vanish", handleIncognitoVanish);
             if (syncedAudioRef.current) {
                 syncedAudioRef.current.pause();
                 syncedAudioRef.current = null;
@@ -1616,7 +1619,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         };
     }, [socket, partner.id, user]);
 
-    // Active 1-second interval to tick countdown and vanish expired incognito messages in real time
+    // Active 1-second interval to tick countdown and vanish expired disappearing messages in real time
     useEffect(() => {
         const interval = setInterval(() => {
             const now = Date.now();
@@ -1624,9 +1627,9 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             setMessages(prev => {
                 const expiredIds: string[] = [];
                 const remaining = prev.filter(m => {
-                    const isIncog = m.isIncognito || m.is_incognito || (typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'));
+                    const isIncog = m.isIncognito || m.is_incognito || m.isDisappearing || (typeof m.text === 'string' && (m.text.startsWith('[INCOGNITO]') || m.text.startsWith('[DISAPPEARING]')));
                     if (isIncog) {
-                        const expireAt = m.expiresAt || (m.timestamp ? new Date(m.timestamp).getTime() + 30000 : 0);
+                        const expireAt = m.expiresAt || (m.timestamp ? new Date(m.timestamp).getTime() + 24 * 60 * 60 * 1000 : 0);
                         if (expireAt > 0 && now >= expireAt) {
                             if (m.id && !m.id.toString().startsWith('temp-')) {
                                 expiredIds.push(m.id);
@@ -1639,6 +1642,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
                 if (expiredIds.length > 0 && socket && partner?.id) {
                     expiredIds.forEach(id => {
+                        socket.emit("disappearing_vanish", { to: partner.id, messageId: id });
                         socket.emit("incognito_vanish", { to: partner.id, messageId: id });
                     });
                 }
@@ -1751,7 +1755,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
         const currentReply = replyTo;
         setReplyTo(null);
 
-        const msgExpiresAt = isIncognito ? (Date.now() + 30000) : undefined;
+        const msgExpiresAt = isIncognito ? (Date.now() + 24 * 60 * 60 * 1000) : undefined;
         const tempMsg = {
             id: 'temp-' + Date.now(),
             text: textToSend,
@@ -2052,7 +2056,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 })()}
                                 {isIncognito && (
                                     <span className="px-2 py-0.5 rounded-full bg-purple-500/30 text-purple-200 text-[10px] font-extrabold border border-purple-400/50 flex items-center gap-1 animate-pulse shrink-0">
-                                        🕵️ Incognito
+                                        <Clock size={10} /> Disappearing (24h)
                                     </span>
                                 )}
                                 {isMuted && (
@@ -2097,20 +2101,20 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                 const nextState = !isIncognito;
                                 setIsIncognito(nextState);
                                 if (!nextState) {
-                                    setMessages(prev => prev.filter(m => !m.isIncognito && !m.is_incognito && !(typeof m.text === 'string' && m.text.startsWith('[INCOGNITO]'))));
-                                    toast.info("🕵️ Incognito Mode Deactivated. Incognito messages vanished!");
+                                    toast.info("⏳ Disappearing Chat turned OFF.");
                                 } else {
-                                    toast.success("🕵️ Incognito Mode Activated! Messages auto-disappear.");
+                                    toast.success("⏳ Disappearing Chat turned ON! Messages will disappear after 24 hours.");
                                 }
                                 if (socket && partner?.id) {
                                     const myId = user?.id || user?.userId || (typeof window !== 'undefined' ? localStorage.getItem('userId') : null);
+                                    socket.emit("disappearing_toggle", { to: partner.id, from: myId, enabled: nextState });
                                     socket.emit("incognito_toggle", { to: partner.id, from: myId, enabled: nextState });
                                 }
                             }}
                             className={`p-1.5 sm:p-2 rounded-xl transition-all relative group ${isIncognito ? 'bg-purple-600 text-white shadow-lg animate-pulse' : 'text-purple-200 hover:text-white hover:bg-purple-500/20'}`}
-                            title={isIncognito ? "Incognito Mode Active (Click to disable and clear secret messages)" : "Enable Incognito Mode (Disappearing Chat)"}
+                            title={isIncognito ? "Disappearing Chat Active (Messages vanish after 24 hours)" : "Turn on Disappearing Chat (Messages vanish after 24 hours)"}
                         >
-                            <EyeOff size={18} />
+                            <Clock size={18} />
                         </button>
                         <div className="relative" ref={headerMenuRef}>
                             <button
@@ -2228,12 +2232,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                 </div>
             )}
 
-            {/* Incognito Active Banner */}
+            {/* Disappearing Chat Active Banner */}
             {isIncognito && (
                 <div className="bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 text-purple-200 py-2 px-3 text-center border-b border-purple-500/40 flex items-center justify-center space-x-2 shadow-md flex-shrink-0 animate-in fade-in duration-300">
-                    <EyeOff size={15} className="text-purple-400 animate-pulse shrink-0" />
+                    <Clock size={15} className="text-purple-400 animate-pulse shrink-0" />
                     <span className="text-[11px] sm:text-xs font-bold leading-snug text-center">
-                        🕵️ Disappearing Chat Mode Active — Messages won't stay in history
+                        ⏳ Disappearing Chat Active — All new messages will disappear after 24 hours
                     </span>
                 </div>
             )}
@@ -2353,10 +2357,21 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     // Safe sender determination: Since it's a 1-on-1 chat, if they aren't the partner, they are me.
                     // This completely avoids mobile Capacitor / Safari localStorage sync bugs.
                     const isMe = msg.senderId !== partner.id;
-                    const isIncogMsg = Boolean(msg.isIncognito || msg.is_incognito || (typeof msg.text === 'string' && msg.text.startsWith('[INCOGNITO]')));
-                    const cleanMsgText = typeof msg.text === 'string' && msg.text.startsWith('[INCOGNITO]') ? msg.text.replace('[INCOGNITO]', '') : (msg.text || '');
-                    const msgExpireTime = msg.expiresAt || (msg.timestamp ? new Date(msg.timestamp).getTime() + 30000 : 0);
+                    const isIncogMsg = Boolean(msg.isIncognito || msg.is_incognito || msg.isDisappearing || (typeof msg.text === 'string' && (msg.text.startsWith('[INCOGNITO]') || msg.text.startsWith('[DISAPPEARING]'))));
+                    let cleanMsgText = typeof msg.text === 'string' ? msg.text : '';
+                    if (cleanMsgText.startsWith('[INCOGNITO]')) cleanMsgText = cleanMsgText.replace('[INCOGNITO]', '');
+                    if (cleanMsgText.startsWith('[DISAPPEARING]')) cleanMsgText = cleanMsgText.replace('[DISAPPEARING]', '');
+                    const msgExpireTime = msg.expiresAt || (msg.timestamp ? new Date(msg.timestamp).getTime() + 24 * 60 * 60 * 1000 : 0);
                     const remainingSecs = Math.max(0, Math.ceil((msgExpireTime - nowTime) / 1000));
+                    const formatRemainingTime = (secs: number) => {
+                        if (secs <= 0) return '0s';
+                        const h = Math.floor(secs / 3600);
+                        const m = Math.floor((secs % 3600) / 60);
+                        const s = secs % 60;
+                        if (h > 0) return `${h}h ${m}m`;
+                        if (m > 0) return `${m}m ${s}s`;
+                        return `${s}s`;
+                    };
 
                     const msgDate = msg.timestamp ? new Date(msg.timestamp) : new Date();
 
@@ -2483,11 +2498,11 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                                             ? 'px-4 py-3 bg-gradient-to-r from-purple-950/90 to-slate-900 border border-purple-500/50 text-purple-100 rounded-2xl shadow-[0_0_15px_rgba(168,85,247,0.25)] whitespace-pre-wrap break-words'
                                             : (isMe ? 'px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl rounded-br-md whitespace-pre-wrap break-words' : 'px-4 py-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-2xl rounded-bl-md whitespace-pre-wrap break-words'))
                                         }`}>
-                                        {/* Incognito Disappearing Countdown Banner */}
+                                        {/* Disappearing 24h Countdown Banner */}
                                         {isIncogMsg && (
                                             <div className="flex items-center gap-1.5 px-2.5 py-1 mb-2 rounded-xl bg-purple-900/60 border border-purple-400/40 text-purple-200 text-[10px] font-extrabold shadow-inner w-fit select-none">
-                                                <EyeOff size={12} className="text-purple-400 animate-pulse shrink-0" />
-                                                <span>Incognito • Vanishing in {remainingSecs}s 🔥</span>
+                                                <Clock size={12} className="text-purple-400 animate-pulse shrink-0" />
+                                                <span>Disappears in {formatRemainingTime(remainingSecs)} ⏳</span>
                                             </div>
                                         )}
                                         {/* Reply preview inside bubble — polished UI, clickable to scroll to original */}
@@ -3382,7 +3397,7 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
                     value={inputText}
                     onChange={handleInput}
                     disabled={isUploadingMedia}
-                    placeholder={isIncognito ? "🕵️ Type a secret incognito message..." : (replyTo ? `Reply to ${replyTo.senderName}...` : "Type...")}
+                    placeholder={isIncognito ? "⏳ Type a message (disappears in 24 hours)..." : (replyTo ? `Reply to ${replyTo.senderName}...` : "Type...")}
                     className={`flex-1 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none transition-all ${
                         isIncognito
                             ? 'bg-slate-900 border border-purple-500/50 text-purple-100 placeholder:text-purple-400/60 focus:ring-2 focus:ring-purple-500/30 font-medium'

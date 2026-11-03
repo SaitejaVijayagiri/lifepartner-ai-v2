@@ -204,9 +204,9 @@ export const api = {
             method: 'DELETE',
             body: JSON.stringify({ mode })
         }),
-        sendMessage: (connectionId: string, text: string, replyToId?: string, isIncognito?: boolean) => fetchAPI(`/messages/${connectionId}/send`, {
+        sendMessage: (connectionId: string, text: string, replyToId?: string, isIncognito?: boolean, isDisappearing?: boolean) => fetchAPI(`/messages/${connectionId}/send`, {
             method: 'POST',
-            body: JSON.stringify({ text, replyToId, isIncognito })
+            body: JSON.stringify({ text, replyToId, isIncognito: isIncognito || isDisappearing, isDisappearing: isIncognito || isDisappearing })
         }),
         reactToMessage: (messageId: string, emoji: string) => fetchAPI(`/messages/${messageId}/react`, {
             method: 'POST',

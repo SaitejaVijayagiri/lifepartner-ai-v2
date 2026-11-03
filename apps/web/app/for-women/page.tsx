@@ -171,10 +171,16 @@ export default function ForWomenPage() {
               <ArrowRight size={18} />
             </Link>
             <Link
+              href="/chat-with-boys"
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-pink-50 dark:bg-pink-950/40 border border-pink-300 dark:border-pink-800 text-pink-700 dark:text-pink-300 font-bold hover:bg-pink-100 dark:hover:bg-pink-900/40 transition-all text-center flex items-center justify-center gap-2"
+            >
+              <span>💬 Chat with Cute Boys Safely</span>
+            </Link>
+            <Link
               href="/login"
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-gray-800 transition-all text-center"
             >
-              Already a Member? Log In
+              Log In
             </Link>
           </div>
 

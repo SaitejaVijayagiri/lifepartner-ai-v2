@@ -235,6 +235,20 @@ export default function GermanyLandingPage() {
               </span>
             ))}
           </div>
+
+          {/* Men's International Dating Portal Link */}
+          <div className="mt-8 pt-6 border-t border-slate-200/60 dark:border-gray-700/60 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <span className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300">
+              🇩🇪 Suchen Sie als deutscher Mann nach einer seriösen internationalen Partnerin?
+            </span>
+            <Link
+              href="/german-dating"
+              className="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
+            >
+              <span>Internationale Partnersuche für Männer</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </section>
 
         {/* FAQ Section */}

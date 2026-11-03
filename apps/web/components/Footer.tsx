@@ -83,6 +83,9 @@ export default function Footer() {
                 <div>
                     <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Worldwide Matchmaking</h5>
                     <ul className="space-y-1.5">
+                        <li><Link href="/korean-dating" className="text-rose-400 font-semibold hover:text-rose-300 transition-colors">🇰🇷 Date Korean Boys (한국 싱글)</Link></li>
+                        <li><Link href="/german-dating" className="text-amber-400 font-semibold hover:text-amber-300 transition-colors">🇩🇪 German Gentlemen (Männer)</Link></li>
+                        <li><Link href="/international-men" className="text-purple-400 font-semibold hover:text-purple-300 transition-colors">🌍 Handsome Global Bachelors</Link></li>
                         <li><Link href="/japan" className="hover:text-pink-400 transition-colors">🇯🇵 Japan (日本)</Link></li>
                         <li><Link href="/korea" className="hover:text-pink-400 transition-colors">🇰🇷 Korea (한국)</Link></li>
                         <li><Link href="/singapore" className="hover:text-pink-400 transition-colors">🇸🇬 Singapore Singles</Link></li>
@@ -125,7 +128,10 @@ export default function Footer() {
                 <div>
                     <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Global & Women-First</h5>
                     <ul className="space-y-1.5">
+                        <li><Link href="/chat-with-boys" className="text-pink-400 font-bold hover:text-pink-300 transition-colors">💬 Chat with Cute Boys Safely</Link></li>
                         <li><Link href="/for-women" className="text-pink-400 hover:text-pink-300 transition-colors">Safe Dating for Women</Link></li>
+                        <li><Link href="/korean-dating" className="text-rose-400 hover:text-rose-300 transition-colors">Date Korean Boys (BTS & K-Culture)</Link></li>
+                        <li><Link href="/german-dating" className="text-amber-400 hover:text-amber-300 transition-colors">German Gentlemen Dating</Link></li>
                         <li><Link href="/dating/intent/safe-dating-app-for-women" className="hover:text-indigo-400 transition-colors">Women-First Dating App</Link></li>
                         <li><Link href="/dating/intent/global-chat-with-verified-singles" className="hover:text-indigo-400 transition-colors">Global Verified Singles</Link></li>
                         <li><Link href="/matrimony/intent/nri-matrimony-chat" className="hover:text-indigo-400 transition-colors">NRI Matrimony Chat</Link></li>

@@ -52,6 +52,11 @@ const DATING_LOCATIONS = [
 ];
 
 const DATING_INTENTS = [
+  { name: 'Date Handsome Korean Boys (BTS & K-Culture)', slug: 'date-handsome-korean-boys' },
+  { name: 'Meet Korean Oppa Singles Worldwide', slug: 'meet-korean-oppa-singles' },
+  { name: 'Handsome German Men & European Bachelors', slug: 'handsome-german-men-dating' },
+  { name: 'German Gentlemen Matrimony & Dating', slug: 'german-gentlemen-matrimony' },
+  { name: 'Meet Handsome International Guys', slug: 'meet-handsome-international-guys' },
   { name: 'Safe Dating App for Women (Anti-Creep)', slug: 'safe-dating-app-for-women' },
   { name: 'Women-First Dating App', slug: 'women-first-dating-app' },
   { name: 'Free VIP Dating for Women', slug: 'free-vip-dating-for-women' },
@@ -115,12 +120,69 @@ export default function DatingHubPage() {
               <ArrowRight size={18} />
             </Link>
             <Link
-              href="/for-women"
-              className="w-full sm:w-auto px-6 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold rounded-2xl transition-all text-center flex items-center justify-center gap-2"
+              href="/international-men"
+              className="w-full sm:w-auto px-6 py-4 bg-gradient-to-r from-purple-900/30 to-rose-900/30 border border-purple-500/30 hover:border-purple-500/60 text-purple-700 dark:text-purple-300 font-bold rounded-2xl transition-all text-center flex items-center justify-center gap-2"
             >
-              <span>👑 Women's Safety & Free VIP</span>
+              <span>✨ Meet Handsome International Men</span>
             </Link>
           </div>
+        </div>
+
+        {/* Global Bachelors Spotlight Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          <Link
+            href="/korean-dating"
+            className="p-6 rounded-3xl bg-gradient-to-br from-rose-50 to-purple-50 dark:from-rose-950/40 dark:to-purple-950/40 border border-rose-200 dark:border-rose-900 shadow-sm hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">🇰🇷</span>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-500 text-white">Trending</span>
+            </div>
+            <h3 className="text-lg font-bold group-hover:text-rose-600 transition-colors">Date Handsome Korean Men</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              Connect with charismatic Korean bachelors, K-culture singles, and Seoul professionals. 100% Free chat &amp; AI translation.
+            </p>
+            <div className="mt-4 flex items-center text-xs font-bold text-rose-600 dark:text-rose-400 gap-1">
+              <span>Explore Korean Singles</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link
+            href="/german-dating"
+            className="p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-indigo-50 dark:from-amber-950/40 dark:to-indigo-950/40 border border-amber-200 dark:border-amber-900 shadow-sm hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">🇩🇪</span>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-600 text-white">Gentlemen</span>
+            </div>
+            <h3 className="text-lg font-bold group-hover:text-amber-600 transition-colors">German Gentlemen &amp; Bachelors</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              Meet reliable, educated German men and European bachelors seeking serious international relationships.
+            </p>
+            <div className="mt-4 flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 gap-1">
+              <span>Explore German Singles</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link
+            href="/international-men"
+            className="p-6 rounded-3xl bg-gradient-to-br from-indigo-50 to-pink-50 dark:from-indigo-950/40 dark:to-pink-950/40 border border-indigo-200 dark:border-indigo-900 shadow-sm hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">🌍</span>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-600 text-white">Global Hub</span>
+            </div>
+            <h3 className="text-lg font-bold group-hover:text-indigo-600 transition-colors">Worldwide Handsome Bachelors</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+              Curated verified bachelors from Korea, Germany, Japan, France, USA &amp; 190+ countries with zero paywalls.
+            </p>
+            <div className="mt-4 flex items-center text-xs font-bold text-indigo-600 dark:text-indigo-400 gap-1">
+              <span>View All International Hubs</span>
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
         </div>
 
         {/* Feature Highlights */}

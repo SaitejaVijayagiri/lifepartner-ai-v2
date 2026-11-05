@@ -303,7 +303,8 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ toUserId, giftId, cost })
         }),
-        boostProfile: () => fetchAPI('/wallet/boost', { method: 'POST' })
+        boostProfile: () => fetchAPI('/wallet/boost', { method: 'POST' }),
+        claimSparkReward: () => fetchAPI('/wallet/spark/claim', { method: 'POST' })
     },
     ai: {
         getIcebreaker: (targetUserId: string) => fetchAPI('/ai/icebreaker', {

@@ -167,6 +167,7 @@ export default function HomeTab({
             <LiveSinglesRadar
                 matches={matches}
                 currentUserId={currentUser?.id}
+                currentUser={currentUser}
                 onViewProfile={onSelectProfile}
                 onOpenChat={openChat}
             />

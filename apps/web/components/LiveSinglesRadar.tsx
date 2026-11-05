@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { Radio, Sparkles, Send, Heart, Flame, MessageCircle, Zap } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { Radio, Sparkles, Send, Heart, Flame, MessageCircle, Zap, HelpCircle, X, ShieldCheck } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 interface LiveSinglesRadarProps {
     matches: any[];
     currentUserId?: string;
+    currentUser?: any;
     onViewProfile?: (profile: any) => void;
     onOpenChat?: (conn: any) => void;
 }
@@ -16,45 +17,115 @@ interface LiveSinglesRadarProps {
 export default function LiveSinglesRadar({
     matches = [],
     currentUserId,
+    currentUser,
     onViewProfile,
     onOpenChat
 }: LiveSinglesRadarProps) {
-    const { onlineUsers = [] } = useSocket() as any;
+    const { socket, onlineUsers = [] } = useSocket() as any;
     const toast = useToast();
     const [wavedIds, setWavedIds] = useState<Set<string>>(new Set());
+    const [fetchedOnlineMembers, setFetchedOnlineMembers] = useState<any[]>([]);
+    const [showHelpModal, setShowHelpModal] = useState(false);
 
-    // Compute online matches
+    const myId = currentUserId || currentUser?.id;
+
+    // 1. If matches prop is empty or sparse, fetch directly from /matches/online-now
+    const loadOnlineMembers = useCallback(async () => {
+        try {
+            const data: any = await api.matches.getOnlineNow();
+            if (Array.isArray(data?.onlineMembers) && data.onlineMembers.length > 0) {
+                setFetchedOnlineMembers(data.onlineMembers);
+            }
+        } catch (e) {
+            // Soft fail, will use matches prop
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!Array.isArray(matches) || matches.length < 5) {
+            loadOnlineMembers();
+        }
+    }, [matches, loadOnlineMembers]);
+
+    // 2. Real-time Socket Listener: When another active user waves at ME
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleIncomingWave = (data: any) => {
+            if (data && data.senderName) {
+                toast.success(`👋 ${data.senderName} just sent you a Live Wave! They are active right now!`);
+            }
+        };
+
+        socket.on('live_wave_received', handleIncomingWave);
+        return () => {
+            socket.off('live_wave_received', handleIncomingWave);
+        };
+    }, [socket, toast]);
+
+    // 3. Compute active singles for the radar
     const onlineMatches = useMemo(() => {
-        if (!Array.isArray(matches) || matches.length === 0) return [];
+        const pool = Array.isArray(matches) && matches.length > 0 ? matches : fetchedOnlineMembers;
+        if (!pool || pool.length === 0) return [];
 
         const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
 
-        const onlineList = matches.filter(m => {
-            if (!m || m.id === currentUserId) return false;
-            return onlineSet.has(m.id) || m.isOnline;
+        // Filter valid candidates, exclude self
+        const activeSingles = pool.filter(m => {
+            if (!m) return false;
+            const mId = m.id || m.userId || m.user_id;
+            if (myId && mId === myId) return false;
+            return onlineSet.has(mId) || m.isOnline;
         });
 
-        // If very few users are currently live in the socket, show active verified profiles so the radar is always engaging
-        if (onlineList.length < 5) {
-            const fallback = matches
-                .filter(m => m && m.id !== currentUserId && !onlineList.some(o => o.id === m.id))
-                .slice(0, 8 - onlineList.length);
-            return [...onlineList, ...fallback];
+        // If fewer than 5 currently connected to socket, fill with verified active profiles
+        if (activeSingles.length < 6) {
+            const extra = pool.filter(m => {
+                if (!m) return false;
+                const mId = m.id || m.userId || m.user_id;
+                if (myId && mId === myId) return false;
+                return !activeSingles.some(a => (a.id || a.userId) === mId);
+            }).slice(0, 8 - activeSingles.length);
+            return [...activeSingles, ...extra];
         }
 
-        return onlineList.slice(0, 12);
-    }, [matches, onlineUsers, currentUserId]);
+        return activeSingles.slice(0, 15);
+    }, [matches, fetchedOnlineMembers, onlineUsers, myId]);
 
     const handleWave = async (e: React.MouseEvent, match: any) => {
         e.stopPropagation();
-        const mId = match.id;
+        const mId = match.id || match.userId;
+        if (!mId) return;
+
+        // If already connected, open chat directly instead of sending duplicate request
+        const isConnected = Boolean(match.isConnected || match.match_status === 'connected' || match.match_status === 'accepted');
+        if (isConnected && onOpenChat) {
+            onOpenChat(match);
+            return;
+        }
+
         if (wavedIds.has(mId)) return;
 
+        // Optimistically record wave
         setWavedIds(prev => new Set(prev).add(mId));
         const name = match.name || match.full_name || 'your match';
 
-        toast.success(`👋 You sent a live wave to ${name}!`);
+        toast.success(`👋 Wave sent to ${name}! An instant interest ping was delivered.`);
 
+        // 1. Emit live real-time wave over websocket if recipient is online
+        try {
+            if (socket && socket.connected) {
+                socket.emit('live_wave', {
+                    toUserId: mId,
+                    senderName: currentUser?.full_name || currentUser?.name || 'Someone',
+                    senderPhoto: currentUser?.photoUrl || currentUser?.avatar_url || ''
+                });
+            }
+        } catch (sockErr) {
+            console.error('[LiveSinglesRadar] socket emit failed', sockErr);
+        }
+
+        // 2. Persist interest connect request to DB
         try {
             await api.interactions.sendInterest(mId);
         } catch (err) {
@@ -69,39 +140,53 @@ export default function LiveSinglesRadar({
             {/* Background glowing line */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse" />
 
+            {/* Header with Info Tooltip */}
             <div className="flex items-center justify-between mb-3 px-1">
                 <div className="flex items-center gap-2">
                     <span className="relative flex h-3 w-3">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </span>
-                    <h3 className="text-xs sm:text-sm font-black text-white tracking-wide flex items-center gap-1.5 uppercase">
+                    <h3 className="text-xs sm:text-sm font-black text-white tracking-wide flex items-center gap-2 uppercase">
                         <span>Live Radar</span>
                         <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
-                            {onlineMatches.length} Singles Active
+                            {onlineMatches.length} Singles Active Now
                         </span>
                     </h3>
                 </div>
 
-                <span className="text-[11px] text-gray-400 font-medium hidden sm:inline">
-                    Tap to wave or view profile
-                </span>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowHelpModal(true)}
+                        className="text-[11px] text-indigo-300 hover:text-white bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-2.5 py-1 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        title="What is Live Wave?"
+                    >
+                        <HelpCircle size={12} className="text-indigo-400" />
+                        <span>What is Wave?</span>
+                    </button>
+                    <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold hidden sm:inline">
+                        100% Free
+                    </span>
+                </div>
             </div>
 
             {/* Horizontal Scrollable Carousel */}
             <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 pt-1 -mx-1 px-1">
                 {onlineMatches.map((match, idx) => {
+                    const mId = match.id || match.userId || idx;
                     const pName = match.name || match.full_name || 'Member';
                     const firstName = pName.split(' ')[0];
                     const photo = match.photoUrl || (Array.isArray(match.photos) ? match.photos[0] : '') || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(pName)}`;
-                    const isWaved = wavedIds.has(match.id);
+                    const isWaved = wavedIds.has(mId);
+                    const isConnected = Boolean(match.isConnected || match.match_status === 'connected' || match.match_status === 'accepted');
                     const age = match.age || 25;
+                    const city = match.city || (typeof match.location === 'string' ? match.location.split(',')[0] : 'Nearby');
 
                     return (
                         <div
-                            key={match.id || idx}
+                            key={mId}
                             onClick={() => onViewProfile && onViewProfile(match)}
-                            className="group flex flex-col items-center shrink-0 w-20 sm:w-24 p-2 rounded-2xl bg-slate-800/60 hover:bg-indigo-950/50 border border-slate-700/60 hover:border-indigo-400/60 transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none"
+                            className="group flex flex-col items-center shrink-0 w-22 sm:w-26 p-2 rounded-2xl bg-slate-800/60 hover:bg-indigo-950/50 border border-slate-700/60 hover:border-indigo-400/60 transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none"
                         >
                             <div className="relative mb-2">
                                 <img
@@ -117,25 +202,86 @@ export default function LiveSinglesRadar({
                                 {firstName}
                             </p>
                             <p className="text-[10px] text-gray-400 text-center truncate w-full">
-                                {age} yrs
+                                {age} • {city}
                             </p>
 
                             <button
                                 type="button"
                                 onClick={(e) => handleWave(e, match)}
-                                className={`mt-2 w-full py-1 rounded-xl text-[10px] font-black tracking-tight transition-all active:scale-90 flex items-center justify-center gap-1 ${
-                                    isWaved
-                                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                        : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm hover:shadow-indigo-500/25'
+                                className={`mt-2 w-full py-1.5 rounded-xl text-[10px] font-black tracking-tight transition-all active:scale-90 flex items-center justify-center gap-1 cursor-pointer ${
+                                    isConnected
+                                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm'
+                                        : isWaved
+                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm hover:shadow-indigo-500/25'
                                 }`}
                             >
-                                <span>{isWaved ? 'Waved' : 'Wave'}</span>
-                                <span>{isWaved ? '✨' : '👋'}</span>
+                                <span>{isConnected ? 'Chat' : isWaved ? 'Waved' : 'Wave'}</span>
+                                <span>{isConnected ? '💬' : isWaved ? '✨' : '👋'}</span>
                             </button>
                         </div>
                     );
                 })}
             </div>
+
+            {/* Helper Info Modal explaining "What is Wave?" */}
+            {showHelpModal && (
+                <div 
+                    onClick={() => setShowHelpModal(false)}
+                    className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+                >
+                    <div 
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-gray-900 border border-indigo-500/40 rounded-3xl p-5 sm:p-6 max-w-sm w-full text-white shadow-2xl space-y-4"
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg">
+                                    👋
+                                </div>
+                                <h4 className="font-black text-base">What is Live Wave?</h4>
+                            </div>
+                            <button
+                                onClick={() => setShowHelpModal(false)}
+                                className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3 text-xs text-gray-300">
+                            <div className="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 space-y-1">
+                                <p className="font-bold text-white flex items-center gap-1.5">
+                                    <span>⚡ Instant & 100% Free:</span>
+                                </p>
+                                <p>
+                                    When you see someone active on Live Radar, tapping <strong>Wave 👋</strong> sends them an immediate notification that you are online right now and interested in connecting.
+                                </p>
+                            </div>
+
+                            <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 space-y-1">
+                                <p className="font-bold text-white flex items-center gap-1.5">
+                                    <span>💖 No awkward first lines:</span>
+                                </p>
+                                <p>
+                                    Wave breaks the ice with zero pressure. When they wave back or accept your interest, a mutual connection opens so you can chat in real time!
+                                </p>
+                            </div>
+
+                            <p className="text-[11px] text-emerald-400 font-semibold text-center">
+                                ✓ Waving never spends coins — it is always completely free!
+                            </p>
+                        </div>
+
+                        <button
+                            onClick={() => setShowHelpModal(false)}
+                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-md cursor-pointer"
+                        >
+                            Got It!
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -389,6 +389,24 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
+        // Live Singles Radar - Real-Time Wave Interaction
+        socket.on('live_wave', (data: { toUserId: string; senderName?: string; senderPhoto?: string }) => {
+            const senderId = getUserId();
+            if (!data?.toUserId || !senderId) return;
+
+            const targetSockets = userSockets.get(data.toUserId);
+            if (targetSockets && targetSockets.size > 0) {
+                targetSockets.forEach(sockId => {
+                    io.to(sockId).emit('live_wave_received', {
+                        fromUserId: senderId,
+                        senderName: data.senderName || 'A member',
+                        senderPhoto: data.senderPhoto,
+                        timestamp: Date.now()
+                    });
+                });
+            }
+        });
+
         socket.on('checkPendingCall', () => {
             const currentUserId = socket.data.user?.userId || socket.data.trackedUserId || userId;
             if (currentUserId) {

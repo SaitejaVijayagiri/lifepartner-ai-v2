@@ -149,6 +149,13 @@ export default function DailyChemistrySpark({
                 });
             }
 
+            // Persist to backend wallet and sync balance
+            api.wallet.claimSparkReward().then((res: any) => {
+                if (res?.newBalance !== undefined && setCurrentUser) {
+                    setCurrentUser((prev: any) => prev ? { ...prev, coins: res.newBalance } : prev);
+                }
+            }).catch(() => {});
+
             toast.success("🎉 +15 Daily Spark Coins awarded! Vibe Tribe unlocked!");
         } catch (e) {
             console.error("Failed to persist spark vote", e);

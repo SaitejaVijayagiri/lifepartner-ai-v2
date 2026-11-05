@@ -313,4 +313,66 @@ router.post('/streak/claim', authenticateToken, async (req: any, res) => {
     }
 });
 
+/**
+ * POST /api/wallet/spark/claim
+ * Claims daily chemistry spark reward (+15 coins)
+ */
+router.post('/spark/claim', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const profile = await prisma.profiles.findUnique({
+            where: { user_id: userId },
+            select: { metadata: true }
+        });
+
+        const meta: any = profile?.metadata || {};
+        if (meta.last_spark_claimed_date === todayStr) {
+            return res.json({ success: true, alreadyClaimed: true, message: "Today's spark reward already claimed" });
+        }
+
+        const SPARK_COINS = 15;
+        await prisma.$transaction(async (tx) => {
+            await tx.users.update({
+                where: { id: userId },
+                data: { coins: { increment: SPARK_COINS } }
+            });
+
+            const updatedMeta = { ...meta, last_spark_claimed_date: todayStr };
+            await tx.profiles.upsert({
+                where: { user_id: userId },
+                create: { user_id: userId, metadata: updatedMeta },
+                update: { metadata: updatedMeta }
+            });
+
+            await tx.transactions.create({
+                data: {
+                    user_id: userId,
+                    type: 'REWARD',
+                    amount: SPARK_COINS,
+                    currency: 'COINS',
+                    description: 'Daily Chemistry Spark Reward',
+                    status: 'SUCCESS'
+                }
+            });
+        });
+
+        const updatedUser = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { coins: true }
+        });
+
+        return res.json({
+            success: true,
+            coinsAwarded: SPARK_COINS,
+            newBalance: updatedUser?.coins || 0,
+            message: `🎉 +${SPARK_COINS} coins added to your wallet!`
+        });
+    } catch (e: any) {
+        console.error('Failed to claim spark reward', e);
+        return res.status(500).json({ error: 'Failed to claim daily spark reward' });
+    }
+});
+
 export default router;

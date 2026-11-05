@@ -2279,6 +2279,7 @@ function DashboardContent() {
                         name: selectedConnection.name || 'User',
                         photoUrl: selectedConnection.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedConnection.id}`,
                     }}
+                    initialMessage={selectedConnection.initialMessage}
                     onClose={closeChat}
                     onVideoCall={() => startCall(selectedConnection.partner || selectedConnection, 'video', selectedConnection.interactionId)}
                     onAudioCall={() => startCall(selectedConnection.partner || selectedConnection, 'audio', selectedConnection.interactionId)}

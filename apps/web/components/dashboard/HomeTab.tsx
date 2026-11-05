@@ -13,6 +13,10 @@ import { api } from '@/lib/api';
 
 import MatchCard from '@/components/MatchCard';
 const AnonymousStrangerChat = dynamic(() => import('@/components/AnonymousStrangerChat'), { ssr: false });
+const DailyChemistrySpark = dynamic(() => import('@/components/DailyChemistrySpark'), { ssr: false });
+const LiveSinglesRadar = dynamic(() => import('@/components/LiveSinglesRadar'), { ssr: false });
+const AISoulmateSpotlight = dynamic(() => import('@/components/AISoulmateSpotlight'), { ssr: false });
+const CompatibilityModal = dynamic(() => import('@/components/CompatibilityModal'), { ssr: false });
 
 interface HomeTabProps {
     currentUser: any;
@@ -49,6 +53,7 @@ export default function HomeTab({
     const [showShareModal, setShowShareModal] = React.useState(false);
     const [showNoConnectionsModal, setShowNoConnectionsModal] = React.useState(false);
     const [isSendingShare, setIsSendingShare] = React.useState(false);
+    const [compatibilityModalData, setCompatibilityModalData] = React.useState<{ id: string; name: string; photoUrl?: string } | null>(null);
     const toast = useToast();
 
     const topMatches = (Array.isArray(matches) ? matches : []).slice(0, 4);
@@ -140,6 +145,31 @@ export default function HomeTab({
                     </div>
                 </div>
             </div>
+
+            {/* Daily Chemistry Spark (Interactive Vibe Duel & Instant Spark Coins) */}
+            <DailyChemistrySpark
+                currentUser={currentUser}
+                setCurrentUser={setCurrentUser}
+                matches={matches}
+                onOpenChat={openChat}
+                onViewProfile={onSelectProfile}
+            />
+
+            {/* AI Soulmate Spotlight (Groundbreaking Multi-Dimensional Match Recommendation) */}
+            <AISoulmateSpotlight
+                currentUser={currentUser}
+                onViewProfile={onSelectProfile}
+                onOpenChat={openChat}
+                onOpenCompatibility={(id, name, photoUrl) => setCompatibilityModalData({ id, name, photoUrl })}
+            />
+
+            {/* Live Singles Radar */}
+            <LiveSinglesRadar
+                matches={matches}
+                currentUserId={currentUser?.id}
+                onViewProfile={onSelectProfile}
+                onOpenChat={openChat}
+            />
 
             {/* Music & Video Vibe Jukebox Featured Banner */}
             <div 
@@ -660,6 +690,16 @@ export default function HomeTab({
                         </div>
                     </div>
                 </div>
+            )}
+            {compatibilityModalData && (
+                <CompatibilityModal
+                    isOpen={Boolean(compatibilityModalData)}
+                    onClose={() => setCompatibilityModalData(null)}
+                    targetUserId={compatibilityModalData.id}
+                    targetName={compatibilityModalData.name}
+                    targetPhotoUrl={compatibilityModalData.photoUrl}
+                    onOpenChat={openChat}
+                />
             )}
         </div>
     );

@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import axios from 'axios';
 import { guruResponse, FALLBACK_RESPONSES, personalize, pickRandom } from '../services/guruEngine';
+import { AIMatchEngine } from '../services/aiMatchEngine';
 
 const router = express.Router();
 
@@ -472,13 +473,20 @@ IMPORTANT: 'score' MUST be an integer between 0 and 100. DO NOT use markdown wra
             }
         }
 
+        // Compute grounded multi-dimensional AI match metrics
+        const engineAnalysis = AIMatchEngine.computeMatch(userA, userB);
+
         if (!compatibilityText) {
-             // Hardcoded fallback if AI completely fails
              return res.json({
-                 score: 75,
-                 strengths: ["Great foundation of shared values.", "Both are looking for a serious commitment."],
-                 challenges: ["Communication styles might differ slightly.", "Patience will be key early on."],
-                 verdict: "The stars see potential, but true connection is built through conversation. Send them a message!"
+                 score: engineAnalysis.score,
+                 dimensions: engineAnalysis.dimensions,
+                 strengths: engineAnalysis.strengths,
+                 challenges: [
+                     engineAnalysis.growthTip,
+                     "Align on communication styles and daily routines as you get to know each other."
+                 ],
+                 verdict: `You and ${(userB.full_name || 'your match').split(' ')[0]} share a ${engineAnalysis.score}% overall alignment with exceptional ${engineAnalysis.reasons[0] || 'harmony'}.`,
+                 icebreaker: engineAnalysis.icebreaker
              });
         }
 
@@ -487,7 +495,11 @@ IMPORTANT: 'score' MUST be an integer between 0 and 100. DO NOT use markdown wra
         
         res.json({
             ...parsed,
-            score: typeof parsed.score === 'string' ? parseInt(parsed.score, 10) || 50 : (parsed.score || 50)
+            score: typeof parsed.score === 'string' ? parseInt(parsed.score, 10) || engineAnalysis.score : (parsed.score || engineAnalysis.score),
+            dimensions: engineAnalysis.dimensions,
+            icebreaker: engineAnalysis.icebreaker,
+            strengths: Array.isArray(parsed.strengths) && parsed.strengths.length > 0 ? parsed.strengths : engineAnalysis.strengths,
+            challenges: Array.isArray(parsed.challenges) && parsed.challenges.length > 0 ? parsed.challenges : [engineAnalysis.growthTip]
         });
 
     } catch (error: any) {

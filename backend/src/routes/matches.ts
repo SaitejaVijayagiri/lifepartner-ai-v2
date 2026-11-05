@@ -7,6 +7,7 @@ import { AstrologyService } from '../services/astrology';
 import { isUserOnline, getOnlineUserIds } from '../socket';
 import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
 import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
+import { AIMatchEngine } from '../services/aiMatchEngine';
 
 const router = express.Router();
 const astrologyService = new AstrologyService();
@@ -519,6 +520,106 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
     }
 });
 
+// GET /matches/ai-perfect-match
+// Calculates and surfaces the #1 Perfect Soulmate for the user using AIMatchEngine
+router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+
+        const me = await prisma.users.findUnique({
+            where: { id: userId },
+            include: { profiles: true }
+        });
+
+        if (!me) return res.status(404).json({ error: "User not found" });
+
+        const myGender = (me.gender || "").trim().toLowerCase();
+        const targetGender = myGender === 'male' ? ['Female', 'female'] : (myGender === 'female' ? ['Male', 'male'] : undefined);
+
+        // Fetch top verified candidate profiles
+        const candidates = await prisma.users.findMany({
+            where: {
+                id: { not: userId },
+                is_verified: true,
+                is_banned: false,
+                age: { gte: 18 },
+                full_name: { not: null },
+                ...(targetGender ? { gender: { in: targetGender } } : {}),
+                AND: [
+                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                ]
+            },
+            include: {
+                profiles: true,
+                _count: {
+                    select: {
+                        matches_matches_user_b_idTousers: { where: { is_liked: true } }
+                    }
+                }
+            },
+            take: 60
+        });
+
+        if (candidates.length === 0) {
+            return res.json({ perfectMatch: null });
+        }
+
+        // Score all candidates using AIMatchEngine and select the highest score
+        let bestCandidate: any = null;
+        let bestAnalysis: any = null;
+        let highestScore = -1;
+
+        for (const candidate of candidates) {
+            const analysis = AIMatchEngine.computeMatch(me, candidate);
+            let total = analysis.score;
+            if (candidate.avatar_url && !candidate.avatar_url.includes('dicebear')) {
+                total += 4;
+            }
+            if (total > highestScore) {
+                highestScore = total;
+                bestCandidate = candidate;
+                bestAnalysis = analysis;
+            }
+        }
+
+        if (!bestCandidate || !bestAnalysis) {
+            return res.json({ perfectMatch: null });
+        }
+
+        const meta = (bestCandidate.profiles?.metadata as any) || {};
+        const rawPhotos = extractPhotosList(bestCandidate.profiles, meta, bestCandidate.avatar_url);
+        const finalPhotos = rawPhotos.map((p: string) => sanitizePhotoUrl(p, bestCandidate.full_name || bestCandidate.id)).filter(Boolean);
+        const mainPhoto = finalPhotos[0] || sanitizePhotoUrl(bestCandidate.avatar_url, bestCandidate.full_name || bestCandidate.id);
+
+        const locParts = [meta.location?.city || bestCandidate.city, meta.location?.state || bestCandidate.state].filter(Boolean);
+        const locationStr = locParts.length > 0 ? locParts.join(', ') : 'Verified Member';
+
+        return res.json({
+            perfectMatch: {
+                id: bestCandidate.id,
+                name: bestCandidate.full_name || 'Soulmate',
+                age: bestCandidate.age,
+                location: locationStr,
+                profession: meta.career?.profession || 'Professional',
+                education: meta.career?.educationLevel || meta.career?.education || '',
+                photoUrl: mainPhoto,
+                photos: finalPhotos,
+                bio: bestCandidate.profiles?.raw_prompt || meta.bio || meta.aboutMe || '',
+                aiScore: Math.min(99, highestScore),
+                dimensions: bestAnalysis.dimensions,
+                matchReasons: bestAnalysis.reasons,
+                strengths: bestAnalysis.strengths,
+                growthTip: bestAnalysis.growthTip,
+                icebreaker: bestAnalysis.icebreaker,
+                isOnline: isUserOnline(bestCandidate.id)
+            }
+        });
+    } catch (err: any) {
+        console.error("[ai-perfect-match] Error:", err);
+        return res.status(500).json({ error: "Failed to compute perfect AI match" });
+    }
+});
+
 router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -728,8 +829,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         const matches = await Promise.all(shuffledCandidates.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
-            let score = 50;
-            let reasons: string[] = [];
+            const aiEngineResult = AIMatchEngine.computeMatch(me, c);
+            let score = aiEngineResult.score;
+            let reasons: string[] = [...aiEngineResult.reasons];
 
             // 4. Smart AI Narrative Generator (Local Logic)
 
@@ -922,12 +1024,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 badgeLevel: completeness.badgeLevel,
                 isWorldwide: isNonIndia,
                 score: Math.max(1, Math.min(99, score)), // floor at 1 so they still appear
-                match_reasons: reasons,
+                match_reasons: Array.from(new Set(reasons)),
                 analysis: {
-                    // id is UUID, can't mod easily. use random.
-                    emotional: 75 + Math.floor(Math.random() * 20),
-                    vision: 80 + Math.floor(Math.random() * 15)
+                    emotional: aiEngineResult.dimensions.personality,
+                    vision: aiEngineResult.dimensions.values,
+                    lifestyle: aiEngineResult.dimensions.lifestyle,
+                    cosmic: aiEngineResult.dimensions.cosmic,
+                    overall: aiEngineResult.dimensions.overall
                 },
+                ai_icebreaker: aiEngineResult.icebreaker,
+                ai_strengths: aiEngineResult.strengths,
+                ai_growth_tip: aiEngineResult.growthTip,
                 summary: generateSmartSummary(
                     Math.min(99, (c.avatar_url && !c.avatar_url.startsWith('data:') && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
                     reasons,

@@ -151,16 +151,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         }
     }, [currentPhotoIndex, photos, isInViewport]);
 
-    // Auto-Slide Effect (3s interval, pause on hover or when out of viewport)
-    useEffect(() => {
-        if (photos.length <= 1 || isHovered || !isInViewport) return;
-
-        const interval = setInterval(() => {
-            setCurrentPhotoIndex((prev: number) => (prev + 1) % photos.length);
-        }, 3000);
-
-        return () => clearInterval(interval);
-    }, [photos.length, isHovered, isInViewport]);
+    // User-controlled photo navigation (zero background timers for smooth 60-120fps scrolling)
 
     // 1. Handle "Send Interest" (Primary Action)
     const handleConnect = async (e: React.MouseEvent) => {

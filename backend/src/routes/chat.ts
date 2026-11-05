@@ -183,7 +183,19 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         return res.status(400).json({ error: "Missing text" });
     }
 
-    const cleanText = sanitizeContent(text);
+    // Check if sender has premium status (allows sharing contacts)
+    let isPremium = false;
+    try {
+        const sender = await prisma.users.findUnique({
+            where: { id: senderId },
+            select: { is_premium: true }
+        });
+        isPremium = Boolean(sender?.is_premium);
+    } catch (e) {
+        // Fallback default
+    }
+
+    const cleanText = sanitizeContent(text, { isPremium });
     const shouldDisappear = Boolean(isIncognito || isDisappearing);
     const dbContent = shouldDisappear ? `[DISAPPEARING]${cleanText}` : cleanText;
     const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;

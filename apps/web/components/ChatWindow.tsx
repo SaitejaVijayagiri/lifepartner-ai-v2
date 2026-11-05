@@ -27,6 +27,7 @@ interface ChatWindowProps {
         photoUrl: string;
         role?: string;
     };
+    initialMessage?: string;
     onClose?: () => void;
     onVideoCall?: () => void;
     onAudioCall?: () => void;
@@ -659,7 +660,7 @@ const YoutubeEmbedCard = ({ videoId, onFullscreen }: { videoId: string, onFullsc
     );
 };
 
-export default function ChatWindow({ connectionId, partner, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
+export default function ChatWindow({ connectionId, partner, initialMessage, onClose, onVideoCall, onAudioCall, className, isCallMode = false, onMessagesRead, onMessageSent }: ChatWindowProps) {
     const { socket, onlineUsers } = useSocket() as any;
     const { user, login, updateUser } = useAuth() as any;
     const { startCall } = useCall();
@@ -766,8 +767,14 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
 
     const [messages, setMessages] = useState<any[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(true);
-    const [inputText, setInputText] = useState("");
+    const [inputText, setInputText] = useState(initialMessage || "");
     const [isTyping, setIsTyping] = useState(false);
+
+    useEffect(() => {
+        if (initialMessage) {
+            setInputText(initialMessage);
+        }
+    }, [initialMessage]);
     const [fullscreenMedia, setFullscreenMedia] = useState<{ 
         url: string; 
         type: 'image' | 'video'; 
@@ -1747,8 +1754,12 @@ export default function ChatWindow({ connectionId, partner, onClose, onVideoCall
             setAiSuggestions([]);
         }
 
-        if (isSendingMessageRef.current && !forcedText) return;
+        if (isSendingMessageRef.current) return;
         isSendingMessageRef.current = true;
+
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+            try { navigator.vibrate(12); } catch (e) {}
+        }
 
         if (!forcedText) setInputText("");
 

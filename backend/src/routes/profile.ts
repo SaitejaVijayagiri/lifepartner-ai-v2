@@ -778,7 +778,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         // Fetch user's existing gender and avatar to enforce read-only protection & preserve avatars
         const existingUser = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true, avatar_url: true, full_name: true, phone: true }
+            select: { gender: true, avatar_url: true, full_name: true, phone: true, is_premium: true }
         });
 
         // ...
@@ -877,18 +877,19 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         }
 
         // Separate: aboutMe → raw_prompt (personal bio), expectations/prompt → metadata.expectations
-        const cleanBio = sanitizeContent(aboutMe || '');
-        const cleanExpectations = sanitizeContent(expectations || prompt || '');
+        const isUserPremium = Boolean(existingUser?.is_premium);
+        const cleanBio = sanitizeContent(aboutMe || '', { isPremium: isUserPremium });
+        const cleanExpectations = sanitizeContent(expectations || prompt || '', { isPremium: isUserPremium });
         // Legacy: if only prompt is provided but no bio, fallback for compatibility
         const finalBio = cleanBio || (aboutMe === undefined ? cleanExpectations : '');
         const cleanPrompt = finalBio;
         if (career) {
-            career.profession = sanitizeContent(career.profession || '');
+            career.profession = typeof career.profession === 'string' ? career.profession.trim() : (career.profession || '');
             if (career.education && !career.educationLevel) {
                 career.educationLevel = career.education;
             }
         }
-        if (location) location.city = sanitizeContent(location.city || '');
+        if (location) location.city = typeof location.city === 'string' ? location.city.trim() : (location.city || '');
 
         // Normalize lifestyle habits and synchronize hobbies
         if (lifestyle) {

@@ -37,7 +37,7 @@ const EDUCATION = ['High School', 'Bachelor\'s', 'Master\'s', 'PhD', 'Profession
 const MARITAL_STATUS = ['Single', 'Married', 'Divorced', 'Widowed', 'Awaiting Divorce'];
 
 const DEFAULT_FILTERS: FilterState = {
-    ageRange: [21, 45],
+    ageRange: [18, 55],
     heightRange: [54, 78], // 4'6" to 6'6"
     religions: [],
     diet: null,

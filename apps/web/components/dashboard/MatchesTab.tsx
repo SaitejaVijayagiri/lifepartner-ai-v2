@@ -26,6 +26,10 @@ const StoryModal = dynamic(() => import('@/components/StoryModal'));
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
 const LiveEventBanner = dynamic(() => import('@/components/LiveEventBanner'), { ssr: false });
 const HostSpeedDateModal = dynamic(() => import('@/components/HostSpeedDateModal'), { ssr: false });
+const DailyChemistrySpark = dynamic(() => import('@/components/DailyChemistrySpark'), { ssr: false });
+const LiveSinglesRadar = dynamic(() => import('@/components/LiveSinglesRadar'), { ssr: false });
+const AISoulmateSpotlight = dynamic(() => import('@/components/AISoulmateSpotlight'), { ssr: false });
+const CompatibilityModal = dynamic(() => import('@/components/CompatibilityModal'), { ssr: false });
 
 interface MatchesTabProps {
     currentUser: any;
@@ -77,6 +81,7 @@ export default function MatchesTab({
     const [aiFilters, setAiFilters] = useState<any>(null);
     const [showHostModal, setShowHostModal] = useState(false);
     const [showHighlightsOnly, setShowHighlightsOnly] = useState(false);
+    const [compatibilityModalData, setCompatibilityModalData] = useState<{ id: string; name: string; photoUrl?: string } | null>(null);
 
     /* Story State */
     const [activeStorySet, setActiveStorySet] = useState<any>(null);
@@ -502,83 +507,30 @@ export default function MatchesTab({
 
     return (
         <div className="w-full space-y-6">
-            {/* Dedicated Online Now Horizontal Bar (directly below Instants bar) */}
-            {onlineMatchesList.length > 0 && (
-                <div className="p-4 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-slate-900/40 border border-emerald-200 dark:border-emerald-500/30 backdrop-blur-md shadow-xl">
-                    <div className="flex items-center justify-between mb-3 px-1">
-                        <div className="flex items-center space-x-2">
-                            <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                            </span>
-                            <h3 className="font-black text-xs sm:text-sm tracking-wide uppercase text-emerald-800 dark:text-emerald-400">
-                                Active Members Online Now ({onlineMatchesList.length})
-                            </h3>
-                        </div>
-                        <button
-                            onClick={() => setShowOnlineOnly(!showOnlineOnly)}
-                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 underline"
-                        >
-                            {showOnlineOnly ? 'Show All Matches' : 'Filter Feed to Online Only →'}
-                        </button>
-                    </div>
+            {/* 1. Daily Chemistry Spark (Interactive Vibe Duel & Instant Spark Coins) */}
+            <DailyChemistrySpark
+                currentUser={currentUser}
+                setCurrentUser={setCurrentUser}
+                matches={matches}
+                onOpenChat={openChat}
+                onViewProfile={setSelectedProfile}
+            />
 
-                    <div className="flex items-center space-x-4 overflow-x-auto no-scrollbar py-1 px-1">
-                        {onlineMatchesList.map((member: any, mIdx: number) => {
-                            if (!member) return null;
-                            const photo = member.photoUrl || member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id || mIdx}`;
+            {/* AI Soulmate Spotlight (Groundbreaking Multi-Dimensional Match Recommendation) */}
+            <AISoulmateSpotlight
+                currentUser={currentUser}
+                onViewProfile={setSelectedProfile}
+                onOpenChat={openChat}
+                onOpenCompatibility={(id, name, photoUrl) => setCompatibilityModalData({ id, name, photoUrl })}
+            />
 
-                            return (
-                                <div
-                                    key={member.id ? `online-${member.id}-${mIdx}` : `online-${mIdx}`}
-                                    className="flex flex-col items-center space-y-1.5 flex-shrink-0 group cursor-pointer"
-                                    onClick={() => setSelectedProfile(member)}
-                                >
-                                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-emerald-400 via-teal-500 to-green-400 shadow-lg group-hover:scale-105 transition-transform">
-                                        <img
-                                            src={photo}
-                                            alt={member.name || 'Member'}
-                                            className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 bg-white dark:bg-slate-800"
-                                        />
-                                        {/* Glowing Green Online Badge */}
-                                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-md">
-                                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                        </span>
-                                    </div>
-
-                                    <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 max-w-[70px] truncate text-center">
-                                        {(member.name || 'Member').split(' ')[0]}
-                                    </span>
-
-                                    {/* Instant Message Button */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            const conn = (Array.isArray(connections) ? connections : []).find((c: any) => c?.partner?.id === member.id);
-                                            if (conn) {
-                                                openChat(conn);
-                                            } else {
-                                                openChat({
-                                                    interactionId: member.id,
-                                                    partner: {
-                                                        id: member.id,
-                                                        name: member.name || 'Member',
-                                                        photoUrl: photo,
-                                                        role: 'Online'
-                                                    }
-                                                });
-                                            }
-                                        }}
-                                        className="px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-slate-950 font-black text-[10px] shadow-md transition-all active:scale-95 flex items-center space-x-1"
-                                    >
-                                        <span>💬 Instant Msg</span>
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+            {/* 2. Live Singles Radar (Pulse Reel & Quick Wave) */}
+            <LiveSinglesRadar
+                matches={matches}
+                currentUserId={currentUser?.id}
+                onViewProfile={setSelectedProfile}
+                onOpenChat={openChat}
+            />
 
             {/* AI Matchmaker Search & Filters Bar */}
             <div className="relative bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-white/50 dark:border-gray-800/50 space-y-3.5 overflow-hidden">
@@ -1005,7 +957,7 @@ export default function MatchesTab({
                             key={match.id ? `${match.id}-${idx}` : `match-${idx}`}
                             id={match.id ? `match-card-${match.id}` : `match-card-${idx}`}
                             data-match-id={match.id}
-                            className="animate-in fade-in slide-in-from-bottom-8 duration-700 h-full card-premium transition-all duration-300"
+                            className="animate-in fade-in slide-in-from-bottom-8 duration-500 h-full card-premium virtualized-card transition-all duration-300"
                             style={{ animationDelay: `${Math.min(idx, 15) * 50}ms` }}
                         >
                             <MatchCard
@@ -1200,6 +1152,16 @@ export default function MatchesTab({
                             toast.success('🎉 Your Live Speed Dating event is now LIVE!');
                         }
                     }}
+                />
+            )}
+            {compatibilityModalData && (
+                <CompatibilityModal
+                    isOpen={Boolean(compatibilityModalData)}
+                    onClose={() => setCompatibilityModalData(null)}
+                    targetUserId={compatibilityModalData.id}
+                    targetName={compatibilityModalData.name}
+                    targetPhotoUrl={compatibilityModalData.photoUrl}
+                    onOpenChat={openChat}
                 />
             )}
         </div>

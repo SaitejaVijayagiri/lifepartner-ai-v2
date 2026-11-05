@@ -104,13 +104,22 @@ html, body {
     box-shadow: 0 0 30px rgba(99, 102, 241, 0.4), 0 0 60px rgba(99, 102, 241, 0.2);
   }
 
-  /* Premium Card Hover */
+  /* Premium Card Hover & GPU-Accelerated Smooth Performance */
   .card-premium {
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
   .card-premium:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 25px rgba(99, 102, 241, 0.15);
+    transform: translateY(-5px) translateZ(0);
+    box-shadow: 0 18px 36px -10px rgba(0, 0, 0, 0.12), 0 0 24px rgba(99, 102, 241, 0.14);
+  }
+
+  /* Virtualized Card Layout for Butter-Smooth 60-120fps Scrolling */
+  .virtualized-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 520px;
   }
 
   /* Skeleton Shimmer Animation */

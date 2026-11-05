@@ -52,9 +52,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     const { onlineUsers } = useSocket();
     const { user: currentUser, setUser } = useAuth() as any;
     const matchTargetId = match?.id || match?.userId || (match as any)?.user_id;
-    const isUserOnline = Array.isArray(onlineUsers) && matchTargetId
-        ? onlineUsers.includes(matchTargetId)
-        : Boolean(match?.isOnline);
+    const isUserOnline = Boolean(matchTargetId && Array.isArray(onlineUsers) && onlineUsers.includes(matchTargetId));
 
     const [matchStatus, setMatchStatus] = useState<string | null>(match?.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match?.is_liked || false);

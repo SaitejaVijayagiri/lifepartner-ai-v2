@@ -43,9 +43,7 @@ export default function ConnectionsTab({
 
     const isConnOnline = (c: any) => {
         if (!c || !c.partner || !c.partner.id) return false;
-        return Array.isArray(onlineUsers)
-            ? onlineUsers.includes(c.partner.id)
-            : Boolean(c.partner.isOnline);
+        return Array.isArray(onlineUsers) && onlineUsers.includes(c.partner.id);
     };
 
     // Sort connections so online users appear at the top, preserving recent-message order within groups

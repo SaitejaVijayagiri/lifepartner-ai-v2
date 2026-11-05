@@ -416,7 +416,7 @@ export default function MatchesTab({
 
         if (showOnlineOnly) {
             const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
-            filtered = filtered.filter(m => m && (onlineSet.size > 0 ? onlineSet.has(m.id) : Boolean(m.isOnline)));
+            filtered = filtered.filter(m => Boolean(m?.id && onlineSet.has(m.id)));
         }
 
         if (showWorldwideOnly) {
@@ -469,8 +469,8 @@ export default function MatchesTab({
             if (tierA !== tierB) return tierB - tierA; // Higher photo tier strictly first
 
             // 2. Live Online Priority within the same photo tier
-            const isOnlineA = onlineSet.size > 0 ? (a?.id && onlineSet.has(a.id)) : Boolean(a?.isOnline);
-            const isOnlineB = onlineSet.size > 0 ? (b?.id && onlineSet.has(b.id)) : Boolean(b?.isOnline);
+            const isOnlineA = Boolean(a?.id && onlineSet.has(a.id));
+            const isOnlineB = Boolean(b?.id && onlineSet.has(b.id));
             if (isOnlineA && !isOnlineB) return -1;
             if (!isOnlineA && isOnlineB) return 1;
 

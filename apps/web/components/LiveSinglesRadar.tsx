@@ -152,7 +152,7 @@ export default function LiveSinglesRadar({
     if (onlineMatches.length === 0) return null;
 
     return (
-        <div className="relative rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 p-4 sm:p-5 shadow-xl overflow-hidden backdrop-blur-md">
+        <div className="relative rounded-3xl bg-gradient-to-r from-indigo-50/95 via-purple-50/90 to-slate-50/95 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 border border-indigo-200/80 dark:border-indigo-500/30 p-4 sm:p-5 shadow-xl overflow-hidden backdrop-blur-md">
             {/* Background glowing line */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-pulse" />
 
@@ -163,9 +163,9 @@ export default function LiveSinglesRadar({
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </span>
-                    <h3 className="text-xs sm:text-sm font-black text-white tracking-wide flex items-center gap-2 uppercase">
+                    <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white tracking-wide flex items-center gap-2 uppercase">
                         <span>Live Radar</span>
-                        <span className="text-[10px] text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+                        <span className="text-[10px] text-emerald-800 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/30">
                             {onlineMatches.length} Singles Active Now
                         </span>
                     </h3>
@@ -174,13 +174,13 @@ export default function LiveSinglesRadar({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setShowHelpModal(true)}
-                        className="text-[11px] text-indigo-300 hover:text-white bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-2.5 py-1 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer"
+                        className="text-[11px] text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-white bg-indigo-100/80 dark:bg-indigo-500/15 hover:bg-indigo-200 dark:hover:bg-indigo-500/25 border border-indigo-300 dark:border-indigo-500/30 px-2.5 py-1 rounded-full font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
                         title="What is Live Wave?"
                     >
-                        <HelpCircle size={12} className="text-indigo-400" />
+                        <HelpCircle size={12} className="text-indigo-600 dark:text-indigo-400" />
                         <span>What is Wave?</span>
                     </button>
-                    <span className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold hidden sm:inline">
+                    <span className="text-[10px] text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 px-2 py-0.5 rounded-full font-bold hidden sm:inline shadow-sm">
                         100% Free
                     </span>
                 </div>
@@ -202,7 +202,7 @@ export default function LiveSinglesRadar({
                         <div
                             key={mId}
                             onClick={() => onViewProfile && onViewProfile(match)}
-                            className="group flex flex-col items-center shrink-0 w-22 sm:w-26 p-2 rounded-2xl bg-slate-800/60 hover:bg-indigo-950/50 border border-slate-700/60 hover:border-indigo-400/60 transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none"
+                            className="group flex flex-col items-center shrink-0 w-22 sm:w-26 p-2 rounded-2xl bg-white/95 hover:bg-indigo-50/90 dark:bg-slate-800/60 dark:hover:bg-indigo-950/50 border border-gray-200/90 dark:border-slate-700/60 hover:border-indigo-400/80 transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none shadow-sm"
                         >
                             <div className="relative mb-2">
                                 <img
@@ -211,13 +211,13 @@ export default function LiveSinglesRadar({
                                     className="w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-emerald-400/80 shadow-md group-hover:scale-105 transition-transform"
                                     loading="lazy"
                                 />
-                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-sm" />
+                                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
                             </div>
 
-                            <p className="text-xs font-bold text-white text-center truncate w-full">
+                            <p className="text-xs font-bold text-gray-900 dark:text-white text-center truncate w-full">
                                 {firstName}
                             </p>
-                            <p className="text-[10px] text-gray-400 text-center truncate w-full">
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center truncate w-full">
                                 {age} • {city}
                             </p>
 
@@ -226,10 +226,10 @@ export default function LiveSinglesRadar({
                                 onClick={(e) => handleWave(e, match)}
                                 className={`mt-2 w-full py-1.5 rounded-xl text-[10px] font-black tracking-tight transition-all active:scale-90 flex items-center justify-center gap-1 cursor-pointer ${
                                     isConnected
-                                        ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm'
+                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
                                         : isWaved
-                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                                            : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-sm hover:shadow-indigo-500/25'
+                                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40'
+                                            : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm hover:shadow-indigo-500/25'
                                 }`}
                             >
                                 <span>{isConnected ? 'Chat' : isWaved ? 'Waved' : 'Wave'}</span>
@@ -248,48 +248,48 @@ export default function LiveSinglesRadar({
                 >
                     <div 
                         onClick={(e) => e.stopPropagation()}
-                        className="relative w-full max-w-sm mx-auto bg-gradient-to-b from-gray-900 via-slate-900 to-gray-950 border border-indigo-500/40 rounded-3xl p-5 sm:p-6 text-white shadow-2xl max-h-[88vh] overflow-y-auto no-scrollbar space-y-4 animate-in zoom-in-95 duration-200"
+                        className="relative w-full max-w-sm mx-auto bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-500/40 rounded-3xl p-5 sm:p-6 text-gray-900 dark:text-white shadow-2xl max-h-[88vh] overflow-y-auto no-scrollbar space-y-4 animate-in zoom-in-95 duration-200"
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl shadow-md shadow-indigo-500/30">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl shadow-md shadow-indigo-500/30 text-white">
                                     👋
                                 </div>
                                 <div>
-                                    <h4 className="font-black text-base text-white">What is Live Wave?</h4>
-                                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">100% Free • Instant Ping</p>
+                                    <h4 className="font-black text-base text-gray-900 dark:text-white">What is Live Wave?</h4>
+                                    <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold uppercase tracking-wider">100% Free • Instant Ping</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => setShowHelpModal(false)}
-                                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors cursor-pointer"
+                                className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-colors cursor-pointer"
                                 title="Close"
                             >
                                 <X size={16} />
                             </button>
                         </div>
 
-                        <div className="space-y-2.5 text-xs text-gray-300">
-                            <div className="p-3.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/25 space-y-1">
-                                <p className="font-bold text-white flex items-center gap-1.5">
+                        <div className="space-y-2.5 text-xs text-gray-700 dark:text-gray-300">
+                            <div className="p-3.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/25 space-y-1">
+                                <p className="font-bold text-indigo-950 dark:text-white flex items-center gap-1.5">
                                     <span>⚡ Instant Alert to Active Singles</span>
                                 </p>
-                                <p className="text-[11px] text-gray-300 leading-relaxed">
+                                <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">
                                     When you see someone on Live Radar, tapping <strong>Wave 👋</strong> sends them an instant alert that you are active on the app right now and interested in connecting.
                                 </p>
                             </div>
 
-                            <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 space-y-1">
-                                <p className="font-bold text-white flex items-center gap-1.5">
+                            <div className="p-3.5 rounded-2xl bg-purple-50/80 dark:bg-slate-800/80 border border-purple-200 dark:border-slate-700/60 space-y-1">
+                                <p className="font-bold text-purple-950 dark:text-white flex items-center gap-1.5">
                                     <span>💖 Zero-Pressure Icebreaker</span>
                                 </p>
-                                <p className="text-[11px] text-gray-300 leading-relaxed">
+                                <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">
                                     No need to think of a pickup line! If they wave back or accept, an instant private chat unlocks immediately so you can start talking.
                                 </p>
                             </div>
 
-                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-center">
-                                <p className="text-[11px] text-emerald-300 font-bold">
+                            <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/25 text-center">
+                                <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold">
                                     ✓ Waving never spends coins — it is always 100% free!
                                 </p>
                             </div>
@@ -297,7 +297,7 @@ export default function LiveSinglesRadar({
 
                         <button
                             onClick={() => setShowHelpModal(false)}
-                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/30 active:scale-98 transition-all cursor-pointer"
+                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/30 active:scale-98 transition-all cursor-pointer"
                         >
                             Got It, Start Waving!
                         </button>

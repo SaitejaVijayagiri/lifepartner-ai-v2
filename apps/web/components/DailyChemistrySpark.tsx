@@ -172,7 +172,7 @@ export default function DailyChemistrySpark({
     const chosenOptionStats = selectedOption === 'A' ? currentQuestion.statsA : currentQuestion.statsB;
 
     return (
-        <div className="relative rounded-3xl bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-slate-900/70 border border-purple-500/30 p-5 sm:p-6 shadow-xl backdrop-blur-xl transition-all duration-300 overflow-hidden">
+        <div className="relative rounded-3xl bg-gradient-to-br from-indigo-50/95 via-purple-50/90 to-pink-50/90 dark:from-indigo-950/80 dark:via-purple-950/70 dark:to-slate-900 border border-purple-200/80 dark:border-purple-500/30 p-5 sm:p-6 shadow-xl backdrop-blur-xl transition-all duration-300 overflow-hidden">
             {/* Ambient background glows */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-60 h-60 bg-pink-500/10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
@@ -185,23 +185,23 @@ export default function DailyChemistrySpark({
                     </span>
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-black tracking-wider uppercase text-purple-400">
+                            <span className="text-xs font-black tracking-wider uppercase text-purple-700 dark:text-purple-400">
                                 Daily Chemistry Spark
                             </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-extrabold">
-                                <Flame size={12} className="text-amber-400 fill-amber-400" />
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 text-[10px] font-extrabold">
+                                <Flame size={12} className="text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
                                 {streakDays} Day Streak
                             </span>
                         </div>
-                        <h3 className="text-sm sm:text-base font-black text-white tracking-tight">
+                        <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-white tracking-tight">
                             {currentQuestion.title}
                         </h3>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-bold">
-                        <Zap size={13} className="text-amber-400 fill-amber-400" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-400/30 text-indigo-800 dark:text-indigo-200 text-xs font-bold shadow-sm">
+                        <Zap size={13} className="text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
                         {hasVoted ? "Voted (+15 Coins Claimed)" : "Vote for +15 Free Coins"}
                     </span>
                 </div>
@@ -216,36 +216,36 @@ export default function DailyChemistrySpark({
                     disabled={hasVoted}
                     className={`group relative p-4 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between ${
                         selectedOption === 'A'
-                            ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border-purple-400 shadow-lg shadow-purple-500/20 scale-[1.01]'
+                            ? 'bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-600/30 dark:to-indigo-600/30 border-purple-500 shadow-lg shadow-purple-500/10 scale-[1.01]'
                             : hasVoted
-                            ? 'bg-slate-900/40 border-slate-700/50 opacity-70'
-                            : 'bg-slate-800/60 hover:bg-purple-900/30 border-slate-700/80 hover:border-purple-400/80 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                            ? 'bg-gray-100/70 dark:bg-slate-900/40 border-gray-200 dark:border-slate-700/50 opacity-70'
+                            : 'bg-white/90 hover:bg-purple-50/70 dark:bg-slate-800/60 dark:hover:bg-purple-900/30 border-gray-200 dark:border-slate-700/80 hover:border-purple-400 shadow-sm cursor-pointer active:scale-[0.98]'
                     }`}
                 >
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                             <span className="text-2xl group-hover:scale-110 transition-transform">{currentQuestion.optionA.emoji}</span>
                             <div>
-                                <p className="text-sm sm:text-base font-black text-white group-hover:text-purple-200 transition-colors">
+                                <p className="text-sm sm:text-base font-black text-gray-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-200 transition-colors">
                                     {currentQuestion.optionA.text}
                                 </p>
-                                <p className="text-xs text-gray-300 dark:text-gray-400">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                     {currentQuestion.optionA.subtitle}
                                 </p>
                             </div>
                         </div>
                         {selectedOption === 'A' && (
-                            <CheckCircle2 size={20} className="text-purple-400 shrink-0 mt-0.5" />
+                            <CheckCircle2 size={20} className="text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
                         )}
                     </div>
 
                     {hasVoted && (
-                        <div className="mt-3 pt-3 border-t border-purple-500/20">
-                            <div className="flex justify-between text-xs font-bold mb-1 text-gray-300">
+                        <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-500/20">
+                            <div className="flex justify-between text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">
                                 <span>Singles Vibe Match</span>
-                                <span className="text-purple-300 font-extrabold">{currentQuestion.statsA}% picked this</span>
+                                <span className="text-purple-700 dark:text-purple-300 font-extrabold">{currentQuestion.statsA}% picked this</span>
                             </div>
-                            <div className="h-2 w-full bg-slate-950/60 rounded-full overflow-hidden">
+                            <div className="h-2 w-full bg-gray-200 dark:bg-slate-950/60 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full transition-all duration-700"
                                     style={{ width: `${currentQuestion.statsA}%` }}
@@ -262,36 +262,36 @@ export default function DailyChemistrySpark({
                     disabled={hasVoted}
                     className={`group relative p-4 rounded-2xl border text-left transition-all duration-300 flex flex-col justify-between ${
                         selectedOption === 'B'
-                            ? 'bg-gradient-to-r from-pink-600/30 to-rose-600/30 border-pink-400 shadow-lg shadow-pink-500/20 scale-[1.01]'
+                            ? 'bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-600/30 dark:to-rose-600/30 border-pink-500 shadow-lg shadow-pink-500/10 scale-[1.01]'
                             : hasVoted
-                            ? 'bg-slate-900/40 border-slate-700/50 opacity-70'
-                            : 'bg-slate-800/60 hover:bg-pink-900/30 border-slate-700/80 hover:border-pink-400/80 hover:shadow-md cursor-pointer active:scale-[0.98]'
+                            ? 'bg-gray-100/70 dark:bg-slate-900/40 border-gray-200 dark:border-slate-700/50 opacity-70'
+                            : 'bg-white/90 hover:bg-pink-50/70 dark:bg-slate-800/60 dark:hover:bg-pink-900/30 border-gray-200 dark:border-slate-700/80 hover:border-pink-400 shadow-sm cursor-pointer active:scale-[0.98]'
                     }`}
                 >
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                             <span className="text-2xl group-hover:scale-110 transition-transform">{currentQuestion.optionB.emoji}</span>
                             <div>
-                                <p className="text-sm sm:text-base font-black text-white group-hover:text-pink-200 transition-colors">
+                                <p className="text-sm sm:text-base font-black text-gray-900 dark:text-white group-hover:text-pink-700 dark:group-hover:text-pink-200 transition-colors">
                                     {currentQuestion.optionB.text}
                                 </p>
-                                <p className="text-xs text-gray-300 dark:text-gray-400">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                     {currentQuestion.optionB.subtitle}
                                 </p>
                             </div>
                         </div>
                         {selectedOption === 'B' && (
-                            <CheckCircle2 size={20} className="text-pink-400 shrink-0 mt-0.5" />
+                            <CheckCircle2 size={20} className="text-pink-600 dark:text-pink-400 shrink-0 mt-0.5" />
                         )}
                     </div>
 
                     {hasVoted && (
-                        <div className="mt-3 pt-3 border-t border-pink-500/20">
-                            <div className="flex justify-between text-xs font-bold mb-1 text-gray-300">
+                        <div className="mt-3 pt-3 border-t border-pink-200 dark:border-pink-500/20">
+                            <div className="flex justify-between text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">
                                 <span>Singles Vibe Match</span>
-                                <span className="text-pink-300 font-extrabold">{currentQuestion.statsB}% picked this</span>
+                                <span className="text-pink-700 dark:text-pink-300 font-extrabold">{currentQuestion.statsB}% picked this</span>
                             </div>
-                            <div className="h-2 w-full bg-slate-950/60 rounded-full overflow-hidden">
+                            <div className="h-2 w-full bg-gray-200 dark:bg-slate-950/60 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-gradient-to-r from-pink-500 to-rose-500 rounded-full transition-all duration-700"
                                     style={{ width: `${currentQuestion.statsB}%` }}
@@ -304,13 +304,13 @@ export default function DailyChemistrySpark({
 
             {/* Revealed Vibe Tribe (Singles who picked the same choice) */}
             {hasVoted && vibeMatches.length > 0 && (
-                <div className="relative z-10 mt-4 pt-4 border-t border-purple-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="relative z-10 mt-4 pt-4 border-t border-purple-200 dark:border-purple-500/20 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-black text-purple-200 flex items-center gap-1.5">
-                            <Users size={14} className="text-pink-400" />
+                        <span className="text-xs font-black text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
+                            <Users size={14} className="text-pink-500 dark:text-pink-400" />
                             Active Matches Who Share Your Vibe ({chosenOptionStats}% Tribe):
                         </span>
-                        <span className="text-[11px] text-gray-400 font-semibold">
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
                             Tap to send 1-click Icebreaker
                         </span>
                     </div>
@@ -326,7 +326,7 @@ export default function DailyChemistrySpark({
                             return (
                                 <div
                                     key={match.id || mIdx}
-                                    className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-slate-900/60 border border-purple-500/30 hover:border-purple-400/60 transition-all hover:-translate-y-0.5 shadow-sm"
+                                    className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-white/95 dark:bg-slate-900/60 border border-purple-200 dark:border-purple-500/30 hover:border-purple-400/60 transition-all hover:-translate-y-0.5 shadow-sm"
                                 >
                                     <div 
                                         className="flex items-center gap-2.5 min-w-0 cursor-pointer"
@@ -339,8 +339,8 @@ export default function DailyChemistrySpark({
                                             loading="lazy"
                                         />
                                         <div className="min-w-0">
-                                            <p className="text-xs font-bold text-white truncate">{pName}</p>
-                                            <p className="text-[10px] text-gray-400 truncate">{location || `${match.age || 24} yrs`}</p>
+                                            <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{pName}</p>
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{location || `${match.age || 24} yrs`}</p>
                                         </div>
                                     </div>
 

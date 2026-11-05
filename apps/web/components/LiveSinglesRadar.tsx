@@ -118,16 +118,36 @@ export default function LiveSinglesRadar({
         return Array.from(liveMap.values());
     }, [fetchedOnlineMembers, matches, onlineSet, myId, socket?.connected]);
 
-    // 4. Recently Active Singles (Verified profiles active recently, NEVER labeled as live)
-    const recentlyActiveSingles = useMemo(() => {
+    // Helper to check if user has verified activity strictly within the past 24 hours
+    const isActivelyActiveToday = useCallback((m: any) => {
+        if (!m || !m.last_seen_at) return false;
+        const lastSeen = new Date(m.last_seen_at).getTime();
+        if (isNaN(lastSeen)) return false;
+        return (Date.now() - lastSeen) <= (24 * 60 * 60 * 1000);
+    }, []);
+
+    // 4. Truly Active Today vs Top Compatible Matches
+    const { activeTodaySingles, recommendedSingles } = useMemo(() => {
         const liveIds = new Set(liveSingles.map(m => m.id || m.userId || m.user_id));
-        return (Array.isArray(matches) ? matches : []).filter(m => {
+        const pool = (Array.isArray(matches) ? matches : []).filter(m => {
             if (!m) return false;
             const mId = m.id || m.userId || m.user_id;
             if (!mId || mId === myId) return false;
             return !liveIds.has(mId);
-        }).slice(0, 12);
-    }, [matches, liveSingles, myId]);
+        });
+
+        const activeToday = pool.filter(m => isActivelyActiveToday(m)).slice(0, 12);
+        const recommended = pool.slice(0, 12);
+
+        return {
+            activeTodaySingles: activeToday,
+            recommendedSingles: recommended
+        };
+    }, [matches, liveSingles, myId, isActivelyActiveToday]);
+
+    const hasActiveToday = activeTodaySingles.length > 0;
+    const secondaryList = hasActiveToday ? activeTodaySingles : recommendedSingles;
+    const isSecondaryActiveToday = hasActiveToday;
 
     const handleWave = async (e: React.MouseEvent, match: any, isLive: boolean) => {
         e.stopPropagation();
@@ -174,11 +194,11 @@ export default function LiveSinglesRadar({
         }
     };
 
-    // If no live users and no matches exist at all, hide component
-    if (liveSingles.length === 0 && recentlyActiveSingles.length === 0) return null;
+    // If no live users and no secondary matches exist, hide component
+    if (liveSingles.length === 0 && secondaryList.length === 0) return null;
 
     const hasLiveUsers = liveSingles.length > 0;
-    const currentList = activeTab === 'live' ? liveSingles : recentlyActiveSingles;
+    const currentList = activeTab === 'live' ? liveSingles : secondaryList;
 
     return (
         <div className="relative rounded-3xl bg-gradient-to-r from-indigo-50/95 via-purple-50/90 to-slate-50/95 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 border border-indigo-200/80 dark:border-indigo-500/30 p-4 sm:p-5 shadow-xl overflow-hidden backdrop-blur-md">
@@ -205,7 +225,7 @@ export default function LiveSinglesRadar({
                         <span>Live Radar</span>
                     </h3>
 
-                    {/* Presence Mode Switcher (Live Now vs Active Today) */}
+                    {/* Presence Mode Switcher (Live Now vs Active Today / Recommended) */}
                     <div className="flex items-center bg-white/70 dark:bg-slate-800/80 border border-indigo-200/80 dark:border-indigo-500/30 rounded-full p-0.5 shadow-sm text-[11px] font-bold">
                         <button
                             type="button"
@@ -235,18 +255,26 @@ export default function LiveSinglesRadar({
                             onClick={() => setActiveTab('recent')}
                             className={`px-2.5 py-0.5 rounded-full transition-all cursor-pointer flex items-center gap-1.5 ${
                                 activeTab === 'recent'
-                                    ? 'bg-amber-600 text-white shadow-sm'
+                                    ? hasActiveToday
+                                        ? 'bg-amber-600 text-white shadow-sm'
+                                        : 'bg-purple-600 text-white shadow-sm'
                                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                             }`}
                         >
-                            <Clock size={11} className={activeTab === 'recent' ? 'text-white' : 'text-amber-500'} />
-                            <span>Active Today</span>
+                            {hasActiveToday ? (
+                                <Clock size={11} className={activeTab === 'recent' ? 'text-white' : 'text-amber-500'} />
+                            ) : (
+                                <Sparkles size={11} className={activeTab === 'recent' ? 'text-white' : 'text-purple-500'} />
+                            )}
+                            <span>{hasActiveToday ? 'Active Today' : 'Recommended'}</span>
                             <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
                                 activeTab === 'recent'
                                     ? 'bg-white/20 text-white'
-                                    : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                                    : hasActiveToday
+                                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                                        : 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300'
                             }`}>
-                                {recentlyActiveSingles.length}
+                                {secondaryList.length}
                             </span>
                         </button>
                     </div>
@@ -296,21 +324,29 @@ export default function LiveSinglesRadar({
                             No other singles are connected right this second. When someone logs in nearby, their live beacon will pop up here instantly!
                         </p>
                     </div>
-                    {recentlyActiveSingles.length > 0 && (
+                    {secondaryList.length > 0 && (
                         <div className="flex items-center gap-2 pt-1">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('recent')}
-                                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 ${
+                                    hasActiveToday
+                                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
+                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+                                }`}
                             >
-                                <Clock size={13} />
-                                <span>Wave to Singles Active Today ({recentlyActiveSingles.length})</span>
+                                {hasActiveToday ? <Clock size={13} /> : <Sparkles size={13} />}
+                                <span>
+                                    {hasActiveToday
+                                        ? `Wave to Singles Active Today (${activeTodaySingles.length})`
+                                        : `Explore Recommended Matches (${recommendedSingles.length})`}
+                                </span>
                             </button>
                         </div>
                     )}
                 </div>
             ) : (
-                /* View 2: Horizontal Scrollable Carousel (Live Now OR Active Today) */
+                /* View 2: Horizontal Scrollable Carousel (Live Now OR Active Today / Recommended) */
                 <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-1 pt-1 -mx-1 px-1">
                     {currentList.map((match, idx) => {
                         const mId = match.id || match.userId || match.user_id || idx;
@@ -322,6 +358,7 @@ export default function LiveSinglesRadar({
                         const age = match.age || 25;
                         const city = match.city || (typeof match.location === 'string' ? match.location.split(',')[0] : 'Nearby');
                         const isLive = activeTab === 'live';
+                        const isToday = !isLive && isActivelyActiveToday(match);
 
                         return (
                             <div
@@ -334,18 +371,26 @@ export default function LiveSinglesRadar({
                                         src={photo}
                                         alt={pName}
                                         className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 shadow-md group-hover:scale-105 transition-transform ${
-                                            isLive ? 'border-emerald-400/90' : 'border-amber-400/80'
+                                            isLive
+                                                ? 'border-emerald-400/90'
+                                                : isToday
+                                                    ? 'border-amber-400/80'
+                                                    : 'border-purple-400/80'
                                         }`}
                                         loading="lazy"
                                     />
-                                    {/* Presence Dot: Emerald pulse for Live, Amber clock badge for Active Today */}
+                                    {/* Presence Dot: Emerald pulse for Live, Amber clock badge for Active Today, Purple sparkle for Recommended */}
                                     {isLive ? (
                                         <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                         </span>
-                                    ) : (
+                                    ) : isToday ? (
                                         <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-amber-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm flex items-center justify-center text-[7px] text-white font-black" title="Active today">
                                             🕒
+                                        </span>
+                                    ) : (
+                                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-purple-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm flex items-center justify-center text-[7px] text-white font-black" title="Recommended Match">
+                                            ✨
                                         </span>
                                     )}
                                 </div>
@@ -361,9 +406,11 @@ export default function LiveSinglesRadar({
                                 <span className={`text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.2 rounded-full mt-1 ${
                                     isLive
                                         ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                                        : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                                        : isToday
+                                            ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                                            : 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300'
                                 }`}>
-                                    {isLive ? 'Live Now' : 'Active Today'}
+                                    {isLive ? 'Live Now' : isToday ? 'Active Today' : match.score ? `${match.score}% Match` : 'Match'}
                                 </span>
 
                                 <button
@@ -376,7 +423,9 @@ export default function LiveSinglesRadar({
                                                 ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40'
                                                 : isLive
                                                     ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm hover:shadow-indigo-500/25'
-                                                    : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm'
+                                                    : isToday
+                                                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-sm'
+                                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-sm'
                                     }`}
                                 >
                                     <span>{isConnected ? 'Chat' : isWaved ? 'Waved' : 'Wave'}</span>

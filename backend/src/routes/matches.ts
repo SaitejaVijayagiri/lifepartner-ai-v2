@@ -491,7 +491,8 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 profiles: {
                     select: {
                         photos: true,
-                        metadata: true
+                        metadata: true,
+                        updated_at: true
                     }
                 }
             }
@@ -509,7 +510,8 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 avatar_url: photo,
                 location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
                 role: meta.career?.profession || 'Member',
-                isOnline: true
+                isOnline: true,
+                last_seen_at: meta.last_seen_at || u.profiles?.updated_at || new Date().toISOString()
             };
         });
 
@@ -1072,6 +1074,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 is_liked: matchRecord?.is_liked || false,
                 isPremium: c.is_premium || false,
                 isOnline: isUserOnline(c.id),
+                last_seen_at: meta.last_seen_at || c.profiles?.updated_at || null,
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId,
                 managed_by: meta.managed_by || meta.managedBy || 'Self',
@@ -1560,7 +1563,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 score: Math.max(1, Math.min(score, 99)),
                 match_reasons: reasons.length > 0 ? reasons : isBroad ? ["Broader Match"] : ["AI Suggestion"],
                 analysis: { emotional: 80, vision: 85 },
-                isOnline: isUserOnline(c.id), // Fixed ID issue
+                isOnline: isUserOnline(c.id),
+                last_seen_at: meta.last_seen_at || c.profiles?.updated_at || null, // Fixed ID issue
                 summary: generateSmartSummary(
                     Math.min(99, (c.avatar_url && !c.avatar_url.startsWith('data:') && !c.avatar_url.includes('dicebear')) ? score + 40 : score),
                     reasons,
@@ -1663,6 +1667,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 match_reasons: ["🎯 Exact Profile Match"],
                 analysis: { emotional: 99, vision: 99 },
                 isOnline: isUserOnline(c.id),
+                last_seen_at: meta.last_seen_at || c.profiles?.updated_at || null,
                 summary: `🎯 **Exact Profile Match** for "${query}".`,
                 reels: meta.reels || [],
                 photos: finalPhotos,

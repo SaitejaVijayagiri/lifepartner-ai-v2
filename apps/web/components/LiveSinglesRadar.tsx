@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Radio, Sparkles, Send, Heart, Flame, MessageCircle, Zap, HelpCircle, X, ShieldCheck } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
@@ -26,6 +27,21 @@ export default function LiveSinglesRadar({
     const [wavedIds, setWavedIds] = useState<Set<string>>(new Set());
     const [fetchedOnlineMembers, setFetchedOnlineMembers] = useState<any[]>([]);
     const [showHelpModal, setShowHelpModal] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Close on Escape key
+    useEffect(() => {
+        if (!showHelpModal) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setShowHelpModal(false);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showHelpModal]);
 
     const myId = currentUserId || currentUser?.id;
 
@@ -224,63 +240,70 @@ export default function LiveSinglesRadar({
                 })}
             </div>
 
-            {/* Helper Info Modal explaining "What is Wave?" */}
-            {showHelpModal && (
+            {/* Helper Info Modal explaining "What is Wave?" — Mounted directly to document.body to prevent parent container clipping */}
+            {showHelpModal && mounted && createPortal(
                 <div 
                     onClick={() => setShowHelpModal(false)}
-                    className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+                    className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
                 >
                     <div 
                         onClick={(e) => e.stopPropagation()}
-                        className="bg-gray-900 border border-indigo-500/40 rounded-3xl p-5 sm:p-6 max-w-sm w-full text-white shadow-2xl space-y-4"
+                        className="relative w-full max-w-sm mx-auto bg-gradient-to-b from-gray-900 via-slate-900 to-gray-950 border border-indigo-500/40 rounded-3xl p-5 sm:p-6 text-white shadow-2xl max-h-[88vh] overflow-y-auto no-scrollbar space-y-4 animate-in zoom-in-95 duration-200"
                     >
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-lg">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl shadow-md shadow-indigo-500/30">
                                     👋
                                 </div>
-                                <h4 className="font-black text-base">What is Live Wave?</h4>
+                                <div>
+                                    <h4 className="font-black text-base text-white">What is Live Wave?</h4>
+                                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">100% Free • Instant Ping</p>
+                                </div>
                             </div>
                             <button
                                 onClick={() => setShowHelpModal(false)}
-                                className="p-1 rounded-full bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white"
+                                className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white transition-colors cursor-pointer"
+                                title="Close"
                             >
                                 <X size={16} />
                             </button>
                         </div>
 
-                        <div className="space-y-3 text-xs text-gray-300">
-                            <div className="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 space-y-1">
+                        <div className="space-y-2.5 text-xs text-gray-300">
+                            <div className="p-3.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/25 space-y-1">
                                 <p className="font-bold text-white flex items-center gap-1.5">
-                                    <span>⚡ Instant & 100% Free:</span>
+                                    <span>⚡ Instant Alert to Active Singles</span>
                                 </p>
-                                <p>
-                                    When you see someone active on Live Radar, tapping <strong>Wave 👋</strong> sends them an immediate notification that you are online right now and interested in connecting.
+                                <p className="text-[11px] text-gray-300 leading-relaxed">
+                                    When you see someone on Live Radar, tapping <strong>Wave 👋</strong> sends them an instant alert that you are active on the app right now and interested in connecting.
                                 </p>
                             </div>
 
-                            <div className="p-3 rounded-2xl bg-slate-800/80 border border-slate-700/60 space-y-1">
+                            <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 space-y-1">
                                 <p className="font-bold text-white flex items-center gap-1.5">
-                                    <span>💖 No awkward first lines:</span>
+                                    <span>💖 Zero-Pressure Icebreaker</span>
                                 </p>
-                                <p>
-                                    Wave breaks the ice with zero pressure. When they wave back or accept your interest, a mutual connection opens so you can chat in real time!
+                                <p className="text-[11px] text-gray-300 leading-relaxed">
+                                    No need to think of a pickup line! If they wave back or accept, an instant private chat unlocks immediately so you can start talking.
                                 </p>
                             </div>
 
-                            <p className="text-[11px] text-emerald-400 font-semibold text-center">
-                                ✓ Waving never spends coins — it is always completely free!
-                            </p>
+                            <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-center">
+                                <p className="text-[11px] text-emerald-300 font-bold">
+                                    ✓ Waving never spends coins — it is always 100% free!
+                                </p>
+                            </div>
                         </div>
 
                         <button
                             onClick={() => setShowHelpModal(false)}
-                            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-md cursor-pointer"
+                            className="w-full py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs shadow-lg shadow-indigo-500/30 active:scale-98 transition-all cursor-pointer"
                         >
-                            Got It!
+                            Got It, Start Waving!
                         </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

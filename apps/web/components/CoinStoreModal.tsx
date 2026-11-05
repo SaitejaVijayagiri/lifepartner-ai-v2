@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 import { X, Coins, Sparkles, Crown, Zap, Star, CheckCircle, Shield, Rocket, Gift, MessageCircle, HelpCircle, Flame, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
@@ -28,7 +29,22 @@ export default function CoinStoreModal({
     const [balance, setBalance] = useState<number | null>(null);
     const [isBoosting, setIsBoosting] = useState(false);
     const [boostSuccess, setBoostSuccess] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const toast = useToast();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Close on Escape key
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     // Fetch latest balance whenever modal opens
     useEffect(() => {
@@ -44,7 +60,7 @@ export default function CoinStoreModal({
         }
     }, [isOpen, initialTab]);
 
-    if (!isOpen) return null;
+    if (!isOpen || !mounted) return null;
 
     const handlePurchase = async (item: any, type: 'COINS' | 'PREMIUM') => {
         setLoading(true);
@@ -100,8 +116,8 @@ export default function CoinStoreModal({
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-300">
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-300">
             <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[92vh] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 border border-amber-500/20">
                 {/* Header with Balance */}
                 <div className="relative p-5 sm:p-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white flex justify-between items-center flex-shrink-0 overflow-hidden">
@@ -375,6 +391,7 @@ export default function CoinStoreModal({
                     <span>100% Secure Payments • Instant Wallet Credit</span>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

@@ -129,6 +129,7 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
     }, [match.photos, match.photo_urls, match.metadata?.photos, match.photoUrl, match.avatar_url, match.id, match.name]);
 
     const [isHovered, setIsHovered] = useState(false);
+    const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Asynchronous In-Memory Preloader for Adjacent Photos (LRU Queue - Zero DOM Bloat)
     useEffect(() => {
@@ -149,7 +150,16 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         }
     }, [currentPhotoIndex, photos, isInViewport]);
 
-    // User-controlled photo navigation (zero background timers for smooth 60-120fps scrolling)
+    // Auto-Scroll Photos Carousel (3.5s interval, strictly when in viewport, pauses on hover or private blur)
+    useEffect(() => {
+        if (photos.length <= 1 || isHovered || !isInViewport || isPhotoBlurred) return;
+
+        const interval = setInterval(() => {
+            setCurrentPhotoIndex((prev: number) => (prev + 1) % photos.length);
+        }, 3500);
+
+        return () => clearInterval(interval);
+    }, [photos.length, isHovered, isInViewport, isPhotoBlurred, currentPhotoIndex]);
 
     // 1. Handle "Send Interest" (Primary Action)
     const handleConnect = async (e: React.MouseEvent) => {
@@ -258,8 +268,22 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
         <div
             ref={cardRef}
             className="group relative h-[560px] sm:h-[500px] w-full rounded-[2rem] overflow-hidden cursor-pointer shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5 border border-white/20 dark:border-white/10 hover:border-purple-500/40 bg-gray-900 will-change-transform transform-gpu touch-manipulation select-none"
-            onMouseEnter={() => setIsHovered(true)}
+            onMouseEnter={() => {
+                if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+                    setIsHovered(true);
+                }
+            }}
             onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => {
+                if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                setIsHovered(true);
+            }}
+            onTouchEnd={() => {
+                if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
+                touchTimeoutRef.current = setTimeout(() => {
+                    setIsHovered(false);
+                }, 2000);
+            }}
             onClick={() => {
                 if (match?.id) {
                     api.interactions.recordView(match.id).catch(() => {});

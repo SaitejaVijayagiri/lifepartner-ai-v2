@@ -346,7 +346,11 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
                         isOnline: isUserOnline(partner.id)
                     },
                     timestamp: r.created_at,
-                    unreadCount: 0 // Default
+                    unreadCount: 0, // Default
+                    lastMessage: null,
+                    lastMessageSenderId: null,
+                    lastMessageStatus: null,
+                    latestMessageAt: null
                 });
             }
         });
@@ -376,23 +380,42 @@ router.get('/connections', authenticateToken, async (req: any, res) => {
             }
 
             try {
-                // Fetch the latest message timestamp for all conversations in a single, ultra-fast query
+                // Fetch the latest message timestamp and content for all conversations in a single, ultra-fast query
                 const latestMessages: any[] = await prisma.$queryRawUnsafe(`
-                    SELECT 
+                    SELECT DISTINCT ON (
+                        CASE 
+                            WHEN sender_id = $1::uuid THEN receiver_id 
+                            ELSE sender_id 
+                        END
+                    )
                         CASE 
                             WHEN sender_id = $1::uuid THEN receiver_id 
                             ELSE sender_id 
                         END as partner_id,
-                        MAX(created_at) as latest_message_at
+                        id as message_id,
+                        sender_id,
+                        content,
+                        delivery_status,
+                        created_at as latest_message_at
                     FROM messages
-                    WHERE sender_id = $1::uuid OR receiver_id = $1::uuid
-                    GROUP BY partner_id
+                    WHERE ((sender_id = $1::uuid AND receiver_id IS NOT NULL) OR (receiver_id = $1::uuid AND sender_id IS NOT NULL))
+                      AND (cleared_by IS NULL OR NOT (cleared_by::text LIKE ('%' || $1::text || '%')))
+                    ORDER BY 
+                        CASE 
+                            WHEN sender_id = $1::uuid THEN receiver_id 
+                            ELSE sender_id 
+                        END,
+                        created_at DESC NULLS LAST
                 `, userId);
 
                 latestMessages.forEach((msg: any) => {
                     const pId = msg.partner_id;
                     if (pId && uniqueConnections.has(pId)) {
-                        uniqueConnections.get(pId).latestMessageAt = msg.latest_message_at;
+                        const item = uniqueConnections.get(pId);
+                        item.latestMessageAt = msg.latest_message_at;
+                        item.lastMessage = msg.content;
+                        item.lastMessageSenderId = msg.sender_id;
+                        item.lastMessageStatus = msg.delivery_status;
                     }
                 });
             } catch (err) {

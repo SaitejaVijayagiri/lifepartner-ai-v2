@@ -34,7 +34,7 @@ interface ChatWindowProps {
     className?: string;
     isCallMode?: boolean;
     onMessagesRead?: () => void;
-    onMessageSent?: () => void;
+    onMessageSent?: (msg?: any) => void;
 }
 
 const FILTER_PRESETS = [
@@ -1795,7 +1795,7 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                     expiresAt: response.message.expiresAt || msgExpiresAt
                 } : m));
             }
-            if (onMessageSent) onMessageSent();
+            if (onMessageSent) onMessageSent(response?.message || { text: textToSend });
         } catch (err) {
             console.error("Send failed", err);
         } finally {

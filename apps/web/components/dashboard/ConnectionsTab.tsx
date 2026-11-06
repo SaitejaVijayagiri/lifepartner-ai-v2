@@ -23,6 +23,74 @@ interface ConnectionsTabProps {
     onOpenCallHistory?: () => void;
 }
 
+const formatMessageTime = (dateInput: string | Date | undefined | null) => {
+    if (!dateInput) return '';
+    try {
+        const date = new Date(dateInput);
+        if (isNaN(date.getTime())) return '';
+        const now = new Date();
+        const isSameDay = now.toDateString() === date.toDateString();
+
+        if (isSameDay) {
+            return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (yesterday.toDateString() === date.toDateString()) {
+            return 'Yesterday';
+        }
+
+        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays < 7) {
+            return date.toLocaleDateString([], { weekday: 'short' });
+        }
+
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    } catch {
+        return '';
+    }
+};
+
+const formatMessageSnippet = (conn: any, currentUserId?: string) => {
+    if (!conn.lastMessage) {
+        return {
+            isPlaceholder: true,
+            isMe: false,
+            text: 'Say hi to start the conversation 👋'
+        };
+    }
+
+    let display = String(conn.lastMessage).trim();
+    const isMe = Boolean(currentUserId && conn.lastMessageSenderId === currentUserId);
+
+    if (display.startsWith('[INCOGNITO]')) {
+        display = display.replace('[INCOGNITO]', '').trim() || 'Disappearing message ⏳';
+    } else if (display.startsWith('[DISAPPEARING]')) {
+        display = display.replace('[DISAPPEARING]', '').trim() || 'Disappearing message ⏳';
+    }
+
+    if (display.startsWith('[STICKER]')) {
+        display = '✨ Sticker';
+    } else if (display.startsWith('[MUSIC_SHARE:')) {
+        display = '🎵 Shared a track';
+    } else if (display.startsWith('data:image/') || display.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i)) {
+        display = '📷 Photo';
+    } else if (display.startsWith('data:audio/') || display.match(/\.(mp3|wav|ogg|m4a)($|\?)/i)) {
+        display = '🎙️ Audio message';
+    } else if (display.startsWith('[CALL:AUDIO]')) {
+        display = '📞 Voice call';
+    } else if (display.startsWith('[CALL:VIDEO]')) {
+        display = '📹 Video call';
+    }
+
+    return {
+        isPlaceholder: false,
+        isMe,
+        text: display
+    };
+};
+
 export default function ConnectionsTab({
     currentUser,
     setCurrentUser,
@@ -284,19 +352,50 @@ export default function ConnectionsTab({
                                 <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white dark:border-gray-800 ${isConnOnline(conn) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
                             </div>
                             <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-base sm:text-lg text-gray-900 dark:text-white truncate">
-                                        {conn.partner.name}
-                                    </h4>
-                                    {conn.unreadCount > 0 && (
-                                        <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full min-w-[18px] sm:min-w-[20px] text-center shadow-sm animate-pulse">
-                                            {conn.unreadCount}
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <h4 className="font-bold text-base sm:text-lg text-gray-900 dark:text-white truncate">
+                                            {conn.partner.name}
+                                        </h4>
+                                        {conn.unreadCount > 0 && (
+                                            <span className="bg-red-500 text-white text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-full min-w-[18px] sm:min-w-[20px] text-center shadow-sm animate-pulse">
+                                                {conn.unreadCount}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {conn.latestMessageAt && (
+                                        <span className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap">
+                                            {formatMessageTime(conn.latestMessageAt)}
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-1">
-                                    {isConnOnline(conn) ? '🟢 Online now' : 'Offline'} • Tap to open chat
-                                </p>
+                                <div className="mt-0.5">
+                                    {(() => {
+                                        const snippet = formatMessageSnippet(conn, currentUserId);
+                                        const hasUnread = (conn.unreadCount || 0) > 0;
+
+                                        if (snippet.isPlaceholder) {
+                                            return (
+                                                <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 italic line-clamp-1">
+                                                    {snippet.text}
+                                                </p>
+                                            );
+                                        }
+
+                                        return (
+                                            <p className={`text-xs sm:text-sm line-clamp-1 transition-colors ${
+                                                hasUnread 
+                                                    ? 'font-medium text-gray-900 dark:text-gray-100' 
+                                                    : 'text-gray-500 dark:text-gray-400'
+                                            }`}>
+                                                {snippet.isMe && (
+                                                    <span className="font-normal text-gray-400 dark:text-gray-500">You: </span>
+                                                )}
+                                                <span>{snippet.text}</span>
+                                            </p>
+                                        );
+                                    })()}
+                                </div>
                             </div>
                         </div>
 

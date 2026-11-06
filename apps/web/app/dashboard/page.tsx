@@ -1105,6 +1105,9 @@ function DashboardContent() {
                     if (!isChatting) {
                         targetConn.unreadCount = (targetConn.unreadCount || 0) + 1;
                     }
+                    targetConn.lastMessage = msg.text || msg.content;
+                    targetConn.lastMessageSenderId = msg.senderId;
+                    targetConn.latestMessageAt = msg.timestamp || msg.createdAt || new Date().toISOString();
                     return [targetConn, ...newConns];
                 }
 
@@ -1171,12 +1174,17 @@ function DashboardContent() {
         });
     };
 
-    const handleMessageSentAction = (partnerId: string) => {
+    const handleMessageSentAction = (partnerId: string, messageData?: any) => {
         setConnections(prev => {
             const existingIndex = prev.findIndex(c => c.partner?.id === partnerId);
             if (existingIndex > -1) {
                 const newConns = [...prev];
                 const [targetConn] = newConns.splice(existingIndex, 1);
+                if (messageData) {
+                    targetConn.lastMessage = typeof messageData === 'string' ? messageData : (messageData.text || messageData.content);
+                    targetConn.lastMessageSenderId = currentUser?.id || currentUser?.userId;
+                    targetConn.latestMessageAt = messageData.timestamp || messageData.createdAt || new Date().toISOString();
+                }
                 return [targetConn, ...newConns];
             }
             return prev;
@@ -2284,7 +2292,7 @@ function DashboardContent() {
                     onVideoCall={() => startCall(selectedConnection.partner || selectedConnection, 'video', selectedConnection.interactionId)}
                     onAudioCall={() => startCall(selectedConnection.partner || selectedConnection, 'audio', selectedConnection.interactionId)}
                     onMessagesRead={() => handleMarkRead(selectedConnection.partner?.id || selectedConnection.id)}
-                    onMessageSent={() => handleMessageSentAction(selectedConnection.partner?.id || selectedConnection.id)}
+                    onMessageSent={(msg) => handleMessageSentAction(selectedConnection.partner?.id || selectedConnection.id, msg)}
                 />
             )}
 

@@ -54,6 +54,9 @@ export default function LiveSinglesRadar({
             const data: any = await api.matches.getOnlineNow();
             if (Array.isArray(data?.onlineMembers)) {
                 setFetchedOnlineMembers(data.onlineMembers);
+                try {
+                    localStorage.setItem('live_singles_radar_cache', JSON.stringify({ data: data.onlineMembers, ts: Date.now() }));
+                } catch (_) {}
             }
         } catch (e) {
             // Soft fail
@@ -63,6 +66,17 @@ export default function LiveSinglesRadar({
     }, []);
 
     useEffect(() => {
+        // PERF: 0ms instant hydration from cache
+        try {
+            const cached = localStorage.getItem('live_singles_radar_cache');
+            if (cached) {
+                const { data } = JSON.parse(cached);
+                if (Array.isArray(data) && data.length > 0) {
+                    setFetchedOnlineMembers(data);
+                }
+            }
+        } catch (_) {}
+
         loadOnlineMembers();
         // Periodically sync live online list every 45 seconds
         const interval = setInterval(loadOnlineMembers, 45000);

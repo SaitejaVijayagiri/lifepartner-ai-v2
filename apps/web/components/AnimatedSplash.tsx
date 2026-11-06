@@ -4,10 +4,33 @@ import React, { useEffect, useState } from 'react';
 import { Sparkles, Heart } from 'lucide-react';
 
 export default function AnimatedSplash() {
-    const [visible, setVisible] = useState(true);
+    const [visible, setVisible] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                return !sessionStorage.getItem('splash_shown');
+            } catch (_) {
+                return false;
+            }
+        }
+        return false;
+    });
     const [animatingOut, setAnimatingOut] = useState(false);
 
+    const dismissSplash = () => {
+        setAnimatingOut(true);
+        setTimeout(() => {
+            setVisible(false);
+            document.body.style.overflow = '';
+        }, 300);
+    };
+
     useEffect(() => {
+        if (!visible) return;
+
+        try {
+            sessionStorage.setItem('splash_shown', 'true');
+        } catch (_) {}
+
         // Prevent scroll while splash is active
         document.body.style.overflow = 'hidden';
 
@@ -16,20 +39,21 @@ export default function AnimatedSplash() {
             setTimeout(() => {
                 setVisible(false);
                 document.body.style.overflow = '';
-            }, 700); // match transition duration
-        }, 1800);
+            }, 400); // match transition duration
+        }, 900); // Snappy 900ms splash on first launch
 
         return () => {
             clearTimeout(timer);
             document.body.style.overflow = '';
         };
-    }, []);
+    }, [visible]);
 
     if (!visible) return null;
 
     return (
         <div
-            className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-slate-950 text-white overflow-hidden select-none transition-all duration-700 ${
+            onClick={dismissSplash}
+            className={`fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-slate-950 text-white overflow-hidden select-none transition-all duration-400 cursor-pointer ${
                 animatingOut ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'
             }`}
         >

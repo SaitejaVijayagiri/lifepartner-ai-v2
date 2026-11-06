@@ -25,9 +25,20 @@ export default function AISoulmateSpotlight({
     const toast = useToast();
 
     useEffect(() => {
+        // PERF: 0ms Instant Hydration from cache
+        try {
+            const cached = localStorage.getItem('ai_soulmate_cache_v1');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed && parsed.id) {
+                    setSoulmate(parsed);
+                    setLoading(false);
+                }
+            }
+        } catch (_) {}
+
         const fetchSoulmate = async () => {
             try {
-                setLoading(true);
                 const envUrl = process.env.NEXT_PUBLIC_API_URL;
                 const apiBase = (envUrl && !envUrl.includes('onrender.com')) ? envUrl : 'https://lifepartner-backend-295663053086.asia-south1.run.app';
                 const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -41,6 +52,9 @@ export default function AISoulmateSpotlight({
                     const data = await res.json();
                     if (data && data.perfectMatch) {
                         setSoulmate(data.perfectMatch);
+                        try {
+                            localStorage.setItem('ai_soulmate_cache_v1', JSON.stringify(data.perfectMatch));
+                        } catch (_) {}
                     }
                 }
             } catch (err) {

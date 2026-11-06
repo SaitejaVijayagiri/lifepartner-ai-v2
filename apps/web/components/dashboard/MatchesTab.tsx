@@ -963,6 +963,7 @@ export default function MatchesTab({
                         >
                             <MatchCard
                                 match={match}
+                                priority={idx < 3}
                                 onConnect={() => {
                                     setMatches(prev => (Array.isArray(prev) ? prev.map(m =>
                                         m.id === match.id ? { ...m, match_status: 'pending' } : m

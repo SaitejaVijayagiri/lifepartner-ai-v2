@@ -500,10 +500,11 @@ export default function HomeTab({
                                     key={m.id || idx}
                                     id={m.id ? `match-card-${m.id}` : `match-card-home-${idx}`}
                                     data-match-id={m.id}
-                                    className="h-full transition-all duration-300"
+                                    className="h-full card-premium transition-all duration-300"
                                 >
                                     <MatchCard
                                         match={m}
+                                        priority={idx < 2}
                                         onConnect={() => {
                                             if (setMatches) {
                                                 setMatches(prev => (Array.isArray(prev) ? prev.map(item =>

@@ -20,6 +20,7 @@ const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
 interface MatchCardProps {
     match: any;
+    priority?: boolean;
     onConnect?: () => void;
     onViewProfile?: () => void;
     onStoryClick?: () => void;
@@ -30,7 +31,7 @@ interface MatchCardProps {
     isConnectedProp?: boolean; // Prop to override connection state
 }
 
-const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat, isConnectedProp }: MatchCardProps) {
+const MatchCard = React.memo(function MatchCard({ match, priority = false, onConnect, onViewProfile, onStoryClick, onShowKundli, onGift, onChat, isConnectedProp }: MatchCardProps) {
     // Card DOM Ref & Viewport Intersection Tracking
     const cardRef = useRef<HTMLDivElement | null>(null);
     const [isInViewport, setIsInViewport] = useState(false);
@@ -297,7 +298,9 @@ const MatchCard = React.memo(function MatchCard({ match, onConnect, onViewProfil
                     src={photos[currentPhotoIndex] || photos[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`}
                     alt={match.name || 'Member'}
                     className={`w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 will-change-transform transform-gpu ${isPhotoBlurred ? 'blur-2xl scale-110 filter' : ''}`}
-                    loading="lazy"
+                    loading={priority ? "eager" : "lazy"}
+                    // @ts-ignore
+                    fetchPriority={priority ? "high" : "auto"}
                     decoding="async"
                     onError={(e) => {
                         const target = e.target as HTMLImageElement;

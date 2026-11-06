@@ -666,7 +666,7 @@ function DashboardContent() {
             }
 
             try {
-                const cachedConnsStr = localStorage.getItem('connections_cache_v1');
+                const cachedConnsStr = localStorage.getItem('connections_cache_v2') || localStorage.getItem('connections_cache_v1');
                 if (cachedConnsStr) {
                     const { data } = JSON.parse(cachedConnsStr);
                     if (Array.isArray(data) && data.length > 0) {
@@ -773,7 +773,7 @@ function DashboardContent() {
                     const totalUnread = freshConns.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
                     setUnreadMessageCount(totalUnread);
                     try {
-                        localStorage.setItem('connections_cache_v1', JSON.stringify({ data: freshConns, ts: Date.now() }));
+                        localStorage.setItem('connections_cache_v2', JSON.stringify({ data: freshConns, ts: Date.now() }));
                     } catch (_) {}
                 }
 
@@ -960,12 +960,13 @@ function DashboardContent() {
     const hasFetchedConnections = useRef(false);
 
     useEffect(() => {
-        if (!hasFetchedConnections.current) {
+        if (activeTab === 'connections') {
+            fetchConnections();
+        } else if (!hasFetchedConnections.current) {
             hasFetchedConnections.current = true;
             fetchConnections();
         }
-        if (activeTab === 'requests' && !hasFetchedRequests.current) {
-            hasFetchedRequests.current = true;
+        if (activeTab === 'requests') {
             fetchRequests();
         }
         if (activeTab === 'map' && mapProfiles.length === 0) fetchMapProfiles();
@@ -1061,7 +1062,7 @@ function DashboardContent() {
             const totalUnread = fresh.reduce((acc: number, curr: any) => acc + (curr.unreadCount || 0), 0);
             setUnreadMessageCount(totalUnread);
             try {
-                localStorage.setItem('connections_cache_v1', JSON.stringify({ data: fresh, ts: Date.now() }));
+                localStorage.setItem('connections_cache_v2', JSON.stringify({ data: fresh, ts: Date.now() }));
             } catch (_) {}
 
             // Handle Push Notification Deep Link

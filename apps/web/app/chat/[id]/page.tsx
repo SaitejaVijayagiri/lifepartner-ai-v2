@@ -30,7 +30,7 @@ function ChatContent() {
         if (typeof window === 'undefined' || !connectionId) return { name: '', photoUrl: '' };
         try {
             // 1. Try connections cache
-            const cachedConns = localStorage.getItem('connections_cache_v1');
+            const cachedConns = localStorage.getItem('connections_cache_v2') || localStorage.getItem('connections_cache_v1');
             if (cachedConns) {
                 const conns = JSON.parse(cachedConns);
                 if (Array.isArray(conns)) {

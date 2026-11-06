@@ -53,7 +53,9 @@ const formatMessageTime = (dateInput: string | Date | undefined | null) => {
 };
 
 const formatMessageSnippet = (conn: any, currentUserId?: string) => {
-    if (!conn.lastMessage) {
+    const rawMsg = conn?.lastMessage ?? conn?.last_message ?? conn?.latestMessage ?? conn?.partner?.lastMessage ?? conn?.content;
+
+    if (!rawMsg) {
         return {
             isPlaceholder: true,
             isMe: false,
@@ -61,8 +63,12 @@ const formatMessageSnippet = (conn: any, currentUserId?: string) => {
         };
     }
 
-    let display = String(conn.lastMessage).trim();
-    const isMe = Boolean(currentUserId && conn.lastMessageSenderId === currentUserId);
+    let display = String(rawMsg).trim();
+    const senderId = conn?.lastMessageSenderId ?? conn?.last_message_sender_id ?? conn?.senderId ?? conn?.sender_id;
+    const isMe = Boolean(currentUserId && senderId === currentUserId);
+
+    // Strip [REPLY:uuid] prefix if present
+    display = display.replace(/^\[REPLY:[^\]]+\]\s*/i, '').trim();
 
     if (display.startsWith('[INCOGNITO]')) {
         display = display.replace('[INCOGNITO]', '').trim() || 'Disappearing message ⏳';
@@ -74,6 +80,14 @@ const formatMessageSnippet = (conn: any, currentUserId?: string) => {
         display = '✨ Sticker';
     } else if (display.startsWith('[MUSIC_SHARE:')) {
         display = '🎵 Shared a track';
+    } else if (display.startsWith('[WAVE]')) {
+        display = '👋 Sent a wave';
+    } else if (display.startsWith('[GIFT:')) {
+        display = '🎁 Sent a gift';
+    } else if (display.startsWith('[STORY_REPLY:')) {
+        const endIdx = display.indexOf(']');
+        const reply = endIdx !== -1 ? display.substring(endIdx + 1).trim() : '';
+        display = reply ? `📸 Story reply: "${reply}"` : '📸 Replied to story';
     } else if (display.startsWith('data:image/') || display.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i)) {
         display = '📷 Photo';
     } else if (display.startsWith('data:audio/') || display.match(/\.(mp3|wav|ogg|m4a)($|\?)/i)) {
@@ -363,9 +377,9 @@ export default function ConnectionsTab({
                                             </span>
                                         )}
                                     </div>
-                                    {conn.latestMessageAt && (
+                                    {(conn.latestMessageAt || conn.latest_message_at || conn.lastMessageTime) && (
                                         <span className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap">
-                                            {formatMessageTime(conn.latestMessageAt)}
+                                            {formatMessageTime(conn.latestMessageAt || conn.latest_message_at || conn.lastMessageTime)}
                                         </span>
                                     )}
                                 </div>

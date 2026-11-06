@@ -1345,7 +1345,7 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
 
             if (isNamePlaceholder || isPhotoPlaceholder) {
                 try {
-                    const cachedConns = typeof window !== 'undefined' ? localStorage.getItem('connections_cache_v1') : null;
+                    const cachedConns = typeof window !== 'undefined' ? (localStorage.getItem('connections_cache_v2') || localStorage.getItem('connections_cache_v1')) : null;
                     if (cachedConns) {
                         const conns = JSON.parse(cachedConns);
                         if (Array.isArray(conns)) {

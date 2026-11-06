@@ -740,6 +740,15 @@ function DashboardContent() {
                 } catch (_) {}
                 setCurrentUser(profile);
 
+                // Auto-sync accurate device IANA timezone to user profile for perfectly timed push notifications
+                try {
+                    const clientTz = Intl?.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : null;
+                    const savedTz = profile?.metadata?.timezone || profile?.timezone;
+                    if (clientTz && clientTz !== savedTz) {
+                        api.profile.updateProfile({ timezone: clientTz }).catch(() => {});
+                    }
+                } catch (_) {}
+
                 // Initialize Push Notifications
                 if (isNativePlatform()) {
                     Notifications.init().then(() => Notifications.setupListeners()).catch(console.error);

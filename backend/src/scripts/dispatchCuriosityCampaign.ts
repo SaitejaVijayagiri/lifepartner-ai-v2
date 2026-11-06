@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { NotificationService } from '../services/notification';
 import { generateCuriosityPush, FEMALE_CURIOSITY_TEMPLATES } from '../services/curiosityPush';
+import { resolveUserTimezone } from '../services/timezoneHelper';
 
 async function dispatchCampaign() {
     console.log("🚀 =======================================================");
@@ -49,14 +50,16 @@ async function dispatchCampaign() {
             const userCity = user.city || user.location_name || 'your city';
             const hasHardwareToken = user.device_tokens.length > 0;
 
-            // Generate tailored curiosity notification
+            // Generate tailored curiosity notification according to user's local timezone
+            const userTimezone = resolveUserTimezone(user);
             const pushData = generateCuriosityPush(
                 user.full_name,
                 userCity,
                 0,
                 25,
                 isFemale ? 'verified bachelors' : 'verified women',
-                user.gender
+                user.gender,
+                userTimezone
             );
 
             try {

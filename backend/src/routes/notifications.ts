@@ -250,6 +250,7 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
 
         const ns = NotificationService.getInstance();
         const { generateCuriosityPush, FEMALE_CURIOSITY_TEMPLATES } = require('../services/curiosityPush');
+        const { resolveUserTimezone } = require('../services/timezoneHelper');
 
         // Execute broadcast asynchronously in background
         (async () => {
@@ -273,13 +274,15 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
                             targetUrl = t.targetUrl;
                         }
                     } else if (!pushTitle) {
+                        const userTz = resolveUserTimezone(targetUser);
                         const autoPush = generateCuriosityPush(
                             targetUser.full_name,
                             targetUser.city || targetUser.location_name,
                             0,
                             25,
                             isFemale ? 'verified bachelors' : 'verified women',
-                            targetUser.gender
+                            targetUser.gender,
+                            userTz
                         );
                         pushTitle = autoPush.title;
                         pushBody = autoPush.body;

@@ -1,4 +1,5 @@
 import { formatFirstName } from './femaleMatchReminders';
+import { resolveUserTimezone, getUserLocalTime } from './timezoneHelper';
 
 export interface CuriosityPushData {
     title: string;
@@ -90,7 +91,8 @@ export const FEMALE_CURIOSITY_TEMPLATES: FemaleCuriosityTemplate[] = [
 
 /**
  * Generates an irresistible, psychology-backed curiosity push notification
- * based on user context, gender, pending requests, day of week, and time of day.
+ * based on user context, gender, pending requests, day of week, and local time of day.
+ * Always respects the user's local timezone (India or International).
  */
 export function generateCuriosityPush(
     userName?: string | null,
@@ -98,13 +100,18 @@ export function generateCuriosityPush(
     pendingRequests: number = 0,
     oppositeCount: number = 20,
     oppositeLabel: string = 'verified singles',
-    gender?: string | null
+    gender?: string | null,
+    userOrTimezone?: any,
+    baseDate: Date = new Date()
 ): CuriosityPushData {
     const firstName = formatFirstName(userName);
     const userCity = (city || '').trim() || 'your city';
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ... 6 = Saturday
-    const hour = now.getHours();
+    
+    // Resolve user's exact local timezone & time
+    const tz = resolveUserTimezone(userOrTimezone || { city: userCity });
+    const local = getUserLocalTime(tz, baseDate);
+    const dayOfWeek = local.dayOfWeek; // 0 = Sunday, 1 = Monday, ... 6 = Saturday
+    const hour = local.hour; // 0 - 23 in user's local time
 
     const isFemale = (gender || '').toLowerCase() === 'female' || (oppositeLabel || '').toLowerCase().includes('men');
 
@@ -123,29 +130,7 @@ export function generateCuriosityPush(
             };
         }
 
-        // Late Night (9:00 PM - 2:00 AM): Relaxed, Authentic Companionship
-        if (hour >= 21 || hour < 2) {
-            return {
-                templateId: 'female_night_thoughts',
-                title: `💭 Late night thoughts, ${firstName}?`,
-                body: `Tired of surface-level small talk? A verified gentleman in ${userCity} who shares your family values is online now.`,
-                bannerUrl: '/images/campaigns/female_evening_tea.png',
-                targetUrl: '/dashboard?tab=matches'
-            };
-        }
-
-        // Lunch Time (12:00 PM - 3:00 PM): Secret Admirer / Bookmark Hook
-        if (hour >= 12 && hour <= 15) {
-            return {
-                templateId: 'female_afternoon_admirer',
-                title: `👀 Someone in ${userCity} just bookmarked your profile, ${firstName}`,
-                body: `A verified bachelor spent over 3 minutes reading your lifestyle & values. Take a sneak peek at his profile! ✨`,
-                bannerUrl: '/images/campaigns/female_gentleman_admirer.png',
-                targetUrl: '/dashboard?tab=matches'
-            };
-        }
-
-        // Morning (8:00 AM - 11:59 AM): Fresh Curated Matches
+        // Morning (8:00 AM - 11:59 AM in user's timezone): Fresh Curated Matches
         if (hour >= 8 && hour < 12) {
             return {
                 templateId: 'female_morning_picks',
@@ -156,7 +141,40 @@ export function generateCuriosityPush(
             };
         }
 
-        // Day-of-the-Week Evening Progression (4:00 PM - 8:59 PM)
+        // Lunch Time (12:00 PM - 3:59 PM in user's timezone): Secret Admirer / Bookmark Hook
+        if (hour >= 12 && hour < 16) {
+            return {
+                templateId: 'female_afternoon_admirer',
+                title: `👀 Someone in ${userCity} just bookmarked your profile, ${firstName}`,
+                body: `A verified bachelor spent over 3 minutes reading your lifestyle & values. Take a sneak peek at his profile! ✨`,
+                bannerUrl: '/images/campaigns/female_gentleman_admirer.png',
+                targetUrl: '/dashboard?tab=matches'
+            };
+        }
+
+        // Night Thoughts (9:00 PM - 10:59 PM in user's timezone): Relaxed, Authentic Companionship
+        if (hour >= 21 && hour < 23) {
+            return {
+                templateId: 'female_night_thoughts',
+                title: `💭 Late night thoughts, ${firstName}?`,
+                body: `Tired of surface-level small talk? A verified gentleman in ${userCity} who shares your family values is online now.`,
+                bannerUrl: '/images/campaigns/female_evening_tea.png',
+                targetUrl: '/dashboard?tab=matches'
+            };
+        }
+
+        // Late Night / Sleep Hours (11:00 PM - 7:59 AM in user's timezone)
+        if (hour >= 23 || hour < 8) {
+            return {
+                templateId: 'female_night_thoughts',
+                title: `💭 Late night thoughts, ${firstName}?`,
+                body: `Tired of surface-level small talk? A verified gentleman in ${userCity} who shares your family values is online now.`,
+                bannerUrl: '/images/campaigns/female_evening_tea.png',
+                targetUrl: '/dashboard?tab=matches'
+            };
+        }
+
+        // Evening Chai & Unwind (4:00 PM - 8:59 PM in user's timezone): Day-of-the-Week Progression
         switch (dayOfWeek) {
             case 1: // Monday: Secret Admirer
                 return {
@@ -233,37 +251,7 @@ export function generateCuriosityPush(
     }
 
     // 2. TIME-OF-DAY ADAPTIVE CURIOSITY HOOKS
-    // Late Night (9:00 PM - 2:00 AM)
-    if (hour >= 21 || hour < 2) {
-        return {
-            templateId: 'late_night_thoughts',
-            title: `💭 Late night thoughts, ${firstName}?`,
-            body: `Skip the overthinking. Someone who shares your values in ${userCity} is online right now.`,
-            bannerUrl: '/images/campaigns/night.png',
-            targetUrl: '/dashboard?tab=matches'
-        };
-    }
-
-    // Lunch Time (12:00 PM - 3:00 PM)
-    if (hour >= 12 && hour <= 15) {
-        let cityFood = 'lunch';
-        const lowerCity = userCity.toLowerCase();
-        if (lowerCity.includes('hyderabad')) cityFood = 'Hyderabadi Biryani 🍛';
-        else if (lowerCity.includes('mumbai')) cityFood = 'Vada Pav 🍔';
-        else if (lowerCity.includes('bangalore') || lowerCity.includes('bengaluru')) cityFood = 'Masala Dosa 🍽️';
-        else if (lowerCity.includes('delhi')) cityFood = 'Butter Chicken 🍛';
-        else if (lowerCity.includes('chennai')) cityFood = 'Idli Sambhar 🍲';
-
-        return {
-            templateId: 'lunch_break_curiosity',
-            title: `🍽️ Hey ${firstName}, eating ${cityFood} alone again?`,
-            body: `Your future partner is probably doing the same. Tap to see who just matched your vibe today!`,
-            bannerUrl: '/images/campaigns/lunch.png',
-            targetUrl: '/dashboard?tab=matches'
-        };
-    }
-
-    // Morning Chai (8:00 AM - 11:00 AM)
+    // Morning Chai (8:00 AM - 11:59 AM in user's timezone)
     if (hour >= 8 && hour < 12) {
         return {
             templateId: 'morning_chai_curiosity',
@@ -274,7 +262,55 @@ export function generateCuriosityPush(
         };
     }
 
-    // 3. DAY-OF-THE-WEEK CURIOSITY PROGRESSION (For 4:00 PM - 8:59 PM Evening)
+    // Lunch Time (12:00 PM - 3:59 PM in user's timezone)
+    if (hour >= 12 && hour < 16) {
+        let cityFood = 'lunch';
+        const lowerCity = userCity.toLowerCase();
+        if (lowerCity.includes('hyderabad')) cityFood = 'Hyderabadi Biryani 🍛';
+        else if (lowerCity.includes('mumbai')) cityFood = 'Vada Pav 🍔';
+        else if (lowerCity.includes('bangalore') || lowerCity.includes('bengaluru')) cityFood = 'Masala Dosa 🍽️';
+        else if (lowerCity.includes('delhi')) cityFood = 'Butter Chicken 🍛';
+        else if (lowerCity.includes('chennai')) cityFood = 'Idli Sambhar 🍲';
+        else if (lowerCity.includes('kolkata')) cityFood = 'Kathi Roll 🌯';
+        else if (lowerCity.includes('pune')) cityFood = 'Misal Pav 🍲';
+        else if (lowerCity.includes('dubai') || lowerCity.includes('sharjah') || lowerCity.includes('doha') || lowerCity.includes('riyadh')) cityFood = 'Shawarma 🥙';
+        else if (lowerCity.includes('new york') || lowerCity.includes('chicago')) cityFood = 'Pizza 🍕';
+        else if (lowerCity.includes('london') || lowerCity.includes('birmingham')) cityFood = 'lunch 🥪';
+        else if (lowerCity.includes('singapore') || lowerCity.includes('kuala lumpur')) cityFood = 'Chicken Rice 🍛';
+        else if (lowerCity.includes('sydney') || lowerCity.includes('melbourne')) cityFood = 'lunch 🥗';
+
+        return {
+            templateId: 'lunch_break_curiosity',
+            title: `🍽️ Hey ${firstName}, eating ${cityFood} alone again?`,
+            body: `Your future partner is probably doing the same. Tap to see who just matched your vibe today!`,
+            bannerUrl: '/images/campaigns/lunch.png',
+            targetUrl: '/dashboard?tab=matches'
+        };
+    }
+
+    // Night Reflections (9:00 PM - 10:59 PM in user's timezone)
+    if (hour >= 21 && hour < 23) {
+        return {
+            templateId: 'late_night_thoughts',
+            title: `💭 Late night thoughts, ${firstName}?`,
+            body: `Skip the overthinking. Someone who shares your values in ${userCity} is online right now.`,
+            bannerUrl: '/images/campaigns/night.png',
+            targetUrl: '/dashboard?tab=matches'
+        };
+    }
+
+    // Late Night / Sleep Hours (11:00 PM - 7:59 AM in user's timezone)
+    if (hour >= 23 || hour < 8) {
+        return {
+            templateId: 'late_night_thoughts',
+            title: `💭 Late night thoughts, ${firstName}?`,
+            body: `Skip the overthinking. Someone who shares your values in ${userCity} is online right now.`,
+            bannerUrl: '/images/campaigns/night.png',
+            targetUrl: '/dashboard?tab=matches'
+        };
+    }
+
+    // 3. DAY-OF-THE-WEEK CURIOSITY PROGRESSION (For 4:00 PM - 8:59 PM Evening in user's timezone)
     switch (dayOfWeek) {
         case 1:
             return {

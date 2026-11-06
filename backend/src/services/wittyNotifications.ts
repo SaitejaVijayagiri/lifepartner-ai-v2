@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { prisma } from '../prisma';
 import { NotificationService } from './notification';
 import { generateCuriosityPush } from './curiosityPush';
+import { resolveUserTimezone, getUserLocalTime } from './timezoneHelper';
 
 interface NotificationTemplate {
     id: string;
@@ -95,6 +96,8 @@ export async function sendWittyNotifications() {
                 id: true, 
                 full_name: true, 
                 gender: true,
+                city: true,
+                location_name: true,
                 created_at: true, 
                 profiles: { 
                     select: { 
@@ -117,17 +120,27 @@ export async function sendWittyNotifications() {
             return;
         }
 
-        const currentHour = new Date().getHours();
-        
-        // Filter templates relevant for this hour
-        const hourlyTemplates = templates.filter(t => t.hours.includes(currentHour));
-        const activeTemplates = hourlyTemplates.length > 0 ? hourlyTemplates : templates;
-
         const ns = NotificationService.getInstance();
         let count = 0;
+        let skippedQuietHours = 0;
 
         for (const user of inactiveUsers) {
-            // 20-Hour Throttle: Skip if user already received an automated notification recently
+            // Determine user's local timezone & time
+            const userTimezone = resolveUserTimezone(user);
+            const local = getUserLocalTime(userTimezone);
+
+            // 1. SLEEP PROTECTION: Never send notifications during quiet hours (11:00 PM - 7:59 AM local time)
+            if (local.isQuietHours) {
+                skippedQuietHours++;
+                continue;
+            }
+
+            // 2. PRIME ENGAGEMENT WINDOW: Only deliver during high-intent local hours (9 AM morning, 1 PM lunch, 6 PM evening, 9 PM night)
+            if (!local.isOptimalCampaignHour) {
+                continue;
+            }
+
+            // 3. 20-Hour Throttle: Skip if user already received an automated notification recently
             const recentCutoff = new Date(Date.now() - 20 * 60 * 60 * 1000);
             const alreadyNotified = await prisma.notifications.findFirst({
                 where: {
@@ -140,7 +153,7 @@ export async function sendWittyNotifications() {
                 continue;
             }
 
-            const location = user.profiles?.location_name || '';
+            const location = user.profiles?.location_name || user.city || '';
 
             // Check if user has pending requests to trigger highest curiosity
             const pendingRequests = await prisma.interactions.count({
@@ -151,7 +164,7 @@ export async function sendWittyNotifications() {
                 }
             }).catch(() => 0);
 
-            // Generate daily curiosity-driven push with rich banner (gender-tailored)
+            // Generate daily curiosity-driven push with rich banner (strictly tailored to user's local time & timezone)
             const isFemale = (user.gender || '').toLowerCase() === 'female';
             const pushData = generateCuriosityPush(
                 user.full_name,
@@ -159,7 +172,8 @@ export async function sendWittyNotifications() {
                 pendingRequests,
                 20,
                 isFemale ? 'verified men' : 'verified women',
-                user.gender
+                user.gender,
+                userTimezone
             );
 
             // Create notification record in database first to track it
@@ -172,7 +186,9 @@ export async function sendWittyNotifications() {
                         body: pushData.body,
                         bannerUrl: pushData.bannerUrl,
                         clicked: false,
-                        templateId: pushData.templateId
+                        templateId: pushData.templateId,
+                        timezone: userTimezone,
+                        localHour: local.hour
                     }
                 }
             });
@@ -210,16 +226,16 @@ export async function sendWittyNotifications() {
             await new Promise(r => setTimeout(r, 100));
         }
 
-        console.log(`[Witty Campaign] Successfully sent ${count} witty re-engagement push notifications.`);
+        console.log(`[Witty Campaign] Successfully sent ${count} timezone-accurate push notifications (Skipped ${skippedQuietHours} in quiet hours).`);
     } catch (e) {
         console.error("Failed to run Witty Push Notifications Campaign:", e);
     }
 }
 
 export function initWittyNotificationsCron() {
-    // Run at minute 0 of hours 11 (11:00 AM), 13 (1:00 PM), 18 (6:00 PM), and 21 (9:00 PM)
-    cron.schedule('0 11,13,18,21 * * *', async () => {
+    // Run hourly so users worldwide receive push notifications at their exact local optimal hours (9 AM, 1 PM, 6 PM, 9 PM)
+    cron.schedule('0 * * * *', async () => {
         await sendWittyNotifications();
     });
-    console.log("⏰ Witty Push Notifications Cron Job Scheduled (11:00 AM, 1:00 PM, 6:00 PM, 9:00 PM).");
+    console.log("⏰ Timezone-Aware Witty Push Notifications Cron Job Scheduled (Runs hourly to serve users at local 9 AM, 1 PM, 6 PM, 9 PM).");
 }

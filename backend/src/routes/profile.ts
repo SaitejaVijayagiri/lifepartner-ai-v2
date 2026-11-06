@@ -798,6 +798,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             photoPrivacy,
             managed_by,
             managedBy,
+            timezone,
             metadata: rawMetadata
         } = req.body;
 
@@ -1062,7 +1063,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     managed_by: managed_by || managedBy || rawMetadata?.managed_by || existingMeta?.managed_by || 'Self',
                     onboarding_completed: true,
                     age: finalAge || existingMeta?.age || undefined,
-                    gender: finalGender || existingMeta?.gender || undefined
+                    gender: finalGender || existingMeta?.gender || undefined,
+                    timezone: timezone || rawMetadata?.timezone || existingMeta?.timezone || (location?.timezone || undefined)
                 };
 
                 // Upsert Profile

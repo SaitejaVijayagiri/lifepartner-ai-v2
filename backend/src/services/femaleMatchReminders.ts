@@ -4,6 +4,7 @@ import { NotificationService } from './notification';
 import { Resend } from 'resend';
 import { EmailTracker } from './emailTracker';
 import { generateCuriosityPush } from './curiosityPush';
+import { resolveUserTimezone, getUserLocalTime } from './timezoneHelper';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -415,14 +416,24 @@ export async function runFemaleMatchesReminderCampaign() {
                 }
             });
 
-            // Generate irresistible, daily curiosity-driven push notification with banner
+            // Resolve user local time & timezone
+            const userTimezone = resolveUserTimezone(user);
+            const local = getUserLocalTime(userTimezone);
+
+            // Sleep protection: never disturb users in their local quiet hours (11:00 PM - 7:59 AM)
+            if (local.isQuietHours) {
+                continue;
+            }
+
+            // Generate irresistible, daily curiosity-driven push notification with banner (strictly timezone-tailored)
             const pushData = generateCuriosityPush(
                 user.full_name,
                 userCity,
                 pendingRequests,
                 oppositeCount,
                 oppositeLabel,
-                user.gender
+                user.gender,
+                userTimezone
             );
 
             // ========================================================

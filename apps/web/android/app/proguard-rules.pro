@@ -26,6 +26,8 @@
 -keep class com.lifepartner.ai.MyFirebaseMessagingService { *; }
 -keep class com.lifepartner.ai.NotificationReplyReceiver { *; }
 -keep class com.lifepartner.ai.NotificationLikeReceiver { *; }
+-keep class com.lifepartner.ai.NotificationRequestReceiver { *; }
+-keep class com.lifepartner.ai.OfflineSyncManager { *; }
 
 # ── JSON (org.json) ──────────────────────────────────────────
 -keep class org.json.** { *; }

@@ -151,6 +151,9 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
         });
 
         if (!game) return res.status(404).json({ error: "Game not found" });
+        if (game.player_a_id !== userId && game.player_b_id !== userId) {
+            return res.status(403).json({ error: "Not a participant in this game" });
+        }
 
         // Fetch Moves
         const moves = await prisma.game_moves.findMany({

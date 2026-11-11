@@ -16,7 +16,7 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if ("com.lifepartner.ai.ACTION_REPLY".equals(intent.getAction())) {
+        if (intent != null && "com.lifepartner.ai.ACTION_REPLY".equals(intent.getAction())) {
             CharSequence replyCharSequence = getMessageText(intent);
             String connId = intent.getStringExtra("connId");
             String senderName = intent.getStringExtra("senderName");
@@ -61,9 +61,7 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
                     OfflineSyncManager.queueOfflineReply(context, connId, replyText);
                     OfflineSyncManager.showToast(context, "Opening LifePartner to complete reply 💬");
 
-                    if (manager != null) {
-                        manager.cancel(notificationId);
-                    }
+                    cancelNotificationAndSummary(manager, notificationId, connId);
 
                     try {
                         Intent openIntent = new Intent(context, MainActivity.class);
@@ -126,33 +124,38 @@ public class NotificationReplyReceiver extends BroadcastReceiver {
 
                                     // Auto-dismiss cleanly after 1.2 seconds so drawer resets
                                     new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                                        try {
-                                            if (manager != null) {
-                                                manager.cancel(notificationId);
-                                            }
-                                        } catch (Exception ignored) {}
+                                        cancelNotificationAndSummary(manager, notificationId, connId);
                                     }, 1200);
                                 } catch (Exception ignored) {}
                             }
                         } else {
                             Log.w(TAG, "Server returned error sending reply. Queueing offline.");
                             OfflineSyncManager.queueOfflineReply(context, connId, replyText);
-                            if (manager != null) {
-                                manager.cancel(notificationId);
-                            }
+                            cancelNotificationAndSummary(manager, notificationId, connId);
                         }
                     } catch (Exception e) {
                         Log.e(TAG, "Failed to send reply: ", e);
                         OfflineSyncManager.queueOfflineReply(context, connId, replyText);
-                        if (manager != null) {
-                            manager.cancel(notificationId);
-                        }
+                        cancelNotificationAndSummary(manager, notificationId, connId);
                     } finally {
                         pendingResult.finish();
                     }
                 }).start();
             }
         }
+    }
+
+    private void cancelNotificationAndSummary(NotificationManager manager, int notificationId, String connId) {
+        if (manager == null) return;
+        try {
+            if (notificationId != 0) {
+                manager.cancel(notificationId);
+            }
+            if (connId != null && !connId.trim().isEmpty()) {
+                String groupKey = "chat_" + connId.trim().toLowerCase();
+                manager.cancel(Math.abs(groupKey.hashCode()));
+            }
+        } catch (Exception ignored) {}
     }
 
     private CharSequence getMessageText(Intent intent) {

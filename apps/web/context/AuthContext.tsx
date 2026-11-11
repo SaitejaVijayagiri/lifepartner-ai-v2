@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         // Transform profile to User object (adapter)
                         const updatedUser = {
                             id: freshProfile.userId || freshProfile.id,
-                            name: freshProfile.name,
+                            name: freshProfile.name || freshProfile.full_name, full_name: freshProfile.full_name || freshProfile.name, avatar_url: freshProfile.avatar_url || freshProfile.photoUrl, is_verified: freshProfile.is_verified,
                             email: freshProfile.email,
                             photoUrl: freshProfile.photoUrl,
                             is_premium: freshProfile.is_premium,

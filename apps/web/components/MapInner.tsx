@@ -188,7 +188,7 @@ export default function MapInner({
                     const isOnline = Boolean(profile.isOnline || (Array.isArray(onlineUsers) && (onlineUsers.includes(profile.id) || (profile.userId && onlineUsers.includes(profile.userId)))));
 
                     const photoHtml = profile.photoUrl
-                        ? `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.style.display='none';this.parentNode.innerHTML='<span style=\\'color:white;font-weight:bold;font-size:14px;\\'>${(profile.name || '?')[0]}</span>';" />`
+                        ? ((profile.isBlurred || profile.photo_privacy === 'blurred_until_accept') ? `<span style="color:white;font-size:15px;" title="Privacy Shield Active">🔒</span>` : `<img src="${profile.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.style.display='none';this.parentNode.innerHTML='<span style=\\'color:white;font-weight:bold;font-size:14px;\\'>${(profile.name || '?')[0]}</span>';" />`)
                         : `<span style="color:white;font-weight:bold;font-size:14px;">${(profile.name || '?')[0]}</span>`;
 
                     const onlineIndicatorHtml = isOnline

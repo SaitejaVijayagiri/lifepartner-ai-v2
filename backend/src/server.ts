@@ -111,7 +111,7 @@ app.use(cors({
         console.warn(`[CORS] Blocked request from origin: ${origin}`);
         return callback(null, true);
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length']
@@ -177,11 +177,8 @@ app.get('/health', async (req, res) => {
 app.use('/auth', authLimiter, authRoutes);
 app.use('/profile', profileRoutes);
 app.use('/matches', matchRoutes);
-app.use('/interactions', interactionRoutes);
-// Apply contact rate limiter specifically to the /contact sub-path.
-// contactLimiter was defined but never applied — this was a medium audit finding.
-// We attach it AFTER the main router so the limiter wraps only this route.
 app.use('/interactions/contact', contactLimiter);
+app.use('/interactions', interactionRoutes);
 app.use('/messages', chatRoutes);
 app.use('/games', gameRoutes);
 app.use('/payments', paymentRoutes);

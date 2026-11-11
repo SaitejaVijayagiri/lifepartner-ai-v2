@@ -24,7 +24,7 @@ const aiService = new AIService();
 import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
 import { ImageOptimizer } from '../services/imageOptimizer';
-import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
+import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, redactStoriesIfBlurred, getBlockedUserIdSet, getConnectedUserIdSet, areUsersConnected, resolveMatchStatus } from '../utils/photoUrl';
 import { ModerationService } from '../services/moderation';
 import { deleteFromCloudinary } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBase64ToR2, uploadBufferToR2, deleteFromR2 } from '../services/r2Storage';
@@ -536,7 +536,9 @@ router.get('/public/featured', async (req, res) => {
                 photos: extractPhotosList(user.profiles, meta, user.avatar_url).map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
                 location: locationStr,
                 profession: meta.career?.profession || "Professional",
-                isVerified: true
+                isVerified: true,
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: isPhotoPrivacyShieldEnabled(meta)
             };
         });
 
@@ -691,7 +693,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                 })
             ]);
             isRequesterPremium = requester?.is_premium || false;
-            matchStatus = sentRequest?.status || receivedRequest?.status || null;
+            matchStatus = resolveMatchStatus(sentRequest?.status, receivedRequest?.status);
             isLiked = matchRecord?.is_liked || false;
         }
 
@@ -712,6 +714,8 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
 
         const profileId = user.referral_code ? `LP-${user.referral_code.toUpperCase()}` : `LP-${user.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
         const handle = `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`;
+
+        const isBlurred = isPhotoPrivacyShieldEnabled(meta) && matchStatus !== 'accepted' && matchStatus !== 'connected' && user.id !== requesterId;
 
         res.json({
             id: user.id,
@@ -753,13 +757,13 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
                 const metaStories: any[] = (meta?.stories as any[]) || [];
                 const combined = mergeStoriesHelper(direct, metaStories);
-                return combined;
+                return redactStoriesIfBlurred(combined, isBlurred);
             })(),
             match_status: matchStatus,
             is_liked: isLiked,
             isOnline: isUserOnline(user.id),
             photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-            isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && user.id !== requesterId,
+            isBlurred,
             managed_by: meta.managed_by || meta.managedBy || 'Self',
             ...contactInfo,
             isContactUnlocked: isRequesterPremium
@@ -1435,33 +1439,42 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
             whereClause.gender = { in: oppositeGenders };
         }
 
-        const usersWithStories = await prisma.users.findMany({
-            where: whereClause,
-            select: {
-                id: true,
-                full_name: true,
-                avatar_url: true,
-                profiles: { select: { stories: true, metadata: true } }
-            },
-        });
+        const [blockedIds, connectedIds, usersWithStories] = await Promise.all([
+            getBlockedUserIdSet(prisma, userId),
+            getConnectedUserIdSet(prisma, userId),
+            prisma.users.findMany({
+                where: whereClause,
+                select: {
+                    id: true,
+                    full_name: true,
+                    avatar_url: true,
+                    profiles: { select: { stories: true, metadata: true } }
+                },
+            })
+        ]);
 
         const now = new Date();
         const feed: any[] = [];
 
         for (const user of usersWithStories) {
+            if (blockedIds.has(user.id)) continue;
             // Stories can be in profiles.stories column OR profiles.metadata.stories (legacy)
             const directStories: any[] = (user.profiles?.stories as any[]) || [];
-            const metaStories: any[] = (user.profiles as any)?.metadata?.stories || [];
+            const meta: any = (user.profiles as any)?.metadata || {};
+            const metaStories: any[] = meta.stories || [];
             // Merge and deduplicate by id, prefer directStories
             const stories = mergeStoriesHelper(directStories, metaStories, false, now);
             const activeStories = filterActive24hStories(stories, now);
 
             if (activeStories.length > 0) {
+                const isBlurred = isPhotoPrivacyShieldEnabled(meta) && !connectedIds.has(user.id);
                 feed.push({
                     id: user.id,
                     name: user.full_name,
-                    photoUrl: user.avatar_url,
-                    stories: activeStories
+                    photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
+                    photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                    isBlurred,
+                    stories: redactStoriesIfBlurred(activeStories, isBlurred)
                 });
             }
         }
@@ -1766,6 +1779,67 @@ router.delete('/stories/:storyId', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Shared gate for story interactions: checks blocks, target active status, Privacy Shield, and masks actor photo if shielded
+async function resolveStoryInteractionAccess(actorId: string, targetUserId: string) {
+    const block = await prisma.blocks.findFirst({
+        where: {
+            OR: [
+                { blocker_id: actorId, blocked_id: targetUserId },
+                { blocker_id: targetUserId, blocked_id: actorId }
+            ]
+        }
+    });
+    if (block) {
+        return { allowed: false as const, status: 403, error: 'Cannot interact with blocked user' };
+    }
+
+    const [actor, targetUser, connected] = await Promise.all([
+        prisma.users.findUnique({ where: { id: actorId }, include: { profiles: true } }),
+        prisma.users.findUnique({
+            where: { id: targetUserId },
+            select: {
+                id: true,
+                is_banned: true,
+                is_deactivated: true,
+                deactivated_until: true,
+                profiles: true
+            }
+        }),
+        areUsersConnected(prisma, actorId, targetUserId)
+    ]);
+
+    if (!actor) return { allowed: false as const, status: 404, error: 'User not found' };
+    const targetDeactivated = targetUser?.is_deactivated && (!targetUser.deactivated_until || new Date(targetUser.deactivated_until) > new Date());
+    if (!targetUser || !targetUser.profiles || targetUser.is_banned || targetDeactivated) {
+        return { allowed: false as const, status: 404, error: 'Target profile not found' };
+    }
+
+    if (isPhotoPrivacyShieldEnabled(targetUser.profiles.metadata) && !connected) {
+        return { allowed: false as const, status: 403, error: 'Privacy Shield active: connect to interact with stories' };
+    }
+
+    const actorName = actor.full_name || 'Someone';
+    const actorShielded = isNotificationPhotoBlurred(actor.profiles?.metadata, connected);
+    let rawPhotoUrl = actor.avatar_url || (actor.profiles as any)?.photos?.[0] || null;
+    if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
+        rawPhotoUrl = null;
+    }
+    const actorPhoto = actorShielded
+        ? null
+        : (rawPhotoUrl
+            ? sanitizePhotoUrl(rawPhotoUrl, actorName)
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(actorName)}&background=random&color=fff&size=256`);
+
+    return {
+        allowed: true as const,
+        actor,
+        targetProfile: targetUser.profiles,
+        actorName,
+        actorPhoto,
+        actorShielded
+    };
+}
+
 // 6.4 POST /stories/:targetUserId/:storyId/like
 router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (req: any, res) => {
     try {
@@ -1775,14 +1849,9 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
 
         if (likerId === targetUserId) return res.json({ success: true, ignored: true });
 
-        const liker = await prisma.users.findUnique({
-            where: { id: likerId },
-            include: { profiles: true }
-        });
-        if (!liker) return res.status(404).json({ error: 'Liker not found' });
-
-        const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
-        if (!targetProfile) return res.status(404).json({ error: 'Target profile not found' });
+        const access = await resolveStoryInteractionAccess(likerId, targetUserId);
+        if (!access.allowed) return res.status(access.status).json({ error: access.error });
+        const { actor: liker, targetProfile, actorName: likerName, actorPhoto: fromUserPhoto, actorShielded } = access;
 
         const stories = (targetProfile.stories as any[]) || [];
         const storyIndex = stories.findIndex(s => s.id === storyId);
@@ -1798,7 +1867,6 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
 
             // Trigger real-time notification to the story owner
             try {
-                const likerName = liker.full_name || "Someone";
                 const msg = `${likerName} liked your story! ❤️`;
 
                 const dbNotif = await prisma.notifications.create({
@@ -1810,14 +1878,6 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
                     }
                 });
 
-                let rawPhotoUrl = liker.avatar_url || (liker.profiles as any)?.photos?.[0] || null;
-                if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
-                    rawPhotoUrl = null;
-                }
-                const fromUserPhoto = rawPhotoUrl
-                    ? sanitizePhotoUrl(rawPhotoUrl, likerName)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(likerName)}&background=random&color=fff&size=256`;
-
                 const { getIO } = require('../socket');
                 const io = getIO();
                 io.to(targetUserId).emit('notification:new', {
@@ -1826,6 +1886,7 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
                     message: msg,
                     fromUserName: likerName,
                     fromUserPhoto: fromUserPhoto,
+                    isBlurred: actorShielded,
                     fromUserId: likerId,
                     storyId,
                     timestamp: new Date()
@@ -1836,7 +1897,7 @@ router.post('/stories/:targetUserId/:storyId/like', authenticateToken, async (re
                     targetUserId,
                     "New Story Like! ❤️",
                     msg,
-                    { type: 'story_like', fromUserId: likerId, storyId }
+                    { type: 'story_like', fromUserId: likerId, fromUserPhoto, isBlurred: actorShielded, storyId }
                 ).catch((e: any) => console.warn("Push failed for story like alert", e));
             } catch (notifErr) {
                 console.error("Failed to notify story owner of like:", notifErr);
@@ -1869,15 +1930,9 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
             return res.json({ success: true, ignored: true });
         }
 
-        // Fetch viewer details to store in the view array
-        const viewer = await prisma.users.findUnique({
-            where: { id: viewerId },
-            include: { profiles: true }
-        });
-        if (!viewer) return res.status(404).json({ error: "Viewer not found" });
-
-        const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
-        if (!targetProfile) return res.status(404).json({ error: "Target profile not found" });
+        const access = await resolveStoryInteractionAccess(viewerId, targetUserId);
+        if (!access.allowed) return res.status(access.status).json({ error: access.error });
+        const { targetProfile, actorName: viewerName, actorPhoto: fromUserPhoto, actorShielded } = access;
 
         const stories = (targetProfile.stories as any[]) || [];
         const storyIndex = stories.findIndex(s => s.id === storyId);
@@ -1889,24 +1944,18 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
         const story = stories[storyIndex];
         let views = story.views || [];
 
-        const viewerName = viewer.full_name || "Someone";
-        let rawPhotoUrl = viewer.avatar_url || (viewer.profiles?.photos as any)?.[0] || null;
-        if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
-            rawPhotoUrl = null;
-        }
-        const fromUserPhoto = rawPhotoUrl
-            ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`;
-
         const existingIdx = views.findIndex((v: any) => v.userId === viewerId || v.user_id === viewerId);
 
         if (existingIdx !== -1) {
             views[existingIdx].viewedAt = new Date().toISOString();
+            views[existingIdx].photoUrl = fromUserPhoto;
+            views[existingIdx].isBlurred = actorShielded;
         } else {
             views.push({
                 userId: viewerId,
                 name: viewerName,
                 photoUrl: fromUserPhoto,
+                isBlurred: actorShielded,
                 viewedAt: new Date().toISOString()
             });
         }
@@ -1942,6 +1991,7 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
                 message: msg,
                 fromUserName: viewerName,
                 fromUserPhoto: fromUserPhoto,
+                isBlurred: actorShielded,
                 fromUserId: viewerId,
                 timestamp: new Date()
             });
@@ -1953,6 +2003,7 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
                 viewerId,
                 viewerName,
                 viewerPhoto: fromUserPhoto,
+                isBlurred: actorShielded,
                 viewedAt: new Date().toISOString()
             });
 
@@ -1967,6 +2018,7 @@ router.post('/stories/:targetUserId/:storyId/view', authenticateToken, async (re
                         fromUserId: viewerId,
                         fromUserName: viewerName,
                         fromUserPhoto: fromUserPhoto,
+                        isBlurred: actorShielded,
                         storyId
                     }
                 ).catch((e: any) => console.warn("Push failed in story view", e));
@@ -1992,14 +2044,9 @@ router.post('/stories/:targetUserId/:storyId/react', authenticateToken, async (r
         if (!emoji) return res.status(400).json({ error: 'Emoji is required' });
         if (reactorId === targetUserId) return res.json({ success: true, ignored: true });
 
-        const reactor = await prisma.users.findUnique({
-            where: { id: reactorId },
-            include: { profiles: true }
-        });
-        if (!reactor) return res.status(404).json({ error: 'Reactor not found' });
-
-        const targetProfile = await prisma.profiles.findUnique({ where: { user_id: targetUserId } });
-        if (!targetProfile) return res.status(404).json({ error: 'Target profile not found' });
+        const access = await resolveStoryInteractionAccess(reactorId, targetUserId);
+        if (!access.allowed) return res.status(access.status).json({ error: access.error });
+        const { actor: reactor, targetProfile, actorName: reactorName, actorPhoto: fromUserPhoto, actorShielded } = access;
 
         const stories = (targetProfile.stories as any[]) || [];
         const storyIndex = stories.findIndex(s => s.id === storyId);
@@ -2026,7 +2073,6 @@ router.post('/stories/:targetUserId/:storyId/react', authenticateToken, async (r
 
         // Trigger real-time notification to the story owner
         try {
-            const reactorName = reactor.full_name || "Someone";
             const msg = `${reactorName} reacted ${emoji} to your story!`;
 
             const dbNotif = await prisma.notifications.create({
@@ -2038,14 +2084,6 @@ router.post('/stories/:targetUserId/:storyId/react', authenticateToken, async (r
                 }
             });
 
-            let rawPhotoUrl = reactor.avatar_url || (reactor.profiles as any)?.photos?.[0] || null;
-            if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
-                rawPhotoUrl = null;
-            }
-            const fromUserPhoto = rawPhotoUrl
-                ? sanitizePhotoUrl(rawPhotoUrl, reactorName)
-                : `https://ui-avatars.com/api/?name=${encodeURIComponent(reactorName)}&background=random&color=fff&size=256`;
-
             const { getIO } = require('../socket');
             const io = getIO();
             io.to(targetUserId).emit('notification:new', {
@@ -2054,6 +2092,7 @@ router.post('/stories/:targetUserId/:storyId/react', authenticateToken, async (r
                 message: msg,
                 fromUserName: reactorName,
                 fromUserPhoto: fromUserPhoto,
+                isBlurred: actorShielded,
                 fromUserId: reactorId,
                 storyId,
                 emoji,
@@ -2065,7 +2104,7 @@ router.post('/stories/:targetUserId/:storyId/react', authenticateToken, async (r
                 targetUserId,
                 "Story Reaction! ✨",
                 msg,
-                { type: 'story_reaction', fromUserId: reactorId, storyId, emoji }
+                { type: 'story_reaction', fromUserId: reactorId, fromUserPhoto, isBlurred: actorShielded, storyId, emoji }
             ).catch((e: any) => console.warn("Push failed for story reaction alert", e));
         } catch (notifErr) {
             console.error("Failed to notify story owner of reaction:", notifErr);
@@ -2221,6 +2260,8 @@ router.post('/deactivate', authenticateToken, async (req: any, res) => {
             }
         });
 
+        try { require('./matches').matchCache.clear(); } catch (_) {}
+
         console.log(`🔒 Temporarily deactivated account for user ${userId} for ${days} days.`);
         res.json({ success: true, message: `Account deactivated successfully for ${days} days.` });
     } catch (e) {
@@ -2295,6 +2336,8 @@ router.delete('/me', authenticateToken, async (req: any, res) => {
         await prisma.users.delete({
             where: { id: userId }
         });
+
+        try { require('./matches').matchCache.clear(); } catch (_) {}
 
         console.log(`✅ Successfully permanently deleted user: ${userId}`);
         res.json({ success: true, message: "Account deleted permanently." });

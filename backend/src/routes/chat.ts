@@ -54,6 +54,17 @@ router.get('/:connectionId/history', authenticateToken, async (req: any, res) =>
     const userId = req.user.userId;
 
     try {
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: connectionId },
+                    { blocker_id: connectionId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) {
+            return res.status(403).json({ error: "Cannot view chat history with a blocked user." });
+        }
         let messages: any[] = [];
         try {
             // Try with is_liked (works after DB migration)
@@ -294,6 +305,18 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
             expiresAt: shouldDisappear ? ((newMessageRecord.created_at ? new Date(newMessageRecord.created_at).getTime() : Date.now()) + TWENTY_FOUR_HOURS_MS) : undefined
         };
 
+        // Check prior connection before auto-connecting so Privacy Shield stays respected in notifications
+        const existingConnBefore = await prisma.interactions.findFirst({
+            where: {
+                OR: [
+                    { from_user_id: senderId, to_user_id: connectionId },
+                    { from_user_id: connectionId, to_user_id: senderId }
+                ],
+                status: { in: ['accepted', 'connected'] }
+            },
+            select: { id: true }
+        });
+
         // Auto-connect interaction so user appears in Connections list
         try {
             await prisma.interactions.upsert({
@@ -322,10 +345,13 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
         // Pre-fetch sender profile once for both Socket.io broadcast and Push notification
         const senderProfile = await prisma.users.findUnique({
             where: { id: senderId },
-            select: { full_name: true, avatar_url: true }
+            select: { full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
         });
-        const { sanitizePhotoUrl } = require('../utils/photoUrl');
-        const senderPhotoUrl = sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User');
+        const { sanitizePhotoUrl, isNotificationPhotoBlurred } = require('../utils/photoUrl');
+        const senderShielded = isNotificationPhotoBlurred(senderProfile?.profiles?.metadata, Boolean(existingConnBefore));
+        const senderPhotoUrl = senderShielded
+            ? null
+            : sanitizePhotoUrl(senderProfile?.avatar_url ?? null, senderProfile?.full_name || 'User');
         const senderFullName = senderProfile?.full_name || 'Someone';
         const senderFirstName = senderFullName.split(' ')[0] || "Someone";
 
@@ -422,12 +448,13 @@ router.post('/:connectionId/send', authenticateToken, async (req: any, res) => {
                     `${senderFirstName}`,
                     pushBody,
                     { 
-                        url: `/dashboard?tab=connections&chatId=${senderId}&name=${encodeURIComponent(senderFirstName)}&photo=${encodeURIComponent(senderPhotoUrl || '')}`,
+                        url: `/dashboard?tab=connections&chatId=${senderId}&name=${encodeURIComponent(senderFirstName)}${senderPhotoUrl ? `&photo=${encodeURIComponent(senderPhotoUrl)}` : ''}`,
                         messageId: newMessageRecord.id,
                         senderId: senderId,
                         connId: senderId,
                         senderName: senderFirstName,
                         senderPhoto: senderPhotoUrl,
+                        isBlurred: senderShielded,
                         title: senderFirstName,
                         body: pushBody,
                         type: 'message',
@@ -461,6 +488,9 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
             select: { id: true, sender_id: true, receiver_id: true, reactions: true }
         });
         if (!msg) return res.status(404).json({ error: 'Message not found' });
+        if (msg.sender_id !== userId && msg.receiver_id !== userId) {
+            return res.status(403).json({ error: 'Not a participant in this conversation' });
+        }
 
         const reactions: Record<string, string> = (msg.reactions as any) || {};
 
@@ -486,10 +516,10 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
             });
         }
 
-        // Fetch reactor's name for the socket event
+        // Fetch reactor's name & privacy metadata for socket/push
         const reactor = await prisma.users.findUnique({
             where: { id: userId },
-            select: { full_name: true, avatar_url: true }
+            select: { full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
         });
 
         // Emit real-time update to both sender and receiver
@@ -514,7 +544,10 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
             if (recipientId && recipientId !== userId && hasReacted && !isViewing) {
                 const reactorName = reactor?.full_name?.split(' ')[0] || "Someone";
                 const { NotificationService } = require('../services/notification');
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                const { sanitizePhotoUrl, areUsersConnected, isNotificationPhotoBlurred } = require('../utils/photoUrl');
+                const connected = await areUsersConnected(prisma, userId, recipientId);
+                const isShielded = isNotificationPhotoBlurred(reactor?.profiles?.metadata, connected);
+                const senderPhoto = isShielded ? null : sanitizePhotoUrl(reactor?.avatar_url ?? null, reactor?.full_name || 'User');
                 
                 await NotificationService.getInstance().sendToUser(
                     recipientId,
@@ -525,7 +558,8 @@ router.post('/:messageId/react', authenticateToken, async (req: any, res) => {
                         messageId: messageId,
                         senderId: userId,
                         senderName: reactor?.full_name || 'Someone',
-                        senderPhoto: sanitizePhotoUrl(reactor?.avatar_url ?? null, reactor?.full_name || 'User'),
+                        senderPhoto,
+                        isBlurred: isShielded,
                         type: 'match' // Open connection chat
                     }
                 );
@@ -552,6 +586,9 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
             select: { id: true, sender_id: true, receiver_id: true, reactions: true }
         });
         if (!msg) return res.status(404).json({ error: 'Message not found' });
+        if (msg.sender_id !== userId && msg.receiver_id !== userId) {
+            return res.status(403).json({ error: 'Not a participant in this conversation' });
+        }
 
         const reactions: Record<string, string> = (msg.reactions as any) || {};
         const isLiked = reactions[userId] === '❤️';
@@ -593,11 +630,14 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
             if (recipientId && recipientId !== userId && !isLiked && !isViewing) {
                 const reactor = await prisma.users.findUnique({
                     where: { id: userId },
-                    select: { full_name: true, avatar_url: true }
+                    select: { full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
                 });
                 const reactorName = reactor?.full_name?.split(' ')[0] || "Someone";
                 const { NotificationService } = require('../services/notification');
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                const { sanitizePhotoUrl, areUsersConnected, isNotificationPhotoBlurred } = require('../utils/photoUrl');
+                const connected = await areUsersConnected(prisma, userId, recipientId);
+                const isShielded = isNotificationPhotoBlurred(reactor?.profiles?.metadata, connected);
+                const senderPhoto = isShielded ? null : sanitizePhotoUrl(reactor?.avatar_url ?? null, reactor?.full_name || 'User');
                 
                 await NotificationService.getInstance().sendToUser(
                     recipientId,
@@ -608,7 +648,8 @@ router.post('/:messageId/like', authenticateToken, async (req: any, res) => {
                         messageId: messageId,
                         senderId: userId,
                         senderName: reactor?.full_name || 'Someone',
-                        senderPhoto: sanitizePhotoUrl(reactor?.avatar_url ?? null, reactor?.full_name || 'User'),
+                        senderPhoto,
+                        isBlurred: isShielded,
                         type: 'match' // Open connection chat
                     }
                 );
@@ -730,6 +771,7 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
             },
             select: {
                 id: true,
+                sender_id: true,
                 cleared_by: true
             }
         });
@@ -738,20 +780,14 @@ router.delete('/:connectionId/history', authenticateToken, async (req: any, res)
             const clearedBy: string[] = Array.isArray((msg as any).cleared_by) ? [...(msg as any).cleared_by] : [];
             let updated = false;
 
-            if (mode === 'everyone') {
-                if (!clearedBy.includes(userId)) {
-                    clearedBy.push(userId);
-                    updated = true;
-                }
-                if (!clearedBy.includes(connectionId)) {
-                    clearedBy.push(connectionId);
-                    updated = true;
-                }
-            } else {
-                if (!clearedBy.includes(userId)) {
-                    clearedBy.push(userId);
-                    updated = true;
-                }
+            if (!clearedBy.includes(userId)) {
+                clearedBy.push(userId);
+                updated = true;
+            }
+            // Only remove a message from the recipient's view if the caller actually sent it
+            if (mode === 'everyone' && msg.sender_id === userId && !clearedBy.includes(connectionId)) {
+                clearedBy.push(connectionId);
+                updated = true;
             }
 
             if (updated) {

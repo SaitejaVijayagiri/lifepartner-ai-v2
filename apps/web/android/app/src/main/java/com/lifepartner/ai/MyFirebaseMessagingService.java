@@ -42,7 +42,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         prefs.edit().putString("fcm_token", token).apply();
 
         String authToken = prefs.getString("auth_token", null);
-        if (authToken != null) {
+        if (authToken != null && !authToken.trim().isEmpty() && !authToken.equalsIgnoreCase("null")) {
             sendTokenToBackend(token, authToken);
         }
     }
@@ -56,7 +56,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         android.os.PowerManager.WakeLock wakeLock = null;
         if (pm != null) {
             wakeLock = pm.newWakeLock(
-                    android.os.PowerManager.PARTIAL_WAKE_LOCK | android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    android.os.PowerManager.PARTIAL_WAKE_LOCK,
                     "LifePartner:FCMWakeLock"
             );
             wakeLock.acquire(5000);
@@ -689,13 +689,16 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     }
 
     private void sendTokenToBackend(final String token, final String authToken) {
+        if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) return;
         new Thread(() -> {
             try {
-                URL url = new URI(API_BASE + "/notifications/register").toURL();
+                String cleanBase = API_BASE.endsWith("/") ? API_BASE.substring(0, API_BASE.length() - 1) : API_BASE;
+                URL url = new URI(cleanBase + "/notifications/register").toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("Authorization", "Bearer " + authToken);
+                String authHeader = authToken.startsWith("Bearer ") ? authToken : "Bearer " + authToken;
+                conn.setRequestProperty("Authorization", authHeader);
                 conn.setDoOutput(true);
                 conn.setConnectTimeout(10000);
                 conn.setReadTimeout(10000);

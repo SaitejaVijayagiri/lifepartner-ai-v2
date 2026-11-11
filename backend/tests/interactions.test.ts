@@ -7,11 +7,13 @@ jest.mock('../src/prisma', () => ({
         users: {
             findUnique: jest.fn(),
             findMany: jest.fn(),
+            findFirst: jest.fn().mockResolvedValue(null),
         },
         interactions: {
             count: jest.fn(),
             upsert: jest.fn(),
             findMany: jest.fn(),
+            findFirst: jest.fn().mockResolvedValue(null),
             update: jest.fn(),
             deleteMany: jest.fn(),
             create: jest.fn(),
@@ -23,12 +25,14 @@ jest.mock('../src/prisma', () => ({
         matches: {
             deleteMany: jest.fn(),
             findMany: jest.fn(),
+            findFirst: jest.fn().mockResolvedValue(null),
         },
         blocks: {
             create: jest.fn(),
             upsert: jest.fn(),
             deleteMany: jest.fn(),
             findMany: jest.fn(),
+            findFirst: jest.fn().mockResolvedValue(null),
         },
         contact_inquiries: {
             create: jest.fn(),

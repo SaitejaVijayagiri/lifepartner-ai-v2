@@ -115,3 +115,103 @@ export const sanitizePhotoUrl = (url: string | null | undefined, seed: string): 
     return trimmed;
 };
 
+/**
+ * Returns true if the target profile has the Photo Privacy Shield enabled.
+ */
+export const isPhotoPrivacyShieldEnabled = (meta: any): boolean => {
+    const mode = meta?.photo_privacy || meta?.photoPrivacy;
+    return mode === 'blurred_until_accept';
+};
+
+/**
+ * Resolves mutual interaction status, prioritizing established connections ('accepted' / 'connected')
+ * over one-sided pending or rejected requests.
+ */
+export const resolveMatchStatus = (sentStatus?: string | null, receivedStatus?: string | null): string | null => {
+    if (sentStatus === 'connected' || sentStatus === 'accepted' || receivedStatus === 'connected' || receivedStatus === 'accepted') {
+        return sentStatus === 'accepted' || receivedStatus === 'accepted' ? 'accepted' : 'connected';
+    }
+    return sentStatus || receivedStatus || null;
+};
+
+/**
+ * Returns true if sender has Privacy Shield enabled and viewer is not yet connected.
+ */
+export const isNotificationPhotoBlurred = (meta: any, isConnected: boolean): boolean => {
+    return isPhotoPrivacyShieldEnabled(meta) && !isConnected;
+};
+
+/**
+ * Redacts raw media URLs from story/highlight items when a profile is behind the Privacy Shield.
+ */
+export const redactStoriesIfBlurred = (stories: any[], isBlurred: boolean): any[] => {
+    if (!Array.isArray(stories)) return [];
+    if (!isBlurred) return stories;
+    return stories.map((s: any) => ({
+        id: s.id,
+        type: s.type,
+        createdAt: s.createdAt,
+        expiresAt: s.expiresAt,
+        isHighlight: Boolean(s.isHighlight || s.is_highlight),
+        isLocked: true,
+        url: ''
+    }));
+};
+
+/**
+ * Fetches the set of user IDs blocked by or blocking `userId`.
+ */
+export const getBlockedUserIdSet = async (prismaClient: any, userId: string): Promise<Set<string>> => {
+    const blockedIds = new Set<string>();
+    if (!userId) return blockedIds;
+    const rows = await prismaClient.blocks.findMany({
+        where: { OR: [{ blocker_id: userId }, { blocked_id: userId }] },
+        select: { blocker_id: true, blocked_id: true }
+    });
+    for (const row of rows || []) {
+        if (row.blocker_id !== userId) blockedIds.add(row.blocker_id);
+        if (row.blocked_id !== userId) blockedIds.add(row.blocked_id);
+    }
+    return blockedIds;
+};
+
+/**
+ * Fetches the set of user IDs currently connected ('accepted' or 'connected') with `userId`.
+ */
+export const getConnectedUserIdSet = async (prismaClient: any, userId: string): Promise<Set<string>> => {
+    const connectedIds = new Set<string>();
+    if (!userId) return connectedIds;
+    const rows = await prismaClient.interactions.findMany({
+        where: {
+            OR: [
+                { from_user_id: userId, status: { in: ['accepted', 'connected'] } },
+                { to_user_id: userId, status: { in: ['accepted', 'connected'] } }
+            ]
+        },
+        select: { from_user_id: true, to_user_id: true }
+    });
+    for (const row of rows || []) {
+        if (row.from_user_id !== userId) connectedIds.add(row.from_user_id);
+        if (row.to_user_id !== userId) connectedIds.add(row.to_user_id);
+    }
+    return connectedIds;
+};
+
+/**
+ * Checks whether two users have an established ('accepted' or 'connected') interaction.
+ */
+export const areUsersConnected = async (prismaClient: any, userA: string, userB: string): Promise<boolean> => {
+    if (!userA || !userB || userA === userB) return userA === userB;
+    const match = await prismaClient.interactions.findFirst({
+        where: {
+            OR: [
+                { from_user_id: userA, to_user_id: userB, status: { in: ['accepted', 'connected'] } },
+                { from_user_id: userB, to_user_id: userA, status: { in: ['accepted', 'connected'] } }
+            ]
+        },
+        select: { id: true }
+    });
+    return Boolean(match);
+};
+
+

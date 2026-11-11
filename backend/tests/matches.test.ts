@@ -16,6 +16,9 @@ jest.mock('../src/prisma', () => ({
         interactions: {
             findMany: jest.fn().mockResolvedValue([]),
         },
+        blocks: {
+            findMany: jest.fn().mockResolvedValue([]),
+        },
         $queryRaw: jest.fn(),
         $queryRawUnsafe: jest.fn(),
     }
@@ -35,7 +38,8 @@ jest.mock('../src/middleware/auth', () => ({
 
 // Mock Socket
 jest.mock('../src/socket', () => ({
-    isUserOnline: jest.fn(() => true)
+    isUserOnline: jest.fn(() => true),
+    getOnlineUserIds: jest.fn(() => [])
 }));
 
 // Mock AI Service (Constructed in route)

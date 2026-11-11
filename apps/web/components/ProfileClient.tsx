@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useSocket } from '@/context/SocketContext';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, isProfilePhotoBlurred } from '@/lib/utils';
 
 const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
 
@@ -41,6 +41,9 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
             api.profile.getById(profileId)
                 .then((data) => {
                     setProfile(data);
+                    if (data?.match_status !== undefined) {
+                        setMatchStatus(data.match_status);
+                    }
                     if (user.id !== profileId) {
                         api.interactions.recordView(profileId).catch(() => {});
                     }
@@ -60,6 +63,12 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
     const [loadingLike, setLoadingLike] = useState<boolean>(false);
     const [activeHighlightSet, setActiveHighlightSet] = useState<any>(null);
     const [copiedId, setCopiedId] = useState(false);
+
+    const effectiveMatchStatus = matchStatus || profile?.match_status || null;
+    const isConnected = effectiveMatchStatus === 'accepted' || effectiveMatchStatus === 'connected';
+    const isPhotoBlurred = profile
+        ? isProfilePhotoBlurred({ ...profile, match_status: effectiveMatchStatus }, user, isConnected)
+        : false;
 
     const displayProfileId = profile?.profile_id || profile?.profileId || (profile?.referral_code ? `LP-${String(profile.referral_code).toUpperCase()}` : (profile?.id ? `LP-${String(profile.id).slice(0, 8).toUpperCase()}` : ''));
     const displayHandle = profile?.handle || (profile?.name ? `@${String(profile.name).toLowerCase().replace(/[^a-z0-9]/g, '')}` : '');
@@ -206,22 +215,39 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                 <div className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors">
                     <div className="grid md:grid-cols-2 gap-0">
                         {/* Photo Carousel (Simplified) */}
-                        <div className="h-[500px] bg-gray-100 dark:bg-gray-950 relative">
+                        <div className="h-[380px] sm:h-[500px] bg-gray-100 dark:bg-gray-950 relative overflow-hidden">
                             {/* Safer Image Access */}
-                            {profile.photos?.[0] ? (
-                                <img src={profile.photos[0]} className="w-full h-full object-cover" alt={profile.name} />
+                            {(profile.photos?.[0] || profile.photoUrl) ? (
+                                <img
+                                    src={profile.photos?.[0] || profile.photoUrl}
+                                    className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-2xl scale-110 filter select-none' : ''}`}
+                                    alt={profile.name}
+                                />
                             ) : (
                                 <div className="w-full h-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-gray-400">No Photo</div>
                             )}
 
-                            {!user && (
+                            {isPhotoBlurred && (
+                                <>
+                                    <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-md pointer-events-none" />
+                                    <div className="absolute inset-x-4 top-6 bottom-36 z-20 flex flex-col items-center justify-center pointer-events-none select-none px-4 text-center">
+                                        <div className="bg-black/60 border border-white/15 px-5 py-3.5 rounded-2xl backdrop-blur-md shadow-2xl flex flex-col items-center">
+                                            <span className="text-3xl mb-1.5 filter drop-shadow-md">🔒</span>
+                                            <span className="text-white font-bold text-xs tracking-wider uppercase drop-shadow-md">Privacy Shield</span>
+                                            <span className="text-white/80 text-[11px] font-medium mt-0.5 drop-shadow">Connect to view photos</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {!user && !isPhotoBlurred && (
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                     <div className="bg-black/40 backdrop-blur-[2px] px-4 py-2 rounded-full text-white/70 text-xs font-bold uppercase tracking-widest border border-white/20">
                                         LifePartner AI • Public Preview
                                     </div>
                                 </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex items-end p-8">
+                            <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-end p-6 sm:p-8 pointer-events-none">
                                 <div className="text-white">
                                     <div className="flex flex-wrap items-center gap-1.5 mb-2 pointer-events-auto">
                                         {displayProfileId && (
@@ -389,6 +415,10 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         key={hStory.id || idx}
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (isPhotoBlurred) {
+                                                toast.info('Highlights are hidden until you connect');
+                                                return;
+                                            }
                                             setActiveHighlightSet({
                                                 stories: highlightedStories,
                                                 initialIndex: idx,
@@ -402,11 +432,14 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                         className="flex flex-col items-center gap-1.5 cursor-pointer group flex-shrink-0"
                                     >
                                         <div className="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 transition-transform">
-                                            <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
+                                            <div className="relative w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
                                                 {hStory.type === 'video' ? (
-                                                    <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                    <video src={hStory.url} className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} muted />
                                                 ) : (
-                                                    <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                    <img src={hStory.url} className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} alt="Highlight" />
+                                                )}
+                                                {isPhotoBlurred && (
+                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs">🔒</div>
                                                 )}
                                             </div>
                                         </div>
@@ -458,6 +491,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                 }
 
                                 const isOwner = user && (String(user.id || (user as any)?.userId) === String(profile.id || profile.user_id));
+                                const isHighlightBlurred = !isOwner && isProfilePhotoBlurred(profile, user?.id || (user as any)?.userId);
                                 return (
                                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pt-2">
                                         {highlightedStories.map((hStory: any, idx: number) => (
@@ -465,6 +499,10 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                 key={hStory.id || idx}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
+                                                    if (isHighlightBlurred) {
+                                                        toast.info('Privacy Shield is active — connect to view highlights.');
+                                                        return;
+                                                    }
                                                     setActiveHighlightSet({
                                                         stories: highlightedStories,
                                                         initialIndex: idx,
@@ -478,8 +516,15 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                                                 className="relative flex flex-col items-center gap-2 cursor-pointer group"
                                             >
                                                 <div className="relative w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-lg group-hover:scale-105 transition-all">
-                                                    <div className="w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
-                                                        {hStory.type === 'video' ? (
+                                                    <div className="relative w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                        {isHighlightBlurred ? (
+                                                            <>
+                                                                <img src="/avatar-fallback.svg" className="w-full h-full object-cover blur-lg scale-110" alt="Private Highlight" />
+                                                                <div className="absolute inset-0 bg-slate-950/55 flex items-center justify-center rounded-full">
+                                                                    <Shield className="w-5 h-5 text-white" />
+                                                                </div>
+                                                            </>
+                                                        ) : hStory.type === 'video' ? (
                                                             <video src={hStory.url} className="w-full h-full object-cover" muted />
                                                         ) : (
                                                             <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
@@ -740,7 +785,7 @@ export default function ProfileClient({ initialProfile, profileId }: ProfileClie
                 )}
             </div>
 
-            {activeHighlightSet && (
+            {activeHighlightSet && !isPhotoBlurred && (
                 <StoryModal
                     stories={activeHighlightSet.stories}
                     initialIndex={activeHighlightSet.initialIndex || 0}

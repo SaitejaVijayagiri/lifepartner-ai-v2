@@ -157,3 +157,48 @@ export function filterActiveStories<T = any>(stories: T[]): T[] {
     if (!Array.isArray(stories)) return [];
     return stories.filter(isStoryActive);
 }
+
+/**
+ * Returns true when a profile's photos must remain blurred behind the Privacy Shield
+ * (explicit isBlurred/blur flag OR photo_privacy === 'blurred_until_accept' for non-connected viewers).
+ */
+export function isProfilePhotoBlurred(
+    profile: any,
+    currentUser?: any,
+    isConnectedOverride?: boolean
+): boolean {
+    if (!profile) return false;
+
+    const targetId = profile.id || profile.userId || profile.user_id;
+    const currentId = currentUser?.id || currentUser?.userId;
+    if (targetId && currentId && String(targetId) === String(currentId)) {
+        return false;
+    }
+
+    const matchStatus = profile.match_status || profile.matchStatus;
+    const isConnected = typeof isConnectedOverride === 'boolean'
+        ? isConnectedOverride
+        : Boolean(
+            profile.isConnected ||
+            profile.is_connected ||
+            matchStatus === 'accepted' ||
+            matchStatus === 'connected'
+        );
+
+    if (isConnected && profile.name !== '???') {
+        return false;
+    }
+
+    const privacySetting =
+        profile.photo_privacy ||
+        profile.photoPrivacy ||
+        profile.metadata?.photo_privacy ||
+        profile.metadata?.photoPrivacy;
+
+    return Boolean(
+        profile.isBlurred ||
+        profile.blur ||
+        privacySetting === 'blurred_until_accept'
+    );
+}
+

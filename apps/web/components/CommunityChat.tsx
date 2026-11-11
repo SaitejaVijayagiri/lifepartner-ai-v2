@@ -6,6 +6,7 @@ import { Send, Users, ShieldCheck, Lock, X, Trash2, MessageCircle, User, Eye, Ma
 import ReportModal from './ReportModal';
 import { api } from '@/lib/api';
 import VerificationBadge from './VerificationBadge';
+import { isProfilePhotoBlurred } from '@/lib/utils';
 
 export default function CommunityChat({ 
     currentUser, 
@@ -302,9 +303,9 @@ export default function CommunityChat({
                             return (
                                 <div key={msg.id || idx} className={`flex gap-3 group ${isMe ? 'flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-2`}>
                                     <img 
-                                        src={msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`} 
+                                        src={isProfilePhotoBlurred(msg.sender, currentUserId) ? '/avatar-fallback.svg' : (msg.sender.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(msg.sender.name || 'User')}`)} 
                                         onClick={() => !isMe && setSelectedMember(msg.sender)}
-                                        className={`w-8 h-8 rounded-full border border-gray-200 self-end mb-1 shrink-0 ${!isMe ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all' : ''}`} 
+                                        className={`w-8 h-8 rounded-full border border-gray-200 self-end mb-1 shrink-0 ${isProfilePhotoBlurred(msg.sender, currentUserId) ? 'blur-sm opacity-75' : ''} ${!isMe ? 'cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition-all' : ''}`} 
                                         onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} 
                                         title={!isMe ? `Tap to view ${msg.sender.name}'s card or send message` : undefined}
                                     />
@@ -475,7 +476,7 @@ export default function CommunityChat({
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm shrink-0">
                                             {u.photo ? (
-                                                <img src={u.photo} className="w-full h-full object-cover" onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
+                                                <img src={isProfilePhotoBlurred(u, currentUserId) ? '/avatar-fallback.svg' : u.photo} className={`w-full h-full object-cover ${isProfilePhotoBlurred(u, currentUserId) ? 'blur-lg scale-110' : ''}`} onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }} />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold">
                                                     {u.name[0]}
@@ -564,8 +565,8 @@ export default function CommunityChat({
 
                         <div className="relative mb-3 mt-1">
                             <img 
-                                src={selectedMember.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedMember.name || 'User')}`} 
-                                className="w-20 h-20 rounded-full object-cover border-4 border-indigo-500/20 shadow-lg"
+                                src={isProfilePhotoBlurred(selectedMember, currentUser?.id || currentUser?.userId) ? '/avatar-fallback.svg' : (selectedMember.photo || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedMember.name || 'User')}`)} 
+                                className={`w-20 h-20 rounded-full object-cover border-4 border-indigo-500/20 shadow-lg ${isProfilePhotoBlurred(selectedMember, currentUser?.id || currentUser?.userId) ? 'blur-lg' : ''}`}
                                 onError={(e) => { const t = e.target as HTMLImageElement; t.onerror = null; t.src = '/avatar-fallback.svg'; }}
                             />
                             <span className="absolute bottom-0 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>

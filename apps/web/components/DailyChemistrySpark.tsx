@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Sparkles, Flame, Users, CheckCircle2, MessageCircle, ArrowRight, Zap, Trophy } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { isProfilePhotoBlurred } from '@/lib/utils';
 
 interface DailyChemistrySparkProps {
     currentUser: any;
@@ -320,6 +321,7 @@ export default function DailyChemistrySpark({
                             const pName = match.name || match.full_name || 'Match';
                             const photo = match.photoUrl || (Array.isArray(match.photos) ? match.photos[0] : '') || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(pName)}`;
                             const location = typeof match.location === 'string' ? match.location : (match.location?.city || match.city || '');
+                            const isPhotoBlurred = isProfilePhotoBlurred(match, currentUser);
 
                             const icebreakerMsg = selectedOption === 'A' ? currentQuestion.icebreakerA : currentQuestion.icebreakerB;
 
@@ -332,12 +334,17 @@ export default function DailyChemistrySpark({
                                         className="flex items-center gap-2.5 min-w-0 cursor-pointer"
                                         onClick={() => onViewProfile && onViewProfile(match)}
                                     >
-                                        <img
-                                            src={photo}
-                                            alt={pName}
-                                            className="w-10 h-10 rounded-full object-cover border border-purple-400/50 shrink-0"
-                                            loading="lazy"
-                                        />
+                                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-purple-400/50 shrink-0">
+                                            <img
+                                                src={photo}
+                                                alt={pName}
+                                                className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`}
+                                                loading="lazy"
+                                            />
+                                            {isPhotoBlurred && (
+                                                <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white text-xs">🔒</div>
+                                            )}
+                                        </div>
                                         <div className="min-w-0">
                                             <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{pName}</p>
                                             <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">{location || `${match.age || 24} yrs`}</p>

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Plus, Play } from 'lucide-react';
+import { Sparkles, Plus, Play, Lock } from 'lucide-react';
 import { fetchAPI, api } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import { useToast } from '@/components/ui/Toast';
-import { filterActive24hStories } from '@/lib/utils';
+import { filterActive24hStories, isProfilePhotoBlurred } from '@/lib/utils';
 
 const StoryCreator = dynamic(() => import('@/components/StoryCreator'), { ssr: false });
 
@@ -140,6 +140,7 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                         const isAllViewed = Boolean(currentUserId && activeStories.every((s: any) => 
                             viewedStoryIds.has(s.id) || (Array.isArray(s.views) ? s.views : []).some((v: any) => (v.userId || v.user_id) === currentUserId)
                         ));
+                        const isBlurred = isProfilePhotoBlurred(feedUser, currentUserId);
 
                         return (
                             <div
@@ -147,23 +148,32 @@ export default function StoriesFeed({ currentUser, setCurrentUser, onOpenStory }
                                 className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer group animate-in fade-in slide-in-from-right-4"
                                 style={{ animationDelay: `${idx * 40}ms` }}
                                 onClick={() => {
+                                    if (isBlurred) {
+                                        toast.info('Privacy Shield is active — connect to view stories.');
+                                        return;
+                                    }
                                     activeStories.forEach((s: any) => markStoryViewed(s.id));
                                     onOpenStory({ user: feedUser, stories: activeStories });
                                 }}
                             >
                                 <div className="relative">
                                     <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2.5px] transition-all duration-300 ease-in-out group-hover:scale-105 ${
-                                        isAllViewed
+                                        isBlurred || isAllViewed
                                             ? 'bg-slate-300 dark:bg-slate-700 shadow-sm'
                                             : 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-md shadow-orange-500/30'
                                     }`}>
-                                        <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-900">
+                                        <div className="relative w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-900 overflow-hidden">
                                             <img
-                                                src={feedUser.photoUrl || '/avatar-fallback.svg'}
-                                                className="w-full h-full rounded-full object-cover"
+                                                src={isBlurred ? '/avatar-fallback.svg' : (feedUser.photoUrl || '/avatar-fallback.svg')}
+                                                className={`w-full h-full rounded-full object-cover ${isBlurred ? 'blur-lg scale-110' : ''}`}
                                                 alt={feedUser.name || 'Member'}
                                                 onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
                                             />
+                                            {isBlurred && (
+                                                <div className="absolute inset-0 bg-slate-950/50 rounded-full flex items-center justify-center">
+                                                    <Lock className="w-4 h-4 text-white" />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

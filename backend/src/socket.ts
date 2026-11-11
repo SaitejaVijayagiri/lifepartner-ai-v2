@@ -4,6 +4,14 @@ import { prisma } from './prisma'; // Use Prisma
 import jwt from 'jsonwebtoken';
 import { SpeedDatingManager } from './services/SpeedDatingManager';
 import { sanitizeContent } from './utils/contentFilter';
+import {
+    sanitizePhotoUrl,
+    isNotificationPhotoBlurred,
+    areUsersConnected,
+    isPhotoPrivacyShieldEnabled,
+    getBlockedUserIdSet,
+    getConnectedUserIdSet
+} from './utils/photoUrl';
 
 let io: Server;
 // Exact set of active socket IDs per user (guarantees accurate presence count without false duplicates)
@@ -16,8 +24,14 @@ const onlineUsers = new Map<string, number>();
 const activeChats = new Map<string, string>();
 
 // Track users explicitly in the Verified Lounge
-// socketId -> { id, userId, name, photo, isVerified }
-const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean }>();
+// socketId -> { id, userId, name, photo, isVerified, isShielded }
+const communityUsers = new Map<string, { id?: string, userId: string, name: string, photo: string, isVerified?: boolean, isShielded?: boolean }>();
+
+const isUserAccountActive = (u: { is_banned?: boolean | null; is_deactivated?: boolean | null; deactivated_until?: Date | string | null } | null | undefined): boolean => {
+    if (!u || u.is_banned) return false;
+    if (u.is_deactivated && (!u.deactivated_until || new Date(u.deactivated_until) > new Date())) return false;
+    return true;
+};
 
 interface PendingCall {
     callerId: string;
@@ -28,6 +42,7 @@ interface PendingCall {
     location?: string | null;
     avatarUrl?: string | null;
     photoUrl?: string | null;
+    isBlurred?: boolean;
     _speedDateMode?: string;
     createdAt: number;
 }
@@ -59,6 +74,7 @@ const deliverPendingCall = (targetSocket: Socket, uId: string) => {
             location: call.location,
             avatarUrl: call.avatarUrl,
             photoUrl: call.photoUrl,
+            isBlurred: call.isBlurred,
             _speedDateMode: call._speedDateMode
         });
     }
@@ -87,7 +103,7 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
                         { from_user_id: targetUserId },
                         { to_user_id: targetUserId }
                     ],
-                    status: 'connected'
+                    status: { in: ['accepted', 'connected'] }
                 },
                 select: {
                     from_user_id: true,
@@ -96,7 +112,6 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
             });
 
             const name = userDetails.full_name || 'Someone';
-            const { sanitizePhotoUrl } = require('./utils/photoUrl');
             let rawPhoto = userDetails.avatar_url || (userDetails.profiles?.photos as any)?.[0] || null;
             if (rawPhoto && rawPhoto.startsWith('data:image')) {
                 rawPhoto = null;
@@ -258,6 +273,59 @@ export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: 
     }
 };
 
+const broadcastCommunityUsers = async () => {
+    if (!io) return;
+    const room = io.sockets.adapter.rooms.get('verified_lounge');
+    if (!room || room.size === 0) {
+        io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: 0 });
+        return;
+    }
+
+    const list = Array.from(communityUsers.values());
+    const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
+    io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
+
+    const viewerIds = new Set<string>();
+    for (const sockId of room) {
+        const s = io.sockets.sockets.get(sockId);
+        const vId = s?.data?.user?.userId;
+        if (vId) viewerIds.add(vId);
+    }
+
+    const viewerAccess = new Map<string, { blockedSet: Set<string>; connectedSet: Set<string> }>();
+    await Promise.all(Array.from(viewerIds).map(async (vId) => {
+        const [blockedSet, connectedSet] = await Promise.all([
+            getBlockedUserIdSet(prisma, vId),
+            getConnectedUserIdSet(prisma, vId)
+        ]);
+        viewerAccess.set(vId, { blockedSet, connectedSet });
+    }));
+
+    for (const sockId of room) {
+        const s = io.sockets.sockets.get(sockId);
+        const vId = s?.data?.user?.userId;
+        if (!s || !vId) continue;
+        const access = viewerAccess.get(vId);
+        if (!access) continue;
+
+        const viewerList = uniqueList
+            .filter(u => !access.blockedSet.has(u.userId))
+            .map(u => {
+                const isBlurred = Boolean(u.isShielded && u.userId !== vId && !access.connectedSet.has(u.userId));
+                return {
+                    id: u.id,
+                    userId: u.userId,
+                    name: u.name,
+                    photo: isBlurred ? '' : u.photo,
+                    isVerified: u.isVerified,
+                    photo_privacy: u.isShielded ? 'blurred_until_accept' : 'public',
+                    isBlurred
+                };
+            });
+        s.emit('update_community_users', viewerList);
+    }
+};
+
 export const initSocket = (httpServer: HttpServer) => {
     io = new Server(httpServer, {
         cors: {
@@ -296,15 +364,15 @@ export const initSocket = (httpServer: HttpServer) => {
 
         // JWT_SECRET guaranteed by startup guard in server.ts (throws if missing)
         const secret = process.env.JWT_SECRET!;
-        jwt.verify(token as string, secret, (err, decoded) => {
-            if (err) {
-                // Invalid token? Treat as guest.
-                socket.data.isGuest = true;
-                return next();
-            }
+        try {
+            const decoded = jwt.verify(token as string, secret);
             socket.data.user = decoded; // Store user info in socket session
-            next();
-        });
+            socket.data.isGuest = false;
+        } catch {
+            // Invalid token? Treat as guest.
+            socket.data.isGuest = true;
+        }
+        return next();
     });
 
     io.on('connection', (socket: Socket) => {
@@ -335,13 +403,7 @@ export const initSocket = (httpServer: HttpServer) => {
         const leaveCommunity = () => {
             if (communityUsers.has(socket.id)) {
                 communityUsers.delete(socket.id);
-                const list = Array.from(communityUsers.values());
-                // Use a Map to dedup by userId in case of multiple tabs
-                const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
-                io.to('verified_lounge').emit('update_community_users', uniqueList);
-
-                // Broadcast Count to Public
-                io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
+                broadcastCommunityUsers().catch(console.error);
             }
         };
 
@@ -377,33 +439,61 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
-        // Personal room handling and post-connection authentication
+        // Personal room handling (authenticated session must match room ID)
         socket.on('join-room', (uId: string) => {
-            if (uId && typeof uId === 'string') {
-                socket.join(uId);
-                socket.data.trackedUserId = uId;
-                if (!userId) userId = uId;
-                addSocketToOnlineUser(socket, uId);
-                console.log(`Socket ${socket.id} joined personal room: ${uId}`);
-                deliverPendingCall(socket, uId);
+            const authUserId = socket.data.user?.userId;
+            if (!authUserId || !uId || typeof uId !== 'string' || authUserId !== uId) {
+                return;
             }
+            socket.join(uId);
+            socket.data.trackedUserId = uId;
+            if (!userId) userId = uId;
+            addSocketToOnlineUser(socket, uId);
+            console.log(`Socket ${socket.id} joined personal room: ${uId}`);
+            deliverPendingCall(socket, uId);
         });
 
         // Live Singles Radar - Real-Time Wave Interaction
-        socket.on('live_wave', (data: { toUserId: string; senderName?: string; senderPhoto?: string }) => {
+        socket.on('live_wave', async (data: { toUserId: string; senderName?: string; senderPhoto?: string }) => {
             const senderId = getUserId();
-            if (!data?.toUserId || !senderId) return;
+            if (!data?.toUserId || !senderId || data.toUserId === senderId) return;
 
-            const targetSockets = userSockets.get(data.toUserId);
-            if (targetSockets && targetSockets.size > 0) {
-                targetSockets.forEach(sockId => {
-                    io.to(sockId).emit('live_wave_received', {
-                        fromUserId: senderId,
-                        senderName: data.senderName || 'A member',
-                        senderPhoto: data.senderPhoto,
-                        timestamp: Date.now()
+            try {
+                if (await areUsersBlocked(senderId, data.toUserId)) return;
+                const [senderUser, connected] = await Promise.all([
+                    prisma.users.findUnique({
+                        where: { id: senderId },
+                        select: {
+                            full_name: true,
+                            avatar_url: true,
+                            is_banned: true,
+                            is_deactivated: true,
+                            deactivated_until: true,
+                            profiles: { select: { metadata: true } }
+                        }
+                    }),
+                    areUsersConnected(prisma, senderId, data.toUserId)
+                ]);
+                if (!isUserAccountActive(senderUser)) return;
+                const meta = (senderUser?.profiles?.metadata as any) || {};
+                const isBlurred = isNotificationPhotoBlurred(meta, connected);
+                const senderName = senderUser?.full_name || data.senderName || 'A member';
+                const senderPhoto = isBlurred ? null : (senderUser?.avatar_url ? sanitizePhotoUrl(senderUser.avatar_url, senderName) : null);
+
+                const targetSockets = userSockets.get(data.toUserId);
+                if (targetSockets && targetSockets.size > 0) {
+                    targetSockets.forEach(sockId => {
+                        io.to(sockId).emit('live_wave_received', {
+                            fromUserId: senderId,
+                            senderName,
+                            senderPhoto,
+                            isBlurred,
+                            timestamp: Date.now()
+                        });
                     });
-                });
+                }
+            } catch (err) {
+                console.error('[live_wave] Error:', err);
             }
         });
 
@@ -422,19 +512,18 @@ export const initSocket = (httpServer: HttpServer) => {
             }
             try {
                 const secret = process.env.JWT_SECRET!;
-                jwt.verify(token, secret, (err: any, decoded: any) => {
-                    if (err || !decoded?.userId) return;
-                    const uId = decoded.userId;
-                    userId = uId;
-                    socket.data.user = decoded;
-                    socket.data.trackedUserId = uId;
-                    socket.data.isGuest = false;
+                const decoded: any = jwt.verify(token, secret);
+                if (!decoded?.userId) return;
+                const uId = decoded.userId;
+                userId = uId;
+                socket.data.user = decoded;
+                socket.data.trackedUserId = uId;
+                socket.data.isGuest = false;
 
-                    socket.join(uId);
-                    addSocketToOnlineUser(socket, uId);
-                    console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
-                    deliverPendingCall(socket, uId);
-                });
+                socket.join(uId);
+                addSocketToOnlineUser(socket, uId);
+                console.log(`Socket ${socket.id} authenticated post-connect as User ${uId}`);
+                deliverPendingCall(socket, uId);
             } catch (err) {
                 console.warn(`Socket authentication error:`, err);
             }
@@ -442,7 +531,7 @@ export const initSocket = (httpServer: HttpServer) => {
 
         // --- ACTIVE CHAT TRACKING (SUPPRESS PUSH NOTIFICATIONS WHILE USER IS CHATTING) ---
         socket.on('enter_chat', (data: { partnerId: string; userId?: string; connectionId?: string }) => {
-            const currentUserId = data?.userId || socket.data.user?.userId || socket.data.trackedUserId || userId;
+            const currentUserId = socket.data.user?.userId || socket.data.trackedUserId || userId;
             const targetPartner = data?.partnerId || data?.connectionId;
             if (currentUserId && targetPartner) {
                 const u = String(currentUserId).trim().toLowerCase();
@@ -455,8 +544,8 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
-        socket.on('leave_chat', (data?: { partnerId?: string; userId?: string }) => {
-            const currentUserId = data?.userId || socket.data.user?.userId || socket.data.trackedUserId || userId;
+        socket.on('leave_chat', () => {
+            const currentUserId = socket.data.user?.userId || socket.data.trackedUserId || userId;
             if (currentUserId) {
                 const u = String(currentUserId).trim().toLowerCase();
                 activeChats.delete(u);
@@ -488,36 +577,51 @@ export const initSocket = (httpServer: HttpServer) => {
         /**
          * CALL USER
          */
-        socket.on("callUser", async ({ userToCall, signalData, name, type, _speedDateMode, from: clientFrom }: any) => {
-            const from = getUserId() || clientFrom;
-            if (!userToCall || (from && userToCall === from)) {
-                console.warn(`[callUser] Rejected self-call or invalid target: from ${from} to ${userToCall}`);
+        socket.on("callUser", async ({ userToCall, signalData, name, type, _speedDateMode }: any) => {
+            const from = socket.data.user?.userId || socket.data.trackedUserId || userId;
+            if (!from || !userToCall || userToCall === from) {
+                console.warn(`[callUser] Rejected unauthenticated, self-call, or invalid target: from ${from} to ${userToCall}`);
                 return;
             }
             console.log(`Call Initiated: ${from} -> ${userToCall} (${type || 'video'})`);
 
             try {
-                // Fetch caller name, location, and avatar for call UI
-                const callerData = from ? await prisma.users.findUnique({
-                    where: { id: from },
-                    select: { 
-                        city: true, 
-                        location_name: true, 
-                        full_name: true, 
-                        avatar_url: true,
-                        profiles: {
-                            select: {
-                                photos: true,
-                                metadata: true
+                if (await areUsersBlocked(from, userToCall)) {
+                    console.warn(`[callUser] Blocked call attempt: ${from} -> ${userToCall}`);
+                    return;
+                }
+
+                // Fetch caller name, location, status, and avatar for call UI
+                const [callerData, isConnected] = await Promise.all([
+                    prisma.users.findUnique({
+                        where: { id: from },
+                        select: {
+                            city: true,
+                            location_name: true,
+                            full_name: true,
+                            avatar_url: true,
+                            is_banned: true,
+                            is_deactivated: true,
+                            deactivated_until: true,
+                            profiles: {
+                                select: {
+                                    photos: true,
+                                    metadata: true
+                                }
                             }
                         }
-                    }
-                }) : null;
+                    }),
+                    areUsersConnected(prisma, from, userToCall)
+                ]);
+
+                if (!isUserAccountActive(callerData)) {
+                    return;
+                }
 
                 const meta = (callerData?.profiles?.metadata as any) || {};
                 const secureName = callerData?.full_name?.trim() || meta.name?.trim() || name?.trim() || 'Someone';
+                const isBlurred = isNotificationPhotoBlurred(meta, isConnected);
 
-                const { sanitizePhotoUrl } = require('./utils/photoUrl');
                 let rawPhoto: string | null | undefined = callerData?.avatar_url;
                 if (!rawPhoto && Array.isArray(callerData?.profiles?.photos) && (callerData.profiles.photos as any).length > 0) {
                     rawPhoto = String((callerData.profiles.photos as any)[0] || '');
@@ -525,15 +629,17 @@ export const initSocket = (httpServer: HttpServer) => {
                 if (rawPhoto && rawPhoto.startsWith('data:image')) {
                     rawPhoto = null;
                 }
-                const callerAvatar = rawPhoto 
-                    ? sanitizePhotoUrl(rawPhoto, secureName) 
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(secureName)}&background=e11d48&color=fff&size=256`;
+                const callerAvatar = isBlurred
+                    ? null
+                    : (rawPhoto
+                        ? sanitizePhotoUrl(rawPhoto, secureName)
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(secureName)}&background=e11d48&color=fff&size=256`);
 
                 const userLocation = (callerData?.city || callerData?.location_name || (typeof meta.location?.city === 'string' ? meta.location.city : null) || null) as string | null;
 
                 // Cache active pending call for 45s so receiver can pick up even after launching via push notification
                 pendingCalls.set(userToCall, {
-                    callerId: from || clientFrom,
+                    callerId: from,
                     userToCall,
                     signalData,
                     name: secureName,
@@ -541,18 +647,20 @@ export const initSocket = (httpServer: HttpServer) => {
                     location: userLocation,
                     avatarUrl: callerAvatar,
                     photoUrl: callerAvatar,
+                    isBlurred,
                     _speedDateMode,
                     createdAt: Date.now()
                 });
 
                 io.to(userToCall).emit("callUser", {
                     signal: signalData,
-                    from: from || clientFrom,
+                    from,
                     name: secureName,
                     type,
                     location: userLocation,
                     avatarUrl: callerAvatar,
                     photoUrl: callerAvatar,
+                    isBlurred,
                     _speedDateMode
                 });
 
@@ -568,7 +676,8 @@ export const initSocket = (httpServer: HttpServer) => {
                     const callIcon = type === 'audio' ? '📞' : '📹';
                     const pushTitle = `${callIcon} ${secureName} is calling (${callTypeDisplay})`;
                     const pushBody = `${secureName} is calling you on LifePartner AI. Tap to answer!`;
-                    const callUrl = `/chat/${from}?action=answer_call&callType=${type || 'video'}&callerId=${from}&callerName=${encodeURIComponent(secureName)}&callerPhoto=${encodeURIComponent(callerAvatar)}`;
+                    const safePushPhoto = callerAvatar || '';
+                    const callUrl = `/chat/${from}?action=answer_call&callType=${type || 'video'}&callerId=${from}&callerName=${encodeURIComponent(secureName)}${callerAvatar ? `&callerPhoto=${encodeURIComponent(callerAvatar)}` : ''}`;
 
                     const { NotificationService } = require('./services/notification');
                     NotificationService.getInstance().sendToUser(
@@ -584,10 +693,11 @@ export const initSocket = (httpServer: HttpServer) => {
                             senderName: secureName,
                             callerName: secureName,
                             fromUserName: secureName,
-                            senderPhoto: callerAvatar,
-                            callerPhoto: callerAvatar,
-                            avatarUrl: callerAvatar,
-                            fromUserPhoto: callerAvatar,
+                            senderPhoto: safePushPhoto,
+                            callerPhoto: safePushPhoto,
+                            avatarUrl: safePushPhoto,
+                            fromUserPhoto: safePushPhoto,
+                            isBlurred: isBlurred ? 'true' : 'false',
                             callType: type || 'video',
                             url: callUrl
                         }
@@ -742,32 +852,32 @@ export const initSocket = (httpServer: HttpServer) => {
         });
 
         socket.on("incognito_toggle", (data) => {
-            if (data?.to) {
-                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+            const senderId = getUserId();
+            if (data?.to && senderId) {
                 io.to(data.to).emit("incognito_toggle", { ...data, from: senderId });
                 io.to(data.to).emit("disappearing_toggle", { ...data, from: senderId });
             }
         });
 
         socket.on("disappearing_toggle", (data) => {
-            if (data?.to) {
-                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+            const senderId = getUserId();
+            if (data?.to && senderId) {
                 io.to(data.to).emit("disappearing_toggle", { ...data, from: senderId });
                 io.to(data.to).emit("incognito_toggle", { ...data, from: senderId });
             }
         });
 
         socket.on("incognito_vanish", (data) => {
-            if (data?.to) {
-                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+            const senderId = getUserId();
+            if (data?.to && senderId) {
                 io.to(data.to).emit("incognito_vanish", { ...data, from: senderId });
                 io.to(data.to).emit("disappearing_vanish", { ...data, from: senderId });
             }
         });
 
         socket.on("disappearing_vanish", (data) => {
-            if (data?.to) {
-                const senderId = data.from || socket.data.trackedUserId || socket.data.user?.userId || userId;
+            const senderId = getUserId();
+            if (data?.to && senderId) {
                 io.to(data.to).emit("disappearing_vanish", { ...data, from: senderId });
                 io.to(data.to).emit("incognito_vanish", { ...data, from: senderId });
             }
@@ -836,7 +946,7 @@ export const initSocket = (httpServer: HttpServer) => {
             if (userId && data?.partnerId) {
                 if (await areUsersBlocked(userId, data.partnerId)) return;
                 try {
-                    // Save mutual match in Prisma
+                    // Save mutual match & accepted connection in Prisma so unblurring persists
                     await prisma.matches.createMany({
                         data: [
                             { user_a_id: userId, user_b_id: data.partnerId, status: "accepted" },
@@ -845,12 +955,60 @@ export const initSocket = (httpServer: HttpServer) => {
                         skipDuplicates: true
                     });
 
-                    // Fetch real user profiles
-                    const me = await prisma.users.findUnique({ where: { id: userId }, select: { id: true, full_name: true, avatar_url: true } });
-                    const partner = await prisma.users.findUnique({ where: { id: data.partnerId }, select: { id: true, full_name: true, avatar_url: true } });
+                    const existingReq = await prisma.interactions.findFirst({
+                        where: {
+                            type: 'REQUEST',
+                            OR: [
+                                { from_user_id: userId, to_user_id: data.partnerId },
+                                { from_user_id: data.partnerId, to_user_id: userId }
+                            ]
+                        },
+                        select: { id: true }
+                    });
+                    if (existingReq) {
+                        await prisma.interactions.update({
+                            where: { id: existingReq.id },
+                            data: { status: 'connected' }
+                        });
+                    } else {
+                        await prisma.interactions.create({
+                            data: {
+                                from_user_id: userId,
+                                to_user_id: data.partnerId,
+                                type: 'REQUEST',
+                                status: 'connected'
+                            }
+                        });
+                    }
 
-                    io.to(userId).emit("anonymous_chat_identity_revealed", { realUser: partner });
-                    io.to(data.partnerId).emit("anonymous_chat_identity_revealed", { realUser: me });
+                    try {
+                        const { matchCache } = require('./routes/matches');
+                        matchCache?.deletePrefix(userId);
+                        matchCache?.deletePrefix(data.partnerId);
+                    } catch {}
+
+                    // Fetch real user profiles
+                    const [me, partner] = await Promise.all([
+                        prisma.users.findUnique({
+                            where: { id: userId },
+                            select: { id: true, full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
+                        }),
+                        prisma.users.findUnique({
+                            where: { id: data.partnerId },
+                            select: { id: true, full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
+                        })
+                    ]);
+
+                    const formatRevealed = (u: any) => u ? ({
+                        id: u.id,
+                        full_name: u.full_name,
+                        avatar_url: sanitizePhotoUrl(u.avatar_url, u.full_name || 'Member'),
+                        photo_privacy: isPhotoPrivacyShieldEnabled(u.profiles?.metadata) ? 'blurred_until_accept' : 'public',
+                        isBlurred: false
+                    }) : null;
+
+                    io.to(userId).emit("anonymous_chat_identity_revealed", { realUser: formatRevealed(partner) });
+                    io.to(data.partnerId).emit("anonymous_chat_identity_revealed", { realUser: formatRevealed(me) });
                 } catch (err) {
                     console.error("Reveal Accept Error", err);
                 }
@@ -900,11 +1058,27 @@ export const initSocket = (httpServer: HttpServer) => {
                 return;
             }
 
-            // Check if user is verified (Open to all verified users)
+            // Check if user is active and verified (Open to all verified users)
             const user = await prisma.users.findUnique({
                 where: { id: currentUserId },
-                select: { is_verified: true, full_name: true, avatar_url: true }
+                select: {
+                    is_verified: true,
+                    is_banned: true,
+                    is_deactivated: true,
+                    deactivated_until: true,
+                    full_name: true,
+                    avatar_url: true,
+                    profiles: { select: { metadata: true } }
+                }
             });
+
+            if (!isUserAccountActive(user)) {
+                socket.emit('community_error', {
+                    message: "Account is not active.",
+                    code: "ACCOUNT_INACTIVE"
+                });
+                return;
+            }
 
             if (!user || !user.is_verified) {
                 socket.emit('community_error', {
@@ -916,24 +1090,20 @@ export const initSocket = (httpServer: HttpServer) => {
 
             socket.join('verified_lounge');
 
+            const isShielded = isPhotoPrivacyShieldEnabled(user.profiles?.metadata);
+            const safePhoto = sanitizePhotoUrl(user.avatar_url, user.full_name || 'Verified Member');
+
             // Add to Community Map
-            if (user) {
-                communityUsers.set(socket.id, {
-                    id: currentUserId,
-                    userId: currentUserId,
-                    name: user.full_name || 'Verified Member',
-                    photo: user.avatar_url || '',
-                    isVerified: true
-                });
-            }
+            communityUsers.set(socket.id, {
+                id: currentUserId,
+                userId: currentUserId,
+                name: user.full_name || 'Verified Member',
+                photo: safePhoto,
+                isVerified: true,
+                isShielded
+            });
 
-            // Blast full list to everyone in room
-            const list = Array.from(communityUsers.values());
-            const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
-
-            io.to('verified_lounge').emit('update_community_users', uniqueList);
-            // Broadcast Count to Public
-            io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
+            await broadcastCommunityUsers();
 
             // Lounge History Fetch & Cleanup
             const fiveDaysAgo = new Date();
@@ -945,21 +1115,11 @@ export const initSocket = (httpServer: HttpServer) => {
                     where: { created_at: { lt: fiveDaysAgo } }
                 }).catch(console.error);
 
-                // Fetch user's block relationships to hide blocked members' lounge messages
-                const blocks = await prisma.blocks.findMany({
-                    where: {
-                        OR: [
-                            { blocker_id: currentUserId },
-                            { blocked_id: currentUserId }
-                        ]
-                    },
-                    select: { blocker_id: true, blocked_id: true }
-                });
-                const blockedUserIds = new Set<string>();
-                for (const b of blocks) {
-                    if (b.blocker_id !== currentUserId) blockedUserIds.add(b.blocker_id);
-                    if (b.blocked_id !== currentUserId) blockedUserIds.add(b.blocked_id);
-                }
+                // Fetch user's block & connection relationships
+                const [blockedUserIds, connectedSet] = await Promise.all([
+                    getBlockedUserIdSet(prisma, currentUserId),
+                    getConnectedUserIdSet(prisma, currentUserId)
+                ]);
 
                 // Fetch recent messages
                 const historyRaw = await prisma.lounge_messages.findMany({
@@ -967,25 +1127,36 @@ export const initSocket = (httpServer: HttpServer) => {
                     orderBy: { created_at: 'asc' },
                     include: {
                         users: {
-                            select: { id: true, full_name: true, avatar_url: true }
+                            select: {
+                                id: true,
+                                full_name: true,
+                                avatar_url: true,
+                                profiles: { select: { metadata: true } }
+                            }
                         }
                     }
                 });
 
                 const history = historyRaw
                     .filter(msg => !blockedUserIds.has(msg.users.id))
-                    .map(msg => ({
-                        id: msg.id,
-                        text: msg.text,
-                        sender: {
-                            id: msg.users.id,
-                            userId: msg.users.id,
-                            name: msg.users.full_name || 'Member',
-                            photo: msg.users.avatar_url,
-                            isVerified: true
-                        },
-                        timestamp: msg.created_at
-                    }));
+                    .map(msg => {
+                        const senderShielded = isPhotoPrivacyShieldEnabled(msg.users.profiles?.metadata);
+                        const isBlurred = senderShielded && msg.users.id !== currentUserId && !connectedSet.has(msg.users.id);
+                        return {
+                            id: msg.id,
+                            text: msg.text,
+                            sender: {
+                                id: msg.users.id,
+                                userId: msg.users.id,
+                                name: msg.users.full_name || 'Member',
+                                photo: isBlurred ? null : sanitizePhotoUrl(msg.users.avatar_url, msg.users.full_name || 'Member'),
+                                isVerified: true,
+                                photo_privacy: senderShielded ? 'blurred_until_accept' : 'public',
+                                isBlurred
+                            },
+                            timestamp: msg.created_at
+                        };
+                    });
 
                 socket.emit('joined_community', {
                     success: true,
@@ -1014,9 +1185,9 @@ export const initSocket = (httpServer: HttpServer) => {
             }
 
             const user = communityUsers.get(socket.id);
-            if (!user) return;
+            if (!user || !text || typeof text !== 'string' || !text.trim()) return;
 
-            const sanitizedText = sanitizeContent(text || '');
+            const sanitizedText = sanitizeContent(text);
 
             try {
                 // Save to DB
@@ -1027,21 +1198,48 @@ export const initSocket = (httpServer: HttpServer) => {
                     }
                 });
 
-                const msgPayload = {
-                    id: saved.id,
-                    text: sanitizedText,
-                    sender: {
-                        id: from,
-                        userId: from,
-                        name: user.name,
-                        photo: user.photo,
-                        isVerified: true
-                    },
-                    timestamp: saved.created_at
-                };
+                const room = io.sockets.adapter.rooms.get('verified_lounge');
+                if (!room) return;
 
-                // Emit to everyone in the 'verified_lounge' room
-                io.to('verified_lounge').emit('receive_community_message', msgPayload);
+                const viewerIds = new Set<string>();
+                for (const sockId of room) {
+                    const s = io.sockets.sockets.get(sockId);
+                    const vId = s?.data?.user?.userId;
+                    if (vId) viewerIds.add(vId);
+                }
+
+                const accessMap = new Map<string, { blockedSet: Set<string>; connectedSet: Set<string> }>();
+                await Promise.all(Array.from(viewerIds).map(async (vId) => {
+                    const [blockedSet, connectedSet] = await Promise.all([
+                        getBlockedUserIdSet(prisma, vId),
+                        getConnectedUserIdSet(prisma, vId)
+                    ]);
+                    accessMap.set(vId, { blockedSet, connectedSet });
+                }));
+
+                for (const sockId of room) {
+                    const s = io.sockets.sockets.get(sockId);
+                    const vId = s?.data?.user?.userId;
+                    if (!s || !vId) continue;
+                    const access = accessMap.get(vId);
+                    if (!access || access.blockedSet.has(from)) continue;
+
+                    const isBlurred = Boolean(user.isShielded && vId !== from && !access.connectedSet.has(from));
+                    s.emit('receive_community_message', {
+                        id: saved.id,
+                        text: sanitizedText,
+                        sender: {
+                            id: from,
+                            userId: from,
+                            name: user.name,
+                            photo: isBlurred ? null : user.photo,
+                            isVerified: true,
+                            photo_privacy: user.isShielded ? 'blurred_until_accept' : 'public',
+                            isBlurred
+                        },
+                        timestamp: saved.created_at
+                    });
+                }
             } catch (createErr) {
                 console.error("Failed to save lounge message:", createErr);
             }

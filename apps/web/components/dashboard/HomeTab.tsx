@@ -559,7 +559,7 @@ export default function HomeTab({
                 title="Open Music & Video Vibe Player"
             >
                 <Headphones size={18} className="text-white" />
-                <span className="text-xs font-black tracking-wide hidden xs:inline">Vibe Player</span>
+                <span className="text-xs font-black tracking-wide hidden sm:inline">Vibe Player</span>
             </button>
 
             {/* In-Home Music & Video Jukebox Modal */}

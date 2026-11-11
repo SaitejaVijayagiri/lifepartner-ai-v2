@@ -3,7 +3,7 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { getIO, isUserOnline } from '../socket'; // Import socket getter
 import { authenticateToken } from '../middleware/auth';
-import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
+import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, areUsersConnected, getBlockedUserIdSet } from '../utils/photoUrl';
 import { matchCache } from './matches'; // Import to invalidate match cache on interest send
 import { mergeStoriesHelper } from './profile';
 
@@ -217,6 +217,9 @@ router.get('/requests', authenticateToken, async (req: any, res) => {
                     dob: meta.dob || null,
                     reels: meta.reels || [],
                     match_status: 'pending',
+                    photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                    isBlurred: isPhotoPrivacyShieldEnabled(meta) && fromUser.id !== userId,
+                    managed_by: meta.managed_by || meta.managedBy || 'Self',
                     voiceBioUrl: fromUser.voice_bio_url || null
                 },
                 timestamp: r.created_at
@@ -500,6 +503,17 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
         interestDebounceCache.add(debounceKey);
 
         try {
+            // Block check before sending request or notifications
+            const block = await prisma.blocks.findFirst({
+                where: {
+                    OR: [
+                        { blocker_id: userId, blocked_id: toUserId },
+                        { blocker_id: toUserId, blocked_id: userId }
+                    ]
+                }
+            });
+            if (block) return res.status(403).json({ error: "Cannot send interest to this user." });
+
             // Fetch Names, Premium & Details for Notification
             const user = await prisma.users.findUnique({
                 where: { id: userId },
@@ -515,10 +529,11 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
             });
             const target = await prisma.users.findUnique({
                 where: { id: toUserId },
-                select: { full_name: true, email: true }
+                select: { full_name: true, email: true, is_banned: true, is_deactivated: true, deactivated_until: true }
             });
 
-            if (!user || !target) return res.status(404).json({ error: "User not found" });
+            const targetDeactivated = target?.is_deactivated && (!target.deactivated_until || new Date(target.deactivated_until) > new Date());
+            if (!user || !target || target.is_banned || targetDeactivated) return res.status(404).json({ error: "User not found" });
 
             const myName = user.full_name || "Someone";
             const targetName = target.full_name || "User";
@@ -761,15 +776,16 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     }
                 });
 
-                // Get photo url
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                // Get photo url (mask if Privacy Shield enabled — users are not yet connected on new request)
+                const isShielded = isNotificationPhotoBlurred(meta, false);
                 let rawPhotoUrl = user.avatar_url || (user.profiles?.photos as any)?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }
-                const fromUserPhoto = rawPhotoUrl
+                const resolvedPhoto = rawPhotoUrl
                     ? sanitizePhotoUrl(rawPhotoUrl, myName)
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+                const fromUserPhoto = isShielded ? null : resolvedPhoto;
 
                 // Realtime
                 getIO().to(toUserId).emit('notification:new', {
@@ -780,6 +796,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     fromUserId: userId,
                     fromUserName: myName,
                     fromUserPhoto: fromUserPhoto,
+                    isBlurred: isShielded,
                     interactionId: interaction.id
                 });
 
@@ -796,6 +813,7 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                     senderName: myName,
                     fromUserPhoto,
                     senderPhoto: fromUserPhoto,
+                    isBlurred: isShielded,
                     senderDetails: detailsShort,
                     url: `/dashboard?tab=requests`
                 };
@@ -815,8 +833,8 @@ router.post('/interest', authenticateToken, async (req: any, res) => {
                 ).catch(e => console.warn("Push failed in interactions", e));
 
                 // Email
-                // Provide a PNG fallback for emails, because email clients do not render SVGs
-                const emailPhotoUrl = fromUserPhoto;
+                // Provide a PNG/generic fallback when Privacy Shield is enabled
+                const emailPhotoUrl = isShielded ? 'https://lifepartnerai.in/og-image.jpg' : resolvedPhoto;
 
                 const senderDetails = {
                     name: myName,
@@ -857,10 +875,38 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
+        // Block & active target check before deducting quota
+        const [block, targetUser] = await Promise.all([
+            prisma.blocks.findFirst({
+                where: {
+                    OR: [
+                        { blocker_id: userId, blocked_id: toUserId },
+                        { blocker_id: toUserId, blocked_id: userId }
+                    ]
+                }
+            }),
+            prisma.users.findUnique({
+                where: { id: toUserId },
+                select: { id: true, is_banned: true, is_deactivated: true, deactivated_until: true }
+            })
+        ]);
+        if (block) return res.status(403).json({ error: "You cannot message this user." });
+        const targetDeactivated = targetUser?.is_deactivated && (!targetUser.deactivated_until || new Date(targetUser.deactivated_until) > new Date());
+        if (!targetUser || targetUser.is_banned || targetDeactivated) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
         // Get user details & check quota
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { full_name: true, is_premium: true, free_direct_messages: true, avatar_url: true, gender: true }
+            select: {
+                full_name: true,
+                is_premium: true,
+                free_direct_messages: true,
+                avatar_url: true,
+                gender: true,
+                profiles: { select: { metadata: true } }
+            }
         });
 
         if (!user) return res.status(404).json({ error: "User not found" });
@@ -976,11 +1022,15 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
             });
 
             // Realtime Socket Notification
+            const isSenderShielded = isNotificationPhotoBlurred(user.profiles?.metadata, isAlreadyConnected);
             getIO().to(toUserId).emit('notification:new', {
                 id: dbNotif.id,
                 type: isStoryReply ? 'story_reply' : 'direct_message',
                 message: msg,
                 fromUserId: userId,
+                fromUserName: myName,
+                fromUserPhoto: isSenderShielded ? null : sanitizePhotoUrl(user.avatar_url, myName),
+                isBlurred: isSenderShielded,
                 timestamp: new Date()
             });
 
@@ -995,7 +1045,7 @@ router.post('/direct', authenticateToken, async (req: any, res) => {
             ).catch(e => console.warn("Push failed in direct message", e));
 
             // Realtime Message Broadcast
-            const senderPhoto = sanitizePhotoUrl(user.avatar_url, myName);
+            const senderPhoto = isSenderShielded ? null : sanitizePhotoUrl(user.avatar_url, myName);
             const newMessage = {
                 id: newMessageRecord.id,
                 text: cleanText,
@@ -1323,6 +1373,16 @@ router.post('/like', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const { toUserId } = req.body;
 
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: toUserId },
+                    { blocker_id: toUserId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) return res.status(403).json({ error: "Cannot interact with blocked user" });
+
         await prisma.matches.upsert({
             where: {
                 user_a_id_user_b_id: {
@@ -1370,16 +1430,19 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                     }
                 });
 
-                // Get photo
+                // Get photo (respect Privacy Shield unless already connected)
                 const meta = (user.profiles?.metadata as any) || {};
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                const connected = await areUsersConnected(prisma, userId, toUserId);
+                const isShielded = isNotificationPhotoBlurred(meta, connected);
                 let rawPhotoUrl = user.avatar_url || (user.profiles?.photos as any)?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }
-                const fromUserPhoto = rawPhotoUrl
-                    ? sanitizePhotoUrl(rawPhotoUrl, myName)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`;
+                const fromUserPhoto = isShielded
+                    ? null
+                    : (rawPhotoUrl
+                        ? sanitizePhotoUrl(rawPhotoUrl, myName)
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=256`);
 
                 // Emit realtime
                 const { getIO } = require('../socket');
@@ -1391,12 +1454,14 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                     timestamp: new Date(),
                     fromUserId: userId,
                     fromUserName: myName,
-                    fromUserPhoto: fromUserPhoto
+                    fromUserPhoto: fromUserPhoto,
+                    isBlurred: isShielded
                 });
                 io.to(toUserId).emit('like:new', {
                     fromUserId: userId,
                     fromUserName: myName,
                     fromUserPhoto: fromUserPhoto,
+                    isBlurred: isShielded,
                     likedAt: new Date()
                 });
 
@@ -1413,6 +1478,7 @@ router.post('/like', authenticateToken, async (req: any, res) => {
                         fromUserId: userId,
                         fromUserName: myName,
                         fromUserPhoto,
+                        isBlurred: isShielded,
                         url: `/dashboard?tab=matches&viewProfile=${userId}`
                     }
                 ).catch((e: any) => console.warn("Push failed in like", e));
@@ -1483,16 +1549,19 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
 
         const totalLikes = likes.length;
 
-        // Check accepted connections for photo privacy shield
-        const acceptedConns = await prisma.interactions.findMany({
-            where: {
-                OR: [
-                    { from_user_id: userId, status: 'accepted' },
-                    { to_user_id: userId, status: 'accepted' }
-                ]
-            },
-            select: { from_user_id: true, to_user_id: true }
-        });
+        // Check accepted connections for photo privacy shield + filter blocks
+        const [acceptedConns, blockedIds] = await Promise.all([
+            prisma.interactions.findMany({
+                where: {
+                    OR: [
+                        { from_user_id: userId, status: { in: ['accepted', 'connected'] } },
+                        { to_user_id: userId, status: { in: ['accepted', 'connected'] } }
+                    ]
+                },
+                select: { from_user_id: true, to_user_id: true }
+            }),
+            getBlockedUserIdSet(prisma, userId)
+        ]);
         const connectedIds = new Set(
             (acceptedConns || []).flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
         );
@@ -1500,18 +1569,20 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
         // Map Results
         const formattedLikes = likes.map(r => {
             const u = r.users_matches_user_a_idTousers;
-            if (!u) return null; // Safe guard
+            if (!u || blockedIds.has(u.id) || u.is_banned) return null; // Safe guard
+            const isDeactivated = u.is_deactivated && (!u.deactivated_until || new Date(u.deactivated_until) > new Date());
+            if (isDeactivated) return null;
 
             const meta = (u.profiles?.metadata as any) || {};
 
-            const isPhotoPrivacyShield = (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && !connectedIds.has(u.id);
+            const isPhotoPrivacyShield = isPhotoPrivacyShieldEnabled(meta) && !connectedIds.has(u.id);
             const isBlurred = !isPremium || isPhotoPrivacyShield;
 
             return {
                 id: u.id,
                 name: !isPremium ? "???" : (u.full_name || "User"),
                 age: u.age || meta.age,
-                height: meta.height || "Not Specified",
+                height: !isPremium ? "Private" : (meta.height || "Not Specified"),
                 photoUrl: sanitizePhotoUrl(u.avatar_url || meta.photos?.[0], u.full_name || u.id),
                 location: getLocationString(u),
                 profession: meta.career?.profession || "Member",
@@ -1519,17 +1590,17 @@ router.get('/who-liked-me', authenticateToken, async (req: any, res) => {
                 isBlurred: isBlurred,
                 managed_by: meta.managed_by || meta.managedBy || 'Self',
                 likedAt: r.created_at,
-                career: meta.career || {},
-                family: meta.family || {},
-                religion: meta.religion || {},
-                horoscope: meta.horoscope || {},
-                lifestyle: meta.lifestyle || {},
-                partnerPreferences: meta.partnerPreferences || {},
-                aboutMe: u.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
-                expectations: meta.expectations || "",
-                prompt: u.profiles?.raw_prompt || "",
-                dob: meta.dob || null,
-                photos: (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, u.full_name || u.id))
+                career: isPremium ? (meta.career || {}) : {},
+                family: isPremium ? (meta.family || {}) : {},
+                religion: isPremium ? (meta.religion || {}) : {},
+                horoscope: isPremium ? (meta.horoscope || {}) : {},
+                lifestyle: isPremium ? (meta.lifestyle || {}) : {},
+                partnerPreferences: isPremium ? (meta.partnerPreferences || {}) : {},
+                aboutMe: isPremium ? (u.profiles?.raw_prompt || meta.bio || meta.aboutMe || "") : "",
+                expectations: isPremium ? (meta.expectations || "") : "",
+                prompt: isPremium ? (u.profiles?.raw_prompt || "") : "",
+                dob: isPremium ? (meta.dob || null) : null,
+                photos: isPremium ? (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, u.full_name || u.id)) : []
             };
         }).filter(Boolean);
 
@@ -1666,6 +1737,16 @@ router.post('/view', authenticateToken, async (req: any, res) => {
 
         if (!targetId || userId === targetId) return res.sendStatus(200);
 
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: targetId },
+                    { blocker_id: targetId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) return res.sendStatus(200);
+
         await prisma.interactions.upsert({
             where: {
                 from_user_id_to_user_id_type: {
@@ -1708,16 +1789,19 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                     }
                 });
 
-                // Get photo
+                // Get photo (respect Privacy Shield unless already connected)
                 const meta = (viewer.profiles?.metadata as any) || {};
-                const { sanitizePhotoUrl } = require('../utils/photoUrl');
+                const connected = await areUsersConnected(prisma, userId, targetId);
+                const isShielded = isNotificationPhotoBlurred(meta, connected);
                 let rawPhotoUrl = viewer.avatar_url || (viewer.profiles?.photos as any)?.[0] || null;
                 if (rawPhotoUrl && rawPhotoUrl.startsWith('data:image')) {
                     rawPhotoUrl = null;
                 }
-                const fromUserPhoto = rawPhotoUrl
-                    ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`;
+                const fromUserPhoto = isShielded
+                    ? null
+                    : (rawPhotoUrl
+                        ? sanitizePhotoUrl(rawPhotoUrl, viewerName)
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(viewerName)}&background=random&color=fff&size=256`);
 
                 // Emit realtime socket event if online
                 const { getIO } = require('../socket');
@@ -1729,12 +1813,14 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                     timestamp: new Date(),
                     fromUserId: userId,
                     fromUserName: viewerName,
-                    fromUserPhoto: fromUserPhoto
+                    fromUserPhoto: fromUserPhoto,
+                    isBlurred: isShielded
                 });
                 io.to(targetId).emit('visitor:new', {
                     fromUserId: userId,
                     fromUserName: viewerName,
                     fromUserPhoto: fromUserPhoto,
+                    isBlurred: isShielded,
                     viewedAt: new Date()
                 });
 
@@ -1752,6 +1838,7 @@ router.post('/view', authenticateToken, async (req: any, res) => {
                             fromUserId: userId,
                             fromUserName: viewerName,
                             fromUserPhoto: fromUserPhoto,
+                            isBlurred: isShielded,
                             url: `/dashboard?tab=matches&viewProfile=${userId}`
                         }
                     ).catch((e: any) => console.warn("Push failed in view profile", e));
@@ -1795,26 +1882,31 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
             }
         });
 
-        // Check accepted connections for photo privacy shield
-        const acceptedVisitorConns = await prisma.interactions.findMany({
-            where: {
-                OR: [
-                    { from_user_id: userId, status: 'accepted' },
-                    { to_user_id: userId, status: 'accepted' }
-                ]
-            },
-            select: { from_user_id: true, to_user_id: true }
-        });
+        // Check accepted connections for photo privacy shield & exclude blocked users
+        const [acceptedVisitorConns, blockedVisitorIds] = await Promise.all([
+            prisma.interactions.findMany({
+                where: {
+                    OR: [
+                        { from_user_id: userId, status: { in: ['accepted', 'connected'] } },
+                        { to_user_id: userId, status: { in: ['accepted', 'connected'] } }
+                    ]
+                },
+                select: { from_user_id: true, to_user_id: true }
+            }),
+            getBlockedUserIdSet(prisma, userId)
+        ]);
         const connectedVisitorIds = new Set(
             acceptedVisitorConns.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
         );
 
         const formattedVisitors = visitors.map(r => {
             const u = r.users_interactions_from_user_idTousers;
-            if (!u) return null; // Safe guard
+            if (!u || blockedVisitorIds.has(u.id) || u.is_banned) return null; // Safe guard
+            const isDeactivated = u.is_deactivated && (!u.deactivated_until || new Date(u.deactivated_until) > new Date());
+            if (isDeactivated) return null;
 
             const meta = (u.profiles?.metadata as any) || {};
-            const isPhotoPrivacyShield = (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && !connectedVisitorIds.has(u.id);
+            const isPhotoPrivacyShield = isPhotoPrivacyShieldEnabled(meta) && !connectedVisitorIds.has(u.id);
 
             return {
                 id: u.id,
@@ -1838,7 +1930,7 @@ router.get('/visitors', authenticateToken, async (req: any, res) => {
                 expectations: meta.expectations || "",
                 prompt: u.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
-                photos: (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, u.full_name || u.id))
+                photos: isPhotoPrivacyShield ? [] : (meta.photos || []).map((p: string) => sanitizePhotoUrl(p, u.full_name || u.id))
             };
         }).filter(Boolean);
 
@@ -1860,6 +1952,16 @@ router.post('/speed-date/like', authenticateToken, async (req: any, res) => {
         const { targetId, liked } = req.body;
 
         if (!targetId || liked === undefined) return res.status(400).json({ error: "Missing fields" });
+
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: targetId },
+                    { blocker_id: targetId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) return res.status(403).json({ error: "Cannot interact with blocked user" });
 
         if (liked) {
             // Log interaction
@@ -1932,6 +2034,9 @@ router.post('/speed-date/like', authenticateToken, async (req: any, res) => {
                 // Notify both
                 getIO().to(userId).emit('notification:new', { type: 'match', message: "You have a new Speed Match!", data: { targetId } });
                 getIO().to(targetId).emit('notification:new', { type: 'match', message: "You have a new Speed Match!", data: { targetId: userId } });
+
+                matchCache.deletePrefix(`${userId}_`);
+                matchCache.deletePrefix(`${targetId}_`);
 
                 return res.json({ success: true, isMatch: true });
             }

@@ -32,7 +32,8 @@ function ChatContent() {
             // 1. Try connections cache
             const cachedConns = localStorage.getItem('connections_cache_v2') || localStorage.getItem('connections_cache_v1');
             if (cachedConns) {
-                const conns = JSON.parse(cachedConns);
+                const parsedConns = JSON.parse(cachedConns);
+                const conns = Array.isArray(parsedConns) ? parsedConns : parsedConns?.data;
                 if (Array.isArray(conns)) {
                     const match = conns.find((c: any) => 
                         c?.partner?.id === connectionId || 
@@ -52,13 +53,15 @@ function ChatContent() {
             // 2. Try matches cache if not in connections
             const cachedMatches = localStorage.getItem('matches_cache_v2');
             if (cachedMatches) {
-                const matches = JSON.parse(cachedMatches);
+                const parsedMatches = JSON.parse(cachedMatches);
+                const matches = Array.isArray(parsedMatches) ? parsedMatches : parsedMatches?.data;
                 if (Array.isArray(matches)) {
                     const match = matches.find((m: any) => m?.id === connectionId || m?.userId === connectionId);
                     if (match) {
+                        const isMasked = Boolean(match.isBlurred || match.photo_privacy === 'blurred_until_accept');
                         return {
                             name: match.name || match.full_name || '',
-                            photoUrl: match.photoUrl || match.avatar_url || (Array.isArray(match.photos) ? match.photos[0] : '')
+                            photoUrl: isMasked ? '/avatar-fallback.svg' : (match.photoUrl || match.avatar_url || (Array.isArray(match.photos) ? match.photos[0] : ''))
                         };
                     }
                 }
@@ -126,14 +129,14 @@ function ChatContent() {
         }
     }, [action, socket, partner.name]);
 
-    if (!connectionId) return <div className="h-screen flex items-center justify-center">Invalid Chat</div>;
+    if (!connectionId) return <div className="h-[100dvh] flex items-center justify-center dark:bg-gray-950 dark:text-white">Invalid Chat</div>;
 
     return (
-        <div className="h-screen w-full bg-slate-100 flex items-center justify-center p-0 md:p-4">
+        <div className="h-[100dvh] w-full bg-slate-100 dark:bg-gray-950 flex items-center justify-center p-0 md:p-4">
             <ChatWindow
                 connectionId={connectionId}
                 partner={partner}
-                className="w-full h-full md:max-w-2xl md:h-[90vh] bg-white shadow-xl rounded-none md:rounded-2xl flex flex-col overflow-hidden"
+                className="w-full h-full md:max-w-2xl md:h-[90dvh] bg-white dark:bg-gray-900 shadow-xl rounded-none md:rounded-2xl flex flex-col overflow-hidden"
                 onClose={() => {
                     if (typeof window !== 'undefined' && window.history.length > 1) {
                         router.back();

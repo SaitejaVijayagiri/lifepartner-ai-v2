@@ -1,9 +1,45 @@
 import express from 'express';
+import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { getIO } from '../socket';
 import { EmailTracker } from '../services/emailTracker';
 
 const router = express.Router();
+
+function verifyResendSvixSignature(req: express.Request): boolean {
+    const secret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!secret) return false;
+
+    const svixId = req.headers['svix-id'] as string | undefined;
+    const svixTimestamp = req.headers['svix-timestamp'] as string | undefined;
+    const svixSignature = req.headers['svix-signature'] as string | undefined;
+    if (!svixId || !svixTimestamp || !svixSignature) return false;
+
+    const tsNum = Number(svixTimestamp);
+    if (!Number.isFinite(tsNum) || Math.abs(Math.floor(Date.now() / 1000) - tsNum) > 300) {
+        return false;
+    }
+
+    const rawBody = (req as any).rawBody
+        ? (req as any).rawBody.toString('utf8')
+        : JSON.stringify(req.body || {});
+    const secretBytes = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
+    const expected = crypto
+        .createHmac('sha256', secretBytes)
+        .update(`${svixId}.${svixTimestamp}.${rawBody}`)
+        .digest('base64');
+
+    const candidates = svixSignature.split(' ').map((part) => {
+        const idx = part.indexOf(',');
+        return idx >= 0 ? { version: part.slice(0, idx), sig: part.slice(idx + 1) } : null;
+    }).filter((x): x is { version: string; sig: string } => Boolean(x && x.version === 'v1' && x.sig));
+
+    const expectedBuf = Buffer.from(expected);
+    return candidates.some(({ sig }) => {
+        const sigBuf = Buffer.from(sig);
+        return sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf);
+    });
+}
 
 /**
  * POST /webhooks/resend
@@ -11,6 +47,12 @@ const router = express.Router();
  */
 router.post('/resend', async (req, res) => {
     try {
+        const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+        const isSignatureVerified = webhookSecret ? verifyResendSvixSignature(req) : false;
+        if (webhookSecret && !isSignatureVerified) {
+            return res.status(401).send('Invalid webhook signature');
+        }
+
         const payload = req.body;
 
         if (!payload || !payload.type) {
@@ -54,11 +96,13 @@ router.post('/resend', async (req, res) => {
                 });
 
                 if (user) {
-                    if (!user.is_verified) {
-                        console.log(`[Webhook] Deleting unverified user due to bounce: ${user.id}`);
+                    if (!user.is_verified && isSignatureVerified) {
+                        console.log(`[Webhook] Deleting unverified user due to verified bounce: ${user.id}`);
                         await prisma.users.delete({
                             where: { id: user.id }
                         }).catch(() => {});
+                    } else if (!user.is_verified) {
+                        console.warn(`[Webhook] Bounced email for unverified user ${user.id}, skipping deletion (RESEND_WEBHOOK_SECRET not configured).`);
                     } else {
                         console.warn(`[Webhook] WARNING: Bounced email for a VERIFIED user: ${user.id}. Suppressed for future emails.`);
                     }

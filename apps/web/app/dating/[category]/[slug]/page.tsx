@@ -191,9 +191,9 @@ export default async function SEODatingPage({ params }: PageProps) {
                                 <div className="aspect-[4/5] bg-gray-200 relative overflow-hidden">
                                     {/* Blurred Image Effect */}
                                     <img
-                                        src={m.photoUrl}
+                                        src={m.isBlurred ? '/avatar-fallback.svg' : (m.photoUrl || '/avatar-fallback.svg')}
                                         alt={`${m.role || 'Single'} in ${displayValue}`}
-                                        className="w-full h-full object-cover blur-[2px] opacity-90 group-hover:scale-105 transition-transform duration-500"
+                                        className={`w-full h-full object-cover ${m.isBlurred ? 'blur-xl scale-110 opacity-80' : 'blur-[2px] opacity-90'} group-hover:scale-105 transition-transform duration-500`}
                                     />
                                     {/* Register Overlay */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity p-4 text-center">

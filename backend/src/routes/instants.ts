@@ -6,6 +6,7 @@ import { ImageOptimizer } from '../services/imageOptimizer';
 import { deleteFromCloudinary } from '../services/cloudinaryStorage';
 import { isR2Configured, uploadBase64ToR2, deleteFromR2 } from '../services/r2Storage';
 import { getIO } from '../socket';
+import { sanitizePhotoUrl, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, getConnectedUserIdSet, getBlockedUserIdSet, areUsersConnected } from '../utils/photoUrl';
 
 const router = express.Router();
 
@@ -180,38 +181,54 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
 
         const hasGenderFilter = oppositeGenders.length > 0;
 
-        // Query active instants created in last 24h with strict opposite-gender filtering
-        const rows: any[] = await prisma.$queryRawUnsafe(`
-            SELECT i.id, i.sender_id, i.caption, i.created_at, i.expires_at, i.viewed_by, i.likes, i.is_viewed, i.media_url,
-                   u.full_name as sender_name, u.avatar_url as sender_avatar, u.gender as sender_gender
-            FROM instants i
-            JOIN users u ON u.id = i.sender_id
-            WHERE i.expires_at > now()
-              AND (
-                  i.sender_id = $1::uuid
-                  OR i.receiver_id = $1::uuid
-                  OR (i.receiver_id IS NULL AND (LOWER(TRIM(u.gender)) = ANY($2::text[]) OR $3::boolean = false))
-              )
-            ORDER BY 
-                CASE 
-                    WHEN i.sender_id = $1::uuid THEN 0
-                    ELSE 1
-                END,
-                i.created_at DESC
-            LIMIT 50;
-        `, userId, hasGenderFilter ? oppositeGenders : ['none'], hasGenderFilter);
+        // Query active instants created in last 24h with strict opposite-gender, active-user, and block filtering
+        const [rows, connectedIds] = await Promise.all([
+            prisma.$queryRawUnsafe(`
+                SELECT i.id, i.sender_id, i.caption, i.created_at, i.expires_at, i.viewed_by, i.likes, i.is_viewed, i.media_url,
+                       u.full_name as sender_name, u.avatar_url as sender_avatar, u.gender as sender_gender,
+                       p.metadata as sender_metadata
+                FROM instants i
+                JOIN users u ON u.id = i.sender_id
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE i.expires_at > now()
+                  AND u.is_banned = false
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND NOT EXISTS (
+                      SELECT 1 FROM blocks b
+                      WHERE (b.blocker_id = $1::uuid AND b.blocked_id = i.sender_id)
+                         OR (b.blocker_id = i.sender_id AND b.blocked_id = $1::uuid)
+                  )
+                  AND (
+                      i.sender_id = $1::uuid
+                      OR i.receiver_id = $1::uuid
+                      OR (i.receiver_id IS NULL AND (LOWER(TRIM(u.gender)) = ANY($2::text[]) OR $3::boolean = false))
+                  )
+                ORDER BY 
+                    CASE 
+                        WHEN i.sender_id = $1::uuid THEN 0
+                        ELSE 1
+                    END,
+                    i.created_at DESC
+                LIMIT 50;
+            `, userId, hasGenderFilter ? oppositeGenders : ['none'], hasGenderFilter) as Promise<any[]>,
+            getConnectedUserIdSet(prisma, userId)
+        ]);
 
         const formatted = rows.map((row: any) => {
             const viewedList: any[] = Array.isArray(row.viewed_by) ? row.viewed_by : [];
             const likesList: any[] = Array.isArray(row.likes) ? row.likes : [];
             const hasViewed = row.sender_id === userId || viewedList.some((v: any) => v.userId === userId || v === userId);
             const hasLiked = likesList.some((l: any) => l.userId === userId || l === userId);
+            const sMeta = (row.sender_metadata as any) || {};
+            const isBlurred = row.sender_id !== userId && isPhotoPrivacyShieldEnabled(sMeta) && !connectedIds.has(row.sender_id);
 
             return {
                 id: row.id,
                 senderId: row.sender_id,
                 senderName: row.sender_name || 'User',
-                senderAvatar: row.sender_avatar,
+                senderAvatar: sanitizePhotoUrl(row.sender_avatar, row.sender_name || row.sender_id),
+                photo_privacy: sMeta.photo_privacy || sMeta.photoPrivacy || 'public',
+                isBlurred,
                 senderGender: row.sender_gender,
                 caption: row.caption,
                 createdAt: row.created_at,
@@ -221,8 +238,8 @@ router.get('/feed', authenticateToken, async (req: any, res) => {
                 hasLiked: Boolean(hasLiked),
                 likesCount: likesList.length,
                 isOwn: row.sender_id === userId,
-                // Security: Strip media_url if already viewed by recipient so it can't be re-fetched
-                mediaUrl: hasViewed && row.sender_id !== userId ? null : row.media_url
+                // Security: Strip media_url if already viewed or protected by unaccepted Privacy Shield
+                mediaUrl: ((hasViewed && row.sender_id !== userId) || isBlurred) ? null : row.media_url
             };
         });
 
@@ -242,6 +259,18 @@ router.get('/chat/:connectionId', authenticateToken, async (req: any, res) => {
     const { connectionId } = req.params;
 
     try {
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: connectionId },
+                    { blocker_id: connectionId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) {
+            return res.status(403).json({ error: 'Cannot access instants with a blocked user.' });
+        }
+
         await ensureInstantsTable();
 
         const rows: any[] = await prisma.$queryRawUnsafe(`
@@ -297,16 +326,18 @@ router.post('/:id/view', authenticateToken, async (req: any, res) => {
         const rows: any[] = isUuid
             ? await prisma.$queryRawUnsafe(`
                 SELECT i.id, i.sender_id, i.receiver_id, i.media_url, i.caption, i.viewed_by, i.likes, i.is_viewed, i.expires_at,
-                       u.full_name as sender_name
+                       u.full_name as sender_name, p.metadata as sender_metadata
                 FROM instants i
                 JOIN users u ON u.id = i.sender_id
+                LEFT JOIN profiles p ON p.user_id = u.id
                 WHERE i.id = $1::uuid AND i.expires_at > now();
             `, id)
             : await prisma.$queryRawUnsafe(`
                 SELECT i.id, i.sender_id, i.receiver_id, i.media_url, i.caption, i.viewed_by, i.likes, i.is_viewed, i.expires_at,
-                       u.full_name as sender_name
+                       u.full_name as sender_name, p.metadata as sender_metadata
                 FROM instants i
                 JOIN users u ON u.id = i.sender_id
+                LEFT JOIN profiles p ON p.user_id = u.id
                 WHERE i.id::text = $1 AND i.expires_at > now();
             `, id);
 
@@ -315,6 +346,32 @@ router.post('/:id/view', authenticateToken, async (req: any, res) => {
         }
 
         const instant = rows[0];
+
+        // Authorization checks for 1-to-1 snaps, blocks, and unaccepted Privacy Shield
+        if (instant.receiver_id && instant.receiver_id !== userId && instant.sender_id !== userId) {
+            return res.status(403).json({ error: 'You are not authorized to view this snap.' });
+        }
+
+        const [block, connected] = await Promise.all([
+            instant.sender_id !== userId
+                ? prisma.blocks.findFirst({
+                    where: {
+                        OR: [
+                            { blocker_id: userId, blocked_id: instant.sender_id },
+                            { blocker_id: instant.sender_id, blocked_id: userId }
+                        ]
+                    }
+                })
+                : Promise.resolve(null),
+            instant.sender_id !== userId ? areUsersConnected(prisma, userId, instant.sender_id) : Promise.resolve(true)
+        ]);
+        if (block) {
+            return res.status(403).json({ error: 'Cannot view snap from a blocked user.' });
+        }
+        if (instant.sender_id !== userId && isPhotoPrivacyShieldEnabled(instant.sender_metadata) && !connected) {
+            return res.status(403).json({ error: 'Privacy Shield active: connect to view snaps.' });
+        }
+
         const viewedList: any[] = Array.isArray(instant.viewed_by) ? instant.viewed_by : [];
         const likesList: any[] = Array.isArray(instant.likes) ? instant.likes : [];
         const hasAlreadyViewed = viewedList.some((v: any) => v.userId === userId || v === userId);
@@ -328,26 +385,44 @@ router.post('/:id/view', authenticateToken, async (req: any, res) => {
             });
         }
 
-        // Record view if viewed by another user
+        // Record view atomically if viewed by another user to eliminate double-view race
         let currentViewsCount = viewedList.length;
         if (instant.sender_id !== userId) {
             const viewedAtIso = new Date().toISOString();
-            const updatedViewedList = [...viewedList, { userId, viewedAt: viewedAtIso }];
-            currentViewsCount = updatedViewedList.length;
+            const viewerEntry = JSON.stringify([{ userId, viewedAt: viewedAtIso }]);
 
-            await prisma.$executeRawUnsafe(`
+            const updatedRows: any[] = await prisma.$queryRawUnsafe(`
                 UPDATE instants
-                SET viewed_by = $1::json,
+                SET viewed_by = (COALESCE(viewed_by::jsonb, '[]'::jsonb) || $2::jsonb)::json,
                     is_viewed = true
-                WHERE id = $2::uuid;
-            `, JSON.stringify(updatedViewedList), instant.id);
+                WHERE id = $1::uuid
+                  AND expires_at > now()
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM jsonb_array_elements(COALESCE(viewed_by::jsonb, '[]'::jsonb)) AS elem
+                      WHERE elem->>'userId' = $3
+                  )
+                RETURNING viewed_by;
+            `, instant.id, viewerEntry, userId);
 
-            // Emit live real-time update to snap creator via socket
+            if (!updatedRows || updatedRows.length === 0) {
+                return res.status(410).json({
+                    error: 'This Instant snap has already been viewed and expired.',
+                    hasViewed: true,
+                    mediaUrl: null
+                });
+            }
+
+            const updatedViewed = Array.isArray(updatedRows[0].viewed_by) ? updatedRows[0].viewed_by : [];
+            currentViewsCount = updatedViewed.length;
+
+            // Emit live real-time update to snap creator via socket (masking viewer avatar if Privacy Shield enabled)
             try {
                 const viewerInfo = await prisma.users.findUnique({
                     where: { id: userId },
-                    select: { full_name: true, avatar_url: true }
+                    select: { full_name: true, avatar_url: true, profiles: { select: { metadata: true } } }
                 });
+                const viewerShielded = isNotificationPhotoBlurred(viewerInfo?.profiles?.metadata, connected);
 
                 const io = getIO();
                 if (io) {
@@ -356,7 +431,8 @@ router.post('/:id/view', authenticateToken, async (req: any, res) => {
                         viewer: {
                             id: userId,
                             name: viewerInfo?.full_name || 'User',
-                            avatarUrl: viewerInfo?.avatar_url,
+                            avatarUrl: viewerShielded ? null : sanitizePhotoUrl(viewerInfo?.avatar_url ?? null, viewerInfo?.full_name || 'User'),
+                            isBlurred: viewerShielded,
                             viewedAt: viewedAtIso
                         },
                         totalViewers: currentViewsCount
@@ -418,24 +494,47 @@ router.get('/:id/viewers', authenticateToken, async (req: any, res) => {
             return res.json({ success: true, viewers: [], totalViewers: 0 });
         }
 
+        const [connectedSet, blockedSet] = await Promise.all([
+            getConnectedUserIdSet(prisma, userId),
+            getBlockedUserIdSet(prisma, userId)
+        ]);
         const viewerIds = rawViewers.map((v: any) => v.userId || v).filter(Boolean);
         const users = await prisma.users.findMany({
-            where: { id: { in: viewerIds } },
-            select: { id: true, full_name: true, avatar_url: true }
+            where: {
+                id: { in: viewerIds },
+                is_banned: false,
+                OR: [{ is_deactivated: false }, { deactivated_until: { lte: new Date() } }]
+            },
+            select: {
+                id: true,
+                full_name: true,
+                avatar_url: true,
+                profiles: { select: { metadata: true } }
+            }
         });
 
         const viewerMap = new Map(users.map(u => [u.id, u]));
 
-        const viewers = rawViewers.map((v: any) => {
-            const uid = v.userId || v;
-            const uInfo = viewerMap.get(uid);
-            return {
-                id: uid,
-                name: uInfo?.full_name || 'User',
-                avatarUrl: uInfo?.avatar_url,
-                viewedAt: v.viewedAt || null
-            };
-        });
+        const viewers = rawViewers
+            .filter((v: any) => {
+                const uid = v.userId || v;
+                return uid && !blockedSet.has(uid) && viewerMap.has(uid);
+            })
+            .map((v: any) => {
+                const uid = v.userId || v;
+                const uInfo = viewerMap.get(uid);
+                const meta = (uInfo?.profiles?.metadata as any) || {};
+                const isShielded = isPhotoPrivacyShieldEnabled(meta);
+                const isBlurred = isShielded && uid !== userId && !connectedSet.has(uid);
+                return {
+                    id: uid,
+                    name: uInfo?.full_name || 'User',
+                    avatarUrl: isBlurred ? null : sanitizePhotoUrl(uInfo?.avatar_url, uInfo?.full_name || 'User'),
+                    photo_privacy: isShielded ? 'blurred_until_accept' : 'public',
+                    isBlurred,
+                    viewedAt: v.viewedAt || null
+                };
+            });
 
         return res.json({ success: true, viewers, totalViewers: viewers.length });
     } catch (err: any) {
@@ -443,6 +542,55 @@ router.get('/:id/viewers', authenticateToken, async (req: any, res) => {
         return res.status(500).json({ error: 'Failed to fetch viewers list', details: err.message });
     }
 });
+
+async function getAuthorizedInstantForAction(id: string, userId: string): Promise<{ instant?: any; status?: number; error?: string }> {
+    const rows: any[] = await prisma.$queryRawUnsafe(`
+        SELECT i.id, i.sender_id, i.receiver_id, i.media_url, i.likes,
+               u.is_banned, u.is_deactivated, u.deactivated_until,
+               p.metadata as sender_metadata
+        FROM instants i
+        JOIN users u ON i.sender_id = u.id
+        LEFT JOIN profiles p ON u.id = p.user_id
+        WHERE i.id = $1::uuid AND i.expires_at > now();
+    `, id);
+
+    if (!rows || rows.length === 0) {
+        return { status: 404, error: 'Instant snap not found or expired.' };
+    }
+
+    const instant = rows[0];
+    const isDeactivatedActive = Boolean(instant.is_deactivated) && (!instant.deactivated_until || new Date(instant.deactivated_until) > new Date());
+    if (instant.is_banned || isDeactivatedActive) {
+        return { status: 404, error: 'Instant snap not found or expired.' };
+    }
+
+    if (instant.receiver_id && instant.receiver_id !== userId && instant.sender_id !== userId) {
+        return { status: 403, error: 'Access denied to private snap.' };
+    }
+
+    if (instant.sender_id !== userId) {
+        const blocked = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: instant.sender_id },
+                    { blocker_id: instant.sender_id, blocked_id: userId }
+                ]
+            },
+            select: { blocker_id: true }
+        });
+        if (blocked) {
+            return { status: 403, error: 'Action unavailable.' };
+        }
+        if (isPhotoPrivacyShieldEnabled(instant.sender_metadata)) {
+            const connected = await areUsersConnected(prisma, userId, instant.sender_id);
+            if (!connected) {
+                return { status: 403, error: 'Privacy Shield is enabled on this snap until connected.' };
+            }
+        }
+    }
+
+    return { instant };
+}
 
 /**
  * POST /api/instants/:id/like
@@ -455,15 +603,12 @@ router.post('/:id/like', authenticateToken, async (req: any, res) => {
     try {
         await ensureInstantsTable();
 
-        const rows: any[] = await prisma.$queryRawUnsafe(`
-            SELECT id, sender_id, likes FROM instants WHERE id = $1::uuid AND expires_at > now();
-        `, id);
-
-        if (!rows || rows.length === 0) {
-            return res.status(404).json({ error: 'Instant snap not found or expired.' });
+        const authResult = await getAuthorizedInstantForAction(id, userId);
+        if (!authResult.instant) {
+            return res.status(authResult.status || 404).json({ error: authResult.error });
         }
 
-        const instant = rows[0];
+        const instant = authResult.instant;
         let likesList: any[] = Array.isArray(instant.likes) ? instant.likes : [];
         const existingIdx = likesList.findIndex((l: any) => l.userId === userId || l === userId);
 
@@ -522,15 +667,12 @@ router.post('/:id/reply', authenticateToken, async (req: any, res) => {
     try {
         await ensureInstantsTable();
 
-        const rows: any[] = await prisma.$queryRawUnsafe(`
-            SELECT id, sender_id, media_url FROM instants WHERE id = $1::uuid AND expires_at > now();
-        `, id);
-
-        if (!rows || rows.length === 0) {
-            return res.status(404).json({ error: 'Instant snap not found or expired.' });
+        const authResult = await getAuthorizedInstantForAction(id, userId);
+        if (!authResult.instant) {
+            return res.status(authResult.status || 404).json({ error: authResult.error });
         }
 
-        const instant = rows[0];
+        const instant = authResult.instant;
         const targetUserId = instant.sender_id;
 
         if (targetUserId === userId) {

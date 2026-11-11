@@ -2,7 +2,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
-import { sanitizePhotoUrl } from '../utils/photoUrl';
+import { sanitizePhotoUrl, isPhotoPrivacyShieldEnabled, isNotificationPhotoBlurred, getConnectedUserIdSet, areUsersConnected } from '../utils/photoUrl';
 
 const router = express.Router();
 
@@ -27,27 +27,36 @@ router.get('/history', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const logs = await prisma.call_logs.findMany({
-            where: {
-                OR: [{ caller_id: userId }, { receiver_id: userId }]
-            },
-            orderBy: { started_at: 'desc' },
-            take: 50,
-            include: {
-                users_call_logs_caller_idTousers: { select: { full_name: true, avatar_url: true } },
-                users_call_logs_receiver_idTousers: { select: { full_name: true, avatar_url: true } }
-            }
-        });
+        const [logs, connectedIds] = await Promise.all([
+            prisma.call_logs.findMany({
+                where: {
+                    OR: [{ caller_id: userId }, { receiver_id: userId }]
+                },
+                orderBy: { started_at: 'desc' },
+                take: 50,
+                include: {
+                    users_call_logs_caller_idTousers: { select: { id: true, full_name: true, avatar_url: true, profiles: { select: { metadata: true } } } },
+                    users_call_logs_receiver_idTousers: { select: { id: true, full_name: true, avatar_url: true, profiles: { select: { metadata: true } } } }
+                }
+            }),
+            getConnectedUserIdSet(prisma, userId)
+        ]);
 
         // Transform keys to camelCase for frontend
         const formattedLogs = logs.map(row => {
             const isCaller = row.caller_id === userId;
             const otherUser = isCaller ? row.users_call_logs_receiver_idTousers : row.users_call_logs_caller_idTousers;
+            const otherId = isCaller ? row.receiver_id : row.caller_id;
+            const otherMeta = (otherUser?.profiles?.metadata as any) || {};
+            const isBlurred = Boolean(otherId) && isPhotoPrivacyShieldEnabled(otherMeta) && !connectedIds.has(otherId!);
 
             return {
                 id: row.id,
+                otherId,
                 otherName: otherUser?.full_name || 'Member',
-                otherPhoto: sanitizePhotoUrl(otherUser?.avatar_url ?? null, otherUser?.full_name || 'Member'),
+                otherPhoto: isBlurred ? null : sanitizePhotoUrl(otherUser?.avatar_url ?? null, otherUser?.full_name || 'Member'),
+                photo_privacy: otherMeta.photo_privacy || otherMeta.photoPrivacy || 'public',
+                isBlurred,
                 type: row.type,
                 status: row.status,
                 duration: row.duration_seconds,
@@ -107,6 +116,30 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Invalid receiver ID" });
         }
 
+        const [block, receiverUser, connected] = await Promise.all([
+            prisma.blocks.findFirst({
+                where: {
+                    OR: [
+                        { blocker_id: callerId, blocked_id: receiverId },
+                        { blocker_id: receiverId, blocked_id: callerId }
+                    ]
+                }
+            }),
+            prisma.users.findUnique({
+                where: { id: receiverId },
+                select: { id: true, is_banned: true, is_deactivated: true, deactivated_until: true }
+            }),
+            areUsersConnected(prisma, callerId, receiverId)
+        ]);
+        if (block) return res.status(403).json({ error: "Cannot call a blocked user" });
+        const receiverDeactivated = receiverUser?.is_deactivated && (!receiverUser.deactivated_until || new Date(receiverUser.deactivated_until) > new Date());
+        if (!receiverUser || receiverUser.is_banned || receiverDeactivated) {
+            return res.status(404).json({ error: "Recipient unavailable" });
+        }
+        if (!connected) {
+            return res.status(403).json({ error: "Only connected matches can buzz each other" });
+        }
+
         const caller = await prisma.users.findUnique({
             where: { id: callerId },
             select: { 
@@ -123,12 +156,15 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
         const meta = (caller?.profiles?.metadata as any) || {};
         const callerName = caller?.full_name?.trim() || meta.name?.trim() || 'Your match';
         const callTypeLabel = type === 'audio' ? 'voice' : 'video';
+        const isShielded = isNotificationPhotoBlurred(meta, connected);
         let rawPhoto: string | null | undefined = caller?.avatar_url;
         if (!rawPhoto && Array.isArray(caller?.profiles?.photos) && (caller.profiles.photos as any).length > 0) {
             rawPhoto = String((caller.profiles.photos as any)[0] || '');
         }
         if (rawPhoto && rawPhoto.startsWith('data:image')) rawPhoto = null;
-        const callerPhoto = rawPhoto ? sanitizePhotoUrl(rawPhoto, callerName) : `https://ui-avatars.com/api/?name=${encodeURIComponent(callerName)}&background=e11d48&color=fff&size=256`;
+        const callerPhoto = isShielded
+            ? null
+            : (rawPhoto ? sanitizePhotoUrl(rawPhoto, callerName) : `https://ui-avatars.com/api/?name=${encodeURIComponent(callerName)}&background=e11d48&color=fff&size=256`);
 
         // 1. Create in-app notification
         const title = `📞 Missed ${type === 'audio' ? 'Voice' : 'Video'} Call`;
@@ -143,6 +179,7 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
                     callerId,
                     callerName,
                     callerAvatar: callerPhoto,
+                    isBlurred: isShielded,
                     callType: type || 'video',
                     actionUrl: `/chat/${callerId}`
                 }
@@ -163,6 +200,7 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
                 senderName: callerName,
                 callerPhoto,
                 senderPhoto: callerPhoto,
+                isBlurred: isShielded,
                 callType: type || 'video',
                 url: `/chat/${callerId}`
             }
@@ -176,7 +214,8 @@ router.post('/buzz', authenticateToken, async (req: any, res) => {
                 io.to(receiverId).emit('call_buzz', {
                     callerId,
                     callerName,
-                    callerAvatar: caller?.avatar_url,
+                    callerAvatar: callerPhoto,
+                    isBlurred: isShielded,
                     callType: type || 'video'
                 });
             }

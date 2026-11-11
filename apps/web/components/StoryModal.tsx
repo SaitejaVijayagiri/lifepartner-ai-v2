@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye, Star, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock } from 'lucide-react';
+import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye, Star, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
-import { getProfilePhotoUrl, filterActiveStories, isStoryActive } from '@/lib/utils';
+import { getProfilePhotoUrl, filterActiveStories, isStoryActive, isProfilePhotoBlurred } from '@/lib/utils';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
 import { MUSIC_CATALOG } from './StoryMusicStudio';
@@ -28,6 +28,8 @@ interface User {
     photoUrl?: string;
     avatar_url?: string;
     full_name?: string;
+    isBlurred?: boolean;
+    photo_privacy?: string;
 }
 
 interface StoryModalProps {
@@ -404,7 +406,8 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
     if (!story) return null;
 
     const displayName = user.name || user.full_name || "User";
-    const avatarUrl = getProfilePhotoUrl(user) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id || 'User'}`;
+    const isAvatarBlurred = isProfilePhotoBlurred(user, currentUser?.id || currentUser?.userId);
+    const avatarUrl = isAvatarBlurred ? '/avatar-fallback.svg' : (getProfilePhotoUrl(user) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id || 'User'}`);
 
     const modalMarkup = (
         <div
@@ -451,14 +454,14 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                 onClick={() => {
                                     if (onViewProfile && !isOwner) {
                                         setIsPaused(true);
-                                        onViewProfile(user.id, user.name || user.full_name, user.photoUrl || user.avatar_url);
+                                        onViewProfile(user.id, user.name || user.full_name, isAvatarBlurred ? '/avatar-fallback.svg' : (user.photoUrl || user.avatar_url));
                                     }
                                 }}
                             >
                                 <div className="relative">
                                     <img
                                         src={avatarUrl}
-                                        className="w-11 h-11 rounded-full border-2 border-white shadow-lg object-cover"
+                                        className={`w-11 h-11 rounded-full border-2 border-white shadow-lg object-cover ${isAvatarBlurred ? 'blur-md' : ''}`}
                                         alt={displayName}
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
@@ -990,9 +993,9 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                         {/* Avatar */}
                                         <div className="relative flex-shrink-0">
                                             <img
-                                                src={viewer.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'User')}`}
+                                                src={isProfilePhotoBlurred(viewer, currentUser?.id || currentUser?.userId) ? '/avatar-fallback.svg' : (viewer.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'User')}`)}
                                                 alt={viewer.name}
-                                                className="w-14 h-14 rounded-full object-cover border-2 border-white/20 bg-gray-800"
+                                                className={`w-14 h-14 rounded-full object-cover border-2 border-white/20 bg-gray-800 ${isProfilePhotoBlurred(viewer, currentUser?.id || currentUser?.userId) ? 'blur-md' : ''}`}
                                                 onError={(e) => { const t = e.target as HTMLImageElement; t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(viewer.name || 'U')}`; }}
                                             />
                                             {/* Online indicator dot */}

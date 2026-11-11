@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { formatLocationString } from '@/lib/utils';
+import { formatLocationString, isProfilePhotoBlurred } from '@/lib/utils';
 import { trackImageFailure } from '@/lib/analytics';
 
 interface PublicMatchCardProps {
@@ -12,7 +12,7 @@ interface PublicMatchCardProps {
 export default function PublicMatchCard({ match }: PublicMatchCardProps) {
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
-    const isPhotoBlurred = Boolean(match.isBlurred || match.blur);
+    const isPhotoBlurred = isProfilePhotoBlurred(match);
 
     // Photos Array (with robust fallback)
     const fallbackAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`;
@@ -57,18 +57,21 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
 
                 {/* Privacy Shield Blurred Overlay */}
                 {isPhotoBlurred && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md p-4 text-center select-none pointer-events-none">
-                        <div className="w-12 h-12 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2 shadow-lg shadow-pink-500/10 animate-pulse">
-                            <span className="text-xl">🔒</span>
+                    <>
+                        <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-md pointer-events-none" />
+                        <div className="absolute inset-x-3 top-12 bottom-36 z-20 flex flex-col items-center justify-center p-3 text-center select-none pointer-events-none">
+                            <div className="w-11 h-11 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-1.5 shadow-lg shadow-pink-500/10 animate-pulse">
+                                <span className="text-xl">🔒</span>
+                            </div>
+                            <span className="text-white font-black text-xs tracking-wide">Photo Private</span>
+                            <span className="text-white/85 text-[11px] mt-0.5 max-w-[170px] leading-tight">
+                                Register & connect to view
+                            </span>
+                            <span className="mt-1.5 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-pink-950/75 text-pink-200 border border-pink-400/35">
+                                🛡️ Privacy Shield
+                            </span>
                         </div>
-                        <span className="text-white font-black text-xs tracking-wide">Photo Private</span>
-                        <span className="text-white/80 text-[11px] mt-0.5 max-w-[170px] leading-tight">
-                            Register & connect to view
-                        </span>
-                        <span className="mt-1.5 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-pink-900/60 text-pink-200 border border-pink-400/30">
-                            🛡️ Privacy Shield
-                        </span>
-                    </div>
+                    </>
                 )}
 
                 {/* Photo Progress Bar */}
@@ -99,8 +102,8 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                 </div>
             )}
 
-            {/* Bottom Info Section */}
-            <div className="absolute bottom-0 inset-x-0 p-5 z-20 flex flex-col justify-end pointer-events-none">
+                {/* Bottom Info Section */}
+            <div className="absolute bottom-0 inset-x-0 p-5 z-30 flex flex-col justify-end pointer-events-none">
                 <div className="flex items-end gap-2 mb-1.5">
                     <h3 className="text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
                         {match.name || 'Member'}{match.age ? `, ${match.age}` : ''}

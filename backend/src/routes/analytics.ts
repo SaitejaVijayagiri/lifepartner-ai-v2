@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
+import { authenticateToken } from '../middleware/auth';
+import { adminAuth } from '../middleware/adminAuth';
 
 const router = Router();
 
@@ -124,7 +126,7 @@ router.post('/feedback', async (req: Request, res: Response) => {
  * GET /api/analytics/insights
  * Returns comprehensive system telemetry, photo health stats, drop-off analysis, and feedback.
  */
-router.get('/insights', async (req: Request, res: Response) => {
+router.get('/insights', authenticateToken, adminAuth, async (req: Request, res: Response) => {
     try {
         // Calculate image health stats
         const imageFailures = eventLogStore.filter(e => e.event_type === 'image_load_failure');
@@ -438,7 +440,7 @@ router.get('/views', async (req: Request, res: Response) => {
  * GET /api/analytics/email-stats
  * Returns live email delivery, open, click, bounce metrics and remaining daily OTP quota buffer
  */
-router.get('/email-stats', async (req: Request, res: Response) => {
+router.get('/email-stats', authenticateToken, adminAuth, async (req: Request, res: Response) => {
     try {
         const { EmailTracker } = await import('../services/emailTracker');
         const tracker = EmailTracker.getInstance();

@@ -81,7 +81,7 @@ export function ThemeToggle() {
                                 }}
                                 className={`
                                     p-3 rounded-full shadow-lg border transition-colors duration-300 w-12 h-12 flex items-center justify-center
-                                    cursor-grab active:cursor-grabbing \${
+                                    cursor-grab active:cursor-grabbing ${
                                     isDark 
                                         ? 'bg-gray-800 border-gray-700 text-yellow-400 hover:bg-gray-700 shadow-yellow-500/10' 
                                         : 'bg-white border-gray-200 text-indigo-600 hover:bg-gray-50 shadow-indigo-500/10'
@@ -102,7 +102,7 @@ export function ThemeToggle() {
                             title="Restore Theme Toggle"
                             className={`
                                 w-8 h-8 rounded-full shadow-md border flex items-center justify-center cursor-pointer transition-colors
-                                \${isDark 
+                                ${isDark 
                                     ? 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700' 
                                     : 'bg-white border-gray-300 text-gray-400 hover:text-black hover:bg-gray-100'
                                 }

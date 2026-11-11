@@ -49,7 +49,7 @@ export default function FloatingMobileSignupBar({ onSignupClick }: FloatingMobil
     };
 
     return (
-        <div className="fixed bottom-0 inset-x-0 z-40 p-3 sm:hidden animate-in slide-in-from-bottom duration-300 pointer-events-none">
+        <div className="fixed bottom-0 inset-x-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:hidden animate-in slide-in-from-bottom duration-300 pointer-events-none">
             <div className="max-w-md mx-auto bg-gray-900/95 dark:bg-black/95 backdrop-blur-xl border border-white/20 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 text-white pointer-events-auto ring-1 ring-white/10">
                 <div className="flex flex-col min-w-0 pl-1">
                     <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 uppercase tracking-wider">

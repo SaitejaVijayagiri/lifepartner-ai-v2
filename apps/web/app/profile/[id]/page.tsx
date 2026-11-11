@@ -56,7 +56,7 @@ export async function generateMetadata(
     const age = profile.age ? `${profile.age} yrs` : '';
     const profession = profile.role || profile.career?.profession || profile.profession || 'Verified Member';
     const location = profile.location?.city || profile.location?.district || profile.city || 'India';
-    const photos = profile.photos || [];
+    const photos = (profile.isBlurred || profile.photo_privacy === 'blurred_until_accept') ? [] : (profile.photos || []);
     const bio = profile.bio || profile.aboutMe || `Connect with ${name} on LifePartner AI.`;
     const summaryHeader = [name, age, profession, location].filter(Boolean).join(' • ');
 
@@ -92,7 +92,7 @@ export default async function ProfilePage({ params }: Props) {
             addressLocality: profile.location?.city,
             addressCountry: 'IN'
         },
-        image: profile.photos?.[0],
+        image: (profile.isBlurred || profile.photo_privacy === 'blurred_until_accept') ? 'https://lifepartnerai.in/og-image.jpg' : profile.photos?.[0],
         description: profile.bio || profile.aboutMe,
         url: `https://lifepartnerai.in/profile/${profile.id}`
     } : null;

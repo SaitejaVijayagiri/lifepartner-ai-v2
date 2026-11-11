@@ -1333,12 +1333,15 @@ function DashboardContent() {
     }, [socket]);
     */
 
+    const clearClientSession = () => {
+        ['token', 'userId', 'user', 'dashboard_active_tab', 'dashboard_selected_connection', 'matches_cache_v2', 'connections_cache_v2', 'connections_cache_v1', 'requests_cache_v1', 'stories_feed_cache_v1'].forEach((key) => {
+            localStorage.removeItem(key);
+        });
+    };
+
     const handleLogout = () => {
         if (confirm("Are you sure you want to log out?")) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('dashboard_active_tab');
-            localStorage.removeItem('dashboard_selected_connection');
+            clearClientSession();
             router.push('/login');
         }
     };
@@ -1348,10 +1351,7 @@ function DashboardContent() {
             try {
                 await api.profile.deactivateAccount(15);
                 toast.success("Account deactivated successfully.");
-                localStorage.removeItem('token');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('dashboard_active_tab');
-                localStorage.removeItem('dashboard_selected_connection');
+                clearClientSession();
                 router.push('/login');
             } catch (err: any) {
                 toast.error(err.message || "Failed to deactivate account.");
@@ -1365,10 +1365,7 @@ function DashboardContent() {
             try {
                 await api.profile.deleteAccount();
                 toast.success("Your account has been permanently deleted.");
-                localStorage.removeItem('token');
-                localStorage.removeItem('userId');
-                localStorage.removeItem('dashboard_active_tab');
-                localStorage.removeItem('dashboard_selected_connection');
+                clearClientSession();
                 router.push('/login');
             } catch (err: any) {
                 toast.error(err.message || "Failed to delete account.");

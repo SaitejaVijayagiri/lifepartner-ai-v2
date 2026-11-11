@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSocket } from '@/context/SocketContext';
-import { X, Heart, Camera, Sparkles, Bell, Eye } from 'lucide-react';
+import { X, Heart, Camera, Sparkles, Bell, Eye, Lock } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 
@@ -16,6 +16,8 @@ interface NotificationToast {
     fromUserId?: string;
     fromUserName?: string;
     fromUserPhoto?: string;
+    isBlurred?: boolean;
+    photo_privacy?: string;
     timestamp: Date;
     interactionId?: string;
 }
@@ -82,6 +84,7 @@ export default function NotificationToastBanner() {
 
             const toastId = `notif-${Date.now()}`;
             
+            const isBlurred = Boolean(data.isBlurred || data.photo_privacy === 'blurred_until_accept');
             // Build the toast object
             const newToast: NotificationToast = {
                 id: toastId,
@@ -94,7 +97,9 @@ export default function NotificationToastBanner() {
                 fromUserName: data.fromUserName || (data.type === 'witty_reengagement' ? 'LifePartner AI' : 'LifePartner Member'),
                 fromUserPhoto: data.type === 'witty_reengagement' 
                     ? '/icon.png' 
-                    : (data.fromUserPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fromUserName || 'User')}`),
+                    : (isBlurred ? '/avatar-fallback.svg' : (data.fromUserPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.fromUserName || 'User')}`)),
+                isBlurred,
+                photo_privacy: data.photo_privacy,
                 timestamp: new Date(data.timestamp || Date.now())
             };
 
@@ -118,7 +123,7 @@ export default function NotificationToastBanner() {
                 try {
                     const notifTitle = newToast.fromUserName || 'LifePartner AI';
                     const notifBody = newToast.message;
-                    const notifIcon = newToast.fromUserPhoto || '/icon.png';
+                    const notifIcon = newToast.isBlurred ? '/icon.png' : (newToast.fromUserPhoto || '/icon.png');
                     const targetUrl = newToast.fromUserId ? `/dashboard?tab=matches&viewProfile=${newToast.fromUserId}` : '/dashboard';
 
                     if ('serviceWorker' in navigator) {
@@ -242,15 +247,16 @@ export default function NotificationToastBanner() {
                             }
 
                             // 2. Navigate to dashboard or matching screen
+                            const safePhotoParam = toast.isBlurred ? '' : (toast.fromUserPhoto || '');
                             if ((toast.type === 'match' || toast.type === 'connection_online') && toast.fromUserId) {
-                                router.push(`/chat/${toast.fromUserId}?name=${encodeURIComponent(toast.fromUserName || '')}&photo=${encodeURIComponent(toast.fromUserPhoto || '')}`);
+                                router.push(`/chat/${toast.fromUserId}?name=${encodeURIComponent(toast.fromUserName || '')}&photo=${encodeURIComponent(safePhotoParam)}`);
                             } else if ((toast.type === 'view' || toast.type === 'like') && toast.fromUserId) {
                                 if (typeof window !== 'undefined') {
                                     window.dispatchEvent(new CustomEvent('openProfile', {
                                         detail: {
                                             profileId: toast.fromUserId,
                                             profileName: toast.fromUserName,
-                                            profilePhoto: toast.fromUserPhoto
+                                            profilePhoto: safePhotoParam
                                         }
                                     }));
                                 }
@@ -262,15 +268,22 @@ export default function NotificationToastBanner() {
                     >
                         {/* Sender Photo with Type Icon Badge */}
                         <div className="relative flex-shrink-0">
-                            <img
-                                src={toast.fromUserPhoto}
-                                alt={toast.fromUserName}
-                                className="w-12 h-12 rounded-full object-cover border border-gray-100 dark:border-gray-800"
-                                onError={(e) => {
-                                    const t = e.target as HTMLImageElement;
-                                    t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(toast.fromUserName || 'User')}`;
-                                }}
-                            />
+                            <div className="relative w-12 h-12 rounded-full overflow-hidden border border-gray-100 dark:border-gray-800">
+                                <img
+                                    src={toast.isBlurred ? '/avatar-fallback.svg' : toast.fromUserPhoto}
+                                    alt={toast.fromUserName}
+                                    className={`w-full h-full object-cover ${toast.isBlurred ? 'blur-md scale-110' : ''}`}
+                                    onError={(e) => {
+                                        const t = e.target as HTMLImageElement;
+                                        t.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(toast.fromUserName || 'User')}`;
+                                    }}
+                                />
+                                {toast.isBlurred && (
+                                    <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                        <Lock size={14} className="text-white" />
+                                    </div>
+                                )}
+                            </div>
                             {/* Type Icon Badge */}
                             <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900 ${config.iconBg} shadow-sm`}>
                                 <IconComponent size={12} className="stroke-[2.5]" />

@@ -5,6 +5,7 @@ import { NotificationService } from '../services/notification';
 import { OneSignalService } from '../services/OneSignalService';
 import { WebPushService } from '../services/WebPushService';
 import { authenticateToken } from '../middleware/auth';
+import { getBlockedUserIdSet } from '../utils/photoUrl';
 
 
 const router = express.Router();
@@ -203,25 +204,33 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
 
         const whereClause: any = {
             is_banned: false,
-            OR: [
-                { is_deactivated: false },
-                { is_deactivated: null },
-                { deactivated_until: { lt: new Date() } }
+            AND: [
+                {
+                    OR: [
+                        { is_deactivated: false },
+                        { is_deactivated: null },
+                        { AND: [{ deactivated_until: { not: null } }, { deactivated_until: { lt: new Date() } }] }
+                    ]
+                }
             ]
         };
 
         if (target === 'female') {
-            whereClause.OR = [
-                { gender: 'Female' },
-                { gender: 'female' },
-                { gender: 'FEMALE' }
-            ];
+            whereClause.AND.push({
+                OR: [
+                    { gender: 'Female' },
+                    { gender: 'female' },
+                    { gender: 'FEMALE' }
+                ]
+            });
         } else if (target === 'male') {
-            whereClause.OR = [
-                { gender: 'Male' },
-                { gender: 'male' },
-                { gender: 'MALE' }
-            ];
+            whereClause.AND.push({
+                OR: [
+                    { gender: 'Male' },
+                    { gender: 'male' },
+                    { gender: 'MALE' }
+                ]
+            });
         } else if (target === 'with_tokens') {
             whereClause.device_tokens = { some: {} };
         }
@@ -559,14 +568,30 @@ router.get('/smart-reengagement', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        const [user, profile, activeMatch] = await Promise.all([
-            prisma.users.findUnique({ where: { id: userId }, select: { full_name: true, coins: true } }),
+        const [user, profile, blockedIds] = await Promise.all([
+            prisma.users.findUnique({ where: { id: userId }, select: { full_name: true, coins: true, gender: true } }),
             prisma.profiles.findUnique({ where: { user_id: userId }, select: { metadata: true } }),
-            prisma.users.findFirst({
-                where: { id: { not: userId }, avatar_url: { not: null } },
-                select: { full_name: true, city: true }
-            })
+            getBlockedUserIdSet(prisma, userId)
         ]);
+
+        const myGender = String(user?.gender || '').trim().toLowerCase();
+        const oppositeGender = myGender === 'male' ? 'female' : myGender === 'female' ? 'male' : null;
+        const excludeIds = Array.from(new Set([userId, ...blockedIds]));
+
+        const activeMatch = await prisma.users.findFirst({
+            where: {
+                id: { notIn: excludeIds },
+                avatar_url: { not: null },
+                is_banned: { not: true },
+                OR: [
+                    { is_deactivated: false },
+                    { is_deactivated: null },
+                    { deactivated_until: { lt: new Date() } }
+                ],
+                ...(oppositeGender ? { gender: { equals: oppositeGender, mode: 'insensitive' as const } } : {})
+            },
+            select: { full_name: true, city: true }
+        });
 
         const meta: any = profile?.metadata || {};
         const streakData = meta.daily_streak || { last_claimed_date: null };

@@ -153,6 +153,22 @@ public class OfflineSyncManager {
     // 4. FLUSH ALL PENDING ACTIONS
     // ==========================================
 
+    private static final int MAX_RETRY_ATTEMPTS = 5;
+
+    private static void enqueueForRetry(JSONArray remaining, JSONObject item) {
+        try {
+            int attempts = item.optInt("retryCount", 0) + 1;
+            if (attempts <= MAX_RETRY_ATTEMPTS) {
+                item.put("retryCount", attempts);
+                remaining.put(item);
+            } else {
+                Log.w(TAG, "Dropping offline action after max retries: " + item);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not update retry counter: " + e.getMessage());
+        }
+    }
+
     public static void flushPendingActions(Context context) {
         if (!isNetworkAvailable(context)) {
             Log.d(TAG, "Cannot flush actions: network unavailable");
@@ -163,7 +179,7 @@ public class OfflineSyncManager {
             try {
                 SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
                 String authToken = prefs.getString("auth_token", null);
-                if (authToken == null || authToken.trim().isEmpty()) {
+                if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {
                     Log.d(TAG, "Cannot flush offline actions: missing auth token");
                     return;
                 }
@@ -198,7 +214,7 @@ public class OfflineSyncManager {
 
                 boolean success = executeRequestAction(interactionId, action, authToken);
                 if (!success) {
-                    remaining.put(item);
+                    enqueueForRetry(remaining, item);
                 } else {
                     Log.i(TAG, "Successfully synced offline request action: " + action + " for " + interactionId);
                 }
@@ -229,7 +245,7 @@ public class OfflineSyncManager {
 
                 boolean success = executeSendReply(connId, text, authToken);
                 if (!success) {
-                    remaining.put(item);
+                    enqueueForRetry(remaining, item);
                 } else {
                     Log.i(TAG, "Successfully synced offline reply for " + connId);
                 }
@@ -311,7 +327,7 @@ public class OfflineSyncManager {
 
                 boolean success = executeLikeMessage(messageId, authToken);
                 if (!success) {
-                    remaining.put(item);
+                    enqueueForRetry(remaining, item);
                 } else {
                     Log.i(TAG, "Successfully synced offline like for " + messageId);
                 }

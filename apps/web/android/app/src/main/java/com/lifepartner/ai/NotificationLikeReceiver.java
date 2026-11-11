@@ -20,6 +20,7 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (intent == null) return;
         String messageId = intent.getStringExtra("messageId");
         int notificationId = intent.getIntExtra("notificationId", 0);
         String senderId = intent.getStringExtra("senderId");
@@ -31,8 +32,14 @@ public class NotificationLikeReceiver extends BroadcastReceiver {
 
         // 1. Clear the notification immediately to feel responsive
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null && notificationId != 0) {
-            notificationManager.cancel(notificationId);
+        if (notificationManager != null) {
+            if (notificationId != 0) {
+                notificationManager.cancel(notificationId);
+            }
+            if (senderId != null && !senderId.trim().isEmpty()) {
+                String groupKey = "chat_" + senderId.trim().toLowerCase();
+                notificationManager.cancel(Math.abs(groupKey.hashCode()));
+            }
         }
 
         // 2. Get Auth Token

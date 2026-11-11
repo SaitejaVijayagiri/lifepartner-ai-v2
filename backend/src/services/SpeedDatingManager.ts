@@ -60,11 +60,19 @@ export class SpeedDatingManager {
                 city: true,
                 state: true,
                 location_name: true,
+                is_banned: true,
+                is_deactivated: true,
+                deactivated_until: true,
                 profiles: { select: { metadata: true } }
             }
         });
 
-        if (!user || !user.gender || !user.full_name) {
+        const isDeactivatedActive = user?.is_deactivated && (!user.deactivated_until || new Date(user.deactivated_until) > new Date());
+        if (!user || user.is_banned || isDeactivatedActive) {
+            socket.emit('speed_date_error', { message: "Account is unavailable for speed dating." });
+            return;
+        }
+        if (!user.gender || !user.full_name) {
             socket.emit('speed_date_error', { message: "Incomplete profile. Please set your gender and name." });
             return;
         }
@@ -263,9 +271,7 @@ export class SpeedDatingManager {
                         photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + femaleUser.userId,
                         location: femaleUser.location,
                         age: femaleUser.age || 24,
-                        gender: femaleUser.gender,
-                        realName: femaleUser.name,
-                        realPhotoUrl: femaleUser.photoUrl
+                        gender: femaleUser.gender
                     },
                     initiator: true
                 });
@@ -277,9 +283,7 @@ export class SpeedDatingManager {
                         photoUrl: "https://api.dicebear.com/7.x/shapes/svg?seed=" + maleUser.userId,
                         location: maleUser.location,
                         age: maleUser.age || 25,
-                        gender: maleUser.gender,
-                        realName: maleUser.name,
-                        realPhotoUrl: maleUser.photoUrl
+                        gender: maleUser.gender
                     },
                     initiator: false
                 });

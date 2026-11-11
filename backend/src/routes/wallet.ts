@@ -37,7 +37,13 @@ router.post('/gift', authenticateToken, async (req: any, res) => {
     const { toUserId, giftId, cost } = req.body;
     const userId = req.user.userId;
 
-    if (!toUserId || !cost) return res.status(400).json({ error: "Missing details" });
+    const numericCost = Number(cost);
+    if (!toUserId || !Number.isFinite(numericCost) || !Number.isInteger(numericCost) || numericCost <= 0) {
+        return res.status(400).json({ error: "Invalid gift details or coin cost" });
+    }
+    if (String(toUserId) === String(userId)) {
+        return res.status(400).json({ error: "Cannot send a gift to yourself" });
+    }
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -45,10 +51,10 @@ router.post('/gift', authenticateToken, async (req: any, res) => {
             const updateResult = await tx.users.updateMany({
                 where: {
                     id: userId,
-                    coins: { gte: cost }
+                    coins: { gte: numericCost }
                 },
                 data: {
-                    coins: { decrement: cost }
+                    coins: { decrement: numericCost }
                 }
             });
 
@@ -61,9 +67,9 @@ router.post('/gift', authenticateToken, async (req: any, res) => {
                 data: {
                     user_id: userId,
                     type: 'SPEND',
-                    amount: cost,
+                    amount: numericCost,
                     currency: 'COINS',
-                    description: `Sent Gift: ${giftId}`,
+                    description: `Sent Gift: ${giftId || 'gift'}`,
                     metadata: { toUserId, giftId },
                     status: 'SUCCESS'
                 }
@@ -231,39 +237,43 @@ router.post('/streak/claim', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const todayStr = new Date().toISOString().split('T')[0];
 
-        const profile = await prisma.profiles.findUnique({
-            where: { user_id: userId },
-            select: { metadata: true }
-        });
+        // Perform eligibility check + balance increment inside an atomic locked transaction
+        const result = await prisma.$transaction(async (tx) => {
+            // Serialize concurrent streak claims per user via row-level lock on users
+            await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
 
-        const meta: any = profile?.metadata || {};
-        const streakData = meta.daily_streak || { streak_count: 0, last_claimed_date: null };
-        const lastClaimed = streakData.last_claimed_date;
+            const profile = await tx.profiles.findUnique({
+                where: { user_id: userId },
+                select: { metadata: true }
+            });
 
-        if (lastClaimed) {
-            const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
-            if (diffDays === 0) {
-                return res.status(400).json({ error: 'You have already claimed today\'s streak reward!' });
+            const meta: any = profile?.metadata || {};
+            const streakData = meta.daily_streak || { streak_count: 0, last_claimed_date: null };
+            const lastClaimed = streakData.last_claimed_date;
+
+            if (lastClaimed) {
+                const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
+                if (diffDays === 0) {
+                    return { alreadyClaimed: true as const };
+                }
             }
-        }
 
-        let newStreak = (streakData.streak_count || 0) + 1;
-        if (lastClaimed) {
-            const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
-            if (diffDays > 1 || diffDays < 0) {
-                newStreak = 1; // Missed a day — reset streak strictly to Day 1
+            let newStreak = (streakData.streak_count || 0) + 1;
+            if (lastClaimed) {
+                const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
+                if (diffDays > 1 || diffDays < 0) {
+                    newStreak = 1; // Missed a day — reset streak strictly to Day 1
+                }
             }
-        }
 
-        const dayCycle = ((newStreak - 1) % 7) + 1;
-        const rewardCoins = STREAK_REWARDS[dayCycle] || 15;
+            const dayCycle = ((newStreak - 1) % 7) + 1;
+            const rewardCoins = STREAK_REWARDS[dayCycle] || 15;
 
-        // Perform transaction
-        await prisma.$transaction(async (tx) => {
             // Update user balance
-            await tx.users.update({
+            const updatedUser = await tx.users.update({
                 where: { id: userId },
-                data: { coins: { increment: rewardCoins } }
+                data: { coins: { increment: rewardCoins } },
+                select: { coins: true }
             });
 
             // Update streak metadata
@@ -292,19 +302,25 @@ router.post('/streak/claim', authenticateToken, async (req: any, res) => {
                     status: 'SUCCESS'
                 }
             });
+
+            return {
+                alreadyClaimed: false as const,
+                newStreak,
+                rewardCoins,
+                newBalance: updatedUser?.coins || 0
+            };
         });
 
-        const updatedUser = await prisma.users.findUnique({
-            where: { id: userId },
-            select: { coins: true }
-        });
+        if (result.alreadyClaimed) {
+            return res.status(400).json({ error: 'You have already claimed today\'s streak reward!' });
+        }
 
         return res.json({
             success: true,
-            streakCount: newStreak,
-            rewardCoins,
-            newBalance: updatedUser?.coins || 0,
-            message: `🎉 Claimed ${rewardCoins} coins for Day ${newStreak} streak!`
+            streakCount: result.newStreak,
+            rewardCoins: result.rewardCoins,
+            newBalance: result.newBalance,
+            message: `🎉 Claimed ${result.rewardCoins} coins for Day ${result.newStreak} streak!`
         });
 
     } catch (e: any) {

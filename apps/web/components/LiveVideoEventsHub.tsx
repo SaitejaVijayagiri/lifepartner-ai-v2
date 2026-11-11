@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown, Calendar, Bell, Clock, Edit3, Trash2 } from 'lucide-react';
+import { Video, Users, Sparkles, PlusCircle, Radio, ArrowRight, Eye, Play, Volume2, ShieldCheck, Heart, Crown, Calendar, Bell, Clock, Edit3, Trash2, Lock } from 'lucide-react';
 import { fetchAPI } from '@/lib/api';
 import HostSpeedDateModal from './HostSpeedDateModal';
 import { useToast } from '@/components/ui/Toast';
@@ -165,11 +165,14 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                             className="group relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
                         >
                             {/* Live Video Preview Box */}
+                            {(() => {
+                                const isHostBlurred = Boolean(event.isBlurred || event.host_photo_privacy === 'blurred_until_accept');
+                                return (
                             <div className="relative aspect-[16/9] w-full bg-gray-950 overflow-hidden">
                                 <img
-                                    src={event.host_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(event.host_name || 'Host')}`}
+                                    src={isHostBlurred ? '/avatar-fallback.svg' : (event.host_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(event.host_name || 'Host')}`)}
                                     alt={event.host_name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter brightness-90"
+                                    className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 filter brightness-90 ${isHostBlurred ? 'blur-xl scale-110 opacity-75' : ''}`}
                                     onError={(e) => {
                                         (e.target as any).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(event.host_name || 'Host')}`;
                                     }}
@@ -212,11 +215,18 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
 
                                 {/* Host Info Bar at Bottom of Video Box */}
                                 <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center gap-2.5">
-                                    <img
-                                        src={event.host_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(event.host_name || 'Host')}`}
-                                        alt={event.host_name}
-                                        className="w-8 h-8 rounded-full border-2 border-rose-500 object-cover shadow-sm shrink-0"
-                                    />
+                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border-2 border-rose-500 shadow-sm shrink-0">
+                                        <img
+                                            src={isHostBlurred ? '/avatar-fallback.svg' : (event.host_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(event.host_name || 'Host')}`)}
+                                            alt={event.host_name}
+                                            className={`w-full h-full object-cover ${isHostBlurred ? 'blur-md scale-110' : ''}`}
+                                        />
+                                        {isHostBlurred && (
+                                            <div className="absolute inset-0 bg-slate-950/55 flex items-center justify-center">
+                                                <Lock size={11} className="text-white" />
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="min-w-0">
                                         <h4 className="font-extrabold text-xs text-white truncate drop-shadow-sm flex items-center gap-1">
                                             {event.host_name}
@@ -226,6 +236,8 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                     </div>
                                 </div>
                             </div>
+                                );
+                            })()}
 
                             {/* Room Info & Details */}
                             <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
@@ -375,12 +387,23 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
                     <div className="relative w-full max-w-lg bg-gray-950 border border-rose-500/30 rounded-3xl overflow-hidden shadow-2xl text-white">
                         {/* Simulated Live Video Player */}
-                        <div className="relative aspect-video w-full bg-black">
+                        {(() => {
+                            const isPreviewBlurred = Boolean(previewEvent.isBlurred || previewEvent.host_photo_privacy === 'blurred_until_accept');
+                            return (
+                        <div className="relative aspect-video w-full bg-black overflow-hidden">
                             <img
-                                src={previewEvent.host_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
+                                src={isPreviewBlurred ? '/avatar-fallback.svg' : (previewEvent.host_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400')}
                                 alt={previewEvent.host_name}
-                                className="w-full h-full object-cover filter brightness-95"
+                                className={`w-full h-full object-cover filter brightness-95 ${isPreviewBlurred ? 'blur-xl scale-110 opacity-70' : ''}`}
                             />
+                            {isPreviewBlurred && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+                                    <div className="w-12 h-12 rounded-full bg-slate-950/70 border border-white/20 flex items-center justify-center mb-1.5">
+                                        <Lock size={20} className="text-white" />
+                                    </div>
+                                    <span className="text-[11px] font-bold text-white/90 bg-black/50 px-3 py-1 rounded-full">Privacy Shield Active</span>
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
 
                             <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
@@ -399,6 +422,7 @@ export default function LiveVideoEventsHub({ onJoinLive }: LiveVideoEventsHubPro
                                 ✕
                             </button>
                         </div>
+                        ); })()}
 
                         {/* Preview Details */}
                         <div className="p-6 space-y-4">

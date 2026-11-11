@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Heart, Compass, CheckCircle2, MessageCircle, ArrowRight, Star, ShieldCheck, Flame } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { isProfilePhotoBlurred } from '@/lib/utils';
 
 interface AISoulmateSpotlightProps {
     currentUser: any;
@@ -147,17 +148,27 @@ export default function AISoulmateSpotlight({
                     className="flex items-start sm:items-center gap-4 cursor-pointer min-w-0"
                     onClick={() => onViewProfile && onViewProfile(soulmate)}
                 >
-                    <div className="relative shrink-0">
-                        <img
-                            src={soulmate.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(soulmate.name)}`}
-                            alt={soulmate.name}
-                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-amber-400 shadow-lg shadow-amber-500/20"
-                            loading="lazy"
-                        />
-                        <span className="absolute -top-1.5 -right-1.5 p-1 bg-amber-400 rounded-full shadow-md text-slate-950">
-                            <Star size={11} fill="currentColor" />
-                        </span>
-                    </div>
+                    {(() => {
+                        const isPhotoBlurred = isProfilePhotoBlurred(soulmate, currentUser, isConnected || undefined);
+                        return (
+                            <div className="relative shrink-0">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-lg shadow-amber-500/20 relative">
+                                    <img
+                                        src={soulmate.photoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(soulmate.name)}`}
+                                        alt={soulmate.name}
+                                        className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-lg scale-110' : ''}`}
+                                        loading="lazy"
+                                    />
+                                    {isPhotoBlurred && (
+                                        <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white text-base">🔒</div>
+                                    )}
+                                </div>
+                                <span className="absolute -top-1.5 -right-1.5 p-1 bg-amber-400 rounded-full shadow-md text-slate-950">
+                                    <Star size={11} fill="currentColor" />
+                                </span>
+                            </div>
+                        );
+                    })()}
 
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">

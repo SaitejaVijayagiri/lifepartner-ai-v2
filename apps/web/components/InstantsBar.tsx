@@ -5,6 +5,7 @@ import { Camera, Zap, Plus, Check, Eye, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 import InstantCameraModal from './InstantCameraModal';
 import InstantViewerModal from './InstantViewerModal';
+import { useToast } from '@/components/ui/Toast';
 
 interface InstantItem {
     id: string;
@@ -16,6 +17,8 @@ interface InstantItem {
     hasViewed: boolean;
     isOwn: boolean;
     mediaUrl?: string | null;
+    isBlurred?: boolean;
+    photo_privacy?: string;
 }
 
 interface InstantsBarProps {
@@ -23,6 +26,7 @@ interface InstantsBarProps {
 }
 
 export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) {
+    const toast = useToast();
     const [instants, setInstants] = useState<InstantItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCamera, setShowCamera] = useState(false);
@@ -117,38 +121,50 @@ export default function InstantsBar({ onSelectMatchForSnap }: InstantsBarProps) 
                 {/* Instant Items */}
                 {displayInstants.map(instant => {
                     const isViewed = instant.hasViewed;
+                    const isShielded = Boolean(instant.isBlurred || instant.photo_privacy === 'blurred_until_accept');
 
                     return (
                         <div
                             key={instant.id}
                             className="flex flex-col items-center space-y-1 flex-shrink-0 cursor-pointer group"
                             onClick={() => {
+                                if (isShielded) {
+                                    toast.info('Privacy Shield is active — connect to view this snap.');
+                                    return;
+                                }
                                 if (isViewed && !instant.isOwn) return;
                                 setViewingInstantId(instant.id);
                             }}
                         >
                             <div
                                 className={`relative w-14 h-14 rounded-full p-[2px] transition-transform ${
-                                    isViewed
-                                        ? 'bg-slate-300 dark:bg-slate-700 opacity-60'
+                                    isShielded || isViewed
+                                        ? 'bg-slate-300 dark:bg-slate-700 opacity-75'
                                         : 'bg-gradient-to-tr from-amber-400 via-pink-500 to-rose-500 animate-pulse shadow-md group-hover:scale-105'
                                 }`}
                             >
-                                <img
-                                    src={instant.senderAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(instant.senderName || 'Member')}`}
-                                    alt={instant.senderName || 'Member'}
-                                    className="w-full h-full rounded-full object-cover border-2 border-white dark:border-slate-900 bg-slate-100"
-                                />
+                                <div className="relative w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-slate-900 bg-slate-100">
+                                    <img
+                                        src={isShielded ? '/avatar-fallback.svg' : (instant.senderAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(instant.senderName || 'Member')}`)}
+                                        alt={instant.senderName || 'Member'}
+                                        className={`w-full h-full object-cover ${isShielded ? 'blur-lg scale-110' : ''}`}
+                                    />
+                                    {isShielded && (
+                                        <div className="absolute inset-0 bg-slate-950/45 flex items-center justify-center">
+                                            <Lock className="w-4 h-4 text-white" />
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Icon Overlay Badge */}
                                 <div
                                     className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center text-[9px] font-bold ${
-                                        isViewed
+                                        isShielded || isViewed
                                             ? 'bg-slate-400 text-white'
                                             : 'bg-amber-500 text-slate-950 shadow-sm'
                                     }`}
                                 >
-                                    {isViewed ? <Lock className="w-2.5 h-2.5" /> : <Zap className="w-2.5 h-2.5 fill-slate-950" />}
+                                    {isShielded || isViewed ? <Lock className="w-2.5 h-2.5" /> : <Zap className="w-2.5 h-2.5 fill-slate-950" />}
                                 </div>
                             </div>
 

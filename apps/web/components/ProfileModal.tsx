@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
 import dynamic from 'next/dynamic';
-import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, isProfilePhotoBlurred } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 
@@ -44,15 +44,62 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
     const toast = useToast();
     const [copiedId, setCopiedId] = useState(false);
     const [showReportModal, setShowReportModal] = useState(false);
-    const [matchStatus, setMatchStatus] = useState<string | null>(profile.match_status || null);
+    const [matchStatus, setMatchStatus] = useState<string | null>(profile?.match_status || null);
     const [loadingInterest, setLoadingInterest] = useState(false);
+    const [livePrivacy, setLivePrivacy] = useState<{ photo_privacy?: string; isBlurred?: boolean; match_status?: string | null } | null>(null);
+
+    const isOwnProfile = Boolean(
+        currentUser &&
+        profile &&
+        String(currentUser.id || currentUser.userId) === String(profile.id || profile.user_id)
+    );
 
     useEffect(() => {
-        setMatchStatus(profile.match_status || null);
-    }, [profile.match_status]);
+        setMatchStatus(profile?.match_status || null);
+        setLivePrivacy(null);
+        setCurrentPhotoIndex(0);
+        setIsFullscreen(false);
+    }, [profile?.id, profile?.match_status]);
 
-    const isConnected = Boolean(isConnectedProp || matchStatus === 'accepted' || matchStatus === 'connected');
-    const isPhotoBlurred = Boolean(profile.isBlurred && !isConnected);
+    useEffect(() => {
+        if (!profile?.id || isOwnProfile) return;
+        let cancelled = false;
+        api.profile.getById(profile.id)
+            .then((full: any) => {
+                if (cancelled || !full) return;
+                setLivePrivacy({
+                    photo_privacy: full.photo_privacy || full.photoPrivacy,
+                    isBlurred: Boolean(full.isBlurred),
+                    match_status: full.match_status || null
+                });
+                if (full.match_status) {
+                    setMatchStatus(full.match_status);
+                }
+            })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [profile?.id, isOwnProfile]);
+
+    const effectiveMatchStatus = livePrivacy?.match_status || matchStatus;
+    const isConnected = Boolean(isConnectedProp || effectiveMatchStatus === 'accepted' || effectiveMatchStatus === 'connected');
+    const isPhotoBlurred = isProfilePhotoBlurred(
+        {
+            ...profile,
+            match_status: effectiveMatchStatus,
+            photo_privacy: livePrivacy?.photo_privacy ?? profile?.photo_privacy,
+            isBlurred: profile?.name === '???'
+                ? true
+                : (livePrivacy ? Boolean(livePrivacy.isBlurred) : Boolean(profile?.isBlurred))
+        },
+        currentUser,
+        isConnected
+    );
+
+    useEffect(() => {
+        if (isPhotoBlurred && isFullscreen) {
+            setIsFullscreen(false);
+        }
+    }, [isPhotoBlurred, isFullscreen]);
 
     const handleConnect = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -117,9 +164,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         ? safeProfile.photos
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
-    // Auto-Slide Effect
+    // Auto-Slide Effect (disabled while Privacy Shield is active)
     useEffect(() => {
-        if (photos.length <= 1) return;
+        if (photos.length <= 1 || isPhotoBlurred) return;
 
         const interval = setInterval(() => {
             // Only slide if user hasn't interacted in the last 4 seconds
@@ -129,7 +176,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [photos.length, lastInteracted]);
+    }, [photos.length, lastInteracted, isPhotoBlurred]);
 
     // TRACK PROFILE VIEW
     useEffect(() => {
@@ -188,61 +235,122 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }
     };
 
+    const isAlreadyConnected = typeof isConnectedProp === 'boolean'
+        ? isConnectedProp
+        : (effectiveMatchStatus === 'accepted' || effectiveMatchStatus === 'connected');
+    const isPendingRequest = effectiveMatchStatus === 'pending';
+
+    const renderActionBar = (className: string) => (
+        <div className={className}>
+            {isAlreadyConnected && (
+                <div className="flex items-center justify-center gap-1.5 mb-1.5 py-0.5 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Connected</span>
+                </div>
+            )}
+            <div className="flex gap-3">
+                <Button variant="outline" className="flex-1 h-11 sm:h-12 rounded-xl border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-100 dark:hover:bg-gray-800" onClick={onClose}>
+                    {isAlreadyConnected ? 'Close' : 'Skip'}
+                </Button>
+                {isAlreadyConnected ? (
+                    <Button className="flex-[2] h-11 sm:h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold shadow-lg shadow-emerald-500/30" onClick={() => { onClose(); onChat?.(); }}>
+                        💬 Chat Now
+                    </Button>
+                ) : isPendingRequest ? (
+                    <Button disabled className="flex-[2] h-11 sm:h-12 rounded-xl bg-emerald-600 text-white font-bold shadow-lg opacity-80 cursor-not-allowed">
+                        ✓ Request Sent
+                    </Button>
+                ) : (
+                    <Button
+                        disabled={loadingInterest}
+                        className="flex-[2] h-11 sm:h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10"
+                        onClick={handleConnect}
+                    >
+                        {loadingInterest ? 'Sending...' : '✨ Send Interest'}
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md md:p-6 animate-in fade-in duration-300 overflow-hidden">
-            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-screen h-[100dvh] md:h-[85vh] rounded-none md:rounded-3xl overflow-y-auto md:overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
+            <div className="bg-white dark:bg-gray-900 w-full max-w-5xl h-[100dvh] md:h-[86vh] md:max-h-[820px] rounded-none md:rounded-3xl overflow-hidden flex flex-col shadow-2xl relative">
 
-                {/* Top Left Floating Back Button */}
-                <div className="absolute top-4 left-4 z-[999] flex items-center gap-2">
+                {/* Mobile Top Navigation Bar (Respects safe-area & never overlaps hero or sticky tabs) */}
+                <div className="md:hidden shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 px-3 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top,0px))] flex items-center justify-between gap-2 z-40">
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center gap-1.5 group/back"
+                        className="p-2 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-100 flex items-center gap-1 text-xs font-bold active:scale-95 transition-all shrink-0 cursor-pointer"
                         aria-label="Back to matches"
                         title="Back to matches"
                     >
-                        <ArrowLeft size={18} className="transition-transform group-hover/back:-translate-x-0.5" />
-                        <span className="hidden sm:inline text-xs font-bold pr-1">Back</span>
+                        <ArrowLeft size={18} />
+                        <span>Back</span>
                     </button>
-                </div>
-
-                {/* Top Right Floating Action Buttons */}
-                <div className="absolute top-4 right-4 z-[999] flex items-center gap-2">
-                    {(!currentUser || String(currentUser.id || currentUser.userId) !== String(profile.id)) && (
+                    <div className="min-w-0 flex-1 text-center px-1">
+                        <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                            {profile.name}{profile.age ? `, ${profile.age}` : ''}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {!isOwnProfile && (
+                            <button
+                                type="button"
+                                onClick={() => setShowReportModal(true)}
+                                className="p-2 rounded-full bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 active:scale-95 transition-all cursor-pointer"
+                                aria-label="Report and Block User"
+                                title="Report & Block User"
+                            >
+                                <Flag size={15} />
+                            </button>
+                        )}
                         <button
-                            onClick={() => setShowReportModal(true)}
-                            className="p-2.5 rounded-full bg-rose-600/80 hover:bg-rose-600 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
-                            aria-label="Report and Block User"
-                            title="Report & Block User"
+                            type="button"
+                            onClick={handleShareProfile}
+                            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 active:scale-95 transition-all cursor-pointer"
+                            aria-label="Share Profile"
+                            title="Share Profile"
                         >
-                            <Flag size={17} />
+                            <Share2 size={15} />
                         </button>
-                    )}
-                    <button
-                        onClick={handleShareProfile}
-                        className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
-                        aria-label="Share Profile"
-                        title="Share Profile"
-                    >
-                        <Share2 size={18} />
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
-                        aria-label="Close"
-                    >
-                        <X size={20} />
-                    </button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 active:scale-95 transition-all cursor-pointer"
+                            aria-label="Close"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
 
-                {/* LEFT: Photo (Full-height hero on mobile, sticky 45% column on desktop) */}
-                <div className="w-full md:w-[45%] h-[420px] sm:h-[460px] md:h-full bg-gray-950 relative group shrink-0 flex items-center justify-center">
+                {/* Desktop Close Button (Floating top-right, clear of desktop header badges) */}
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="hidden md:flex absolute top-4 right-4 z-[999] p-2 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-lg transition-all hover:scale-110 active:scale-95 cursor-pointer items-center justify-center"
+                    aria-label="Close"
+                    title="Close"
+                >
+                    <X size={18} />
+                </button>
+
+                {/* Main Body: Single vertical scroll on mobile, independent 2-column split on desktop */}
+                <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden flex flex-col md:flex-row relative">
+
+                {/* LEFT: Photo (Responsive hero on mobile, 45% full-height column on desktop) */}
+                <div className="w-full md:w-[45%] h-[340px] sm:h-[400px] md:h-full bg-gray-950 relative group shrink-0 overflow-hidden flex items-center justify-center">
 
                     {/* Main Image */}
                     <img
                         src={photos[currentPhotoIndex]}
                         alt={profile.name}
-                        onClick={() => !isPhotoBlurred && setIsFullscreen(true)}
-                        className={`w-full h-full object-cover bg-black/90 block transition-opacity duration-500 ${isPhotoBlurred ? 'blur-2xl scale-110 filter cursor-default' : 'cursor-zoom-in'}`}
+                        onClick={() => {
+                            if (!isPhotoBlurred) setIsFullscreen(true);
+                        }}
+                        className={`w-full h-full object-cover bg-black/90 block transition-opacity duration-500 ${isPhotoBlurred ? 'blur-2xl scale-110 filter cursor-default select-none' : 'cursor-zoom-in'}`}
                         loading="eager"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -251,24 +359,27 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         }}
                     />
 
-                    {/* Privacy Shield Blurred Overlay */}
+                    {/* Privacy Shield Blurred Overlay — Scrim across full hero + badge centered above bottom profile details */}
                     {isPhotoBlurred && (
-                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md p-6 text-center select-none pointer-events-none">
-                            <div className="w-14 h-14 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2.5 shadow-lg shadow-pink-500/10 animate-pulse">
-                                <span className="text-2xl">🔒</span>
+                        <>
+                            <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-md pointer-events-none" />
+                            <div className="absolute inset-x-4 top-6 bottom-36 md:top-10 md:bottom-40 z-20 flex flex-col items-center justify-center p-4 text-center select-none pointer-events-none">
+                                <div className="w-12 h-12 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2 shadow-lg shadow-pink-500/10 animate-pulse">
+                                    <span className="text-xl">🔒</span>
+                                </div>
+                                <span className="text-white font-black text-sm tracking-wide drop-shadow">Photo Private</span>
+                                <span className="text-white/85 text-xs mt-1 max-w-[210px] leading-snug drop-shadow">
+                                    Connect to view full profile photos
+                                </span>
+                                <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-950/75 text-pink-200 border border-pink-400/35 shadow-sm">
+                                    🛡️ Privacy Shield
+                                </span>
                             </div>
-                            <span className="text-white font-black text-sm tracking-wide">Photo Private</span>
-                            <span className="text-white/80 text-xs mt-1 max-w-[200px] leading-relaxed">
-                                Connect to view full profile photos
-                            </span>
-                            <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-900/60 text-pink-200 border border-pink-400/30">
-                                🛡️ Privacy Shield
-                            </span>
-                        </div>
+                        </>
                     )}
 
                     {/* Gradient Overlay for Text Readability */}
-                    <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/90 to-transparent flex flex-col justify-end p-6 z-20 pointer-events-none">
+                    <div className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/75 to-transparent flex flex-col justify-end z-30 pointer-events-none">
                         {/* Highlight Badge on Cover */}
                         {(() => {
                             const highlights = (profile.stories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
@@ -279,6 +390,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (isPhotoBlurred) {
+                                                toast.info('Connect to view private photos & highlights');
+                                                return;
+                                            }
                                             setActiveHighlightSet({
                                                 stories: highlights,
                                                 initialIndex: 0,
@@ -291,7 +406,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         }}
                                         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 text-white text-[11px] font-black uppercase tracking-wide shadow-xl border border-white/30 hover:scale-105 transition-transform"
                                     >
-                                        <span>⭐ Highlights ({highlights.length})</span>
+                                        <span>{isPhotoBlurred ? '🔒' : '⭐'} Highlights ({highlights.length})</span>
                                     </button>
                                 </div>
                             );
@@ -311,7 +426,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 </button>
                             )}
                             {displayHandle && (
-                                <span className="inline-flex items-center text-indigo-200 text-[11px] font-semibold bg-indigo-950/70 border border-indigo-400/30 px-2.5 py-0.5 rounded-full backdrop-blur-md">
+                                <span className="inline-flex items-center text-indigo-200 text-[11px] font-semibold bg-indigo-950/70 border border-indigo-400/30 px-2.5 py-0.5 rounded-full backdrop-blur-md max-w-full truncate">
                                     {displayHandle}
                                 </span>
                             )}
@@ -322,14 +437,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2 mb-1">
-                            <h2 className="text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-center gap-2">
-                                {profile.name}, {profile.age}
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight drop-shadow-md flex items-center gap-2">
+                                {profile.name}{profile.age ? `, ${profile.age}` : ''}
                                 {profile.isPremium && <span className="text-amber-400 text-xl drop-shadow-lg animate-pulse" title="Premium Member">👑</span>}
                             </h2>
                             {profile.isVerified !== false && <VerificationBadge size={16} className="bg-blue-900/30 p-0.5 rounded-full" showTooltip />}
                         </div>
-                        <p className="text-gray-300 text-xs font-medium flex items-center gap-2 drop-shadow-md">
+                        <p className="text-gray-200 text-xs font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5 drop-shadow-md">
                             <span>{profile.career?.profession || "-"}</span>
                             <span className="w-1 h-1 bg-gray-400 rounded-full" />
                             <span>{formatLocationString(profile.location)}</span>
@@ -338,7 +453,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     {/* Photo Progress Bar (Instagram Story Style) */}
                     {!isPhotoBlurred && photos.length > 1 && (
-                        <div className="absolute top-4 left-4 right-16 flex gap-1 z-30">
+                        <div className="absolute top-3 inset-x-4 flex gap-1 z-30">
                             {photos.map((_, idx) => (
                                 <div key={idx} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
                                     <div
@@ -358,9 +473,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     setLastInteracted(Date.now());
                                     setCurrentPhotoIndex(prev => prev === 0 ? photos.length - 1 : prev - 1);
                                 }}
-                                className="absolute left-2 top-1/2 -translate-y-1/2 z-40 text-white/70 hover:text-white p-2 rounded-full hover:bg-black/20 transition-all"
+                                className="absolute left-2 top-1/2 -translate-y-1/2 z-30 text-white/80 hover:text-white p-2 rounded-full bg-black/25 hover:bg-black/50 transition-all"
                             >
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
                             </button>
                             <button
                                 onClick={(e) => {
@@ -368,33 +483,35 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     setLastInteracted(Date.now());
                                     setCurrentPhotoIndex(prev => prev === photos.length - 1 ? 0 : prev + 1);
                                 }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 z-40 text-white/70 hover:text-white p-2 rounded-full hover:bg-black/20 transition-all"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 z-30 text-white/80 hover:text-white p-2 rounded-full bg-black/25 hover:bg-black/50 transition-all"
                             >
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
                             </button>
                         </>
                     )}
 
-                    {/* Navigation Touch Areas */}
-                    <div className="absolute inset-0 flex z-10">
-                        <div className="w-[30%] h-full cursor-pointer" onClick={() => {
-                            setLastInteracted(Date.now());
-                            setCurrentPhotoIndex(prev => prev === 0 ? photos.length - 1 : prev - 1);
-                        }} />
-                        <div className="w-[40%] h-full cursor-zoom-in" onClick={() => setIsFullscreen(true)} />
-                        <div className="w-[30%] h-full cursor-pointer" onClick={() => {
-                            setLastInteracted(Date.now());
-                            setCurrentPhotoIndex(prev => prev === photos.length - 1 ? 0 : prev + 1);
-                        }} />
-                    </div>
+                    {/* Navigation Touch Areas — Strictly disabled when Privacy Shield is active */}
+                    {!isPhotoBlurred && (
+                        <div className="absolute inset-0 flex z-10">
+                            <div className="w-[30%] h-full cursor-pointer" onClick={() => {
+                                setLastInteracted(Date.now());
+                                setCurrentPhotoIndex(prev => prev === 0 ? photos.length - 1 : prev - 1);
+                            }} />
+                            <div className="w-[40%] h-full cursor-zoom-in" onClick={() => setIsFullscreen(true)} />
+                            <div className="w-[30%] h-full cursor-pointer" onClick={() => {
+                                setLastInteracted(Date.now());
+                                setCurrentPhotoIndex(prev => prev === photos.length - 1 ? 0 : prev + 1);
+                            }} />
+                        </div>
+                    )}
                 </div>
 
-                {/* RIGHT: Content & Details — Smooth full height scroll on mobile */}
-                <div className="w-full md:w-[55%] flex-1 flex flex-col bg-white dark:bg-gray-900 md:h-full md:overflow-y-auto relative z-30 md:z-auto">
+                {/* RIGHT: Content & Details — Natural flow on mobile scroll, independent scroll pane on desktop */}
+                <div className="w-full md:w-[55%] md:flex-1 md:h-full md:overflow-y-auto flex flex-col bg-white dark:bg-gray-900 relative min-w-0">
 
-                    {/* Desktop Header (Hidden on Mobile) */}
-                    <div className="hidden md:block px-8 pt-6 pb-2">
-                        <div className="flex items-center justify-between">
+                    {/* Desktop Header (Hidden on Mobile; padded on right to clear floating X button) */}
+                    <div className="hidden md:block pl-8 pr-14 pt-6 pb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
                                 {displayProfileId && (
                                     <button
@@ -413,7 +530,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     </span>
                                 )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                                 {(!currentUser || String(currentUser.id || currentUser.userId) !== String(profile.id)) && (
                                     <button
                                         type="button"
@@ -465,6 +582,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             key={hStory.id || idx}
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                if (isPhotoBlurred) {
+                                                    toast.info('Highlights are hidden until you connect');
+                                                    return;
+                                                }
                                                 setActiveHighlightSet({
                                                     stories: highlightedStories,
                                                     initialIndex: idx,
@@ -478,11 +599,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                             className="flex flex-col items-center gap-1 cursor-pointer group flex-shrink-0"
                                         >
                                             <div className="w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-purple-500 to-pink-500 shadow-md group-hover:scale-105 transition-transform">
-                                                <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                <div className="relative w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
                                                     {hStory.type === 'video' ? (
-                                                        <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                        <video src={hStory.url} className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} muted />
                                                     ) : (
-                                                        <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                        <img src={hStory.url} className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} alt="Highlight" />
+                                                    )}
+                                                    {isPhotoBlurred && (
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs">🔒</div>
                                                     )}
                                                 </div>
                                             </div>
@@ -496,8 +620,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         );
                     })()}
 
-                    {/* Sticky Tabs — with inline close button so X never overlaps */}
-                    <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-40 border-b border-gray-100 dark:border-gray-800">
+                    {/* Sticky Tabs */}
+                    <div className="sticky top-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur z-30 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-0">
                             {/* Tab scroll area */}
                             <div className="flex-1 flex space-x-5 overflow-x-auto no-scrollbar py-2.5 px-4 md:px-6">
@@ -523,9 +647,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         </div>
                     </div>
 
-                    {/* Scrollable Content — extra bottom padding for breathing room */}
+                    {/* Scrollable Content */}
                     <div 
-                        className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8 pb-28 md:pb-10 min-h-0"
+                        className="flex-1 p-4 md:p-8 space-y-6 md:space-y-8 pb-8 min-h-0 min-w-0"
                         onTouchStart={handleTouchStart}
                         onTouchEnd={handleTouchEnd}
                     >
@@ -566,6 +690,10 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                         key={hStory.id || idx}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            if (isPhotoBlurred) {
+                                                                toast.info('Highlights are hidden until you connect');
+                                                                return;
+                                                            }
                                                             setActiveHighlightSet({
                                                                 stories: highlightedStories,
                                                                 initialIndex: idx,
@@ -579,11 +707,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                                         className="relative flex flex-col items-center gap-2 cursor-pointer group"
                                                     >
                                                         <div className="relative w-20 h-20 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-lg group-hover:scale-105 transition-all">
-                                                            <div className="w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                            <div className="relative w-full h-full rounded-full p-[2px] bg-white dark:bg-gray-900 overflow-hidden">
                                                                 {hStory.type === 'video' ? (
-                                                                    <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                                    <video src={hStory.url} className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} muted />
                                                                 ) : (
-                                                                    <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                                    <img src={hStory.url} className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} alt="Highlight" />
+                                                                )}
+                                                                {isPhotoBlurred && (
+                                                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-sm">🔒</div>
                                                                 )}
                                                             </div>
 
@@ -677,7 +808,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         );
                                     })()}
 
-                                    <div className="flex gap-3 mt-6">
+                                    <div className="flex flex-wrap gap-3 mt-6">
                                         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">
                                             <span>✨</span> {profile.score || 0}% Match Score
                                         </div>
@@ -796,12 +927,12 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <div className="bg-slate-50 dark:bg-slate-900/40 p-6 rounded-2xl border border-slate-100 dark:border-slate-800">
                                     <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-2xl shadow-sm">💼</div>
-                                        <div>
-                                            <div className="font-bold text-gray-900 dark:text-gray-100 text-lg">{profile.career?.profession || "-"}</div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                                        <div className="w-12 h-12 shrink-0 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center text-2xl shadow-sm">💼</div>
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-gray-900 dark:text-gray-100 text-lg break-words">{profile.career?.profession || "-"}</div>
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-2">
                                                 {/* Show Company if Connected OR Premium */}
-                                                {(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium)
+                                                {(isAlreadyConnected || isOwnProfile || currentUser?.is_premium)
                                                     ? (
                                                         <>
                                                             {profile.career?.company || "-"}
@@ -818,9 +949,9 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoRow label="College" value={profile.career?.college || "-"} />
                                         <InfoRow
                                             label="Annual Income"
-                                            value={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium) ? (profile.career?.income || "Not Specified") : "🔒 Connect to Unlock"}
-                                            highlight={(profile.match_status === 'accepted' || currentUser?.id === profile.id || currentUser?.is_premium)}
-                                            premiumUnlocked={currentUser?.is_premium && !(profile.match_status === 'accepted' || currentUser?.id === profile.id)}
+                                            value={(isAlreadyConnected || isOwnProfile || currentUser?.is_premium) ? (profile.career?.income || "Not Specified") : "🔒 Connect to Unlock"}
+                                            highlight={(isAlreadyConnected || isOwnProfile || currentUser?.is_premium)}
+                                            premiumUnlocked={currentUser?.is_premium && !(isAlreadyConnected || isOwnProfile)}
                                         />
                                     </div>
                                 </div>
@@ -908,45 +1039,15 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                     </div>
 
-                    {/* Bottom Action Bar (Fixed on Mobile) */}
-                    {(() => {
-                        const isAlreadyConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (matchStatus === 'accepted' || matchStatus === 'connected');
-                        const isPendingRequest = matchStatus === 'pending';
-                        return (
-                            <div className="fixed md:static bottom-0 inset-x-0 w-full p-3 sm:p-4 bg-slate-900/95 dark:bg-gray-900/95 md:bg-gray-50 dark:md:bg-gray-900 backdrop-blur-xl border-t border-slate-800/80 dark:border-gray-800 z-[210] pb-safe shadow-2xl">
-                                {isAlreadyConnected && (
-                                    <div className="flex items-center justify-center gap-1.5 mb-1.5 py-0.5 px-3 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 w-max mx-auto">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                                        <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Connected</span>
-                                    </div>
-                                )}
-                                <div className="flex gap-3">
-                                    <Button variant="outline" className="flex-1 h-12 rounded-xl border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-50 dark:hover:bg-gray-800" onClick={onClose}>
-                                        {isAlreadyConnected ? 'Close' : 'Skip'}
-                                    </Button>
-                                    {isAlreadyConnected ? (
-                                        <Button className="flex-[2] h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold shadow-lg shadow-emerald-500/30" onClick={() => { onClose(); onChat?.(); }}>
-                                            💬 Chat Now
-                                        </Button>
-                                    ) : isPendingRequest ? (
-                                        <Button disabled className="flex-[2] h-12 rounded-xl bg-emerald-600 text-white font-bold shadow-lg opacity-80 cursor-not-allowed">
-                                            ✓ Request Sent
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            disabled={loadingInterest}
-                                            className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/10"
-                                            onClick={handleConnect}
-                                        >
-                                            {loadingInterest ? 'Sending...' : '✨ Send Interest'}
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })()}
+                    {/* Desktop Sticky Action Bar (Inside Right Column) */}
+                    {renderActionBar('hidden md:block shrink-0 sticky bottom-0 mt-auto w-full p-4 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 z-30')}
 
                 </div>
+
+                </div>
+
+                {/* Mobile Pinned Bottom Action Bar (Respects safe-area & theme contrast) */}
+                {renderActionBar('md:hidden shrink-0 w-full p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 z-40 shadow-2xl')}
 
             </div>
 
@@ -980,8 +1081,8 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     // Trigger refresh in parent if needed
                 }}
             />
-            {/* Fullscreen Image Gallery — swipe only, no arrows */}
-            {isFullscreen && (() => {
+            {/* Fullscreen Image Gallery — swipe only, no arrows (blocked when Privacy Shield is active) */}
+            {isFullscreen && !isPhotoBlurred && (() => {
                 let fsSwipeStartX = 0;
                 return (
                     <div
@@ -1055,7 +1156,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 onSuccess={onClose}
             />
 
-            {activeHighlightSet && (
+            {activeHighlightSet && !isPhotoBlurred && (
                 <StoryModal
                     stories={activeHighlightSet.stories}
                     initialIndex={activeHighlightSet.initialIndex || 0}
@@ -1118,30 +1219,30 @@ const safeDisplayValue = (val: any): string => {
 };
 
 const InfoCard = ({ label, value, icon }: any) => (
-    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50">
-        <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">{label}</div>
-        <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1 break-words">
-            {icon && <span>{icon}</span>} {safeDisplayValue(value)}
+    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700/50 min-w-0">
+        <div className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1 truncate">{label}</div>
+        <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm flex items-center gap-1 break-words min-w-0">
+            {icon && <span className="shrink-0">{icon}</span>} <span className="min-w-0 break-words">{safeDisplayValue(value)}</span>
         </div>
     </div>
 );
 
 const InfoRow = ({ label, value, highlight, premiumUnlocked }: any) => (
-    <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-800/50 last:border-0">
-        <span className="text-gray-500 dark:text-gray-400 text-sm">{label}</span>
-        <div className="flex items-center gap-2">
-            <span className={`font-medium text-sm ${highlight ? 'text-green-700 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>{safeDisplayValue(value)}</span>
-            {premiumUnlocked && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50">💎</span>}
+    <div className="flex justify-between items-center gap-3 py-2 border-b border-slate-200 dark:border-slate-800/50 last:border-0">
+        <span className="text-gray-500 dark:text-gray-400 text-sm shrink-0">{label}</span>
+        <div className="flex items-center gap-2 min-w-0 justify-end text-right">
+            <span className={`font-medium text-sm break-words ${highlight ? 'text-green-700 dark:text-green-400 font-bold' : 'text-gray-900 dark:text-gray-100'}`}>{safeDisplayValue(value)}</span>
+            {premiumUnlocked && <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-200 dark:border-amber-800/50 shrink-0">💎</span>}
         </div>
     </div>
 );
 
 const ContactRow = ({ icon, label, value }: any) => (
-    <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-xl border border-green-100/50 dark:border-green-800/30 shadow-sm">
-        <div className="w-10 h-10 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-xl">{icon}</div>
-        <div>
+    <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-xl border border-green-100/50 dark:border-green-800/30 shadow-sm min-w-0">
+        <div className="w-10 h-10 shrink-0 bg-green-50 dark:bg-green-900/30 rounded-full flex items-center justify-center text-xl">{icon}</div>
+        <div className="min-w-0 flex-1">
             <div className="text-[10px] text-green-800 dark:text-green-400 font-bold uppercase tracking-wider">{label}</div>
-            <div className="text-gray-900 dark:text-gray-100 font-mono font-medium">{safeDisplayValue(value)}</div>
+            <div className="text-gray-900 dark:text-gray-100 font-mono font-medium text-sm break-all">{safeDisplayValue(value)}</div>
         </div>
     </div>
 );

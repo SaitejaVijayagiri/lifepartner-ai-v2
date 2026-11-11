@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Heart, MapPin, Briefcase, X, Check, Bell, MessageCircle, Eye, Sparkles, Phone } from 'lucide-react';
+import { Heart, MapPin, Briefcase, X, Check, Bell, MessageCircle, Eye, Sparkles, Phone, Lock } from 'lucide-react';
 import { Notifications } from '@/lib/notifications';
 import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { isProfilePhotoBlurred } from '@/lib/utils';
 
 interface RequestsTabProps {
     requests: any[];
@@ -26,6 +28,7 @@ export default function RequestsTab({
     connectionsCount = 0,
     onOpenCallHistory
 }: RequestsTabProps) {
+    const { user: currentUser } = useAuth();
     const safeRequests = Array.isArray(requests) ? requests : [];
     const [actioningIds, setActioningIds] = useState<Set<string>>(new Set());
     const [permissionStatus, setPermissionStatus] = useState<string>('granted');
@@ -239,21 +242,33 @@ export default function RequestsTab({
                         onClick={() => handleInspectProfile(fromUser)}
                         className={`flex items-center gap-4 w-full sm:w-auto relative z-10 ${onViewProfile ? 'cursor-pointer group/profile' : ''}`}
                     >
+                    {(() => {
+                        const isPhotoBlurred = isProfilePhotoBlurred(fromUser, currentUser?.id);
+                        return (
                         <div className="relative shrink-0">
-                            <img 
-                                src={fromUser.photoUrl || '/avatar-fallback.svg'} 
-                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-lg shrink-0 group-hover/profile:ring-2 group-hover/profile:ring-indigo-500 transition-all" 
-                                alt={fromUser.name || 'User'}
-                                onError={(e) => { 
-                                    const t = e.target as HTMLImageElement; 
-                                    t.onerror = null; 
-                                    t.src = '/avatar-fallback.svg'; 
-                                }} 
-                            />
+                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-lg shrink-0 group-hover/profile:ring-2 group-hover/profile:ring-indigo-500 transition-all">
+                                <img 
+                                    src={isPhotoBlurred ? '/avatar-fallback.svg' : (fromUser.photoUrl || '/avatar-fallback.svg')} 
+                                    className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-md scale-110' : ''}`} 
+                                    alt={fromUser.name || 'User'}
+                                    onError={(e) => { 
+                                        const t = e.target as HTMLImageElement; 
+                                        t.onerror = null; 
+                                        t.src = '/avatar-fallback.svg'; 
+                                    }} 
+                                />
+                                {isPhotoBlurred && (
+                                    <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                        <Lock size={16} className="text-white" />
+                                    </div>
+                                )}
+                            </div>
                             <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-rose-400 to-pink-500 text-white p-1.5 rounded-full border-2 border-white dark:border-gray-800 shadow-md">
                                 <Heart size={12} fill="white" />
                             </div>
                         </div>
+                        );
+                    })()}
                         <div className="min-w-0">
                             <h4 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 group-hover/profile:text-indigo-600 dark:group-hover/profile:text-indigo-400 transition-colors">
                                 <span className="truncate">{fromUser.name || 'Someone'}</span>

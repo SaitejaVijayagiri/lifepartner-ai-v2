@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
-import { formatLocationString, getProfilePhotoUrl, filterActive24hStories, filterHighlights } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, filterActive24hStories, filterHighlights, isProfilePhotoBlurred } from '@/lib/utils';
 import { trackImageFailure } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
@@ -60,7 +60,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
 
     // Derived states
     const isConnected = typeof isConnectedProp === 'boolean' ? isConnectedProp : (matchStatus === 'accepted' || matchStatus === 'connected');
-    const isPhotoBlurred = Boolean(match?.isBlurred && !isConnected);
+    const isPhotoBlurred = isProfilePhotoBlurred({ ...match, match_status: matchStatus }, currentUser, isConnected);
     const isRequestSent = matchStatus === 'pending';
     const hasLiked = isLiked;
 
@@ -310,20 +310,23 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                     }}
                 />
 
-                {/* Privacy Shield Blurred Overlay */}
+                {/* Privacy Shield Blurred Overlay — Scrim across full photo, lock badge confined to upper hero zone so bottom profile details stay clear */}
                 {isPhotoBlurred && (
-                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/40 backdrop-blur-md p-6 text-center select-none pointer-events-none">
-                        <div className="w-14 h-14 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2.5 shadow-lg shadow-pink-500/10 animate-pulse">
-                            <span className="text-2xl">🔒</span>
+                    <>
+                        <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-md pointer-events-none" />
+                        <div className="absolute inset-x-4 top-16 bottom-[54%] sm:bottom-[50%] z-20 flex flex-col items-center justify-center px-3 text-center select-none pointer-events-none">
+                            <div className="w-11 h-11 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-1.5 shadow-lg shadow-pink-500/10 animate-pulse">
+                                <span className="text-xl">🔒</span>
+                            </div>
+                            <span className="text-white font-black text-sm tracking-wide drop-shadow">Photo Private</span>
+                            <span className="text-white/85 text-[11px] mt-0.5 max-w-[200px] leading-snug drop-shadow">
+                                Connect to view full profile photos
+                            </span>
+                            <span className="mt-1.5 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-950/75 text-pink-200 border border-pink-400/35 shadow-sm">
+                                🛡️ Privacy Shield
+                            </span>
                         </div>
-                        <span className="text-white font-black text-sm tracking-wide">Photo Private</span>
-                        <span className="text-white/80 text-xs mt-1 max-w-[200px] leading-relaxed">
-                            Connect to view full profile photos
-                        </span>
-                        <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-900/60 text-pink-200 border border-pink-400/30">
-                            🛡️ Privacy Shield
-                        </span>
-                    </div>
+                    </>
                 )}
 
                 {/* Intuitive Touch/Tap Navigation Regions (Left 35% prev, Right 35% next) */}
@@ -401,9 +404,9 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                     </>
                 )}
 
-                {/* Subtle Edge Gradients Only - Keeps middle 80% of photo 100% bright, vibrant & crystal clear */}
-                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-10" />
-                <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/90 via-black/30 to-transparent pointer-events-none z-10" />
+                {/* Subtle Edge Gradients Only - Keeps middle 80% of photo bright while preserving bottom text legibility */}
+                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/45 to-transparent pointer-events-none z-10" />
+                <div className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent pointer-events-none z-20 ${isPhotoBlurred ? 'h-72' : 'h-56 sm:h-52'}`} />
             </div>
 
             {/* Glowing Match Score (Floating Top Right) */}
@@ -431,7 +434,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
             )}
 
             {/* Status Stack: Stories, Voice Bio */}
-            <div className={`absolute z-20 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
+            <div className={`absolute z-30 flex flex-col gap-2 items-start max-w-[75%] pointer-events-none ${isConnected ? 'left-4 top-14' : 'left-4 top-4'}`}>
                 {/* 1. Story & Highlight Badges */}
                 {Array.isArray(match?.stories) && match.stories.length > 0 && (() => {
                     const highlightedStories = filterHighlights(match.stories);
@@ -446,6 +449,10 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-purple-600 text-white text-[10px] font-black uppercase tracking-wide shadow-xl border-2 border-white/30 hover:scale-105 transition-transform"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (isPhotoBlurred) {
+                                            toast.info('Connect to view private photos & highlights');
+                                            return;
+                                        }
                                         setActiveHighlightSet({
                                             stories: highlightedStories,
                                             initialIndex: 0,
@@ -457,7 +464,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                                         });
                                     }}
                                 >
-                                    <span>⭐ Highlights ({highlightedStories.length})</span>
+                                    <span>{isPhotoBlurred ? '🔒' : '⭐'} Highlights ({highlightedStories.length})</span>
                                 </div>
                             )}
 
@@ -466,6 +473,10 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                                     className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wide shadow-lg border-2 border-white/20 hover:scale-105 transition-transform"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (isPhotoBlurred) {
+                                            toast.info('Connect to view private photos & stories');
+                                            return;
+                                        }
                                         if (onStoryClick) {
                                             onStoryClick();
                                         } else {
@@ -481,7 +492,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                                         }
                                     }}
                                 >
-                                    <span>📸 Story ({active24hStories.length})</span>
+                                    <span>{isPhotoBlurred ? '🔒' : '📸'} Story ({active24hStories.length})</span>
                                 </div>
                             )}
                         </div>
@@ -512,7 +523,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
             </div>
 
             {/* Bottom Info Section */}
-            <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 z-20 flex flex-col justify-end pointer-events-none">
+            <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 z-30 flex flex-col justify-end pointer-events-none">
                 {/* Info container */}
                 <div className="transform transition-all duration-300 group-hover:-translate-y-28 [@media(hover:none)]:-translate-y-28">
                     {/* Kundli Badge */}

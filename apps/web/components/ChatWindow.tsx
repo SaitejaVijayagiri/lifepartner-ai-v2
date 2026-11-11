@@ -262,7 +262,7 @@ const ChatSharedMediaCard = ({
     return (
         <div
             onClick={(e) => e.stopPropagation()}
-            className="flex flex-col space-y-2.5 p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-pink-950/40 to-slate-900 border border-pink-500/40 shadow-xl w-full max-w-[280px] xs:max-w-[300px] sm:max-w-[320px] my-0.5 text-white select-none box-border"
+            className="flex flex-col space-y-2.5 p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-pink-950/40 to-slate-900 border border-pink-500/40 shadow-xl w-full max-w-[290px] sm:max-w-[320px] my-0.5 text-white select-none box-border"
         >
             <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
                 <img src={coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400'} className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover shadow-md flex-shrink-0 bg-slate-800" alt={title} />
@@ -1347,7 +1347,8 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                 try {
                     const cachedConns = typeof window !== 'undefined' ? (localStorage.getItem('connections_cache_v2') || localStorage.getItem('connections_cache_v1')) : null;
                     if (cachedConns) {
-                        const conns = JSON.parse(cachedConns);
+                        const parsedConns = JSON.parse(cachedConns);
+                        const conns = Array.isArray(parsedConns) ? parsedConns : parsedConns?.data;
                         if (Array.isArray(conns)) {
                             const found = conns.find((c: any) => 
                                 c?.partner?.id === partner.id || 
@@ -1663,6 +1664,7 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
 
     const prevMsgCountRef = useRef(0);
     const isUserScrollingRef = useRef(false);
+    const [showScrollBottom, setShowScrollBottom] = useState(false);
 
     // Track manual scroll
     useEffect(() => {
@@ -1670,7 +1672,9 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
         if (!el) return;
         const onScroll = () => {
             const { scrollTop, scrollHeight, clientHeight } = el;
-            isUserScrollingRef.current = scrollHeight - scrollTop - clientHeight > 150;
+            const scrolledUp = scrollHeight - scrollTop - clientHeight > 150;
+            isUserScrollingRef.current = scrolledUp;
+            setShowScrollBottom(scrolledUp);
         };
         el.addEventListener('scroll', onScroll, { passive: true });
         return () => el.removeEventListener('scroll', onScroll);
@@ -3069,10 +3073,11 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                     </div>
                 )}
             {/* Floating Scroll to Bottom Button */}
-            {isUserScrollingRef.current && (
+            {showScrollBottom && (
                 <button
                     onClick={() => {
                         isUserScrollingRef.current = false;
+                        setShowScrollBottom(false);
                         if (scrollRef.current) {
                             scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
                         }
@@ -3944,6 +3949,8 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
             {showProfile && fullProfile && (
                 <ProfileModal
                     profile={fullProfile}
+                    currentUser={user}
+                    isConnectedProp={true}
                     onClose={() => setShowProfile(false)}
                     onConnect={() => { }}
                 />

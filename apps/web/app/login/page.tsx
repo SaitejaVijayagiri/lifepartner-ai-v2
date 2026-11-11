@@ -83,7 +83,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row font-sans bg-slate-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
+        <div className="min-h-[100dvh] lg:h-[100dvh] flex flex-col lg:flex-row font-sans bg-slate-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-x-hidden overflow-y-auto lg:overflow-hidden">
             {/* Noise Texture Overlay */}
             <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-50 mix-blend-multiply"
                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}>
@@ -156,22 +156,22 @@ export default function LoginPage() {
 
                     <div className="space-y-5">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Email</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Email</label>
                             <Input
                                 placeholder="name@example.com"
-                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
+                                className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all rounded-xl font-medium"
                                 value={form.email}
                                 onChange={e => setForm({ ...form, email: e.target.value })}
                             />
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide ml-1">Password</label>
+                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide ml-1">Password</label>
                             <div className="relative">
                                 <Input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
-                                    className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:text-gray-500 focus:bg-white dark:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
+                                    className="h-12 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:bg-white dark:focus:bg-gray-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all pr-10 rounded-xl font-medium"
                                     value={form.password}
                                     onChange={e => setForm({ ...form, password: e.target.value })}
                                     onKeyDown={e => {

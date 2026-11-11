@@ -282,41 +282,74 @@ import { EmailService } from '../services/email';
 router.post('/verify-otp', async (req, res) => {
     try {
         const { email, otp } = req.body;
+        const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+        if (!normalizedEmail) {
+            return res.status(400).json({ error: "Email is required" });
+        }
 
         // Find user
-        const user = await prisma.users.findUnique({
-            where: { email },
-            select: { id: true, otp_code: true, otp_expires_at: true, is_verified: true, full_name: true, gender: true, age: true }
+        const user = await prisma.users.findFirst({
+            where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+            select: {
+                id: true,
+                email: true,
+                otp_code: true,
+                otp_expires_at: true,
+                is_verified: true,
+                is_banned: true,
+                is_premium: true,
+                is_admin: true,
+                avatar_url: true,
+                full_name: true,
+                gender: true,
+                age: true
+            }
         });
 
         if (!user) return res.status(404).json({ error: "User not found" });
+        if (user.is_banned) return res.status(403).json({ error: "Your account is banned." });
 
-        // Check if already verified
-        if (user.is_verified) {
-            const token = generateToken(user.id);
-            setTokenCookie(res, token);
-            return res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name, gender: user.gender, age: user.age } });
+        // Validate OTP strictly (never bypass based on is_verified alone)
+        const submittedOtp = typeof otp === 'string' || typeof otp === 'number' ? String(otp).trim() : '';
+        if (!submittedOtp || !user.otp_code || String(user.otp_code).trim() !== submittedOtp) {
+            return res.status(400).json({ error: "Invalid OTP" });
         }
-
-        // Validate OTP
-        if (user.otp_code !== otp) return res.status(400).json({ error: "Invalid OTP" });
         if (user.otp_expires_at && new Date().getTime() > new Date(user.otp_expires_at).getTime()) {
             return res.status(400).json({ error: "OTP Expired" });
         }
 
         // Update User
+        const wasAlreadyVerified = Boolean(user.is_verified);
         await prisma.users.update({
             where: { id: user.id },
-            data: { is_verified: true, otp_code: null, otp_expires_at: null }
+            data: { is_verified: true, otp_code: null, otp_expires_at: null, is_deactivated: false, deactivated_until: null }
         });
 
-        // Send Welcome Email
-        EmailService.sendWelcomeEmail(email, user.full_name || 'User').catch(console.error);
+        // Send Welcome Email on first verification
+        if (!wasAlreadyVerified) {
+            EmailService.sendWelcomeEmail(user.email || normalizedEmail, user.full_name || 'User').catch(console.error);
+        }
 
         // Return Token
         const token = generateToken(user.id);
         setTokenCookie(res, token);
-        res.json({ success: true, token, userId: user.id, user: { id: user.id, name: user.full_name, gender: user.gender, age: user.age } });
+        const isFemale = String(user.gender || '').trim().toLowerCase() === 'female';
+        res.json({
+            success: true,
+            token,
+            userId: user.id,
+            user: {
+                id: user.id,
+                name: user.full_name,
+                full_name: user.full_name,
+                gender: user.gender,
+                age: user.age,
+                is_premium: isFemale ? true : Boolean(user.is_premium),
+                is_admin: Boolean(user.is_admin),
+                is_verified: true,
+                avatar_url: user.avatar_url || null
+            }
+        });
 
     } catch (e) {
         console.error("Verify Error", e);

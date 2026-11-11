@@ -5,6 +5,9 @@ import express from 'express';
 // Mock Prisma
 jest.mock('../src/prisma', () => ({
     prisma: {
+        blocks: {
+            findFirst: jest.fn().mockResolvedValue(null),
+        },
         users: {
             findUnique: jest.fn(),
         }

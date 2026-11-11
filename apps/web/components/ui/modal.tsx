@@ -43,13 +43,13 @@ export function Modal({ isOpen, onClose, title, description, children, footer, c
 
             <div
                 className={cn(
-                    "relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-200 z-10",
+                    "relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90dvh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-200 z-10",
                     className
                 )}
                 onClick={(e) => e.stopPropagation()} // Prevent closing when clicking content
             >
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800">
+                <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800 shrink-0">
                     <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h3>
                         {description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>}
@@ -64,13 +64,13 @@ export function Modal({ isOpen, onClose, title, description, children, footer, c
                 </div>
 
                 {/* Body */}
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto flex-1">
                     {children}
                 </div>
 
                 {/* Footer */}
                 {footer && (
-                    <div className="bg-gray-50 dark:bg-gray-800/50 p-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3">
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-4 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 shrink-0">
                         {footer}
                     </div>
                 )}

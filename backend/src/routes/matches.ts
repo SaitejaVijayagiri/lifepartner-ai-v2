@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { authenticateToken } from '../middleware/auth';
 import { AstrologyService } from '../services/astrology';
 import { isUserOnline, getOnlineUserIds } from '../socket';
-import { sanitizePhotoUrl, extractPhotosList } from '../utils/photoUrl';
+import { sanitizePhotoUrl, extractPhotosList, isPhotoPrivacyShieldEnabled, redactStoriesIfBlurred, getBlockedUserIdSet, getConnectedUserIdSet, resolveMatchStatus } from '../utils/photoUrl';
 import { mergeStoriesHelper, calculateProfileCompleteness } from './profile';
 import { AIMatchEngine } from '../services/aiMatchEngine';
 
@@ -50,6 +50,10 @@ class LRUCache<K, V> {
                 this.cache.delete(key as unknown as K);
             }
         }
+    }
+
+    clear() {
+        this.cache.clear();
     }
 }
 
@@ -187,13 +191,20 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                     u.city, u.state, u.location_name,
                     (p.metadata->'location'->>'lat')::float AS lat,
                     (p.metadata->'location'->>'lng')::float AS lng,
-                    p.metadata->'career'->>'profession' AS profession
+                    p.metadata->'career'->>'profession' AS profession,
+                    p.metadata->>'photo_privacy' AS photo_privacy,
+                    p.metadata->>'photoPrivacy' AS photo_privacy_alt
                 FROM users u
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE u.id != ${userId}::uuid
                   AND u.is_verified = true
                   AND u.is_banned = false
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b
+                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
+                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
+                  )
                   AND LOWER(u.gender) = 'female'
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
@@ -209,13 +220,20 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                     u.city, u.state, u.location_name,
                     (p.metadata->'location'->>'lat')::float AS lat,
                     (p.metadata->'location'->>'lng')::float AS lng,
-                    p.metadata->'career'->>'profession' AS profession
+                    p.metadata->'career'->>'profession' AS profession,
+                    p.metadata->>'photo_privacy' AS photo_privacy,
+                    p.metadata->>'photoPrivacy' AS photo_privacy_alt
                 FROM users u
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE u.id != ${userId}::uuid
                   AND u.is_verified = true
                   AND u.is_banned = false
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b
+                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
+                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
+                  )
                   AND LOWER(u.gender) = 'male'
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
@@ -232,13 +250,20 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                     u.city, u.state, u.location_name,
                     (p.metadata->'location'->>'lat')::float AS lat,
                     (p.metadata->'location'->>'lng')::float AS lng,
-                    p.metadata->'career'->>'profession' AS profession
+                    p.metadata->'career'->>'profession' AS profession,
+                    p.metadata->>'photo_privacy' AS photo_privacy,
+                    p.metadata->>'photoPrivacy' AS photo_privacy_alt
                 FROM users u
                 LEFT JOIN profiles p ON u.id = p.user_id
                 WHERE u.id != ${userId}::uuid
                   AND u.is_verified = true
                   AND u.is_banned = false
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b
+                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
+                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
+                  )
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
@@ -248,22 +273,30 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
             `;
         }
 
-        const profiles = usersWithCoords.map(u => ({
-            id: u.id,
-            name: u.full_name,
-            age: u.age,
-            gender: u.gender,
-            photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id),
-            location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
-            location_data: {
-                lat: u.lat,
-                lng: u.lng,
-                city: u.city || '',
-                state: u.state || ''
-            },
-            role: u.profession || 'Member',
-            isOnline: isUserOnline(u.id)
-        }));
+        const connectedIds = await getConnectedUserIdSet(prisma, userId);
+
+        const profiles = usersWithCoords.map(u => {
+            const resolvedPrivacy = u.photo_privacy || u.photo_privacy_alt || 'public';
+            const isBlurred = isPhotoPrivacyShieldEnabled({ photo_privacy: u.photo_privacy, photoPrivacy: u.photo_privacy_alt }) && !connectedIds.has(u.id);
+            return {
+                id: u.id,
+                name: u.full_name,
+                age: u.age,
+                gender: u.gender,
+                photoUrl: sanitizePhotoUrl(u.avatar_url, u.full_name || u.id),
+                photo_privacy: resolvedPrivacy,
+                isBlurred,
+                location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
+                location_data: {
+                    lat: u.lat,
+                    lng: u.lng,
+                    city: u.city || '',
+                    state: u.state || ''
+                },
+                role: u.profession || 'Member',
+                isOnline: isUserOnline(u.id)
+            };
+        });
 
         res.json({ profiles });
     } catch (e) {
@@ -281,7 +314,9 @@ router.get('/public-preview', async (req: any, res) => {
 
         let where: any = {
             avatar_url: { not: null },
-            is_verified: true
+            is_verified: true,
+            is_banned: false,
+            AND: [{ OR: [{ is_deactivated: false }, { deactivated_until: { lte: new Date() } }] }]
         };
 
         const val = value.toString();
@@ -393,6 +428,7 @@ router.get('/public-preview', async (req: any, res) => {
 
         const matches = shuffled.map(row => {
             const meta = (row.profiles?.metadata as any) || {};
+            const isShielded = isPhotoPrivacyShieldEnabled(meta);
             return {
                 id: row.id,
                 name: (row.full_name || "").split(' ')[0] + '...', // Privacy
@@ -418,7 +454,9 @@ router.get('/public-preview', async (req: any, res) => {
                 })(),
                 location_data: meta.location || null,
                 role: meta.career?.profession || "Member",
-                photoUrl: sanitizePhotoUrl(row.avatar_url, row.full_name || row.id),
+                photoUrl: isShielded ? null : sanitizePhotoUrl(row.avatar_url, row.full_name || row.id),
+                photo_privacy: isShielded ? 'blurred_until_accept' : 'public',
+                isBlurred: isShielded,
                 blur: true
             };
         });
@@ -476,7 +514,7 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 full_name: { not: null },
                 age: { gte: 18 },
                 AND: [
-                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: { lt: new Date() } }] }
                 ]
             },
             select: {
@@ -498,9 +536,23 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
             }
         });
 
+        const acceptedOnlineConns = await prisma.interactions.findMany({
+            where: {
+                OR: [
+                    { from_user_id: userId, to_user_id: { in: eligibleOnlineIds }, status: { in: ['accepted', 'connected'] } },
+                    { to_user_id: userId, from_user_id: { in: eligibleOnlineIds }, status: { in: ['accepted', 'connected'] } }
+                ]
+            },
+            select: { from_user_id: true, to_user_id: true }
+        });
+        const connectedOnlineIds = new Set(
+            acceptedOnlineConns.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
+        );
+
         const onlineMembers = onlineUsersDB.map(u => {
             const meta = (u.profiles?.metadata as any) || {};
             const photo = sanitizePhotoUrl(u.avatar_url || (u.profiles?.photos as any)?.[0] || meta.photos?.[0], u.full_name || u.id);
+            const shieldOn = isPhotoPrivacyShieldEnabled(meta);
             return {
                 id: u.id,
                 name: u.full_name || 'Member',
@@ -511,7 +563,9 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
                 role: meta.career?.profession || 'Member',
                 isOnline: true,
-                last_seen_at: meta.last_seen_at || u.profiles?.updated_at || new Date().toISOString()
+                last_seen_at: meta.last_seen_at || u.profiles?.updated_at || new Date().toISOString(),
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: shieldOn && !connectedOnlineIds.has(u.id) && u.id !== userId
             };
         });
 
@@ -537,18 +591,19 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
 
         const myGender = (me.gender || "").trim().toLowerCase();
         const targetGender = myGender === 'male' ? ['Female', 'female'] : (myGender === 'female' ? ['Male', 'male'] : undefined);
+        const blockedIds = await getBlockedUserIdSet(prisma, userId);
 
         // Fetch top verified candidate profiles
         const candidates = await prisma.users.findMany({
             where: {
-                id: { not: userId },
+                id: { notIn: Array.from(new Set([userId, ...blockedIds])) },
                 is_verified: true,
                 is_banned: false,
                 age: { gte: 18 },
                 full_name: { not: null },
                 ...(targetGender ? { gender: { in: targetGender } } : {}),
                 AND: [
-                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                    { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: { lt: new Date() } }] }
                 ]
             },
             include: {
@@ -593,6 +648,13 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
         const finalPhotos = rawPhotos.map((p: string) => sanitizePhotoUrl(p, bestCandidate.full_name || bestCandidate.id)).filter(Boolean);
         const mainPhoto = finalPhotos[0] || sanitizePhotoUrl(bestCandidate.avatar_url, bestCandidate.full_name || bestCandidate.id);
 
+        const [sentBestReq, receivedBestReq] = await Promise.all([
+            prisma.interactions.findFirst({ where: { from_user_id: userId, to_user_id: bestCandidate.id, type: 'REQUEST' }, select: { status: true } }),
+            prisma.interactions.findFirst({ where: { from_user_id: bestCandidate.id, to_user_id: userId, type: 'REQUEST' }, select: { status: true } })
+        ]);
+        const bestMatchStatus = resolveMatchStatus(sentBestReq?.status, receivedBestReq?.status);
+        const bestShieldOn = isPhotoPrivacyShieldEnabled(meta);
+
         const locParts = [meta.location?.city || bestCandidate.city, meta.location?.state || bestCandidate.state].filter(Boolean);
         const locationStr = locParts.length > 0 ? locParts.join(', ') : 'Verified Member';
 
@@ -613,7 +675,10 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
                 strengths: bestAnalysis.strengths,
                 growthTip: bestAnalysis.growthTip,
                 icebreaker: bestAnalysis.icebreaker,
-                isOnline: isUserOnline(bestCandidate.id)
+                isOnline: isUserOnline(bestCandidate.id),
+                match_status: bestMatchStatus,
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred: bestShieldOn && bestMatchStatus !== 'accepted' && bestMatchStatus !== 'connected' && bestCandidate.id !== userId
             }
         });
     } catch (err: any) {
@@ -664,7 +729,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 WHERE u.id != ${userId}::uuid 
                   AND u.is_verified = true 
                   AND u.is_banned = false 
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Female', 'female')
@@ -697,7 +762,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 WHERE u.id != ${userId}::uuid 
                   AND u.is_verified = true 
                   AND u.is_banned = false 
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IN ('Male', 'male')
@@ -730,7 +795,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 WHERE u.id != ${userId}::uuid 
                   AND u.is_verified = true 
                   AND u.is_banned = false 
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR u.deactivated_until IS NULL OR u.deactivated_until < NOW())
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
                   AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
                   AND u.age IS NOT NULL AND u.age >= 18
                   AND u.gender IS NOT NULL
@@ -771,7 +836,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     full_name: { not: null },
                     age: { gte: 18 },
                     AND: [
-                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: null }, { deactivated_until: { lt: new Date() } }] }
+                        { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: { lt: new Date() } }] }
                     ]
                 },
                 select: { id: true }
@@ -960,7 +1025,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             const matchRecord = c.matches_matches_user_b_idTousers[0]; // Since unique A-B
             const sentRequest = c.interactions_interactions_to_user_idTousers?.[0];
             const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
-            const matchStatus = sentRequest?.status || receivedRequest?.status || null;
+            const matchStatus = resolveMatchStatus(sentRequest?.status, receivedRequest?.status);
             const completeness = calculateProfileCompleteness(c, meta, (c.profiles?.photos as any[]) || meta.photos || []);
             if (completeness.completenessScore >= 80) {
                 score += 15;
@@ -1003,6 +1068,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
             const profileId = c.referral_code ? `LP-${c.referral_code.toUpperCase()}` : `LP-${c.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
             const handle = `@${c.full_name ? c.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${c.referral_code ? '_' + c.referral_code.toLowerCase().slice(-4) : ''}`;
+            const isBlurred = isPhotoPrivacyShieldEnabled(meta) && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId;
 
             return {
                 id: c.id,
@@ -1067,7 +1133,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 dob: meta.dob || null,
                 interests: hobbiesList,
 
-                stories: mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []),
+                stories: redactStoriesIfBlurred(mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []), isBlurred),
                 total_likes: c._count.matches_matches_user_b_idTousers || 0,
                 total_gifts: giftMap.get(c.id) || 0,
                 match_status: matchStatus,
@@ -1076,7 +1142,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 isOnline: isUserOnline(c.id),
                 last_seen_at: meta.last_seen_at || c.profiles?.updated_at || null,
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId,
+                isBlurred,
                 managed_by: meta.managed_by || meta.managedBy || 'Self',
 
                 // Privacy logic
@@ -1144,6 +1210,9 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
         if (!me) return res.status(404).json({ error: "User not found" });
 
+        const blockedSet = await getBlockedUserIdSet(prisma, userId);
+        const blockedList = Array.from(blockedSet);
+
         const meMeta: any = me.profiles?.metadata || {};
         const myGender = (me.gender || "").trim().toLowerCase();
 
@@ -1163,15 +1232,20 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         if (cleanCode.length >= 2 || candidateName.length >= 2) {
             exactCandidates = await prisma.users.findMany({
                 where: {
-                    id: { not: userId },
+                    id: blockedList.length > 0 ? { notIn: [userId, ...blockedList] } : { not: userId },
                     is_banned: false,
                     is_verified: true,
                     ...(targetGender ? { gender: { in: [targetGender, targetGender.toLowerCase()] } } : {}),
-                    OR: [
-                        { referral_code: { equals: cleanCode, mode: 'insensitive' } },
-                        { referral_code: { equals: query.trim(), mode: 'insensitive' } },
-                        { full_name: { contains: candidateName, mode: 'insensitive' } },
-                        { full_name: { contains: query.trim(), mode: 'insensitive' } }
+                    AND: [
+                        { OR: [{ is_deactivated: false }, { deactivated_until: { lte: new Date() } }] },
+                        {
+                            OR: [
+                                { referral_code: { equals: cleanCode, mode: 'insensitive' } },
+                                { referral_code: { equals: query.trim(), mode: 'insensitive' } },
+                                { full_name: { contains: candidateName, mode: 'insensitive' } },
+                                { full_name: { contains: query.trim(), mode: 'insensitive' } }
+                            ]
+                        }
                     ]
                 },
                 include: {
@@ -1212,6 +1286,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const conditions: Prisma.Sql[] = [
             Prisma.sql`u.id != ${userId}::uuid`,
             Prisma.sql`u.is_verified = true`,
+            Prisma.sql`COALESCE(u.is_banned, false) = false`,
+            Prisma.sql`(COALESCE(u.is_deactivated, false) = false OR (u.deactivated_until IS NOT NULL AND u.deactivated_until <= now()))`,
             Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
             Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
             Prisma.sql`u.gender IS NOT NULL`
@@ -1269,13 +1345,15 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         `;
 
         // Map raw query results back to expected Prisma-like structure
-        let rows = rawResults.map(r => ({
-            ...r,
-            profiles: {
-                raw_prompt: r.raw_prompt,
-                metadata: r.metadata
-            }
-        }));
+        let rows = rawResults
+            .filter(r => !blockedSet.has(r.id))
+            .map(r => ({
+                ...r,
+                profiles: {
+                    raw_prompt: r.raw_prompt,
+                    metadata: r.metadata
+                }
+            }));
 
         let isBroad = false;
 
@@ -1286,6 +1364,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             const relaxedConditions: Prisma.Sql[] = [
                 Prisma.sql`u.id != ${userId}::uuid`,
                 Prisma.sql`u.is_verified = true`,
+                Prisma.sql`COALESCE(u.is_banned, false) = false`,
+                Prisma.sql`(COALESCE(u.is_deactivated, false) = false OR (u.deactivated_until IS NOT NULL AND u.deactivated_until <= now()))`,
                 Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
                 Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
                 Prisma.sql`u.gender IS NOT NULL`
@@ -1310,7 +1390,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             // Deduplicate
             const existingIds = new Set(rows.map(r => r.id));
             const newRows = broadResults
-                .filter(r => !existingIds.has(r.id))
+                .filter(r => !existingIds.has(r.id) && !blockedSet.has(r.id))
                 .map(r => ({
                     ...r,
                     profiles: {
@@ -1340,8 +1420,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const acceptedInteractions = await prisma.interactions.findMany({
             where: {
                 OR: [
-                    { from_user_id: userId, status: 'accepted' },
-                    { to_user_id: userId, status: 'accepted' }
+                    { from_user_id: userId, status: { in: ['accepted', 'connected'] } },
+                    { to_user_id: userId, status: { in: ['accepted', 'connected'] } }
                 ]
             },
             select: { from_user_id: true, to_user_id: true }
@@ -1540,6 +1620,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
 
             const profileId = c.referral_code ? `LP-${c.referral_code.toUpperCase()}` : `LP-${c.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
             const handle = `@${c.full_name ? c.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${c.referral_code ? '_' + c.referral_code.toLowerCase().slice(-4) : ''}`;
+            const isBlurred = isPhotoPrivacyShieldEnabled(meta) && !connectedUserIds.has(c.id) && c.id !== userId;
 
             return {
                 id: c.id,
@@ -1593,19 +1674,17 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
                 interests: hobbiesList,
-                stories: (() => {
-                    const direct: any[] = (c.profiles?.stories as any[]) || [];
-                    const metaStories: any[] = (meta?.stories as any[]) || [];
-                    const combined = mergeStoriesHelper(direct, metaStories);
-                    return combined;
-                })(),
+                stories: redactStoriesIfBlurred(
+                    mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta?.stories as any[]) || []),
+                    isBlurred
+                ),
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
                 isPremium: c.is_premium || false,
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && !connectedUserIds.has(c.id) && c.id !== userId,
+                isBlurred,
                 managed_by: meta.managed_by || meta.managedBy || 'Self'
             };
         }));
@@ -1640,9 +1719,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             const matchRecord = c.matches_matches_user_b_idTousers?.[0];
             const sentRequest = c.interactions_interactions_to_user_idTousers?.[0];
             const receivedRequest = c.interactions_interactions_from_user_idTousers?.[0];
-            const matchStatus = sentRequest?.status || receivedRequest?.status || null;
+            const matchStatus = resolveMatchStatus(sentRequest?.status, receivedRequest?.status);
 
             const locString = [c.city, c.district, c.state, meta.location?.country].filter(Boolean).join(', ') || c.location_name || "Global";
+            const isBlurred = isPhotoPrivacyShieldEnabled(meta) && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId;
 
             return {
                 id: c.id,
@@ -1681,7 +1761,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
-                stories: mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []),
+                stories: redactStoriesIfBlurred(mergeStoriesHelper((c.profiles?.stories as any[]) || [], (meta.stories as any[]) || []), isBlurred),
                 match_status: matchStatus,
                 is_liked: matchRecord?.is_liked || false,
                 isPremium: c.is_premium || false,
@@ -1690,7 +1770,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 voiceBioUrl: c.voice_bio_url || null,
                 kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                isBlurred: (meta.photo_privacy === 'blurred_until_accept' || meta.photoPrivacy === 'blurred_until_accept') && matchStatus !== 'accepted' && matchStatus !== 'connected' && c.id !== userId,
+                isBlurred,
                 managed_by: meta.managed_by || meta.managedBy || 'Self'
             };
         });
@@ -1762,8 +1842,24 @@ router.get('/:id/report', authenticateToken, async (req: any, res) => {
         const p1 = await prisma.users.findUnique({ where: { id: userId }, include: { profiles: true } });
         const p2 = await prisma.users.findUnique({ where: { id: id }, include: { profiles: true } });
 
-        if (!p1 || !p2) {
+        const p2Deactivated = Boolean(p2?.is_deactivated) && (!p2?.deactivated_until || new Date(p2.deactivated_until) > new Date());
+        if (!p1 || !p2 || p2.is_banned || p2Deactivated) {
             return res.status(404).json({ error: "Profiles not found" });
+        }
+
+        if (id !== userId) {
+            const blocked = await prisma.blocks.findFirst({
+                where: {
+                    OR: [
+                        { blocker_id: userId, blocked_id: id },
+                        { blocker_id: id, blocked_id: userId }
+                    ]
+                },
+                select: { blocker_id: true }
+            });
+            if (blocked) {
+                return res.status(403).json({ error: "Report unavailable" });
+            }
         }
 
         const profileA = { ...((p1.profiles?.metadata as any) || {}), full_name: p1.full_name, age: p1.age };

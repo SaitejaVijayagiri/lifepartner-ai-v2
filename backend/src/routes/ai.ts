@@ -48,6 +48,19 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
             return res.status(400).json({ error: "Missing targetUserId" });
         }
 
+        // Check block status before disclosing profile context in icebreakers
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: targetUserId },
+                    { blocker_id: targetUserId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) {
+            return res.status(403).json({ error: "Cannot generate icebreaker for this user" });
+        }
+
         // 1. Fetch Target User's Profile & Caller Info
         const [target, caller] = await Promise.all([
             prisma.users.findUnique({
@@ -59,6 +72,9 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
                     location_name: true,
                     age: true,
                     gender: true,
+                    is_banned: true,
+                    is_deactivated: true,
+                    deactivated_until: true,
                     profiles: {
                         select: { metadata: true }
                     }
@@ -75,7 +91,8 @@ router.post('/icebreaker', authenticateToken, async (req: any, res) => {
             })
         ]);
 
-        if (!target) {
+        const isDeactivatedActive = target?.is_deactivated && (!target.deactivated_until || new Date(target.deactivated_until) > new Date());
+        if (!target || target.is_banned || isDeactivatedActive) {
             return res.status(404).json({ error: "User not found" });
         }
 

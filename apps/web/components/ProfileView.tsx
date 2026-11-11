@@ -332,7 +332,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                         });
                                                     }}
                                                 >
-                                                    <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 transition-all">
+                                                    <div className="relative w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 transition-all">
                                                         <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
                                                             {hStory.type === 'video' ? (
                                                                 <video src={hStory.url} className="w-full h-full object-cover" muted />
@@ -342,7 +342,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                         </div>
 
                                                         {/* Direct Unhighlight / Delete Action Overlays */}
-                                                        <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[1px]">
+                                                        <div className="absolute inset-0 rounded-full bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[1px]">
                                                             <button
                                                                 onClick={async (e) => {
                                                                     e.stopPropagation();

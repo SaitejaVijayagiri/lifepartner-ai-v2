@@ -977,7 +977,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0 select-none">
                     {partner.photoUrl && (
                         <img 
-                            src={partner.photoUrl} 
+                            src={((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept' || !partner.photoUrl) ? '/avatar-fallback.svg' : partner.photoUrl} 
                             className="w-full h-full object-cover scale-125 blur-[70px] opacity-[0.32] transition-all duration-700" 
                             alt=""
                         />
@@ -989,7 +989,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                 <div className="absolute top-0 left-0 right-0 z-30 p-6 bg-gradient-to-b from-black/80 via-black/30 to-transparent flex justify-between items-start">
                     <div className="flex items-center gap-3">
                         {!isMaximized && (
-                            <img src={partner.photoUrl} className="w-10 h-10 rounded-full border-2 border-white/20 shadow-md object-cover" />
+                            <img src={((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept' || !partner.photoUrl) ? '/avatar-fallback.svg' : partner.photoUrl} className={`w-10 h-10 rounded-full border-2 border-white/20 shadow-md object-cover ${((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept') ? 'blur-md' : ''}`} />
                         )}
                         <div className="text-white">
                             {isMaximized && (
@@ -1048,8 +1048,8 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                 <div className="absolute w-28 h-28 rounded-full bg-gradient-to-tr from-indigo-500/15 to-pink-500/15 blur-md animate-pulse-glow" />
                                 
                                 <img 
-                                    src={partner.photoUrl} 
-                                    className="relative w-28 h-28 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10" 
+                                    src={((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept' || !partner.photoUrl) ? '/avatar-fallback.svg' : partner.photoUrl} 
+                                    className={`relative w-28 h-28 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10 ${((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept') ? 'blur-lg' : ''}`} 
                                     alt={partner.name} 
                                 />
                             </div>
@@ -1128,7 +1128,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                                     🕵️
                                                 </div>
                                             ) : (
-                                                <img src={partner.photoUrl} className="relative w-32 h-32 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10" alt={partner.name} />
+                                <img src={((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept' || !partner.photoUrl) ? '/avatar-fallback.svg' : partner.photoUrl} className={`relative w-32 h-32 rounded-full border-4 border-white/20 shadow-2xl object-cover z-10 ${((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept') ? 'blur-lg' : ''}`} alt={partner.name} />
                                             )}
                                         </div>
  
@@ -1190,7 +1190,7 @@ export default function VideoCallModal({ connectionId, partner: initialPartner, 
                                                 🕵️
                                             </div>
                                         ) : (
-                                            <img src={partner.photoUrl} className="relative w-24 h-24 rounded-full border-2 border-white/10 shadow-xl object-cover z-10" />
+                                            <img src={((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept' || !partner.photoUrl) ? '/avatar-fallback.svg' : partner.photoUrl} className={`relative w-24 h-24 rounded-full border-2 border-white/10 shadow-xl object-cover z-10 ${((partner as any).isBlurred || (partner as any).photo_privacy === 'blurred_until_accept') ? 'blur-lg' : ''}`} />
                                         )}
                                     </div>
                                     <div>

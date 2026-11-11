@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { Sparkles, Heart, User, Flag } from 'lucide-react';
+import { Sparkles, Heart, User, Flag, Lock } from 'lucide-react';
 import ProfileModal from './ProfileModal';
 import { useToast } from '@/components/ui/Toast';
 
@@ -11,6 +11,8 @@ interface MatchCandidate {
     id: string;
     name: string;
     photoUrl: string;
+    isBlurred?: boolean;
+    photo_privacy?: string;
     bio?: string;
     occupation?: string;
     city?: string;
@@ -123,7 +125,9 @@ export default function FloatingLoveGuru() {
                 return {
                     id: cand.id,
                     name: cand.name || "Match Candidate",
-                    photoUrl: cand.photoUrl || cand.photo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cand.name || 'User')}`,
+                    isBlurred: Boolean(cand.isBlurred || cand.photo_privacy === 'blurred_until_accept'),
+                    photo_privacy: cand.photo_privacy,
+                    photoUrl: (cand.isBlurred || cand.photo_privacy === 'blurred_until_accept') ? '/avatar-fallback.svg' : (cand.photoUrl || cand.photo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(cand.name || 'User')}`),
                     bio: cand.bio,
                     occupation: cand.occupation || cand.job_title,
                     city: cand.city || cand.location_name,
@@ -293,8 +297,8 @@ export default function FloatingLoveGuru() {
                                     <div key={m.id} className="bg-gradient-to-br from-white via-rose-50/40 to-purple-50/30 dark:from-gray-800 dark:via-gray-850 dark:to-gray-900 border border-rose-200/80 dark:border-rose-900/50 rounded-2xl p-3 shadow-md hover:shadow-lg transition-all">
                                         <div className="flex items-center gap-3">
                                             <img 
-                                                src={m.photoUrl} 
-                                                className="w-12 h-12 rounded-full border-2 border-rose-500 object-cover shadow-sm shrink-0" 
+                                                src={((m as any).isBlurred || (m as any).photo_privacy === 'blurred_until_accept' || !m.photoUrl) ? '/avatar-fallback.svg' : m.photoUrl} 
+                                                className={`w-12 h-12 rounded-full border-2 border-rose-500 object-cover shadow-sm shrink-0 ${((m as any).isBlurred || (m as any).photo_privacy === 'blurred_until_accept') ? 'blur-lg opacity-75' : ''}`} 
                                                 alt={m.name}
                                                 onError={(e) => { 
                                                     (e.target as any).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}`; 
@@ -403,6 +407,7 @@ export default function FloatingLoveGuru() {
             {selectedProfile && (
                 <ProfileModal
                     profile={selectedProfile}
+                    currentUser={userBio}
                     onClose={() => setSelectedProfile(null)}
                     onConnect={() => {
                         handleConnect(selectedProfile.user?.id || selectedProfile.id);

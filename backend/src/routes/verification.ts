@@ -2,6 +2,7 @@ import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
+import { matchCache } from './matches';
 
 const router = express.Router();
 
@@ -122,7 +123,8 @@ router.post('/admin/:id/resolve', authenticateToken, adminAuth, async (req, res)
             });
 
             // If Approved, update User table
-            if (status === 'APPROVED' && updatedRequest.user_id) {
+            // If Approved, update User table
+            if (status === 'APPROVED' && updatedRequest.user_id) { matchCache.clear();
                 await tx.users.update({
                     where: { id: updatedRequest.user_id as string },
                     data: { is_verified: true }

@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
+import { sanitizePhotoUrl, isPhotoPrivacyShieldEnabled, getConnectedUserIdSet, getBlockedUserIdSet } from '../utils/photoUrl';
 
 const router = express.Router();
 
@@ -66,19 +67,17 @@ router.get('/', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const lat = parseFloat(req.query.lat as string);
         const lng = parseFloat(req.query.lng as string);
-        const myEvents = req.query.my === 'true';       // filter: events I created or attend
-        const filter   = req.query.filter as string;    // 'hosting' | 'attending'
+        const filterParam = req.query.filter === 'hosting' || req.query.filter === 'attending' ? req.query.filter : 'all';
 
-        let whereExtra = '';
-        if (filter === 'hosting')  whereExtra = `AND e.creator_id = '${userId}'::uuid`;
-        if (filter === 'attending') whereExtra = `AND EXISTS(SELECT 1 FROM event_attendees WHERE event_id = e.id AND user_id = '${userId}'::uuid)`;
+        const connectedIds = await getConnectedUserIdSet(prisma, userId);
 
-        let events;
+        let events: any[];
         if (!isNaN(lat) && !isNaN(lng)) {
             events = await prisma.$queryRawUnsafe(`
                 SELECT e.*,
                     u.full_name as creator_name,
                     u.avatar_url as creator_photo,
+                    p.metadata as creator_metadata,
                     (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id)::int as attendee_count,
                     EXISTS(SELECT 1 FROM event_attendees WHERE event_id = e.id AND user_id = $1::uuid)::bool as is_attending,
                     (e.creator_id = $1::uuid)::bool as is_creator,
@@ -88,31 +87,66 @@ router.get('/', authenticateToken, async (req: any, res) => {
                     )) ) ) AS distance
                 FROM meet_events e
                 JOIN users u ON e.creator_id = u.id
-                WHERE e.event_date > NOW() ${whereExtra}
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE e.event_date > NOW()
+                  AND u.is_banned = false
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b
+                    WHERE (b.blocker_id = $1::uuid AND b.blocked_id = e.creator_id)
+                       OR (b.blocker_id = e.creator_id AND b.blocked_id = $1::uuid)
+                  )
+                  AND (
+                    $4 = 'all'
+                    OR ($4 = 'hosting' AND e.creator_id = $1::uuid)
+                    OR ($4 = 'attending' AND EXISTS(SELECT 1 FROM event_attendees WHERE event_id = e.id AND user_id = $1::uuid))
+                  )
                 ORDER BY distance ASC, e.event_date ASC
                 LIMIT 60;
-            `, userId, lat, lng);
+            `, userId, lat, lng, filterParam);
         } else {
             events = await prisma.$queryRawUnsafe(`
                 SELECT e.*,
                     u.full_name as creator_name,
                     u.avatar_url as creator_photo,
+                    p.metadata as creator_metadata,
                     (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id)::int as attendee_count,
                     EXISTS(SELECT 1 FROM event_attendees WHERE event_id = e.id AND user_id = $1::uuid)::bool as is_attending,
                     (e.creator_id = $1::uuid)::bool as is_creator,
                     NULL::FLOAT AS distance
                 FROM meet_events e
                 JOIN users u ON e.creator_id = u.id
-                WHERE e.event_date > NOW() ${whereExtra}
+                LEFT JOIN profiles p ON p.user_id = u.id
+                WHERE e.event_date > NOW()
+                  AND u.is_banned = false
+                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND NOT EXISTS (
+                    SELECT 1 FROM blocks b
+                    WHERE (b.blocker_id = $1::uuid AND b.blocked_id = e.creator_id)
+                       OR (b.blocker_id = e.creator_id AND b.blocked_id = $1::uuid)
+                  )
+                  AND (
+                    $2 = 'all'
+                    OR ($2 = 'hosting' AND e.creator_id = $1::uuid)
+                    OR ($2 = 'attending' AND EXISTS(SELECT 1 FROM event_attendees WHERE event_id = e.id AND user_id = $1::uuid))
+                  )
                 ORDER BY e.event_date ASC
                 LIMIT 60;
-            `, userId);
+            `, userId, filterParam);
         }
 
-        const serialized = (events as any[]).map(e => ({
-            ...e,
-            attendee_count: Number(e.attendee_count)
-        }));
+        const serialized = (events as any[]).map(({ creator_metadata, ...e }) => {
+            const meta = (creator_metadata as any) || {};
+            const isBlurred = e.creator_id !== userId && isPhotoPrivacyShieldEnabled(meta) && !connectedIds.has(e.creator_id);
+            return {
+                ...e,
+                creator_photo: sanitizePhotoUrl(e.creator_photo, e.creator_name || e.creator_id),
+                creator_photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+                isBlurred,
+                attendee_count: Number(e.attendee_count)
+            };
+        });
 
         res.json({ success: true, events: serialized });
     } catch (e: any) {
@@ -167,37 +201,56 @@ router.post('/:id/rsvp', authenticateToken, async (req: any, res) => {
         const eventId = req.params.id;
 
         // Fetch event details
-        const eventRows: any[] = await prisma.$queryRawUnsafe(`
-            SELECT e.*, (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id)::int as attendee_count
-            FROM meet_events e WHERE e.id = $1::uuid;
-        `, eventId);
+        const rsvpResult = await prisma.$transaction(async (tx) => {
+            const eventRows: any[] = await tx.$queryRawUnsafe(`
+                SELECT e.*,
+                    (SELECT COUNT(*) FROM event_attendees WHERE event_id = e.id)::int as attendee_count
+                FROM meet_events e
+                WHERE e.id = $1::uuid
+                FOR UPDATE;
+            `, eventId);
 
-        if (!eventRows.length) return res.status(404).json({ error: 'Event not found' });
-        const event = eventRows[0];
+            if (!eventRows.length) return { status: 404, error: 'Event not found' };
+            const event = eventRows[0];
 
-        const attending: any[] = await prisma.$queryRawUnsafe(`
-            SELECT 1 FROM event_attendees WHERE event_id = $1::uuid AND user_id = $2::uuid;
-        `, eventId, userId);
+            const block = await tx.blocks.findFirst({
+                where: {
+                    OR: [
+                        { blocker_id: userId, blocked_id: event.creator_id },
+                        { blocker_id: event.creator_id, blocked_id: userId }
+                    ]
+                }
+            });
+            if (block) return { status: 403, error: 'Cannot RSVP to this event' };
 
-        if (attending.length > 0) {
-            // Un-RSVP (creators cannot un-RSVP their own event)
-            if (event.creator_id === userId) {
-                return res.status(400).json({ error: 'You are the creator. Delete the event to remove it.' });
-            }
-            await prisma.$queryRawUnsafe(`
-                DELETE FROM event_attendees WHERE event_id = $1::uuid AND user_id = $2::uuid;
+            const attending: any[] = await tx.$queryRawUnsafe(`
+                SELECT 1 FROM event_attendees WHERE event_id = $1::uuid AND user_id = $2::uuid;
             `, eventId, userId);
-            res.json({ success: true, attending: false });
-        } else {
-            // Check capacity
+
+            if (attending.length > 0) {
+                if (event.creator_id === userId) {
+                    return { status: 400, error: 'You are the creator. Delete the event to remove it.' };
+                }
+                await tx.$queryRawUnsafe(`
+                    DELETE FROM event_attendees WHERE event_id = $1::uuid AND user_id = $2::uuid;
+                `, eventId, userId);
+                return { status: 200, attending: false };
+            }
+
             if (event.max_attendees && Number(event.attendee_count) >= event.max_attendees) {
-                return res.status(400).json({ error: 'This event is full!' });
+                return { status: 400, error: 'This event is full!' };
             }
-            await prisma.$queryRawUnsafe(`
-                INSERT INTO event_attendees (event_id, user_id) VALUES ($1::uuid, $2::uuid);
+            await tx.$queryRawUnsafe(`
+                INSERT INTO event_attendees (event_id, user_id) VALUES ($1::uuid, $2::uuid)
+                ON CONFLICT (event_id, user_id) DO NOTHING;
             `, eventId, userId);
-            res.json({ success: true, attending: true });
+            return { status: 200, attending: true };
+        });
+
+        if (rsvpResult.error) {
+            return res.status(rsvpResult.status).json({ error: rsvpResult.error });
         }
+        res.json({ success: true, attending: rsvpResult.attending });
     } catch (e: any) {
         console.error(e);
         res.status(500).json({ error: 'Failed to toggle RSVP' });
@@ -278,15 +331,36 @@ router.delete('/:id', authenticateToken, async (req: any, res) => {
 // 6. Get attendees list for an event
 router.get('/:id/attendees', authenticateToken, async (req: any, res) => {
     try {
+        const userId = req.user.userId;
         const eventId = req.params.id;
-        const attendees: any[] = await prisma.$queryRawUnsafe(`
-            SELECT u.id, u.full_name as name, u.avatar_url as photo
+        const [connectedSet, blockedSet] = await Promise.all([
+            getConnectedUserIdSet(prisma, userId),
+            getBlockedUserIdSet(prisma, userId)
+        ]);
+        const rows: any[] = await prisma.$queryRawUnsafe(`
+            SELECT u.id, u.full_name as name, u.avatar_url as photo, p.metadata
             FROM event_attendees ea
             JOIN users u ON ea.user_id = u.id
+            LEFT JOIN profiles p ON u.id = p.user_id
             WHERE ea.event_id = $1::uuid
+              AND COALESCE(u.is_banned, false) = false
+              AND (COALESCE(u.is_deactivated, false) = false OR (u.deactivated_until IS NOT NULL AND u.deactivated_until <= now()))
             ORDER BY ea.created_at ASC
             LIMIT 50;
         `, eventId);
+        const attendees = rows
+            .filter((r: any) => !blockedSet.has(r.id))
+            .map((r: any) => {
+                const isShielded = isPhotoPrivacyShieldEnabled(r.metadata);
+                const isBlurred = isShielded && r.id !== userId && !connectedSet.has(r.id);
+                return {
+                    id: r.id,
+                    name: r.name,
+                    photo: isBlurred ? null : sanitizePhotoUrl(r.photo, r.name || r.id || 'Attendee'),
+                    photo_privacy: isShielded ? 'blurred_until_accept' : 'public',
+                    isBlurred
+                };
+            });
         res.json({ success: true, attendees });
     } catch (e: any) {
         console.error(e);

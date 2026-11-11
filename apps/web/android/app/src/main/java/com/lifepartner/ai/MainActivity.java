@@ -369,8 +369,11 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void navigateToPath(String targetPath) {
-        if (targetPath == null || targetPath.isEmpty()) return;
-        final String cleanPath = targetPath.startsWith("/") ? targetPath : "/" + targetPath;
+        if (targetPath == null || targetPath.trim().isEmpty()) return;
+        String trimmed = targetPath.trim();
+        if (trimmed.contains("://") || trimmed.startsWith("//") || trimmed.startsWith("javascript:") || trimmed.startsWith("data:")) return;
+        final String cleanPath = trimmed.startsWith("/") ? trimmed : "/" + trimmed;
+        if (cleanPath.startsWith("//")) return;
         runOnUiThread(() -> {
             try {
                 if (getBridge() != null && getBridge().getWebView() != null) {
@@ -553,8 +556,6 @@ public class MainActivity extends BridgeActivity {
                     openIntent.putExtra("targetPath", targetPath);
                     openIntent.setData(android.net.Uri.parse("lifepartner://" + (targetPath.startsWith("/") ? targetPath.substring(1) : targetPath)));
                     startActivity(openIntent);
-
-                    navigateToPath(targetPath);
                 } catch (Exception e) {
                     Log.e(TAG, "Error handling OneSignal click action: ", e);
                 }

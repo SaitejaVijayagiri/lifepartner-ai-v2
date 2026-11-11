@@ -12,6 +12,7 @@ public class NotificationRequestReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (intent == null) return;
         String actionIntent = intent.getAction();
         if (actionIntent == null) return;
 
@@ -48,7 +49,7 @@ public class NotificationRequestReceiver extends BroadcastReceiver {
         SharedPreferences prefs = context.getSharedPreferences("LifePartnerPrefs", Context.MODE_PRIVATE);
         String authToken = prefs.getString("auth_token", null);
 
-        if (authToken == null || authToken.trim().isEmpty()) {
+        if (authToken == null || authToken.trim().isEmpty() || authToken.equalsIgnoreCase("null")) {
             Log.w(TAG, "No auth token available, queueing for when user session hydrates");
             OfflineSyncManager.queueOfflineRequest(context, interactionId, action);
             return;

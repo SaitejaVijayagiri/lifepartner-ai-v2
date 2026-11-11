@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { MapPin, Calendar, Users, Plus, Loader2, Navigation, X, Zap, Sparkles, Trash2, LocateFixed, Pencil, Search, Share2, CalendarPlus, ArrowUpDown } from 'lucide-react';
+import { MapPin, Calendar, Users, Plus, Loader2, Navigation, X, Zap, Sparkles, Trash2, LocateFixed, Pencil, Search, Share2, CalendarPlus, ArrowUpDown, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -348,11 +348,18 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
                 {/* Overlapping Avatar */}
                 <div className="absolute top-[5.5rem] left-5 z-10">
-                    <div className="relative">
+                    <div className="relative w-14 h-14">
                         <div className="absolute inset-0 bg-white dark:bg-gray-900 rounded-full scale-110 shadow-sm"></div>
-                        <img src={event.creator_photo || '/avatar-fallback.svg'} alt={event.creator_name}
-                            className="relative w-14 h-14 rounded-full border-2 border-white dark:border-gray-900 object-cover shadow-md bg-gray-100"
-                            onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
+                        <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-900 shadow-md bg-gray-100">
+                            <img src={(event.isBlurred || event.photo_privacy === 'blurred_until_accept') ? '/avatar-fallback.svg' : (event.creator_photo || '/avatar-fallback.svg')} alt={event.creator_name}
+                                className={`w-full h-full object-cover ${(event.isBlurred || event.photo_privacy === 'blurred_until_accept') ? 'blur-lg scale-110' : ''}`}
+                                onError={(e) => { (e.target as HTMLImageElement).src = '/avatar-fallback.svg'; }} />
+                            {(event.isBlurred || event.photo_privacy === 'blurred_until_accept') && (
+                                <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                    <Lock size={14} className="text-white" />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -579,12 +586,22 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {loadingAttendees ? <div className="flex justify-center py-8"><Loader2 className="animate-spin text-indigo-500" /></div>
                             : attendees.length === 0 ? <p className="text-center text-gray-400 text-sm py-6">No attendees yet</p>
-                            : attendees.map(a => (
+                            : attendees.map(a => {
+                                const isAttBlurred = Boolean(a.isBlurred || a.photo_privacy === 'blurred_until_accept');
+                                return (
                                 <div key={a.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800">
-                                    <img src={a.photo || '/avatar-fallback.svg'} alt={a.name} className="w-9 h-9 rounded-full object-cover bg-gray-100" onError={e => { (e.target as HTMLImageElement).src='/avatar-fallback.svg'; }} />
+                                    <div className="relative w-9 h-9 rounded-full overflow-hidden bg-gray-100 shrink-0">
+                                        <img src={isAttBlurred ? '/avatar-fallback.svg' : (a.photo || '/avatar-fallback.svg')} alt={a.name} className={`w-full h-full object-cover ${isAttBlurred ? 'blur-md scale-110' : ''}`} onError={e => { (e.target as HTMLImageElement).src='/avatar-fallback.svg'; }} />
+                                        {isAttBlurred && (
+                                            <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                                <Lock size={12} className="text-white" />
+                                            </div>
+                                        )}
+                                    </div>
                                     <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">{a.name}</span>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

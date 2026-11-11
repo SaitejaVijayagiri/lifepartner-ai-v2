@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Phone, Video, X, ArrowDownLeft, ArrowUpRight, PhoneCall, PhoneMissed, History, Clock } from 'lucide-react';
+import { Phone, Video, X, ArrowDownLeft, ArrowUpRight, PhoneCall, PhoneMissed, History, Clock, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface CallHistoryModalProps {
@@ -102,16 +102,28 @@ export default function CallHistoryModal({ onClose }: CallHistoryModalProps) {
                                     className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl border border-gray-100 dark:border-gray-700 transition-all"
                                 >
                                     {/* Avatar + call type badge */}
-                                    <div className="relative shrink-0">
-                                        <img
-                                            src={log.otherPhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${log.otherId}`}
-                                            className="w-14 h-14 rounded-full object-cover bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-800 shadow"
-                                            alt={log.otherName}
-                                        />
-                                        <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm ${log.type === 'VIDEO' ? 'text-indigo-600' : 'text-green-600'}`}>
-                                            {log.type === 'VIDEO' ? <Video size={12} /> : <Phone size={12} />}
-                                        </div>
-                                    </div>
+                                    {(() => {
+                                        const isBlurred = Boolean(log.isBlurred || log.photo_privacy === 'blurred_until_accept');
+                                        return (
+                                            <div className="relative shrink-0">
+                                                <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 border-2 border-white dark:border-gray-800 shadow">
+                                                    <img
+                                                        src={isBlurred ? '/avatar-fallback.svg' : (log.otherPhoto || `https://api.dicebear.com/7.x/avataaars/svg?seed=${log.otherId}`)}
+                                                        className={`w-full h-full object-cover ${isBlurred ? 'blur-lg scale-110' : ''}`}
+                                                        alt={log.otherName}
+                                                    />
+                                                    {isBlurred && (
+                                                        <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                                            <Lock size={14} className="text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-sm ${log.type === 'VIDEO' ? 'text-indigo-600' : 'text-green-600'}`}>
+                                                    {log.type === 'VIDEO' ? <Video size={12} /> : <Phone size={12} />}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Info */}
                                     <div className="flex-1 min-w-0">

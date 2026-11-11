@@ -3,6 +3,7 @@ import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
 import { adminAuth } from '../middleware/adminAuth';
 import { EmailService } from '../services/email';
+import { matchCache } from './matches';
 
 const router = express.Router();
 
@@ -134,6 +135,7 @@ router.post('/moderate-photo', async (req, res) => {
             metadata.photos = []; // Clear gallery too just to be safe
 
             await prisma.users.update({ where: { id: userId }, data: { avatar_url: null } });
+            matchCache.clear();
             if (user.profiles) {
                 await prisma.profiles.update({ where: { user_id: userId }, data: { photos: [], metadata } });
             }
@@ -265,6 +267,7 @@ router.post('/ban', async (req, res) => {
             data: { is_banned: ban }
         });
 
+        matchCache.clear();
         res.json({ success: true, message: `User ${ban ? 'banned' : 'unbanned'} successfully` });
     } catch (err) {
         console.error(err);

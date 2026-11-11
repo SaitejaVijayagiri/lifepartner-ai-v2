@@ -237,23 +237,33 @@ router.post('/webhook', async (req, res) => {
     try {
         console.log("Webhook Received:", JSON.stringify(req.body));
 
-        // SECURITY: Verify Cashfree webhook signature (HMAC-SHA256)
-        // Cashfree sends x-webhook-signature header with base64 HMAC of the raw body.
-        const signature = (req.headers['x-webhook-signature'] || req.headers['x-webhook-timestamp']) as string;
-        if (signature && SECRET_KEY) {
+        // SECURITY: Verify Cashfree webhook signature (HMAC-SHA256 over timestamp + rawBody)
+        const signature = req.headers['x-webhook-signature'] as string | undefined;
+        const timestamp = req.headers['x-webhook-timestamp'] as string | undefined;
+        if (SECRET_KEY) {
+            if (!signature || !timestamp) {
+                console.warn('[Webhook] Missing Cashfree signature/timestamp headers.');
+                return res.status(401).json({ status: "Unauthorized", error: "Missing webhook signature headers" });
+            }
             try {
-                const rawBuffer = (req as any).rawBody || Buffer.from(JSON.stringify(req.body));
+                const rawBodyStr = (req as any).rawBody
+                    ? (req as any).rawBody.toString('utf8')
+                    : JSON.stringify(req.body);
                 const expectedSig = crypto
                     .createHmac('sha256', SECRET_KEY)
-                    .update(rawBuffer)
+                    .update(`${timestamp}${rawBodyStr}`)
                     .digest('base64');
-                if (signature !== expectedSig) {
-                    console.warn('[Webhook] Signature check failed — validating payload structure.');
+                const sigBuf = Buffer.from(signature);
+                const expectedBuf = Buffer.from(expectedSig);
+                if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+                    console.warn('[Webhook] Cashfree signature verification failed.');
+                    return res.status(401).json({ status: "Unauthorized", error: "Invalid webhook signature" });
                 }
             } catch (sigErr) {
                 console.error('[Webhook] Signature verification error:', sigErr);
+                return res.status(401).json({ status: "Unauthorized", error: "Signature verification error" });
             }
-        } else if (!SECRET_KEY) {
+        } else {
             console.warn('[Webhook] CASHFREE_SECRET_KEY not set — skipping signature verification (unsafe).');
         }
 

@@ -101,9 +101,9 @@ export default function CommunityPage() {
     }
 
     return (
-        <div className="h-[100dvh] w-screen overflow-hidden bg-slate-100 dark:bg-gray-950 font-sans flex flex-col">
+        <div className="h-[100dvh] w-full overflow-hidden bg-slate-100 dark:bg-gray-950 font-sans flex flex-col">
             <Navbar />
-            <div className="flex-1 w-full max-w-7xl mx-auto p-2 sm:p-4 lg:p-6 flex flex-col min-h-0">
+            <div className="flex-1 w-full max-w-7xl mx-auto pt-[calc(5rem+env(safe-area-inset-top,0px))] px-2 pb-2 sm:px-4 sm:pb-4 lg:px-6 lg:pb-6 flex flex-col min-h-0">
                 <div className="flex-1 h-full min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl">
                     <CommunityChat
                         currentUser={user}

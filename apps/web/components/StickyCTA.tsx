@@ -38,7 +38,7 @@ export default function StickyCTA() {
 
     return (
         <>
-            <div className="fixed bottom-0 left-0 right-0 p-3 pb-5 z-40 md:hidden animate-in slide-in-from-bottom duration-300 hide-in-native-app">
+            <div className="fixed bottom-0 left-0 right-0 p-3 pb-[max(1.25rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] z-40 md:hidden animate-in slide-in-from-bottom duration-300 hide-in-native-app">
                 <div className="bg-gray-950/95 backdrop-blur-xl text-white rounded-2xl p-3 shadow-2xl border border-purple-500/30 flex items-center justify-between gap-2">
                     <button
                         onClick={() => setIsDownloadModalOpen(true)}

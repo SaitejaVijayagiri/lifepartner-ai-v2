@@ -5,7 +5,7 @@ import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHoriz
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { filterActiveStories, filterActive24hStories } from '@/lib/utils';
+import { filterActiveStories, filterActive24hStories, isProfilePhotoBlurred } from '@/lib/utils';
 import { FilterState } from '@/components/FilterModal';
 import { useSocket } from '@/context/SocketContext';
 
@@ -612,7 +612,7 @@ export default function MatchesTab({
                             className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white px-4 sm:px-5 py-3 rounded-2xl font-bold text-xs md:text-sm hover:shadow-lg hover:shadow-indigo-500/40 hover:scale-[1.02] transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-70 cursor-pointer"
                         >
                             <Search size={16} />
-                            <span className="hidden xs:inline">{loading ? 'Searching...' : 'Search'}</span>
+                            <span className="hidden sm:inline">{loading ? 'Searching...' : 'Search'}</span>
                         </button>
                         {onOpenFilters && (
                             <button
@@ -782,14 +782,18 @@ export default function MatchesTab({
 
                         <div className="overflow-y-auto no-scrollbar space-y-3 flex-1 pr-1">
                             {activeInsightModal === 'visitors' && (
-                                visitorsData?.visitors?.map((visitor: any, idx: number) => (
+                                visitorsData?.visitors?.map((visitor: any, idx: number) => {
+                                    const isVBlurred = isProfilePhotoBlurred(visitor, currentUser?.id || currentUser?.userId);
+                                    return (
                                     <div
                                         key={visitor.id || idx}
                                         onClick={() => {
                                             setActiveInsightModal(null);
-                                            const photos = Array.isArray(visitor.photos) && visitor.photos.length > 0
-                                                ? visitor.photos
-                                                : (visitor.photoUrl ? [visitor.photoUrl] : []);
+                                            const photos = isVBlurred
+                                                ? []
+                                                : (Array.isArray(visitor.photos) && visitor.photos.length > 0
+                                                    ? visitor.photos
+                                                    : (visitor.photoUrl ? [visitor.photoUrl] : []));
                                             setSelectedProfile({
                                                 ...visitor,
                                                 photos,
@@ -801,7 +805,7 @@ export default function MatchesTab({
                                                         setSelectedProfile((prev: any) => ({
                                                             ...prev,
                                                             ...full,
-                                                            photos: Array.isArray(full.photos) && full.photos.length > 0 ? full.photos : photos
+                                                            photos: Array.isArray(full.photos) && full.photos.length > 0 ? full.photos : (full.isBlurred ? [] : photos)
                                                         }));
                                                     }
                                                 }).catch(() => {});
@@ -812,11 +816,16 @@ export default function MatchesTab({
                                         <div className="flex items-center gap-3">
                                             <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
                                                 <img
-                                                    src={visitor.photoUrl || '/avatar-fallback.svg'}
-                                                    className="w-full h-full object-cover"
+                                                    src={isVBlurred ? '/avatar-fallback.svg' : (visitor.photoUrl || '/avatar-fallback.svg')}
+                                                    className={`w-full h-full object-cover ${isVBlurred ? 'blur-lg scale-110' : ''}`}
                                                     alt={visitor.name || ''}
                                                     onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
                                                 />
+                                                {isVBlurred && (
+                                                    <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                                        <Lock size={14} className="text-white" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-sm text-gray-900 dark:text-white">{visitor.name}</h4>
@@ -825,18 +834,23 @@ export default function MatchesTab({
                                         </div>
                                         <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">View Profile →</span>
                                     </div>
-                                ))
+                                    );
+                                })
                             )}
 
                             {activeInsightModal === 'likes' && (
-                                whoLikedMe?.likes?.map((like: any, idx: number) => (
+                                whoLikedMe?.likes?.map((like: any, idx: number) => {
+                                    const isLBlurred = isProfilePhotoBlurred(like, currentUser?.id || currentUser?.userId);
+                                    return (
                                     <div
                                         key={like.id || idx}
                                         onClick={() => {
                                             setActiveInsightModal(null);
-                                            const photos = Array.isArray(like.photos) && like.photos.length > 0
-                                                ? like.photos
-                                                : (like.photoUrl ? [like.photoUrl] : []);
+                                            const photos = isLBlurred
+                                                ? []
+                                                : (Array.isArray(like.photos) && like.photos.length > 0
+                                                    ? like.photos
+                                                    : (like.photoUrl ? [like.photoUrl] : []));
                                             setSelectedProfile({
                                                 ...like,
                                                 photos,
@@ -848,7 +862,7 @@ export default function MatchesTab({
                                                         setSelectedProfile((prev: any) => ({
                                                             ...prev,
                                                             ...full,
-                                                            photos: Array.isArray(full.photos) && full.photos.length > 0 ? full.photos : photos
+                                                            photos: Array.isArray(full.photos) && full.photos.length > 0 ? full.photos : (full.isBlurred ? [] : photos)
                                                         }));
                                                     }
                                                 }).catch(() => {});
@@ -859,11 +873,16 @@ export default function MatchesTab({
                                         <div className="flex items-center gap-3">
                                             <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
                                                 <img
-                                                    src={like.photoUrl || '/avatar-fallback.svg'}
-                                                    className="w-full h-full object-cover"
+                                                    src={isLBlurred ? '/avatar-fallback.svg' : (like.photoUrl || '/avatar-fallback.svg')}
+                                                    className={`w-full h-full object-cover ${isLBlurred ? 'blur-lg scale-110' : ''}`}
                                                     alt={like.name || ''}
                                                     onError={(e) => { (e.target as any).src = '/avatar-fallback.svg'; }}
                                                 />
+                                                {isLBlurred && (
+                                                    <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                                        <Lock size={14} className="text-white" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-sm text-gray-900 dark:text-white">{like.name}</h4>
@@ -872,7 +891,8 @@ export default function MatchesTab({
                                         </div>
                                         <span className="text-xs font-bold text-rose-600 dark:text-rose-400">View Profile →</span>
                                     </div>
-                                ))
+                                    );
+                                })
                             )}
                         </div>
                     </div>
@@ -1056,7 +1076,9 @@ export default function MatchesTab({
                     user={{
                         id: activeStorySet.user?.id || activeStorySet.user?.userId || 'me',
                         name: activeStorySet.user?.name || activeStorySet.user?.full_name || 'User',
-                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeStorySet.user?.name || 'User')}`
+                        photoUrl: activeStorySet.user?.photoUrl || activeStorySet.user?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(activeStorySet.user?.name || 'User')}`,
+                        isBlurred: activeStorySet.user?.isBlurred,
+                        photo_privacy: activeStorySet.user?.photo_privacy
                     }}
                     currentUser={currentUser}
                     onClose={() => {

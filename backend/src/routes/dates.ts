@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, authenticateOptional } from '../middleware/auth';
+import { sanitizePhotoUrl, isPhotoPrivacyShieldEnabled, getConnectedUserIdSet, getBlockedUserIdSet, areUsersConnected } from '../utils/photoUrl';
 
 const router = express.Router();
 
@@ -215,23 +216,40 @@ router.get('/active', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
         
-        const activeDates: any[] = await prisma.$queryRawUnsafe(`
-            SELECT d.*, 
-                   u.full_name as partner_name, 
-                   u.avatar_url as partner_photo,
-                   u.gender as partner_gender,
-                   p.metadata as my_metadata
-            FROM meet_dates d
-            JOIN users u ON (d.sender_id = u.id OR d.receiver_id = u.id) AND u.id != $1::uuid
-            LEFT JOIN profiles p ON p.user_id = $1::uuid
-            WHERE (d.sender_id = $1::uuid OR d.receiver_id = $1::uuid)
-              AND d.status = 'accepted'
-              AND d.date_time > NOW() - INTERVAL '4 hours' -- Keep active during date window
-              AND d.date_time < NOW() + INTERVAL '7 days'
-            ORDER BY d.date_time ASC;
-        `, userId);
+        const [activeDates, connectedIds] = await Promise.all([
+            prisma.$queryRawUnsafe(`
+                SELECT d.*, 
+                       u.id as partner_id,
+                       u.full_name as partner_name, 
+                       u.avatar_url as partner_photo,
+                       u.gender as partner_gender,
+                       up.metadata as partner_metadata,
+                       p.metadata as my_metadata
+                FROM meet_dates d
+                JOIN users u ON (d.sender_id = u.id OR d.receiver_id = u.id) AND u.id != $1::uuid
+                LEFT JOIN profiles up ON up.user_id = u.id
+                LEFT JOIN profiles p ON p.user_id = $1::uuid
+                WHERE (d.sender_id = $1::uuid OR d.receiver_id = $1::uuid)
+                  AND d.status = 'accepted'
+                  AND d.date_time > NOW() - INTERVAL '4 hours' -- Keep active during date window
+                  AND d.date_time < NOW() + INTERVAL '7 days'
+                ORDER BY d.date_time ASC;
+            `, userId) as Promise<any[]>,
+            getConnectedUserIdSet(prisma, userId)
+        ]);
 
-        res.json({ success: true, dates: activeDates });
+        const safeDates = (activeDates || []).map(({ partner_metadata, ...d }) => {
+            const pMeta = (partner_metadata as any) || {};
+            const isBlurred = isPhotoPrivacyShieldEnabled(pMeta) && !connectedIds.has(d.partner_id);
+            return {
+                ...d,
+                partner_photo: sanitizePhotoUrl(d.partner_photo, d.partner_name || d.partner_id),
+                photo_privacy: pMeta.photo_privacy || pMeta.photoPrivacy || 'public',
+                isBlurred
+            };
+        });
+
+        res.json({ success: true, dates: safeDates });
     } catch (e: any) {
         console.error('Active Dates Error', e);
         res.status(500).json({ error: 'Failed to get active dates' });
@@ -246,15 +264,30 @@ router.get('/:id', authenticateToken, async (req: any, res) => {
         
         const dates: any[] = await prisma.$queryRawUnsafe(`
             SELECT d.*, 
+                   u.id as partner_id,
                    u.full_name as partner_name, 
-                   u.avatar_url as partner_photo
+                   u.avatar_url as partner_photo,
+                   up.metadata as partner_metadata
             FROM meet_dates d
             JOIN users u ON (d.sender_id = u.id OR d.receiver_id = u.id) AND u.id != $1::uuid
+            LEFT JOIN profiles up ON up.user_id = u.id
             WHERE d.id = $2::uuid AND (d.sender_id = $1::uuid OR d.receiver_id = $1::uuid);
         `, userId, dateId);
 
         if (!dates.length) return res.status(404).json({ error: 'Date not found' });
-        res.json({ success: true, date: dates[0] });
+        const { partner_metadata, ...row } = dates[0];
+        const pMeta = (partner_metadata as any) || {};
+        const connected = await areUsersConnected(prisma, userId, row.partner_id);
+        const isBlurred = isPhotoPrivacyShieldEnabled(pMeta) && !connected;
+        res.json({
+            success: true,
+            date: {
+                ...row,
+                partner_photo: sanitizePhotoUrl(row.partner_photo, row.partner_name || row.partner_id),
+                photo_privacy: pMeta.photo_privacy || pMeta.photoPrivacy || 'public',
+                isBlurred
+            }
+        });
     } catch (e: any) {
         console.error('Get Date Error', e);
         res.status(500).json({ error: 'Failed to get date' });
@@ -354,6 +387,8 @@ interface LiveSpeedDateEvent {
     host_id: string;
     host_name: string;
     host_avatar?: string;
+    host_photo_privacy?: string;
+    isBlurred?: boolean;
     target_gender: 'all' | 'female' | 'male';
     status: 'live' | 'upcoming' | 'ended';
     scheduled_at?: string; // ISO date string if scheduled for future
@@ -363,6 +398,16 @@ interface LiveSpeedDateEvent {
 }
 
 const liveEventsStore: LiveSpeedDateEvent[] = [];
+const liveEventParticipants = new Map<string, Set<string>>();
+
+function toSafeBroadcastEvent(evt: LiveSpeedDateEvent): LiveSpeedDateEvent {
+    const isShielded = evt.host_photo_privacy === 'blurred_until_accept';
+    return {
+        ...evt,
+        host_avatar: isShielded ? undefined : evt.host_avatar,
+        isBlurred: isShielded
+    };
+}
 
 // Helper: Ensure PostgreSQL table exists for Live & Scheduled Events
 async function ensureLiveEventsTable() {
@@ -415,27 +460,37 @@ async function syncLiveEventsFromDB(): Promise<LiveSpeedDateEvent[]> {
         const rows: any[] = await prisma.$queryRawUnsafe(`
             SELECT e.id, e.title, e.description, e.host_id, e.target_gender, e.status, 
                    e.scheduled_at, e.participant_count, e.max_participants, e.created_at,
-                   u.full_name as host_name, u.avatar_url as host_avatar
+                   u.full_name as host_name, u.avatar_url as host_avatar, p.metadata as host_metadata
             FROM live_speed_date_events e
             JOIN users u ON e.host_id = u.id
-            WHERE e.status = 'upcoming' OR (e.status = 'live' AND e.created_at >= now() - INTERVAL '45 minutes')
+            LEFT JOIN profiles p ON u.id = p.user_id
+            WHERE (e.status = 'upcoming' OR (e.status = 'live' AND e.created_at >= now() - INTERVAL '45 minutes'))
+              AND COALESCE(u.is_banned, false) = false
+              AND (COALESCE(u.is_deactivated, false) = false OR (u.deactivated_until IS NOT NULL AND u.deactivated_until <= now()))
             ORDER BY e.created_at DESC;
         `);
 
-        const dbEvents: LiveSpeedDateEvent[] = (rows || []).map(r => ({
-            id: r.id,
-            title: r.title,
-            description: r.description || '',
-            host_id: r.host_id,
-            host_name: r.host_name || 'Host User',
-            host_avatar: r.host_avatar || undefined,
-            target_gender: (r.target_gender || 'all') as any,
-            status: r.status as any,
-            scheduled_at: r.scheduled_at ? new Date(r.scheduled_at).toISOString() : undefined,
-            participant_count: Number(r.participant_count || 1),
-            max_participants: Number(r.max_participants || 50),
-            created_at: new Date(r.created_at).toISOString()
-        }));
+        const dbEvents: LiveSpeedDateEvent[] = (rows || []).map(r => {
+            const isHostShielded = isPhotoPrivacyShieldEnabled(r.host_metadata);
+            if (!liveEventParticipants.has(r.id)) {
+                liveEventParticipants.set(r.id, new Set([r.host_id]));
+            }
+            return {
+                id: r.id,
+                title: r.title,
+                description: r.description || '',
+                host_id: r.host_id,
+                host_name: r.host_name || 'Host User',
+                host_avatar: sanitizePhotoUrl(r.host_avatar, r.host_name || r.host_id || 'Host') || undefined,
+                host_photo_privacy: isHostShielded ? 'blurred_until_accept' : 'public',
+                target_gender: (r.target_gender || 'all') as any,
+                status: r.status as any,
+                scheduled_at: r.scheduled_at ? new Date(r.scheduled_at).toISOString() : undefined,
+                participant_count: Number(r.participant_count || 1),
+                max_participants: Number(r.max_participants || 50),
+                created_at: new Date(r.created_at).toISOString()
+            };
+        });
 
         liveEventsStore.length = 0;
         liveEventsStore.push(...dbEvents);
@@ -454,6 +509,7 @@ export async function endUserLiveEvents(userId: string) {
     if (eventIndex !== -1) {
         endedEvent = liveEventsStore.splice(eventIndex, 1)[0];
         endedEvent.status = 'ended';
+        liveEventParticipants.delete(endedEvent.id);
     }
 
     try {
@@ -469,7 +525,7 @@ export async function endUserLiveEvents(userId: string) {
         const { getIO } = require('../socket');
         const io = getIO();
         if (io && endedEvent) {
-            io.emit('live_event_ended', endedEvent);
+            io.emit('live_event_ended', toSafeBroadcastEvent(endedEvent));
         }
     } catch (e) {}
 }
@@ -490,8 +546,19 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
 
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            select: { full_name: true, avatar_url: true }
+            select: {
+                full_name: true,
+                avatar_url: true,
+                is_banned: true,
+                is_deactivated: true,
+                deactivated_until: true,
+                profiles: { select: { metadata: true } }
+            }
         });
+        const isDeactivatedActive = Boolean(user?.is_deactivated) && (!user?.deactivated_until || new Date(user.deactivated_until) > new Date());
+        if (!user || user.is_banned || isDeactivatedActive) {
+            return res.status(403).json({ error: 'Account is not active' });
+        }
 
         let status: 'live' | 'upcoming' = 'live';
         let scheduledIso: string | undefined = undefined;
@@ -504,13 +571,15 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             }
         }
 
+        const isHostShielded = isPhotoPrivacyShieldEnabled(user?.profiles?.metadata);
         const newEvent: LiveSpeedDateEvent = {
             id: `evt_live_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
             title: title.trim(),
             description: description ? description.trim() : 'Live 3-Minute Speed Dating Roulette',
             host_id: userId,
             host_name: user?.full_name || 'Host User',
-            host_avatar: user?.avatar_url || undefined,
+            host_avatar: sanitizePhotoUrl(user?.avatar_url, user?.full_name || userId || 'Host') || undefined,
+            host_photo_privacy: isHostShielded ? 'blurred_until_accept' : 'public',
             target_gender: target_gender || 'all',
             status,
             scheduled_at: scheduledIso,
@@ -518,6 +587,7 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             max_participants: max_participants || 50,
             created_at: new Date().toISOString()
         };
+        liveEventParticipants.set(newEvent.id, new Set([userId]));
 
         // Persist to PostgreSQL DB
         try {
@@ -536,7 +606,7 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
             const { getIO } = require('../socket');
             const io = getIO();
             if (io) {
-                io.emit('live_event_created', newEvent);
+                io.emit('live_event_created', toSafeBroadcastEvent(newEvent));
             }
         } catch (err) {
             console.error('Failed to emit live_event_created socket event:', err);
@@ -546,7 +616,7 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
 
         return res.status(201).json({
             success: true,
-            event: newEvent,
+            event: { ...newEvent, isBlurred: false },
             message: status === 'upcoming'
                 ? '📅 Your Live Speed Dating event has been scheduled successfully!'
                 : '🎉 Your Live Speed Dating event is now LIVE!'
@@ -561,13 +631,31 @@ router.post('/events/create', authenticateToken, async (req: any, res) => {
  * GET /api/dates/events/active
  * Returns active & scheduled live speed dating events
  */
-router.get('/events/active', async (req, res) => {
+router.get('/events/active', authenticateOptional, async (req: any, res) => {
     try {
-        const activeEvents = await syncLiveEventsFromDB();
+        const viewerId = req.user?.userId || null;
+        const [activeEvents, connectedSet, blockedSet] = await Promise.all([
+            syncLiveEventsFromDB(),
+            viewerId ? getConnectedUserIdSet(prisma, viewerId) : Promise.resolve(new Set<string>()),
+            viewerId ? getBlockedUserIdSet(prisma, viewerId) : Promise.resolve(new Set<string>())
+        ]);
+
+        const visibleEvents = activeEvents
+            .filter(e => !blockedSet.has(e.host_id))
+            .map(e => {
+                const isShielded = e.host_photo_privacy === 'blurred_until_accept';
+                const isBlurred = isShielded && (!viewerId || (e.host_id !== viewerId && !connectedSet.has(e.host_id)));
+                return {
+                    ...e,
+                    host_avatar: isBlurred ? undefined : e.host_avatar,
+                    isBlurred
+                };
+            });
+
         return res.json({
             success: true,
-            activeCount: activeEvents.length,
-            events: activeEvents
+            activeCount: visibleEvents.length,
+            events: visibleEvents
         });
     } catch (e: any) {
         return res.status(500).json({ error: 'Failed to fetch active events' });
@@ -588,20 +676,30 @@ router.post('/events/join', authenticateToken, async (req: any, res) => {
             return res.status(404).json({ success: false, error: 'Live event room not found or has ended' });
         }
 
-        // 1. Capacity check
-        if (targetEvent.max_participants && targetEvent.participant_count >= targetEvent.max_participants) {
-            return res.status(400).json({
-                success: false,
-                error: `This live room has reached maximum capacity (${targetEvent.max_participants} participants)`
-            });
+        const joiningUser = await prisma.users.findUnique({
+            where: { id: userId },
+            select: { gender: true, is_banned: true, is_deactivated: true, deactivated_until: true }
+        });
+        const isDeactivatedActive = Boolean(joiningUser?.is_deactivated) && (!joiningUser?.deactivated_until || new Date(joiningUser.deactivated_until) > new Date());
+        if (!joiningUser || joiningUser.is_banned || isDeactivatedActive) {
+            return res.status(403).json({ success: false, error: 'Account is not active' });
         }
 
-        // 2. Target gender check
+        const blocked = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: targetEvent.host_id },
+                    { blocker_id: targetEvent.host_id, blocked_id: userId }
+                ]
+            },
+            select: { blocker_id: true }
+        });
+        if (blocked) {
+            return res.status(403).json({ success: false, error: 'Unable to join this live room' });
+        }
+
+        // 1. Target gender check
         if (targetEvent.target_gender && targetEvent.target_gender !== 'all') {
-            const joiningUser = await prisma.users.findUnique({
-                where: { id: userId },
-                select: { gender: true }
-            });
             const userGender = (joiningUser?.gender || '').toLowerCase();
 
             if (targetEvent.target_gender === 'female' && !(userGender === 'female' || userGender === 'woman')) {
@@ -619,20 +717,48 @@ router.post('/events/join', authenticateToken, async (req: any, res) => {
             }
         }
 
-        targetEvent.participant_count += 1;
+        let participants = liveEventParticipants.get(targetEvent.id);
+        if (!participants) {
+            participants = new Set([targetEvent.host_id]);
+            liveEventParticipants.set(targetEvent.id, participants);
+        }
+
+        // 2. Capacity & deduplication check
+        if (!participants.has(userId)) {
+            if (targetEvent.max_participants && targetEvent.participant_count >= targetEvent.max_participants) {
+                return res.status(400).json({
+                    success: false,
+                    error: `This live room has reached maximum capacity (${targetEvent.max_participants} participants)`
+                });
+            }
+            participants.add(userId);
+            targetEvent.participant_count += 1;
+            prisma.$executeRawUnsafe(
+                `UPDATE live_speed_date_events SET participant_count = $1 WHERE id = $2;`,
+                targetEvent.participant_count,
+                targetEvent.id
+            ).catch(() => {});
+        }
 
         // Broadcast update via socket
         try {
             const { getIO } = require('../socket');
             const io = getIO();
             if (io) {
-                io.emit('live_event_updated', targetEvent);
+                io.emit('live_event_updated', toSafeBroadcastEvent(targetEvent));
             }
         } catch (e) {}
 
+        const isConnected = targetEvent.host_id === userId || await areUsersConnected(prisma, userId, targetEvent.host_id);
+        const isBlurred = targetEvent.host_photo_privacy === 'blurred_until_accept' && !isConnected;
+
         return res.json({
             success: true,
-            event: targetEvent,
+            event: {
+                ...targetEvent,
+                host_avatar: isBlurred ? undefined : targetEvent.host_avatar,
+                isBlurred
+            },
             message: 'Joined live event queue successfully'
         });
     } catch (e: any) {

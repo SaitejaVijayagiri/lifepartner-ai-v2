@@ -6,6 +6,7 @@ import { Radio, Sparkles, Send, Heart, Flame, MessageCircle, Zap, HelpCircle, X,
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
+import { isProfilePhotoBlurred } from '@/lib/utils';
 
 interface LiveSinglesRadarProps {
     matches: any[];
@@ -369,6 +370,7 @@ export default function LiveSinglesRadar({
                         const photo = match.photoUrl || (Array.isArray(match.photos) ? match.photos[0] : '') || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(pName)}`;
                         const isWaved = wavedIds.has(mId);
                         const isConnected = Boolean(match.isConnected || match.match_status === 'connected' || match.match_status === 'accepted');
+                        const isPhotoBlurred = isProfilePhotoBlurred(match, currentUser, isConnected || undefined);
                         const age = match.age || 25;
                         const city = match.city || (typeof match.location === 'string' ? match.location.split(',')[0] : 'Nearby');
                         const isLive = activeTab === 'live';
@@ -381,18 +383,25 @@ export default function LiveSinglesRadar({
                                 className="group flex flex-col items-center shrink-0 w-24 sm:w-28 p-2 rounded-2xl bg-white/95 hover:bg-indigo-50/90 dark:bg-slate-800/60 dark:hover:bg-indigo-950/50 border border-gray-200/90 dark:border-slate-700/60 hover:border-indigo-400/80 transition-all duration-300 hover:-translate-y-1 cursor-pointer select-none shadow-sm"
                             >
                                 <div className="relative mb-2">
-                                    <img
-                                        src={photo}
-                                        alt={pName}
-                                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-2 shadow-md group-hover:scale-105 transition-transform ${
+                                    <div
+                                        className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 shadow-md group-hover:scale-105 transition-transform ${
                                             isLive
                                                 ? 'border-emerald-400/90'
                                                 : isToday
                                                     ? 'border-amber-400/80'
                                                     : 'border-purple-400/80'
                                         }`}
-                                        loading="lazy"
-                                    />
+                                    >
+                                        <img
+                                            src={photo}
+                                            alt={pName}
+                                            className={`w-full h-full object-cover ${isPhotoBlurred ? 'blur-lg scale-110' : ''}`}
+                                            loading="lazy"
+                                        />
+                                        {isPhotoBlurred && (
+                                            <div className="absolute inset-0 bg-black/35 flex items-center justify-center text-white text-sm">🔒</div>
+                                        )}
+                                    </div>
                                     {/* Presence Dot: Emerald pulse for Live, Amber clock badge for Active Today, Purple sparkle for Recommended */}
                                     {isLive ? (
                                         <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full shadow-sm">

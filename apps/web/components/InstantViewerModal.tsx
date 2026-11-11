@@ -531,23 +531,33 @@ export default function InstantViewerModal({
                             <div className="py-8 text-center text-xs text-slate-400">No views recorded yet. Viewers will appear here in real-time.</div>
                         ) : (
                             <div className="space-y-3">
-                                {viewersList.map(v => (
-                                    <div key={v.id} className="flex items-center justify-between py-2 border-b border-slate-900/60 last:border-0">
-                                        <div className="flex items-center space-x-3">
-                                            <img
-                                                src={v.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.name}`}
-                                                alt={v.name}
-                                                className="w-9 h-9 rounded-full object-cover bg-slate-800 border border-slate-700"
-                                            />
-                                            <span className="font-semibold text-xs text-slate-200">{v.name}</span>
+                                {viewersList.map(v => {
+                                    const isVBlurred = Boolean(v.isBlurred || v.photo_privacy === 'blurred_until_accept');
+                                    return (
+                                        <div key={v.id} className="flex items-center justify-between py-2 border-b border-slate-900/60 last:border-0">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
+                                                    <img
+                                                        src={isVBlurred ? '/avatar-fallback.svg' : (v.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${v.name}`)}
+                                                        alt={v.name}
+                                                        className={`w-full h-full object-cover ${isVBlurred ? 'blur-md scale-110' : ''}`}
+                                                    />
+                                                    {isVBlurred && (
+                                                        <div className="absolute inset-0 bg-slate-950/50 flex items-center justify-center">
+                                                            <Lock className="w-3.5 h-3.5 text-white" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="font-semibold text-xs text-slate-200">{v.name}</span>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[10px] text-slate-400 font-medium">
+                                                    {formatViewedAt(v.viewedAt)}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-[10px] text-slate-400 font-medium">
-                                                {formatViewedAt(v.viewedAt)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

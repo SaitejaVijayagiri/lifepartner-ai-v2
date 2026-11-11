@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Capacitor } from '@capacitor/core';
+import { isNativePlatform, getNativeBridge } from '@/lib/notifications';
 
 export default function AppModeHandler() {
   const router = useRouter();
@@ -14,23 +14,9 @@ export default function AppModeHandler() {
     // Clean up stale localStorage flag if present from previous sessions
     localStorage.removeItem('isAppMode');
 
-    // Strict detection of actual installed App container / Standalone PWA mode:
-    // 1. Running inside native Android/Capacitor APK WebView
-    const isCapacitor = Capacitor.isNativePlatform();
-
-    // 2. Launched as standalone PWA app from home screen icon
+    // Installed native Android / Standalone PWA container check
     const isPwaStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-
-    // 3. Launched with explicit manifest app start URL parameter (?app=native, ?app=true, or ?mode=standalone)
-    const isAppUrlParam = window.location.search.includes('app=') || window.location.search.includes('mode=standalone');
-
-    // 4. Native Bridge injection check (AndroidBridge / androidBridge)
-    const isNativeBridge = typeof window !== 'undefined' && !!((window as any).AndroidBridge || (window as any).androidBridge);
-
-    // 5. Native User-Agent string check
-    const isNativeUserAgent = typeof navigator !== 'undefined' && /LifePartnerApp|Capacitor/i.test(navigator.userAgent);
-
-    const isInstalledApp = isCapacitor || isPwaStandalone || isAppUrlParam || isNativeBridge || isNativeUserAgent;
+    const isInstalledApp = isNativePlatform() || isPwaStandalone;
 
     if (isInstalledApp) {
       document.documentElement.setAttribute('data-capacitor', 'true');

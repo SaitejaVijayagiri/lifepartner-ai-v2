@@ -808,14 +808,33 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
-        socket.on("anonymous_chat_reveal_request", (data: { partnerId: string }) => {
+        const areUsersBlocked = async (a: string, b: string): Promise<boolean> => {
+            try {
+                const found = await prisma.blocks.findFirst({
+                    where: {
+                        OR: [
+                            { blocker_id: a, blocked_id: b },
+                            { blocker_id: b, blocked_id: a }
+                        ]
+                    },
+                    select: { blocker_id: true }
+                });
+                return !!found;
+            } catch {
+                return false;
+            }
+        };
+
+        socket.on("anonymous_chat_reveal_request", async (data: { partnerId: string }) => {
             if (userId && data?.partnerId) {
+                if (await areUsersBlocked(userId, data.partnerId)) return;
                 io.to(data.partnerId).emit("anonymous_chat_reveal_requested", { fromUserId: userId });
             }
         });
 
         socket.on("anonymous_chat_reveal_accept", async (data: { partnerId: string }) => {
             if (userId && data?.partnerId) {
+                if (await areUsersBlocked(userId, data.partnerId)) return;
                 try {
                     // Save mutual match in Prisma
                     await prisma.matches.createMany({
@@ -844,8 +863,12 @@ export const initSocket = (httpServer: HttpServer) => {
             }
         });
 
-        socket.on("anonymous_chat_message", ({ to, text }: { to: string; text: string }) => {
+        socket.on("anonymous_chat_message", async ({ to, text }: { to: string; text: string }) => {
             if (userId && to && text) {
+                if (await areUsersBlocked(userId, to)) {
+                    socket.emit("anonymous_chat_partner_skipped");
+                    return;
+                }
                 const sanitizedText = sanitizeContent(text);
                 io.to(to).emit("anonymous_chat_message", {
                     from: userId,
@@ -922,6 +945,22 @@ export const initSocket = (httpServer: HttpServer) => {
                     where: { created_at: { lt: fiveDaysAgo } }
                 }).catch(console.error);
 
+                // Fetch user's block relationships to hide blocked members' lounge messages
+                const blocks = await prisma.blocks.findMany({
+                    where: {
+                        OR: [
+                            { blocker_id: currentUserId },
+                            { blocked_id: currentUserId }
+                        ]
+                    },
+                    select: { blocker_id: true, blocked_id: true }
+                });
+                const blockedUserIds = new Set<string>();
+                for (const b of blocks) {
+                    if (b.blocker_id !== currentUserId) blockedUserIds.add(b.blocker_id);
+                    if (b.blocked_id !== currentUserId) blockedUserIds.add(b.blocked_id);
+                }
+
                 // Fetch recent messages
                 const historyRaw = await prisma.lounge_messages.findMany({
                     where: { created_at: { gte: fiveDaysAgo } },
@@ -933,20 +972,27 @@ export const initSocket = (httpServer: HttpServer) => {
                     }
                 });
 
-                const history = historyRaw.map(msg => ({
-                    id: msg.id,
-                    text: msg.text,
-                    sender: {
-                        id: msg.users.id,
-                        userId: msg.users.id,
-                        name: msg.users.full_name || 'Member',
-                        photo: msg.users.avatar_url,
-                        isVerified: true
-                    },
-                    timestamp: msg.created_at
-                }));
+                const history = historyRaw
+                    .filter(msg => !blockedUserIds.has(msg.users.id))
+                    .map(msg => ({
+                        id: msg.id,
+                        text: msg.text,
+                        sender: {
+                            id: msg.users.id,
+                            userId: msg.users.id,
+                            name: msg.users.full_name || 'Member',
+                            photo: msg.users.avatar_url,
+                            isVerified: true
+                        },
+                        timestamp: msg.created_at
+                    }));
 
-                socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎", history });
+                socket.emit('joined_community', {
+                    success: true,
+                    message: "Welcome to the Verified Lounge 💎",
+                    history,
+                    blockedUserIds: Array.from(blockedUserIds)
+                });
             } catch (err) {
                 console.error("Failed to fetch lounge history:", err);
                 socket.emit('joined_community', { success: true, message: "Welcome to the Verified Lounge 💎" });

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DownloadAppModal from '@/components/DownloadAppModal';
+import { isNativePlatform } from '@/lib/notifications';
 import { Smartphone, Download, ShieldCheck, Zap, Sparkles, RefreshCw, CheckCircle, BellRing, Heart, Lock, Star, ArrowRight } from 'lucide-react';
 
 export default function DownloadPage() {
@@ -13,6 +14,11 @@ export default function DownloadPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
+
+  useEffect(() => {
+    setIsNativeApp(isNativePlatform());
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -104,6 +110,24 @@ export default function DownloadPage() {
                 Enjoy real-time instant message notifications, screenshot-protected photo Snaps, live speed dating, & zero forced subscription paywalls.
               </p>
 
+              {isNativeApp ? (
+                <div className="p-4 rounded-2xl bg-white/15 border border-white/25 backdrop-blur-md space-y-3 max-w-md">
+                  <div className="flex items-center gap-2 text-emerald-300 font-bold text-sm">
+                    <CheckCircle size={18} />
+                    <span>Official Android App Active</span>
+                  </div>
+                  <p className="text-xs text-purple-100 leading-relaxed">
+                    You are already running the official LifePartner Android app with automatic live updates enabled.
+                  </p>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-purple-900 font-bold text-xs hover:bg-purple-50 transition-all shadow-md"
+                  >
+                    <span>Return to Dashboard</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              ) : (
               <div className="flex flex-wrap gap-4">
                 <button
                   onClick={handleDownloadApk}
@@ -118,7 +142,7 @@ export default function DownloadPage() {
                   ) : (
                     <>
                       <Download size={18} className="text-purple-700" />
-                      <span>Download Android APK (4.4 MB)</span>
+                      <span>Download Android APK (6.9 MB)</span>
                     </>
                   )}
                 </button>
@@ -136,11 +160,12 @@ export default function DownloadPage() {
                   ) : (
                     <>
                       <Sparkles size={18} className="text-pink-300" />
-                      <span>Download App Bundle AAB (4.2 MB)</span>
+                      <span>Download App Bundle AAB (6.6 MB)</span>
                     </>
                   )}
                 </button>
               </div>
+              )}
             </div>
 
             {/* App Preview Frame */}
@@ -210,7 +235,8 @@ export default function DownloadPage() {
           </div>
         </div>
 
-        {/* APK Installation Guide */}
+        {/* APK Installation Guide (hidden inside native Play Store Android app) */}
+        {!isNativeApp && (
         <div className="bg-white dark:bg-gray-950 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 shadow-xl mb-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
             <Smartphone size={22} className="text-purple-600" />
@@ -255,6 +281,7 @@ export default function DownloadPage() {
             </div>
           </div>
         </div>
+        )}
       </main>
 
       <Footer />

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Send, MapPin, Sparkles, UserX, ShieldCheck, Heart, UserCheck, X, RefreshCw, Lock, Unlock } from 'lucide-react';
+import { Send, MapPin, Sparkles, UserX, ShieldCheck, Heart, UserCheck, X, RefreshCw, Lock, Unlock, Flag } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import ReportModal from './ReportModal';
 
 interface AnonymousPartner {
     id: string;
@@ -41,6 +42,7 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
     const [revealRequestedByMe, setRevealRequestedByMe] = useState(false);
     const [revealRequestedByPartner, setRevealRequestedByPartner] = useState(false);
     const [isRevealed, setIsRevealed] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -307,12 +309,25 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                         </div>
                     </div>
 
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                    >
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {partner && (
+                            <button
+                                type="button"
+                                onClick={() => setShowReportModal(true)}
+                                title="Report & Block Stranger"
+                                aria-label="Report Stranger"
+                                className="p-2 rounded-full bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+                            >
+                                <Flag size={17} />
+                            </button>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* SEARCHING RADAR SCREEN */}
@@ -405,13 +420,23 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                         )}
 
                         {/* Quick Control Actions */}
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-2">
                             <button
                                 onClick={handleSkip}
-                                className="flex-1 py-2 px-4 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                                className="flex-1 py-2 px-3 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
                             >
                                 <UserX size={16} />
-                                <span>⏭️ Skip Stranger</span>
+                                <span>Skip</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowReportModal(true)}
+                                className="py-2 px-3 bg-slate-800 hover:bg-rose-950/60 border border-rose-500/30 text-rose-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                                title="Report and block this stranger"
+                            >
+                                <Flag size={14} />
+                                <span>Report</span>
                             </button>
 
                             <button
@@ -450,6 +475,18 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                     </div>
                 )}
             </div>
+
+            {partner && (
+                <ReportModal
+                    isOpen={showReportModal}
+                    onClose={() => setShowReportModal(false)}
+                    targetUserId={partner.id}
+                    targetUserName={partner.name || 'Anonymous Stranger'}
+                    onSuccess={() => {
+                        handleSkip();
+                    }}
+                />
+            )}
         </div>
     );
 }

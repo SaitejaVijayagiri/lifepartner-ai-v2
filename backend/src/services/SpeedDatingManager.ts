@@ -159,9 +159,33 @@ export class SpeedDatingManager {
         const females = Array.from(this.femaleQueue.values());
         const now = Date.now();
 
+        // Fetch active block pairs among queued users so blocked members never pair
+        const blockedPairSet = new Set<string>();
+        if (males.length > 0 && females.length > 0) {
+            const queuedIds = [...males.map(u => u.userId), ...females.map(u => u.userId)];
+            try {
+                const blocks = await prisma.blocks.findMany({
+                    where: {
+                        OR: [
+                            { blocker_id: { in: queuedIds } },
+                            { blocked_id: { in: queuedIds } }
+                        ]
+                    },
+                    select: { blocker_id: true, blocked_id: true }
+                });
+                for (const b of blocks) {
+                    blockedPairSet.add(`${b.blocker_id}:${b.blocked_id}`);
+                    blockedPairSet.add(`${b.blocked_id}:${b.blocker_id}`);
+                }
+            } catch (err) {
+                console.warn('[SPEED DATING] Failed to load block filters:', err);
+            }
+        }
+
         // 1. Peer-to-Peer Socket Matching with MNC Proximity, Language & Affinity Intelligence
         for (const maleUser of males) {
-            const eligibleFemales = females.filter(f => 
+            const eligibleFemales = females.filter(f =>
+                !blockedPairSet.has(`${maleUser.userId}:${f.userId}`) &&
                 (maleUser.targetGender === 'any' || maleUser.targetGender === 'female') &&
                 (f.targetGender === 'any' || f.targetGender === 'male')
             );

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 import { X, Coins, Sparkles, Crown, Zap, Star, CheckCircle, Shield, Rocket, Gift, MessageCircle, HelpCircle, Flame, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { getCashfreeMode, isNativePlatform } from '@/lib/notifications';
 import { load } from '@cashfreepayments/cashfree-js';
 
 const COIN_BUNDLES = [
@@ -24,8 +25,9 @@ export default function CoinStoreModal({
     onSuccess?: () => void;
     initialTab?: 'spend' | 'coins' | 'premium';
 }) {
+    const isNativeApp = isNativePlatform();
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'spend' | 'coins' | 'premium'>(initialTab);
+    const [activeTab, setActiveTab] = useState<'spend' | 'coins' | 'premium'>(isNativeApp ? 'spend' : initialTab);
     const [balance, setBalance] = useState<number | null>(null);
     const [isBoosting, setIsBoosting] = useState(false);
     const [boostSuccess, setBoostSuccess] = useState(false);
@@ -49,7 +51,7 @@ export default function CoinStoreModal({
     // Fetch latest balance whenever modal opens
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(initialTab);
+            setActiveTab(isNativeApp ? 'spend' : initialTab);
             api.wallet.getBalance()
                 .then((res: any) => {
                     if (res && res.balance !== undefined) {
@@ -58,11 +60,15 @@ export default function CoinStoreModal({
                 })
                 .catch(() => {});
         }
-    }, [isOpen, initialTab]);
+    }, [isOpen, initialTab, isNativeApp]);
 
     if (!isOpen || !mounted) return null;
 
     const handlePurchase = async (item: any, type: 'COINS' | 'PREMIUM') => {
+        if (isNativeApp) {
+            toast.info("Earn free coins daily via Chemistry Spark voting and Login Streaks!");
+            return;
+        }
         setLoading(true);
         try {
             const orderRes = await api.payments.createOrder(
@@ -76,7 +82,7 @@ export default function CoinStoreModal({
             }
 
             const cashfree = await load({
-                mode: "sandbox"
+                mode: getCashfreeMode()
             });
 
             await cashfree.checkout({
@@ -93,8 +99,12 @@ export default function CoinStoreModal({
 
     const handleActivateBoost = async () => {
         if ((balance ?? 0) < 50) {
-            toast.error("You need at least 50 coins to boost your profile!");
-            setActiveTab('coins');
+            if (isNativeApp) {
+                toast.error("You need 50 coins to boost! Earn free coins via Daily Spark or Login Streaks.");
+            } else {
+                toast.error("You need at least 50 coins to boost your profile!");
+                setActiveTab('coins');
+            }
             return;
         }
 
@@ -130,7 +140,7 @@ export default function CoinStoreModal({
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-black text-xl tracking-tight">Coins & Perks Store</h3>
+                                <h3 className="font-black text-xl tracking-tight">{isNativeApp ? 'Coins & Perks' : 'Coins & Perks Store'}</h3>
                             </div>
                             <p className="text-white/80 text-xs font-semibold flex items-center gap-1.5 mt-0.5">
                                 <span>Current Balance:</span>
@@ -149,46 +159,48 @@ export default function CoinStoreModal({
                     </button>
                 </div>
 
-                {/* 3 Interactive Tabs */}
-                <div className="flex bg-gray-100 dark:bg-gray-800/90 p-1.5 mx-4 mt-4 rounded-2xl gap-1">
-                    <button
-                        onClick={() => setActiveTab('spend')}
-                        className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                            activeTab === 'spend'
-                                ? 'bg-white dark:bg-gray-900 text-amber-600 dark:text-amber-400 shadow-md'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                    >
-                        <Zap size={14} className="text-amber-500" />
-                        <span>Use Coins</span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('coins')}
-                        className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                            activeTab === 'coins'
-                                ? 'bg-white dark:bg-gray-900 text-amber-600 dark:text-amber-400 shadow-md'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                    >
-                        <Coins size={14} className="text-amber-500" />
-                        <span>Get Coins</span>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('premium')}
-                        className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                            activeTab === 'premium'
-                                ? 'bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 shadow-md'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}
-                    >
-                        <Crown size={14} className="text-purple-500" />
-                        <span>VIP Premium</span>
-                    </button>
-                </div>
+                {/* Interactive Tabs (hide paid tabs inside Play Store Android app) */}
+                {!isNativeApp && (
+                    <div className="flex bg-gray-100 dark:bg-gray-800/90 p-1.5 mx-4 mt-4 rounded-2xl gap-1">
+                        <button
+                            onClick={() => setActiveTab('spend')}
+                            className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                activeTab === 'spend'
+                                    ? 'bg-white dark:bg-gray-900 text-amber-600 dark:text-amber-400 shadow-md'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            <Zap size={14} className="text-amber-500" />
+                            <span>Use Coins</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('coins')}
+                            className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                activeTab === 'coins'
+                                    ? 'bg-white dark:bg-gray-900 text-amber-600 dark:text-amber-400 shadow-md'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            <Coins size={14} className="text-amber-500" />
+                            <span>Get Coins</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('premium')}
+                            className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                activeTab === 'premium'
+                                    ? 'bg-white dark:bg-gray-900 text-purple-600 dark:text-purple-400 shadow-md'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            <Crown size={14} className="text-purple-500" />
+                            <span>VIP Premium</span>
+                        </button>
+                    </div>
+                )}
 
                 {/* Tab 1: Where & How to Use Coins */}
                 <div className="p-4 sm:p-5 space-y-4 overflow-y-auto no-scrollbar">
-                    {activeTab === 'spend' && (
+                    {(isNativeApp || activeTab === 'spend') && (
                         <div className="space-y-4">
                             {/* Explanatory Banner */}
                             <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border border-amber-500/20 text-gray-800 dark:text-gray-200 text-xs space-y-1">
@@ -285,7 +297,7 @@ export default function CoinStoreModal({
                     )}
 
                     {/* Tab 2: Buy Coins */}
-                    {activeTab === 'coins' && (
+                    {!isNativeApp && activeTab === 'coins' && (
                         <div className="space-y-3">
                             {COIN_BUNDLES.map((bundle) => (
                                 <div
@@ -336,7 +348,7 @@ export default function CoinStoreModal({
                     )}
 
                     {/* Tab 3: VIP Premium */}
-                    {activeTab === 'premium' && (
+                    {!isNativeApp && activeTab === 'premium' && (
                         <div className="space-y-4">
                             <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-3xl p-5 text-white overflow-hidden shadow-xl">
                                 <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
@@ -388,7 +400,7 @@ export default function CoinStoreModal({
                 {/* Footer */}
                 <div className="p-3.5 bg-gray-50 dark:bg-gray-800/80 text-center text-[11px] text-gray-400 flex-shrink-0 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-1.5">
                     <Shield size={12} className="text-emerald-500" />
-                    <span>100% Secure Payments • Instant Wallet Credit</span>
+                    <span>{isNativeApp ? 'Earn Free Coins Daily via Spark & Streaks' : '100% Secure Payments • Instant Wallet Credit'}</span>
                 </div>
             </div>
         </div>,

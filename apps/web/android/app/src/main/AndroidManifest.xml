@@ -3,7 +3,7 @@
     <application
         android:hardwareAccelerated="true"
         android:debuggable="false"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -37,8 +37,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="lifepartnerai.in" />
                 <data android:scheme="https" android:host="www.lifepartnerai.in" />
-                <data android:scheme="http" android:host="lifepartnerai.in" />
-                <data android:scheme="http" android:host="www.lifepartnerai.in" />
             </intent-filter>
         </activity>
 

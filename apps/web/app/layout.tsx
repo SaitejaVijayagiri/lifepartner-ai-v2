@@ -58,10 +58,10 @@ export const metadata: Metadata = {
     },
   },
   title: {
-    default: "LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App (100% Verified)",
-    template: "%s | LifePartner AI - Free AI Matrimony & Worldwide Dating"
+    default: "LifePartner AI | AI Matrimony & Worldwide Matchmaking App",
+    template: "%s | LifePartner AI - AI Matrimony & Worldwide Matchmaking"
   },
-  description: "Meet 100% verified singles for serious matrimony and meaningful dating worldwide—100% free. Zero subscription paywalls, AI compatibility matching, instant direct chat, HD video calls, and Women-First privacy protection.",
+  description: "Meet verified singles for serious matrimony and meaningful dating worldwide. Free registration and direct chat with AI compatibility matching, HD video calls, and Women-First privacy protection.",
   keywords: [
     // Women-First & High-Trust Dating / Matrimony Keywords
     "safe dating app for women", "free matrimony app without payment", "women first dating app",
@@ -95,8 +95,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     alternateLocale: ["en_GB", "en_CA", "en_AU", "en_IN", "ja_JP", "ko_KR", "hi_IN", "te_IN", "ta_IN"],
     url: "https://lifepartnerai.in",
-    title: "LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App",
-    description: "Meet verified singles for serious matrimony and meaningful dating worldwide—100% free. Zero paywalls, instant direct chat, HD video calls, and Women-First privacy protection.",
+    title: "LifePartner AI | AI Matrimony & Worldwide Matchmaking App",
+    description: "Meet verified singles for serious matrimony and meaningful dating worldwide. Free core registration and direct chat, AI compatibility, HD video calls, and Women-First privacy protection.",
     siteName: "LifePartner AI",
     images: [
       {
@@ -115,8 +115,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "LifePartner AI | #1 Free AI Matrimony & Worldwide Dating App",
-    description: "Join 10,000+ verified singles finding love on LifePartner AI. 100% Free Direct Chat, AI Compatibility & Women-First Privacy Protection.",
+    title: "LifePartner AI | AI Matrimony & Worldwide Matchmaking App",
+    description: "Meet verified singles finding meaningful connections on LifePartner AI. Free direct chat, AI compatibility matching, and Women-First privacy protection.",
     images: ["https://lifepartnerai.in/opengraph-image", "https://lifepartnerai.in/og-image.jpg"],
   },
   category: "Dating Application",
@@ -253,7 +253,7 @@ export default function RootLayout({
               "availableLanguage": ["English", "Telugu", "Hindi", "Tamil", "Kannada", "Malayalam", "Marathi", "Bengali", "Punjabi", "Gujarati", "Spanish", "French", "Russian", "Arabic", "Japanese", "Korean"],
               "serviceType": [
                 "AI Compatibility Matchmaking",
-                "100% Free Matrimony Direct Chat",
+                "Free Registration & Matrimony Direct Chat",
                 "Women-First Privacy & Anti-Creep Protection",
                 "Vedic Astrology & Kundali Milan Matching",
                 "Worldwide NRI Cross-Border Matchmaking"
@@ -267,7 +267,7 @@ export default function RootLayout({
                 "@type": "Offer",
                 "price": "0",
                 "priceCurrency": "USD",
-                "name": "100% Free Registration & Chat"
+                "name": "Free Registration & Direct Chat"
               }
             },
             {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { isNativePlatform } from '@/lib/notifications';
 import { Download, Smartphone, Sparkles, X, CheckCircle, ShieldCheck, Zap, RefreshCw, ArrowRight } from 'lucide-react';
 
 interface DownloadAppModalProps {
@@ -32,12 +33,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
   }, []);
 
   if (!isOpen) return null;
-  if (typeof window !== 'undefined') {
-    const isNative = !!((window as any).AndroidBridge || (window as any).androidBridge) ||
-                     document.documentElement.hasAttribute('data-capacitor') ||
-                     /LifePartnerApp|Capacitor/i.test(navigator.userAgent);
-    if (isNative) return null;
-  }
+  if (isNativePlatform()) return null;
 
   const handleInstallShortcut = async () => {
     if (deferredPrompt) {
@@ -137,7 +133,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
                 </div>
               </div>
               <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/60 text-pink-700 dark:text-pink-300 shrink-0">
-                v1.0.5
+                v1.0.7
               </span>
             </div>
 
@@ -155,7 +151,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
               ) : (
                 <>
                   <Download size={16} />
-                  <span>Download Android APK (4.4 MB)</span>
+                  <span>Download Android APK (6.9 MB)</span>
                 </>
               )}
             </a>
@@ -192,7 +188,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
               ) : (
                 <>
                   <Download size={16} className="text-indigo-400" />
-                  <span>Download App Bundle AAB (4.2 MB)</span>
+                  <span>Download App Bundle AAB (6.6 MB)</span>
                 </>
               )}
             </a>
@@ -222,7 +218,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
             <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
               <RefreshCw size={11} className="animate-spin" /> Automatic Live Updates
             </span>
-            <span>Version 2.4.0</span>
+            <span>Version 1.0.7</span>
           </div>
 
         </div>

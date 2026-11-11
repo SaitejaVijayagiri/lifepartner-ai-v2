@@ -3,7 +3,7 @@
 import { getZodiacSymbol } from '@/lib/religionUtils';
 
 import { useState, useEffect } from 'react';
-import { X, ArrowLeft, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2, Copy, Check, Share2 } from 'lucide-react';
+import { X, ArrowLeft, Heart, MessageCircle, MoreVertical, MapPin, Briefcase, GraduationCap, Globe, Shield, Star, Coins, Play, Sparkles, Trash2, Copy, Check, Share2, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
@@ -16,6 +16,7 @@ const KundliModal = dynamic(() => import('./KundliModal'), { ssr: false });
 const CoinStoreModal = dynamic(() => import('./CoinStoreModal'), { ssr: false });
 const CompatibilityModal = dynamic(() => import('./CompatibilityModal'), { ssr: false });
 const StoryModal = dynamic(() => import('./StoryModal'), { ssr: false });
+const ReportModal = dynamic(() => import('./ReportModal'), { ssr: false });
 
 interface ProfileModalProps {
     profile: any;
@@ -42,6 +43,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
     const toast = useToast();
     const [copiedId, setCopiedId] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
     const [matchStatus, setMatchStatus] = useState<string | null>(profile.match_status || null);
     const [loadingInterest, setLoadingInterest] = useState(false);
 
@@ -205,6 +207,16 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
 
                 {/* Top Right Floating Action Buttons */}
                 <div className="absolute top-4 right-4 z-[999] flex items-center gap-2">
+                    {(!currentUser || String(currentUser.id || currentUser.userId) !== String(profile.id)) && (
+                        <button
+                            onClick={() => setShowReportModal(true)}
+                            className="p-2.5 rounded-full bg-rose-600/80 hover:bg-rose-600 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
+                            aria-label="Report and Block User"
+                            title="Report & Block User"
+                        >
+                            <Flag size={17} />
+                        </button>
+                    )}
                     <button
                         onClick={handleShareProfile}
                         className="p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all hover:scale-110 active:scale-95 cursor-pointer flex items-center justify-center"
@@ -402,6 +414,17 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 )}
                             </div>
                             <div className="flex items-center gap-2">
+                                {(!currentUser || String(currentUser.id || currentUser.userId) !== String(profile.id)) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowReportModal(true)}
+                                        className="p-1 px-3 rounded-full bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                                        title="Report & Block Profile"
+                                    >
+                                        <Flag size={13} />
+                                        <span>Report</span>
+                                    </button>
+                                )}
                                 <div className="bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 dark:border-pink-800/50 flex items-center gap-1 w-max">
                                     <span>🎁</span> {profile.total_gifts || 0} Gifts
                                 </div>
@@ -1023,6 +1046,14 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                     </div>
                 );
             })()}
+
+            <ReportModal
+                isOpen={showReportModal}
+                onClose={() => setShowReportModal(false)}
+                targetUserId={profile.id}
+                targetUserName={profile.name || profile.full_name}
+                onSuccess={onClose}
+            />
 
             {activeHighlightSet && (
                 <StoryModal

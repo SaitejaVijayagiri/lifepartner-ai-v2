@@ -17,7 +17,9 @@ import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.view.WindowManager;
@@ -54,6 +56,11 @@ public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUEST_CODE = 200;
+    private static final int WEB_PERMISSION_REQUEST_CODE = 201;
+
+    private PermissionRequest pendingWebPermissionRequest = null;
+    private volatile String lastLoadedOrFailedUrl = "https://www.lifepartnerai.in?app=native";
+    private boolean pushPermissionPromptedThisSession = false;
 
     public static volatile String activeChatPartnerId = null;
     public static volatile boolean isAppInForeground = false;
@@ -196,8 +203,7 @@ public class MainActivity extends BridgeActivity {
         // 1. Initialize OneSignal if configured
         initOneSignal();
 
-        // 2. Single-batch runtime permission handling to prevent permission dialog collision & crashes
-        requestAppPermissions();
+        // 2. Camera, Microphone, and Notification permissions are requested just-in-time on demand (Play Policy compliance)
 
         // 3. Safely inject JavaScript interface with null check
         setupNativeBridge();
@@ -237,6 +243,46 @@ public class MainActivity extends BridgeActivity {
                 String scheme = data.getScheme();
                 if ("lifepartner".equalsIgnoreCase(scheme)) {
                     String host = data.getHost() != null ? data.getHost() : "";
+                    if ("auth-callback".equalsIgnoreCase(host)) {
+                        String token = data.getQueryParameter("token");
+                        String userId = data.getQueryParameter("userId");
+                        String next = data.getQueryParameter("next");
+                        String userJson = data.getQueryParameter("user");
+                        if (token != null && !token.trim().isEmpty()) {
+                            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+                            SharedPreferences.Editor editor = prefs.edit().putString("auth_token", token);
+                            if (userId != null && !userId.trim().isEmpty()) {
+                                editor.putString("user_id", userId);
+                            }
+                            editor.apply();
+                            MyFirebaseMessagingService.registerTokenWithBackend(MainActivity.this, token);
+                            if (userId != null && !userId.trim().isEmpty()) {
+                                OneSignal.login(userId);
+                            }
+                            StringBuilder hash = new StringBuilder();
+                            hash.append("native_token=").append(Uri.encode(token));
+                            if (userId != null && !userId.isEmpty()) {
+                                hash.append("&userId=").append(Uri.encode(userId));
+                            }
+                            if (next != null && !next.isEmpty()) {
+                                hash.append("&next=").append(Uri.encode(next));
+                            }
+                            if (userJson != null && !userJson.isEmpty()) {
+                                hash.append("&user=").append(Uri.encode(userJson));
+                            }
+                            final String authUrl = "https://www.lifepartnerai.in/auth/callback/google#" + hash.toString();
+                            runOnUiThread(() -> {
+                                try {
+                                    if (getBridge() != null && getBridge().getWebView() != null) {
+                                        getBridge().getWebView().loadUrl(authUrl);
+                                    }
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Failed to hand off OAuth session to WebView: ", e);
+                                }
+                            });
+                            return;
+                        }
+                    }
                     String path = data.getPath() != null ? data.getPath() : "";
                     targetPath = "/" + host + path;
                     String query = data.getQuery();
@@ -329,9 +375,10 @@ public class MainActivity extends BridgeActivity {
             try {
                 if (getBridge() != null && getBridge().getWebView() != null) {
                     WebView webView = getBridge().getWebView();
+                    String quotedPath = org.json.JSONObject.quote(cleanPath);
                     String script = "if (typeof window !== 'undefined') { " +
-                            "  if (window.location.pathname + window.location.search !== '" + cleanPath + "') { " +
-                            "    window.location.href = '" + cleanPath + "'; " +
+                            "  if (window.location.pathname + window.location.search + window.location.hash !== " + quotedPath + ") { " +
+                            "    window.location.href = " + quotedPath + "; " +
                             "  } else if (window.dispatchEvent) { " +
                             "    window.dispatchEvent(new CustomEvent('changeTab', { detail: { tab: 'requests' } })); " +
                             "  } " +
@@ -411,14 +458,11 @@ public class MainActivity extends BridgeActivity {
             OneSignal.initWithContext(this, ONESIGNAL_APP_ID);
             Log.d(TAG, "OneSignal initialized natively with App ID: " + ONESIGNAL_APP_ID);
 
-            // Explicitly opt-in device to push notifications
-            OneSignal.getUser().getPushSubscription().optIn();
-
-            // Request Android 13+ Notification permission through OneSignal
-            OneSignal.getNotifications().requestPermission(true, com.onesignal.Continue.with(r -> {
-                Log.d(TAG, "OneSignal native permission result: " + r.getData());
+            // Respect push preferences and defer OS notification permission prompt until user signs in or enables alerts
+            SharedPreferences initPrefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            if (!initPrefs.getBoolean("push_disabled", false)) {
                 OneSignal.getUser().getPushSubscription().optIn();
-            }));
+            }
 
             // Handle interactive button clicks & notification clicks from OneSignal notifications
             OneSignal.getNotifications().addClickListener(event -> {
@@ -653,53 +697,88 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void requestAppPermissions() {
-        try {
-            List<String> permissionsToRequest = new ArrayList<>();
+    private boolean isAllowedAppHost(String host) {
+        if (host == null) return false;
+        return host.equalsIgnoreCase("lifepartnerai.in") ||
+               host.equalsIgnoreCase("www.lifepartnerai.in") ||
+               host.endsWith(".lifepartnerai.in") ||
+               host.equalsIgnoreCase("localhost") ||
+               host.equalsIgnoreCase("10.0.2.2");
+    }
 
-            // Android 13+ Notification permission
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS);
-                }
-            }
+    private boolean isGoogleOAuthHost(String host) {
+        if (host == null) return false;
+        return host.equalsIgnoreCase("accounts.google.com") ||
+               host.equalsIgnoreCase("accounts.youtube.com") ||
+               host.endsWith(".accounts.google.com");
+    }
 
-            // Camera permission for Video Calling
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.CAMERA);
-            }
-
-            // Microphone permission for Voice & Video Calling
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                    != PackageManager.PERMISSION_GRANTED) {
-                permissionsToRequest.add(Manifest.permission.RECORD_AUDIO);
-            }
-
-            // Storage / Media permission for Photo Uploads
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    permissionsToRequest.add(Manifest.permission.READ_MEDIA_IMAGES);
-                }
-            } else {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-                }
-            }
-
-            if (!permissionsToRequest.isEmpty()) {
-                ActivityCompat.requestPermissions(
-                        this,
-                        permissionsToRequest.toArray(new String[0]),
-                        PERMISSION_REQUEST_CODE
-                );
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error requesting permissions: ", e);
+    private void launchCustomTabOrExternal(String rawUrl) {
+        if (rawUrl == null || (!rawUrl.startsWith("https://") && !rawUrl.startsWith("http://"))) {
+            return;
         }
+        runOnUiThread(() -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(rawUrl));
+                Bundle extras = new Bundle();
+                extras.putBinder("android.support.customtabs.extra.SESSION", null);
+                intent.putExtras(extras);
+                intent.putExtra("android.support.customtabs.extra.TOOLBAR_COLOR", ContextCompat.getColor(this, R.color.colorPrimaryDark));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            } catch (ActivityNotFoundException e) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(rawUrl)));
+                } catch (Exception ignored) {
+                    Log.e(TAG, "Unable to launch external browser for URL: " + rawUrl);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error opening Custom Tab: ", e);
+            }
+        });
+    }
+
+    private void requestPushPermissionIfNeeded(boolean force) {
+        try {
+            SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
+            if (prefs.getBoolean("push_disabled", false)) return;
+            if (!force && pushPermissionPromptedThisSession) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                OneSignal.getUser().getPushSubscription().optIn();
+                return;
+            }
+            pushPermissionPromptedThisSession = true;
+            OneSignal.getNotifications().requestPermission(true, com.onesignal.Continue.with(r -> {
+                Log.d(TAG, "OneSignal native permission result: " + r.getData());
+                if (Boolean.TRUE.equals(r.getData())) {
+                    OneSignal.getUser().getPushSubscription().optIn();
+                }
+            }));
+        } catch (Exception e) {
+            Log.e(TAG, "Error requesting push permission: ", e);
+        }
+    }
+
+    private void renderOfflineFallback(WebView view) {
+        if (view == null) return;
+        String html = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>" +
+            "<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;" +
+            "background:#0F172A;color:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;padding:24px;}" +
+            ".card{max-width:360px;width:100%;background:#1E293B;border:1px solid rgba(148,163,184,0.2);border-radius:24px;padding:28px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.4);}" +
+            ".icon{width:56px;height:56px;margin:0 auto 16px;border-radius:16px;background:linear-gradient(135deg,#6366F1,#EC4899);display:flex;align-items:center;justify-content:center;font-size:28px;}" +
+            "h2{margin:0 0 8px;font-size:20px;font-weight:800;}p{margin:0 0 20px;font-size:14px;color:#94A3B8;line-height:1.5;}" +
+            "button{width:100%;padding:14px 20px;border:none;border-radius:14px;background:linear-gradient(135deg,#4F46E5,#EC4899);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}</style></head>" +
+            "<body><div class='card'><div class='icon'>&#10084;</div><h2>Connection Interrupted</h2>" +
+            "<p>Unable to reach LifePartner AI right now. Check your internet connection and tap retry.</p>" +
+            "<button onclick='window.AndroidBridge && window.AndroidBridge.retryConnection()'>Retry Connection</button></div></body></html>";
+        runOnUiThread(() -> {
+            try {
+                view.loadDataWithBaseURL("https://www.lifepartnerai.in/", html, "text/html", "UTF-8", null);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to render offline fallback: ", e);
+            }
+        });
     }
 
     private void setupNativeBridge() {
@@ -715,7 +794,7 @@ public class MainActivity extends BridgeActivity {
                 android.webkit.WebSettings settings = webView.getSettings();
                 String ua = settings.getUserAgentString();
                 if (!ua.contains("LifePartnerApp")) {
-                    settings.setUserAgentString(ua + " LifePartnerApp/1.0.5 CapacitorApp NativeAndroidApp");
+                    settings.setUserAgentString(ua + " LifePartnerApp/1.0.7 CapacitorApp NativeAndroidApp");
                 }
 
                 // Smooth Native App rendering optimizations (disables web bounce and scrollbars)
@@ -876,8 +955,21 @@ public class MainActivity extends BridgeActivity {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
 
-                // 1. MNC-grade WebViewClient: NEVER let internal navigation escape to external Chrome!
+                // 1. WebViewClient: internal navigation stays in WebView, Google OAuth & external links open cleanly
                 webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
+                    @Override
+                    public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                        super.onPageStarted(view, url, favicon);
+                        if (url != null && !url.startsWith("about:") && !url.startsWith("data:")) {
+                            try {
+                                String host = Uri.parse(url).getHost();
+                                if (isAllowedAppHost(host)) {
+                                    lastLoadedOrFailedUrl = url;
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
+
                     @Override
                     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                         if (request == null || request.getUrl() == null) return false;
@@ -886,15 +978,14 @@ public class MainActivity extends BridgeActivity {
                         String scheme = uri.getScheme();
 
                         // Stay inside the WebView for all lifepartnerai.in domains, subdomains, and local dev
-                        if (host != null && (
-                                host.equalsIgnoreCase("lifepartnerai.in") ||
-                                host.equalsIgnoreCase("www.lifepartnerai.in") ||
-                                host.endsWith(".lifepartnerai.in") ||
-                                host.equalsIgnoreCase("localhost") ||
-                                host.equalsIgnoreCase("10.0.2.2")
-                        )) {
-                            // Returning false tells Android WebView: handle URL internally in this WebView!
+                        if (isAllowedAppHost(host)) {
                             return false;
+                        }
+
+                        // Open Google OAuth in Chrome Custom Tabs so Google Sign-In never hits disallowed_useragent
+                        if (isGoogleOAuthHost(host)) {
+                            launchCustomTabOrExternal(uri.toString());
+                            return true;
                         }
 
                         // Handle standard external device protocols (phone calls, email, SMS, UPI payments, WhatsApp)
@@ -908,31 +999,109 @@ public class MainActivity extends BridgeActivity {
                             return true;
                         }
 
+                        // Open external third-party HTTP(S) links in Custom Tabs / system browser
+                        if ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) {
+                            launchCustomTabOrExternal(uri.toString());
+                            return true;
+                        }
+
                         return super.shouldOverrideUrlLoading(view, request);
+                    }
+
+                    @Override
+                    public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                        if (request != null && request.isForMainFrame()) {
+                            int code = error != null ? error.getErrorCode() : 0;
+                            if (code == WebViewClient.ERROR_UNSUPPORTED_SCHEME || code == -3) {
+                                return;
+                            }
+                            if (request.getUrl() != null) {
+                                lastLoadedOrFailedUrl = request.getUrl().toString();
+                            }
+                            renderOfflineFallback(view);
+                            return;
+                        }
+                        super.onReceivedError(view, request, error);
+                    }
+
+                    @Override
+                    public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+                        if (request != null && request.isForMainFrame() && errorResponse != null && errorResponse.getStatusCode() >= 500) {
+                            if (request.getUrl() != null) {
+                                lastLoadedOrFailedUrl = request.getUrl().toString();
+                            }
+                            renderOfflineFallback(view);
+                            return;
+                        }
+                        super.onReceivedHttpError(view, request, errorResponse);
                     }
                 });
 
-                // 2. MNC-grade WebChromeClient: Preserves WebRTC permissions, file uploads, and intercepts target="_blank"
+                // 2. WebChromeClient: origin-verified just-in-time WebRTC permissions & safe target="_blank" routing
                 webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
                     @Override
                     public void onPermissionRequest(final PermissionRequest request) {
-                        try {
-                            runOnUiThread(() -> {
-                                request.grant(request.getResources());
-                            });
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error granting web permission request: ", e);
-                        }
+                        runOnUiThread(() -> {
+                            try {
+                                Uri origin = request.getOrigin();
+                                String host = origin != null ? origin.getHost() : null;
+                                if (!isAllowedAppHost(host)) {
+                                    Log.w(TAG, "Denied WebView permission request from untrusted origin: " + origin);
+                                    request.deny();
+                                    return;
+                                }
+
+                                List<String> missingOsPermissions = new ArrayList<>();
+                                for (String res : request.getResources()) {
+                                    if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res) &&
+                                        ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                                        missingOsPermissions.add(Manifest.permission.CAMERA);
+                                    } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(res) &&
+                                        ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                                        missingOsPermissions.add(Manifest.permission.RECORD_AUDIO);
+                                    }
+                                }
+
+                                if (!missingOsPermissions.isEmpty()) {
+                                    if (pendingWebPermissionRequest != null) {
+                                        try { pendingWebPermissionRequest.deny(); } catch (Exception ignored) {}
+                                    }
+                                    pendingWebPermissionRequest = request;
+                                    ActivityCompat.requestPermissions(
+                                        MainActivity.this,
+                                        missingOsPermissions.toArray(new String[0]),
+                                        WEB_PERMISSION_REQUEST_CODE
+                                    );
+                                    return;
+                                }
+
+                                grantPermittedWebResources(request);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Error handling web permission request: ", e);
+                                try { request.deny(); } catch (Exception ignored) {}
+                            }
+                        });
                     }
 
                     @Override
                     public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
-                        // Capture window.open or <a target="_blank"> and keep inside this WebView
                         WebView.HitTestResult result = view.getHitTestResult();
                         String data = result != null ? result.getExtra() : null;
-                        if (data != null && (data.contains("lifepartnerai.in") || data.startsWith("/"))) {
-                            view.loadUrl(data);
-                            return false;
+                        if (data != null) {
+                            if (data.startsWith("/")) {
+                                view.loadUrl("https://www.lifepartnerai.in" + data);
+                                return false;
+                            }
+                            try {
+                                String dataHost = Uri.parse(data).getHost();
+                                if (isAllowedAppHost(dataHost)) {
+                                    view.loadUrl(data);
+                                    return false;
+                                } else {
+                                    launchCustomTabOrExternal(data);
+                                    return false;
+                                }
+                            } catch (Exception ignored) {}
                         }
 
                         WebView tempWebView = new WebView(MainActivity.this);
@@ -940,8 +1109,15 @@ public class MainActivity extends BridgeActivity {
                             @Override
                             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
                                 if (req != null && req.getUrl() != null) {
-                                    view.loadUrl(req.getUrl().toString());
+                                    String target = req.getUrl().toString();
+                                    String targetHost = req.getUrl().getHost();
+                                    if (isAllowedAppHost(targetHost)) {
+                                        view.loadUrl(target);
+                                    } else {
+                                        launchCustomTabOrExternal(target);
+                                    }
                                 }
+                                v.destroy();
                                 return true;
                             }
                         });
@@ -975,14 +1151,49 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    private void grantPermittedWebResources(PermissionRequest request) {
+        if (request == null) return;
+        List<String> granted = new ArrayList<>();
+        for (String res : request.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    granted.add(res);
+                }
+            } else if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(res)) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    granted.add(res);
+                }
+            } else if (PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID.equals(res)) {
+                granted.add(res);
+            }
+        }
+        if (granted.isEmpty()) {
+            request.deny();
+        } else {
+            request.grant(granted.toArray(new String[0]));
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             Log.d(TAG, "Runtime permissions processed successfully.");
-            // Re-verify bridge injection after permissions are resolved
             setupNativeBridge();
             setupWebViewAndChromeClients();
+        } else if (requestCode == WEB_PERMISSION_REQUEST_CODE) {
+            PermissionRequest req = pendingWebPermissionRequest;
+            pendingWebPermissionRequest = null;
+            if (req != null) {
+                runOnUiThread(() -> {
+                    try {
+                        grantPermittedWebResources(req);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error resolving pending web permission: ", e);
+                        try { req.deny(); } catch (Exception ignored) {}
+                    }
+                });
+            }
         }
     }
 
@@ -1114,6 +1325,7 @@ public class MainActivity extends BridgeActivity {
                     prefs.edit().putString("user_id", userId).apply();
                     OneSignal.login(userId);
                     OneSignal.getUser().getPushSubscription().optIn();
+                    requestPushPermissionIfNeeded(false);
                     Log.d(TAG, "NativeBridge: Logged in OneSignal user: " + userId);
 
                     String authToken = prefs.getString("auth_token", null);
@@ -1139,10 +1351,32 @@ public class MainActivity extends BridgeActivity {
                 SharedPreferences prefs = getSharedPreferences("LifePartnerPrefs", MODE_PRIVATE);
                 prefs.edit().putBoolean("push_disabled", false).apply();
                 OneSignal.getUser().getPushSubscription().optIn();
+                requestPushPermissionIfNeeded(true);
                 fetchAndRegisterToken();
             } catch (Exception e) {
                 Log.e(TAG, "Error in enablePush: ", e);
             }
+        }
+
+        @JavascriptInterface
+        public void openInCustomTab(String url) {
+            launchCustomTabOrExternal(url);
+        }
+
+        @JavascriptInterface
+        public void retryConnection() {
+            runOnUiThread(() -> {
+                try {
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        String target = (lastLoadedOrFailedUrl != null && !lastLoadedOrFailedUrl.isEmpty())
+                            ? lastLoadedOrFailedUrl
+                            : "https://www.lifepartnerai.in?app=native";
+                        getBridge().getWebView().loadUrl(target);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error retrying connection: ", e);
+                }
+            });
         }
 
         @JavascriptInterface

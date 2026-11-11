@@ -315,7 +315,11 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ message, history })
         }),
-        profileRoast: () => fetchAPI('/ai/profile-roast', { method: 'POST' })
+        profileRoast: () => fetchAPI('/ai/profile-roast', { method: 'POST' }),
+        reportResponse: (content: string, reason: string = 'Inappropriate AI Content', details?: string) => fetchAPI('/ai/report', {
+            method: 'POST',
+            body: JSON.stringify({ content, reason, details })
+        })
     },
     calls: {
         getPending: () => fetchAPI('/calls/pending'),

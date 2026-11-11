@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, Play, Crown, X, Volume2, VolumeX, CheckCircle2, ShieldCheck, Heart } from 'lucide-react';
 import { grantMediaUnlockReward } from '@/lib/adRewards';
 import { useToast } from '@/components/ui/Toast';
+import { isNativePlatform } from '@/lib/notifications';
 import GoogleAdBanner from './GoogleAdBanner';
 
 interface RewardedAdModalProps {
@@ -25,6 +26,7 @@ export default function RewardedAdModal({
     const [secondsLeft, setSecondsLeft] = useState(12);
     const [isMuted, setIsMuted] = useState(false);
     const toast = useToast();
+    const isNativeApp = typeof window !== 'undefined' && isNativePlatform();
 
     useEffect(() => {
         if (!isOpen) {
@@ -148,16 +150,18 @@ export default function RewardedAdModal({
                                 <span>Watch 15s Sponsor Video (Free)</span>
                             </button>
 
-                            <button
-                                onClick={() => {
-                                    onClose();
-                                    window.location.href = '/dashboard?tab=membership';
-                                }}
-                                className="w-full py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-amber-300 hover:text-amber-200 font-bold text-xs transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Crown size={15} />
-                                <span>Upgrade to VIP (Always Ad-Free & Unlimited)</span>
-                            </button>
+                            {!isNativeApp && (
+                                <button
+                                    onClick={() => {
+                                        onClose();
+                                        window.location.href = '/dashboard?action=open_premium';
+                                    }}
+                                    className="w-full py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/15 text-amber-300 hover:text-amber-200 font-bold text-xs transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Crown size={15} />
+                                    <span>Upgrade to VIP (Always Ad-Free & Unlimited)</span>
+                                </button>
+                            )}
                         </div>
 
                         <p className="text-[10px] text-center text-slate-400">
@@ -202,10 +206,12 @@ export default function RewardedAdModal({
                             </div>
                         </div>
 
-                        {/* Real Google AdSense Display Banner (ca-pub-1408290775036355) */}
-                        <div className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-1">
-                            <GoogleAdBanner slotId="1994444490" format="horizontal" />
-                        </div>
+                        {/* Web AdSense Display Banner (skipped inside native Play Store Android WebView) */}
+                        {!isNativeApp && (
+                            <div className="rounded-xl overflow-hidden bg-black/40 border border-white/5 p-1">
+                                <GoogleAdBanner slotId="1994444490" format="horizontal" />
+                            </div>
+                        )}
 
                         <p className="text-[11px] text-emerald-400 font-semibold flex items-center justify-center gap-1.5">
                             <ShieldCheck size={14} />

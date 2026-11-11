@@ -1238,7 +1238,7 @@ export default function LandingPageClient() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={14} className="text-emerald-500 shrink-0" />
-                    <span>Verified v2 signed release binary • 4.4 MB</span>
+                    <span>Verified v2 signed release binary • 6.9 MB</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={14} className="text-emerald-500 shrink-0" />
@@ -1253,7 +1253,7 @@ export default function LandingPageClient() {
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download size={18} />
-                <span>Download Android APK (4.4 MB)</span>
+                <span>Download Android APK (6.9 MB)</span>
               </a>
             </div>
 
@@ -1278,7 +1278,7 @@ export default function LandingPageClient() {
                 <div className="space-y-2 mb-8 text-xs text-gray-500 dark:text-gray-400">
                   <div className="flex items-center gap-2">
                     <CheckCircle size={14} className="text-indigo-500 shrink-0" />
-                    <span>Dynamic delivery & compressed package • 4.2 MB</span>
+                    <span>Dynamic delivery & compressed package • 6.6 MB</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle size={14} className="text-indigo-500 shrink-0" />
@@ -1297,7 +1297,7 @@ export default function LandingPageClient() {
                 className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-gray-800 text-white hover:bg-gray-800 dark:hover:bg-gray-700 font-bold text-sm active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 border border-gray-700 cursor-pointer"
               >
                 <Download size={18} className="text-indigo-400" />
-                <span>Download App Bundle AAB (4.2 MB)</span>
+                <span>Download App Bundle AAB (6.6 MB)</span>
               </a>
             </div>
           </div>
@@ -1305,7 +1305,7 @@ export default function LandingPageClient() {
           {/* Quick installation callout */}
           <div className="mt-12 text-center text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
             <ShieldCheck size={16} className="text-emerald-500" />
-            <span>100% Virus-Free & Safe • Release Signed with SHA-256 Key • v1.0.5 Release</span>
+            <span>100% Virus-Free & Safe • Release Signed with SHA-256 Key • v1.0.7 Release</span>
           </div>
         </div>
       </section>

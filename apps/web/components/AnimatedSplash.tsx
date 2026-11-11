@@ -166,7 +166,7 @@ export default function AnimatedSplash() {
             {/* Footer Badge */}
             <div className="absolute bottom-6 text-[11px] font-semibold text-slate-500 tracking-widest uppercase flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                100% Free • Verified Matches
+                Verified Singles • AI Matchmaking
             </div>
 
             {/* Purple Love Animation Keyframes */}

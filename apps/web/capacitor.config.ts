@@ -4,10 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.lifepartner.ai',
   appName: 'LifePartner',
   webDir: 'out',
-  appendUserAgent: 'LifePartnerApp/1.0.6 CapacitorApp NativeAndroidApp',
+  appendUserAgent: 'LifePartnerApp/1.0.7 CapacitorApp NativeAndroidApp',
   backgroundColor: '#0F172A',
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
     captureInput: true,
     backgroundColor: '#0F172A'
   },
@@ -18,9 +18,6 @@ const config: CapacitorConfig = {
       'lifepartnerai.in',
       '*.lifepartnerai.in',
       'www.lifepartnerai.in',
-      'accounts.google.com',
-      '*.google.com',
-      '*.cashfree.com',
       '10.0.2.2',
       'localhost'
     ]

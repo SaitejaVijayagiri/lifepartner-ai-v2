@@ -1,6 +1,7 @@
 import express from 'express';
 import { prisma } from '../prisma';
 import { authenticateToken } from '../middleware/auth';
+import { getIO } from '../socket';
 import axios from 'axios';
 import { guruResponse, FALLBACK_RESPONSES, personalize, pickRandom } from '../services/guruEngine';
 import { AIMatchEngine } from '../services/aiMatchEngine';
@@ -505,6 +506,50 @@ IMPORTANT: 'score' MUST be an integer between 0 and 100. DO NOT use markdown wra
     } catch (error: any) {
         console.error("AI Compatibility Error:", error);
         res.status(500).json({ error: "Stars are currently misaligned. Try again later." });
+    }
+});
+
+// POST /ai/report - Flag an AI Guru response for moderation review
+router.post('/report', authenticateToken, async (req: any, res) => {
+    try {
+        const reporterId = req.user.userId;
+        const { content, reason, details } = req.body || {};
+
+        if (!content && !reason) {
+            return res.status(400).json({ error: "Report content or reason is required" });
+        }
+
+        const sanitizedContent = typeof content === 'string' ? content.slice(0, 1500) : '';
+        const reportDetails = details
+            ? `${details}${sanitizedContent ? ` | AI Output: ${sanitizedContent}` : ''}`
+            : sanitizedContent;
+
+        const report = await prisma.reports.create({
+            data: {
+                reporter_id: reporterId,
+                reported_id: null,
+                reason: reason || 'Inappropriate AI Content',
+                details: reportDetails
+            }
+        });
+
+        try {
+            const io = getIO();
+            io.emit('admin:newReport', {
+                id: report.id,
+                reason: report.reason,
+                reporterId,
+                created_at: new Date()
+            });
+        } catch (_) {}
+
+        res.status(201).json({
+            message: "AI response flagged for safety review",
+            reportId: report.id
+        });
+    } catch (error: any) {
+        console.error("AI Report Error:", error);
+        res.status(500).json({ error: "Failed to submit AI content report" });
     }
 });
 

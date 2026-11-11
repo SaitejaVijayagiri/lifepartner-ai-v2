@@ -18,11 +18,11 @@ export default function PrivacyPage() {
                     <div>
                         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">Privacy Policy</h1>
                         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            Effective Date: October 26, 2026 | Compliant with Digital Personal Data Protection (DPDP) Act, 2023 &amp; IT Act, 2000
+                            Effective Date: November 11, 2026 | Compliant with Digital Personal Data Protection (DPDP) Act, 2023 &amp; IT Act, 2000
                         </p>
                     </div>
                     <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-700 dark:text-emerald-300 w-fit">
-                        <span>🔒</span> DPDP Act 2023 Certified
+                        <span>🔒</span> DPDP Act 2023 Compliant
                     </div>
                 </div>
 
@@ -54,8 +54,8 @@ export default function PrivacyPage() {
                             <div className="p-3.5 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200/70 dark:border-gray-700/60">
                                 <h3 className="font-bold text-sm text-gray-900 dark:text-white">B. Automatically Collected Information</h3>
                                 <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1.5">
-                                    <li><strong>Device &amp; Technical Identifiers:</strong> Operating system, app version, IP address, device model, and secure session identifiers for authentication and fraud prevention.</li>
-                                    <li><strong>Platform Usage Data:</strong> Login timestamps, match swipes, and feature usage patterns to improve recommendation accuracy.</li>
+                                    <li><strong>Device &amp; Technical Identifiers:</strong> Operating system, app version, IP address, device model, Advertising ID (Google AdMob AD_ID on Android), push notification tokens (OneSignal / Firebase Cloud Messaging), and secure session identifiers for authentication, alerts, and fraud prevention.</li>
+                                    <li><strong>Location &amp; Platform Usage Data:</strong> Approximate city/state resolved from browser/device location (when permitted, via BigDataCloud reverse geocoding), login timestamps, match swipes, and feature usage patterns to improve compatibility recommendations.</li>
                                 </ul>
                             </div>
                         </div>
@@ -85,7 +85,14 @@ export default function PrivacyPage() {
                         </p>
                         <ul className="list-disc pl-5 space-y-1.5 mt-2 text-gray-700 dark:text-gray-300">
                             <li><strong>To Other Members:</strong> Information you choose to display on your public matrimonial profile is visible to other registered users of the Platform.</li>
-                            <li><strong>To Trusted Service Processors:</strong> We partner with enterprise cloud storage, payment gateway, and SMS verification infrastructure providers who operate under strict non-disclosure and data protection contracts.</li>
+                            <li><strong>To Trusted Third-Party Processors &amp; SDKs:</strong> We share only minimal required data with trusted partners under strict data protection obligations:
+                                <ul className="list-disc pl-5 mt-1 space-y-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                    <li><em>AI Matchmaking &amp; Safety Moderation:</em> Google Gemini and NVIDIA inference APIs for AI compatibility advice and automated photo/content safety screening.</li>
+                                    <li><em>Push Notifications:</em> OneSignal and Firebase Cloud Messaging (FCM) to deliver real-time match, message, and call alerts.</li>
+                                    <li><em>Opt-In Ads &amp; Analytics:</em> Google AdMob (Android rewarded video ads using Google Advertising ID subject to your device ad settings), Google AdSense (web), and Google Analytics (web).</li>
+                                    <li><em>Infrastructure, Location &amp; Web Payments:</em> Cloud media storage (Cloudflare R2 / Supabase / Cloudinary), BigDataCloud reverse geocoding for city names, and Cashfree (web checkouts only).</li>
+                                </ul>
+                            </li>
                             <li><strong>For Legal &amp; Safety Compliance:</strong> We may disclose information if required to do so by a lawful court order, summons, or legal process issued by competent law enforcement agencies to investigate cyber fraud, harassment, or imminent harm.</li>
                         </ul>
                     </section>
@@ -136,7 +143,7 @@ export default function PrivacyPage() {
                             <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <li><strong>Direct In-App Deletion:</strong> Navigate to <em>Profile Settings &gt; Account Security &gt; Delete Account</em> and confirm with your security prompt.</li>
                                 <li><strong>Email Request:</strong> Send an email from your registered address to <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">lifepartnerai.in@gmail.com</a> with the subject <em>&ldquo;Account Deletion Request&rdquo;</em>.</li>
-                                <li><strong>Deletion Scope:</strong> Upon confirmation, your profile, photos, direct messages, and personal attributes are permanently purged from active systems within 30 days, except for minimal compliance logs retained strictly where mandated by statutory law.</li>
+                                <li><strong>Deletion Scope:</strong> Confirming in-app deletion immediately removes your active profile, photos, and personal account records from live production access; residual backup snapshots and strictly mandated compliance logs are permanently purged within 30 days.</li>
                             </ul>
                         </div>
                     </section>

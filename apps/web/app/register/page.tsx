@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { api, getApiUrl } from '@/lib/api';
 
 import { Eye, EyeOff, Sparkles, ArrowLeft, Crown, ShieldCheck, Lock } from 'lucide-react';
-import { Notifications } from '@/lib/notifications';
+import { Notifications, startGoogleOAuthFlow } from '@/lib/notifications';
 
 const TESTIMONIALS = [
     { quote: "I met my soulmate here. The AI just understood us.", author: "Priya & Rahul, Mumbai" },
@@ -623,11 +623,7 @@ function RegisterForm() {
                                 if (selectedAge) {
                                     localStorage.setItem('pendingUserAge', selectedAge);
                                 }
-                                const oauthState = encodeURIComponent(JSON.stringify({ gender: selectedGender, age: selectedAge }));
-                                const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
-                                const redirectUri = `${window.location.origin}/auth/callback/google`;
-                                const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=select_account&state=${oauthState}`;
-                                window.location.href = startUrl;
+                                startGoogleOAuthFlow({ gender: selectedGender, age: selectedAge });
                             }}
                             className="w-full flex items-center justify-center h-12 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-xl hover:bg-gray-50 dark:bg-gray-900 transition-all group shadow-sm hover:shadow-md hover:border-gray-300 dark:border-gray-700"
                         >

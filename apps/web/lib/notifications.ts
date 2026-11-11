@@ -15,7 +15,52 @@ export const isNativePlatform = () => {
     if (typeof document !== 'undefined' && (document.documentElement.hasAttribute('data-capacitor') || document.documentElement.classList.contains('native-app-mode'))) {
         return true;
     }
+    if (window.location.search.includes('app=') || window.location.search.includes('mode=standalone')) {
+        return true;
+    }
     return false;
+};
+
+export const getCashfreeMode = (): 'sandbox' | 'production' => {
+    const envMode = process.env.NEXT_PUBLIC_CASHFREE_MODE;
+    if (envMode === 'sandbox' || envMode === 'production') {
+        return envMode;
+    }
+    if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
+            return 'sandbox';
+        }
+    }
+    return 'production';
+};
+
+export const startGoogleOAuthFlow = ({
+    gender = '',
+    age = ''
+}: {
+    gender?: string;
+    age?: string;
+} = {}) => {
+    if (typeof window === 'undefined') return;
+    const isNative = isNativePlatform();
+    const oauthState = encodeURIComponent(JSON.stringify({
+        gender,
+        age,
+        native: isNative
+    }));
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "326304538770-5tskm10njnb8e5kkh1gdp4as7sb7km9b.apps.googleusercontent.com";
+    const redirectUri = `${window.location.origin}/auth/callback/google`;
+    const startUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=email%20profile%20openid&access_type=offline&prompt=select_account&state=${oauthState}`;
+
+    if (isNative) {
+        const bridge = getNativeBridge();
+        if (bridge && typeof bridge.openInCustomTab === 'function') {
+            bridge.openInCustomTab(startUrl);
+            return;
+        }
+    }
+    window.location.href = startUrl;
 };
 
 export const getNativeBridge = () => {

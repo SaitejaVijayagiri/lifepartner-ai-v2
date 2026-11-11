@@ -3,6 +3,7 @@ import Script from 'next/script';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, Smartphone, MessageCircle, Star } from 'lucide-react';
+import { getCashfreeMode, isNativePlatform } from '@/lib/notifications';
 import { load } from '@cashfreepayments/cashfree-js';
 
 interface PremiumModalProps {
@@ -19,7 +20,7 @@ export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalP
     const [loading, setLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
-    if (!isOpen) return null;
+    if (!isOpen || isNativePlatform()) return null;
 
     if (showSuccess) {
         return (
@@ -64,7 +65,7 @@ export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalP
             }
 
             // 2. Load Cashfree
-            const cashfree = await load({ mode: "sandbox" });
+            const cashfree = await load({ mode: getCashfreeMode() });
 
             // 3. Checkout
             await cashfree.checkout({

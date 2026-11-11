@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { X, Coins, Sparkles, Gift } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { isNativePlatform } from '@/lib/notifications';
 import CoinStoreModal from './CoinStoreModal';
 
 const GIFTS = [
@@ -149,7 +150,7 @@ export default function GiftModal({
                         onClick={() => setShowCoinStore(true)}
                     >
                         <Coins size={16} />
-                        Get More Coins
+                        {isNativePlatform() ? 'Earn & Use Free Coins' : 'Get More Coins'}
                     </button>
                 </div>
             </div>

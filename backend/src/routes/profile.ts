@@ -845,6 +845,14 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     continue; // Skip prohibited photo but preserve valid photos in multi-upload
                 }
 
+                if (isFirstPhoto && modResult && !modResult.isValid) {
+                    console.warn(`⚠️ [profile] Primary avatar rejected: ${modResult.reason}`);
+                    if (photosToProcess.length === 1) {
+                        throw Object.assign(new Error(modResult.reason || 'Primary profile photo must show a clear human face.'), { status: 400 });
+                    }
+                    continue;
+                }
+
                 // Upload image through storage chain (R2 -> Cloudinary -> Supabase -> base64)
                 const uploaded = await uploadOptimizedImage(p, userId);
                 if (uploaded) {

@@ -36,12 +36,16 @@ export class ModerationService {
                 return { isValid: false, reason: 'Invalid image data. Please upload a valid photo.' };
             }
 
-            // --- Step 1: Format validation (permissive to accommodate all mobile photo formats) ---
+            // --- Step 1: Format validation ---
+            const lower = base64Data.toLowerCase();
+            if (lower.includes('image/svg')) {
+                return { isValid: false, isProhibited: true, reason: 'SVG images are not allowed for security reasons.' };
+            }
             const validFormats = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/heic', 'image/heif', 'image/gif', 'image/avif', 'image/'];
-            const hasValidPrefix = validFormats.some(fmt => base64Data.toLowerCase().includes(fmt));
+            const hasValidPrefix = validFormats.some(fmt => lower.includes(fmt));
 
             if (base64Data.startsWith('data:') && !hasValidPrefix) {
-                console.warn('[ModerationService] Non-standard image prefix, permitting upload:', base64Data.substring(0, 30));
+                return { isValid: false, isProhibited: true, reason: 'Unsupported or unsafe file format. Please upload a JPG, PNG, or WebP photo.' };
             }
 
             // --- Step 2: Size validation ---
@@ -64,7 +68,7 @@ export class ModerationService {
                 return { isValid: false, reason: 'Image is too large (max 6MB). Please upload a smaller photo.' };
             }
 
-            // --- Step 2: Gemini Vision Face & Safety Detection ---
+            // --- Step 3: Gemini Vision Face & Safety Detection ---
             const faceResult = await this.detectFaceWithGemini(base64Data);
 
             if (faceResult.isProhibited) {
@@ -75,9 +79,27 @@ export class ModerationService {
                 };
             }
 
+            if (faceResult.apiUnavailable) {
+                if (isFirstPhoto) {
+                    return {
+                        isValid: false,
+                        isProhibited: false,
+                        reason: 'Photo safety check is temporarily unavailable. Please try uploading again in a moment.'
+                    };
+                }
+                console.warn('[ModerationService] Vision check unavailable for secondary photo — soft passing.');
+                return { isValid: true };
+            }
+
             if (!faceResult.hasFace) {
-                // Log for diagnostics, but do not block legitimate user photo uploads unless prohibited
-                console.warn('[ModerationService] Face not clearly identified by Gemini Vision — allowing photo upload (non-prohibited).');
+                if (isFirstPhoto) {
+                    return {
+                        isValid: false,
+                        isProhibited: false,
+                        reason: faceResult.reason || 'Primary profile photo must clearly show your face (no cartoons, memes, or objects).'
+                    };
+                }
+                console.warn('[ModerationService] Face not clearly identified on secondary photo — allowing non-prohibited upload.');
             }
 
             console.log(`✅ [ModerationService] Photo validated (${Math.round(approxBytes / 1024)}KB, face: ${faceResult.hasFace}).`);
@@ -85,7 +107,9 @@ export class ModerationService {
 
         } catch (e: any) {
             console.error(`❌ [ModerationService] Validation error:`, e.message);
-            // On unexpected errors, allow the photo through to avoid blocking onboarding
+            if (isFirstPhoto) {
+                return { isValid: false, isProhibited: false, reason: 'Could not verify primary photo safety. Please try another photo.' };
+            }
             return { isValid: true };
         }
     }
@@ -96,7 +120,7 @@ export class ModerationService {
      */
     private static async detectFaceWithGemini(
         base64Data: string
-    ): Promise<{ hasFace: boolean; isProhibited?: boolean; reason?: string }> {
+    ): Promise<{ hasFace: boolean; isProhibited?: boolean; apiUnavailable?: boolean; reason?: string }> {
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey || apiKey.includes('your_') || apiKey.length < 10) {
@@ -187,7 +211,7 @@ If you reject or flag it, provide a short, polite reason.`;
                         reason: 'Photo rejected due to safety policy violation.'
                     };
                 }
-                return { hasFace: true };
+                return { hasFace: false, apiUnavailable: true };
             }
 
             const data: any = await response.json();
@@ -207,7 +231,7 @@ If you reject or flag it, provide a short, polite reason.`;
             const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (!rawText) {
                 console.error('[ModerationService] Empty response from Gemini.');
-                return { hasFace: true };
+                return { hasFace: false, apiUnavailable: true };
             }
 
             let result;
@@ -215,7 +239,7 @@ If you reject or flag it, provide a short, polite reason.`;
                 result = JSON.parse(rawText);
             } catch (err) {
                 console.error('[ModerationService] Failed to parse Gemini structured JSON:', rawText);
-                return { hasFace: true };
+                return { hasFace: false, apiUnavailable: true };
             }
 
             console.log(`[ModerationService] Gemini check result:`, result);
@@ -228,7 +252,7 @@ If you reject or flag it, provide a short, polite reason.`;
 
         } catch (e: any) {
             console.error('[ModerationService] Gemini Vision call failed or timed out:', e.message);
-            return { hasFace: true };
+            return { hasFace: false, apiUnavailable: true };
         }
     }
 }

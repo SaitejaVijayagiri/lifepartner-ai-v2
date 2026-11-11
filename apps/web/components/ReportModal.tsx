@@ -9,6 +9,7 @@ interface ReportModalProps {
     onClose: () => void;
     targetUserId: string;
     targetUserName?: string;
+    onSuccess?: () => void;
 }
 
 const REPORT_REASONS = [
@@ -20,7 +21,7 @@ const REPORT_REASONS = [
     "Other"
 ];
 
-const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, targetUserId, targetUserName }) => {
+const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, targetUserId, targetUserName, onSuccess }) => {
     const toast = useToast();
     const [reason, setReason] = useState(REPORT_REASONS[0]);
     const [details, setDetails] = useState("");
@@ -34,7 +35,8 @@ const ReportModal: React.FC<ReportModalProps> = ({ isOpen, onClose, targetUserId
         setLoading(true);
         try {
             await api.interactions.reportUser(targetUserId, reason, details);
-            toast.success("Report submitted. Thank you.");
+            toast.success("Report submitted and user blocked. Thank you.");
+            if (onSuccess) onSuccess();
             onClose();
             // Reset form
             setDetails("");

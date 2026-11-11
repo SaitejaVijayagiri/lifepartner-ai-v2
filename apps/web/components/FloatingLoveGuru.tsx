@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
-import { Sparkles, Heart, User } from 'lucide-react';
+import { Sparkles, Heart, User, Flag } from 'lucide-react';
 import ProfileModal from './ProfileModal';
 import { useToast } from '@/components/ui/Toast';
 
@@ -39,6 +39,7 @@ export default function FloatingLoveGuru() {
     const [loading, setLoading] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
     const [userBio, setUserBio] = useState<any | null>(null);
+    const [reportedIndexes, setReportedIndexes] = useState<number[]>([]);
     const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
     // Fetch User Profile Bio Data on mount
@@ -258,6 +259,26 @@ export default function FloatingLoveGuru() {
                                 : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-xs'
                         }`}>
                             {msg.content}
+                        {msg.role === 'assistant' && i > 0 && (
+                            <button
+                                type="button"
+                                disabled={reportedIndexes.includes(i)}
+                                onClick={async () => {
+                                    try {
+                                        await api.ai.reportResponse(msg.content, 'Inappropriate AI Response');
+                                        setReportedIndexes(prev => [...prev, i]);
+                                        toast.success('AI response reported for review.');
+                                    } catch {
+                                        toast.error('Could not submit report right now.');
+                                    }
+                                }}
+                                className="mt-1 ml-1 inline-flex items-center gap-1 text-[10px] font-medium text-gray-400 hover:text-rose-500 disabled:text-emerald-600 transition-colors cursor-pointer"
+                                title="Report inappropriate or offensive AI reply"
+                            >
+                                <Flag size={10} />
+                                <span>{reportedIndexes.includes(i) ? 'Reported ✓' : 'Report AI reply'}</span>
+                            </button>
+                        )}
                         </div>
 
                         {/* Interactive Bio-Data Match Cards */}

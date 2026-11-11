@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
-import { Send, Users, ShieldCheck, Lock, X, Trash2, MessageCircle, User, Eye, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
+import { Send, Users, ShieldCheck, Lock, X, Trash2, MessageCircle, User, Eye, Maximize2, Minimize2, RotateCcw, Flag } from 'lucide-react';
+import ReportModal from './ReportModal';
+import { api } from '@/lib/api';
 import VerificationBadge from './VerificationBadge';
 
 export default function CommunityChat({ 
@@ -30,8 +32,28 @@ export default function CommunityChat({
     const [errorMessage, setErrorMessage] = useState<string>("");
     const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen);
     const [showMobileUsersModal, setShowMobileUsersModal] = useState(false);
-    const [selectedMember, setSelectedMember] = useState<any | null>(null);
+        const [selectedMember, setSelectedMember] = useState<any | null>(null);
+    const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
+    const blockedUserIdsRef = useRef<Set<string>>(new Set());
+    const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        blockedUserIdsRef.current = new Set(blockedUserIds);
+    }, [blockedUserIds]);
+
+    useEffect(() => {
+        if (!currentUser || !isActive) return;
+        api.interactions.getBlockedUsers()
+            .then((res: any) => {
+                const list = Array.isArray(res) ? res : (res?.blocked || []);
+                const ids = list.map((b: any) => String(b.id || b.blocked_id || b.userId)).filter(Boolean);
+                if (ids.length > 0) {
+                    setBlockedUserIds(prev => Array.from(new Set([...prev, ...ids])));
+                }
+            })
+            .catch(() => {});
+    }, [currentUser, isActive]);
 
     // Escape key listener to exit full screen
     useEffect(() => {
@@ -63,8 +85,13 @@ export default function CommunityChat({
         const onJoined = (data: any) => {
             setStatus('connected');
             setErrorMessage("");
+            const serverBlocked = Array.isArray(data?.blockedUserIds) ? data.blockedUserIds.map(String) : [];
+            if (serverBlocked.length > 0) {
+                setBlockedUserIds(prev => Array.from(new Set([...prev, ...serverBlocked])));
+                serverBlocked.forEach((id: string) => blockedUserIdsRef.current.add(id));
+            }
             if (data?.history && Array.isArray(data.history)) {
-                setMessages(data.history);
+                setMessages(data.history.filter((m: any) => !blockedUserIdsRef.current.has(String(m?.sender?.id || m?.sender?.userId))));
             }
         };
 
@@ -74,11 +101,13 @@ export default function CommunityChat({
         };
 
         const onMsg = (msg: any) => {
+            const senderId = String(msg?.sender?.id || msg?.sender?.userId || '');
+            if (senderId && blockedUserIdsRef.current.has(senderId)) return;
             setMessages(prev => [...prev, msg].slice(-100)); // Keep last 100
         };
 
         const onUsers = (users: any[]) => {
-            setOnlineMembers(users);
+            setOnlineMembers((Array.isArray(users) ? users : []).filter((u: any) => !blockedUserIdsRef.current.has(String(u.userId || u.id))));
         };
 
         const onDeleted = ({ messageId }: { messageId: string }) => {
@@ -266,7 +295,7 @@ export default function CommunityChat({
                             <p>Be respectful to your fellow community members.</p>
                         </div>
 
-                        {messages.map((msg, idx) => {
+                        {messages.filter((m) => !blockedUserIds.includes(String(m?.sender?.id || m?.sender?.userId))).map((msg, idx) => {
                             const currentUserId = currentUser?.id || currentUser?.userId;
                             const isMe = Boolean(currentUserId && msg.sender.id === currentUserId);
                             const canDelete = Boolean(msg.id) && isMe;
@@ -299,6 +328,16 @@ export default function CommunityChat({
                                                 }`}>
                                                 {msg.text}
                                             </div>
+                                            {!isMe && msg.sender?.id && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setReportTarget({ id: String(msg.sender.userId || msg.sender.id), name: msg.sender.name || 'Member' })}
+                                                    title="Report & Block User"
+                                                    className="opacity-60 sm:opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-full transition-all"
+                                                >
+                                                    <Flag size={13} />
+                                                </button>
+                                            )}
                                             {canDelete && (
                                                 <button
                                                     type="button"
@@ -345,7 +384,7 @@ export default function CommunityChat({
                         <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full text-xs">{onlineMembers.length}</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                        {onlineMembers.map((u, i) => {
+                        {onlineMembers.filter((u) => !blockedUserIds.includes(String(u.userId || u.id))).map((u, i) => {
                             const currentUserId = currentUser?.id || currentUser?.userId;
                             const isCurrentUser = (u.userId || u.id) === currentUserId;
                             return (
@@ -424,7 +463,7 @@ export default function CommunityChat({
                         </button>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        {onlineMembers.map((u, i) => {
+                        {onlineMembers.filter((u) => !blockedUserIds.includes(String(u.userId || u.id))).map((u, i) => {
                             const currentUserId = currentUser?.id || currentUser?.userId;
                             const isCurrentUser = (u.userId || u.id) === currentUserId;
                             return (
@@ -489,6 +528,22 @@ export default function CommunityChat({
                 </div>
             )}
 
+            <ReportModal
+                isOpen={!!reportTarget}
+                onClose={() => setReportTarget(null)}
+                targetUserId={reportTarget?.id || ''}
+                targetUserName={reportTarget?.name || 'Member'}
+                onSuccess={() => {
+                    if (!reportTarget?.id) return;
+                    const id = String(reportTarget.id);
+                    setBlockedUserIds(prev => Array.from(new Set([...prev, id])));
+                    blockedUserIdsRef.current.add(id);
+                    setMessages(prev => prev.filter(m => String(m?.sender?.id || m?.sender?.userId) !== id));
+                    setOnlineMembers(prev => prev.filter(u => String(u.userId || u.id) !== id));
+                    setSelectedMember(null);
+                }}
+            />
+
             {/* Quick Action Modal: Member Card & Instant Chat */}
             {selectedMember && (
                 <div 
@@ -540,6 +595,18 @@ export default function CommunityChat({
                             >
                                 <User size={15} />
                                 View Matchcard
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const id = String(selectedMember.userId || selectedMember.id || '');
+                                    if (!id) return;
+                                    setReportTarget({ id, name: selectedMember.name || 'Member' });
+                                }}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-2xl border border-rose-200 dark:border-rose-800/50 transition-all active:scale-95"
+                            >
+                                <Flag size={14} />
+                                Report & Block User
                             </button>
                         </div>
                     </div>

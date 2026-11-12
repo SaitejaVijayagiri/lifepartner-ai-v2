@@ -777,7 +777,11 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const hasViewerCoords = Number.isFinite(viewerLat) && Number.isFinite(viewerLng) && !(viewerLat === 0 && viewerLng === 0);
 
         const myGender = (me.gender || "").trim().toLowerCase();
-        const candidateWindow = Math.min(Math.max(limit * 4, 160), 600);
+        // Deterministic window chunking ensures outer photo-tier sorting + outer OFFSET
+        // never repeats or drops profiles across pages while keeping scans bounded at O(windowChunk).
+        const windowChunk = 1200;
+        const windowOffset = Math.floor(offset / windowChunk) * windowChunk;
+        const outerOffset = offset - windowOffset;
 
         // Unified parameterized SQL conditions (eliminates 3 duplicate raw queries)
         const baseConditions: Prisma.Sql[] = [
@@ -899,8 +903,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     FROM users u
                     LEFT JOIN profiles p ON p.user_id = u.id
                     WHERE ${whereSql}
-                    ORDER BY u.created_at DESC
-                    LIMIT ${candidateWindow} OFFSET ${offset}
+                    ORDER BY u.created_at DESC, u.id ASC
+                    LIMIT ${windowChunk} OFFSET ${windowOffset}
                 )
                 SELECT cp.id FROM candidate_pool cp
                 LEFT JOIN profiles p ON p.user_id = cp.id
@@ -918,8 +922,9 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     THEN 2
                     ELSE 3
                   END) ASC,
-                  cp.created_at DESC
-                LIMIT ${limit}
+                  cp.created_at DESC,
+                  cp.id ASC
+                LIMIT ${limit} OFFSET ${outerOffset}
             `;
         }
 
@@ -943,10 +948,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             })).map(u => u.id)
             : [];
 
-        // Step B: Extract IDs, prepending online candidates
+        // Step B: Extract IDs, prepending online candidates without truncating rawDbIds (prevents displacing tail items across pages)
         const rawDbIds = randomCandidates.map(c => c.id);
         const shuffledIds = page === 1
-            ? Array.from(new Set([...onlineOppositeCandidateIds, ...rawDbIds])).slice(0, limit)
+            ? Array.from(new Set([...onlineOppositeCandidateIds, ...rawDbIds]))
             : rawDbIds;
 
         // Parallelise candidates + gift stats fetches

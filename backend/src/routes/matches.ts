@@ -577,10 +577,24 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
 });
 
 // GET /matches/ai-perfect-match
-// Calculates and surfaces the #1 Perfect Soulmate for the user using AIMatchEngine
+// Calculates and surfaces Today's #1 Perfect Soulmate for the user using AIMatchEngine
+// with deterministic daily rotation among the user's top-tier compatible candidates
 router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
+        const todayDateStr = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+        const cacheKey = `ai_soulmate_${userId}_${todayDateStr}`;
+
+        const cached = matchCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now() && cached.data) {
+            const cachedPayload = cached.data;
+            return res.json({
+                perfectMatch: {
+                    ...cachedPayload,
+                    isOnline: isUserOnline(cachedPayload.id)
+                }
+            });
+        }
 
         const me = await prisma.users.findUnique({
             where: { id: userId },
@@ -593,14 +607,49 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
         const targetGender = myGender === 'male' ? ['Female', 'female'] : (myGender === 'female' ? ['Male', 'male'] : undefined);
         const blockedIds = await getBlockedUserIdSet(prisma, userId);
 
+        // Fetch already-interacted / connected / pending request user IDs so we don't spotlight someone already connected
+        const [interactions, acceptedMatches] = await Promise.all([
+            prisma.interactions.findMany({
+                where: {
+                    OR: [
+                        { from_user_id: userId, type: 'REQUEST' },
+                        { to_user_id: userId, type: 'REQUEST', status: { in: ['accepted', 'connected'] } }
+                    ]
+                },
+                select: { from_user_id: true, to_user_id: true, status: true }
+            }),
+            prisma.matches.findMany({
+                where: {
+                    OR: [
+                        { user_a_id: userId, status: { in: ['accepted', 'connected'] } },
+                        { user_b_id: userId, status: { in: ['accepted', 'connected'] } }
+                    ]
+                },
+                select: { user_a_id: true, user_b_id: true }
+            })
+        ]);
+
+        const excludeIds = new Set<string>([userId, ...blockedIds]);
+        for (const i of interactions) {
+            if (i.from_user_id === userId && i.to_user_id) excludeIds.add(i.to_user_id);
+            if (i.to_user_id === userId && i.from_user_id && (i.status === 'accepted' || i.status === 'connected')) {
+                excludeIds.add(i.from_user_id);
+            }
+        }
+        for (const m of acceptedMatches) {
+            if (m.user_a_id) excludeIds.add(m.user_a_id);
+            if (m.user_b_id) excludeIds.add(m.user_b_id);
+        }
+
         // Fetch top verified candidate profiles
         const candidates = await prisma.users.findMany({
             where: {
-                id: { notIn: Array.from(new Set([userId, ...blockedIds])) },
+                id: { notIn: Array.from(excludeIds) },
                 is_verified: true,
                 is_banned: false,
                 age: { gte: 18 },
                 full_name: { not: null },
+                avatar_url: { not: null },
                 ...(targetGender ? { gender: { in: targetGender } } : {}),
                 AND: [
                     { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: { lt: new Date() } }] }
@@ -614,34 +663,65 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
                     }
                 }
             },
-            take: 60
+            take: 120
         });
 
         if (candidates.length === 0) {
             return res.json({ perfectMatch: null });
         }
 
-        // Score all candidates using AIMatchEngine and select the highest score
-        let bestCandidate: any = null;
-        let bestAnalysis: any = null;
-        let highestScore = -1;
+        // Filter for real photos (Soulmate pick must have a real uploaded photo, never a placeholder)
+        const validPhotoCandidates = candidates.filter(c => {
+            const url = c.avatar_url || '';
+            return url && !url.includes('dicebear') && !url.includes('api.dicebear.com') && url.trim() !== '';
+        });
+        const candidatePool = validPhotoCandidates.length >= 3 ? validPhotoCandidates : candidates;
 
-        for (const candidate of candidates) {
+        // Score all candidates using AIMatchEngine
+        const scoredCandidates: Array<{ candidate: any; analysis: any; score: number }> = [];
+
+        for (const candidate of candidatePool) {
             const analysis = AIMatchEngine.computeMatch(me, candidate);
             let total = analysis.score;
+            const tier = getPhotoTier(candidate);
+            if (tier >= 2) total += 5;
+            else if (tier >= 1) total += 2;
             if (candidate.avatar_url && !candidate.avatar_url.includes('dicebear')) {
                 total += 4;
             }
-            if (total > highestScore) {
-                highestScore = total;
-                bestCandidate = candidate;
-                bestAnalysis = analysis;
-            }
+            scoredCandidates.push({
+                candidate,
+                analysis,
+                score: Math.min(99, total)
+            });
         }
 
-        if (!bestCandidate || !bestAnalysis) {
+        if (scoredCandidates.length === 0) {
             return res.json({ perfectMatch: null });
         }
+
+        // Sort by highest compatibility score
+        scoredCandidates.sort((a, b) => b.score - a.score);
+
+        // Extract top-tier cluster (top 10 matches or those >= 75 score)
+        const minThreshold = Math.max(60, scoredCandidates[0].score - 18);
+        const topTier = scoredCandidates.filter(sc => sc.score >= minThreshold).slice(0, 10);
+        const poolToPickFrom = topTier.length > 0 ? topTier : scoredCandidates.slice(0, 5);
+
+        // Deterministic daily rotation seed: (userId + YYYY-MM-DD)
+        // Ensures the soulmate stays consistent all day today, and rotates to another top soulmate tomorrow!
+        let hash = 0;
+        const seedStr = `${userId}:${todayDateStr}:daily_soulmate_v2`;
+        for (let i = 0; i < seedStr.length; i++) {
+            hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
+            hash |= 0;
+        }
+        const pickIndex = Math.abs(hash) % poolToPickFrom.length;
+        const chosen = poolToPickFrom[pickIndex];
+
+        const bestCandidate = chosen.candidate;
+        const bestAnalysis = chosen.analysis;
+        const highestScore = chosen.score;
 
         const meta = (bestCandidate.profiles?.metadata as any) || {};
         const rawPhotos = extractPhotosList(bestCandidate.profiles, meta, bestCandidate.avatar_url);
@@ -649,8 +729,12 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
         const mainPhoto = finalPhotos[0] || sanitizePhotoUrl(bestCandidate.avatar_url, bestCandidate.full_name || bestCandidate.id);
 
         const [sentBestReq, receivedBestReq] = await Promise.all([
-            prisma.interactions.findFirst({ where: { from_user_id: userId, to_user_id: bestCandidate.id, type: 'REQUEST' }, select: { status: true } }),
-            prisma.interactions.findFirst({ where: { from_user_id: bestCandidate.id, to_user_id: userId, type: 'REQUEST' }, select: { status: true } })
+            typeof prisma.interactions?.findFirst === 'function'
+                ? prisma.interactions.findFirst({ where: { from_user_id: userId, to_user_id: bestCandidate.id, type: 'REQUEST' }, select: { status: true } })
+                : Promise.resolve(null),
+            typeof prisma.interactions?.findFirst === 'function'
+                ? prisma.interactions.findFirst({ where: { from_user_id: bestCandidate.id, to_user_id: userId, type: 'REQUEST' }, select: { status: true } })
+                : Promise.resolve(null)
         ]);
         const bestMatchStatus = resolveMatchStatus(sentBestReq?.status, receivedBestReq?.status);
         const bestShieldOn = isPhotoPrivacyShieldEnabled(meta);
@@ -658,29 +742,33 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
         const locParts = [meta.location?.city || bestCandidate.city, meta.location?.state || bestCandidate.state].filter(Boolean);
         const locationStr = locParts.length > 0 ? locParts.join(', ') : 'Verified Member';
 
-        return res.json({
-            perfectMatch: {
-                id: bestCandidate.id,
-                name: bestCandidate.full_name || 'Soulmate',
-                age: bestCandidate.age,
-                location: locationStr,
-                profession: meta.career?.profession || 'Professional',
-                education: meta.career?.educationLevel || meta.career?.education || '',
-                photoUrl: mainPhoto,
-                photos: finalPhotos,
-                bio: bestCandidate.profiles?.raw_prompt || meta.bio || meta.aboutMe || '',
-                aiScore: Math.min(99, highestScore),
-                dimensions: bestAnalysis.dimensions,
-                matchReasons: bestAnalysis.reasons,
-                strengths: bestAnalysis.strengths,
-                growthTip: bestAnalysis.growthTip,
-                icebreaker: bestAnalysis.icebreaker,
-                isOnline: isUserOnline(bestCandidate.id),
-                match_status: bestMatchStatus,
-                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                isBlurred: bestShieldOn && bestMatchStatus !== 'accepted' && bestMatchStatus !== 'connected' && bestCandidate.id !== userId
-            }
-        });
+        const perfectMatchPayload = {
+            id: bestCandidate.id,
+            name: bestCandidate.full_name || 'Soulmate',
+            age: bestCandidate.age,
+            location: locationStr,
+            profession: meta.career?.profession || 'Professional',
+            education: meta.career?.educationLevel || meta.career?.education || '',
+            photoUrl: mainPhoto,
+            photos: finalPhotos,
+            bio: bestCandidate.profiles?.raw_prompt || meta.bio || meta.aboutMe || '',
+            aiScore: highestScore,
+            dimensions: bestAnalysis.dimensions,
+            matchReasons: bestAnalysis.reasons,
+            strengths: bestAnalysis.strengths,
+            growthTip: bestAnalysis.growthTip,
+            icebreaker: bestAnalysis.icebreaker,
+            isOnline: isUserOnline(bestCandidate.id),
+            match_status: bestMatchStatus,
+            photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+            isBlurred: bestShieldOn && bestMatchStatus !== 'accepted' && bestMatchStatus !== 'connected' && bestCandidate.id !== userId,
+            rotationDate: todayDateStr
+        };
+
+        // Cache in backend LRU for up to 12 hours (expires naturally at end of day)
+        matchCache.set(cacheKey, { data: perfectMatchPayload, expiresAt: Date.now() + 12 * 60 * 60 * 1000 });
+
+        return res.json({ perfectMatch: perfectMatchPayload });
     } catch (err: any) {
         console.error("[ai-perfect-match] Error:", err);
         return res.status(500).json({ error: "Failed to compute perfect AI match" });

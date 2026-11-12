@@ -238,6 +238,10 @@ if (shouldListen) {
                 const { initFemaleMatchRemindersCron } = require('./services/femaleMatchReminders');
                 initFemaleMatchRemindersCron();
 
+                // Start Weekly Curated Top Matches Cron (Sundays at 10 AM)
+                const { initWeeklyCuratedMatchesCron } = require('./services/weeklyCuratedMatches');
+                initWeeklyCuratedMatchesCron();
+
                 // ⏰ Auto-cleanup expired stories (runs 15s after boot and every hour)
                 const { cleanupExpiredStories } = require('./services/storyCleanup');
                 setTimeout(() => {

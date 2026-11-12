@@ -15,6 +15,7 @@ jest.mock('../src/prisma', () => ({
         },
         interactions: {
             findMany: jest.fn().mockResolvedValue([]),
+            findFirst: jest.fn().mockResolvedValue(null),
         },
         blocks: {
             findMany: jest.fn().mockResolvedValue([]),
@@ -226,6 +227,52 @@ describe('Matches Routes', () => {
 
             expect(res.status).toBe(200);
             expect(res.body.matches).toHaveLength(1);
+        });
+    });
+
+    describe('GET /matches/ai-perfect-match', () => {
+        it('should return a daily rotated top soulmate with rotation date and AI dimensions', async () => {
+            (prisma.users.findUnique as jest.Mock).mockResolvedValue({
+                id: 'my-user-id',
+                gender: 'Female',
+                age: 26,
+                profiles: {
+                    metadata: {
+                        career: { profession: 'Doctor', educationLevel: 'Masters' },
+                        lifestyle: { diet: 'Vegetarian', smoking: 'No' },
+                        religion: { religion: 'Hindu' }
+                    }
+                }
+            });
+
+            (prisma.users.findMany as jest.Mock).mockResolvedValue([
+                {
+                    id: 'soulmate-1',
+                    full_name: 'Dr. Siddharth',
+                    age: 28,
+                    gender: 'Male',
+                    city: 'Bengaluru',
+                    avatar_url: 'https://images.unsplash.com/photo-1.jpg',
+                    profiles: {
+                        metadata: {
+                            career: { profession: 'Cardiologist', educationLevel: 'Doctorate' },
+                            lifestyle: { diet: 'Vegetarian', smoking: 'No' },
+                            religion: { religion: 'Hindu' }
+                        }
+                    },
+                    _count: { matches_matches_user_b_idTousers: 12 }
+                }
+            ]);
+
+            const res = await request(app).get('/matches/ai-perfect-match');
+
+            expect(res.status).toBe(200);
+            expect(res.body.perfectMatch).toBeDefined();
+            expect(res.body.perfectMatch.id).toBe('soulmate-1');
+            expect(res.body.perfectMatch.name).toBe('Dr. Siddharth');
+            expect(res.body.perfectMatch.rotationDate).toBeDefined();
+            expect(res.body.perfectMatch.aiScore).toBeGreaterThanOrEqual(70);
+            expect(res.body.perfectMatch.dimensions).toBeDefined();
         });
     });
 });

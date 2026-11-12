@@ -26,9 +26,14 @@ export default function AISoulmateSpotlight({
     const toast = useToast();
 
     useEffect(() => {
-        // PERF: 0ms Instant Hydration from cache
+        const todayDateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const currentCacheKey = `ai_soulmate_v2_${currentUser?.id || 'me'}_${todayDateStr}`;
+
+        // PERF: 0ms Instant Hydration from today's cache (refreshes automatically when date changes)
         try {
-            const cached = localStorage.getItem('ai_soulmate_cache_v1');
+            // Clean up legacy unversioned / yesterday's cache
+            localStorage.removeItem('ai_soulmate_cache_v1');
+            const cached = localStorage.getItem(currentCacheKey);
             if (cached) {
                 const parsed = JSON.parse(cached);
                 if (parsed && parsed.id) {
@@ -54,7 +59,7 @@ export default function AISoulmateSpotlight({
                     if (data && data.perfectMatch) {
                         setSoulmate(data.perfectMatch);
                         try {
-                            localStorage.setItem('ai_soulmate_cache_v1', JSON.stringify(data.perfectMatch));
+                            localStorage.setItem(currentCacheKey, JSON.stringify(data.perfectMatch));
                         } catch (_) {}
                     }
                 }
@@ -66,7 +71,7 @@ export default function AISoulmateSpotlight({
         };
 
         fetchSoulmate();
-    }, []);
+    }, [currentUser?.id]);
 
     const handleConnect = async (e: React.MouseEvent) => {
         e.stopPropagation();

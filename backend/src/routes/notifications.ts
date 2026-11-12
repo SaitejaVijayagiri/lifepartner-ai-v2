@@ -365,6 +365,36 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
     }
 });
 
+// Admin Route: Trigger or Test Weekly Curated Top Matches for Females
+router.post('/trigger-weekly-curated-matches', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true, is_admin: true } });
+        const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
+        if (!user?.is_admin && (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai'))) {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+
+        const { dryRun = false, forceSend = false, targetEmail } = req.body || {};
+        const { runWeeklyCuratedMatchesCampaign } = require('../services/weeklyCuratedMatches');
+
+        const result = await runWeeklyCuratedMatchesCampaign({
+            dryRun: Boolean(dryRun),
+            forceSend: Boolean(forceSend),
+            targetEmail: typeof targetEmail === 'string' ? targetEmail : undefined
+        });
+
+        res.json({
+            success: true,
+            message: "Weekly curated matches campaign executed",
+            result
+        });
+    } catch (e: any) {
+        console.error("Trigger Weekly Curated Matches Error", e);
+        res.status(500).json({ error: e.message || "Failed" });
+    }
+});
+
 // 3. Get All Notifications
 router.get('/', authenticateToken, async (req: any, res) => {
     try {

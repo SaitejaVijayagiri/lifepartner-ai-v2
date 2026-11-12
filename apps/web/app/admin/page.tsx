@@ -448,7 +448,9 @@ export default function AdminDashboard() {
                                 <CardContent className="pt-0 flex items-center justify-between">
                                     <div>
                                         <div className="text-2xl font-black text-amber-500 flex items-center gap-1">
-                                            {analyticsInsights?.summary?.averageRating || '4.8'} <Star size={18} className="fill-amber-400 text-amber-400" />
+                                            {analyticsInsights?.summary?.totalFeedbackSubmitted > 0
+                                                ? analyticsInsights?.summary?.averageRating
+                                                : '—'} <Star size={18} className="fill-amber-400 text-amber-400" />
                                         </div>
                                         <p className="text-[11px] text-gray-400 mt-1">
                                             Out of 5.0 stars score
@@ -465,7 +467,7 @@ export default function AdminDashboard() {
                                 </CardHeader>
                                 <CardContent className="pt-0">
                                     <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-                                        {analyticsInsights?.summary?.totalFeedbackSubmitted || 1}
+                                        {analyticsInsights?.summary?.totalFeedbackSubmitted ?? 0}
                                     </div>
                                     <p className="text-[11px] text-gray-400 mt-1">
                                         User satisfaction entries

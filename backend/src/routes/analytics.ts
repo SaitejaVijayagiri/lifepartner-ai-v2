@@ -30,21 +30,36 @@ interface UserFeedback {
 
 const MAX_EVENTS_IN_MEMORY = 2000;
 const MAX_FEEDBACK_IN_MEMORY = 500;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const eventLogStore: TelemetryEvent[] = [];
 const feedbackStore: UserFeedback[] = [];
 
-// Pre-populate with initial telemetry baseline if empty
-if (feedbackStore.length === 0) {
-    feedbackStore.push({
-        id: 'fb-demo-1',
-        rating: 5,
-        category: 'match_quality',
-        feedback_text: 'Love the AI match scores! Very accurate compatibility ratings.',
-        user_name: 'Aditya R.',
-        created_at: new Date(Date.now() - 3600000 * 5).toISOString()
-    });
+let appFeedbackTableReady = false;
+async function ensureAppFeedbackTable() {
+    if (appFeedbackTableReady || typeof (prisma as any).$executeRawUnsafe !== 'function') return;
+    try {
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS app_feedback (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID NULL,
+                user_name VARCHAR(120) NULL,
+                user_email VARCHAR(255) NULL,
+                rating INT NOT NULL,
+                category VARCHAR(80) DEFAULT 'overall_experience',
+                feedback_text TEXT NULL,
+                prompt_context VARCHAR(80) DEFAULT 'manual',
+                created_at TIMESTAMP(6) NOT NULL DEFAULT now()
+            );
+        `);
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_app_feedback_created_at ON app_feedback (created_at DESC);`);
+        await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS idx_app_feedback_rating ON app_feedback (rating);`);
+        appFeedbackTableReady = true;
+    } catch (e: any) {
+        console.warn('[Analytics] DB init app_feedback warning:', e.message);
+    }
 }
+ensureAppFeedbackTable().catch(console.error);
 
 /**
  * POST /api/analytics/event
@@ -86,26 +101,54 @@ router.post('/event', async (req: Request, res: Response) => {
 
 /**
  * POST /api/analytics/feedback
- * Submit user sentiment rating & feedback comments
+ * Submit user sentiment rating & feedback comments (persisted permanently in PostgreSQL)
  */
 router.post('/feedback', async (req: Request, res: Response) => {
     try {
         const { rating, category, feedback_text, user_id, user_name, user_email, prompt_context } = req.body;
 
-        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+        if (typeof rating !== 'number' || !Number.isFinite(rating) || rating < 1 || rating > 5) {
             return res.status(400).json({ error: 'rating must be a number between 1 and 5' });
         }
 
+        const cleanRating = Math.round(rating);
+        const validUserId = typeof user_id === 'string' && UUID_REGEX.test(user_id.trim()) ? user_id.trim() : null;
+        const cleanCategory = typeof category === 'string' && category.trim() ? category.trim().slice(0, 80) : 'overall_experience';
+        const cleanFeedbackText = typeof feedback_text === 'string' ? feedback_text.trim().slice(0, 2000) : '';
+        const cleanUserName = typeof user_name === 'string' && user_name.trim() ? user_name.trim().slice(0, 120) : 'Anonymous User';
+        const cleanUserEmail = typeof user_email === 'string' && user_email.trim() ? user_email.trim().slice(0, 255) : null;
+        const cleanPromptContext = typeof prompt_context === 'string' && prompt_context.trim() ? prompt_context.trim().slice(0, 80) : 'manual';
+
+        let savedId = `fb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        let createdAt = new Date().toISOString();
+
+        if ((prisma as any).app_feedback && typeof (prisma as any).app_feedback.create === 'function') {
+            await ensureAppFeedbackTable();
+            const dbFeedback = await (prisma as any).app_feedback.create({
+                data: {
+                    rating: cleanRating,
+                    category: cleanCategory,
+                    feedback_text: cleanFeedbackText,
+                    user_id: validUserId,
+                    user_name: cleanUserName,
+                    user_email: cleanUserEmail,
+                    prompt_context: cleanPromptContext,
+                }
+            });
+            savedId = dbFeedback.id;
+            createdAt = dbFeedback.created_at ? new Date(dbFeedback.created_at).toISOString() : createdAt;
+        }
+
         const fb: UserFeedback = {
-            id: `fb_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-            rating,
-            category: category || 'overall_experience',
-            feedback_text: feedback_text ? feedback_text.trim() : '',
-            user_id: user_id || null,
-            user_name: user_name || 'Anonymous User',
-            user_email: user_email || null,
-            prompt_context: prompt_context || 'manual',
-            created_at: new Date().toISOString()
+            id: savedId,
+            rating: cleanRating,
+            category: cleanCategory,
+            feedback_text: cleanFeedbackText,
+            user_id: validUserId || undefined,
+            user_name: cleanUserName,
+            user_email: cleanUserEmail || undefined,
+            prompt_context: cleanPromptContext,
+            created_at: createdAt
         };
 
         feedbackStore.unshift(fb);
@@ -113,9 +156,9 @@ router.post('/feedback', async (req: Request, res: Response) => {
             feedbackStore.pop();
         }
 
-        console.log(`[Analytics] 🌟 User Feedback Received [${fb.rating}★]:`, fb.feedback_text || '(No comment)');
+        console.log(`[Analytics] 🌟 User Feedback Saved [${fb.rating}★]:`, fb.feedback_text || '(No comment)');
 
-        return res.status(201).json({ success: true, message: 'Thank you for your feedback!' });
+        return res.status(201).json({ success: true, id: savedId, message: 'Thank you for your feedback!' });
     } catch (err: any) {
         console.error('[Analytics] Error logging feedback:', err);
         return res.status(500).json({ error: 'Failed to submit feedback' });
@@ -124,7 +167,7 @@ router.post('/feedback', async (req: Request, res: Response) => {
 
 /**
  * GET /api/analytics/insights
- * Returns comprehensive system telemetry, photo health stats, drop-off analysis, and feedback.
+ * Returns comprehensive system telemetry, photo health stats, drop-off analysis, and persistent DB feedback.
  */
 router.get('/insights', authenticateToken, adminAuth, async (req: Request, res: Response) => {
     try {
@@ -143,18 +186,51 @@ router.get('/insights', authenticateToken, adminAuth, async (req: Request, res: 
         const chatStarts = eventLogStore.filter(e => e.event_type === 'chat_start').length;
         const dropOffs = eventLogStore.filter(e => e.event_type === 'drop_off_detected').length;
 
-        // Calculate user sentiment score
-        const totalFeedback = feedbackStore.length;
-        const avgRating = totalFeedback > 0
+        // Fetch persistent feedback metrics from PostgreSQL (fallback to in-memory cache only if DB unavailable)
+        let totalFeedback = feedbackStore.length;
+        let avgRating = totalFeedback > 0
             ? Number((feedbackStore.reduce((acc, curr) => acc + curr.rating, 0) / totalFeedback).toFixed(1))
-            : 4.8;
+            : 0;
+        const ratingCounts: Record<1 | 2 | 3 | 4 | 5, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        let recentFeedbackList: any[] = feedbackStore.slice(0, 50);
 
-        const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-        feedbackStore.forEach(f => {
-            if (f.rating >= 1 && f.rating <= 5) {
-                ratingCounts[f.rating as 1|2|3|4|5]++;
+        if ((prisma as any).app_feedback && typeof (prisma as any).app_feedback.findMany === 'function') {
+            try {
+                const [dbCount, dbAgg, dbGroups, dbRecent] = await Promise.all([
+                    (prisma as any).app_feedback.count(),
+                    (prisma as any).app_feedback.aggregate({ _avg: { rating: true } }),
+                    (prisma as any).app_feedback.groupBy({ by: ['rating'], _count: { _all: true } }),
+                    (prisma as any).app_feedback.findMany({
+                        orderBy: { created_at: 'desc' },
+                        take: 50
+                    })
+                ]);
+                totalFeedback = Number(dbCount || 0);
+                avgRating = totalFeedback > 0 && dbAgg?._avg?.rating != null
+                    ? Number(Number(dbAgg._avg.rating).toFixed(1))
+                    : 0;
+                for (const g of dbGroups || []) {
+                    const r = Number(g.rating);
+                    if (r >= 1 && r <= 5) {
+                        ratingCounts[r as 1 | 2 | 3 | 4 | 5] = Number(g._count?._all || 0);
+                    }
+                }
+                recentFeedbackList = dbRecent || [];
+            } catch (dbFbErr) {
+                console.warn('[Analytics] DB feedback query warning, using memory fallback:', dbFbErr);
+                feedbackStore.forEach(f => {
+                    if (f.rating >= 1 && f.rating <= 5) {
+                        ratingCounts[f.rating as 1 | 2 | 3 | 4 | 5]++;
+                    }
+                });
             }
-        });
+        } else {
+            feedbackStore.forEach(f => {
+                if (f.rating >= 1 && f.rating <= 5) {
+                    ratingCounts[f.rating as 1 | 2 | 3 | 4 | 5]++;
+                }
+            });
+        }
 
         // DB User photo count audit
         let dbTotalUsers = 0;
@@ -190,7 +266,7 @@ router.get('/insights', authenticateToken, adminAuth, async (req: Request, res: 
                     dropOffsDetected: dropOffs
                 }
             },
-            recentFeedback: feedbackStore.slice(0, 15),
+            recentFeedback: recentFeedbackList,
             recentImageFailures: imageFailures.slice(0, 15)
         });
     } catch (err: any) {

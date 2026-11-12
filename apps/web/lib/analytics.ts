@@ -76,6 +76,7 @@ export async function submitAppFeedback(data: {
     rating: number;
     category?: string;
     feedback_text?: string;
+    user_id?: string;
     user_name?: string;
     prompt_context?: string;
 }): Promise<{ success: boolean; message?: string }> {

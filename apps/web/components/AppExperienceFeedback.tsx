@@ -53,6 +53,7 @@ export default function AppExperienceFeedback({ userId, userName, autoPrompt = f
             rating,
             category: selectedCategory,
             feedback_text: feedbackText,
+            user_id: userId,
             user_name: userName,
             prompt_context: autoPrompt ? 'auto_prompt' : 'manual'
         });

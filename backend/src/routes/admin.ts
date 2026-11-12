@@ -59,7 +59,7 @@ router.get('/stats', async (req, res) => {
 
         // We'll fetch the last 30 days of users and group them in JS to avoid complex cross-database raw queries
         const recentUsers = (await prisma.users.findMany({
-            where: { created_at: { gte: thirtyDaysAgo } },
+            where: { created_at: { gte: thirtyDaysAgo } }, orderBy: { created_at: 'desc' }, take: 5000,
             select: { created_at: true, gender: true }
         })) || [];
 

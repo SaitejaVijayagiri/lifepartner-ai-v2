@@ -1,11 +1,12 @@
 'use client';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 const SocketContext = createContext<{
     socket: Socket | null;
     isConnected: boolean;
     onlineUsers: string[];
+    isUserOnline: (id?: string | null) => boolean;
     incomingCall: {
         isReceivingCall: boolean;
         from: string;
@@ -28,6 +29,7 @@ export const useSocket = () => {
             socket: null,
             isConnected: false,
             onlineUsers: [],
+            isUserOnline: () => false,
             incomingCall: null,
             clearIncomingCall: () => { },
             publicStats: { onlineCount: 0 }
@@ -126,15 +128,16 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             setIsConnected(false);
         });
 
-        // Online Status Events
+        // Online Status Events (bounded to keep client memory & render latency flat at high concurrency)
         newSocket.on('onlineUsers', (users: string[]) => {
-            setOnlineUsers(users);
+            setOnlineUsers(Array.isArray(users) ? users.slice(-500) : []);
         });
 
         newSocket.on('userOnline', (userId: string) => {
             setOnlineUsers(prev => {
-                if (!prev.includes(userId)) return [...prev, userId];
-                return prev;
+                if (prev.includes(userId)) return prev;
+                const next = [...prev, userId];
+                return next.length > 500 ? next.slice(-500) : next;
             });
         });
 
@@ -172,17 +175,14 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
             }
         });
 
-        // Visibility change presence sync (when user unlocks phone or switches back to tab)
+        // Visibility change presence sync (quietly check pending calls & reconnect only if dropped)
         const handleVisibilityChange = () => {
             if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
                 const freshToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-                if (freshToken && newSocket.connected) {
-                    newSocket.emit('authenticate', { token: freshToken });
-                }
-                const currentUid = userId || getStoredUserId();
-                if (currentUid && newSocket.connected) {
-                    newSocket.emit('join-room', currentUid);
+                if (newSocket.connected) {
                     newSocket.emit('checkPendingCall');
+                } else if (freshToken) {
+                    newSocket.connect();
                 }
             }
         };
@@ -222,11 +222,15 @@ export const SocketProvider = ({ children, userId }: { children: React.ReactNode
         }
     }, [socket, userId]);
 
+    const onlineUserSet = useMemo(() => new Set(onlineUsers), [onlineUsers]);
+    const isUserOnline = useMemo(() => (id?: string | null) => Boolean(id && onlineUserSet.has(id)), [onlineUserSet]);
+
     return (
         <SocketContext.Provider value={{
             socket,
             isConnected,
             onlineUsers,
+            isUserOnline,
             incomingCall,
             clearIncomingCall: () => setIncomingCall(null),
             publicStats

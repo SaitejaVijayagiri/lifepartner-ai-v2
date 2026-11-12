@@ -1,21 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
+import { detectVisitorGeo } from '@/lib/geoDetect';
 
 interface RegisterCardProps {
     onRegister: (data: any) => Promise<void>;
     onGoogle: () => Promise<void>;
 }
 
+const DIAL_CODE_BY_COUNTRY_CODE: Record<string, string> = {
+    IN: '+91',
+    US: '+1',
+    CA: '+1',
+    GB: '+44',
+    IE: '+353',
+    AU: '+61',
+    NZ: '+64',
+    AE: '+971',
+    QA: '+974',
+    SA: '+966',
+    DE: '+49',
+    FR: '+33',
+    NL: '+31',
+    ES: '+34',
+    IT: '+39',
+    JP: '+81',
+    KR: '+82',
+    SG: '+65',
+    MY: '+60',
+    PH: '+63',
+    BR: '+55',
+};
+
 export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps) {
     const toast = useToast();
     const [method, setMethod] = useState<'mobile' | 'email'>('mobile');
     const [countryCode, setCountryCode] = useState('+91');
+    const [isInternationalVisitor, setIsInternationalVisitor] = useState(false);
+
+    useEffect(() => {
+        try {
+            const geo = detectVisitorGeo();
+            const dial = DIAL_CODE_BY_COUNTRY_CODE[geo.countryCode];
+            if (dial) {
+                setCountryCode(dial);
+            }
+            if (geo.countryCode && geo.countryCode !== 'IN') {
+                setIsInternationalVisitor(true);
+            }
+        } catch (_) {}
+    }, []);
     const [step, setStep] = useState<'details' | 'otp'>('details');
     const [loading, setLoading] = useState(false);
 
@@ -94,7 +133,7 @@ export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps
                                 <label className="text-sm font-semibold text-gray-700">Full Name</label>
                                 <Input
                                     className="h-11 bg-gray-50"
-                                    placeholder="e.g. Rahul Verma"
+                                    placeholder={isInternationalVisitor ? "e.g. Alex Taylor" : "e.g. Rahul Verma"}
                                     value={formData.fullName}
                                     onChange={(e) => handleChange('fullName', e.target.value)}
                                 />
@@ -124,6 +163,12 @@ export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps
                                             <option value="+60">+60 (MY)</option>
                                             <option value="+63">+63 (PH)</option>
                                             <option value="+966">+966 (SA)</option>
+                                            <option value="+82">+82 (KR)</option>
+                                            <option value="+31">+31 (NL)</option>
+                                            <option value="+34">+34 (ES)</option>
+                                            <option value="+39">+39 (IT)</option>
+                                            <option value="+55">+55 (BR)</option>
+                                            <option value="+64">+64 (NZ)</option>
                                         </select>
                                         <Input
                                             className="rounded-l-none h-11 bg-gray-50"
@@ -140,7 +185,7 @@ export default function RegisterCard({ onRegister, onGoogle }: RegisterCardProps
                                     <Input
                                         className="h-11 bg-gray-50"
                                         type="email"
-                                        placeholder="rahul@example.com"
+                                        placeholder={isInternationalVisitor ? "alex@example.com" : "rahul@example.com"}
                                         value={formData.identifier}
                                         onChange={(e) => handleChange('identifier', e.target.value)}
                                     />

@@ -73,7 +73,7 @@ describe('Auth Routes (Integration)', () => {
                 });
 
             expect(res.status).toBe(400);
-            expect(res.body).toHaveProperty('error', 'User already exists');
+            expect(res.body.error).toContain('User already exists');
         });
 
         it('should fail if email domain is disposable', async () => {

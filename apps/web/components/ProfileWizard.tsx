@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { MapPin, LogOut } from 'lucide-react';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 import { detectVisitorGeo } from '@/lib/geoDetect';
+import { compressProfilePhotos, MAX_PROFILE_PHOTOS } from '@/lib/imageUpload';
 
 const STORAGE_KEY = 'lifepartner_onboarding_data';
 const STEP_STORAGE_KEY = 'lifepartner_onboarding_step';
@@ -197,7 +198,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                         city: data.city,
                         district: data.district,
                         state: data.state,
-                        country: data.country
+                        country: data.country,
+                        ...(data.lat && data.lng ? { lat: parseFloat(data.lat), lng: parseFloat(data.lng) } : {})
                     },
                     career: {
                         profession: data.profession,
@@ -464,8 +466,16 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                         </Button>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                                        <Input placeholder="District" value={data.district} onChange={e => update('district', e.target.value)} />
-                                        <Input placeholder="State" value={data.state} onChange={e => update('state', e.target.value)} />
+                                        <Input
+                                            placeholder={data.country && data.country !== 'India' ? "County / Area (Optional)" : "District"}
+                                            value={data.district}
+                                            onChange={e => update('district', e.target.value)}
+                                        />
+                                        <Input
+                                            placeholder={data.country && data.country !== 'India' ? "State / Province / Region" : "State"}
+                                            value={data.state}
+                                            onChange={e => update('state', e.target.value)}
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -618,70 +628,29 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                             ? []
                                             : currentPhotos.filter((p: string) => !isDicebear(p));
 
-                                        if (basePhotos.length >= 5) {
-                                            toast.error('Maximum 5 photos allowed. Remove one to add more.');
+                                        if (basePhotos.length >= MAX_PROFILE_PHOTOS) {
+                                            toast.error(`Maximum ${MAX_PROFILE_PHOTOS} photos allowed. Remove one to add more.`);
                                             e.target.value = '';
                                             return;
                                         }
 
-                                        const slotsLeft = 5 - basePhotos.length;
-                                        const fileArr = Array.from(files).slice(0, slotsLeft);
+                                        const slotsLeft = MAX_PROFILE_PHOTOS - basePhotos.length;
+                                        const rawArr = Array.from(files);
+                                        if (rawArr.length > slotsLeft) {
+                                            toast.info(`Selecting first ${slotsLeft} photo${slotsLeft > 1 ? 's' : ''} (max ${MAX_PROFILE_PHOTOS} photos).`);
+                                        }
+                                        const fileArr = rawArr.slice(0, slotsLeft);
 
-                                        const processOne = (file: File) => new Promise<string | null>((resolve) => {
-                                            if (file.size > 20 * 1024 * 1024) {
-                                                toast.error(`"${file.name}" is too large (>20MB).`);
-                                                return resolve(null);
-                                            }
-                                            const reader = new FileReader();
-                                            reader.onload = () => {
-                                                const dataUrl = reader.result as string;
-                                                const img = new Image();
-                                                let finished = false;
-
-                                                const done = (val: string) => {
-                                                    if (!finished) {
-                                                        finished = true;
-                                                        clearTimeout(safetyTimer);
-                                                        resolve(val);
-                                                    }
-                                                };
-
-                                                const safetyTimer = setTimeout(() => done(dataUrl), 4000);
-
-                                                img.onload = () => {
-                                                    try {
-                                                        const canvas = document.createElement('canvas');
-                                                        let { width, height } = img;
-                                                        const maxDim = 900;
-                                                        if (width > maxDim || height > maxDim) {
-                                                            const ratio = Math.min(maxDim / width, maxDim / height);
-                                                            width = Math.round(width * ratio);
-                                                            height = Math.round(height * ratio);
-                                                        }
-                                                        canvas.width = width;
-                                                        canvas.height = height;
-                                                        const ctx = canvas.getContext('2d');
-                                                        if (ctx) {
-                                                            ctx.drawImage(img, 0, 0, width, height);
-                                                            done(canvas.toDataURL('image/jpeg', 0.8));
-                                                            return;
-                                                        }
-                                                    } catch (_) {}
-                                                    done(dataUrl);
-                                                };
-                                                img.onerror = () => done(dataUrl);
-                                                img.src = dataUrl;
-                                            };
-                                            reader.onerror = () => resolve(null);
-                                            reader.readAsDataURL(file);
+                                        const newPhotos = await compressProfilePhotos(fileArr, {
+                                            maxDim: 1080,
+                                            quality: 0.78,
+                                            concurrency: 2,
+                                            onError: (_name, msg) => toast.error(msg),
                                         });
-
-                                        const results = await Promise.all(fileArr.map(processOne));
-                                        const newPhotos = results.filter(Boolean) as string[];
 
                                         if (newPhotos.length > 0) {
                                             const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
-                                            update('photos', [...newPhotos, ...cleanExisting]);
+                                            update('photos', [...newPhotos, ...cleanExisting].slice(0, MAX_PROFILE_PHOTOS));
                                             toast.success(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} added!`);
                                         }
                                         e.target.value = '';
@@ -695,7 +664,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 </div>
                                 <div className="mt-4 p-3 bg-indigo-50/70 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-900/40 max-w-sm">
                                     <p className="text-indigo-700 dark:text-indigo-300 text-xs font-medium">
-                                        📸 Upload a clear selfie or portrait of yourself. You can also skip this step and add photos anytime from your profile!
+                                        📸 Upload up to 10 clear photos (selfie, portrait, lifestyle). You can also skip this step and add photos anytime!
                                     </p>
                                 </div>
                                 <div className="mt-4 flex flex-col items-center gap-1.5 pointer-events-none">
@@ -704,7 +673,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     >
                                         📁 Choose from Camera or Gallery
                                     </span>
-                                    <p className="text-[11px] text-gray-400">JPG, PNG, WebP up to 20MB</p>
+                                    <p className="text-[11px] text-gray-400">Up to 10 photos • JPG, PNG, WebP up to 20MB</p>
                                 </div>
                             </label>
 
@@ -713,7 +682,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                 <div className="space-y-2 mt-4 text-left">
                                     <div className="flex items-center justify-between">
                                         <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                                            Your Photos ({data.photos.length}/5)
+                                            Your Photos ({data.photos.length}/10)
                                         </p>
                                         {data.photos.some((p: string) => typeof p === 'string' && p.includes('googleusercontent.com')) && (
                                             <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">

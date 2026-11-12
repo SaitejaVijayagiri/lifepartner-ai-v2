@@ -23,11 +23,19 @@ export interface FilterState {
     maritalStatus: string[];
     motherTongue: string[];
     location: string;
+    country?: string;
     minIncome: number | null;
     caste: string;
 }
 
-const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', 'Parsi', 'Other'];
+export const GLOBAL_COUNTRIES = [
+    'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'United Arab Emirates',
+    'Germany', 'Singapore', 'France', 'Netherlands', 'Ireland', 'Saudi Arabia', 'Qatar',
+    'Malaysia', 'New Zealand', 'Japan', 'South Korea', 'Spain', 'Italy', 'Switzerland',
+    'South Africa', 'Brazil', 'Philippines', 'Indonesia', 'Vietnam', 'Nepal', 'Sri Lanka'
+];
+
+const RELIGIONS = ['Hindu', 'Muslim', 'Christian', 'Sikh', 'Jain', 'Buddhist', 'Jewish', 'Parsi', 'Spiritual / Agnostic', 'Other'];
 const MOTHER_TONGUES = [
     'English', 'Spanish', 'French', 'German', 'Arabic', 'Portuguese', 'Italian', 'Russian', 'Japanese', 'Mandarin Chinese', 'Irish', 'Dutch', 'Korean', 'Turkish', 'Polish', 'Tagalog', 'Vietnamese', 'Indonesian', 'Persian',
     'Hindi', 'Telugu', 'Tamil', 'Marathi', 'Bengali', 'Kannada', 'Gujarati', 'Punjabi', 'Malayalam', 'Odia', 'Urdu', 'Assamese', 'Nepali', 'Sindhi', 'Konkani', 'Other'
@@ -47,6 +55,7 @@ const DEFAULT_FILTERS: FilterState = {
     maritalStatus: [],
     motherTongue: [],
     location: '',
+    country: '',
     minIncome: null,
     caste: '',
 };
@@ -251,23 +260,36 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                     {/* Expanded Filters */}
 
                     {/* Location */}
-                    <Section id="location" title="Location & Income">
+                    <Section id="location" title="Country, City & Income">
                         <div className="space-y-4">
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Preferred City / State</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Preferred Country</label>
+                                <select
+                                    value={filters.country || ''}
+                                    onChange={e => setFilters({ ...filters, country: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                >
+                                    <option value="">All Countries (Global)</option>
+                                    {GLOBAL_COUNTRIES.map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Preferred City / State / Region</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Mumbai or Maharashtra"
+                                    placeholder="e.g. Mumbai, London, or New York"
                                     value={filters.location || ''}
                                     onChange={e => setFilters({ ...filters, location: e.target.value })}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Min Annual Income (LPA)</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Min Annual Income (LPA or $K USD equiv.)</label>
                                 <input
                                     type="number"
-                                    placeholder="e.g. 10 (Lakhs)"
+                                    placeholder="e.g. 12 (for 12 LPA / $80K)"
                                     value={filters.minIncome || ''}
                                     onChange={e => setFilters({ ...filters, minIncome: e.target.value ? parseFloat(e.target.value) : null })}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
@@ -277,7 +299,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                     </Section>
 
                     {/* Mother Tongue */}
-                    <Section id="language" title="Mother Tongue">
+                    <Section id="language" title="Mother Tongue / Language">
                         <div className="flex flex-wrap gap-2">
                             {MOTHER_TONGUES.map(lang => (
                                 <button
@@ -295,7 +317,7 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                     </Section>
 
                     {/* Religion & Caste */}
-                    <Section id="religion" title="Religion & Caste">
+                    <Section id="religion" title="Faith & Cultural Background">
                         <div className="space-y-4">
                             <div className="flex flex-wrap gap-2">
                                 {RELIGIONS.map(religion => (
@@ -312,10 +334,10 @@ export default function FilterModal({ isOpen, onClose, onApply, initialFilters }
                                 ))}
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Caste Preference (Optional)</label>
+                                <label className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1 block">Community / Ethnicity / Caste (Optional)</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Brahmin"
+                                    placeholder="e.g. Irish, Arab, Tamil, Brahmin"
                                     value={filters.caste || ''}
                                     onChange={e => setFilters({ ...filters, caste: e.target.value })}
                                     className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"

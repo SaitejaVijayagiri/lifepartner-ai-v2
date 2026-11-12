@@ -17,6 +17,7 @@ model blocks {
   users_blocks_blocker_idTousers users     @relation("blocks_blocker_idTousers", fields: [blocker_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@id([blocker_id, blocked_id])
+  @@index([blocked_id], map: "idx_blocks_blocked_id")
 }
 
 model call_logs {
@@ -91,6 +92,9 @@ model interactions {
   @@unique([from_user_id, to_user_id, type], map: "unique_interaction_type")
   @@index([from_user_id, status], map: "idx_interactions_from_status")
   @@index([to_user_id, status], map: "idx_interactions_to_status")
+  @@index([to_user_id, type, status, created_at(sort: Desc)], map: "idx_interactions_to_type_status_created")
+  @@index([from_user_id, type, status, created_at(sort: Desc)], map: "idx_interactions_from_type_status_created")
+  @@index([type, created_at(sort: Desc)], map: "idx_interactions_type_created")
 }
 
 model matches {
@@ -111,6 +115,7 @@ model matches {
   @@index([status], map: "idx_matches_status")
   @@index([user_a_id], map: "idx_matches_user_a")
   @@index([user_b_id], map: "idx_matches_user_b")
+  @@index([user_b_id, is_liked, created_at(sort: Desc)], map: "idx_matches_liked_received")
 }
 
 model messages {
@@ -308,6 +313,9 @@ model users {
   // Optimization: Composite index for faster match filtering
   @@index([gender, age, is_verified, location_name], map: "idx_users_match_composite")
   @@index([is_banned, is_deactivated, is_verified], map: "idx_users_active_status")
+  @@index([is_verified, is_banned, gender, created_at(sort: Desc)], map: "idx_users_match_feed")
+  @@index([created_at(sort: Desc)], map: "idx_users_created_at")
+  @@index([is_boosted, boost_expires_at], map: "idx_users_boosted")
 }
 
 model blog_posts {
@@ -339,4 +347,6 @@ model lounge_messages {
   text       String
   created_at DateTime @default(now()) @db.Timestamp(6)
   users      users    @relation("lounge_messagesTousers", fields: [sender_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at(sort: Desc)], map: "idx_lounge_messages_created_at")
 }

@@ -767,7 +767,7 @@ function DashboardContent() {
                     if (typeof matchesResult.value?.hasMore === 'boolean') {
                         setHasMore(matchesResult.value.hasMore);
                     } else {
-                        setHasMore(freshMatches.length >= 200);
+                        setHasMore(freshMatches.length >= 30);
                     }
                     try {
                         localStorage.setItem('matches_cache_v2', JSON.stringify({ data: freshMatches, ts: Date.now() }));
@@ -1000,23 +1000,36 @@ function DashboardContent() {
         } catch (e) { console.error(e); }
     };
 
-    const fetchMatches = async (pageNum = 1) => {
+    const activeDiscoveryOptsRef = useRef<{ scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }>({});
+
+    const fetchMatches = async (
+        pageNum = 1,
+        opts?: { scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }
+    ) => {
         try {
+            if (opts) {
+                activeDiscoveryOptsRef.current = opts;
+            }
+            const effectiveOpts = opts || activeDiscoveryOptsRef.current;
             if (pageNum > 1) setLoadingMore(true);
-            const data = await api.matches.getAll(pageNum, 200);
+            else if (opts) setLoading(true);
+
+            const data = await api.matches.getAll(pageNum, 30, effectiveOpts);
             const newMatches = Array.isArray(data?.matches) ? data.matches : [];
             
             if (typeof data?.hasMore === 'boolean') {
                 setHasMore(data.hasMore);
             } else {
-                setHasMore(newMatches.length >= 200);
+                setHasMore(newMatches.length >= 30);
             }
 
             if (pageNum === 1) {
                 setMatches(newMatches);
-                try {
-                    localStorage.setItem('matches_cache_v2', JSON.stringify({ data: newMatches, ts: Date.now() }));
-                } catch (_) {}
+                if (!effectiveOpts?.scope || effectiveOpts.scope === 'all') {
+                    try {
+                        localStorage.setItem('matches_cache_v2', JSON.stringify({ data: newMatches, ts: Date.now() }));
+                    } catch (_) {}
+                }
             } else {
                 if (newMatches.length === 0) {
                     setHasMore(false);
@@ -1026,7 +1039,7 @@ function DashboardContent() {
                         const uniqueNew = newMatches.filter((m: any) => m?.id && !seenIds.has(m.id));
                         const merged = [...prev, ...uniqueNew];
                         try {
-                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 200), ts: Date.now() }));
+                            localStorage.setItem('matches_cache_v2', JSON.stringify({ data: merged.slice(0, 90), ts: Date.now() }));
                         } catch (_) {}
                         return merged;
                     });

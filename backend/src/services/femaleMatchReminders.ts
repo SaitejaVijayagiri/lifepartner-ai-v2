@@ -338,34 +338,6 @@ export async function runFemaleMatchesReminderCampaign() {
     const emailTracker = EmailTracker.getInstance();
 
     try {
-        // 1. Fetch active, non-banned users
-        const activeUsers = await prisma.users.findMany({
-            where: {
-                is_banned: false,
-                OR: [
-                    { is_deactivated: false },
-                    { is_deactivated: null },
-                    { deactivated_until: { lt: new Date() } }
-                ]
-            },
-            select: {
-                id: true,
-                email: true,
-                full_name: true,
-                gender: true,
-                is_verified: true,
-                city: true,
-                location_name: true,
-                created_at: true,
-                profiles: {
-                    select: {
-                        metadata: true,
-                        updated_at: true
-                    }
-                }
-            }
-        });
-
         const [totalVerifiedMen, totalVerifiedWomen] = await Promise.all([
             prisma.users.count({
                 where: {
@@ -383,197 +355,255 @@ export async function runFemaleMatchesReminderCampaign() {
             })
         ]);
 
-        console.log(`[CRON] Total candidate users for Push Notifications: ${activeUsers.length}`);
-
         // Track daily campaign email budget
         const dailySentCount = await emailTracker.getDailyCampaignSentCount();
         let remainingEmailBudget = Math.max(0, MAX_DAILY_CAMPAIGN_EMAILS - dailySentCount);
         console.log(`[CRON] Campaign Emails sent today: ${dailySentCount}/${MAX_DAILY_CAMPAIGN_EMAILS}. Remaining budget: ${remainingEmailBudget} (Reserves 90+ for OTPs).`);
 
+        let totalScannedUsers = 0;
         let pushSentCount = 0;
         let emailsSentCount = 0;
         let emailsSkippedActive = 0;
         let emailsSkippedSuppressed = 0;
 
-        // Cutoff dates for inactive user email targeting
         const now = Date.now();
         const twoDaysAgo = new Date(now - 2 * 24 * 60 * 60 * 1000);
         const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        const recentReminderCutoff = new Date(now - 24 * 60 * 60 * 1000);
 
-        for (const user of activeUsers) {
-            const firstName = formatFirstName(user.full_name);
-            const isMale = (user.gender || '').toLowerCase() === 'male';
-            const oppositeCount = isMale ? totalVerifiedWomen : totalVerifiedMen;
-            const oppositeLabel = isMale ? 'verified women' : 'verified men';
-            const userCity = user.city || user.location_name || 'your city';
+        const BATCH_SIZE = 500;
+        let cursorId: string | undefined;
 
-            // Check pending requests
-            const pendingRequests = await prisma.interactions.count({
+        while (true) {
+            const activeUsers = await prisma.users.findMany({
+                take: BATCH_SIZE,
+                ...(cursorId ? { skip: 1, cursor: { id: cursorId } } : {}),
+                orderBy: { id: 'asc' },
                 where: {
-                    to_user_id: user.id,
-                    type: 'REQUEST',
-                    status: { in: ['pending', 'PENDING'] }
-                }
-            });
-
-            // Resolve user local time & timezone
-            const userTimezone = resolveUserTimezone(user);
-            const local = getUserLocalTime(userTimezone);
-
-            // Sleep protection: never disturb users in their local quiet hours (11:00 PM - 7:59 AM)
-            if (local.isQuietHours) {
-                continue;
-            }
-
-            // Generate irresistible, daily curiosity-driven push notification with banner (strictly timezone-tailored)
-            const pushData = generateCuriosityPush(
-                user.full_name,
-                userCity,
-                pendingRequests,
-                oppositeCount,
-                oppositeLabel,
-                user.gender,
-                userTimezone
-            );
-
-            // ========================================================
-            // PRIORITY 1: In-App & Realtime Push Notifications (100% of users)
-            // ========================================================
-            // 24-hour Throttle Check: Skip duplicate reminder if user received one recently
-            const recentReminderCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            const existingReminder = await prisma.notifications.findFirst({
-                where: {
-                    user_id: user.id,
-                    type: 'match_waiting_reminder',
-                    created_at: { gte: recentReminderCutoff }
-                }
-            });
-            if (existingReminder) {
-                continue;
-            }
-
-            await prisma.notifications.create({
-                data: {
-                    user_id: user.id,
-                    type: 'match_waiting_reminder',
-                    message: pushData.title,
-                    data: {
-                        body: pushData.body,
-                        bannerUrl: pushData.bannerUrl,
-                        pendingCount: pendingRequests,
-                        actionUrl: pushData.targetUrl,
-                        templateId: pushData.templateId
+                    is_banned: false,
+                    OR: [
+                        { is_deactivated: false },
+                        { is_deactivated: null },
+                        { deactivated_until: { lt: new Date() } }
+                    ]
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    full_name: true,
+                    gender: true,
+                    is_verified: true,
+                    city: true,
+                    location_name: true,
+                    created_at: true,
+                    profiles: {
+                        select: {
+                            metadata: true,
+                            updated_at: true
+                        }
                     }
                 }
-            }).catch(() => {});
+            });
 
-            NotificationService.getInstance().sendToUser(
-                user.id,
-                pushData.title,
-                pushData.body,
-                {
-                    type: 'match_reminder',
-                    pendingCount: String(pendingRequests),
-                    bannerUrl: pushData.bannerUrl,
-                    url: pushData.targetUrl,
-                    actionUrl: pushData.targetUrl
+            if (!activeUsers || activeUsers.length === 0) break;
+            totalScannedUsers += activeUsers.length;
+
+            const batchIds = activeUsers.map(u => u.id);
+            const templateHistoryCutoff = new Date(now - 14 * 24 * 60 * 60 * 1000);
+            const [recentNotificationRows, pendingGrouped] = await Promise.all([
+                prisma.notifications.findMany({
+                    where: {
+                        user_id: { in: batchIds },
+                        type: { in: ['match_waiting_reminder', 'witty_reengagement'] },
+                        created_at: { gte: templateHistoryCutoff }
+                    },
+                    select: { user_id: true, type: true, created_at: true, data: true }
+                }).catch(() => []),
+                prisma.interactions.groupBy({
+                    by: ['to_user_id'],
+                    where: {
+                        to_user_id: { in: batchIds },
+                        type: 'REQUEST',
+                        status: { in: ['pending', 'PENDING'] }
+                    },
+                    _count: { _all: true }
+                }).catch(() => [])
+            ]);
+
+            const recentlyRemindedSet = new Set<string>();
+            const recentTemplateMap = new Map<string, string[]>();
+            for (const row of (recentNotificationRows || []) as any[]) {
+                if (!row?.user_id) continue;
+                if (row.type === 'match_waiting_reminder' && row.created_at && new Date(row.created_at) >= recentReminderCutoff) {
+                    recentlyRemindedSet.add(row.user_id);
                 }
-            ).catch(() => {});
-            pushSentCount++;
-
-            // ========================================================
-            // PRIORITY 2: Controlled, Dynamic Email (Strict Cap & Inactive Only)
-            // ========================================================
-            if (remainingEmailBudget > 0 && user.email && resend && user.is_verified) {
-                const isSuppressed = await emailTracker.isSuppressed(user.email);
-                if (isSuppressed) {
-                    emailsSkippedSuppressed++;
-                    continue;
+                const tplId = row.data?.templateId;
+                if (tplId && typeof tplId === 'string') {
+                    const arr = recentTemplateMap.get(row.user_id) || [];
+                    arr.push(tplId);
+                    recentTemplateMap.set(row.user_id, arr);
                 }
+            }
 
-                // Determine user inactivity
+            const pendingCountMap = new Map<string, number>();
+            for (const g of pendingGrouped as any[]) {
+                if (g?.to_user_id) pendingCountMap.set(g.to_user_id, Number(g._count?._all || 0));
+            }
+
+            for (const user of activeUsers) {
+                if (recentlyRemindedSet.has(user.id)) continue;
+
+                const firstName = formatFirstName(user.full_name);
+                const isMale = (user.gender || '').toLowerCase() === 'male';
+                const oppositeCount = isMale ? totalVerifiedWomen : totalVerifiedMen;
+                const oppositeLabel = isMale ? 'verified women' : 'verified men';
                 const meta = (user.profiles?.metadata as any) || {};
-                const lastSeen = meta.last_seen_at 
-                    ? new Date(meta.last_seen_at) 
-                    : (user.profiles?.updated_at ? new Date(user.profiles.updated_at) : new Date(user.created_at || now));
+                const userCity = meta.location?.city || user.city || user.location_name || 'your city';
 
-                // Skip active users (visited in the last 48 hours) or dead accounts (> 30 days)
-                const isInactiveEligible = lastSeen < twoDaysAgo && lastSeen > thirtyDaysAgo;
-                if (!isInactiveEligible) {
-                    emailsSkippedActive++;
+                const pendingRequests = pendingCountMap.get(user.id) || 0;
+
+                const userTimezone = resolveUserTimezone(user);
+                const local = getUserLocalTime(userTimezone);
+
+                if (local.isQuietHours) {
                     continue;
                 }
 
-                // Check cool-down: avoid sending campaign email if sent in the last 5 days
-                if (meta.last_campaign_email_at) {
-                    const lastEmailDate = new Date(meta.last_campaign_email_at);
-                    if (now - lastEmailDate.getTime() < 5 * 24 * 60 * 60 * 1000) {
+                const pushData = generateCuriosityPush(
+                    user.full_name,
+                    userCity,
+                    pendingRequests,
+                    oppositeCount,
+                    oppositeLabel,
+                    user.gender,
+                    userTimezone,
+                    new Date(),
+                    {
+                        userId: user.id,
+                        country: meta.location?.country || null,
+                        religion: meta.religion?.religion || null,
+                        recentTemplateIds: recentTemplateMap.get(user.id) || []
+                    }
+                );
+
+                await prisma.notifications.create({
+                    data: {
+                        user_id: user.id,
+                        type: 'match_waiting_reminder',
+                        message: pushData.title,
+                        data: {
+                            body: pushData.body,
+                            bannerUrl: pushData.bannerUrl,
+                            pendingCount: pendingRequests,
+                            actionUrl: pushData.targetUrl,
+                            templateId: pushData.templateId
+                        }
+                    }
+                }).catch(() => {});
+
+                NotificationService.getInstance().sendToUser(
+                    user.id,
+                    pushData.title,
+                    pushData.body,
+                    {
+                        type: 'match_reminder',
+                        pendingCount: String(pendingRequests),
+                        bannerUrl: pushData.bannerUrl,
+                        url: pushData.targetUrl,
+                        actionUrl: pushData.targetUrl
+                    }
+                ).catch(() => {});
+                pushSentCount++;
+
+                if (remainingEmailBudget > 0 && user.email && resend && user.is_verified) {
+                    const isSuppressed = await emailTracker.isSuppressed(user.email);
+                    if (isSuppressed) {
+                        emailsSkippedSuppressed++;
                         continue;
                     }
-                }
 
-                // Select unique template variant
-                let emailData: { subject: string; html: string };
-                let variantId: string;
+                    const meta = (user.profiles?.metadata as any) || {};
+                    const lastSeen = meta.last_seen_at
+                        ? new Date(meta.last_seen_at)
+                        : (user.profiles?.updated_at ? new Date(user.profiles.updated_at) : new Date(user.created_at || now));
 
-                if (pendingRequests > 0) {
-                    variantId = 'variant_pending_request';
-                    emailData = generatePendingRequestEmail(firstName, pendingRequests);
-                } else {
-                    // Rotate between Variant 1 (Teaser), Variant 2 (Spotlight), and Variant 4 (Chai)
-                    const lastVariant = meta.last_campaign_variant;
-                    if (lastVariant === 'variant_teaser') {
-                        variantId = 'variant_spotlight';
-                        emailData = generateSpotlightEmail(firstName, userCity, oppositeLabel);
-                    } else if (lastVariant === 'variant_spotlight') {
-                        variantId = 'variant_chai';
-                        emailData = generateChaiDateEmail(firstName, userCity);
-                    } else {
-                        variantId = 'variant_teaser';
-                        emailData = generateProfileTeaserEmail(firstName, userCity, oppositeLabel, {
-                            age: isMale ? 24 : 27,
-                            profession: isMale ? 'Software Professional' : 'Business Professional',
-                            city: userCity
-                        });
+                    const isInactiveEligible = lastSeen < twoDaysAgo && lastSeen > thirtyDaysAgo;
+                    if (!isInactiveEligible) {
+                        emailsSkippedActive++;
+                        continue;
                     }
-                }
 
-                try {
-                    await resend.emails.send({
-                        from: FROM,
-                        to: user.email,
-                        subject: emailData.subject,
-                        html: emailData.html
-                    });
-
-                    await emailTracker.recordCampaignSent(user.email, variantId, emailData.subject);
-                    emailsSentCount++;
-                    remainingEmailBudget--;
-
-                    // Update user profile metadata
-                    await prisma.profiles.update({
-                        where: { user_id: user.id },
-                        data: {
-                            metadata: {
-                                ...meta,
-                                last_campaign_email_at: new Date().toISOString(),
-                                last_campaign_variant: variantId
-                            }
+                    if (meta.last_campaign_email_at) {
+                        const lastEmailDate = new Date(meta.last_campaign_email_at);
+                        if (now - lastEmailDate.getTime() < 5 * 24 * 60 * 60 * 1000) {
+                            continue;
                         }
-                    }).catch(() => {});
+                    }
 
-                    console.log(`  📧 [Campaign Email Sent] ${user.email} (${variantId}) | Subject: "${emailData.subject}"`);
-                } catch (sendErr: any) {
-                    console.error(`  ❌ [Campaign Email Failed] ${user.email}:`, sendErr.message);
-                    if (sendErr.message?.includes('suppressed') || sendErr.message?.includes('bounce')) {
-                        await emailTracker.recordBounce(user.email, sendErr.message);
+                    let emailData: { subject: string; html: string };
+                    let variantId: string;
+
+                    if (pendingRequests > 0) {
+                        variantId = 'variant_pending_request';
+                        emailData = generatePendingRequestEmail(firstName, pendingRequests);
+                    } else {
+                        const lastVariant = meta.last_campaign_variant;
+                        if (lastVariant === 'variant_teaser') {
+                            variantId = 'variant_spotlight';
+                            emailData = generateSpotlightEmail(firstName, userCity, oppositeLabel);
+                        } else if (lastVariant === 'variant_spotlight') {
+                            variantId = 'variant_chai';
+                            emailData = generateChaiDateEmail(firstName, userCity);
+                        } else {
+                            variantId = 'variant_teaser';
+                            emailData = generateProfileTeaserEmail(firstName, userCity, oppositeLabel, {
+                                age: isMale ? 24 : 27,
+                                profession: isMale ? 'Software Professional' : 'Business Professional',
+                                city: userCity
+                            });
+                        }
+                    }
+
+                    try {
+                        await resend.emails.send({
+                            from: FROM,
+                            to: user.email,
+                            subject: emailData.subject,
+                            html: emailData.html
+                        });
+
+                        await emailTracker.recordCampaignSent(user.email, variantId, emailData.subject);
+                        emailsSentCount++;
+                        remainingEmailBudget--;
+
+                        await prisma.profiles.update({
+                            where: { user_id: user.id },
+                            data: {
+                                metadata: {
+                                    ...meta,
+                                    last_campaign_email_at: new Date().toISOString(),
+                                    last_campaign_variant: variantId
+                                }
+                            }
+                        }).catch(() => {});
+
+                        console.log(`  📧 [Campaign Email Sent] ${user.email} (${variantId}) | Subject: "${emailData.subject}"`);
+                    } catch (sendErr: any) {
+                        console.error(`  ❌ [Campaign Email Failed] ${user.email}:`, sendErr.message);
+                        if (sendErr.message?.includes('suppressed') || sendErr.message?.includes('bounce')) {
+                            await emailTracker.recordBounce(user.email, sendErr.message);
+                        }
                     }
                 }
+
+                await new Promise((r) => setTimeout(r, 20));
             }
 
-            // Small delay to prevent tight loop
-            await new Promise((r) => setTimeout(r, 100));
+            if (activeUsers.length < BATCH_SIZE) break;
+            cursorId = activeUsers[activeUsers.length - 1].id;
         }
+
+        console.log(`[CRON] Total candidate users scanned for Push Notifications: ${totalScannedUsers}`);
 
         console.log(`[CRON] Match Reminder Campaign Finished:`);
         console.log(`  - Push Notifications Dispatched: ${pushSentCount}`);

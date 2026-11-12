@@ -69,12 +69,14 @@ export async function sendWittyNotifications() {
         console.log("🚀 Running Witty Push Notifications Cron Job...");
         
         // Auto-cleanup stale automated notifications older than 30 days to keep DB healthy
-        await prisma.notifications.deleteMany({
-            where: {
-                type: 'witty_reengagement',
-                created_at: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-            }
-        }).catch(() => {});
+        if (typeof (prisma.notifications as any).deleteMany === 'function') {
+            await prisma.notifications.deleteMany({
+                where: {
+                    type: 'witty_reengagement',
+                    created_at: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+                }
+            }).catch(() => {});
+        }
 
         // Target users inactive for at least 1 day (up to 180 days to cover all registered users)
         const INACTIVE_MIN_DAYS = 1;
@@ -85,147 +87,208 @@ export async function sendWittyNotifications() {
         const maxCutoff = new Date();
         maxCutoff.setDate(maxCutoff.getDate() - INACTIVE_MAX_DAYS);
 
-        // Fetch users who are not banned and not deactivated
-        const users = await prisma.users.findMany({
-            where: {
-                is_banned: false,
-                is_deactivated: false,
-                profiles: { isNot: null }
-            },
-            select: { 
-                id: true, 
-                full_name: true, 
-                gender: true,
-                city: true,
-                location_name: true,
-                created_at: true, 
-                profiles: { 
-                    select: { 
-                        metadata: true,
-                        location_name: true 
-                    } 
-                } 
-            }
-        });
-
-        const inactiveUsers = users.filter((u: any) => {
-            const meta = (u.profiles?.metadata as any) || {};
-            const lastSeen = meta.last_seen_at ? new Date(meta.last_seen_at) : (u.created_at ? new Date(u.created_at) : null);
-            // Must be between 1 day and 7 days ago
-            return lastSeen && lastSeen < minCutoff && lastSeen > maxCutoff;
-        });
-
-        if (inactiveUsers.length === 0) {
-            console.log("No inactive users matching criteria (1-7 days last seen).");
-            return;
-        }
-
+        // Cursor-paginated batch scan so 1M+ users never OOM or lock the event loop
+        const BATCH_SIZE = 500;
         const ns = NotificationService.getInstance();
         let count = 0;
         let skippedQuietHours = 0;
+        let cursorId: string | undefined;
 
-        for (const user of inactiveUsers) {
-            // Determine user's local timezone & time
-            const userTimezone = resolveUserTimezone(user);
-            const local = getUserLocalTime(userTimezone);
-
-            // 1. SLEEP PROTECTION: Never send notifications during quiet hours (11:00 PM - 7:59 AM local time)
-            if (local.isQuietHours) {
-                skippedQuietHours++;
-                continue;
-            }
-
-            // 2. PRIME ENGAGEMENT WINDOW: Only deliver during high-intent local hours (9 AM morning, 1 PM lunch, 6 PM evening, 9 PM night)
-            if (!local.isOptimalCampaignHour) {
-                continue;
-            }
-
-            // 3. 20-Hour Throttle: Skip if user already received an automated notification recently
-            const recentCutoff = new Date(Date.now() - 20 * 60 * 60 * 1000);
-            const alreadyNotified = await prisma.notifications.findFirst({
+        while (true) {
+            const users = await prisma.users.findMany({
+                take: BATCH_SIZE,
+                ...(cursorId ? { skip: 1, cursor: { id: cursorId } } : {}),
+                orderBy: { id: 'asc' },
                 where: {
-                    user_id: user.id,
-                    type: 'witty_reengagement',
-                    created_at: { gte: recentCutoff }
-                }
-            });
-            if (alreadyNotified) {
-                continue;
-            }
-
-            const location = user.profiles?.location_name || user.city || '';
-
-            // Check if user has pending requests to trigger highest curiosity
-            const pendingRequests = await prisma.interactions.count({
-                where: {
-                    to_user_id: user.id,
-                    type: 'REQUEST',
-                    status: { in: ['pending', 'PENDING'] }
-                }
-            }).catch(() => 0);
-
-            // Generate daily curiosity-driven push with rich banner (strictly tailored to user's local time & timezone)
-            const isFemale = (user.gender || '').toLowerCase() === 'female';
-            const pushData = generateCuriosityPush(
-                user.full_name,
-                location,
-                pendingRequests,
-                20,
-                isFemale ? 'verified men' : 'verified women',
-                user.gender,
-                userTimezone
-            );
-
-            // Create notification record in database first to track it
-            const dbNotification = await prisma.notifications.create({
-                data: {
-                    user_id: user.id,
-                    type: 'witty_reengagement',
-                    message: pushData.title,
-                    data: {
-                        body: pushData.body,
-                        bannerUrl: pushData.bannerUrl,
-                        clicked: false,
-                        templateId: pushData.templateId,
-                        timezone: userTimezone,
-                        localHour: local.hour
+                    is_banned: false,
+                    is_deactivated: false,
+                    profiles: { isNot: null }
+                },
+                select: {
+                    id: true,
+                    full_name: true,
+                    gender: true,
+                    city: true,
+                    location_name: true,
+                    created_at: true,
+                    profiles: {
+                        select: {
+                            metadata: true,
+                            location_name: true
+                        }
                     }
                 }
             });
 
-            await ns.sendToUser(
-                user.id,
-                pushData.title,
-                pushData.body,
-                { 
-                    type: 'witty_reengagement', 
-                    screen: pushData.targetUrl.includes('requests') ? 'requests' : 'matches',
-                    url: pushData.targetUrl,
-                    bannerUrl: pushData.bannerUrl,
-                    notificationId: dbNotification.id
+            if (!users || users.length === 0) break;
+
+            const inactiveUsers = users.filter((u: any) => {
+                const meta = (u.profiles?.metadata as any) || {};
+                const lastSeen = meta.last_seen_at ? new Date(meta.last_seen_at) : (u.created_at ? new Date(u.created_at) : null);
+                return lastSeen && lastSeen < minCutoff && lastSeen > maxCutoff;
+            });
+
+            const eligibleForHour = inactiveUsers.filter((user: any) => {
+                const userTimezone = resolveUserTimezone(user);
+                const local = getUserLocalTime(userTimezone);
+                if (local.isQuietHours) {
+                    skippedQuietHours++;
+                    return false;
                 }
-            );
+                return local.isOptimalCampaignHour;
+            });
 
-            // Emit realtime notification socket event for active web users
-            try {
-                const { getIO } = require('../socket');
-                const io = getIO();
-                io.to(user.id).emit('notification:new', {
-                    id: dbNotification.id,
-                    type: 'witty_reengagement',
-                    message: pushData.title,
-                    body: pushData.body,
-                    bannerUrl: pushData.bannerUrl,
-                    timestamp: new Date()
-                });
-            } catch (_) {}
+            if (eligibleForHour.length > 0) {
+                const recentCutoff = new Date(Date.now() - 20 * 60 * 60 * 1000);
+                const templateHistoryCutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+                const batchUserIds = eligibleForHour.map((u: any) => u.id);
 
-            count++;
-            
-            // Small sleep to avoid throttling
-            await new Promise(r => setTimeout(r, 100));
+                // Batch lookup recent witty notifications & last 14d templateIds so users never see repeats
+                let recentlyNotifiedIds = new Set<string>();
+                const recentTemplateMap = new Map<string, string[]>();
+                if (typeof (prisma.notifications as any).findMany === 'function') {
+                    const recentRows = await prisma.notifications.findMany({
+                        where: {
+                            user_id: { in: batchUserIds },
+                            type: { in: ['witty_reengagement', 'match_waiting_reminder'] },
+                            created_at: { gte: templateHistoryCutoff }
+                        },
+                        select: { user_id: true, type: true, created_at: true, data: true }
+                    }).catch(() => []);
+                    for (const r of (recentRows || []) as any[]) {
+                        if (!r?.user_id) continue;
+                        if (r.type === 'witty_reengagement' && r.created_at && new Date(r.created_at) >= recentCutoff) {
+                            recentlyNotifiedIds.add(r.user_id);
+                        }
+                        const tplId = r.data?.templateId;
+                        if (tplId && typeof tplId === 'string') {
+                            const arr = recentTemplateMap.get(r.user_id) || [];
+                            arr.push(tplId);
+                            recentTemplateMap.set(r.user_id, arr);
+                        }
+                    }
+                }
+
+                // Batch lookup pending requests counts if groupBy is available
+                const pendingCountMap = new Map<string, number>();
+                if (typeof (prisma as any).interactions?.groupBy === 'function') {
+                    const grouped = await (prisma as any).interactions.groupBy({
+                        by: ['to_user_id'],
+                        where: {
+                            to_user_id: { in: batchUserIds },
+                            type: 'REQUEST',
+                            status: { in: ['pending', 'PENDING'] }
+                        },
+                        _count: { _all: true }
+                    }).catch(() => []);
+                    for (const g of grouped || []) {
+                        if (g?.to_user_id) pendingCountMap.set(g.to_user_id, Number(g._count?._all || 0));
+                    }
+                }
+
+                for (const user of eligibleForHour) {
+                    if (recentlyNotifiedIds.has(user.id)) continue;
+
+                    // Fallback per-user throttle check if findMany is mocked out in tests
+                    if (typeof (prisma.notifications as any).findMany !== 'function' && typeof (prisma.notifications as any).findFirst === 'function') {
+                        const alreadyNotified = await prisma.notifications.findFirst({
+                            where: {
+                                user_id: user.id,
+                                type: 'witty_reengagement',
+                                created_at: { gte: recentCutoff }
+                            }
+                        }).catch(() => null);
+                        if (alreadyNotified) continue;
+                    }
+
+                    const userTimezone = resolveUserTimezone(user);
+                    const local = getUserLocalTime(userTimezone);
+                    const meta = (user.profiles?.metadata as any) || {};
+                    const location = meta.location?.city || user.profiles?.location_name || user.city || '';
+
+                    let pendingRequests = pendingCountMap.get(user.id) ?? 0;
+                    if (!pendingCountMap.has(user.id) && typeof (prisma as any).interactions?.count === 'function') {
+                        pendingRequests = await prisma.interactions.count({
+                            where: {
+                                to_user_id: user.id,
+                                type: 'REQUEST',
+                                status: { in: ['pending', 'PENDING'] }
+                            }
+                        }).catch(() => 0);
+                    }
+
+                    const isFemale = (user.gender || '').toLowerCase() === 'female';
+                    const pushData = generateCuriosityPush(
+                        user.full_name,
+                        location,
+                        pendingRequests,
+                        20,
+                        isFemale ? 'verified men' : 'verified women',
+                        user.gender,
+                        userTimezone,
+                        new Date(),
+                        {
+                            userId: user.id,
+                            country: meta.location?.country || null,
+                            religion: meta.religion?.religion || null,
+                            recentTemplateIds: recentTemplateMap.get(user.id) || []
+                        }
+                    );
+
+                    const dbNotification = await prisma.notifications.create({
+                        data: {
+                            user_id: user.id,
+                            type: 'witty_reengagement',
+                            message: pushData.title,
+                            data: {
+                                body: pushData.body,
+                                bannerUrl: pushData.bannerUrl,
+                                clicked: false,
+                                templateId: pushData.templateId,
+                                timezone: userTimezone,
+                                localHour: local.hour
+                            }
+                        }
+                    });
+
+                    await ns.sendToUser(
+                        user.id,
+                        pushData.title,
+                        pushData.body,
+                        {
+                            type: 'witty_reengagement',
+                            screen: pushData.targetUrl.includes('requests') ? 'requests' : 'matches',
+                            url: pushData.targetUrl,
+                            bannerUrl: pushData.bannerUrl,
+                            notificationId: dbNotification.id
+                        }
+                    );
+
+                    try {
+                        const { getIO } = require('../socket');
+                        const io = getIO();
+                        io.to(user.id).emit('notification:new', {
+                            id: dbNotification.id,
+                            type: 'witty_reengagement',
+                            message: pushData.title,
+                            body: pushData.body,
+                            bannerUrl: pushData.bannerUrl,
+                            timestamp: new Date()
+                        });
+                    } catch (_) {}
+
+                    count++;
+                    await new Promise(r => setTimeout(r, 20));
+                }
+            }
+
+            if (users.length < BATCH_SIZE) break;
+            cursorId = users[users.length - 1].id;
         }
 
+        if (count === 0) {
+            console.log("No inactive users matching criteria (1-7 days last seen).");
+        }
         console.log(`[Witty Campaign] Successfully sent ${count} timezone-accurate push notifications (Skipped ${skippedQuietHours} in quiet hours).`);
     } catch (e) {
         console.error("Failed to run Witty Push Notifications Campaign:", e);

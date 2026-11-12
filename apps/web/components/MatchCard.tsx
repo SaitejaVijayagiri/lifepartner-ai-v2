@@ -50,10 +50,10 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
     }, []);
 
     // Independent States
-    const { onlineUsers } = useSocket();
+    const { isUserOnline: checkUserOnline } = useSocket();
     const { user: currentUser, setUser } = useAuth() as any;
     const matchTargetId = match?.id || match?.userId || (match as any)?.user_id;
-    const isUserOnline = Boolean(matchTargetId && Array.isArray(onlineUsers) && onlineUsers.includes(matchTargetId));
+    const isUserOnline = Boolean(checkUserOnline(matchTargetId) || match?.isOnline);
 
     const [matchStatus, setMatchStatus] = useState<string | null>(match?.match_status || null);
     const [isLiked, setIsLiked] = useState<boolean>(match?.is_liked || false);
@@ -134,7 +134,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
 
     // Asynchronous In-Memory Preloader for Adjacent Photos (LRU Queue - Zero DOM Bloat)
     useEffect(() => {
-        if (photos.length <= 1 || !isInViewport) return;
+        if (photos.length <= 1 || !isInViewport || isPhotoBlurred) return;
 
         // Preload next image into browser disk/RAM cache
         const nextIdx = (currentPhotoIndex + 1) % photos.length;
@@ -149,7 +149,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
             const imgPrev = new Image();
             imgPrev.src = photos[prevIdx];
         }
-    }, [currentPhotoIndex, photos, isInViewport]);
+    }, [currentPhotoIndex, photos, isInViewport, isPhotoBlurred]);
 
     // Auto-Scroll Photos Carousel (3.5s interval, strictly when in viewport, pauses on hover or private blur)
     useEffect(() => {
@@ -648,10 +648,15 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                             chips.push({ icon: '🗣️', text: lang });
                         }
 
-                        // 5. Location
+                        // 5. Location (+ distance badge when GPS active)
                         const loc = formatLocationString(match.location);
+                        const distText = typeof match.distanceKm === 'number'
+                            ? (match.distanceKm < 1 ? 'Within 1 km' : `${Math.round(match.distanceKm)} km away`)
+                            : '';
                         if (loc && loc !== 'Unknown City' && loc !== '-') {
-                            chips.push({ icon: '📍', text: loc });
+                            chips.push({ icon: '📍', text: distText ? `${loc} • ${distText}` : loc });
+                        } else if (distText) {
+                            chips.push({ icon: '📍', text: distText });
                         }
 
                         if (chips.length === 0) {

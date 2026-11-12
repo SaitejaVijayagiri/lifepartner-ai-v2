@@ -103,7 +103,7 @@ export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalP
                     <div className="p-6 bg-gray-50 border-t border-gray-100 text-center">
                         <div className="mb-6">
                             <span className="text-3xl font-bold text-gray-900">₹499</span>
-                            <span className="text-gray-500 text-sm"> / year</span>
+                            <span className="text-gray-500 text-sm"> / year (~$6 USD)</span>
                         </div>
 
                         <Button
@@ -117,7 +117,7 @@ export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalP
                                 "Get Premium Now"
                             )}
                         </Button>
-                        <p className="mt-4 text-xs text-gray-400">Secure payment via Cashfree</p>
+                        <p className="mt-4 text-xs text-gray-400">Secure global checkout via Cashfree (International Cards & UPI accepted)</p>
                     </div>
 
                     {/* Close X */}

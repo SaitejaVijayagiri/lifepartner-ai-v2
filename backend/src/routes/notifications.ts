@@ -243,7 +243,8 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
                 gender: true,
                 city: true,
                 location_name: true,
-                device_tokens: { select: { platform: true } }
+                device_tokens: { select: { platform: true } },
+                profiles: { select: { metadata: true } }
             }
         });
 
@@ -267,6 +268,7 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
             for (const targetUser of candidateUsers) {
                 try {
                     const isFemale = (targetUser.gender || '').toLowerCase() === 'female';
+                    const meta = (targetUser.profiles?.metadata as any) || {};
                     let pushTitle = title;
                     let pushBody = body;
                     let pushBanner = bannerUrl;
@@ -276,7 +278,7 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
                         const t = FEMALE_CURIOSITY_TEMPLATES.find((tpl: any) => tpl.id === templateId);
                         if (t) {
                             const name = targetUser.full_name?.split(' ')[0] || 'there';
-                            const city = targetUser.city || targetUser.location_name || 'your city';
+                            const city = meta.location?.city || targetUser.city || targetUser.location_name || 'your city';
                             pushTitle = pushTitle || t.title(name, city);
                             pushBody = pushBody || t.body(name, city, 35);
                             pushBanner = pushBanner || t.bannerUrl;
@@ -286,12 +288,18 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
                         const userTz = resolveUserTimezone(targetUser);
                         const autoPush = generateCuriosityPush(
                             targetUser.full_name,
-                            targetUser.city || targetUser.location_name,
+                            meta.location?.city || targetUser.city || targetUser.location_name,
                             0,
                             25,
                             isFemale ? 'verified bachelors' : 'verified women',
                             targetUser.gender,
-                            userTz
+                            userTz,
+                            new Date(),
+                            {
+                                userId: targetUser.id,
+                                country: meta.location?.country || null,
+                                religion: meta.religion?.religion || null
+                            }
                         );
                         pushTitle = autoPush.title;
                         pushBody = autoPush.body;
@@ -515,25 +523,38 @@ router.get('/campaign-stats', authenticateToken, async (req: any, res) => {
             return res.status(403).json({ error: "Admin access required" });
         }
 
-        const notifications = await prisma.notifications.findMany({
+        const recentCampaigns = await prisma.notifications.findMany({
             where: { type: 'witty_reengagement' },
-            orderBy: { created_at: 'desc' }
+            orderBy: { created_at: 'desc' },
+            take: 50,
+            select: {
+                id: true,
+                user_id: true,
+                message: true,
+                created_at: true,
+                data: true
+            }
         });
 
-        const totalSent = notifications.length;
-        const clickedNotifications = notifications.filter((n: any) => {
-            const d = (n.data as any) || {};
-            return d.clicked === true;
+        const totalSent = await prisma.notifications.count({
+            where: { type: 'witty_reengagement' }
         });
-        const totalClicked = clickedNotifications.length;
+        const clickedRows = await prisma.$queryRaw<Array<{ clicked_count: number }>>`
+            SELECT COUNT(*)::int AS clicked_count
+            FROM notifications
+            WHERE type = 'witty_reengagement' AND (data->>'clicked')::boolean = true
+        `.catch(() => [{ clicked_count: 0 }]);
+        const totalClicked = Number(clickedRows?.[0]?.clicked_count || 0);
         const ctr = totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(2) + '%' : '0%';
 
-        // Breakdown by action
+        // Breakdown by action from recent sample + aggregate
         const actionBreakdown: Record<string, number> = {};
-        clickedNotifications.forEach((n: any) => {
+        recentCampaigns.forEach((n: any) => {
             const d = (n.data as any) || {};
-            const action = d.clickAction || 'body_click';
-            actionBreakdown[action] = (actionBreakdown[action] || 0) + 1;
+            if (d.clicked === true) {
+                const action = d.clickAction || 'body_click';
+                actionBreakdown[action] = (actionBreakdown[action] || 0) + 1;
+            }
         });
 
         res.json({
@@ -541,7 +562,7 @@ router.get('/campaign-stats', authenticateToken, async (req: any, res) => {
             totalClicked,
             ctr,
             actionBreakdown,
-            recentCampaigns: notifications.slice(0, 50).map((n: any) => {
+            recentCampaigns: recentCampaigns.map((n: any) => {
                 const d = (n.data as any) || {};
                 return {
                     id: n.id,

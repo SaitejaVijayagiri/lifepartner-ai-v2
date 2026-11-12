@@ -57,8 +57,8 @@ class LRUCache<K, V> {
     }
 }
 
-// In-memory match cache: userId -> { data, expiresAt } (Max 1000 users)
-export const matchCache = new LRUCache<string, { data: any; expiresAt: number }>(1000);
+// In-memory match cache: userId -> { data, expiresAt } (Max 2500 entries, LRU-evicted)
+export const matchCache = new LRUCache<string, { data: any; expiresAt: number }>(2500);
 const MATCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes (increased for better scaling)
 
 // Helper: Sanitize avatar_url — imported from shared utility
@@ -449,7 +449,7 @@ router.get('/public-preview', async (req: any, res) => {
                     const rawParts = [city, district, state, mCountry].filter(p => p && p !== "Unknown" && p !== "null");
                     const parts = Array.from(new Set(rawParts));
 
-                    let locStr = parts.length > 0 ? parts.join(", ") : "India";
+                    let locStr = parts.length > 0 ? parts.join(", ") : "Global";
                     return locStr;
                 })(),
                 location_data: meta.location || null,
@@ -479,7 +479,7 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
         const myGender = (me?.gender || "").trim().toLowerCase();
         const targetGender = myGender === 'female' ? ['Male', 'male'] : (myGender === 'male' ? ['Female', 'female'] : undefined);
 
-        const onlineIds = getOnlineUserIds().filter(id => id !== userId);
+        const onlineIds = getOnlineUserIds().filter(id => id !== userId).slice(0, 120);
         if (onlineIds.length === 0) {
             return res.json({ onlineMembers: [] });
         }
@@ -687,6 +687,38 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
     }
 });
 
+const calculateHaversineKm = (lat1: number, lng1: number, lat2: number, lng2: number): number | null => {
+    if (![lat1, lng1, lat2, lng2].every(n => typeof n === 'number' && Number.isFinite(n))) return null;
+    if (lat1 === 0 && lng1 === 0) return null;
+    if (lat2 === 0 && lng2 === 0) return null;
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
+    return Math.round(R * c * 10) / 10;
+};
+
+const getCountrySearchPatterns = (country: string): string[] => {
+    const c = country.trim().toLowerCase();
+    if (!c) return [];
+    if (c === 'usa' || c === 'us' || c === 'united states' || c === 'united states of america') {
+        return ['%united states%', '%usa%'];
+    }
+    if (c === 'uk' || c === 'gb' || c === 'united kingdom' || c === 'great britain') {
+        return ['%united kingdom%', '%england%', '%scotland%'];
+    }
+    if (c === 'uae' || c === 'united arab emirates') {
+        return ['%united arab emirates%', '%uae%'];
+    }
+    return [`%${c}%`];
+};
+
 router.get('/recommendations', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
@@ -697,15 +729,33 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const limit = requestedLimit && requestedLimit > 0 ? Math.min(requestedLimit, 500) : 200;
         const offset = (page - 1) * limit;
 
-        // Check Cache per page & limit
-        const cacheKey = `${userId}_page_${page}_limit_${limit}`;
-        const cached = matchCache.get(cacheKey);
+        const rawScope = String(req.query.scope || 'all').trim().toLowerCase();
+        const scope: 'all' | 'nearby' | 'country' | 'international' =
+            rawScope === 'nearby' || rawScope === 'country' || rawScope === 'international' ? rawScope : 'all';
+        const requestedCountry = typeof req.query.country === 'string' ? req.query.country.trim() : '';
+        const queryLat = req.query.lat !== undefined ? parseFloat(String(req.query.lat)) : NaN;
+        const queryLng = req.query.lng !== undefined ? parseFloat(String(req.query.lng)) : NaN;
+
+        // Check Cache per page, limit, scope & country
+        const cacheKey = `${userId}_p${page}_l${limit}_s${scope}_c${requestedCountry.toLowerCase()}`;
+        const hasFreshCoordOverride = Number.isFinite(queryLat) && Number.isFinite(queryLng);
+        const cached = !hasFreshCoordOverride ? matchCache.get(cacheKey) : null;
         if (cached && cached.expiresAt > Date.now()) {
-            const liveMatches = (cached.data || []).map((m: any) => ({
+            const payload = cached.data;
+            const cachedMatches = Array.isArray(payload) ? payload : (payload?.matches || []);
+            const liveMatches = cachedMatches.map((m: any) => ({
                 ...m,
                 isOnline: isUserOnline(m.id)
             }));
-            return res.json({ matches: liveMatches, page, limit, hasMore: liveMatches.length >= limit });
+            return res.json({
+                matches: liveMatches,
+                page,
+                limit,
+                scope,
+                viewerCountry: Array.isArray(payload) ? null : payload?.viewerCountry || null,
+                viewerNeedsLocation: Array.isArray(payload) ? false : Boolean(payload?.viewerNeedsLocation),
+                hasMore: liveMatches.length >= limit
+            });
         }
 
         // 1. Get Me
@@ -716,96 +766,146 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         if (!me) return res.json({ matches: [] });
 
-        const meMeta: any = me.profiles?.metadata || {}; // Typecast for loose JSON access
+        const meMeta: any = me.profiles?.metadata || {};
+        const myCountry = String(meMeta.location?.country || '').trim();
+        const myCity = String(meMeta.location?.city || me.city || '').trim();
+        const myState = String(meMeta.location?.state || me.state || '').trim();
+        const savedLat = meMeta.location?.lat !== undefined ? parseFloat(String(meMeta.location.lat)) : NaN;
+        const savedLng = meMeta.location?.lng !== undefined ? parseFloat(String(meMeta.location.lng)) : NaN;
+        const viewerLat = hasFreshCoordOverride ? queryLat : savedLat;
+        const viewerLng = hasFreshCoordOverride ? queryLng : savedLng;
+        const hasViewerCoords = Number.isFinite(viewerLat) && Number.isFinite(viewerLng) && !(viewerLat === 0 && viewerLng === 0);
 
-        // SECURITY FIX: Use parameterized $queryRaw instead of $queryRawUnsafe.
         const myGender = (me.gender || "").trim().toLowerCase();
+        const candidateWindow = Math.min(Math.max(limit * 4, 160), 600);
 
-        let randomCandidates: { id: string }[];
+        // Unified parameterized SQL conditions (eliminates 3 duplicate raw queries)
+        const baseConditions: Prisma.Sql[] = [
+            Prisma.sql`u.id != ${userId}::uuid`,
+            Prisma.sql`u.is_verified = true`,
+            Prisma.sql`u.is_banned = false`,
+            Prisma.sql`(u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))`,
+            Prisma.sql`u.full_name IS NOT NULL AND TRIM(u.full_name) != ''`,
+            Prisma.sql`u.age IS NOT NULL AND u.age >= 18`,
+            Prisma.sql`NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id) OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid))`
+        ];
+
         if (myGender === 'male') {
+            baseConditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
+        } else if (myGender === 'female') {
+            baseConditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
+        } else {
+            baseConditions.push(Prisma.sql`u.gender IS NOT NULL`);
+        }
+
+        // Apply Country / International scope filter
+        const effectiveCountryFilter = requestedCountry || (scope === 'country' ? myCountry : '');
+        if (effectiveCountryFilter) {
+            const patterns = getCountrySearchPatterns(effectiveCountryFilter);
+            if (patterns.length > 0) {
+                const patternClauses = patterns.map(pat =>
+                    Prisma.sql`(p.metadata->'location'->>'country' ILIKE ${pat} OR u.location_name ILIKE ${pat})`
+                );
+                if (effectiveCountryFilter.toLowerCase() === 'india') {
+                    baseConditions.push(Prisma.sql`(${Prisma.join(patternClauses, ' OR ')} OR COALESCE(NULLIF(TRIM(p.metadata->'location'->>'country'), ''), '') = '')`);
+                } else {
+                    baseConditions.push(Prisma.sql`(${Prisma.join(patternClauses, ' OR ')})`);
+                }
+            }
+        } else if (scope === 'international') {
+            const homeCountry = myCountry || 'India';
+            const homePatterns = getCountrySearchPatterns(homeCountry);
+            if (homePatterns.length > 0) {
+                const excludeClauses = homePatterns.map(pat =>
+                    Prisma.sql`COALESCE(p.metadata->'location'->>'country', '') NOT ILIKE ${pat}`
+                );
+                baseConditions.push(Prisma.sql`COALESCE(NULLIF(TRIM(p.metadata->'location'->>'country'), ''), '') != '' AND (${Prisma.join(excludeClauses, ' AND ')})`);
+            }
+        }
+
+        const whereSql = Prisma.join(baseConditions, ' AND ');
+        let randomCandidates: { id: string }[];
+
+        if (scope === 'nearby' && hasViewerCoords) {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT u.id FROM users u
-                LEFT JOIN profiles p ON p.user_id = u.id
-                WHERE u.id != ${userId}::uuid 
-                  AND u.is_verified = true 
-                  AND u.is_banned = false 
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
-                  AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
-                  AND u.age IS NOT NULL AND u.age >= 18
-                  AND u.gender IN ('Female', 'female')
-                  AND NOT EXISTS (
-                    SELECT 1 FROM blocks b 
-                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
-                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
-                  )
-                ORDER BY 
-                  (CASE 
-                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
-                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
-                    THEN 0
-                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) = 2)
-                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) = 2)
-                    THEN 1
-                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
-                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
-                      OR (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND TRIM(u.avatar_url) != '')
-                    THEN 2 
-                    ELSE 3 
-                  END) ASC,
-                  u.created_at DESC 
+                WITH geo_pool AS (
+                    SELECT
+                        u.id,
+                        u.city,
+                        u.state,
+                        u.created_at,
+                        CASE
+                            WHEN (p.metadata->'location'->>'lat') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                             AND (p.metadata->'location'->>'lng') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                             AND ((p.metadata->'location'->>'lat')::float != 0 OR (p.metadata->'location'->>'lng')::float != 0)
+                            THEN (
+                                6371.0 * acos(
+                                    GREATEST(-1.0, LEAST(1.0,
+                                        cos(radians(${viewerLat})) * cos(radians((p.metadata->'location'->>'lat')::float))
+                                        * cos(radians((p.metadata->'location'->>'lng')::float) - radians(${viewerLng}))
+                                        + sin(radians(${viewerLat})) * sin(radians((p.metadata->'location'->>'lat')::float))
+                                    ))
+                                )
+                            )
+                            ELSE NULL
+                        END AS dist_km,
+                        CASE
+                            WHEN ${myCity} != '' AND LOWER(COALESCE(u.city, p.metadata->'location'->>'city', '')) = LOWER(${myCity}) THEN 0
+                            WHEN ${myState} != '' AND LOWER(COALESCE(u.state, p.metadata->'location'->>'state', '')) = LOWER(${myState}) THEN 1
+                            WHEN ${myCountry} != '' AND LOWER(COALESCE(p.metadata->'location'->>'country', '')) = LOWER(${myCountry}) THEN 2
+                            ELSE 3
+                        END AS region_tier
+                    FROM users u
+                    LEFT JOIN profiles p ON p.user_id = u.id
+                    WHERE ${whereSql}
+                )
+                SELECT id FROM geo_pool
+                ORDER BY
+                    (CASE WHEN dist_km IS NOT NULL THEN 0 ELSE 1 END) ASC,
+                    dist_km ASC NULLS LAST,
+                    region_tier ASC,
+                    created_at DESC
                 LIMIT ${limit} OFFSET ${offset}
             `;
-        } else if (myGender === 'female') {
+        } else if (scope === 'nearby') {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT u.id FROM users u
+                SELECT u.id
+                FROM users u
                 LEFT JOIN profiles p ON p.user_id = u.id
-                WHERE u.id != ${userId}::uuid 
-                  AND u.is_verified = true 
-                  AND u.is_banned = false 
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
-                  AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
-                  AND u.age IS NOT NULL AND u.age >= 18
-                  AND u.gender IN ('Male', 'male')
-                  AND NOT EXISTS (
-                    SELECT 1 FROM blocks b 
-                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
-                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
-                  )
-                ORDER BY 
-                  (CASE 
-                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
-                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
-                    THEN 0
-                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) = 2)
-                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) = 2)
-                    THEN 1
-                    WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
-                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
-                      OR (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND TRIM(u.avatar_url) != '')
-                    THEN 2 
-                    ELSE 3 
-                  END) ASC,
-                  u.created_at DESC 
+                WHERE ${whereSql}
+                ORDER BY
+                    (CASE
+                        WHEN ${myCity} != '' AND LOWER(COALESCE(u.city, p.metadata->'location'->>'city', '')) = LOWER(${myCity}) THEN 0
+                        WHEN ${myState} != '' AND LOWER(COALESCE(u.state, p.metadata->'location'->>'state', '')) = LOWER(${myState}) THEN 1
+                        WHEN ${myCountry} != '' AND LOWER(COALESCE(p.metadata->'location'->>'country', '')) = LOWER(${myCountry}) THEN 2
+                        ELSE 3
+                    END) ASC,
+                    (CASE
+                        WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
+                          OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
+                        THEN 0
+                        WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
+                          OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
+                        THEN 1
+                        ELSE 2
+                    END) ASC,
+                    u.created_at DESC
                 LIMIT ${limit} OFFSET ${offset}
             `;
         } else {
             randomCandidates = await prisma.$queryRaw<{ id: string }[]>`
-                SELECT u.id FROM users u
-                LEFT JOIN profiles p ON p.user_id = u.id
-                WHERE u.id != ${userId}::uuid 
-                  AND u.is_verified = true 
-                  AND u.is_banned = false 
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
-                  AND u.full_name IS NOT NULL AND TRIM(u.full_name) != ''
-                  AND u.age IS NOT NULL AND u.age >= 18
-                  AND u.gender IS NOT NULL
-                  AND NOT EXISTS (
-                    SELECT 1 FROM blocks b 
-                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
-                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
-                  )
-                ORDER BY 
-                  (CASE 
+                WITH candidate_pool AS (
+                    SELECT u.id, u.avatar_url, u.created_at
+                    FROM users u
+                    LEFT JOIN profiles p ON p.user_id = u.id
+                    WHERE ${whereSql}
+                    ORDER BY u.created_at DESC
+                    LIMIT ${candidateWindow} OFFSET ${offset}
+                )
+                SELECT cp.id FROM candidate_pool cp
+                LEFT JOIN profiles p ON p.user_id = cp.id
+                ORDER BY
+                  (CASE
                     WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 3)
                       OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 3)
                     THEN 0
@@ -814,17 +914,17 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     THEN 1
                     WHEN (p.photos IS NOT NULL AND jsonb_typeof(p.photos::jsonb) = 'array' AND jsonb_array_length(p.photos::jsonb) >= 1)
                       OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'photos') = 'array' AND jsonb_array_length((p.metadata->'photos')::jsonb) >= 1)
-                      OR (u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%dicebear%' AND TRIM(u.avatar_url) != '')
-                    THEN 2 
-                    ELSE 3 
+                      OR (cp.avatar_url IS NOT NULL AND cp.avatar_url NOT LIKE '%dicebear%' AND TRIM(cp.avatar_url) != '')
+                    THEN 2
+                    ELSE 3
                   END) ASC,
-                  u.created_at DESC 
-                LIMIT ${limit} OFFSET ${offset}
+                  cp.created_at DESC
+                LIMIT ${limit}
             `;
         }
 
-        // Prioritize actively online candidates of opposite gender on Page 1
-        const onlineIds = getOnlineUserIds().filter(id => id !== userId);
+        // Prioritize actively online candidates of opposite gender on Page 1 (for default All scope)
+        const onlineIds = (scope === 'all' && !effectiveCountryFilter) ? getOnlineUserIds().filter(id => id !== userId).slice(0, 100) : [];
         const targetGenderClause = myGender === 'female' ? ['Male', 'male'] : (myGender === 'male' ? ['Female', 'female'] : undefined);
         const onlineOppositeCandidateIds = (onlineIds.length > 0 && page === 1)
             ? (await prisma.users.findMany({
@@ -972,18 +1072,32 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 score -= 15;
             }
 
-            // 6. Worldwide / Global Suitor Recognition & Boost
+            // 6. Worldwide / International Suitor Recognition relative to viewer's country
             const locUpper = (c.location_name || "").toUpperCase();
             const rawMetaLoc = meta.location;
             const isMetaObjCheck = rawMetaLoc && typeof rawMetaLoc === 'object';
             const metaCountryCheck = (isMetaObjCheck ? (rawMetaLoc.country || '') : '').toUpperCase();
-            const isNonIndia = Boolean(
-                (locUpper && !locUpper.includes('INDIA') && locUpper.includes(',')) ||
-                (metaCountryCheck && !metaCountryCheck.includes('INDIA') && metaCountryCheck !== 'UNKNOWN' && metaCountryCheck !== '')
+            const viewerHomeCountry = myCountry.toUpperCase();
+            const isDifferentCountry = Boolean(
+                viewerHomeCountry && (
+                    (metaCountryCheck && metaCountryCheck !== 'UNKNOWN' && !metaCountryCheck.includes(viewerHomeCountry)) ||
+                    (!metaCountryCheck && locUpper && locUpper.includes(',') && !locUpper.includes(viewerHomeCountry))
+                )
             );
-            if (isNonIndia) {
-                score += 15;
-                reasons.push("🌍 Worldwide Suitor");
+            if (isDifferentCountry) {
+                score += 10;
+                reasons.push("🌍 International Match");
+            }
+
+            // Compute Haversine distance (km) whenever both viewer and candidate have coordinates
+            const candLat = isMetaObjCheck && rawMetaLoc.lat !== undefined ? parseFloat(String(rawMetaLoc.lat)) : NaN;
+            const candLng = isMetaObjCheck && rawMetaLoc.lng !== undefined ? parseFloat(String(rawMetaLoc.lng)) : NaN;
+            const distanceKm = hasViewerCoords ? calculateHaversineKm(viewerLat, viewerLng, candLat, candLng) : null;
+            if (distanceKm !== null && distanceKm <= 50) {
+                score += 12;
+                reasons.push(`📍 Nearby (${distanceKm <= 5 ? 'Within 5 km' : `${Math.round(distanceKm)} km`})`);
+            } else if (myCountry && metaCountryCheck && metaCountryCheck.includes(myCountry.toUpperCase())) {
+                score += 5;
             }
 
             // 7. Live Online Presence Boost
@@ -993,8 +1107,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 reasons.push("⚡ Active Online Now");
             }
 
-            // Cap
-            if (score > 99) score = 99;
+            // Cap & floor intermediate score
+            score = Math.max(0, Math.min(99, score));
 
             // Safe Location Access
             let metaLoc = meta.location;
@@ -1016,7 +1130,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             const rawParts = [city, district, state, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
             const parts = Array.from(new Set(rawParts));
 
-            let locString = parts.length > 0 ? parts.join(", ") : "India";
+            let locString = parts.length > 0 ? parts.join(", ") : "Global";
 
             // PERFORMANCE FIX: Synchronous HTTP Geocoding loop removed.
             // Geocoding happens precisely ONCE during profile save instead of blocking the read API.
@@ -1079,6 +1193,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 age: c.age,
                 height: meta.height || "Not Specified",
                 location: locString,
+                country: metaCountry || null,
+                distanceKm,
                 location_data: metaLoc || null,
                 role: meta.career?.profession || "Member",
                 profession: meta.career?.profession || "",
@@ -1090,7 +1206,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 hasValidPhoto: candidateHasPhoto,
                 completenessScore: completeness.completenessScore,
                 badgeLevel: completeness.badgeLevel,
-                isWorldwide: isNonIndia,
+                isWorldwide: isDifferentCountry,
                 score: Math.max(1, Math.min(99, score)), // floor at 1 so they still appear
                 match_reasons: Array.from(new Set(reasons)),
                 analysis: {
@@ -1156,25 +1272,63 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             };
         }));
 
-        // Multiple Photos Priority: Profiles with multiple uploaded photos strictly get top priority
-        matches.sort((a, b) => {
-            // 1. Multiple Photos Tier Priority (Tier 3 >= 3 photos > Tier 2 = 2 photos > Tier 1 = 1 photo > Tier 0 = 0 photos)
-            const tierA = getPhotoTier(a);
-            const tierB = getPhotoTier(b);
-            if (tierA !== tierB) {
-                return tierB - tierA; // Higher tier first
-            }
+        if (scope === 'nearby') {
+            const getRegionTier = (m: any): number => {
+                const candLoc = m?.location_data && typeof m.location_data === 'object' ? m.location_data : {};
+                const candCity = String(candLoc.city || m?.location || '').toLowerCase();
+                const candState = String(candLoc.state || m?.location || '').toLowerCase();
+                const candCountry = String(candLoc.country || m?.country || '').toLowerCase();
+                if (myCity && candCity.includes(myCity.toLowerCase())) return 0;
+                if (myState && candState.includes(myState.toLowerCase())) return 1;
+                if (myCountry && candCountry.includes(myCountry.toLowerCase())) return 2;
+                return 3;
+            };
+            matches.sort((a, b) => {
+                const distA = typeof a.distanceKm === 'number' ? a.distanceKm : Number.POSITIVE_INFINITY;
+                const distB = typeof b.distanceKm === 'number' ? b.distanceKm : Number.POSITIVE_INFINITY;
+                if (distA !== distB) return distA - distB;
 
-            // 2. Live Online Priority within the same photo tier
-            if (a.isOnline && !b.isOnline) return -1;
-            if (!a.isOnline && b.isOnline) return 1;
+                const regionA = getRegionTier(a);
+                const regionB = getRegionTier(b);
+                if (regionA !== regionB) return regionA - regionB;
 
-            // 3. Compatibility score
-            return (b.score || 0) - (a.score || 0);
-        });
+                const tierA = getPhotoTier(a);
+                const tierB = getPhotoTier(b);
+                if (tierA !== tierB) return tierB - tierA;
+
+                if (a.isOnline && !b.isOnline) return -1;
+                if (!a.isOnline && b.isOnline) return 1;
+                return (b.score || 0) - (a.score || 0);
+            });
+        } else {
+            // Multiple Photos Priority: Profiles with multiple uploaded photos strictly get top priority
+            matches.sort((a, b) => {
+                // 1. Multiple Photos Tier Priority (Tier 3 >= 3 photos > Tier 2 = 2 photos > Tier 1 = 1 photo > Tier 0 = 0 photos)
+                const tierA = getPhotoTier(a);
+                const tierB = getPhotoTier(b);
+                if (tierA !== tierB) {
+                    return tierB - tierA; // Higher tier first
+                }
+
+                // 2. Live Online Priority within the same photo tier
+                if (a.isOnline && !b.isOnline) return -1;
+                if (!a.isOnline && b.isOnline) return 1;
+
+                // 3. Compatibility score
+                return (b.score || 0) - (a.score || 0);
+            });
+        }
+
+        const cachedPayload = {
+            matches,
+            viewerCountry: myCountry || null,
+            viewerNeedsLocation: !hasViewerCoords
+        };
 
         // Save to in-memory Cache
-        matchCache.set(cacheKey, { data: matches, expiresAt: Date.now() + MATCH_CACHE_TTL });
+        if (!hasFreshCoordOverride) {
+            matchCache.set(cacheKey, { data: cachedPayload, expiresAt: Date.now() + MATCH_CACHE_TTL });
+        }
 
         // Ensure live online status is 100% current upon response
         const liveMatches = matches.map(m => ({
@@ -1182,7 +1336,15 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             isOnline: isUserOnline(m.id)
         }));
 
-        res.json({ matches: liveMatches, page, limit, hasMore: liveMatches.length >= limit });
+        res.json({
+            matches: liveMatches,
+            page,
+            limit,
+            scope,
+            viewerCountry: myCountry || null,
+            viewerNeedsLocation: !hasViewerCoords,
+            hasMore: liveMatches.length >= limit
+        });
 
     } catch (e) {
         console.error("Matches Error", e);
@@ -1301,9 +1463,18 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         if (filters.minAge) conditions.push(Prisma.sql`u.age >= ${parseInt(filters.minAge)}`);
         if (filters.maxAge) conditions.push(Prisma.sql`u.age <= ${parseInt(filters.maxAge)}`);
 
-        // Location
+        // Location (supports City, State, or Country queries globally)
         if (filters.location) {
-            conditions.push(Prisma.sql`(u.location_name ILIKE ${`%${filters.location}%`} OR u.city ILIKE ${`%${filters.location}%`} OR u.state ILIKE ${`%${filters.location}%`})`);
+            const locPatterns = getCountrySearchPatterns(String(filters.location));
+            if (locPatterns.length > 1) {
+                const patternClauses = locPatterns.map(pat =>
+                    Prisma.sql`(u.location_name ILIKE ${pat} OR u.city ILIKE ${pat} OR u.state ILIKE ${pat} OR p.metadata->'location'->>'country' ILIKE ${pat})`
+                );
+                conditions.push(Prisma.sql`(${Prisma.join(patternClauses, ' OR ')})`);
+            } else {
+                const locPat = `%${filters.location}%`;
+                conditions.push(Prisma.sql`(u.location_name ILIKE ${locPat} OR u.city ILIKE ${locPat} OR u.state ILIKE ${locPat} OR p.metadata->'location'->>'country' ILIKE ${locPat})`);
+            }
         }
 
         // Profession (Native JSONB)
@@ -1453,7 +1624,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             const rawParts = [city, district, state, metaCountry].filter(p => p && p !== "Unknown" && p !== "null");
             const parts = Array.from(new Set(rawParts));
 
-            let locString = parts.length > 0 ? parts.join(", ") : "India";
+            let locString = parts.length > 0 ? parts.join(", ") : "Global";
 
             // PERFORMANCE FIX: Removed synchronous geocoding loop block.
 

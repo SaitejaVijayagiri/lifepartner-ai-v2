@@ -44,4 +44,7 @@ jest.mock('../src/socket', () => {
     };
 });
 
+// Ensure JWT_SECRET exists in unit/integration test environments
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-for-jest';
+
 // DB Mock Removed

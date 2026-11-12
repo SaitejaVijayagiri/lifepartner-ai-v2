@@ -80,6 +80,25 @@ const deliverPendingCall = (targetSocket: Socket, uId: string) => {
     }
 };
 
+const OFFLINE_GRACE_MS = 45 * 1000; // 45s grace for screen-lock, tab switch & brief reconnects
+const ONLINE_PUSH_MIN_ABSENCE_MS = 20 * 60 * 1000; // Must be offline >= 20 mins before notifying partners
+const ONLINE_PUSH_PAIR_COOLDOWN_MS = 6 * 60 * 60 * 1000; // Max 1 online alert per pair every 6 hours
+
+const offlineGraceTimers = new Map<string, NodeJS.Timeout>();
+const lastTrueOfflineAt = new Map<string, number>();
+const lastOnlinePushSentAt = new Map<string, number>();
+
+const recordOnlinePushTimestamp = (pairKey: string, now: number) => {
+    if (lastOnlinePushSentAt.size > 50000) {
+        const cutoff = now - ONLINE_PUSH_PAIR_COOLDOWN_MS;
+        for (const [k, ts] of lastOnlinePushSentAt.entries()) {
+            if (ts < cutoff) lastOnlinePushSentAt.delete(k);
+        }
+        if (lastOnlinePushSentAt.size > 50000) lastOnlinePushSentAt.clear();
+    }
+    lastOnlinePushSentAt.set(pairKey, now);
+};
+
 const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
     try {
         const userDetails = await prisma.users.findUnique({
@@ -97,6 +116,13 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
         });
         
         if (userDetails) {
+            const now = Date.now();
+            const memOfflineAt = lastTrueOfflineAt.get(targetUserId);
+            const metaLastSeenStr = (userDetails.profiles?.metadata as any)?.last_seen_at;
+            const dbLastSeenAt = metaLastSeenStr ? Date.parse(metaLastSeenStr) : NaN;
+            const lastSeenMs = memOfflineAt ?? (Number.isFinite(dbLastSeenAt) ? dbLastSeenAt : NaN);
+            const isEligibleForOnlineAlert = Number.isFinite(lastSeenMs) && (now - lastSeenMs) >= ONLINE_PUSH_MIN_ABSENCE_MS;
+
             const connectionsList = await prisma.interactions.findMany({
                 where: {
                     OR: [
@@ -130,6 +156,16 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
 
             for (const otherUserId of uniqueTargetUserIds) {
                 const isOtherOnline = (onlineUsers.get(otherUserId) || 0) > 0;
+                if (isOtherOnline) {
+                    io.to(otherUserId).emit('userOnline', targetUserId);
+                }
+
+                // Only fire notification/push after genuine absence (>= 20m) and pair cooldown (>= 6h)
+                if (!isEligibleForOnlineAlert) continue;
+                const pairKey = `${targetUserId}:${otherUserId}`;
+                const lastSent = lastOnlinePushSentAt.get(pairKey) || 0;
+                if (now - lastSent < ONLINE_PUSH_PAIR_COOLDOWN_MS) continue;
+                recordOnlinePushTimestamp(pairKey, now);
 
                 const wittyMsgs = [
                     `Your match ${name} just logged on! Strike a conversation while they are active! ⚡`,
@@ -154,7 +190,7 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
                         const { NotificationService } = require('./services/notification');
                         NotificationService.getInstance().sendToUser(
                             otherUserId,
-                            `Match Active ⚡`,
+                            `${name} is active now ⚡`,
                             msg,
                             {
                                 type: 'connection_online',
@@ -174,12 +210,61 @@ const notifyConnectionsOfOnlineStatus = async (targetUserId: string) => {
     }
 };
 
+const PUBLIC_STATS_THROTTLE_MS = 5000;
+let publicStatsTimer: NodeJS.Timeout | null = null;
+const schedulePublicStatsBroadcast = () => {
+    if (!io || publicStatsTimer) return;
+    publicStatsTimer = setTimeout(() => {
+        publicStatsTimer = null;
+        if (!io) return;
+        io.to('public_updates').emit('public_stats', {
+            onlineCount: userSockets.size,
+            loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
+        });
+    }, PUBLIC_STATS_THROTTLE_MS);
+};
+
+const getSampledOnlineUserIds = (limit = 200): string[] => {
+    const keys = Array.from(userSockets.keys());
+    return keys.length > limit ? keys.slice(-limit) : keys;
+};
+
+const notifyConnectionsOffline = async (offlineUserId: string) => {
+    if (!io || !offlineUserId) return;
+    try {
+        const connectionsList = await prisma.interactions.findMany({
+            where: {
+                OR: [{ from_user_id: offlineUserId }, { to_user_id: offlineUserId }],
+                status: { in: ['accepted', 'connected'] }
+            },
+            select: { from_user_id: true, to_user_id: true }
+        });
+        for (const conn of connectionsList) {
+            const partnerId = conn.from_user_id === offlineUserId ? conn.to_user_id : conn.from_user_id;
+            if (partnerId && partnerId !== offlineUserId && (onlineUsers.get(partnerId) || 0) > 0) {
+                io.to(partnerId).emit('userOffline', offlineUserId);
+            }
+        }
+    } catch {
+        // Non-fatal
+    }
+};
+
 export const addSocketToOnlineUser = (socket: Socket | any, targetUserId: string) => {
     if (!targetUserId) return;
 
     // Detach any previous user ID tracked by this socket
     if (socket.data?.trackedUserId && socket.data.trackedUserId !== targetUserId) {
         removeSocketFromOnlineUser(socket, socket.data.trackedUserId);
+    }
+
+    // Cancel pending offline grace timer if the user reconnected after screen lock or brief network drop
+    const pendingGraceTimer = offlineGraceTimers.get(targetUserId);
+    let wasWithinGraceWindow = false;
+    if (pendingGraceTimer) {
+        clearTimeout(pendingGraceTimer);
+        offlineGraceTimers.delete(targetUserId);
+        wasWithinGraceWindow = true;
     }
 
     if (socket.data) {
@@ -199,25 +284,54 @@ export const addSocketToOnlineUser = (socket: Socket | any, targetUserId: string
         socketSet.add(socket.id);
         onlineUsers.set(targetUserId, socketSet.size);
 
-        // Notify others that this user is online ONLY if they just came online (0 -> 1)
-        if (socketSet.size === 1) {
-            if (socket.broadcast && socket.broadcast.emit) {
-                socket.broadcast.emit('userOnline', targetUserId);
-            }
+        // Only notify partners/lounge on a true fresh online session (not a screen-lock reconnect)
+        if (socketSet.size === 1 && !wasWithinGraceWindow) {
             if (io) {
-                io.to('public_updates').emit('public_stats', {
-                    onlineCount: userSockets.size,
-                    loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
-                });
+                io.to('verified_lounge').emit('userOnline', targetUserId);
+                schedulePublicStatsBroadcast();
             }
             notifyConnectionsOfOnlineStatus(targetUserId);
         }
     }
 
-    // Always send CURRENT live online list to this socket
+    // Send bounded online sample on handshake (prevents 4MB payloads at 100k+ concurrent users)
     if (socket.emit) {
-        socket.emit('onlineUsers', Array.from(userSockets.keys()));
+        socket.emit('onlineUsers', getSampledOnlineUserIds(200));
     }
+};
+
+const finalizeUserOffline = (uId: string) => {
+    offlineGraceTimers.delete(uId);
+    if ((userSockets.get(uId)?.size || 0) > 0) return;
+
+    userSockets.delete(uId);
+    onlineUsers.delete(uId);
+    activeChats.delete(uId);
+    lastTrueOfflineAt.set(uId, Date.now());
+    if (io) {
+        io.to('verified_lounge').emit('userOffline', uId);
+        schedulePublicStatsBroadcast();
+        void notifyConnectionsOffline(uId);
+    }
+
+    // Persist accurate last_seen_at timestamp in database profile metadata
+    prisma.profiles.findUnique({
+        where: { user_id: uId },
+        select: { metadata: true }
+    }).then(prof => {
+        if (prof) {
+            const meta = (prof.metadata as any) || {};
+            return prisma.profiles.update({
+                where: { user_id: uId },
+                data: {
+                    metadata: {
+                        ...meta,
+                        last_seen_at: new Date().toISOString()
+                    }
+                }
+            });
+        }
+    }).catch(() => {});
 };
 
 export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: string) => {
@@ -233,43 +347,17 @@ export const removeSocketFromOnlineUser = (socket: Socket | any, targetUserId?: 
         socketSet.delete(socket.id);
         if (socketSet.size === 0) {
             userSockets.delete(uId);
-            onlineUsers.delete(uId);
             activeChats.delete(uId);
-            if (io) {
-                io.emit('userOffline', uId);
-                io.to('public_updates').emit('public_stats', {
-                    onlineCount: userSockets.size,
-                    loungeCount: new Set(Array.from(communityUsers.values()).map(u => u.userId)).size
-                });
+            if (!offlineGraceTimers.has(uId)) {
+                const timer = setTimeout(() => finalizeUserOffline(uId), OFFLINE_GRACE_MS);
+                if (typeof timer.unref === 'function') timer.unref();
+                offlineGraceTimers.set(uId, timer);
             }
-
-            // Persist accurate last_seen_at timestamp in database profile metadata
-            prisma.profiles.findUnique({
-                where: { user_id: uId },
-                select: { metadata: true }
-            }).then(prof => {
-                if (prof) {
-                    const meta = (prof.metadata as any) || {};
-                    return prisma.profiles.update({
-                        where: { user_id: uId },
-                        data: {
-                            metadata: {
-                                ...meta,
-                                last_seen_at: new Date().toISOString()
-                            }
-                        }
-                    });
-                }
-            }).catch(() => {});
         } else {
             onlineUsers.set(uId, socketSet.size);
         }
-    } else {
-        onlineUsers.delete(uId);
-        activeChats.delete(uId);
-        if (io) {
-            io.emit('userOffline', uId);
-        }
+    } else if (!offlineGraceTimers.has(uId)) {
+        finalizeUserOffline(uId);
     }
 };
 
@@ -277,13 +365,13 @@ const broadcastCommunityUsers = async () => {
     if (!io) return;
     const room = io.sockets.adapter.rooms.get('verified_lounge');
     if (!room || room.size === 0) {
-        io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: 0 });
+        schedulePublicStatsBroadcast();
         return;
     }
 
     const list = Array.from(communityUsers.values());
     const uniqueList = Array.from(new Map(list.map(u => [u.userId, u])).values());
-    io.emit('public_stats', { onlineCount: onlineUsers.size, loungeCount: uniqueList.length });
+    schedulePublicStatsBroadcast();
 
     const viewerIds = new Set<string>();
     for (const sockId of room) {
@@ -393,8 +481,8 @@ export const initSocket = (httpServer: HttpServer) => {
             loungeCount: loungeCount
         });
 
-        // Send current online user IDs even to guests/initial connects
-        socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
+        // Send bounded online sample even to initial connects (prevents massive payloads at scale)
+        socket.emit('onlineUsers', getSampledOnlineUserIds(200));
 
         if (userId) {
             addSocketToOnlineUser(socket, userId);

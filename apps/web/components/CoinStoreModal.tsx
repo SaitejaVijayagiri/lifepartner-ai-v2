@@ -9,9 +9,9 @@ import { getCashfreeMode, isNativePlatform } from '@/lib/notifications';
 import { load } from '@cashfreepayments/cashfree-js';
 
 const COIN_BUNDLES = [
-    { id: 'starter', coins: 100, price: 99, label: 'Starter', emoji: '💫', popular: false },
-    { id: 'popular', coins: 500, price: 399, label: 'Popular', emoji: '⭐', popular: true, bonus: '+50 Bonus' },
-    { id: 'pro', coins: 1000, price: 699, label: 'Pro', emoji: '💎', popular: false, bonus: '+150 Bonus' },
+    { id: 'starter', coins: 100, price: 99, usdApprox: '$1.20', label: 'Starter', emoji: '💫', popular: false },
+    { id: 'popular', coins: 500, price: 399, usdApprox: '$4.80', label: 'Popular', emoji: '⭐', popular: true, bonus: '+50 Bonus' },
+    { id: 'pro', coins: 1000, price: 699, usdApprox: '$8.50', label: 'Pro', emoji: '💎', popular: false, bonus: '+150 Bonus' },
 ];
 
 export default function CoinStoreModal({
@@ -331,17 +331,18 @@ export default function CoinStoreModal({
                                             </div>
                                         </div>
                                     </div>
-                                    <button className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all ${bundle.popular
+                                    <button className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all text-right ${bundle.popular
                                         ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md hover:shadow-lg'
                                         : 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 hover:bg-gray-800'}`}>
-                                        ₹{bundle.price}
+                                        <div>₹{bundle.price}</div>
+                                        <div className="text-[9px] font-semibold opacity-80">~{bundle.usdApprox}</div>
                                     </button>
                                 </div>
                             ))}
 
                             <div className="bg-gray-50 dark:bg-gray-800/80 rounded-2xl p-3.5 mt-3 text-center">
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    Instant balance credit • 100% Secure payment via UPI, Cards, NetBanking
+                                    Instant balance credit • International Visa/Mastercard, Apple/Google Pay Cards & UPI accepted
                                 </p>
                             </div>
                         </div>
@@ -386,7 +387,7 @@ export default function CoinStoreModal({
                                 className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-indigo-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                             >
                                 <Crown size={18} />
-                                <span>Get VIP Premium — ₹499/year</span>
+                                <span>Get VIP Premium — ₹499/year (~$6 USD)</span>
                             </button>
 
                             <div className="flex items-center justify-center gap-4 text-xs text-gray-400">

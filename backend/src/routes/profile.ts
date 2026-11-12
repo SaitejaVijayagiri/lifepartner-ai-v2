@@ -1,4 +1,5 @@
 import express from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../prisma'; // Centralized Prisma Client
 import { createClient } from '@supabase/supabase-js';
 
@@ -40,13 +41,15 @@ export { isStory24hActive, isStoryHighlight, isStoryActive, filterActive24hStori
  *
  * If the input is already an https URL (not base64), it is returned as-is.
  */
-async function uploadOptimizedImage(base64: string, userId: string): Promise<string | null> {
+async function uploadOptimizedImage(base64: string, userId: string, photoIndex = 0): Promise<string | null> {
     if (!base64 || !ImageOptimizer.isBase64(base64)) return base64; // Already a URL
+
+    const uniqueSuffix = `${Date.now()}_${photoIndex}_${Math.random().toString(36).slice(2, 7)}`;
 
     // 1. Cloudflare R2 Storage (Exclusive primary remote storage)
     if (isR2Configured()) {
         try {
-            const key = `profiles/${userId}/photo_${Date.now()}.jpg`;
+            const key = `profiles/${userId}/photo_${uniqueSuffix}.jpg`;
             const r2Url = await uploadBase64ToR2(base64, key, true);
             if (r2Url) return r2Url;
             console.warn('[profile] Cloudflare R2 upload returned null.');
@@ -70,7 +73,7 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
             }
             const buffer = Buffer.from(rawB64, 'base64');
             const ext = mimeType.includes('webp') ? 'webp' : (mimeType.includes('png') ? 'png' : 'jpg');
-            const filename = `profiles/${userId}/photo_${Date.now()}.${ext}`;
+            const filename = `profiles/${userId}/photo_${uniqueSuffix}.${ext}`;
             const { error } = await sb.storage.from('profiles').upload(filename, buffer, { contentType: mimeType, upsert: true });
             if (!error) {
                 const { data: { publicUrl } } = sb.storage.from('profiles').getPublicUrl(filename);
@@ -87,20 +90,26 @@ async function uploadOptimizedImage(base64: string, userId: string): Promise<str
     return base64;
 }
 
-// Debug Logger
-// NOTE: Log file is written to process.cwd()/logs/ (project root) rather than __dirname
-// to avoid writing runtime files into the compiled source tree.
+// Debug Logger (non-blocking async writes so request threads never stall)
 const LOG_DIR = path.join(process.cwd(), 'logs');
+let logDirReady = false;
 const logDebug = (msg: string, data?: any) => {
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(msg, data || '');
+    }
     const timestamp = new Date().toISOString();
     const logLine = `[${timestamp}] ${msg} ${data ? JSON.stringify(data) : ''}\n`;
-    console.log(msg, data || '');
-    try {
-        if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
-        fs.appendFileSync(path.join(LOG_DIR, 'backend_debug.log'), logLine);
-    } catch (e) {
-        // Ignore logging errors — never block a request due to log failure
-    }
+    void (async () => {
+        try {
+            if (!logDirReady) {
+                await fs.promises.mkdir(LOG_DIR, { recursive: true });
+                logDirReady = true;
+            }
+            await fs.promises.appendFile(path.join(LOG_DIR, 'backend_debug.log'), logLine);
+        } catch {
+            // Ignore logging errors — never block a request due to log failure
+        }
+    })();
 };
 
 export function calculateProfileCompleteness(user: any, meta: any = {}, photos: any[] = []) {
@@ -819,34 +828,34 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         let finalPhotos: string[] = [];
         const rawPhotos = photos || [];
         if (Array.isArray(rawPhotos)) {
-            // Cap to 5 photos to prevent payload abuse on onboarding
-            const photosToProcess = rawPhotos.slice(0, 5);
+            // Support up to 10 profile photos cleanly with bounded concurrent moderation & upload
+            const photosToProcess = rawPhotos.slice(0, 10);
+            const processedSlots: Array<string | null> = new Array(photosToProcess.length).fill(null);
 
-            // Run moderation + upload SEQUENTIALLY to prevent WASM/RAM Out Of Memory crashes
-            for (let i = 0; i < photosToProcess.length; i++) {
-                const p = photosToProcess[i];
+            const processPhotoAt = async (index: number) => {
+                const p = photosToProcess[index];
+                if (!p || typeof p !== 'string') return;
 
                 // Skip photos that are already stored URLs (not base64) - no processing needed
                 if (!ImageOptimizer.isBase64(p)) {
-                    finalPhotos.push(p);
-                    continue;
+                    processedSlots[index] = p;
+                    return;
                 }
 
-                // Run moderation check
-                const isFirstPhoto = i === 0;
+                const isFirstPhoto = index === 0;
                 let modResult: any = { isValid: true, isProhibited: false };
                 try {
                     modResult = await ModerationService.validateProfilePhoto(p, isFirstPhoto);
                 } catch (modErr: any) {
-                    console.warn(`[profile] Photo ${i} moderation warning (soft-passing):`, modErr?.message || modErr);
+                    console.warn(`[profile] Photo ${index} moderation warning (soft-passing):`, modErr?.message || modErr);
                 }
 
                 if (modResult && modResult.isProhibited) {
-                    console.warn(`🚨 [profile] Photo ${i} rejected due to prohibited content: ${modResult.reason}`);
+                    console.warn(`🚨 [profile] Photo ${index} rejected due to prohibited content: ${modResult.reason}`);
                     if (photosToProcess.length === 1) {
                         throw Object.assign(new Error(modResult.reason || 'This photo contains prohibited or adult content.'), { status: 400 });
                     }
-                    continue; // Skip prohibited photo but preserve valid photos in multi-upload
+                    return; // Skip prohibited photo but preserve valid photos in multi-upload
                 }
 
                 if (isFirstPhoto && modResult && !modResult.isValid) {
@@ -854,17 +863,30 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                     if (photosToProcess.length === 1) {
                         throw Object.assign(new Error(modResult.reason || 'Primary profile photo must show a clear human face.'), { status: 400 });
                     }
-                    continue;
+                    return;
                 }
 
-                // Upload image through storage chain (R2 -> Cloudinary -> Supabase -> base64)
-                const uploaded = await uploadOptimizedImage(p, userId);
+                const uploaded = await uploadOptimizedImage(p, userId, index);
                 if (uploaded) {
-                    finalPhotos.push(uploaded);
-                } else if (p && typeof p === 'string') {
-                    finalPhotos.push(p);
+                    processedSlots[index] = uploaded;
+                } else {
+                    processedSlots[index] = p;
                 }
+            };
+
+            // Process primary photo first, then remaining base64 uploads in concurrent batches of 3
+            if (photosToProcess.length > 0) {
+                await processPhotoAt(0);
             }
+            for (let start = 1; start < photosToProcess.length; start += 3) {
+                const batchIndices = [];
+                for (let j = start; j < Math.min(start + 3, photosToProcess.length); j++) {
+                    batchIndices.push(j);
+                }
+                await Promise.all(batchIndices.map(processPhotoAt));
+            }
+
+            finalPhotos = processedSlots.filter((p): p is string => typeof p === 'string' && p.length > 0);
         }
 
         // If user has custom uploaded photos (Cloudinary, Supabase, R2, base64),
@@ -966,7 +988,7 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         if (location && location.city && !location.lat && !location.lng) {
             try {
                 const { LocationService } = require('../services/location');
-                const cityQuery = [location.city, location.district, location.state].filter(Boolean).join(', ');
+                const cityQuery = [location.city, location.district, location.state, location.country].filter(Boolean).join(', ');
                 // Add 5s timeout to prevent geocode hanging the whole save
                 const coords = await Promise.race([
                     LocationService.geocodeCity(cityQuery),
@@ -1259,8 +1281,8 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 }
             }
 
-            // Invalidate recommendation match cache so user and peers get fresh scores & data
-            try { require('./matches').matchCache.clear(); } catch (_) {}
+            // Invalidate ONLY this user's cached recommendation pages instead of wiping all 1M users' caches
+            try { require('./matches').matchCache.deletePrefix(`${userId}_`); } catch (_) {}
 
             res.json({ success: true, message: "Profile saved", onboarding_completed: true });
 
@@ -1345,6 +1367,8 @@ router.post('/live-location', authenticateToken, async (req: any, res) => {
                 console.warn('[profile] PostGIS update skipped:', postgisErr);
             }
         }
+
+        try { require('./matches').matchCache.deletePrefix(`${userId}_`); } catch (_) {}
 
         res.json({
             success: true,
@@ -1439,11 +1463,38 @@ router.get('/stories/feed', authenticateToken, async (req: any, res) => {
             whereClause.gender = { in: oppositeGenders };
         }
 
+        // Filter at SQL level to users who actually have non-empty stories instead of scanning 500k+ rows in JS RAM
+        const activeStoryUsersRaw = typeof (prisma as any).$queryRaw === 'function'
+            ? await prisma.$queryRaw<Array<{ id: string }>>`
+                SELECT u.id
+                FROM users u
+                INNER JOIN profiles p ON p.user_id = u.id
+                WHERE u.id != ${userId}::uuid
+                  AND COALESCE(u.is_banned, false) = false
+                  AND (COALESCE(u.is_deactivated, false) = false OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
+                  AND (
+                      ${oppositeGenders.length > 0 ? Prisma.sql`u.gender IN (${Prisma.join(oppositeGenders)})` : Prisma.sql`TRUE`}
+                  )
+                  AND (
+                      (p.stories IS NOT NULL AND jsonb_typeof(p.stories::jsonb) = 'array' AND jsonb_array_length(p.stories::jsonb) > 0)
+                      OR (p.metadata IS NOT NULL AND jsonb_typeof(p.metadata->'stories') = 'array' AND jsonb_array_length((p.metadata->'stories')::jsonb) > 0)
+                  )
+                ORDER BY p.updated_at DESC NULLS LAST
+                LIMIT 120
+            `.catch(() => null)
+            : null;
+
+        const storyUserIds = Array.isArray(activeStoryUsersRaw) ? activeStoryUsersRaw.map(r => r.id) : null;
+        if (Array.isArray(storyUserIds) && storyUserIds.length === 0) {
+            return res.json({ feed: [] });
+        }
+
         const [blockedIds, connectedIds, usersWithStories] = await Promise.all([
             getBlockedUserIdSet(prisma, userId),
             getConnectedUserIdSet(prisma, userId),
             prisma.users.findMany({
-                where: whereClause,
+                where: storyUserIds ? { id: { in: storyUserIds } } : whereClause,
+                ...(storyUserIds ? {} : { take: 250 }),
                 select: {
                     id: true,
                     full_name: true,

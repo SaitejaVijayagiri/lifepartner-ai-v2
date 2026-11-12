@@ -148,7 +148,20 @@ export const api = {
             }),
     },
     matches: {
-        getAll: (page: number = 1, limit: number = 200) => fetchAPI(`/matches/recommendations?page=${page}&limit=${limit}`),
+        getAll: (
+            page: number = 1,
+            limit: number = 30,
+            opts?: { scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }
+        ) => {
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('limit', String(limit));
+            if (opts?.scope && opts.scope !== 'all') params.set('scope', opts.scope);
+            if (opts?.country) params.set('country', opts.country);
+            if (opts?.lat !== undefined && Number.isFinite(opts.lat)) params.set('lat', String(opts.lat));
+            if (opts?.lng !== undefined && Number.isFinite(opts.lng)) params.set('lng', String(opts.lng));
+            return fetchAPI(`/matches/recommendations?${params.toString()}`);
+        },
         getOnlineNow: () => fetchAPI('/matches/online-now'),
         getMapUsers: () => fetchAPI('/matches/map-users'),
         search: (query: string) => fetchAPI('/matches/search', {

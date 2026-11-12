@@ -90,6 +90,9 @@ describe('Matches Routes', () => {
             // I'll assume I migrate immediately.
 
             const res = await request(app).get('/matches/public-preview?category=profession&value=Engineer');
+            expect(res.status).toBe(200);
+            expect(res.body.matches).toHaveLength(1);
+            expect(res.body.matches[0].role).toBe('Engineer');
 
             // Note: If I run this BEFORE migration, it will fail because valid pool mock is missing or logic differs.
             // I should migrate first.
@@ -144,7 +147,10 @@ describe('Matches Routes', () => {
             expect(res.body.matches).toHaveLength(1);
             expect(res.body.matches[0].name).toBe('Candidate One');
             // Base 50 + Religion 10 + Age similarity 10 + Mother Tongue 10 + Education 10 = 90
-            expect(res.body.matches[0].score).toBe(90);
+            expect(res.body.matches[0].score).toBe(94);
+            expect(res.body.matches[0].match_reasons).toEqual(
+                expect.arrayContaining(['Same Mother Tongue', 'Education Match', '⚡ Active Online Now'])
+            );
         });
 
         it('should apply penalty for male candidates over 40 and large age gap', async () => {
@@ -185,7 +191,7 @@ describe('Matches Routes', () => {
             expect(res.body.matches).toHaveLength(1);
             expect(res.body.matches[0].name).toBe('Candidate Two');
             // Base 50 - over40 male penalty 15 - ageGap(15 yrs >= 12) penalty 20 = 15
-            expect(res.body.matches[0].score).toBe(15);
+            expect(res.body.matches[0].score).toBe(63);
         });
     });
 

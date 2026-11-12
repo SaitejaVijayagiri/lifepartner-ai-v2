@@ -136,20 +136,45 @@ export function resolveUserTimezone(userOrLocation?: any): string {
         return 'Pacific/Auckland';
     }
 
+    // East Asia
+    if (countryRaw.includes('japan') || fullLoc.includes('tokyo') || fullLoc.includes('osaka')) return 'Asia/Tokyo';
+    if (countryRaw.includes('korea') || fullLoc.includes('seoul') || fullLoc.includes('busan')) return 'Asia/Seoul';
+    if (countryRaw.includes('china') || countryRaw.includes('hong kong') || fullLoc.includes('hong kong') || fullLoc.includes('beijing') || fullLoc.includes('shanghai')) return 'Asia/Hong_Kong';
+    if (countryRaw.includes('taiwan') || fullLoc.includes('taipei')) return 'Asia/Taipei';
+
     // Europe
     if (countryRaw.includes('germany') || fullLoc.includes('berlin') || fullLoc.includes('munich') || fullLoc.includes('frankfurt')) return 'Europe/Berlin';
-    if (countryRaw.includes('france') || fullLoc.includes('paris')) return 'Europe/Paris';
-    if (countryRaw.includes('netherlands') || fullLoc.includes('amsterdam')) return 'Europe/Amsterdam';
-    if (countryRaw.includes('poland') || fullLoc.includes('warsaw')) return 'Europe/Warsaw';
+    if (countryRaw.includes('france') || fullLoc.includes('paris') || fullLoc.includes('lyon')) return 'Europe/Paris';
+    if (countryRaw.includes('netherlands') || fullLoc.includes('amsterdam') || fullLoc.includes('rotterdam')) return 'Europe/Amsterdam';
+    if (countryRaw.includes('belgium') || fullLoc.includes('brussels')) return 'Europe/Brussels';
+    if (countryRaw.includes('austria') || fullLoc.includes('vienna')) return 'Europe/Vienna';
+    if (countryRaw.includes('poland') || fullLoc.includes('warsaw') || fullLoc.includes('krakow')) return 'Europe/Warsaw';
     if (countryRaw.includes('finland') || fullLoc.includes('helsinki')) return 'Europe/Helsinki';
     if (countryRaw.includes('spain') || fullLoc.includes('madrid') || fullLoc.includes('barcelona')) return 'Europe/Madrid';
     if (countryRaw.includes('italy') || fullLoc.includes('rome') || fullLoc.includes('milan')) return 'Europe/Rome';
+    if (countryRaw.includes('portugal') || fullLoc.includes('lisbon')) return 'Europe/Lisbon';
     if (countryRaw.includes('sweden') || fullLoc.includes('stockholm')) return 'Europe/Stockholm';
+    if (countryRaw.includes('norway') || fullLoc.includes('oslo')) return 'Europe/Oslo';
+    if (countryRaw.includes('denmark') || fullLoc.includes('copenhagen')) return 'Europe/Copenhagen';
     if (countryRaw.includes('switzerland') || fullLoc.includes('zurich') || fullLoc.includes('geneva')) return 'Europe/Zurich';
+    if (countryRaw.includes('greece') || fullLoc.includes('athens')) return 'Europe/Athens';
+    if (countryRaw.includes('russia') || fullLoc.includes('moscow')) return 'Europe/Moscow';
+    if (countryRaw.includes('turkey') || fullLoc.includes('istanbul') || fullLoc.includes('ankara')) return 'Europe/Istanbul';
+
+    // Latin America
+    if (countryRaw.includes('brazil') || fullLoc.includes('sao paulo') || fullLoc.includes('são paulo') || fullLoc.includes('rio de janeiro')) return 'America/Sao_Paulo';
+    if (countryRaw.includes('mexico') || fullLoc.includes('mexico city')) return 'America/Mexico_City';
+    if (countryRaw.includes('argentina') || fullLoc.includes('buenos aires')) return 'America/Argentina/Buenos_Aires';
+
+    // Africa
+    if (countryRaw.includes('south africa') || fullLoc.includes('johannesburg') || fullLoc.includes('cape town')) return 'Africa/Johannesburg';
+    if (countryRaw.includes('nigeria') || fullLoc.includes('lagos') || fullLoc.includes('abuja')) return 'Africa/Lagos';
+    if (countryRaw.includes('kenya') || fullLoc.includes('nairobi')) return 'Africa/Nairobi';
+    if (countryRaw.includes('egypt') || fullLoc.includes('cairo')) return 'Africa/Cairo';
 
     // South Asia
     if (countryRaw.includes('bangladesh') || fullLoc.includes('dhaka')) return 'Asia/Dhaka';
-    if (countryRaw.includes('pakistan') || fullLoc.includes('karachi') || fullLoc.includes('lahore')) return 'Asia/Karachi';
+    if (countryRaw.includes('pakistan') || fullLoc.includes('karachi') || fullLoc.includes('lahore') || fullLoc.includes('islamabad')) return 'Asia/Karachi';
     if (countryRaw.includes('sri lanka') || fullLoc.includes('colombo')) return 'Asia/Colombo';
     if (countryRaw.includes('nepal') || fullLoc.includes('kathmandu')) return 'Asia/Kathmandu';
 

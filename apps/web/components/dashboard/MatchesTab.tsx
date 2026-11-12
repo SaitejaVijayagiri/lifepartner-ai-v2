@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHorizontal } from 'lucide-react';
+import { Sparkles, Zap, Eye, Crown, Lock, Heart, Search, EyeOff, X, SlidersHorizontal, MapPin, Globe, Navigation, Compass } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { filterActiveStories, filterActive24hStories, isProfilePhotoBlurred } from '@/lib/utils';
-import { FilterState } from '@/components/FilterModal';
+import { FilterState, GLOBAL_COUNTRIES } from '@/components/FilterModal';
 import { useSocket } from '@/context/SocketContext';
+import { detectVisitorGeo } from '@/lib/geoDetect';
 
 function formatLocationString(loc: any): string {
     if (!loc) return '';
@@ -36,7 +37,10 @@ interface MatchesTabProps {
     setCurrentUser: React.Dispatch<React.SetStateAction<any>>;
     matches: any[];
     setMatches: React.Dispatch<React.SetStateAction<any[]>>;
-    fetchMatches: (pageNum?: number) => Promise<void>;
+    fetchMatches: (
+        pageNum?: number,
+        opts?: { scope?: 'all' | 'nearby' | 'country' | 'international'; country?: string; lat?: number; lng?: number }
+    ) => Promise<void>;
     hasMore: boolean;
     loadingMore: boolean;
     page: number;
@@ -82,6 +86,87 @@ export default function MatchesTab({
     const [showHostModal, setShowHostModal] = useState(false);
     const [showHighlightsOnly, setShowHighlightsOnly] = useState(false);
     const [compatibilityModalData, setCompatibilityModalData] = useState<{ id: string; name: string; photoUrl?: string } | null>(null);
+    const [discoveryScope, setDiscoveryScope] = useState<'all' | 'nearby' | 'country' | 'international'>('all');
+    const [selectedCountry, setSelectedCountry] = useState<string>('');
+    const [locatingNearby, setLocatingNearby] = useState(false);
+
+    const homeCountry = useMemo(() => {
+        const saved = currentUser?.location?.country;
+        if (saved && typeof saved === 'string' && saved.trim() && saved !== 'Unknown') {
+            return saved.trim();
+        }
+        try {
+            const detected = detectVisitorGeo();
+            if (detected.country && detected.country !== 'Worldwide') return detected.country;
+        } catch (_) {}
+        return 'India';
+    }, [currentUser?.location?.country]);
+
+    const viewerHasCoords = Boolean(
+        currentUser?.location?.lat &&
+        currentUser?.location?.lng &&
+        !(Number(currentUser.location.lat) === 0 && Number(currentUser.location.lng) === 0)
+    );
+
+    const handleScopeSelect = async (
+        nextScope: 'all' | 'nearby' | 'country' | 'international',
+        countryOverride?: string
+    ) => {
+        const targetCountry = countryOverride !== undefined
+            ? countryOverride
+            : (nextScope === 'country' ? homeCountry : '');
+
+        setDiscoveryScope(nextScope);
+        setSelectedCountry(targetCountry);
+        setShowWorldwideOnly(nextScope === 'international');
+        setLoading(true);
+        try {
+            await fetchMatches(1, {
+                scope: nextScope,
+                ...(targetCountry ? { country: targetCountry } : {})
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEnableNearbyGps = () => {
+        if (typeof window === 'undefined' || !navigator.geolocation) {
+            toast.error('Geolocation is not supported on this device.');
+            return;
+        }
+        setLocatingNearby(true);
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                try {
+                    const { latitude, longitude } = pos.coords;
+                    await api.profile.toggleLiveLocation(true, { lat: latitude, lng: longitude });
+                    setCurrentUser((prev: any) => prev ? ({
+                        ...prev,
+                        location: {
+                            ...(prev.location || {}),
+                            lat: latitude,
+                            lng: longitude,
+                            live_enabled: true
+                        }
+                    }) : prev);
+                    setDiscoveryScope('nearby');
+                    setSelectedCountry('');
+                    await fetchMatches(1, { scope: 'nearby', lat: latitude, lng: longitude });
+                    toast.success('GPS updated! Showing closest verified matches first.');
+                } catch (err: any) {
+                    toast.error(err?.message || 'Could not update GPS coordinates');
+                } finally {
+                    setLocatingNearby(false);
+                }
+            },
+            () => {
+                setLocatingNearby(false);
+                toast.error('Location permission denied. Please enable location in browser/device settings.');
+            },
+            { timeout: 10000, maximumAge: 60000 }
+        );
+    };
 
     /* Story State */
     const [activeStorySet, setActiveStorySet] = useState<any>(null);
@@ -142,21 +227,15 @@ export default function MatchesTab({
         fetchOnlineMembers();
     }, [fetchOnlineMembers]);
 
-    // Live Socket Updates for online/offline events
+    // Poll online members cleanly at a calm 45s interval (prevents global socket storm from DDoS-ing /online-now)
     useEffect(() => {
-        if (!socket) return;
-        const handlePresenceUpdate = () => {
-            fetchOnlineMembers();
-        };
-        socket.on('userOnline', handlePresenceUpdate);
-        socket.on('userOffline', handlePresenceUpdate);
-        socket.on('onlineUsers', handlePresenceUpdate);
-        return () => {
-            socket.off('userOnline', handlePresenceUpdate);
-            socket.off('userOffline', handlePresenceUpdate);
-            socket.off('onlineUsers', handlePresenceUpdate);
-        };
-    }, [socket, fetchOnlineMembers]);
+        const interval = setInterval(() => {
+            if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+                fetchOnlineMembers();
+            }
+        }, 45000);
+        return () => clearInterval(interval);
+    }, [fetchOnlineMembers]);
 
     // Instagram-style Pre-fetch on scroll: triggers fetchMatches 600px before reaching bottom
     const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -256,10 +335,13 @@ export default function MatchesTab({
     const handleClearSearch = async () => {
         setSearchQuery('');
         setAiFilters(null);
+        setDiscoveryScope('all');
+        setSelectedCountry('');
+        setShowWorldwideOnly(false);
         setLoading(true);
         try {
-            await fetchMatches(1);
-            toast.success("Reset to daily recommendations");
+            await fetchMatches(1, { scope: 'all' });
+            toast.success("Reset to all global & local matches");
         } catch (error) {
             console.error(error);
         } finally {
@@ -289,7 +371,16 @@ export default function MatchesTab({
             const maritalStr = (safeStr(match.maritalStatus) || safeStr(meta.maritalStatus) || 'single').toLowerCase();
             const incomeStr = String(match.career?.income || meta.career?.income || '').toLowerCase();
 
-            const locStr = [match.city, match.state, match.location_name, meta.location?.city, meta.location?.state].filter(Boolean).join(' ').toLowerCase();
+            const countryStr = [match.country, match.location_data?.country, meta.location?.country].filter(Boolean).join(' ').toLowerCase();
+            const locStr = [
+                typeof match.location === 'string' ? match.location : '',
+                match.city,
+                match.state,
+                match.location_name,
+                meta.location?.city,
+                meta.location?.state,
+                countryStr
+            ].filter(Boolean).join(' ').toLowerCase();
 
             // 1. Age Filter
             if (activeFilters.ageRange && Array.isArray(activeFilters.ageRange) && activeFilters.ageRange.length >= 2) {
@@ -358,7 +449,15 @@ export default function MatchesTab({
                 if (val < activeFilters.minIncome) return false;
             }
 
-            // 8. Location
+            // 8. Country & Location
+            if (activeFilters.country && typeof activeFilters.country === 'string') {
+                const fc = activeFilters.country.trim().toLowerCase();
+                const aliases = fc === 'united states' ? ['united states', 'usa']
+                    : fc === 'united kingdom' ? ['united kingdom', 'uk', 'england', 'scotland']
+                    : fc === 'united arab emirates' ? ['united arab emirates', 'uae', 'dubai']
+                    : [fc];
+                if (!aliases.some(a => countryStr.includes(a) || locStr.includes(a))) return false;
+            }
             if (activeFilters.location && typeof activeFilters.location === 'string' && !locStr.includes(activeFilters.location.toLowerCase())) return false;
 
             // 9. Mother Tongue
@@ -375,25 +474,24 @@ export default function MatchesTab({
     const [showWorldwideOnly, setShowWorldwideOnly] = useState(false);
     const [showMultiPhotoOnly, setShowMultiPhotoOnly] = useState(false);
 
-    const onlineUsersKey = Array.isArray(onlineUsers) ? onlineUsers.join(',') : '';
+    const onlineSet = useMemo(() => new Set(Array.isArray(onlineUsers) ? onlineUsers : []), [onlineUsers]);
     const onlineMatchesList = useMemo(() => {
         const memberMap = new Map<string, any>();
-        const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
 
         // 1. Add from dedicated live online members endpoint
         (Array.isArray(liveOnlineMembers) ? liveOnlineMembers : []).forEach(m => {
-            if (m && m.id && (onlineSet.size === 0 || onlineSet.has(m.id))) {
+            if (m && m.id && (onlineSet.size === 0 || onlineSet.has(m.id) || m.isOnline)) {
                 memberMap.set(m.id, { ...m, isOnline: true });
             }
         });
         // 2. Add from matches feed
         (Array.isArray(matches) ? matches : []).forEach(m => {
-            if (m && m.id && (onlineSet.size > 0 ? onlineSet.has(m.id) : m.isOnline)) {
+            if (m && m.id && (onlineSet.has(m.id) || m.isOnline)) {
                 memberMap.set(m.id, { ...m, isOnline: true });
             }
         });
         return Array.from(memberMap.values());
-    }, [matches, liveOnlineMembers, onlineUsersKey]);
+    }, [matches, liveOnlineMembers, onlineSet]);
 
     const connectedPartnerIds = useMemo(() => {
         return new Set((Array.isArray(connections) ? connections : []).map(c => c?.partner?.id || c?.id).filter(Boolean));
@@ -415,16 +513,16 @@ export default function MatchesTab({
             : baseMatches;
 
         if (showOnlineOnly) {
-            const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
-            filtered = filtered.filter(m => Boolean(m?.id && onlineSet.has(m.id)));
+            filtered = filtered.filter(m => Boolean((m?.id && onlineSet.has(m.id)) || m?.isOnline));
         }
 
         if (showWorldwideOnly) {
+            const homeLower = homeCountry.toLowerCase();
             filtered = filtered.filter(m => Boolean(
                 m && (
-                    m.isWorldwide || 
-                    (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes('india')) ||
-                    (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes('india'))
+                    m.isWorldwide ||
+                    (m.location_data?.country && typeof m.location_data.country === 'string' && !m.location_data.country.toLowerCase().includes(homeLower)) ||
+                    (m.location && typeof m.location === 'string' && !m.location.toLowerCase().includes(homeLower) && m.location.includes(','))
                 )
             ));
         }
@@ -459,25 +557,29 @@ export default function MatchesTab({
             filtered = filtered.filter(m => getPhotoTier(m) >= 2);
         }
 
-        const onlineSet = new Set(Array.isArray(onlineUsers) ? onlineUsers : []);
-
-        // Multiple Photos Priority: Profiles with multiple photos are strictly listed at the very top!
+        // Preserve distance order when Nearby discovery is active; otherwise prioritize multi-photo tier
         return filtered.slice().sort((a, b) => {
+            if (discoveryScope === 'nearby') {
+                const distA = typeof a?.distanceKm === 'number' ? a.distanceKm : Number.POSITIVE_INFINITY;
+                const distB = typeof b?.distanceKm === 'number' ? b.distanceKm : Number.POSITIVE_INFINITY;
+                if (distA !== distB) return distA - distB;
+            }
+
             // 1. Multiple Photos Tier Priority (Tier 3 > Tier 2 > Tier 1 > Tier 0)
             const tierA = getPhotoTier(a);
             const tierB = getPhotoTier(b);
             if (tierA !== tierB) return tierB - tierA; // Higher photo tier strictly first
 
             // 2. Live Online Priority within the same photo tier
-            const isOnlineA = Boolean(a?.id && onlineSet.has(a.id));
-            const isOnlineB = Boolean(b?.id && onlineSet.has(b.id));
+            const isOnlineA = Boolean((a?.id && onlineSet.has(a.id)) || a?.isOnline);
+            const isOnlineB = Boolean((b?.id && onlineSet.has(b.id)) || b?.isOnline);
             if (isOnlineA && !isOnlineB) return -1;
             if (!isOnlineA && isOnlineB) return 1;
 
             // 3. Match / Compatibility score
             return (b?.score || 0) - (a?.score || 0);
         });
-    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, showMultiPhotoOnly, onlineUsers]);
+    }, [matches, activeFilters, showHighlightsOnly, showOnlineOnly, showWorldwideOnly, showMultiPhotoOnly, onlineSet, homeCountry, discoveryScope]);
 
     if (loading && matches.length === 0) {
         return (
@@ -593,7 +695,7 @@ export default function MatchesTab({
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                                placeholder="Search by Name, Profile ID (e.g. LP-8291A), or AI ('Doctor in Mumbai')..."
+                                placeholder="Search by Name, Profile ID (LP-8291A), Country, or AI ('Doctor in London')..."
                                 className="w-full bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 rounded-2xl pl-4 pr-10 py-3 text-xs md:text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 dark:focus:border-indigo-500 text-gray-900 dark:text-gray-100 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
                             />
                             {searchQuery && (
@@ -643,6 +745,11 @@ export default function MatchesTab({
                                         Age {activeFilters.ageRange[0]}–{activeFilters.ageRange[1]}
                                     </span>
                                 )}
+                                {activeFilters.country && (
+                                    <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
+                                        🌍 {activeFilters.country}
+                                    </span>
+                                )}
                                 {activeFilters.location && (
                                     <span className="px-2 py-0.5 rounded-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold border border-indigo-100 dark:border-indigo-800">
                                         📍 {activeFilters.location}
@@ -683,6 +790,101 @@ export default function MatchesTab({
                         </div>
                     )}
 
+                    {/* Global & Local Discovery Scope Bar (All / Nearby / My Country / International / Country Picker) */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                        <button
+                            onClick={() => handleScopeSelect('all')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                                discoveryScope === 'all' && !selectedCountry
+                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-500/25'
+                                    : 'bg-gray-50 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <Globe size={13} />
+                            <span>All Users</span>
+                        </button>
+
+                        <button
+                            onClick={() => handleScopeSelect('nearby')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                                discoveryScope === 'nearby'
+                                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/25'
+                                    : 'bg-gray-50 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <MapPin size={13} />
+                            <span>Nearby Me</span>
+                        </button>
+
+                        <button
+                            onClick={() => handleScopeSelect('country', homeCountry)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                                discoveryScope === 'country' && selectedCountry === homeCountry
+                                    ? 'bg-violet-600 text-white border-violet-500 shadow-md shadow-violet-500/25'
+                                    : 'bg-gray-50 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <Compass size={13} />
+                            <span>My Country ({homeCountry})</span>
+                        </button>
+
+                        <button
+                            onClick={() => handleScopeSelect('international')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                                discoveryScope === 'international'
+                                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25'
+                                    : 'bg-gray-50 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                            <span>✈️</span>
+                            <span>International</span>
+                        </button>
+
+                        <select
+                            aria-label="Browse by Country"
+                            value={selectedCountry}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) {
+                                    handleScopeSelect('all', '');
+                                } else {
+                                    handleScopeSelect('country', val);
+                                }
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-gray-50 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500/30 outline-none cursor-pointer"
+                        >
+                            <option value="">🌐 Browse Any Country</option>
+                            {GLOBAL_COUNTRIES.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+
+                        <button
+                            onClick={() => setActiveTab('map')}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all flex items-center gap-1 cursor-pointer ml-auto"
+                        >
+                            <Navigation size={12} />
+                            <span>Live Map</span>
+                        </button>
+                    </div>
+
+                    {/* Nearby GPS Helper Banner (when Nearby selected without GPS coords yet) */}
+                    {discoveryScope === 'nearby' && !viewerHasCoords && (
+                        <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 px-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs">
+                            <span className="text-emerald-800 dark:text-emerald-200 font-semibold flex items-center gap-1.5">
+                                <MapPin size={14} className="text-emerald-600 shrink-0" />
+                                Enable GPS for exact km distance sorting near you (currently sorted by your city/region).
+                            </span>
+                            <button
+                                onClick={handleEnableNearbyGps}
+                                disabled={locatingNearby}
+                                className="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition-all cursor-pointer disabled:opacity-60 shrink-0"
+                            >
+                                {locatingNearby ? 'Locating...' : '📍 Use My Live GPS'}
+                            </button>
+                        </div>
+                    )}
+
                     {/* Quick Prompts & Gender Chips & Online Filter */}
                     <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                         <button
@@ -710,7 +912,11 @@ export default function MatchesTab({
                         </button>
 
                         <button
-                            onClick={() => setShowWorldwideOnly(!showWorldwideOnly)}
+                            onClick={() => {
+                                const next = !showWorldwideOnly;
+                                setShowWorldwideOnly(next);
+                                handleScopeSelect(next ? 'international' : 'all');
+                            }}
                             className={`px-3 py-1 rounded-full transition-all font-bold flex items-center gap-1 border cursor-pointer ${
                                 showWorldwideOnly
                                     ? 'bg-blue-600 text-white border-blue-400 shadow-md shadow-blue-500/20 scale-105'
@@ -718,7 +924,7 @@ export default function MatchesTab({
                             }`}
                         >
                             <span>🌍</span>
-                            <span>{showWorldwideOnly ? 'Showing 🌍 Worldwide Only' : '🌍 Worldwide / NRI'}</span>
+                            <span>{showWorldwideOnly ? 'Showing Outside My Country' : `🌍 Outside ${homeCountry}`}</span>
                         </button>
 
                         <button
@@ -947,14 +1153,30 @@ export default function MatchesTab({
             <div className="flex items-center justify-between px-2">
                 <div>
                     <h2 className="text-2xl font-heading font-bold text-foreground">
-                        {searchQuery ? (aiFilters ? 'AI Recommended Matches' : 'Search Results') : 'Daily Recommendations'}
+                        {searchQuery
+                            ? (aiFilters ? 'AI Recommended Matches' : 'Search Results')
+                            : discoveryScope === 'nearby'
+                                ? 'Nearby Singles 📍'
+                                : discoveryScope === 'country' && selectedCountry
+                                    ? `Singles in ${selectedCountry}`
+                                    : discoveryScope === 'international'
+                                        ? 'International Matches ✈️'
+                                        : 'Daily Recommendations'}
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                        {searchQuery ? `Showing matches for "${searchQuery}"` : 'Handpicked matches just for you ✨'}
+                        {searchQuery
+                            ? `Showing matches for "${searchQuery}"`
+                            : discoveryScope === 'nearby'
+                                ? 'Sorted closest to your location first'
+                                : discoveryScope === 'country' && selectedCountry
+                                    ? `Verified profiles located in ${selectedCountry}`
+                                    : discoveryScope === 'international'
+                                        ? `Verified global members outside ${homeCountry}`
+                                        : 'Handpicked global & local matches just for you ✨'}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {(searchQuery || aiFilters) && (
+                    {(searchQuery || aiFilters || discoveryScope !== 'all' || selectedCountry) && (
                         <button
                             onClick={handleClearSearch}
                             className="text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 bg-gray-100 hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-950/40 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 transition-all flex items-center gap-1 cursor-pointer"
@@ -1055,13 +1277,16 @@ export default function MatchesTab({
                         </p>
                     </div>
 
-                    {activeFilters && (
+                    {(activeFilters || discoveryScope !== 'all' || selectedCountry) && (
                         <div className="pt-2 flex flex-wrap items-center justify-center gap-2 max-w-md mx-auto">
                             <button
-                                onClick={() => setActiveFilters(null)}
+                                onClick={() => {
+                                    setActiveFilters(null);
+                                    handleScopeSelect('all', '');
+                                }}
                                 className="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-black text-xs shadow-md transition-all active:scale-95 cursor-pointer"
                             >
-                                ✨ Clear All Filters & Show All Matches
+                                🌍 View All Global Users
                             </button>
                         </div>
                     )}

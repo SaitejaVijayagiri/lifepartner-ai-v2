@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 import Cropper from 'react-easy-crop';
 import { Edit2, Trash2, Camera, X, RotateCw, Sparkles, Wand2 } from 'lucide-react';
+import { compressProfilePhotos, MAX_PROFILE_PHOTOS } from '@/lib/imageUpload';
 
 interface ProfileEditorProps {
     initialData: any;
@@ -136,88 +137,29 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
             ? []
             : currentPhotos.filter((p: string) => !isDicebear(p));
 
-        if (basePhotos.length >= 5) {
-            toast.error('Maximum 5 photos allowed. Remove one to add more.');
+        if (basePhotos.length >= MAX_PROFILE_PHOTOS) {
+            toast.error(`Maximum ${MAX_PROFILE_PHOTOS} photos allowed. Remove one to add more.`);
             return;
         }
 
-        const slotsLeft = 5 - basePhotos.length;
+        const slotsLeft = MAX_PROFILE_PHOTOS - basePhotos.length;
         const toProcess = fileArr.slice(0, slotsLeft);
         if (fileArr.length > slotsLeft) {
-            toast.info(`Selecting first ${slotsLeft} photo${slotsLeft > 1 ? 's' : ''} (5 photos max limit).`);
+            toast.info(`Selecting first ${slotsLeft} photo${slotsLeft > 1 ? 's' : ''} (${MAX_PROFILE_PHOTOS} photos max limit).`);
         }
 
         setIsProcessingPhoto(true);
         try {
-            const processOne = (file: File) => new Promise<string | null>((resolve) => {
-                if (file.size > 20 * 1024 * 1024) {
-                    toast.error(`"${file.name}" is too large (>20MB).`);
-                    return resolve(null);
-                }
-
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const dataUrl = reader.result as string;
-                    const img = new Image();
-                    let finished = false;
-
-                    const done = (val: string) => {
-                        if (!finished) {
-                            finished = true;
-                            clearTimeout(safetyTimer);
-                            resolve(val);
-                        }
-                    };
-
-                    const safetyTimer = setTimeout(() => {
-                        done(dataUrl);
-                    }, 4000);
-
-                    img.onload = () => {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            let { width, height } = img;
-                            const maxDim = 900;
-                            if (width > maxDim || height > maxDim) {
-                                const ratio = Math.min(maxDim / width, maxDim / height);
-                                width = Math.round(width * ratio);
-                                height = Math.round(height * ratio);
-                            }
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            if (ctx) {
-                                ctx.drawImage(img, 0, 0, width, height);
-                                done(canvas.toDataURL('image/jpeg', 0.8));
-                                return;
-                            }
-                        } catch (err) {
-                            console.warn('Canvas resize fallback', err);
-                        }
-                        done(dataUrl);
-                    };
-
-                    img.onerror = () => {
-                        done(dataUrl);
-                    };
-
-                    img.src = dataUrl;
-                };
-
-                reader.onerror = () => {
-                    console.error('FileReader error', file.name);
-                    resolve(null);
-                };
-
-                reader.readAsDataURL(file);
+            const newPhotos = await compressProfilePhotos(toProcess, {
+                maxDim: 1080,
+                quality: 0.78,
+                concurrency: 2,
+                onError: (_name, msg) => toast.error(msg),
             });
-
-            const results = await Promise.all(toProcess.map(processOne));
-            const newPhotos = results.filter(Boolean) as string[];
 
             if (newPhotos.length > 0) {
                 const cleanExisting = basePhotos.filter((p: string) => !isImportedGoogle(p));
-                const updatedPhotos = [...newPhotos, ...cleanExisting].slice(0, 5);
+                const updatedPhotos = [...newPhotos, ...cleanExisting].slice(0, MAX_PROFILE_PHOTOS);
                 setFormData((prev: any) => ({
                     ...prev,
                     photos: updatedPhotos,
@@ -490,7 +432,12 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                 {/* Photo Upload Section */}
                 {/* Photo Gallery Upload Section */}
                 <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
+                    <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wide">Profile Photos</h4>
+                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-0.5 rounded-full">
+                            {formData.photos?.length || (formData.photoUrl ? 1 : 0)}/{MAX_PROFILE_PHOTOS}
+                        </span>
+                    </div>
 
                     <label 
                         htmlFor="profile-photos-input"
@@ -526,7 +473,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <h5 className="font-semibold text-gray-900 dark:text-gray-100 text-base pointer-events-none">
                             {isProcessingPhoto ? "Processing Photos..." : "Upload Profile Photos"}
                         </h5>
-                        <p className="text-xs text-gray-500 mt-1 max-w-sm pointer-events-none">Tap anywhere here to choose from Gallery or Camera (Up to 5 photos, max 20MB)</p>
+                        <p className="text-xs text-gray-500 mt-1 max-w-sm pointer-events-none">Tap anywhere here to choose from Gallery or Camera (Up to 10 photos, max 20MB)</p>
                         <span
                             className="mt-3.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs sm:text-sm font-bold rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 pointer-events-none"
                         >
@@ -897,7 +844,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                                     const detectedCity = data.locality || data.city || data.principalSubdivision || "Unknown City";
                                                     const detectedDistrict = data.localityInfo?.administrative?.find((x: any) => x.adminLevel === 5 || (x.name && x.name.toLowerCase().includes('district')))?.name || data.principalSubdivision || detectedCity;
                                                     const detectedState = data.principalSubdivision || data.localityInfo?.administrative?.find((x: any) => x.order === 4)?.name || "Unknown State";
-                                                    const detectedCountry = data.countryName || "India";
+                                                    const detectedCountry = data.countryName || formData.location?.country || "";
 
                                                     // Update All Location Fields
                                                     handleChange('location', 'city', detectedCity);
@@ -927,33 +874,33 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                                 </button>
                             </label>
 
-                            {/* Validation Error Message */}
-                            {(!formData.location?.district || !formData.location?.state) && (
+                            {/* Validation Error Message (India District warning or City/Country check) */}
+                            {(!formData.location?.state && (!formData.location?.country || formData.location.country.toLowerCase().includes('india'))) && (
                                 <p className="text-[10px] text-amber-600 mb-1 ml-1 font-medium flex items-center gap-1">
-                                    ⚠️ GPS recommended to fetch District & State.
+                                    ⚠️ GPS recommended to fetch exact city & state/region.
                                 </p>
                             )}
 
                             <div className="grid grid-cols-2 gap-2">
                                 <Input
-                                    placeholder="City (e.g. Mumbai)"
+                                    placeholder={formData.location?.country && !formData.location.country.toLowerCase().includes('india') ? "City (e.g. London / New York)" : "City (e.g. Mumbai)"}
                                     value={formData.location?.city || (typeof formData.location === 'string' ? formData.location : '')}
                                     onChange={e => handleChange('location', 'city', e.target.value)}
                                 />
                                 <Input
-                                    placeholder="District (e.g. Ranga Reddy)"
+                                    placeholder={formData.location?.country && !formData.location.country.toLowerCase().includes('india') ? "County / Area (Optional)" : "District (e.g. Ranga Reddy)"}
                                     value={formData.location?.district || ''}
                                     onChange={e => handleChange('location', 'district', e.target.value)}
-                                    className={`${!formData.location?.district ? 'border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20' : ''}`}
+                                    className={`${(!formData.location?.district && (!formData.location?.country || formData.location.country.toLowerCase().includes('india'))) ? 'border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20' : ''}`}
                                 />
                                 <Input
-                                    placeholder="State (e.g. Telangana)"
+                                    placeholder={formData.location?.country && !formData.location.country.toLowerCase().includes('india') ? "State / Province / Region" : "State (e.g. Telangana)"}
                                     value={formData.location?.state || ''}
                                     onChange={e => handleChange('location', 'state', e.target.value)}
                                     className={`${!formData.location?.state ? 'border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20' : ''}`}
                                 />
                                 <Input
-                                    placeholder="Country (e.g. India)"
+                                    placeholder="Country (e.g. India, USA, UK)"
                                     value={formData.location?.country || ''}
                                     onChange={e => handleChange('location', 'country', e.target.value)}
                                 />
@@ -1034,7 +981,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input label="Preferred Age Range" placeholder="e.g. 24-28" value={formData.partnerPreferences?.ageRange || ''} onChange={e => handleChange('partnerPreferences', 'ageRange', e.target.value)} />
                             <Input label="Preferred Height" placeholder="e.g. 5'2 - 5'6" value={formData.partnerPreferences?.heightRange || ''} onChange={e => handleChange('partnerPreferences', 'heightRange', e.target.value)} />
-                            <Input label="Preferred Income" placeholder="e.g. > 10 LPA" value={formData.partnerPreferences?.income || ''} onChange={e => handleChange('partnerPreferences', 'income', e.target.value)} />
+                            <Input label="Preferred Income" placeholder="e.g. $80K+ or > 10 LPA" value={formData.partnerPreferences?.income || ''} onChange={e => handleChange('partnerPreferences', 'income', e.target.value)} />
                             <Input label="Preferred Location" placeholder="e.g. Mumbai, Bangalore" value={formData.partnerPreferences?.location || ''} onChange={e => handleChange('partnerPreferences', 'location', e.target.value)} />
                         </div>
                     </div>

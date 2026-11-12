@@ -59,9 +59,24 @@ export default function MapInner({
 
     const isLiveLocation = isLiveLocationOn !== false && currentUser?.location?.live_enabled !== false;
 
-    const myLat = currentUser?.location?.lat ? parseFloat(currentUser.location.lat) : 20.5937;
-    const myLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : 78.9629;
-    const defaultZoom = currentUser?.location?.lat ? 10 : 4;
+    const myCountryRaw = String(currentUser?.location?.country || '').toLowerCase();
+    const countryFallbackCoords: [number, number] =
+        myCountryRaw.includes('united states') || myCountryRaw === 'usa' ? [39.8283, -98.5795]
+        : myCountryRaw.includes('united kingdom') || myCountryRaw === 'uk' ? [54.5, -2.5]
+        : myCountryRaw.includes('canada') ? [56.1304, -106.3468]
+        : myCountryRaw.includes('australia') ? [-25.2744, 133.7751]
+        : myCountryRaw.includes('germany') ? [51.1657, 10.4515]
+        : myCountryRaw.includes('france') ? [46.2276, 2.2137]
+        : myCountryRaw.includes('emirates') || myCountryRaw === 'uae' ? [25.2048, 55.2708]
+        : myCountryRaw.includes('singapore') ? [1.3521, 103.8198]
+        : myCountryRaw.includes('japan') ? [35.6762, 139.6503]
+        : myCountryRaw.includes('korea') ? [37.5665, 126.9780]
+        : myCountryRaw.includes('india') ? [20.5937, 78.9629]
+        : [25.0, 15.0]; // Global world overview if user hasn't set country or GPS
+
+    const myLat = currentUser?.location?.lat ? parseFloat(currentUser.location.lat) : countryFallbackCoords[0];
+    const myLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : countryFallbackCoords[1];
+    const defaultZoom = currentUser?.location?.lat ? 10 : (myCountryRaw ? 4 : 2);
 
     // Only show profiles that have real coordinates
     const mapProfiles = (profiles || []).filter(

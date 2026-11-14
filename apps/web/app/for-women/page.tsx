@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     languages: {
       'x-default': 'https://lifepartnerai.in/for-women',
       'en': 'https://lifepartnerai.in/for-women',
+      'en-IN': 'https://lifepartnerai.in/india',
       'en-US': 'https://lifepartnerai.in/usa',
       'en-GB': 'https://lifepartnerai.in/uk',
       'en-CA': 'https://lifepartnerai.in/canada',

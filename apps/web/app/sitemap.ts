@@ -7,6 +7,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Static Pages
     const routes = [
         '',
+        '/india',
         '/for-women',
         '/matrimony',
         '/dating',
@@ -49,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${baseUrl}${route}`,
         lastModified: new Date(),
         changeFrequency: 'weekly' as const,
-        priority: route === '' || route === '/for-women' || route === '/chat-with-boys' || route === '/korean-dating' || route === '/german-dating' || route === '/international-men' || route === '/japan' || route === '/korea' || route === '/singapore' || route === '/thailand' || route === '/malaysia' || route === '/indonesia' || route === '/russia' || route === '/usa' || route === '/philippines' || route === '/uk' || route === '/canada' || route === '/australia' || route === '/vietnam' || route === '/brazil' || route === '/germany' || route === '/france' || route === '/uae' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
+        priority: route === '' || route === '/india' || route === '/for-women' || route === '/chat-with-boys' || route === '/korean-dating' || route === '/german-dating' || route === '/international-men' || route === '/japan' || route === '/korea' || route === '/singapore' || route === '/thailand' || route === '/malaysia' || route === '/indonesia' || route === '/russia' || route === '/usa' || route === '/philippines' || route === '/uk' || route === '/canada' || route === '/australia' || route === '/vietnam' || route === '/brazil' || route === '/germany' || route === '/france' || route === '/uae' || route === '/stranger-chat' || route === '/omegle-alternative' ? 1 : 0.8,
     }));
 
     // Dynamic Blog Posts (fallback to static data, try to fetch from API)

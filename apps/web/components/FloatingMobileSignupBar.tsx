@@ -54,10 +54,10 @@ export default function FloatingMobileSignupBar({ onSignupClick }: FloatingMobil
                 <div className="flex flex-col min-w-0 pl-1">
                     <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 uppercase tracking-wider">
                         <Sparkles size={13} className="animate-spin" style={{ animationDuration: '4s' }} />
-                        <span>100% Free Signup</span>
+                        <span>100% Free • Free VIP for Women</span>
                     </div>
                     <span className="text-[11px] font-bold text-gray-300 truncate">
-                        Join 100k+ Verified Singles
+                        Zero Fees • Anti-Creep Shield • Verified Singles
                     </span>
                 </div>
 

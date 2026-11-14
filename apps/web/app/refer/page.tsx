@@ -19,7 +19,7 @@ export default function ReferPage() {
     }, []);
 
     const handleShare = async () => {
-        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifepartner.ai';
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifepartnerai.in';
         const link = `${origin}/register?code=${user?.referral_code}&utm_source=referral&utm_medium=social&utm_campaign=invite_friend`;
 
         // Mobile Share API handles URL separate from Text

@@ -83,6 +83,7 @@ export default function Footer() {
                 <div>
                     <h5 className="font-bold text-gray-200 mb-3 uppercase tracking-wider">Worldwide Matchmaking</h5>
                     <ul className="space-y-1.5">
+                        <li><Link href="/india" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors">🇮🇳 India Matrimony & Dating</Link></li>
                         <li><Link href="/korean-dating" className="text-rose-400 font-semibold hover:text-rose-300 transition-colors">🇰🇷 Date Korean Boys (한국 싱글)</Link></li>
                         <li><Link href="/german-dating" className="text-amber-400 font-semibold hover:text-amber-300 transition-colors">🇩🇪 German Gentlemen (Männer)</Link></li>
                         <li><Link href="/international-men" className="text-purple-400 font-semibold hover:text-purple-300 transition-colors">🌍 Handsome Global Bachelors</Link></li>

@@ -145,23 +145,62 @@ export class AIService {
             }
         }
 
-        // --- Location Detection ---
-        // Common city/state/country names (Indian & International)
-        const locationPatterns = [
-            'hyderabad', 'bangalore', 'bengaluru', 'mumbai', 'delhi', 'chennai',
-            'pune', 'kolkata', 'jaipur', 'ahmedabad', 'surat', 'lucknow',
-            'vizag', 'visakhapatnam', 'telangana', 'andhra', 'kerala', 'karnataka',
-            'tamil nadu', 'maharashtra', 'united states', 'usa', 'uk', 'united kingdom',
-            'canada', 'australia', 'singapore', 'dubai', 'ireland', 'dublin', 'cavan',
-            'germany', 'france', 'poland', 'finland', 'japan', 'malaysia', 'philippines',
-            'qatar', 'uae', 'new zealand', 'london', 'sydney', 'toronto'
-        ];
+        // --- Location & Demonym Detection ---
+        // 1. Country & Demonym / Nationality mapping (Indian & International)
+        const countryMap: Record<string, string[]> = {
+            'India': ['india', 'indian', 'indians', 'desi', 'bharat', 'hindustan'],
+            'United States': ['united states', 'usa', 'america', 'american', 'americans', 'u.s.a', 'u.s.'],
+            'United Kingdom': ['united kingdom', 'uk', 'britain', 'british', 'england', 'scotland', 'london'],
+            'Canada': ['canada', 'canadian', 'canadians', 'toronto', 'vancouver'],
+            'Australia': ['australia', 'australian', 'australians', 'aussie', 'sydney', 'melbourne'],
+            'United Arab Emirates': ['united arab emirates', 'uae', 'dubai', 'abu dhabi', 'emirati'],
+            'Singapore': ['singapore', 'singaporean'],
+            'Germany': ['germany', 'german', 'germans', 'deutschland', 'berlin', 'munich', 'frankfurt'],
+            'France': ['france', 'french', 'paris'],
+            'Russia': ['russia', 'russian', 'russians', 'moscow', 'saint petersburg'],
+            'Japan': ['japan', 'japanese', 'tokyo', 'osaka'],
+            'Korea': ['korea', 'korean', 'koreans', 'south korea', 'seoul'],
+            'Philippines': ['philippines', 'filipino', 'filipina', 'filipinas', 'pinoy', 'manila'],
+            'Malaysia': ['malaysia', 'malaysian', 'kuala lumpur'],
+            'Thailand': ['thailand', 'thai', 'bangkok'],
+            'Indonesia': ['indonesia', 'indonesian', 'jakarta', 'bali'],
+            'Vietnam': ['vietnam', 'vietnamese', 'hanoi', 'ho chi minh'],
+            'Brazil': ['brazil', 'brazilian', 'sao paulo', 'rio'],
+            'Ireland': ['ireland', 'irish', 'dublin', 'cavan'],
+            'New Zealand': ['new zealand', 'kiwi', 'auckland'],
+            'Qatar': ['qatar', 'doha'],
+            'Saudi Arabia': ['saudi arabia', 'saudi', 'riyadh'],
+            'Italy': ['italy', 'italian', 'rome', 'milan'],
+            'Spain': ['spain', 'spanish', 'madrid', 'barcelona'],
+            'Netherlands': ['netherlands', 'dutch', 'amsterdam']
+        };
 
-        for (const city of locationPatterns) {
-            if (lower.includes(city)) {
-                // Capitalize properly
-                filters.location = city.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        for (const [canonicalCountry, keywords] of Object.entries(countryMap)) {
+            if (keywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(lower) || lower.includes(k))) {
+                filters.location = canonicalCountry;
                 break;
+            }
+        }
+
+        // 2. City & State mapping
+        if (!filters.location) {
+            const cityMap: Record<string, string> = {
+                'hyderabad': 'Hyderabad', 'bangalore': 'Bangalore', 'bengaluru': 'Bangalore',
+                'mumbai': 'Mumbai', 'delhi': 'Delhi', 'chennai': 'Chennai', 'pune': 'Pune',
+                'kolkata': 'Kolkata', 'jaipur': 'Jaipur', 'ahmedabad': 'Ahmedabad', 'surat': 'Surat',
+                'lucknow': 'Lucknow', 'vizag': 'Visakhapatnam', 'visakhapatnam': 'Visakhapatnam',
+                'chandigarh': 'Chandigarh', 'kochi': 'Kochi', 'coimbatore': 'Coimbatore',
+                'indore': 'Indore', 'bhopal': 'Bhopal', 'patna': 'Patna', 'vadodara': 'Vadodara',
+                'nagpur': 'Nagpur', 'telangana': 'Telangana', 'andhra': 'Andhra Pradesh',
+                'kerala': 'Kerala', 'karnataka': 'Karnataka', 'tamil nadu': 'Tamil Nadu',
+                'maharashtra': 'Maharashtra', 'gujarat': 'Gujarat', 'punjab': 'Punjab',
+                'rajasthan': 'Rajasthan', 'uttar pradesh': 'Uttar Pradesh', 'west bengal': 'West Bengal'
+            };
+            for (const [cityKey, canonicalCity] of Object.entries(cityMap)) {
+                if (lower.includes(cityKey)) {
+                    filters.location = canonicalCity;
+                    break;
+                }
             }
         }
 
@@ -292,12 +331,36 @@ export class AIService {
         }
 
         // --- Exact Name Detection (e.g. "Priya Sharma", "Rahul Verma") ---
-        const cleanedWords = query
-            .replace(/\b(?:search|find|looking|for|a|an|the|who|is|in|boy|boys|girl|girls|bride|groom)\b/gi, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        if (cleanedWords.length >= 2 && !filters.profession && !filters.location && !filters.exactProfileId) {
-            filters.exactName = cleanedWords;
+        // Exclude stopwords, category words, nationalities, intent words so descriptive queries are NEVER misidentified as person names
+        const nonNameTokens = new Set([
+            'search', 'find', 'looking', 'for', 'a', 'an', 'the', 'who', 'is', 'in', 'near', 'from', 'at',
+            'boy', 'boys', 'girl', 'girls', 'bride', 'brides', 'groom', 'grooms',
+            'female', 'females', 'male', 'males', 'woman', 'women', 'man', 'men',
+            'lady', 'ladies', 'guy', 'guys', 'gentleman', 'gentlemen', 'bachelor', 'bachelors',
+            'single', 'singles', 'match', 'matches', 'partner', 'profile', 'profiles',
+            'matrimony', 'dating', 'wedding', 'marriage', 'verified', 'vip', 'free', 'safe',
+            'india', 'indian', 'indians', 'desi', 'bharat', 'hindustan',
+            'usa', 'america', 'american', 'americans', 'uk', 'britain', 'british',
+            'canada', 'canadian', 'australia', 'australian', 'germany', 'german',
+            'korea', 'korean', 'japan', 'japanese', 'russia', 'russian',
+            'philippines', 'filipino', 'filipina', 'france', 'french', 'uae', 'dubai'
+        ]);
+
+        const rawWords = lower.replace(/[^a-zA-Z\s]/g, ' ').split(/\s+/).filter(Boolean);
+        const candidateWords = rawWords.filter(w => !nonNameTokens.has(w));
+
+        if (
+            candidateWords.length >= 1 &&
+            !filters.profession &&
+            !filters.location &&
+            !filters.exactProfileId &&
+            !filters.motherTongue &&
+            !filters.religion
+        ) {
+            const candidate = candidateWords.join(' ').trim();
+            if (candidate.length >= 2 && !/^(any|all|anyone|everyone|someone|please|show|get|near|nearby)$/i.test(candidate)) {
+                filters.exactName = candidate.split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            }
         }
 
         console.log(`[AIService.parseSearchQuery] Query: "${query}" → Filters:`, filters);

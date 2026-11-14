@@ -1315,7 +1315,18 @@ function DashboardContent() {
                 if (val < activeFilters.minIncome) return false;
             }
 
-            // 8. Location
+            // 8. Location & Country
+            if (activeFilters.country && typeof activeFilters.country === 'string') {
+                const targetC = activeFilters.country.toLowerCase();
+                const matchCountry = (match.country || meta.location?.country || '').toLowerCase();
+                const matchLocName = (match.location_name || '').toLowerCase();
+                const isIndia = targetC === 'india';
+                const isMatch = matchCountry.includes(targetC) || 
+                                matchLocName.includes(targetC) || 
+                                (isIndia && (!matchCountry || matchCountry === 'india'));
+                if (!isMatch) return false;
+            }
+
             if (activeFilters.location && typeof activeFilters.location === 'string' && !locStr.includes(activeFilters.location.toLowerCase())) return false;
 
             // 9. Mother Tongue
@@ -2388,9 +2399,11 @@ function DashboardContent() {
                 onClose={() => setShowFilterModal(false)}
                 onApply={(filters) => {
                     setActiveFilters(filters);
-                    // Apply filters to matches
-                    // Note: For now, filters are stored and can be used client-side
-                    // Ideally send to backend for optimized filtering
+                    if (filters?.country) {
+                        try {
+                            fetchMatches(1, { scope: 'country', country: filters.country });
+                        } catch (_) {}
+                    }
                 }}
                 initialFilters={activeFilters || undefined}
             />

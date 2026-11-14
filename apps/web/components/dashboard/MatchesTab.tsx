@@ -854,7 +854,8 @@ export default function MatchesTab({
                             className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-gray-50 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500/30 outline-none cursor-pointer"
                         >
                             <option value="">🌐 Browse Any Country</option>
-                            {GLOBAL_COUNTRIES.map((c) => (
+                            <option value="India">🇮🇳 India (Verified Brides & Singles)</option>
+                            {GLOBAL_COUNTRIES.filter(c => c !== 'India').map((c) => (
                                 <option key={c} value={c}>{c}</option>
                             ))}
                         </select>

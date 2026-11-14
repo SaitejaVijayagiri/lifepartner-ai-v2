@@ -331,26 +331,24 @@ router.get('/public-preview', async (req: any, res) => {
         }
 
         if (category === 'location') {
+            const locPatterns = getCountrySearchPatterns(val);
+            const orConditions: any[] = [
+                { location_name: { contains: val, mode: 'insensitive' } },
+                { city: { contains: val, mode: 'insensitive' } },
+                { state: { contains: val, mode: 'insensitive' } }
+            ];
+            for (const pat of locPatterns) {
+                const cleanPat = pat.replace(/%/g, '').trim();
+                if (cleanPat) {
+                    orConditions.push({ location_name: { contains: cleanPat, mode: 'insensitive' } });
+                    orConditions.push({ city: { contains: cleanPat, mode: 'insensitive' } });
+                    orConditions.push({ state: { contains: cleanPat, mode: 'insensitive' } });
+                }
+            }
             where = {
                 ...where,
-                OR: [
-                    { location_name: { contains: val, mode: 'insensitive' } },
-                    { city: { contains: val, mode: 'insensitive' } },
-                    // JSON filtering is harder in Prisma. 
-                    // We can use path filtering if referencing JSON fields directly?
-                    // Prisma's JSON filtering support depends on DB version.
-                    // Assuming Postgres, we can do path syntax if supported, or raw query.
-                    // For simplicity, let's stick to core columns or basic JSON filter
-                    { profiles: { metadata: { path: ['location', 'city'], string_contains: val } } }
-                ]
+                OR: orConditions
             };
-            // Note: Prisma JSON path filtering syntax is tricky. 
-            // Safer fallback: Use findMany then filter in memory? No, pagination.
-            // Or simpler JSON filter:
-            /*
-            { profiles: { metadata: { string_contains: val } } } // Too broad
-            */
-            // Let's rely on standard columns for now or use equals.
         } else if (category === 'community') {
             // JSON deeply nested check
             // path: ['religion', 'caste']
@@ -1480,11 +1478,16 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         }
 
         // --- 1.1 Direct Exact Profile ID / Handle / Name Search ---
-        const cleanCode = (filters.exactProfileId || query).replace(/^@|^lp-?/i, '').trim();
-        const candidateName = (filters.exactName || query).trim();
+        const cleanCode = (filters.exactProfileId || '').replace(/^@|^lp-?/i, '').trim();
+        const candidateName = (filters.exactName || '').trim();
+        const hasExplicitCategory = Boolean(filters.location || filters.profession || filters.diet || filters.motherTongue || (filters.keywords && filters.keywords.length > 0));
 
         let exactCandidates: any[] = [];
-        if (cleanCode.length >= 2 || candidateName.length >= 2) {
+        const isLikelyProfileCode = /^(?:@|lp-?)?[a-z0-9]{3,12}$/i.test(query.trim());
+        const effectiveCode = cleanCode || (isLikelyProfileCode ? query.trim().replace(/^@|^lp-?/i, '') : '');
+        const effectiveName = candidateName || (!hasExplicitCategory && query.trim().length >= 2 && query.trim().split(/\s+/).length <= 3 ? query.trim() : '');
+
+        if (effectiveCode.length >= 2 || effectiveName.length >= 2) {
             exactCandidates = await prisma.users.findMany({
                 where: {
                     id: blockedList.length > 0 ? { notIn: [userId, ...blockedList] } : { not: userId },
@@ -1495,10 +1498,13 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                         { OR: [{ is_deactivated: false }, { deactivated_until: { lte: new Date() } }] },
                         {
                             OR: [
-                                { referral_code: { equals: cleanCode, mode: 'insensitive' } },
-                                { referral_code: { equals: query.trim(), mode: 'insensitive' } },
-                                { full_name: { contains: candidateName, mode: 'insensitive' } },
-                                { full_name: { contains: query.trim(), mode: 'insensitive' } }
+                                ...(effectiveCode.length >= 2 ? [
+                                    { referral_code: { equals: effectiveCode, mode: 'insensitive' as const } },
+                                    { referral_code: { equals: query.trim(), mode: 'insensitive' as const } }
+                                ] : []),
+                                ...(effectiveName.length >= 2 ? [
+                                    { full_name: { contains: effectiveName, mode: 'insensitive' as const } }
+                                ] : [])
                             ]
                         }
                     ]

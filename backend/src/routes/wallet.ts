@@ -151,182 +151,26 @@ router.post('/boost', authenticateToken, async (req: any, res) => {
     }
 });
 
-// Daily Streak Rewards Configuration
-const STREAK_REWARDS: Record<number, number> = {
-    1: 15,
-    2: 25,
-    3: 40,
-    4: 60,
-    5: 80,
-    6: 100,
-    7: 150
-};
-
-/**
- * Helper: Calculate exact calendar day difference between two date strings (YYYY-MM-DD)
- */
-function getCalendarDayDiff(lastClaimedStr: string | null, todayStr: string): number {
-    if (!lastClaimedStr) return 999;
-    try {
-        const d1 = new Date(lastClaimedStr.slice(0, 10) + 'T00:00:00.000Z').getTime();
-        const d2 = new Date(todayStr.slice(0, 10) + 'T00:00:00.000Z').getTime();
-        const msPerDay = 1000 * 60 * 60 * 24;
-        const diff = Math.round((d2 - d1) / msPerDay);
-        return isNaN(diff) ? 999 : diff;
-    } catch (e) {
-        return 999;
-    }
-}
-
 /**
  * GET /api/wallet/streak
- * Returns user's login streak status & eligibility for today
+ * Deprecated: Daily check-in coins feature discontinued
  */
 router.get('/streak', authenticateToken, async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
-
-        const profile = await prisma.profiles.findUnique({
-            where: { user_id: userId },
-            select: { metadata: true }
-        });
-
-        const meta: any = profile?.metadata || {};
-        const streakData = meta.daily_streak || { streak_count: 0, last_claimed_date: null };
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        const lastClaimed = streakData.last_claimed_date;
-
-        let canClaimToday = true;
-        let currentStreak = streakData.streak_count || 0;
-
-        if (lastClaimed) {
-            const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
-
-            if (diffDays === 0) {
-                canClaimToday = false; // Already claimed today
-            } else if (diffDays > 1 || diffDays < 0) {
-                // Streak broken — missed a day. Reset streak count to 0 so nextDay becomes 1
-                currentStreak = 0;
-            }
-        }
-
-        const nextDay = canClaimToday ? (currentStreak % 7) + 1 : ((currentStreak - 1) % 7) + 1;
-        const rewardCoins = STREAK_REWARDS[nextDay] || 15;
-
-        return res.json({
-            streakCount: currentStreak,
-            canClaimToday,
-            nextDay,
-            rewardCoins,
-            rewardsSchedule: STREAK_REWARDS,
-            lastClaimedDate: lastClaimed
-        });
-    } catch (e: any) {
-        console.error('Failed to get streak status', e);
-        return res.status(500).json({ error: 'Failed to fetch daily streak' });
-    }
+    return res.json({
+        streakCount: 0,
+        canClaimToday: false,
+        message: 'Daily check-in streak rewards have been discontinued.'
+    });
 });
 
 /**
  * POST /api/wallet/streak/claim
- * Claims today's daily streak reward & awards bonus coins
+ * Deprecated: Daily check-in coins feature discontinued
  */
 router.post('/streak/claim', authenticateToken, async (req: any, res) => {
-    try {
-        const userId = req.user.userId;
-        const todayStr = new Date().toISOString().split('T')[0];
-
-        // Perform eligibility check + balance increment inside an atomic locked transaction
-        const result = await prisma.$transaction(async (tx) => {
-            // Serialize concurrent streak claims per user via row-level lock on users
-            await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE`;
-
-            const profile = await tx.profiles.findUnique({
-                where: { user_id: userId },
-                select: { metadata: true }
-            });
-
-            const meta: any = profile?.metadata || {};
-            const streakData = meta.daily_streak || { streak_count: 0, last_claimed_date: null };
-            const lastClaimed = streakData.last_claimed_date;
-
-            if (lastClaimed) {
-                const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
-                if (diffDays === 0) {
-                    return { alreadyClaimed: true as const };
-                }
-            }
-
-            let newStreak = (streakData.streak_count || 0) + 1;
-            if (lastClaimed) {
-                const diffDays = getCalendarDayDiff(lastClaimed, todayStr);
-                if (diffDays > 1 || diffDays < 0) {
-                    newStreak = 1; // Missed a day — reset streak strictly to Day 1
-                }
-            }
-
-            const dayCycle = ((newStreak - 1) % 7) + 1;
-            const rewardCoins = STREAK_REWARDS[dayCycle] || 15;
-
-            // Update user balance
-            const updatedUser = await tx.users.update({
-                where: { id: userId },
-                data: { coins: { increment: rewardCoins } },
-                select: { coins: true }
-            });
-
-            // Update streak metadata
-            const updatedMeta = {
-                ...meta,
-                daily_streak: {
-                    streak_count: newStreak,
-                    last_claimed_date: todayStr
-                }
-            };
-
-            await tx.profiles.upsert({
-                where: { user_id: userId },
-                create: { user_id: userId, metadata: updatedMeta },
-                update: { metadata: updatedMeta }
-            });
-
-            // Create transaction record
-            await tx.transactions.create({
-                data: {
-                    user_id: userId,
-                    type: 'REWARD',
-                    amount: rewardCoins,
-                    currency: 'COINS',
-                    description: `Daily Login Streak Reward (Day ${newStreak})`,
-                    status: 'SUCCESS'
-                }
-            });
-
-            return {
-                alreadyClaimed: false as const,
-                newStreak,
-                rewardCoins,
-                newBalance: updatedUser?.coins || 0
-            };
-        });
-
-        if (result.alreadyClaimed) {
-            return res.status(400).json({ error: 'You have already claimed today\'s streak reward!' });
-        }
-
-        return res.json({
-            success: true,
-            streakCount: result.newStreak,
-            rewardCoins: result.rewardCoins,
-            newBalance: result.newBalance,
-            message: `🎉 Claimed ${result.rewardCoins} coins for Day ${result.newStreak} streak!`
-        });
-
-    } catch (e: any) {
-        console.error('Failed to claim streak reward', e);
-        return res.status(500).json({ error: 'Failed to claim daily streak reward' });
-    }
+    return res.status(410).json({
+        error: 'Daily check-in streak rewards have been discontinued.'
+    });
 });
 
 /**

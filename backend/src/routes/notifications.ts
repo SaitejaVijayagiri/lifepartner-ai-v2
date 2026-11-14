@@ -644,23 +644,7 @@ router.get('/smart-reengagement', authenticateToken, async (req: any, res) => {
             select: { full_name: true, city: true }
         });
 
-        const meta: any = profile?.metadata || {};
-        const streakData = meta.daily_streak || { last_claimed_date: null };
-        const todayStr = new Date().toISOString().split('T')[0];
-        const canClaimStreak = streakData.last_claimed_date !== todayStr;
-
         const prompts = [];
-
-        if (canClaimStreak) {
-            prompts.push({
-                id: 'prompt_streak',
-                type: 'streak',
-                title: '🎁 Unclaimed Daily Coins Waiting!',
-                message: 'Claim your daily login reward to unlock free Super Likes & Profile Boosts.',
-                actionText: 'Claim Reward',
-                actionUrl: '/dashboard'
-            });
-        }
 
         if (activeMatch) {
             prompts.push({

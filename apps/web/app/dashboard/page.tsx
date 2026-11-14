@@ -22,7 +22,6 @@ import InteractiveMap from '@/components/InteractiveMap';
 import SpeedDatingLobby from '@/components/SpeedDatingLobby';
 import SpeedDateFeedbackModal from '@/components/SpeedDateFeedbackModal';
 import AppExperienceFeedback from '@/components/AppExperienceFeedback';
-import DailyStreakModal from '@/components/DailyStreakModal';
 import { fetchAPI } from '@/lib/api';
 
 // Direct imports for primary dashboard tabs for 0ms instantaneous tab switching
@@ -138,8 +137,6 @@ function DashboardContent() {
     const [showSpeedDatingLobby, setShowSpeedDatingLobby] = useState(false);
 
     const [pushEnabled, setPushEnabled] = useState<boolean>(true);
-    const [streakData, setStreakData] = useState<any>(null);
-    const [showStreakModal, setShowStreakModal] = useState(false);
     const [activeStorySet, setActiveStorySet] = useState<{ user: any; stories: any[] } | null>(null);
 
     useEffect(() => {
@@ -152,17 +149,6 @@ function DashboardContent() {
             }
         }
     }, [currentUser?.metadata?.push_notifications_enabled]);
-
-    useEffect(() => {
-        if (currentUser?.id) {
-            fetchAPI('/wallet/streak').then((res) => {
-                if (res && res.canClaimToday) {
-                    setStreakData(res);
-                    setShowStreakModal(true);
-                }
-            }).catch(() => {});
-        }
-    }, [currentUser?.id]);
 
     /* Game State & Consent Modal State */
     const [gameTarget, setGameTarget] = useState<{ id: string; name: string } | null>(null);
@@ -477,7 +463,6 @@ function DashboardContent() {
         selectedKundli,
         giftData,
         showSpeedDatingLobby,
-        showStreakModal,
         gameTarget,
         pendingGameInvite,
         activeTab,
@@ -494,7 +479,6 @@ function DashboardContent() {
         selectedKundli,
         giftData,
         showSpeedDatingLobby,
-        showStreakModal,
         gameTarget,
         pendingGameInvite,
         activeTab,
@@ -547,7 +531,6 @@ function DashboardContent() {
                 current.selectedKundli ||
                 current.giftData ||
                 current.showSpeedDatingLobby ||
-                current.showStreakModal ||
                 current.gameTarget ||
                 current.pendingGameInvite
             ) {
@@ -558,7 +541,6 @@ function DashboardContent() {
                 setSelectedKundli(null);
                 setGiftData(null);
                 setShowSpeedDatingLobby(false);
-                setShowStreakModal(false);
                 setGameTarget(null);
                 setPendingGameInvite(null);
                 window.history.pushState({ inDashboard: true }, '', window.location.href);
@@ -2473,17 +2455,6 @@ function DashboardContent() {
             </div>
 
             {activeTab === 'matches' && <FloatingLoveGuru />}
-
-            {showStreakModal && streakData && (
-                <DailyStreakModal
-                    streakData={streakData}
-                    onClose={() => setShowStreakModal(false)}
-                    onClaimSuccess={(newBal, newStreak) => {
-                        if (currentUser) setCurrentUser({ ...currentUser, coins: newBal });
-                        setStreakData((prev: any) => ({ ...prev, canClaimToday: false, streakCount: newStreak }));
-                    }}
-                />
-            )}
 
             {activeStorySet && (
                 <StoryModal

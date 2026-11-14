@@ -66,7 +66,7 @@ export default function CoinStoreModal({
 
     const handlePurchase = async (item: any, type: 'COINS' | 'PREMIUM') => {
         if (isNativeApp) {
-            toast.info("Earn free coins daily via Chemistry Spark voting and Login Streaks!");
+            toast.info("Earn free coins via Chemistry Spark voting!");
             return;
         }
         setLoading(true);
@@ -100,7 +100,7 @@ export default function CoinStoreModal({
     const handleActivateBoost = async () => {
         if ((balance ?? 0) < 50) {
             if (isNativeApp) {
-                toast.error("You need 50 coins to boost! Earn free coins via Daily Spark or Login Streaks.");
+                toast.error("You need 50 coins to boost! Earn free coins via Chemistry Spark voting.");
             } else {
                 toast.error("You need at least 50 coins to boost your profile!");
                 setActiveTab('coins');
@@ -276,20 +276,16 @@ export default function CoinStoreModal({
                                 </div>
                             </div>
 
-                            {/* Free Daily Coins Earning Guide */}
+                            {/* Free Coins Earning Guide */}
                             <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white space-y-2 border border-indigo-500/30">
                                 <h4 className="font-black text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                                     <Sparkles size={14} />
-                                    <span>How to Earn Free Coins Every Day</span>
+                                    <span>How to Earn Free Coins</span>
                                 </h4>
                                 <ul className="text-xs text-gray-300 space-y-1.5 pl-1">
                                     <li className="flex items-center gap-2">
                                         <span className="text-emerald-400 font-bold">+15 Coins:</span>
                                         <span>Vote in the <strong>Daily Chemistry Spark</strong> on Home/Matches.</span>
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="text-emerald-400 font-bold">+15 to 150 Coins:</span>
-                                        <span>Maintain your <strong>Daily Login Streak</strong>.</span>
                                     </li>
                                 </ul>
                             </div>
@@ -401,7 +397,7 @@ export default function CoinStoreModal({
                 {/* Footer */}
                 <div className="p-3.5 bg-gray-50 dark:bg-gray-800/80 text-center text-[11px] text-gray-400 flex-shrink-0 border-t border-gray-100 dark:border-gray-800 flex items-center justify-center gap-1.5">
                     <Shield size={12} className="text-emerald-500" />
-                    <span>{isNativeApp ? 'Earn Free Coins Daily via Spark & Streaks' : '100% Secure Payments • Instant Wallet Credit'}</span>
+                    <span>{isNativeApp ? 'Earn Free Coins via Chemistry Spark' : '100% Secure Payments • Instant Wallet Credit'}</span>
                 </div>
             </div>
         </div>,

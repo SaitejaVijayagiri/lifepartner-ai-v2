@@ -54,6 +54,10 @@ export const PremiumModal = ({ isOpen, onClose, user, onSuccess }: PremiumModalP
     // ... imports
 
     const handlePayment = async () => {
+        if (isNativePlatform()) {
+            toast.info("Please visit www.lifepartnerai.in from your web browser to upgrade your membership.");
+            return;
+        }
         setLoading(true);
         try {
             // console.log("Starting Payment Flow...");

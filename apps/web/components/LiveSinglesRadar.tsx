@@ -368,7 +368,7 @@ export default function LiveSinglesRadar({
                         const pName = match.name || match.full_name || 'Member';
                         const firstName = pName.split(' ')[0];
                         const photo = match.photoUrl || (Array.isArray(match.photos) ? match.photos[0] : '') || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(pName)}`;
-                        const isWaved = wavedIds.has(mId);
+                        const isWaved = wavedIds.has(mId) || Boolean(match.isWaved) || match.match_status === 'pending';
                         const isConnected = Boolean(match.isConnected || match.match_status === 'connected' || match.match_status === 'accepted');
                         const isPhotoBlurred = isProfilePhotoBlurred(match, currentUser, isConnected || undefined);
                         const age = match.age || 25;

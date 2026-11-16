@@ -289,7 +289,7 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
             const res = await api.profile.updateProfile(payload);
             if (res.success) {
                 try { localStorage.removeItem('matches_cache_v2'); } catch (_) {}
-                onSave(formData);
+                onSave(res.profile || formData);
             }
         } catch (err: any) {
             toast.error(err.message || "Failed to save profile.");

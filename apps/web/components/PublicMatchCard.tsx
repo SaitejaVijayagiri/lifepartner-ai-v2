@@ -116,9 +116,9 @@ export default function PublicMatchCard({ match }: PublicMatchCardProps) {
                             {match.managed_by === 'Parent' ? '👨‍👩‍👧 By Parent' : match.managed_by === 'Sibling' ? '👫 By Sibling' : `👤 By ${match.managed_by}`}
                         </span>
                     )}
-                    {match.profession && match.profession !== '-' && match.profession !== 'Member' && (
+                    {(match.profession || match.career?.profession || match.role) && (match.profession || match.career?.profession || match.role) !== '-' && (match.profession || match.career?.profession || match.role) !== 'Member' && (
                         <span className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/15 uppercase tracking-wider">
-                            💼 {match.profession}
+                            💼 {match.profession || match.career?.profession || match.role}
                         </span>
                     )}
                     {formatLocationString(match.location) && formatLocationString(match.location) !== 'Unknown City' && (

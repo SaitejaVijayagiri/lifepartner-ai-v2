@@ -98,7 +98,7 @@ export default function DownloadPage() {
           <div className="grid md:grid-cols-2 gap-10 items-center relative z-10">
             <div>
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-4 border border-white/30 text-pink-100">
-                <Sparkles size={14} /> Official Android & Web App
+                <Sparkles size={14} /> Official Android & Web App • v1.0.8
               </div>
               <h1 className="text-3xl sm:text-5xl font-heading font-black tracking-tight mb-4 leading-tight">
                 Get LifePartner AI <br />
@@ -142,7 +142,7 @@ export default function DownloadPage() {
                   ) : (
                     <>
                       <Download size={18} className="text-purple-700" />
-                      <span>Download Android APK (6.9 MB)</span>
+                      <span>Download Android APK (6.9 MB) • v1.0.8</span>
                     </>
                   )}
                 </button>
@@ -160,7 +160,7 @@ export default function DownloadPage() {
                   ) : (
                     <>
                       <Sparkles size={18} className="text-pink-300" />
-                      <span>Download App Bundle AAB (6.6 MB)</span>
+                      <span>Download App Bundle AAB (6.6 MB) • v1.0.8</span>
                     </>
                   )}
                 </button>

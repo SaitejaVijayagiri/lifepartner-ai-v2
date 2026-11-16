@@ -415,7 +415,7 @@ router.get('/public-preview', async (req: any, res) => {
                 state: true,
                 avatar_url: true,
                 profiles: {
-                    select: { metadata: true }
+                    select: { metadata: true, photos: true }
                 }
             }
             // orderBy: random? Prisma doesn't support random().
@@ -452,6 +452,9 @@ router.get('/public-preview', async (req: any, res) => {
                 })(),
                 location_data: meta.location || null,
                 role: meta.career?.profession || "Member",
+                profession: meta.career?.profession || "Member",
+                managed_by: meta.managed_by || meta.managedBy || 'Self',
+                photos: extractPhotosList(row.profiles, meta, row.avatar_url).map((url: string) => sanitizePhotoUrl(url, row.full_name || row.id)),
                 photoUrl: isShielded ? null : sanitizePhotoUrl(row.avatar_url, row.full_name || row.id),
                 photo_privacy: isShielded ? 'blurred_until_accept' : 'public',
                 isBlurred: isShielded,
@@ -534,23 +537,34 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
             }
         });
 
-        const acceptedOnlineConns = await prisma.interactions.findMany({
+        const onlineInteractions = await prisma.interactions.findMany({
             where: {
                 OR: [
-                    { from_user_id: userId, to_user_id: { in: eligibleOnlineIds }, status: { in: ['accepted', 'connected'] } },
-                    { to_user_id: userId, from_user_id: { in: eligibleOnlineIds }, status: { in: ['accepted', 'connected'] } }
+                    { from_user_id: userId, to_user_id: { in: eligibleOnlineIds } },
+                    { to_user_id: userId, from_user_id: { in: eligibleOnlineIds } }
                 ]
             },
-            select: { from_user_id: true, to_user_id: true }
+            select: { from_user_id: true, to_user_id: true, status: true }
         });
-        const connectedOnlineIds = new Set(
-            acceptedOnlineConns.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
-        );
+        const connectedOnlineIds = new Set<string>();
+        const pendingSentIds = new Set<string>();
+
+        for (const conn of onlineInteractions) {
+            const partnerId = conn.from_user_id === userId ? conn.to_user_id : conn.from_user_id;
+            if (!partnerId) continue;
+            if (conn.status === 'accepted' || conn.status === 'connected') {
+                connectedOnlineIds.add(partnerId);
+            } else if (conn.status === 'pending' && conn.from_user_id === userId) {
+                pendingSentIds.add(partnerId);
+            }
+        }
 
         const onlineMembers = onlineUsersDB.map(u => {
             const meta = (u.profiles?.metadata as any) || {};
             const photo = sanitizePhotoUrl(u.avatar_url || (u.profiles?.photos as any)?.[0] || meta.photos?.[0], u.full_name || u.id);
             const shieldOn = isPhotoPrivacyShieldEnabled(meta);
+            const isConn = connectedOnlineIds.has(u.id);
+            const isWaved = pendingSentIds.has(u.id);
             return {
                 id: u.id,
                 name: u.full_name || 'Member',
@@ -558,12 +572,19 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
                 gender: u.gender,
                 photoUrl: photo,
                 avatar_url: photo,
-                location: [u.city, u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
+                location: [meta.location?.city || u.city, meta.location?.state || u.state].filter(Boolean).join(', ') || u.location_name || 'Global',
                 role: meta.career?.profession || 'Member',
+                profession: meta.career?.profession || 'Member',
+                managed_by: meta.managed_by || meta.managedBy || 'Self',
+                height: meta.height || '',
+                maritalStatus: meta.maritalStatus || 'Single',
                 isOnline: true,
+                isConnected: isConn,
+                isWaved,
+                match_status: isConn ? 'connected' : isWaved ? 'pending' : null,
                 last_seen_at: meta.last_seen_at || u.profiles?.updated_at || new Date().toISOString(),
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                isBlurred: shieldOn && !connectedOnlineIds.has(u.id) && u.id !== userId
+                isBlurred: shieldOn && !isConn && u.id !== userId
             };
         });
 
@@ -749,7 +770,15 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
             education: meta.career?.educationLevel || meta.career?.education || '',
             photoUrl: mainPhoto,
             photos: finalPhotos,
-            bio: bestCandidate.profiles?.raw_prompt || meta.bio || meta.aboutMe || '',
+            bio: meta.bio || meta.aboutMe || (bestCandidate.profiles?.raw_prompt && bestCandidate.profiles.raw_prompt.trim()) || '',
+            aboutMe: (bestCandidate.profiles?.raw_prompt && bestCandidate.profiles.raw_prompt.trim()) || meta.aboutMe || meta.bio || '',
+            height: meta.height || '',
+            managed_by: meta.managed_by || meta.managedBy || 'Self',
+            maritalStatus: meta.maritalStatus || 'Single',
+            motherTongue: meta.motherTongue || '',
+            religion: meta.religion || {},
+            career: meta.career || {},
+            lifestyle: meta.lifestyle || {},
             aiScore: highestScore,
             dimensions: bestAnalysis.dimensions,
             matchReasons: bestAnalysis.reasons,
@@ -1334,7 +1363,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                     hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
                 },
                 partnerPreferences: meta.partnerPreferences || {},
-                aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                aboutMe: (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || meta.aboutMe || meta.bio || "",
+                bio: meta.bio || meta.aboutMe || (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || "",
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
@@ -1939,7 +1969,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
                 },
                 partnerPreferences: meta.partnerPreferences || {},
-                aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                aboutMe: (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || meta.aboutMe || meta.bio || "",
+                bio: meta.bio || meta.aboutMe || (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || "",
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,
@@ -2027,7 +2058,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 horoscope: meta.horoscope || {},
                 lifestyle: meta.lifestyle || {},
                 partnerPreferences: meta.partnerPreferences || {},
-                aboutMe: c.profiles?.raw_prompt || meta.bio || meta.aboutMe || "",
+                aboutMe: (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || meta.aboutMe || meta.bio || "",
+                bio: meta.bio || meta.aboutMe || (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || "",
                 expectations: meta.expectations || "",
                 prompt: c.profiles?.raw_prompt || "",
                 dob: meta.dob || null,

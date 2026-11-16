@@ -247,6 +247,174 @@ export function calculateProfileCompleteness(user: any, meta: any = {}, photos: 
     };
 }
 
+/**
+ * Safely deep-merges profile metadata updates into existing metadata.
+ * - If an update field is undefined, preserves existing field.
+ * - Deep merges nested plain objects (career, religion, horoscope, family, lifestyle, partnerPreferences, location).
+ * - Arrays and primitives replace old values when provided.
+ */
+export function deepMergeMeta(existing: any, updates: any): any {
+    const result: Record<string, any> = { ...(existing || {}) };
+    if (!updates || typeof updates !== 'object') return result;
+
+    for (const [key, val] of Object.entries(updates)) {
+        if (val === undefined) continue;
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+            result[key] = {
+                ...(result[key] && typeof result[key] === 'object' && !Array.isArray(result[key]) ? result[key] : {}),
+                ...val
+            };
+        } else {
+            result[key] = val;
+        }
+    }
+    return result;
+}
+
+export function formatFullProfile(user: any, profileRecord: any): any {
+    if (!user) return null;
+    const meta: any = profileRecord?.metadata || {};
+    const photosList = (profileRecord?.photos as any[]) || meta.photos || [];
+
+    const completeness = calculateProfileCompleteness(user, meta, photosList);
+
+    const locationObj = {
+        city: meta.location?.city || user.city || user.location_name || "",
+        district: meta.location?.district || user.district || "",
+        state: meta.location?.state || user.state || "",
+        country: meta.location?.country || "India",
+        lat: meta.location?.lat,
+        lng: meta.location?.lng,
+        live_enabled: meta.location?.live_enabled !== false && meta.location?.live_enabled !== 'false'
+    };
+
+    const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
+        ? meta.interests
+        : (typeof meta.lifestyle?.hobbies === 'string'
+            ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : (profileRecord?.traits as any)?.hobbies || []));
+
+    let resolvedAge = user.age;
+    if (!resolvedAge || isNaN(resolvedAge)) {
+        if (meta.dob) {
+            const birthDate = new Date(meta.dob);
+            const today = new Date();
+            let calculatedAge = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                calculatedAge--;
+            }
+            if (calculatedAge >= 18 && calculatedAge <= 100) {
+                resolvedAge = calculatedAge;
+            }
+        } else if (meta.age && parseInt(meta.age) >= 18) {
+            resolvedAge = parseInt(meta.age);
+        }
+    }
+
+    let resolvedGender = user.gender;
+    if (!resolvedGender && meta.gender) {
+        resolvedGender = String(meta.gender).trim();
+    }
+    if (resolvedGender) {
+        resolvedGender = String(resolvedGender).trim().toLowerCase() === 'female' ? 'Female' : 'Male';
+    }
+
+    const resolvedName = user.full_name || meta.name || user.email?.split('@')[0] || "Member";
+    const isFemaleResolved = resolvedGender === 'Female';
+
+    const isOnboardingCompleted = Boolean(
+        meta.onboarding_completed === true || 
+        (meta.onboarding_completed !== false && (meta.bio || meta.aboutMe || profileRecord?.raw_prompt) && photosList.length > 0 && resolvedAge && resolvedGender && (locationObj.city || user.city))
+    );
+
+    return {
+        id: user.id,
+        userId: user.id,
+        name: resolvedName,
+        full_name: resolvedName,
+        email: user.email,
+        age: resolvedAge,
+        gender: resolvedGender,
+        onboarding_completed: isOnboardingCompleted,
+        location: locationObj,
+        city: locationObj.city,
+        district: locationObj.district,
+        state: locationObj.state,
+        country: locationObj.country,
+
+        career: {
+            profession: meta.career?.profession || "",
+            company: meta.career?.company || "",
+            education: meta.career?.education || meta.career?.educationLevel || "",
+            college: meta.career?.college || "",
+            degree: meta.career?.degree || "",
+            income: meta.career?.income || ""
+        },
+        profession: meta.career?.profession || "",
+        education: meta.career?.education || meta.career?.educationLevel || "",
+        family: meta.family || {},
+        lifestyle: {
+            ...meta.lifestyle,
+            smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
+            smoke: meta.lifestyle?.smoke || meta.lifestyle?.smoking || "No",
+            drinking: meta.lifestyle?.drinking || meta.lifestyle?.drink || "No",
+            drink: meta.lifestyle?.drink || meta.lifestyle?.drinking || "No",
+            hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
+        },
+        religion: meta.religion || {},
+        horoscope: meta.horoscope || {},
+        partnerPreferences: meta.partnerPreferences || {},
+        motherTongue: meta.motherTongue || "",
+        maritalStatus: meta.maritalStatus || "",
+        dob: meta.dob,
+        interests: hobbiesList,
+
+        reels: (meta.reels as string[]) || [],
+
+        expectations: meta.expectations || "",
+        prompt: meta.expectations || "",
+        aboutMe: meta.aboutMe || meta.bio || profileRecord?.raw_prompt || "",
+        bio: meta.bio || meta.aboutMe || profileRecord?.raw_prompt || "",
+        height: meta.height || "",
+        photos: photosList.map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
+        photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
+        avatar_url: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
+        joinedAt: user.created_at,
+        is_premium: isFemaleResolved ? true : (user.is_premium || false),
+        is_admin: user.is_admin || false,
+        free_direct_messages: isFemaleResolved ? 999999 : (user.free_direct_messages ?? 3),
+        coins: isFemaleResolved ? Math.max(user.coins || 0, 100) : (user.coins || 0),
+        phone: user.phone || meta.phone || "",
+        referral_code: user.referral_code || "",
+        profile_id: user.referral_code ? `LP-${user.referral_code.toUpperCase()}` : `LP-${user.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
+        handle: `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`,
+        premium_expiry: user.premium_expiry,
+        is_profile_completed_reward_claimed: meta.profile_completed_reward || false,
+        muted_users: meta.muted_users || [],
+        emergency_contact: meta.emergency_contact || null,
+        photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+        managed_by: meta.managed_by || meta.managedBy || 'Self',
+        metadata: {
+            ...meta,
+            emergency_contact: meta.emergency_contact || null,
+            photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
+            managed_by: meta.managed_by || meta.managedBy || 'Self'
+        },
+
+        completenessScore: completeness.completenessScore,
+        missingSections: completeness.missingSections,
+        badgeLevel: completeness.badgeLevel,
+        isComplete: completeness.isComplete,
+
+        stories: (() => {
+            const direct: any[] = (profileRecord?.stories as any[]) || [];
+            const metaStories: any[] = (meta?.stories as any[]) || [];
+            return mergeStoriesHelper(direct, metaStories);
+        })()
+    };
+}
+
 // 2. GET /me (Fetch from DB)
 router.get('/me', authenticateToken, async (req: any, res) => {
     try {
@@ -259,68 +427,19 @@ router.get('/me', authenticateToken, async (req: any, res) => {
 
         if (!user) return res.status(404).json({ error: "User not found" });
 
-        const meta: any = user.profiles?.metadata || {};
-        const photosList = (user.profiles?.photos as any[]) || meta.photos || [];
+        const profile = formatFullProfile(user, user.profiles);
 
-        // Calculate completeness score & missing section chips
-        const completeness = calculateProfileCompleteness(user, meta, photosList);
-
-        // Transform User + Profile into the specific Frontend Shape
-        const locationObj = {
-            city: meta.location?.city || user.city || user.location_name || "",
-            district: meta.location?.district || user.district || "",
-            state: meta.location?.state || user.state || "",
-            country: meta.location?.country || "India",
-            lat: meta.location?.lat,
-            lng: meta.location?.lng,
-            live_enabled: meta.location?.live_enabled !== false && meta.location?.live_enabled !== 'false'
-        };
-
-        const hobbiesList = Array.isArray(meta.interests) && meta.interests.length > 0
-            ? meta.interests
-            : (typeof meta.lifestyle?.hobbies === 'string'
-                ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
-                : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : (user.profiles?.traits as any)?.hobbies || []));
-
-        // Self-Healing: Resolve Age, Gender, Name from metadata / DOB if missing on users row
-        let resolvedAge = user.age;
-        if (!resolvedAge || isNaN(resolvedAge)) {
-            if (meta.dob) {
-                const birthDate = new Date(meta.dob);
-                const today = new Date();
-                let calculatedAge = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                    calculatedAge--;
-                }
-                if (calculatedAge >= 18 && calculatedAge <= 100) {
-                    resolvedAge = calculatedAge;
-                }
-            } else if (meta.age && parseInt(meta.age) >= 18) {
-                resolvedAge = parseInt(meta.age);
-            }
-        }
-
-        let resolvedGender = user.gender;
-        if (!resolvedGender && meta.gender) {
-            resolvedGender = String(meta.gender).trim();
-        }
-        if (resolvedGender) {
-            resolvedGender = String(resolvedGender).trim().toLowerCase() === 'female' ? 'Female' : 'Male';
-        }
-
-        let resolvedName = user.full_name || meta.name || user.email?.split('@')[0] || "Member";
-        const isFemaleResolved = resolvedGender === 'Female';
+        // Self-Healing: Asynchronously persist healed fields to database so subsequent queries have them immediately
+        const isFemaleResolved = profile.gender === 'Female';
         const needsFemaleVipHeal = isFemaleResolved && (!user.is_premium || (user.free_direct_messages ?? 0) < 999999 || (user.coins ?? 0) === 0);
 
-        // Asynchronously persist healed fields to database so subsequent queries have them immediately
-        if ((!user.age && resolvedAge) || (!user.gender && resolvedGender) || (!user.full_name && resolvedName) || needsFemaleVipHeal) {
+        if ((!user.age && profile.age) || (!user.gender && profile.gender) || (!user.full_name && profile.name) || needsFemaleVipHeal) {
             prisma.users.update({
                 where: { id: user.id },
                 data: {
-                    age: (!user.age && resolvedAge) ? resolvedAge : undefined,
-                    gender: (!user.gender && resolvedGender) ? resolvedGender : undefined,
-                    full_name: (!user.full_name && resolvedName) ? resolvedName : undefined,
+                    age: (!user.age && profile.age) ? profile.age : undefined,
+                    gender: (!user.gender && profile.gender) ? profile.gender : undefined,
+                    full_name: (!user.full_name && profile.name) ? profile.name : undefined,
                     ...(needsFemaleVipHeal ? {
                         is_premium: true,
                         free_direct_messages: 999999,
@@ -329,97 +448,6 @@ router.get('/me', authenticateToken, async (req: any, res) => {
                 }
             }).catch(e => console.warn('[profile /me self-heal users row error]:', e?.message));
         }
-
-        const isOnboardingCompleted = Boolean(
-            meta.onboarding_completed === true || 
-            (meta.onboarding_completed !== false && (meta.bio || meta.aboutMe) && photosList.length > 0 && resolvedAge && resolvedGender && (locationObj.city || user.city))
-        );
-
-        const profile = {
-            id: user.id || userId,
-            userId: user.id || userId,
-            name: resolvedName,
-            full_name: resolvedName,
-            email: user.email,
-            age: resolvedAge, // Self-healed Age
-            gender: resolvedGender, // Self-healed Gender
-            onboarding_completed: isOnboardingCompleted,
-            // Prefer full metadata location, seamlessly merged with user.city/district/state
-            location: locationObj,
-            city: locationObj.city,
-            district: locationObj.district,
-            state: locationObj.state,
-
-            // Read from Metadata with fallbacks
-            career: {
-                profession: meta.career?.profession || "",
-                company: meta.career?.company || "",
-                education: meta.career?.education || meta.career?.educationLevel || "",
-                college: meta.career?.college || "",
-                degree: meta.career?.degree || "",
-                income: meta.career?.income || ""
-            },
-            family: meta.family || {},
-            lifestyle: {
-                ...meta.lifestyle,
-                smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
-                smoke: meta.lifestyle?.smoke || meta.lifestyle?.smoking || "No",
-                drinking: meta.lifestyle?.drinking || meta.lifestyle?.drink || "No",
-                drink: meta.lifestyle?.drink || meta.lifestyle?.drinking || "No",
-                hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
-            },
-            religion: meta.religion || {},
-            horoscope: meta.horoscope || {},
-            partnerPreferences: meta.partnerPreferences || {},
-            motherTongue: meta.motherTongue || "",
-            maritalStatus: meta.maritalStatus || "", // Removed "Single" default
-            dob: meta.dob, // Added DOB
-            interests: hobbiesList, // Map interests/hobbies
-
-            reels: (meta.reels as string[]) || [],
-
-            expectations: meta.expectations || "",  // Partner preferences text
-            prompt: meta.expectations || "",  // Legacy fallback
-            aboutMe: meta.aboutMe || meta.bio || user.profiles?.raw_prompt || "", // About Me bio — separate from expectations
-            height: meta.height || "", // Height
-            photos: photosList.map((p: string) => sanitizePhotoUrl(p, user.full_name || user.id)),
-            photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
-            joinedAt: user.created_at,
-            is_premium: isFemaleResolved ? true : (user.is_premium || false),
-            is_admin: user.is_admin || false, // Exposed to Frontend
-            free_direct_messages: isFemaleResolved ? 999999 : (user.free_direct_messages ?? 3),
-            coins: isFemaleResolved ? Math.max(user.coins || 0, 100) : (user.coins || 0), // Added Coin Balance
-            phone: user.phone || meta.phone || "", // Hydrate phone from users table or metadata
-            referral_code: user.referral_code || "", // Added Referral Code
-            profile_id: user.referral_code ? `LP-${user.referral_code.toUpperCase()}` : `LP-${user.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`,
-            handle: `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`,
-            premium_expiry: user.premium_expiry, // Added Premium Expiry
-            is_profile_completed_reward_claimed: meta.profile_completed_reward || false, // Gamification flag
-            muted_users: meta.muted_users || [],
-            emergency_contact: meta.emergency_contact || null,
-            photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-            managed_by: meta.managed_by || meta.managedBy || 'Self',
-            metadata: {
-                ...meta,
-                emergency_contact: meta.emergency_contact || null,
-                photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
-                managed_by: meta.managed_by || meta.managedBy || 'Self'
-            },
-
-            // Profile Completeness Engine
-            completenessScore: completeness.completenessScore,
-            missingSections: completeness.missingSections,
-            badgeLevel: completeness.badgeLevel,
-            isComplete: completeness.isComplete,
-
-            // Stories logic (combine direct stories + metadata stories; include highlighted stories permanently)
-            stories: (() => {
-                const direct: any[] = (user.profiles?.stories as any[]) || [];
-                const metaStories: any[] = (meta?.stories as any[]) || [];
-                const combined = mergeStoriesHelper(direct, metaStories);
-                return combined;
-            })()
-        };
 
         res.json(profile);
     } catch (e) {
@@ -736,16 +764,26 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             gender: user.gender,
             isPremium: user.is_premium,
             photoUrl: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
+            avatar_url: sanitizePhotoUrl(user.avatar_url, user.full_name || user.id),
             location: {
-                city: user.city || "",
-                district: user.district || "",
-                state: user.state || "",
-                country: meta?.location?.country || "India"
+                city: meta?.location?.city || user.city || user.location_name || "",
+                district: meta?.location?.district || user.district || "",
+                state: meta?.location?.state || user.state || "",
+                country: meta?.location?.country || "India",
+                lat: meta?.location?.lat,
+                lng: meta?.location?.lng,
+                live_enabled: meta?.location?.live_enabled !== false && meta?.location?.live_enabled !== 'false'
             },
-            aboutMe: user.profiles?.raw_prompt || meta.bio || "",
-            bio: meta.bio || user.profiles?.raw_prompt || "",
+            city: meta?.location?.city || user.city || user.location_name || "",
+            district: meta?.location?.district || user.district || "",
+            state: meta?.location?.state || user.state || "",
+            country: meta?.location?.country || "India",
+            aboutMe: (user.profiles?.raw_prompt && user.profiles.raw_prompt.trim()) || meta.aboutMe || meta.bio || "",
+            bio: meta.bio || meta.aboutMe || (user.profiles?.raw_prompt && user.profiles.raw_prompt.trim()) || "",
             expectations: meta.expectations || "",
             height: meta.height || "",
+            profession: meta.career?.profession || "",
+            education: meta.career?.education || meta.career?.educationLevel || "",
             photos: extractPhotosList(user.profiles, meta, user.avatar_url).map((url: string) => sanitizePhotoUrl(url, user.full_name || user.id)),
             reels: meta.reels || [],
             total_gifts: 0,
@@ -760,7 +798,11 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             motherTongue: meta.motherTongue || "",
             maritalStatus: meta.maritalStatus || "",
             dob: meta.dob || null,
-            interests: meta.interests || [],
+            interests: Array.isArray(meta.interests) && meta.interests.length > 0
+                ? meta.interests
+                : (typeof meta.lifestyle?.hobbies === 'string'
+                    ? meta.lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean)
+                    : (Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies : [])),
             summary: meta.summary || "",
             stories: (() => {
                 const direct: any[] = (user.profiles?.stories as any[]) || [];
@@ -1030,12 +1072,62 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         // Pre-fetch existing profile to merge metadata OUTSIDE transaction
         // (to prevent 'prisma find unique() transaction api error' locks)
         let existingMeta: any = {};
+        let existingRawPrompt: string | null = null;
+        let existingPhotos: any[] = [];
         try {
             const existingProfile = await prisma.profiles.findUnique({ where: { user_id: userId } });
             existingMeta = (existingProfile?.metadata as any) || {};
+            existingRawPrompt = existingProfile?.raw_prompt || null;
+            existingPhotos = (existingProfile?.photos as any[]) || [];
         } catch (e) {
             console.warn('[profile] Could not pre-fetch existing profile, proceeding with empty meta', e);
         }
+
+        const finalName = name?.trim() || req.body.full_name?.trim() || undefined;
+        const inputCity = location?.city !== undefined ? location.city.trim() : undefined;
+        const inputDistrict = location?.district !== undefined ? (location.district.trim() || inputCity) : undefined;
+        const inputState = location?.state !== undefined ? location.state.trim() : undefined;
+
+        const resolvedBio = cleanBio || finalBio;
+        const resolvedRawPrompt = resolvedBio ? resolvedBio : (existingRawPrompt || undefined);
+
+        const metadataUpdates: any = {
+            religion,
+            horoscope,
+            career,
+            family,
+            lifestyle,
+            partnerPreferences,
+            motherTongue: motherTongue || undefined,
+            maritalStatus: maritalStatus || undefined,
+            photos: finalPhotos.length > 0 ? finalPhotos : undefined,
+            dob: dob || undefined,
+            location: location ? {
+                ...(existingMeta?.location || {}),
+                ...location,
+                live_enabled: location.live_enabled !== undefined 
+                    ? Boolean(location.live_enabled) 
+                    : (existingMeta?.location?.live_enabled !== undefined ? existingMeta.location.live_enabled : true)
+            } : undefined,
+            height: height || undefined,
+            phone: phone || existingUser?.phone || undefined,
+            bio: resolvedBio || undefined,
+            aboutMe: resolvedBio || undefined,
+            expectations: cleanExpectations || undefined,
+            savedStickers: savedStickers || undefined,
+            interests: interests !== undefined 
+                ? interests 
+                : (lifestyle?.hobbies ? (typeof lifestyle.hobbies === 'string' ? lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : lifestyle.hobbies) : undefined),
+            emergency_contact: emergencyContact || undefined,
+            photo_privacy: photo_privacy || photoPrivacy || rawMetadata?.photo_privacy || undefined,
+            managed_by: managed_by || managedBy || rawMetadata?.managed_by || undefined,
+            onboarding_completed: true,
+            age: finalAge || undefined,
+            gender: finalGender || undefined,
+            timezone: timezone || rawMetadata?.timezone || (location?.timezone || undefined)
+        };
+
+        const newMeta = deepMergeMeta(existingMeta, metadataUpdates);
 
         try {
             await prisma.$transaction(async (tx) => {
@@ -1044,12 +1136,12 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 await tx.users.update({
                     where: { id: userId },
                     data: {
-                        full_name: name || undefined, // COALESCE equivalent: standard undefined ignored
+                        full_name: finalName,
                         age: finalAge,
                         gender: finalGender,
                         location_name: (() => {
-                            const c = location?.city?.trim();
-                            const s = location?.state?.trim();
+                            const c = inputCity;
+                            const s = inputState;
                             const co = location?.country?.trim();
                             if (c && co && c.toLowerCase() === co.toLowerCase()) {
                                 return s ? `${s}, ${co}` : co;
@@ -1059,63 +1151,25 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         avatar_url: finalPhotoUrl,
                         email: email?.trim() ? email.trim() : undefined, // FIX: Never allow explicitly saving a blank email
                         phone: phone || undefined,
-                        city: location?.city?.trim(),
-                        district: location?.district?.trim(),
-                        state: location?.state?.trim(),
+                        city: inputCity,
+                        district: inputDistrict,
+                        state: inputState,
                         ...(isFemaleUser ? { free_direct_messages: 999999, is_premium: true } : {})
                     }
                 });
-
-                // 2. Update Profile Metadata
-                const metadata = {
-                    religion,
-                    horoscope,
-                    career, // already sanitized
-                    family,
-                    lifestyle,
-                    partnerPreferences,
-                    motherTongue,
-                    maritalStatus, // Store maritalStatus in metadata too
-                    photos: finalPhotos,
-                    dob,
-                    location: location ? {
-                        ...(existingMeta?.location || {}),
-                        ...location,
-                        live_enabled: location.live_enabled !== undefined 
-                            ? Boolean(location.live_enabled) 
-                            : (existingMeta?.location?.live_enabled !== undefined ? existingMeta.location.live_enabled : true)
-                    } : (existingMeta?.location || undefined),
-                    height, // Added Height
-                    phone: phone || existingUser?.phone || undefined, // Added Phone
-                    bio: cleanBio || finalBio, // Sync aboutMe to bio
-                    aboutMe: cleanBio || finalBio,
-                    expectations: cleanExpectations || undefined, // Store expectations separately
-                    savedStickers,
-                    interests: interests || (lifestyle?.hobbies ? (typeof lifestyle.hobbies === 'string' ? lifestyle.hobbies.split(',').map((s: string) => s.trim()).filter(Boolean) : lifestyle.hobbies) : undefined),
-                    emergency_contact: emergencyContact || existingMeta?.emergency_contact || undefined,
-                    photo_privacy: photo_privacy || photoPrivacy || rawMetadata?.photo_privacy || existingMeta?.photo_privacy || 'public',
-                    managed_by: managed_by || managedBy || rawMetadata?.managed_by || existingMeta?.managed_by || 'Self',
-                    onboarding_completed: true,
-                    age: finalAge || existingMeta?.age || undefined,
-                    gender: finalGender || existingMeta?.gender || undefined,
-                    timezone: timezone || rawMetadata?.timezone || existingMeta?.timezone || (location?.timezone || undefined)
-                };
-
-                // Upsert Profile
-                const newMeta = { ...existingMeta, ...metadata };
 
                 await tx.profiles.upsert({
                     where: { user_id: userId },
                     create: {
                         user_id: userId,
-                        raw_prompt: cleanBio || finalBio, // raw_prompt = bio/about me only
-                        metadata: metadata, // On create use fresh
-                        photos: finalPhotos
+                        raw_prompt: resolvedRawPrompt || "",
+                        metadata: newMeta,
+                        photos: finalPhotos.length > 0 ? finalPhotos : existingPhotos
                     },
                     update: {
-                        raw_prompt: cleanBio || finalBio, // raw_prompt = bio/about me only
-                        metadata: newMeta, // On update use merge
-                        photos: finalPhotos.length > 0 ? finalPhotos : (existingMeta?.photos || undefined)
+                        raw_prompt: resolvedRawPrompt,
+                        metadata: newMeta,
+                        photos: finalPhotos.length > 0 ? finalPhotos : (existingPhotos.length > 0 ? existingPhotos : undefined)
                     }
                 });
 
@@ -1281,10 +1335,23 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                 }
             }
 
-            // Invalidate ONLY this user's cached recommendation pages instead of wiping all 1M users' caches
-            try { require('./matches').matchCache.deletePrefix(`${userId}_`); } catch (_) {}
+            // Invalidate match cache so updated profile immediately reflects everywhere
+            try { require('./matches').matchCache.clear(); } catch (_) {}
 
-            res.json({ success: true, message: "Profile saved", onboarding_completed: true });
+            // Fetch freshly updated user with profile to return full consistent shape to frontend
+            const updatedUser = await prisma.users.findUnique({
+                where: { id: userId },
+                include: { profiles: true }
+            });
+
+            const profileData = formatFullProfile(updatedUser, updatedUser?.profiles);
+
+            res.json({
+                success: true,
+                message: "Profile saved",
+                onboarding_completed: true,
+                profile: profileData
+            });
 
         } catch (e: any) {
             console.error("Tx Error", e?.message || e);

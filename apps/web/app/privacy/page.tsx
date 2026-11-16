@@ -142,6 +142,7 @@ export default function PrivacyPage() {
                             <p className="font-semibold text-gray-900 dark:text-white">How to Permanently Delete Your Data:</p>
                             <ul className="list-disc pl-5 space-y-1.5 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
                                 <li><strong>Direct In-App Deletion:</strong> Navigate to <em>Profile Settings &gt; Account Security &gt; Delete Account</em> and confirm with your security prompt.</li>
+                                <li><strong>Web Request Page:</strong> Visit our dedicated <Link href="/delete-account" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">Account Deletion Request Page</Link> to submit an online deletion request.</li>
                                 <li><strong>Email Request:</strong> Send an email from your registered address to <a href="mailto:lifepartnerai.in@gmail.com" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">lifepartnerai.in@gmail.com</a> with the subject <em>&ldquo;Account Deletion Request&rdquo;</em>.</li>
                                 <li><strong>Deletion Scope:</strong> Confirming in-app deletion immediately removes your active profile, photos, and personal account records from live production access; residual backup snapshots and strictly mandated compliance logs are permanently purged within 30 days.</li>
                             </ul>

@@ -568,18 +568,21 @@ export const initSocket = (httpServer: HttpServer) => {
                 const senderName = senderUser?.full_name || data.senderName || 'A member';
                 const senderPhoto = isBlurred ? null : (senderUser?.avatar_url ? sanitizePhotoUrl(senderUser.avatar_url, senderName) : null);
 
+                const wavePayload = {
+                    fromUserId: senderId,
+                    senderName,
+                    senderPhoto,
+                    isBlurred,
+                    timestamp: Date.now()
+                };
+
                 const targetSockets = userSockets.get(data.toUserId);
                 if (targetSockets && targetSockets.size > 0) {
                     targetSockets.forEach(sockId => {
-                        io.to(sockId).emit('live_wave_received', {
-                            fromUserId: senderId,
-                            senderName,
-                            senderPhoto,
-                            isBlurred,
-                            timestamp: Date.now()
-                        });
+                        io.to(sockId).emit('live_wave_received', wavePayload);
                     });
                 }
+                io.to(data.toUserId).emit('live_wave_received', wavePayload);
             } catch (err) {
                 console.error('[live_wave] Error:', err);
             }

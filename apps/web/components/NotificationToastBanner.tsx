@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSocket } from '@/context/SocketContext';
-import { X, Heart, Camera, Sparkles, Bell, Eye, Lock } from 'lucide-react';
+import { X, Heart, Camera, Sparkles, Bell, Eye, Lock, Radio } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 
@@ -144,10 +144,43 @@ export default function NotificationToastBanner() {
             }
         };
 
+        const handleLiveWave = (data: any) => {
+            if (!data || !data.senderName) return;
+            if (pathname?.includes('/call') || pathname?.includes('/video')) return;
+
+            const toastId = `wave-${Date.now()}`;
+            const isBlurred = Boolean(data.isBlurred);
+            const newToast: NotificationToast = {
+                id: toastId,
+                type: 'wave',
+                message: `👋 ${data.senderName} sent you a Live Wave!`,
+                fromUserId: data.fromUserId,
+                fromUserName: data.senderName,
+                fromUserPhoto: isBlurred
+                    ? '/avatar-fallback.svg'
+                    : (data.senderPhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.senderName)}`),
+                isBlurred,
+                timestamp: new Date(data.timestamp || Date.now())
+            };
+
+            setToasts(prev => {
+                const filtered = prev.filter(t => !(t.fromUserId === data.fromUserId && t.type === 'wave'));
+                return [...filtered, newToast].slice(-3);
+            });
+
+            playNotificationSound();
+
+            timersRef.current[toastId] = setTimeout(() => {
+                dismiss(toastId);
+            }, 6000);
+        };
+
         socket.on('notification:new', handleNewNotification);
+        socket.on('live_wave_received', handleLiveWave);
 
         return () => {
             socket.off('notification:new', handleNewNotification);
+            socket.off('live_wave_received', handleLiveWave);
             Object.values(timersRef.current).forEach(clearTimeout);
         };
     }, [socket, pathname]);
@@ -203,6 +236,14 @@ export default function NotificationToastBanner() {
                     shadowColor: 'hover:shadow-indigo-200/80 dark:hover:shadow-indigo-900/30',
                     iconBg: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-500',
                     icon: Sparkles,
+                    targetTab: 'matches'
+                };
+            case 'wave':
+                return {
+                    borderColor: 'border-indigo-500',
+                    shadowColor: 'hover:shadow-indigo-200/80 dark:hover:shadow-indigo-900/30',
+                    iconBg: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-500',
+                    icon: Radio,
                     targetTab: 'matches'
                 };
             case 'connection_online':

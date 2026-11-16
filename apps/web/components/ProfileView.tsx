@@ -304,22 +304,24 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                     const highlightedStories = (localStories || []).filter((s: any) => Boolean(s.isHighlight || s.is_highlight));
                                     if (highlightedStories.length === 0) {
                                         return (
-                                            <div className="text-center py-6 px-4 bg-white/70 dark:bg-gray-800/70 rounded-xl border border-dashed border-purple-200 dark:border-purple-800 space-y-2">
-                                                <div className="text-2xl">⭐</div>
-                                                <h5 className="font-bold text-xs text-gray-800 dark:text-gray-200">No Highlights Pinned Yet</h5>
-                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-                                                    When you post a 24-hour story, open it and tap the Star (⭐) button to pin it permanently to your profile highlights reel!
+                                            <div className="text-center py-7 px-4 bg-white/70 dark:bg-gray-800/70 rounded-2xl border border-dashed border-purple-200 dark:border-purple-800/60 space-y-2.5">
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-400/20 via-rose-500/20 to-purple-600/20 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                                                    ⭐
+                                                </div>
+                                                <h5 className="font-bold text-sm text-gray-800 dark:text-gray-200">No Highlights Pinned Yet</h5>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto leading-relaxed">
+                                                    Post a 24-hour story from your feed, open it, and tap the Star (⭐) icon to pin it permanently to your profile highlights reel!
                                                 </p>
                                             </div>
                                         );
                                     }
 
                                     return (
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 pt-1">
+                                        <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2 px-1">
                                             {highlightedStories.map((hStory: any, idx: number) => (
                                                 <div
                                                     key={hStory.id || idx}
-                                                    className="relative flex flex-col items-center gap-1.5 group cursor-pointer"
+                                                    className="relative flex flex-col items-center gap-1.5 shrink-0 group cursor-pointer select-none"
                                                     onClick={() => {
                                                         setActiveHighlightSet({
                                                             stories: highlightedStories,
@@ -332,18 +334,24 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                         });
                                                     }}
                                                 >
-                                                    <div className="relative w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 transition-all">
-                                                        <div className="w-full h-full rounded-full p-[1px] bg-white dark:bg-gray-900 overflow-hidden">
+                                                    <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 active:scale-95 transition-all">
+                                                        <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-900 overflow-hidden shadow-inner">
                                                             {hStory.type === 'video' ? (
-                                                                <video src={hStory.url} className="w-full h-full object-cover" muted />
+                                                                <video src={hStory.url} className="w-full h-full object-cover" muted playsInline />
                                                             ) : (
-                                                                <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" />
+                                                                <img src={hStory.url} className="w-full h-full object-cover" alt="Highlight" loading="lazy" />
                                                             )}
                                                         </div>
 
-                                                        {/* Direct Unhighlight / Delete Action Overlays */}
-                                                        <div className="absolute inset-0 rounded-full bg-black/40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 backdrop-blur-[1px]">
+                                                        {/* Permanent Star Badge */}
+                                                        <span className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 text-white flex items-center justify-center text-[10px] shadow-md border-2 border-white dark:border-gray-900 pointer-events-none">
+                                                            ⭐
+                                                        </span>
+
+                                                        {/* Desktop Quick Actions (Hover Only - Never blocks image on mobile) */}
+                                                        <div className="hidden sm:group-hover:flex absolute inset-0 rounded-full bg-black/40 backdrop-blur-[1px] items-center justify-center gap-1.5 transition-opacity duration-200">
                                                             <button
+                                                                type="button"
                                                                 onClick={async (e) => {
                                                                     e.stopPropagation();
                                                                     try {
@@ -367,6 +375,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                             </button>
 
                                                             <button
+                                                                type="button"
                                                                 onClick={async (e) => {
                                                                     e.stopPropagation();
                                                                     if (confirm("Delete this story permanently from your profile?")) {
@@ -388,8 +397,8 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[70px]">
-                                                        Highlight {idx + 1}
+                                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[76px] text-center tracking-tight">
+                                                        {hStory.caption || hStory.title || `Moment ${idx + 1}`}
                                                     </span>
                                                 </div>
                                             ))}

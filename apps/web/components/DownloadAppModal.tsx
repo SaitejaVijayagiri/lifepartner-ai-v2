@@ -133,7 +133,7 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
                 </div>
               </div>
               <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/60 text-pink-700 dark:text-pink-300 shrink-0">
-                v1.0.7
+                v1.0.8
               </span>
             </div>
 

@@ -1216,7 +1216,7 @@ export default function LandingPageClient() {
             {/* 1. Direct APK Download Card */}
             <div className="relative rounded-3xl bg-white dark:bg-gray-900 border-2 border-purple-500/40 p-8 shadow-xl hover:shadow-2xl hover:border-purple-500 transition-all flex flex-col justify-between group">
               <div className="absolute top-4 right-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
-                Direct Install • v1.0.7
+                Direct Install • v1.0.8
               </div>
               <div>
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-lg mb-6 group-hover:scale-110 transition-transform">
@@ -1253,14 +1253,14 @@ export default function LandingPageClient() {
                 className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 text-white font-black text-sm hover:opacity-95 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Download size={18} />
-                <span>Download Android APK (6.9 MB) • v1.0.7</span>
+                <span>Download Android APK (6.9 MB) • v1.0.8</span>
               </a>
             </div>
 
             {/* 2. Android App Bundle (AAB) Card */}
             <div className="relative rounded-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 shadow-xl hover:shadow-2xl hover:border-indigo-400 transition-all flex flex-col justify-between group">
               <div className="absolute top-4 right-4 bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-indigo-200 dark:border-indigo-800">
-                Play Store Bundle • v1.0.7
+                Play Store Bundle • v1.0.8
               </div>
               <div>
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-600 text-white flex items-center justify-center shadow-lg mb-6 group-hover:scale-110 transition-transform">
@@ -1297,7 +1297,7 @@ export default function LandingPageClient() {
                 className="w-full py-4 rounded-2xl bg-gray-900 dark:bg-gray-800 text-white hover:bg-gray-800 dark:hover:bg-gray-700 font-bold text-sm active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 border border-gray-700 cursor-pointer"
               >
                 <Download size={18} className="text-indigo-400" />
-                <span>Download App Bundle AAB (6.6 MB) • v1.0.7</span>
+                <span>Download App Bundle AAB (6.6 MB) • v1.0.8</span>
               </a>
             </div>
           </div>
@@ -1305,7 +1305,7 @@ export default function LandingPageClient() {
           {/* Quick installation callout */}
           <div className="mt-12 text-center text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
             <ShieldCheck size={16} className="text-emerald-500" />
-            <span>100% Virus-Free & Safe • Release Signed with SHA-256 Key • v1.0.7 Release</span>
+            <span>100% Virus-Free & Safe • Release Signed with SHA-256 Key • v1.0.8 Release</span>
           </div>
         </div>
       </section>

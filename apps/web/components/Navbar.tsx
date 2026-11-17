@@ -49,21 +49,21 @@ export default function Navbar() {
     }, []);
 
     return (
-        <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top,0px)] ${isScrolled || isMobileMenuOpen ? 'bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm' : 'bg-transparent'
+        <nav className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 pt-[env(safe-area-inset-top,0px)] ${isScrolled || isMobileMenuOpen ? 'bg-white/85 dark:bg-gray-950/85 backdrop-blur-2xl border-b border-gray-100/80 dark:border-gray-800/80 shadow-sm' : 'bg-transparent'
             }`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between pl-[max(1rem,calc(env(safe-area-inset-left,0px)+1rem))] pr-[max(1rem,calc(env(safe-area-inset-right,0px)+1rem))]">
                 {/* Logo */}
-                <Link href="/" className="flex items-center gap-2.5 group">
+                <Link href="/" className="flex items-center gap-2.5 group shrink-0">
                     <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform duration-300 border border-purple-500/30 flex items-center justify-center bg-gray-950">
                         <img src="/icon.png" alt="LifePartner AI Logo" className="w-full h-full object-cover" />
                     </div>
-                    <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600 tracking-tight">
+                    <span className="text-xl sm:text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600 tracking-tight">
                         LifePartner AI
                     </span>
                 </Link>
 
-                {/* Desktop Navigation */}
-                <div className="hidden md:flex space-x-6 lg:space-x-8 items-center">
+                {/* Compact Navigation for Standard Laptops/Tablets (lg: 1024px-1279px) */}
+                <div className="hidden lg:flex xl:hidden space-x-5 items-center">
                     <Link
                         href="/#app-features"
                         className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
@@ -74,7 +74,29 @@ export default function Navbar() {
                         href="/#stories-snaps-music"
                         className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1"
                     >
-                        {t('navStories')} <span className="bg-pink-100 text-pink-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
+                        {t('navStories')} <span className="bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
+                    </Link>
+                    <Link
+                        href="/for-women"
+                        className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors tracking-wide flex items-center gap-1"
+                    >
+                        <span>For Women</span> <span className="bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">👑 VIP Free</span>
+                    </Link>
+                </div>
+
+                {/* Full Desktop Navigation (xl: 1280px+) */}
+                <div className="hidden xl:flex space-x-6 2xl:space-x-8 items-center">
+                    <Link
+                        href="/#app-features"
+                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide"
+                    >
+                        {t('navFeatures')}
+                    </Link>
+                    <Link
+                        href="/#stories-snaps-music"
+                        className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1"
+                    >
+                        {t('navStories')} <span className="bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Snaps</span>
                     </Link>
                     <Link
                         href="/#how-life-partner-connects"
@@ -83,7 +105,7 @@ export default function Navbar() {
                         {t('navWorkflow')}
                     </Link>
                     <Link href="/blog" className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-indigo-600 transition-colors tracking-wide flex items-center gap-1">
-                        {t('navBlog')} <span className="bg-rose-100 text-rose-600 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Guides</span>
+                        {t('navBlog')} <span className="bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">Guides</span>
                     </Link>
                     <Link href="/for-women" className="text-sm font-semibold text-pink-600 dark:text-pink-400 hover:text-pink-700 transition-colors tracking-wide flex items-center gap-1">
                         <span>For Women</span> <span className="bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase">👑 VIP Free</span>
@@ -91,18 +113,18 @@ export default function Navbar() {
                 </div>
 
                 {/* Desktop Actions + Language Selector + Download App */}
-                <div className="hidden md:flex items-center gap-3">
+                <div className="hidden lg:flex items-center gap-2.5 sm:gap-3 shrink-0">
                     <button
                         onClick={() => setIsDownloadModalOpen(true)}
-                        className="hide-in-native-app px-4 py-2 text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900 transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        className="hide-in-native-app hidden xl:flex px-3.5 py-2 text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/70 border border-purple-200 dark:border-purple-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900 transition-all items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                         <Smartphone size={14} className="text-purple-600 dark:text-purple-400" />
                         <span>Download App</span>
                     </button>
                     <LanguageSelector />
                     {user ? (
-                        <Link href="/dashboard" className="flex items-center gap-3 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
-                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden">
+                        <Link href="/dashboard" className="flex items-center gap-2.5 bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 pl-2 pr-4 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold overflow-hidden shrink-0">
                                 {user.avatar_url ? (
                                     <img src={user.avatar_url} className="w-full h-full object-cover" onError={(e) => {
                                         const target = e.target as HTMLImageElement;
@@ -122,7 +144,7 @@ export default function Navbar() {
                         </Link>
                     ) : (
                         <>
-                            <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors">
+                            <Link href="/login" className="text-sm font-bold text-gray-700 dark:text-gray-300 hover:text-indigo-600 transition-colors px-2 py-1">
                                 {t('navLogin')}
                             </Link>
                             <Link href="/register">
@@ -136,8 +158,26 @@ export default function Navbar() {
                     )}
                 </div>
 
-                {/* Mobile Controls: Hamburger Menu */}
-                <div className="md:hidden flex items-center">
+                {/* Mobile / Tablet Controls (< lg: Hamburger Menu + Quick Actions) */}
+                <div className="lg:hidden flex items-center gap-2">
+                    {user ? (
+                        <Link href="/dashboard" className="flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-1.5 pr-2.5 rounded-full text-xs font-bold">
+                            <div className="w-7 h-7 rounded-full bg-indigo-100 overflow-hidden flex items-center justify-center">
+                                {user.avatar_url ? (
+                                    <img src={user.avatar_url} className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={14} />
+                                )}
+                            </div>
+                            <span className="hidden sm:inline text-xs text-gray-800 dark:text-gray-200">
+                                {(user.full_name || user.name || 'Dashboard').split(' ')[0]}
+                            </span>
+                        </Link>
+                    ) : (
+                        <Link href="/register" className="hidden sm:inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-bold text-white rounded-full bg-gradient-to-r from-indigo-600 to-purple-600">
+                            <span>{t('navGetStarted')}</span>
+                        </Link>
+                    )}
                     <button
                         className="p-2 text-gray-700 dark:text-gray-200 hover:text-indigo-600 transition-colors rounded-xl bg-gray-100/80 dark:bg-gray-900 border border-gray-200/60 dark:border-gray-800"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -150,7 +190,7 @@ export default function Navbar() {
 
             {/* Mobile Menu Drawer (Scrollable & Complete Links) */}
             {isMobileMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 w-full max-h-[calc(100vh-5rem)] overflow-y-auto bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-2xl animate-in slide-in-from-top-5 duration-200 z-50">
+                <div className="lg:hidden absolute top-20 left-0 w-full max-h-[calc(100vh-5rem)] overflow-y-auto bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 shadow-2xl animate-in slide-in-from-top-5 duration-200 z-50">
                     <div className="px-5 py-6 flex flex-col gap-4">
                         {/* Theme Toggle & Language Selector in Drawer */}
                         <div className="flex items-center justify-between gap-3 bg-gray-50 dark:bg-gray-900 p-2.5 rounded-2xl border border-gray-100 dark:border-gray-800">

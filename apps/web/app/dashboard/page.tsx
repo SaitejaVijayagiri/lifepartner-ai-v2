@@ -1485,31 +1485,31 @@ function DashboardContent() {
 
     const renderHeader = () => (
         <header className={`sticky top-0 z-40 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-b border-gray-100/50 dark:border-gray-800/50 shadow-sm transition-all duration-300 pt-[env(safe-area-inset-top,0px)] ${activeTab === 'map' ? 'hidden sm:block' : ''}`}>
-            <div className="max-w-7xl mx-auto px-4 h-16 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-6">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 py-3 flex items-center justify-between pl-[max(0.75rem,calc(env(safe-area-inset-left,0px)+0.75rem))] pr-[max(0.75rem,calc(env(safe-area-inset-right,0px)+0.75rem))]">
+                <div className="flex items-center gap-3 sm:gap-6">
                     {/* Premium Logo (Compact on mobile for max header space) */}
                     <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setActiveTab('home')}>
                         <div className="relative">
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md shadow-purple-500/20 group-hover:scale-105 transition-all duration-300 border border-purple-500/30 bg-gray-950 flex items-center justify-center shrink-0">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-md shadow-purple-500/20 group-hover:scale-105 transition-all duration-300 border border-purple-500/30 bg-gray-950 flex items-center justify-center shrink-0">
                                 <img src="/icon.png" alt="LifePartner AI Logo" className="w-full h-full object-cover" />
                             </div>
                             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 opacity-0 group-hover:opacity-40 blur-lg transition-opacity pointer-events-none"></div>
                         </div>
                         <div className="hidden sm:block">
-                            <span className="text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            <span className="text-lg sm:text-xl font-heading font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                                 LifePartner
                             </span>
-                            <span className="text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
+                            <span className="text-lg sm:text-xl font-heading font-bold text-gray-800 dark:text-gray-200"> AI</span>
                         </div>
                     </div>
 
                     <nav className="hidden lg:flex items-center gap-1 p-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md rounded-full border border-gray-200/60 dark:border-gray-700/60 shadow-sm overflow-x-auto no-scrollbar">
-                        {navItems.map((item: any) => (
+                        {primaryNavItems.map((item: any) => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id)}
                                 className={`
-                                    px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-extrabold flex items-center gap-1.5 transition-all whitespace-nowrap
+                                    px-3 py-1.5 rounded-full text-xs xl:text-sm font-extrabold flex items-center gap-1.5 transition-all whitespace-nowrap
                                     ${'highlight' in item && item.highlight
                                         ? activeTab === item.id
                                             ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
@@ -1529,10 +1529,25 @@ function DashboardContent() {
                                 ) : null}
                             </button>
                         ))}
+                        {secondaryNavItems.map((item: any) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setActiveTab(item.id)}
+                                className={`
+                                    hidden xl:flex px-3 py-1.5 rounded-full text-xs xl:text-sm font-extrabold items-center gap-1.5 transition-all whitespace-nowrap
+                                    ${activeTab === item.id
+                                        ? 'bg-indigo-600 text-white shadow-md'
+                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60 hover:text-gray-900 dark:hover:text-white'}
+                                `}
+                            >
+                                <item.icon size={16} />
+                                <span>{item.label}</span>
+                            </button>
+                        ))}
                     </nav>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
 
                     {/* Always Visible Coin Balance Badge */}
                     {currentUser && (
@@ -1541,10 +1556,10 @@ function DashboardContent() {
                                 setInitialStoreTab('coins');
                                 setShowCoinStore(true);
                             }}
-                            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/10 to-yellow-500/20 hover:from-amber-500/20 hover:to-yellow-500/30 text-amber-700 dark:text-amber-300 px-2.5 py-1.5 rounded-full text-xs font-black transition-all border border-amber-300/80 dark:border-amber-700/60 shadow-sm shrink-0 active:scale-95"
+                            className="flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-amber-500/10 to-yellow-500/20 hover:from-amber-500/20 hover:to-yellow-500/30 text-amber-700 dark:text-amber-300 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-black transition-all border border-amber-300/80 dark:border-amber-700/60 shadow-sm shrink-0 active:scale-95"
                             title="Coins Balance - Click to add coins"
                         >
-                            <Coins size={15} className="fill-amber-400 text-amber-600 dark:text-amber-300 shrink-0" />
+                            <Coins size={14} className="fill-amber-400 text-amber-600 dark:text-amber-300 shrink-0" />
                             <span className="font-extrabold">{currentUser.coins || 0}</span>
                         </button>
                     )}
@@ -1552,7 +1567,7 @@ function DashboardContent() {
                     {/* Queen VIP Badge for Female Users */}
                     {currentUser?.gender === 'Female' && (
                         <div
-                            className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-pink-500/15 via-rose-500/15 to-purple-500/15 text-pink-700 dark:text-pink-300 px-3 py-1.5 rounded-full text-xs font-black border border-pink-300/80 dark:border-pink-800/60 shadow-sm shrink-0"
+                            className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-pink-500/15 via-rose-500/15 to-purple-500/15 text-pink-700 dark:text-pink-300 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs font-black border border-pink-300/80 dark:border-pink-800/60 shadow-sm shrink-0"
                             title="Queen VIP Active - 100% Free Lifetime Messaging & Anti-Creep Shield"
                         >
                             <Crown size={14} className="fill-amber-400 text-amber-500 shrink-0 animate-pulse" />
@@ -1563,12 +1578,12 @@ function DashboardContent() {
                     {(activeTab === 'matches' || activeTab === 'map') && (
                         <button
                             onClick={() => setShowFilterModal(true)}
-                            className={`relative w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/60' : ''}`}
+                            className={`relative w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors ${activeFilters ? 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/60' : ''}`}
                             title="Filter Matches"
                         >
-                            <Filter size={20} className={activeFilters ? 'text-indigo-600 dark:text-indigo-400' : 'text-foreground'} />
+                            <Filter size={18} className={activeFilters ? 'text-indigo-600 dark:text-indigo-400' : 'text-foreground'} />
                             {activeFilters && (
-                                <span className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 rounded-full border-2 border-white"></span>
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-indigo-600 rounded-full border-2 border-white"></span>
                             )}
                         </button>
                     )}
@@ -1576,21 +1591,21 @@ function DashboardContent() {
                     {(activeTab === 'connections' || activeTab === 'requests') && (
                         <button
                             onClick={() => setShowCallHistory(true)}
-                            className="w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
                             title="Call History"
                         >
-                            <Clock size={20} />
+                            <Clock size={18} />
                         </button>
                     )}
 
-                    {/* Theme Toggle - Visible on All Screens (Mobile, Tablet & Desktop) */}
+                    {/* Theme Toggle - Desktop and Tablets (Mobile has it in profile settings) */}
                     <button
                         onClick={() => setTheme(mounted && theme === 'dark' ? 'light' : 'dark')}
-                        className="w-10 h-10 rounded-full hover:bg-secondary/20 flex items-center justify-center transition-colors text-muted-foreground"
+                        className="hidden sm:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-secondary/20 items-center justify-center transition-colors text-muted-foreground"
                         title={mounted && theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                         aria-label="Toggle dark mode"
                     >
-                        {mounted && theme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} />}
+                        {mounted && theme === 'dark' ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} />}
                     </button>
                     <NotificationBell />
 
@@ -1598,7 +1613,7 @@ function DashboardContent() {
                         <button
                             onClick={() => setActiveTab('profile')}
                             title="My Profile & Settings"
-                            className={`w-9 h-9 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer transition-all ${
+                            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 p-[2px] cursor-pointer transition-all shrink-0 ${
                                 activeTab === 'profile'
                                     ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-background scale-105 shadow-md'
                                     : 'hover:scale-105'

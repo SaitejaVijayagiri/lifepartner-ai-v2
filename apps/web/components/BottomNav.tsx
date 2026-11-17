@@ -32,7 +32,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     const primaryItems = useMemo(() => [
         { id: 'home', label: 'Home', icon: Home, gradient: 'from-indigo-500 to-purple-600' },
         { id: 'matches', label: 'Matches', icon: Heart, gradient: 'from-rose-500 to-pink-500' },
-        { id: 'live_events', label: 'Live Video', icon: Video, gradient: 'from-rose-500 to-indigo-600' },
+        { id: 'live_events', label: 'Live', fullLabel: 'Video', icon: Video, gradient: 'from-rose-500 to-indigo-600' },
         { id: 'connections', label: 'Chat', icon: MessageCircle, badge: unreadCount, gradient: 'from-emerald-500 to-teal-500' },
         { id: 'requests', label: 'Requests', icon: Users, badge: requestsCount, gradient: 'from-amber-500 to-orange-500' },
     ], [unreadCount, requestsCount]);
@@ -60,14 +60,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-[max(1rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] sm:pb-6 px-3 sm:px-4 lg:hidden transform-gpu">
+        <div className="fixed bottom-0 left-0 right-0 z-[1000] pb-[max(0.875rem,calc(env(safe-area-inset-bottom,0px)+0.625rem))] sm:pb-6 px-2.5 sm:px-4 lg:hidden transform-gpu pl-[max(0.625rem,calc(env(safe-area-inset-left,0px)+0.625rem))] pr-[max(0.625rem,calc(env(safe-area-inset-right,0px)+0.625rem))]">
             <div className="relative flex justify-center">
 
                 {/* ─── More Popup (renders ABOVE the nav bar) ─── */}
                 {showMore && (
                     <div
                         ref={moreRef}
-                        className="absolute bottom-full mb-3 right-3 w-52 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200"
+                        className="absolute bottom-full mb-3 right-2 sm:right-3 w-52 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200"
                         style={{ zIndex: 1001 }}
                     >
                         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
@@ -104,7 +104,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                 )}
 
                 {/* ─── Main Nav Bar ─── */}
-                <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-black/10 border border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center px-2 py-2 w-full max-w-md">
+                <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl shadow-black/10 border border-gray-100/50 dark:border-gray-800/50 flex justify-between items-center px-1.5 sm:px-2 py-1.5 sm:py-2 w-full max-w-md">
                     {primaryItems.map((item) => {
                         const isActive = activeTab === item.id;
                         return (
@@ -114,33 +114,37 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                                     setShowMore(false);
                                     setActiveTab(item.id);
                                 }}
-                                className="relative flex-1 flex flex-col items-center justify-center py-1.5 group"
+                                className="relative flex-1 flex flex-col items-center justify-center py-1 group min-w-0"
                             >
                                 {isActive && (
-                                    <div className={`absolute inset-x-1 inset-y-1 bg-gradient-to-r ${item.gradient} rounded-xl opacity-10`} />
+                                    <div className={`absolute inset-x-0.5 inset-y-0.5 sm:inset-x-1 sm:inset-y-1 bg-gradient-to-r ${item.gradient} rounded-xl opacity-10`} />
                                 )}
 
                                 <div className={`
-                                    relative p-2 rounded-xl transition-all duration-200
+                                    relative p-1.5 sm:p-2 rounded-xl transition-all duration-200
                                     ${isActive
-                                        ? `bg-gradient-to-r ${item.gradient} text-white shadow-md scale-110`
+                                        ? `bg-gradient-to-r ${item.gradient} text-white shadow-md scale-105 sm:scale-110`
                                         : 'text-gray-400 dark:text-gray-500 group-active:bg-gray-100 dark:group-active:bg-gray-800'
                                     }
                                 `}>
                                     <item.icon
-                                        size={20}
+                                        size={18}
                                         strokeWidth={isActive ? 2.5 : 2}
                                         fill={isActive ? 'currentColor' : 'none'}
+                                        className="sm:w-5 sm:h-5"
                                     />
                                     {item.badge && item.badge > 0 ? (
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
+                                        <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-500 text-[8px] sm:text-[9px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
                                             {item.badge > 9 ? '9+' : item.badge}
                                         </span>
                                     ) : null}
                                 </div>
 
-                                <span className={`mt-1 text-[9px] font-bold leading-tight transition-colors ${isActive ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                                <span className={`mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] font-bold leading-tight truncate max-w-[50px] sm:max-w-none transition-colors ${isActive ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
                                     {item.label}
+                                    {'fullLabel' in item && item.fullLabel && (
+                                        <span className="hidden sm:inline"> {item.fullLabel}</span>
+                                    )}
                                 </span>
 
                                 {isActive && (
@@ -154,26 +158,26 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab, r
                     <button
                         ref={moreButtonRef}
                         onClick={() => setShowMore(prev => !prev)}
-                        className="relative flex-1 flex flex-col items-center justify-center py-1.5 group"
+                        className="relative flex-1 flex flex-col items-center justify-center py-1 group min-w-0"
                     >
                         {(showMore || isMoreActive) && (
-                            <div className="absolute inset-x-1 inset-y-1 bg-gray-200 dark:bg-gray-700 rounded-xl opacity-40" />
+                            <div className="absolute inset-x-0.5 inset-y-0.5 sm:inset-x-1 sm:inset-y-1 bg-gray-200 dark:bg-gray-700 rounded-xl opacity-40" />
                         )}
                         <div className={`
-                            relative p-2 rounded-xl transition-all duration-200
+                            relative p-1.5 sm:p-2 rounded-xl transition-all duration-200
                             ${showMore || isMoreActive
-                                ? 'bg-gray-700 dark:bg-gray-600 text-white shadow-md scale-110'
+                                ? 'bg-gray-700 dark:bg-gray-600 text-white shadow-md scale-105 sm:scale-110'
                                 : 'text-gray-400 dark:text-gray-500 group-active:bg-gray-100 dark:group-active:bg-gray-800'
                             }
                         `}>
-                            <MoreHorizontal size={20} strokeWidth={2} />
+                            <MoreHorizontal size={18} strokeWidth={2} className="sm:w-5 sm:h-5" />
                             {moreBadge > 0 && !showMore ? (
-                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
+                                <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center rounded-full bg-red-500 text-[8px] sm:text-[9px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
                                     {moreBadge > 9 ? '9+' : moreBadge}
                                 </span>
                             ) : null}
                         </div>
-                        <span className={`mt-1 text-[9px] font-bold leading-tight ${showMore || isMoreActive ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <span className={`mt-0.5 sm:mt-1 text-[9px] sm:text-[10px] font-bold leading-tight ${showMore || isMoreActive ? 'text-gray-800 dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
                             More
                         </span>
                     </button>

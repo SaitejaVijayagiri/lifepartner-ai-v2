@@ -86,7 +86,7 @@ router.get('/status', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true } });
         const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
-        if (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai')) {
+        if (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartnerai.in' && user.email !== 'admin@lifepartner.ai')) {
             return res.status(403).json({ error: "Admin access required" });
         }
 
@@ -196,7 +196,7 @@ router.post('/broadcast', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true, is_admin: true } });
         const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
-        if (!user?.is_admin && (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai'))) {
+        if (!user?.is_admin && (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartnerai.in' && user.email !== 'admin@lifepartner.ai'))) {
             return res.status(403).json({ error: "Admin access required" });
         }
 
@@ -371,7 +371,7 @@ router.post('/trigger-weekly-curated-matches', authenticateToken, async (req: an
         const userId = req.user.userId;
         const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true, is_admin: true } });
         const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
-        if (!user?.is_admin && (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai'))) {
+        if (!user?.is_admin && (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartnerai.in' && user.email !== 'admin@lifepartner.ai'))) {
             return res.status(403).json({ error: "Admin access required" });
         }
 
@@ -549,7 +549,7 @@ router.get('/campaign-stats', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const user = await prisma.users.findUnique({ where: { id: userId }, select: { email: true } });
         const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(',');
-        if (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartner.ai')) {
+        if (!user?.email || (!ADMIN_EMAILS.includes(user.email) && user.email !== 'admin@lifepartnerai.in' && user.email !== 'admin@lifepartner.ai')) {
             return res.status(403).json({ error: "Admin access required" });
         }
 

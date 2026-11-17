@@ -36,7 +36,8 @@ export default function NativeAppGate() {
             ⭐
           </div>
         </div>
-        <h2 className="text-xl font-black tracking-tight text-white mb-2">LifePartner AI</h2>
+        <h2 className="text-xl font-black tracking-tight text-white mb-1">LifePartner AI</h2>
+        <div className="text-xs text-indigo-300 font-bold mb-2.5 tracking-wide">lifepartnerai.in</div>
         <div className="flex items-center gap-2 text-xs text-purple-300/80">
           <div className="w-3.5 h-3.5 border-2 border-purple-400/40 border-t-purple-400 rounded-full animate-spin" />
           <span>Starting application...</span>
@@ -55,9 +56,9 @@ export default function NativeAppGate() {
           </div>
           <div>
             <span className="font-heading font-black text-lg tracking-tight bg-gradient-to-r from-pink-200 via-white to-purple-200 bg-clip-text text-transparent">
-              LifePartner<span className="text-pink-400">.ai</span>
+              LifePartner <span className="text-pink-400">AI</span>
             </span>
-            <div className="text-[10px] text-purple-300/70 font-semibold tracking-wider uppercase">Official Android App</div>
+            <div className="text-[10px] text-purple-300/80 font-semibold tracking-wider uppercase">lifepartnerai.in • Official App</div>
           </div>
         </div>
 

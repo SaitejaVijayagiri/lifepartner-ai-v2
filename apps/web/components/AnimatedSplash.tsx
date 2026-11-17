@@ -153,7 +153,7 @@ export default function AnimatedSplash() {
                     <span>Where Hearts Connect</span>
                     <span className="w-1 h-1 rounded-full bg-rose-400 inline-block" />
                     <span className="text-indigo-300 font-bold flex items-center gap-1">
-                        <Heart className="w-3 h-3 text-rose-500 fill-rose-500 animate-pulse" /> Powered by AI
+                        lifepartnerai.in
                     </span>
                 </div>
 
@@ -166,7 +166,7 @@ export default function AnimatedSplash() {
             {/* Footer Badge */}
             <div className="absolute bottom-6 text-[11px] font-semibold text-slate-500 tracking-widest uppercase flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                Verified Singles • AI Matchmaking
+                lifepartnerai.in • Verified Singles
             </div>
 
             {/* Purple Love Animation Keyframes */}

@@ -857,15 +857,19 @@ router.put('/me', authenticateToken, async (req: any, res) => {
             metadata: rawMetadata
         } = req.body;
 
-        // Normalize incoming gender and allow setting/correcting it during onboarding
+        // IMMUTABLE GENDER LOCK:
+        // Once a user has registered their gender, it is permanently locked and CANNOT be altered
+        // via profile editing! This guarantees that males cannot flip to female (or vice versa),
+        // preventing gender queue pollution, female VIP coin exploits, and cross-gender mismatching.
         const gLower = gender ? String(gender).trim().toLowerCase() : '';
         const normalizedGender = (gLower === 'female' || gLower === 'woman' || gLower === 'women' || gLower === 'f')
             ? 'Female'
             : ((gLower === 'male' || gLower === 'man' || gLower === 'men' || gLower === 'm') ? 'Male' : undefined);
-        let finalGender = normalizedGender || existingUser?.gender || undefined;
-        // Preserve existing Female status if no explicit gender was sent in a partial profile update
-        if (!normalizedGender && existingUser?.gender) {
-            finalGender = existingUser.gender;
+
+        // Retain existing registered gender permanently; only allow setting if no gender exists yet
+        let finalGender = existingUser?.gender || undefined;
+        if (!finalGender && normalizedGender) {
+            finalGender = normalizedGender;
         }
 
         let finalPhotos: string[] = [];

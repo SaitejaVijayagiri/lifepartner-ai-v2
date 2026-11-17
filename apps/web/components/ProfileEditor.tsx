@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { RELIGION_OPTIONS, ZODIAC_OPTIONS } from '@/lib/religionUtils';
 import Cropper from 'react-easy-crop';
-import { Edit2, Trash2, Camera, X, RotateCw, Sparkles, Wand2 } from 'lucide-react';
+import { Edit2, Trash2, Camera, X, RotateCw, Sparkles, Wand2, Lock } from 'lucide-react';
 import { compressProfilePhotos, MAX_PROFILE_PHOTOS } from '@/lib/imageUpload';
 
 interface ProfileEditorProps {
@@ -687,20 +687,51 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Basic Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Full Name" value={formData.name || ''} onChange={e => handleChange('root', 'name', e.target.value)} />
-                        {/* Gender Selector */}
+                        {/* Gender Field (Permanently Locked for Safety & Genuine Matchmaking) */}
                         <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                                Gender <span className="text-rose-500">*</span>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center justify-between">
+                                <span className="flex items-center gap-1">
+                                    Gender <span className="text-rose-500">*</span>
+                                </span>
+                                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800/60 flex items-center gap-1">
+                                    <Lock size={10} /> Locked Identity
+                                </span>
                             </label>
-                            <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
-                                value={formData.gender || ''}
-                                onChange={e => handleChange('root', 'gender', e.target.value)}
-                            >
-                                <option value="">Select Gender</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                            </select>
+                            {formData.gender ? (
+                                <div className="w-full h-10 px-3.5 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50/90 dark:bg-gray-900/60 text-gray-800 dark:text-gray-200 text-sm flex items-center justify-between select-none shadow-inner">
+                                    <div className="flex items-center gap-2">
+                                        {String(formData.gender).trim().toLowerCase() === 'female' ? (
+                                            <>
+                                                <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                                                <span className="font-bold text-pink-600 dark:text-pink-400">♀ Female</span>
+                                                <span className="text-[11px] font-semibold text-pink-600/70 dark:text-pink-400/70">(Queen VIP)</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                <span className="font-bold text-blue-600 dark:text-blue-400">♂ Male</span>
+                                                <span className="text-[11px] font-semibold text-blue-600/70 dark:text-blue-400/70">(Verified Member)</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    <span className="text-[11px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                                        <Lock size={12} /> Fixed
+                                    </span>
+                                </div>
+                            ) : (
+                                <select
+                                    className="w-full h-10 px-3 py-2 rounded-md border border-amber-300 dark:border-amber-600 bg-amber-50/30 dark:bg-amber-950/20 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
+                                    value={formData.gender || ''}
+                                    onChange={e => handleChange('root', 'gender', e.target.value)}
+                                >
+                                    <option value="">Select Gender (Permanently locked once saved)</option>
+                                    <option value="Male">♂ Male</option>
+                                    <option value="Female">♀ Female</option>
+                                </select>
+                            )}
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                                Gender is permanently locked to ensure authentic cross-gender matchmaking and safety.
+                            </p>
                         </div>
                         {/* Marital Status Selector */}
                         <div className="space-y-1">

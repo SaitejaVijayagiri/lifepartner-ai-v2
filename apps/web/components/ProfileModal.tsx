@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import VideoCallButton from '@/components/VideoCallButton';
 import VerificationBadge from './VerificationBadge';
 import dynamic from 'next/dynamic';
-import { formatLocationString, getProfilePhotoUrl, isProfilePhotoBlurred } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, isProfilePhotoBlurred, isPlaceholderPhoto, hasUserUploadedPhoto } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
 
@@ -164,9 +164,30 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         ? safeProfile.photos
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
-    // Auto-Slide Effect (disabled while Privacy Shield is active)
+    const hasUploadedPhoto = hasUserUploadedPhoto(profile) && photos.some(p => !isPlaceholderPhoto(p));
+    const [hasRequestedPhoto, setHasRequestedPhoto] = useState(false);
+    const [requestingPhoto, setRequestingPhoto] = useState(false);
+
+    const handleRequestPhoto = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (hasRequestedPhoto || requestingPhoto) return;
+        setRequestingPhoto(true);
+        try {
+            await api.interactions.requestPhoto(profile.id);
+            setHasRequestedPhoto(true);
+            toast.success(`📷 Photo request sent to ${profile.name || 'member'}! We'll notify you when uploaded.`);
+        } catch {
+            setHasRequestedPhoto(true);
+            toast.success(`📷 Photo request sent to ${profile.name || 'member'}!`);
+        } finally {
+            setRequestingPhoto(false);
+        }
+    };
+
+    // Auto-Slide Effect (disabled while Privacy Shield is active or when photo not uploaded)
     useEffect(() => {
-        if (photos.length <= 1 || isPhotoBlurred) return;
+        if (!hasUploadedPhoto || photos.length <= 1 || isPhotoBlurred) return;
 
         const interval = setInterval(() => {
             // Only slide if user hasn't interacted in the last 4 seconds
@@ -176,7 +197,7 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
         }, 3000);
 
         return () => clearInterval(interval);
-    }, [photos.length, lastInteracted, isPhotoBlurred]);
+    }, [photos.length, lastInteracted, isPhotoBlurred, hasUploadedPhoto]);
 
     // TRACK PROFILE VIEW
     useEffect(() => {
@@ -343,38 +364,102 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                 {/* LEFT: Photo (Responsive hero on mobile, 45% full-height column on desktop) */}
                 <div className="w-full md:w-[45%] h-[340px] sm:h-[400px] md:h-full bg-gray-950 relative group shrink-0 overflow-hidden flex items-center justify-center">
 
-                    {/* Main Image */}
-                    <img
-                        src={photos[currentPhotoIndex]}
-                        alt={profile.name}
-                        onClick={() => {
-                            if (!isPhotoBlurred) setIsFullscreen(true);
-                        }}
-                        className={`w-full h-full object-cover bg-black/90 block transition-opacity duration-500 ${isPhotoBlurred ? 'blur-2xl scale-110 filter cursor-default select-none' : 'cursor-zoom-in'}`}
-                        loading="eager"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
-                        }}
-                    />
+                    {!hasUploadedPhoto ? (
+                        <div className="w-full h-full bg-gradient-to-br from-[#12162a] via-[#0d1020] to-[#1c122c] relative flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
+                            {/* Ambient Glows */}
+                            <div className="absolute -top-20 -right-20 w-56 h-56 rounded-full bg-gradient-to-br from-purple-600/25 to-pink-600/15 blur-3xl pointer-events-none" />
+                            <div className="absolute -bottom-20 -left-20 w-56 h-56 rounded-full bg-gradient-to-tr from-indigo-600/25 to-teal-600/15 blur-3xl pointer-events-none" />
 
-                    {/* Privacy Shield Blurred Overlay — Scrim across full hero + badge centered above bottom profile details */}
-                    {isPhotoBlurred && (
-                        <>
-                            <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-md pointer-events-none" />
-                            <div className="absolute inset-x-4 top-6 bottom-36 md:top-10 md:bottom-40 z-20 flex flex-col items-center justify-center p-4 text-center select-none pointer-events-none">
-                                <div className="w-12 h-12 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2 shadow-lg shadow-pink-500/10 animate-pulse">
-                                    <span className="text-xl">🔒</span>
+                            {/* Watermark Mandala */}
+                            <svg className="absolute -right-12 -top-12 w-64 h-64 text-white/[0.035] pointer-events-none" viewBox="0 0 100 100" fill="currentColor">
+                                <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                                <circle cx="50" cy="50" r="35" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                                <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                                <path d="M50 5 L50 95 M5 50 L95 50 M18 18 L82 82 M18 82 L82 18" stroke="currentColor" strokeWidth="0.5" />
+                            </svg>
+
+                            {/* Monogram Crest */}
+                            <div className="relative mb-3.5 z-10">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-2xl shadow-purple-950/60">
+                                    <div className="w-full h-full rounded-full bg-[#121626] flex items-center justify-center">
+                                        <span className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-amber-200 via-rose-200 to-purple-200">
+                                            {(() => {
+                                                const clean = (profile.name || '').replace(/[^a-zA-Z\s]/g, '').trim();
+                                                if (!clean) return 'LP';
+                                                const parts = clean.split(/\s+/).filter(Boolean);
+                                                return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : clean.slice(0, 2).toUpperCase();
+                                            })()}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="text-white font-black text-sm tracking-wide drop-shadow">Photo Private</span>
-                                <span className="text-white/85 text-xs mt-1 max-w-[210px] leading-snug drop-shadow">
-                                    Connect to view full profile photos
-                                </span>
-                                <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-950/75 text-pink-200 border border-pink-400/35 shadow-sm">
-                                    🛡️ Privacy Shield
-                                </span>
+                                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-pink-600 border-2 border-white/40 flex items-center justify-center text-xs shadow-md">
+                                    📷
+                                </div>
                             </div>
+
+                            <div className="relative z-10 max-w-xs">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/35 text-amber-200 text-xs font-bold mb-2">
+                                    📷 Photo on Request
+                                </span>
+                                <h3 className="text-xl font-black text-white tracking-tight">
+                                    {profile.name || 'Member'}{profile.age ? `, ${profile.age}` : ''}
+                                </h3>
+                                <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                                    This member has chosen to keep photos private or pending upload. Connect or request a photo to view their gallery.
+                                </p>
+
+                                <div className="mt-3.5 flex items-center justify-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleRequestPhoto}
+                                        disabled={hasRequestedPhoto || requestingPhoto}
+                                        className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 ${hasRequestedPhoto
+                                            ? 'bg-emerald-500/25 border border-emerald-400/50 text-emerald-300'
+                                            : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border border-white/20 cursor-pointer'
+                                            }`}
+                                    >
+                                        <span>📷</span>
+                                        <span>{hasRequestedPhoto ? '✓ Photo Requested' : requestingPhoto ? 'Sending...' : 'Request Photo'}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Main Image */}
+                            <img
+                                src={photos[currentPhotoIndex]}
+                                alt={profile.name}
+                                onClick={() => {
+                                    if (!isPhotoBlurred) setIsFullscreen(true);
+                                }}
+                                className={`w-full h-full object-cover bg-black/90 block transition-opacity duration-500 ${isPhotoBlurred ? 'blur-2xl scale-110 filter cursor-default select-none' : 'cursor-zoom-in'}`}
+                                loading="eager"
+                                onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                    target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
+                                }}
+                            />
+
+                            {/* Privacy Shield Blurred Overlay — Scrim across full hero + badge centered above bottom profile details */}
+                            {isPhotoBlurred && (
+                                <>
+                                    <div className="absolute inset-0 z-10 bg-black/40 backdrop-blur-md pointer-events-none" />
+                                    <div className="absolute inset-x-4 top-6 bottom-36 md:top-10 md:bottom-40 z-20 flex flex-col items-center justify-center p-4 text-center select-none pointer-events-none">
+                                        <div className="w-12 h-12 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300 mb-2 shadow-lg shadow-pink-500/10 animate-pulse">
+                                            <span className="text-xl">🔒</span>
+                                        </div>
+                                        <span className="text-white font-black text-sm tracking-wide drop-shadow">Photo Private</span>
+                                        <span className="text-white/85 text-xs mt-1 max-w-[210px] leading-snug drop-shadow">
+                                            Connect to view full profile photos
+                                        </span>
+                                        <span className="mt-2 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-pink-950/75 text-pink-200 border border-pink-400/35 shadow-sm">
+                                            🛡️ Privacy Shield
+                                        </span>
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
 

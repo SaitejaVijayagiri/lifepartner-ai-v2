@@ -210,6 +210,10 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ toUserId, text })
         }),
+        requestPhoto: (toUserId: string) => fetchAPI('/interactions/photo-request', {
+            method: 'POST',
+            body: JSON.stringify({ toUserId })
+        }),
     },
     chat: {
         getHistory: (connectionId: string) => fetchAPI(`/messages/${connectionId}/history`),

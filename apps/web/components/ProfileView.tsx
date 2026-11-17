@@ -1,6 +1,6 @@
 'use client';
 import { getZodiacSymbol, getReligionSymbol } from '@/lib/religionUtils';
-import { formatLocationString, getProfilePhotoUrl } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, isPlaceholderPhoto, hasUserUploadedPhoto } from '@/lib/utils';
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -51,34 +51,94 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
         ? profile.photos
         : [profile.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`];
 
+    const hasUploadedPhoto = hasUserUploadedPhoto(profile) && photos.some(p => !isPlaceholderPhoto(p));
+
     return (
         <div className="bg-white dark:bg-gray-900 w-full rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-gray-100 dark:border-gray-800 min-h-[600px]">
 
             {/* LEFT: Image Section */}
             <div className="w-full md:w-[40%] bg-gray-950 relative group shrink-0 h-[450px] md:h-auto overflow-hidden">
-                <img
-                    src={photos[currentPhotoIndex]}
-                    alt={profile.name}
-                    onClick={() => setIsFullscreen(true)}
-                    className="w-full h-full object-contain md:object-cover opacity-90 transition-opacity duration-500 cursor-zoom-in"
-                    onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
-                        target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
-                    }}
-                />
+                {!hasUploadedPhoto ? (
+                    <div className="w-full h-full min-h-[420px] bg-gradient-to-br from-[#12162a] via-[#0d1020] to-[#1c122c] relative flex flex-col items-center justify-center p-6 text-center select-none overflow-hidden">
+                        {/* Ambient Glows */}
+                        <div className="absolute -top-20 -right-20 w-56 h-56 rounded-full bg-gradient-to-br from-purple-600/25 to-pink-600/15 blur-3xl pointer-events-none" />
+                        <div className="absolute -bottom-20 -left-20 w-56 h-56 rounded-full bg-gradient-to-tr from-indigo-600/25 to-teal-600/15 blur-3xl pointer-events-none" />
 
-                {/* Photo Index Badge & Highlights Badge */}
-                <div className="absolute top-4 left-4 flex items-center gap-2 z-20">
-                    {photos.length > 1 && (
-                        <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-wider border border-white/10">
-                            📸 {currentPhotoIndex + 1} / {photos.length}
+                        {/* Mandala Watermark */}
+                        <svg className="absolute -right-12 -top-12 w-64 h-64 text-white/[0.035] pointer-events-none" viewBox="0 0 100 100" fill="currentColor">
+                            <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                            <circle cx="50" cy="50" r="35" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                            <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                            <path d="M50 5 L50 95 M5 50 L95 50 M18 18 L82 82 M18 82 L82 18" stroke="currentColor" strokeWidth="0.5" />
+                        </svg>
+
+                        {/* Monogram Crest */}
+                        <div className="relative mb-3.5 z-10">
+                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-2xl shadow-purple-950/60">
+                                <div className="w-full h-full rounded-full bg-[#121626] flex items-center justify-center">
+                                    <span className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-br from-amber-200 via-rose-200 to-purple-200">
+                                        {(() => {
+                                            const clean = (profile.name || '').replace(/[^a-zA-Z\s]/g, '').trim();
+                                            if (!clean) return 'LP';
+                                            const parts = clean.split(/\s+/).filter(Boolean);
+                                            return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : clean.slice(0, 2).toUpperCase();
+                                        })()}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-pink-600 border-2 border-white/40 flex items-center justify-center text-xs shadow-md">
+                                📷
+                            </div>
                         </div>
-                    )}
-                    <span className="bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg border border-white/20 flex items-center gap-1">
-                        ⭐ Highlights
-                    </span>
-                </div>
+
+                        <div className="relative z-10 max-w-xs">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/35 text-amber-200 text-xs font-bold mb-2">
+                                📷 Photo Not Uploaded
+                            </span>
+                            <h3 className="text-xl font-black text-white tracking-tight">
+                                {profile.name || 'Member'}{profile.age ? `, ${profile.age}` : ''}
+                            </h3>
+                            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                                Upload a real photo to receive up to 4x more interests and partner matches!
+                            </p>
+
+                            <div className="mt-4 flex items-center justify-center gap-2">
+                                <Button
+                                    onClick={onEdit}
+                                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-xs h-10 px-5 rounded-xl shadow-lg"
+                                >
+                                    📷 Upload Photo Now ➔
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <img
+                            src={photos[currentPhotoIndex]}
+                            alt={profile.name}
+                            onClick={() => setIsFullscreen(true)}
+                            className="w-full h-full object-contain md:object-cover opacity-90 transition-opacity duration-500 cursor-zoom-in"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = () => { target.onerror = null; target.src = '/avatar-fallback.svg'; };
+                                target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profile.name || 'User')}`;
+                            }}
+                        />
+
+                        {/* Photo Index Badge & Highlights Badge */}
+                        <div className="absolute top-4 left-4 flex items-center gap-2 z-20">
+                            {photos.length > 1 && (
+                                <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-[10px] font-bold uppercase tracking-wider border border-white/10">
+                                    📸 {currentPhotoIndex + 1} / {photos.length}
+                                </div>
+                            )}
+                            <span className="bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg border border-white/20 flex items-center gap-1">
+                                ⭐ Highlights
+                            </span>
+                        </div>
+                    </>
+                )}
 
                 {/* Overlay Text */}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-6 z-20 pointer-events-none">

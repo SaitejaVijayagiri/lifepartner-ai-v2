@@ -11,7 +11,7 @@ import { Modal } from '@/components/ui/modal';
 import KundliModal from './KundliModal';
 import ReportModal from './ReportModal';
 import { getReligionSymbol } from '@/lib/religionUtils';
-import { formatLocationString, getProfilePhotoUrl, filterActive24hStories, filterHighlights, isProfilePhotoBlurred } from '@/lib/utils';
+import { formatLocationString, getProfilePhotoUrl, filterActive24hStories, filterHighlights, isProfilePhotoBlurred, isPlaceholderPhoto, hasUserUploadedPhoto } from '@/lib/utils';
 import { trackImageFailure } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
@@ -79,6 +79,8 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
 
     const [loading, setLoading] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [hasRequestedPhoto, setHasRequestedPhoto] = useState(false);
+    const [requestingPhoto, setRequestingPhoto] = useState(false);
 
     // Optimized Photos Array (CDN Load Balancing & WebP conversion)
     const photos = useMemo(() => {
@@ -129,12 +131,157 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
         return validPhotos.length > 0 ? validPhotos : [fallbackUrl];
     }, [match.photos, match.photo_urls, match.metadata?.photos, match.photoUrl, match.avatar_url, match.id, match.name]);
 
+    const hasUploadedPhoto = useMemo(() => {
+        return hasUserUploadedPhoto(match) && photos.some(p => !isPlaceholderPhoto(p));
+    }, [match, photos]);
+
+    const displayName = useMemo(() => {
+        if (typeof match?.name === 'string') return match.name;
+        if (match?.name?.first) return `${match.name.first} ${match.name.last || ''}`.trim();
+        return 'Member';
+    }, [match?.name]);
+
+    const initials = useMemo(() => {
+        const clean = (displayName || '').replace(/[^a-zA-Z\s]/g, '').trim();
+        if (!clean) return 'LP';
+        const parts = clean.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+        return clean.slice(0, 2).toUpperCase();
+    }, [displayName]);
+
+    const heightStr = useMemo(() => {
+        if (!match?.height || match.height === '-' || match.height === 'Not Specified' || match.height === 'Unknown') return '';
+        if (typeof match.height === 'string') return match.height;
+        if (typeof match.height === 'object') {
+            return match.height.value || (match.height.feet ? `${match.height.feet}'${match.height.inches || 0}"` : '');
+        }
+        return String(match.height);
+    }, [match?.height]);
+
+    const locationStr = useMemo(() => {
+        const loc = formatLocationString(match?.location || match?.location_data);
+        return (loc && loc !== 'Unknown City' && loc !== '-') ? loc : '';
+    }, [match?.location, match?.location_data]);
+
+    const distText = useMemo(() => {
+        return typeof match?.distanceKm === 'number'
+            ? (match.distanceKm < 1 ? 'Within 1 km' : `${Math.round(match.distanceKm)} km away`)
+            : '';
+    }, [match?.distanceKm]);
+
+    const professionStr = useMemo(() => {
+        const rawProf = match?.profession || match?.career?.profession || match?.role;
+        const prof = typeof rawProf === 'string' ? rawProf : (typeof rawProf === 'object' ? (rawProf?.profession || rawProf?.title || '') : '');
+        return (prof && prof !== '-' && prof !== 'Member' && prof !== 'Not Specified') ? prof : '';
+    }, [match?.profession, match?.career?.profession, match?.role]);
+
+    const educationStr = useMemo(() => {
+        const rawEdu = match?.education || match?.career?.education || match?.career?.educationLevel;
+        const edu = typeof rawEdu === 'string' ? rawEdu : (typeof rawEdu === 'object' ? (rawEdu?.degree || rawEdu?.education || rawEdu?.educationLevel || '') : '');
+        return (edu && edu !== '-' && edu !== 'Other' && edu !== 'Not Specified') ? edu : '';
+    }, [match?.education, match?.career?.education]);
+
+    const religionCasteStr = useMemo(() => {
+        const rel = typeof match?.religion === 'string' ? match.religion : (match?.religion?.religion || match?.religion?.faith || '');
+        const caste = typeof match?.religion === 'object' ? (match.religion?.caste || match.religion?.subcaste || '') : '';
+        if (rel && rel !== '-' && rel !== 'Not Specified' && rel !== 'Unknown') {
+            return (caste && caste !== '-' && caste !== 'Not Specified') ? `${rel} (${caste})` : rel;
+        }
+        if (caste && caste !== '-' && caste !== 'Not Specified') return String(caste);
+        return '';
+    }, [match?.religion]);
+
+    const motherTongueStr = useMemo(() => {
+        const raw = match?.motherTongue || match?.metadata?.motherTongue;
+        return (typeof raw === 'string' && raw !== '-' && raw !== 'Unknown') ? raw : '';
+    }, [match?.motherTongue, match?.metadata?.motherTongue]);
+
+    const maritalStatusStr = useMemo(() => {
+        const raw = match?.maritalStatus || match?.metadata?.maritalStatus;
+        return (typeof raw === 'string' && raw !== '-') ? raw : 'Never Married';
+    }, [match?.maritalStatus, match?.metadata?.maritalStatus]);
+
+    const dietStr = useMemo(() => {
+        const raw = match?.diet || match?.lifestyle?.diet || match?.metadata?.diet;
+        return (typeof raw === 'string' && raw !== '-' && raw !== 'Unknown') ? raw : '';
+    }, [match?.diet, match?.lifestyle?.diet, match?.metadata?.diet]);
+
+    const cleanBio = useMemo(() => {
+        const raw = match?.aboutMe || match?.bio || match?.about || match?.metadata?.aboutMe || match?.metadata?.bio || match?.prompt || match?.profiles?.raw_prompt;
+        if (typeof raw === 'string' && raw.trim().length > 0) {
+            return raw.trim();
+        }
+        return '';
+    }, [match?.aboutMe, match?.bio, match?.about, match?.metadata?.aboutMe, match?.metadata?.bio, match?.prompt, match?.profiles?.raw_prompt]);
+
+    const matchReasons = useMemo(() => {
+        return Array.isArray(match?.match_reasons) ? match.match_reasons : [];
+    }, [match?.match_reasons]);
+
+    const profileIdStr = useMemo(() => {
+        return match?.profile_id || match?.profileId || (match?.referral_code ? `LP-${String(match.referral_code).toUpperCase()}` : (match?.id ? `LP-${String(match.id).slice(0, 8).toUpperCase()}` : ''));
+    }, [match?.profile_id, match?.profileId, match?.referral_code, match?.id]);
+
+    const hasKundli = Boolean(
+        match?.kundli && typeof match.kundli === 'object' && typeof match.kundli.score === 'number' && match.kundli.score > 0
+    );
+
+    const handleRequestPhoto = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (hasRequestedPhoto || requestingPhoto) return;
+        setRequestingPhoto(true);
+        try {
+            await api.interactions.requestPhoto(match.id);
+            setHasRequestedPhoto(true);
+            toast.success(`📷 Photo request sent to ${displayName}! We'll notify you when uploaded.`);
+        } catch {
+            setHasRequestedPhoto(true);
+            toast.success(`📷 Photo request sent to ${displayName}!`);
+        } finally {
+            setRequestingPhoto(false);
+        }
+    };
+
+    const handleShare = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const agePart = match.age ? `${match.age} yrs` : '';
+        const profPart = professionStr;
+        const locPart = locationStr;
+        const relPart = religionCasteStr;
+        const scorePart = match.score ? `🌟 ${match.score}% AI Match` : '';
+
+        const detailChips = [agePart, profPart, locPart, relPart].filter(Boolean).join(' • ');
+        const shareText = `✨ Check out ${displayName}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI! ${scorePart}`.trim();
+        const shareUrl = typeof window !== 'undefined'
+            ? `${window.location.origin}/profile/${match.id}?utm_source=share&utm_medium=social&utm_campaign=matchcard_share`
+            : `https://lifepartnerai.in/profile/${match.id}`;
+
+        const shareData = {
+            title: `${displayName} • LifePartner AI Profile`,
+            text: shareText,
+            url: shareUrl
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                toast.success("Profile details & link copied!");
+            }
+        } catch { /* user cancelled share */ }
+    };
+
     const [isHovered, setIsHovered] = useState(false);
     const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Asynchronous In-Memory Preloader for Adjacent Photos (LRU Queue - Zero DOM Bloat)
     useEffect(() => {
-        if (photos.length <= 1 || !isInViewport || isPhotoBlurred) return;
+        if (!hasUploadedPhoto || photos.length <= 1 || !isInViewport || isPhotoBlurred) return;
 
         // Preload next image into browser disk/RAM cache
         const nextIdx = (currentPhotoIndex + 1) % photos.length;
@@ -149,18 +296,18 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
             const imgPrev = new Image();
             imgPrev.src = photos[prevIdx];
         }
-    }, [currentPhotoIndex, photos, isInViewport, isPhotoBlurred]);
+    }, [currentPhotoIndex, photos, isInViewport, isPhotoBlurred, hasUploadedPhoto]);
 
     // Auto-Scroll Photos Carousel (3.5s interval, strictly when in viewport, pauses on hover or private blur)
     useEffect(() => {
-        if (photos.length <= 1 || isHovered || !isInViewport || isPhotoBlurred) return;
+        if (!hasUploadedPhoto || photos.length <= 1 || isHovered || !isInViewport || isPhotoBlurred) return;
 
         const interval = setInterval(() => {
             setCurrentPhotoIndex((prev: number) => (prev + 1) % photos.length);
         }, 3500);
 
         return () => clearInterval(interval);
-    }, [photos.length, isHovered, isInViewport, isPhotoBlurred, currentPhotoIndex]);
+    }, [photos.length, isHovered, isInViewport, isPhotoBlurred, currentPhotoIndex, hasUploadedPhoto]);
 
     // 1. Handle "Send Interest" (Primary Action)
     const handleConnect = async (e: React.MouseEvent) => {
@@ -292,8 +439,302 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                 if (onViewProfile) onViewProfile();
             }}
         >
-            {/* Background Image (Immersive Carousel with Zero-Lag Hardware Acceleration) */}
-            <div className="absolute inset-0 bg-gray-950">
+            {!hasUploadedPhoto ? (
+                /* LUXURY PERSONA SHOWCASE CARD (NO PHOTO UPLOADED) */
+                <div className="absolute inset-0 bg-gradient-to-br from-[#12162a] via-[#0d1020] to-[#1c122c] overflow-hidden flex flex-col justify-between p-4 sm:p-5 z-20">
+                    {/* Atmospheric Background Layers */}
+                    <div className="absolute -top-24 -right-24 w-60 h-60 rounded-full bg-gradient-to-br from-purple-600/25 to-pink-600/10 blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-24 -left-24 w-60 h-60 rounded-full bg-gradient-to-tr from-indigo-600/25 to-teal-600/10 blur-3xl pointer-events-none" />
+                    <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40" />
+
+                    {/* Elegant Matrimonial Geometric / Mandala Watermark */}
+                    <svg className="absolute -right-12 -top-12 w-64 h-64 text-white/[0.035] pointer-events-none" viewBox="0 0 100 100" fill="currentColor">
+                        <circle cx="50" cy="50" r="45" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                        <circle cx="50" cy="50" r="35" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                        <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                        <path d="M50 5 L50 95 M5 50 L95 50 M18 18 L82 82 M18 82 L82 18" stroke="currentColor" strokeWidth="0.5" />
+                    </svg>
+
+                    {/* 1. TOP BAR: Trust Badges & Glowing Match Score */}
+                    <div className="relative z-10 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                            {isConnected && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/50 text-emerald-200 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                                    ✓ Connected
+                                </span>
+                            )}
+                            {match.isVerified && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/25 border border-blue-400/50 text-blue-200 text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+                                    ✓ Verified
+                                </span>
+                            )}
+                            {match.managed_by && match.managed_by !== 'Self' && (
+                                <span className="inline-flex items-center gap-1 text-teal-200 text-[10px] font-bold bg-teal-950/80 border border-teal-400/40 px-2 py-0.5 rounded-full backdrop-blur-md shadow-sm">
+                                    {match.managed_by === 'Parent' ? '👨‍👩‍👧 By Parent' : match.managed_by === 'Sibling' ? '👫 By Sibling' : `👤 By ${match.managed_by}`}
+                                </span>
+                            )}
+                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-md border ${isUserOnline ? 'bg-green-500/20 border-green-400/30 text-green-300' : 'bg-gray-500/20 border-gray-400/20 text-gray-400'}`}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isUserOnline ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                                <span className="text-[9px] font-bold uppercase">{isUserOnline ? 'Active' : 'Offline'}</span>
+                            </div>
+                        </div>
+
+                        {/* Right: Match Score */}
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/60 border border-emerald-400/50 backdrop-blur-md shadow-lg shadow-emerald-500/10 shrink-0">
+                            <span className="text-xs sm:text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-green-400">{match?.score ?? 85}%</span>
+                            <span className="text-[8px] font-bold text-emerald-200 tracking-wider uppercase">Match</span>
+                        </div>
+                    </div>
+
+                    {/* 2. UPPER IDENTITY: Monogram Crest + Persona Title + Photo Action */}
+                    <div className="relative z-10 flex items-center gap-3.5 my-1">
+                        {/* Monogram Crest with Luxury Gradient Ring */}
+                        <div className="relative shrink-0">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-xl shadow-purple-950/50">
+                                <div className="w-full h-full rounded-full bg-[#121626] flex items-center justify-center relative overflow-hidden">
+                                    <span className="text-base sm:text-lg font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-br from-amber-200 via-rose-200 to-purple-200">
+                                        {initials}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-pink-600 border border-white/40 flex items-center justify-center text-[10px] shadow-md" title="Photo Not Uploaded">
+                                📷
+                            </div>
+                        </div>
+
+                        {/* Title & Subtitle */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight truncate">
+                                    {displayName}{match.age ? `, ${match.age}` : ''}
+                                </h3>
+                                {match.isPremium && <span className="text-amber-400 text-sm" title="Premium Member">👑</span>}
+                            </div>
+
+                            <div className="flex items-center gap-2 text-xs text-gray-300 font-medium mt-0.5 truncate">
+                                {heightStr && <span>📏 {heightStr}</span>}
+                                {heightStr && locationStr && <span>•</span>}
+                                {locationStr && <span className="truncate">📍 {locationStr}</span>}
+                            </div>
+
+                            {/* Photo on Request Badge & Quick Request Action */}
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-200 bg-amber-500/15 border border-amber-400/30 px-2 py-0.5 rounded-full">
+                                    📷 Photo on Request
+                                </span>
+                                <button
+                                    onClick={handleRequestPhoto}
+                                    disabled={hasRequestedPhoto || requestingPhoto}
+                                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all active:scale-95 ${hasRequestedPhoto
+                                        ? 'bg-emerald-500/20 border-emerald-400/40 text-emerald-300'
+                                        : 'bg-white/10 hover:bg-white/20 border-white/20 text-white cursor-pointer'
+                                        }`}
+                                >
+                                    {hasRequestedPhoto ? '✓ Requested' : requestingPhoto ? 'Sending...' : 'Request Photo ➔'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. CENTER: Bio Quote OR AI Match Summary */}
+                    <div className="relative z-10 my-1">
+                        {cleanBio ? (
+                            <div className="rounded-xl bg-white/[0.04] border border-white/10 p-2.5 backdrop-blur-md">
+                                <p className="text-[11px] sm:text-xs text-gray-200 line-clamp-2 italic font-normal leading-relaxed">
+                                    “{cleanBio}”
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 p-2.5 backdrop-blur-md">
+                                <div className="flex items-center gap-1.5 text-[11px] text-purple-200 font-medium">
+                                    <span>✨</span>
+                                    <span className="line-clamp-2 leading-snug">
+                                        {matchReasons.length > 0 ? matchReasons.slice(0, 3).join(' • ') : 'Verified member looking for a compatible life partner'}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 4. DETAILS MATRIX: 2-Column Key Matrimonial Facts */}
+                    <div className="relative z-10 grid grid-cols-2 gap-2 my-1">
+                        {professionStr && (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">💼</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Profession</p>
+                                    <p className="text-xs font-semibold text-white truncate">{professionStr}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {educationStr && (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">🎓</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Education</p>
+                                    <p className="text-xs font-semibold text-white truncate">{educationStr}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {religionCasteStr && (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">{getReligionSymbol(match?.religion?.religion || match?.religion || 'Hindu')}</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Faith / Caste</p>
+                                    <p className="text-xs font-semibold text-white truncate">{religionCasteStr}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {motherTongueStr && (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">🗣️</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Mother Tongue</p>
+                                    <p className="text-xs font-semibold text-white truncate">{motherTongueStr}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {maritalStatusStr && (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">💍</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Marital Status</p>
+                                    <p className="text-xs font-semibold text-white truncate">{maritalStatusStr}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {hasKundli ? (
+                            <div
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onShowKundli) onShowKundli(match.kundli);
+                                    else setShowKundli(true);
+                                }}
+                                className="rounded-xl bg-orange-500/20 border border-orange-400/40 p-2 flex items-center gap-2 cursor-pointer hover:bg-orange-500/30 transition-colors"
+                                title="Click to view Kundli Horoscope match details"
+                            >
+                                <span className="text-sm shrink-0">🕉️</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-orange-200">Kundli Match</p>
+                                    <p className="text-xs font-bold text-white truncate">{match.kundli.score}/36 Guna</p>
+                                </div>
+                            </div>
+                        ) : (dietStr ? (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">🥗</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Diet</p>
+                                    <p className="text-xs font-semibold text-white truncate">{dietStr}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
+                                <span className="text-sm shrink-0">🆔</span>
+                                <div className="min-w-0">
+                                    <p className="text-[9px] uppercase font-bold text-gray-400">Profile ID</p>
+                                    <p className="text-xs font-mono font-semibold text-purple-300 truncate">{profileIdStr}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 5. BOTTOM ACTIONS: Always Visible */}
+                    <div className="relative z-10 pt-2 flex flex-col gap-2">
+                        {/* ROW 1 — Primary CTA */}
+                        <div className="flex gap-2">
+                            {isConnected ? (
+                                <Button
+                                    onClick={handleMessage}
+                                    className="flex-1 h-11 font-black uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700"
+                                >
+                                    💬 Message
+                                </Button>
+                            ) : (
+                                <>
+                                    <Button
+                                        onClick={handleConnect}
+                                        disabled={loading || isRequestSent}
+                                        className={`flex-1 h-11 font-black uppercase tracking-wider text-xs border-0 shadow-2xl transition-transform active:scale-95 ${isRequestSent
+                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-95'
+                                            : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white hover:opacity-95'
+                                            }`}
+                                    >
+                                        {loading ? 'Sending...' : (isRequestSent ? '✓ Request Sent' : '✨ Send Interest')}
+                                    </Button>
+                                    {!isRequestSent && (
+                                        <Button
+                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDMModal(true); }}
+                                            className="h-11 w-11 shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-xl flex items-center justify-center p-0 rounded-xl active:scale-95 transition-transform border border-white/20"
+                                            title="Direct Message"
+                                        >
+                                            <Mail size={18} />
+                                        </Button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+
+                        {/* ROW 2 — Icon Actions: Like | Gift | Share | Cosmic | Report */}
+                        <div className="flex gap-1.5">
+                            <button
+                                onClick={handleLike}
+                                disabled={loading}
+                                className={`flex-1 h-9 flex items-center justify-center gap-1 rounded-xl backdrop-blur-xl border shadow-lg transition-all active:scale-95 ${hasLiked
+                                    ? 'bg-pink-500/30 border-pink-500/60 text-pink-300'
+                                    : 'bg-black/60 border-white/15 hover:bg-black/80 text-white'
+                                    }`}
+                                title="Like"
+                            >
+                                <span className="text-xs">{hasLiked ? '❤️' : '🤍'}</span>
+                                <span className="text-[10px] font-bold text-white/90">{likeCount}</span>
+                            </button>
+
+                            <button
+                                onClick={(e) => { e.stopPropagation(); if (onGift) onGift(); }}
+                                className="flex-1 h-9 flex items-center justify-center gap-1 rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg hover:bg-black/80 active:scale-95"
+                                title="Send a Gift"
+                            >
+                                <span className="text-xs">🎁</span>
+                                <span className="text-[10px] font-bold text-white/90">{match.total_gifts || 0}</span>
+                            </button>
+
+                            <button
+                                onClick={handleShare}
+                                className="flex-1 h-9 flex items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg hover:bg-black/80 active:scale-95 text-white"
+                                title="Share Profile"
+                            >
+                                <Share2 className="w-4 h-4" />
+                            </button>
+
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowCosmicReport(true); }}
+                                className="flex-1 h-9 flex items-center justify-center rounded-xl backdrop-blur-xl border border-purple-500/30 bg-purple-950/50 shadow-lg hover:bg-purple-900/60 active:scale-95 text-purple-300"
+                                title="Cosmic Compatibility"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                            </button>
+
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowReport(true); }}
+                                className="flex-1 h-9 flex items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg hover:bg-black/80 active:scale-95 text-gray-400 hover:text-red-400"
+                                title="Report User"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    {/* Background Image (Immersive Carousel with Zero-Lag Hardware Acceleration) */}
+                    <div className="absolute inset-0 bg-gray-950">
                 <img
                     src={photos[currentPhotoIndex] || photos[0] || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(match.name || match.id || 'Member')}`}
                     alt={match.name || 'Member'}
@@ -742,35 +1183,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
 
                         {/* Share */}
                         <button
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                const ageStr = match.age ? `${match.age} yrs` : '';
-                                const profStr = match.career?.profession || match.profession || '';
-                                const locStr = formatLocationString(match.location) || '';
-                                const relStr = match.religion?.religion || match.religion?.faith || '';
-                                const scoreStr = match.score ? `🌟 ${match.score}% AI Match` : '';
-
-                                const detailChips = [ageStr, profStr, locStr, relStr].filter(Boolean).join(' • ');
-                                const shareText = `✨ Check out ${match.name}${detailChips ? ` (${detailChips})` : ''} on LifePartner AI! ${scoreStr}`.trim();
-                                const shareUrl = typeof window !== 'undefined'
-                                    ? `${window.location.origin}/profile/${match.id}?utm_source=share&utm_medium=social&utm_campaign=matchcard_share`
-                                    : `https://lifepartnerai.in/profile/${match.id}`;
-
-                                const shareData = {
-                                    title: `${match.name} • LifePartner AI Profile`,
-                                    text: shareText,
-                                    url: shareUrl
-                                };
-
-                                try {
-                                    if (navigator.share) {
-                                        await navigator.share(shareData);
-                                    } else {
-                                        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-                                        toast.success("Profile details & link copied!");
-                                    }
-                                } catch { /* user cancelled share */ }
-                            }}
+                            onClick={handleShare}
                             className="flex-1 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border border-white/15 bg-black/60 shadow-lg transition-all duration-300 active:scale-95 hover:bg-blue-500/20 hover:border-blue-500/50 text-gray-200"
                             title="Share Profile"
                         >
@@ -798,21 +1211,25 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                         </button>
                     </div>
                 </div>
+            </div>
+            </>
+            )}
 
-                <ReportModal
-                    isOpen={showReport}
-                    onClose={() => setShowReport(false)}
-                    targetUserId={match.id}
-                    targetUserName={match.name || 'Member'}
-                />
+            {/* Shared Modals */}
+            <ReportModal
+                isOpen={showReport}
+                onClose={() => setShowReport(false)}
+                targetUserId={match.id}
+                targetUserName={displayName}
+            />
 
-                {/* Direct Message Modal */}
-                <Modal
-                    isOpen={showDMModal}
-                    onClose={() => setShowDMModal(false)}
-                    title="Direct Message"
-                    description={`Send a direct message to ${match.name || 'this member'} instantly, bypassing the match process.`}
-                >
+            {/* Direct Message Modal */}
+            <Modal
+                isOpen={showDMModal}
+                onClose={() => setShowDMModal(false)}
+                title="Direct Message"
+                description={`Send a direct message to ${displayName} instantly, bypassing the match process.`}
+            >
                     <div className="space-y-4 py-2">
                         {currentUser?.gender?.toLowerCase() === 'female' ? (
                             <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 p-3 rounded-xl flex items-center gap-2 text-sm text-emerald-800 dark:text-emerald-300 font-semibold shadow-sm">
@@ -868,7 +1285,16 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                         </form>
                     </div>
                 </Modal>
-            </div>
+
+            {/* Kundli Modal */}
+            {showKundli && match?.kundli && (
+                <KundliModal
+                    isOpen={showKundli}
+                    onClose={() => setShowKundli(false)}
+                    data={match.kundli}
+                    names={{ me: currentUser?.full_name || 'You', partner: displayName }}
+                />
+            )}
 
             {/* Cosmic Compatibility Modal */}
             {showCosmicReport && (

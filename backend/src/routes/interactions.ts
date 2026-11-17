@@ -1367,6 +1367,83 @@ router.delete('/interest/:toUserId', authenticateToken, async (req: any, res) =>
     }
 });
 
+// POST /photo-request (Request a match to upload a profile photo)
+const photoRequestDebounceCache = new Set<string>();
+
+router.post('/photo-request', authenticateToken, async (req: any, res) => {
+    try {
+        const userId = req.user.userId;
+        const { toUserId } = req.body;
+
+        if (!toUserId || toUserId === userId) {
+            return res.status(400).json({ error: "Invalid recipient ID" });
+        }
+
+        const debounceKey = `${userId}-${toUserId}`;
+        if (photoRequestDebounceCache.has(debounceKey)) {
+            return res.json({ success: true, message: "Photo request already sent" });
+        }
+        photoRequestDebounceCache.add(debounceKey);
+        setTimeout(() => photoRequestDebounceCache.delete(debounceKey), 60000);
+
+        const block = await prisma.blocks.findFirst({
+            where: {
+                OR: [
+                    { blocker_id: userId, blocked_id: toUserId },
+                    { blocker_id: toUserId, blocked_id: userId }
+                ]
+            }
+        });
+        if (block) return res.status(403).json({ error: "Cannot interact with this user" });
+
+        const [sender, recipient] = await Promise.all([
+            prisma.users.findUnique({
+                where: { id: userId },
+                select: { full_name: true, is_premium: true }
+            }),
+            prisma.users.findUnique({
+                where: { id: toUserId },
+                select: { full_name: true, email: true, is_banned: true, is_deactivated: true }
+            })
+        ]);
+
+        if (!sender || !recipient || recipient.is_banned || recipient.is_deactivated) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const senderName = sender.full_name || "A verified member";
+        const msg = `${senderName} requested you to add a profile photo! 📷 Uploading a photo gets you up to 4x more responses.`;
+
+        await prisma.notifications.create({
+            data: {
+                user_id: toUserId,
+                type: 'photo_request',
+                message: msg,
+                data: { fromUserId: userId }
+            }
+        });
+
+        // Trigger real-time socket event if recipient is online
+        try {
+            const io = getIO();
+            if (io) {
+                io.to(toUserId).emit('new_notification', {
+                    type: 'photo_request',
+                    message: msg,
+                    fromUserId: userId
+                });
+            }
+        } catch (socketErr) {
+            // Non-critical
+        }
+
+        res.json({ success: true, message: `Photo request sent to ${recipient.full_name || 'member'}` });
+    } catch (err: any) {
+        console.error("Photo Request Error:", err);
+        res.status(500).json({ error: "Failed to send photo request" });
+    }
+});
+
 // POST /like
 router.post('/like', authenticateToken, async (req: any, res) => {
     try {

@@ -202,3 +202,41 @@ export function isProfilePhotoBlurred(
     );
 }
 
+/**
+ * Checks whether an image URL is an auto-generated placeholder (DiceBear, generic avatar fallback).
+ */
+export function isPlaceholderPhoto(url: any): boolean {
+    if (!url || typeof url !== 'string') return true;
+    const u = url.trim().toLowerCase();
+    if (!u) return true;
+    if (u.includes('dicebear.com')) return true;
+    if (u.includes('avatar-fallback')) return true;
+    if (u === '/avatar-fallback.svg') return true;
+    return false;
+}
+
+/**
+ * Checks whether a user profile has at least one real, verified uploaded photo.
+ */
+export function hasUserUploadedPhoto(userObj: any): boolean {
+    if (!userObj) return false;
+    if (userObj.hasValidPhoto === true) return true;
+    if (userObj.hasValidPhoto === false && (!userObj.photos || userObj.photos.length === 0)) return false;
+
+    const rawList: any[] = [];
+    if (Array.isArray(userObj.photos)) rawList.push(...userObj.photos);
+    if (Array.isArray(userObj.photo_urls)) rawList.push(...userObj.photo_urls);
+    if (Array.isArray(userObj.metadata?.photos)) rawList.push(...userObj.metadata.photos);
+    if (userObj.photoUrl) rawList.push(userObj.photoUrl);
+    if (userObj.avatar_url) rawList.push(userObj.avatar_url);
+
+    for (const item of rawList) {
+        const url = typeof item === 'string' ? item : (item?.url || item?.photo_url || item?.avatar_url);
+        if (url && !isPlaceholderPhoto(url)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+

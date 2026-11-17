@@ -87,12 +87,13 @@ function GoogleCallbackContent() {
                     } catch (_) {}
                 }
 
-                const rawStoredGender = localStorage.getItem('pendingUserGender');
-                const validStoredGender = (rawStoredGender === 'Female' || rawStoredGender === 'Male') ? rawStoredGender : undefined;
-                const pendingGender = stateGender || validStoredGender || undefined;
-                const pendingAge = localStorage.getItem('pendingUserAge') || stateAge || undefined;
-                if (pendingGender) localStorage.setItem('pendingUserGender', pendingGender);
-                if (pendingAge) localStorage.setItem('pendingUserAge', pendingAge);
+                // Only trust gender explicitly passed in this OAuth session state to prevent stale localStorage cross-contamination
+                const pendingGender = stateGender;
+                const pendingAge = stateAge || undefined;
+                try {
+                    localStorage.removeItem('pendingUserGender');
+                    localStorage.removeItem('pendingUserAge');
+                } catch (_) {}
 
                 const res = await axios.post(`${apiUrl}/auth/google`, {
                     code,

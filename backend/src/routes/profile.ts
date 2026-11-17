@@ -1159,7 +1159,12 @@ router.put('/me', authenticateToken, async (req: any, res) => {
                         city: inputCity,
                         district: inputDistrict,
                         state: inputState,
-                        ...(isFemaleUser ? { free_direct_messages: 999999, is_premium: true } : {})
+                        ...(isFemaleUser 
+                            ? { free_direct_messages: 999999, is_premium: true } 
+                            : (existingUser?.is_premium && !isFemaleUser
+                                ? { is_premium: false, free_direct_messages: 3 }
+                                : {})
+                        )
                     }
                 });
 

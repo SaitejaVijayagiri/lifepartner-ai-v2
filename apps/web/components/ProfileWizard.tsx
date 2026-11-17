@@ -35,6 +35,7 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
     const [currentStep, setCurrentStep] = useState(0);
     const [vibeResult, setVibeResult] = useState<any>(null); // For AI Feedback
     const [direction, setDirection] = useState('forward');
+    const [isGenderLocked, setIsGenderLocked] = useState(false);
     const [data, setData] = useState<any>({
         // Basics
         name: '', age: '', gender: '', height: '', city: '', country: 'India', aboutMe: '',
@@ -93,6 +94,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             }
 
             const validPendingGender = (pendingGender === 'Female' || pendingGender === 'Male') ? pendingGender : '';
+            if (u.gender === 'Female' || u.gender === 'Male') {
+                setIsGenderLocked(true);
+            }
 
             setData((prev: any) => ({
                 ...prev,
@@ -105,6 +109,9 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
             // Always fetch getMe() to ensure Google OAuth / server-persisted name, gender, age, and avatar are populated
             api.profile.getMe().then((me: any) => {
                 if (me) {
+                    if (me.gender === 'Female' || me.gender === 'Male') {
+                        setIsGenderLocked(true);
+                    }
                     setData((prev: any) => ({
                         ...prev,
                         name: prev.name || me.name || me.full_name || pendingName || '',
@@ -369,48 +376,76 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                                     </div>
                                 </div>
 
-                                <div className="col-span-1 md:col-span-2 space-y-2">
-                                    <label className="text-sm font-bold dark:text-gray-200">Select Your Gender *</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                update('gender', 'Female');
-                                                localStorage.setItem('pendingUserGender', 'Female');
-                                            }}
-                                            className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
-                                                data.gender === 'Female'
-                                                    ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
-                                                    : 'bg-pink-50/70 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800 hover:border-rose-400'
-                                            }`}
-                                        >
-                                            <span>👰</span>
-                                            <span>Female</span>
-                                            <span className="bg-amber-300 text-amber-950 text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase">👑 VIP Free</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                update('gender', 'Male');
-                                                localStorage.setItem('pendingUserGender', 'Male');
-                                            }}
-                                            className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all ${
-                                                data.gender === 'Male'
-                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-300'
-                                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:border-indigo-400'
-                                            }`}
-                                        >
-                                            <span>🤵</span>
-                                            <span>Male</span>
-                                        </button>
-                                    </div>
-                                    {data.gender === 'Female' && (
-                                        <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-xs text-pink-800 dark:text-pink-200 flex items-center gap-2">
-                                            <span>👑</span>
-                                            <span><strong>Queen VIP Active:</strong> 100 Free Coins + Unlimited Free Direct Chat + Private Masked Phone Number.</span>
+                                {isGenderLocked && (data.gender === 'Female' || data.gender === 'Male') ? (
+                                    <div className="col-span-1 md:col-span-2 space-y-1.5">
+                                        <label className="text-sm font-bold dark:text-gray-200">Registered Gender</label>
+                                        <div className="p-3 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-between">
+                                            <div className="flex items-center gap-2.5">
+                                                <span className="text-xl">{data.gender === 'Female' ? '👰' : '🤵'}</span>
+                                                <div>
+                                                    <div className="text-sm font-extrabold text-gray-900 dark:text-white">{data.gender}</div>
+                                                    <div className="text-[11px] text-gray-500 dark:text-gray-400">Verified identity registered during account setup</div>
+                                                </div>
+                                            </div>
+                                            <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                                                🔒 Identity Locked
+                                            </span>
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="col-span-1 md:col-span-2 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-sm font-bold dark:text-gray-200">Select Your Gender *</label>
+                                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                                                ⚠️ Permanent identity lock after setup
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    update('gender', 'Female');
+                                                    localStorage.setItem('pendingUserGender', 'Female');
+                                                }}
+                                                className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                                                    data.gender === 'Female'
+                                                        ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-300'
+                                                        : 'bg-pink-50/70 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-800 hover:border-rose-400'
+                                                }`}
+                                            >
+                                                <span>👰</span>
+                                                <span>Female</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    update('gender', 'Male');
+                                                    localStorage.setItem('pendingUserGender', 'Male');
+                                                }}
+                                                className={`h-12 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+                                                    data.gender === 'Male'
+                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-300'
+                                                        : 'bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:border-indigo-400'
+                                                }`}
+                                            >
+                                                <span>🤵</span>
+                                                <span>Male</span>
+                                            </button>
+                                        </div>
+                                        {data.gender === 'Female' && (
+                                            <div className="p-2.5 rounded-xl bg-pink-50 dark:bg-pink-950/40 border border-pink-200 dark:border-pink-900/40 text-xs text-pink-800 dark:text-pink-200 flex items-center gap-2 animate-in fade-in">
+                                                <span>👑</span>
+                                                <span><strong>Queen VIP Active:</strong> 100 Free Coins + Unlimited Free Direct Chat + Private Masked Phone Number.</span>
+                                            </div>
+                                        )}
+                                        {data.gender === 'Male' && (
+                                            <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 text-xs text-indigo-800 dark:text-indigo-200 flex items-center gap-2 animate-in fade-in">
+                                                <span>🤵</span>
+                                                <span><strong>Single Male Account:</strong> Instant compatibility matches & verified profiles.</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <Input label="Full Name *" value={data.name} onChange={e => update('name', e.target.value)} />
 

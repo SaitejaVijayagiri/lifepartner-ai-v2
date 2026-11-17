@@ -102,6 +102,58 @@ export const getPhotoTier = (m: any): number => {
     return 0; // Tier 0: No photos (Bottom priority)
 };
 
+/**
+ * Accurately resolves the viewer's canonical gender ('male' | 'female').
+ * Prioritizes users.gender -> profiles.metadata.gender -> partnerPreferences.gender / looking_for -> default 'male'.
+ */
+export function resolveViewerGender(user?: { gender?: string | null } | null, meta?: any): 'male' | 'female' {
+    const rawUserGender = String(user?.gender || '').trim().toLowerCase();
+    const rawMetaGender = String(meta?.gender || '').trim().toLowerCase();
+    const candidate = rawUserGender || rawMetaGender;
+
+    if (candidate === 'female' || candidate === 'woman' || candidate === 'women' || candidate === 'f') {
+        return 'female';
+    }
+    if (candidate === 'male' || candidate === 'man' || candidate === 'men' || candidate === 'm') {
+        return 'male';
+    }
+
+    // Infer from partner preferences if user's own gender is unset
+    const lookingFor = String(meta?.partnerPreferences?.gender || meta?.looking_for || '').trim().toLowerCase();
+    if (lookingFor.includes('female') || lookingFor.includes('bride') || lookingFor.includes('girl') || lookingFor.includes('women')) {
+        return 'male'; // Seeking females, so viewer is treated as male
+    }
+    if (lookingFor.includes('male') || lookingFor.includes('groom') || lookingFor.includes('boy') || lookingFor.includes('men')) {
+        return 'female'; // Seeking males, so viewer is treated as female
+    }
+
+    return 'male'; // Safe platform default
+}
+
+/**
+ * Asserts whether a candidate profile strictly matches the target gender.
+ * E.g. When targetGender is 'female', candidate MUST be female and MUST NOT be male in either column or metadata.
+ */
+export function isCandidateOfTargetGender(candidate: any, targetGender: 'male' | 'female'): boolean {
+    const meta = (candidate?.profiles?.metadata as any) || candidate?.metadata || {};
+    const cGen = String(candidate?.gender || '').trim().toLowerCase();
+    const mGen = String(meta?.gender || '').trim().toLowerCase();
+
+    if (targetGender === 'female') {
+        // Absolutely reject any candidate where column or meta indicates male
+        if (cGen === 'male' || cGen === 'man' || cGen === 'men' || cGen === 'm') return false;
+        if (mGen === 'male' || mGen === 'man' || mGen === 'men' || mGen === 'm') return false;
+        // Must match female
+        return cGen === 'female' || cGen === 'woman' || cGen === 'women' || cGen === 'f' || mGen === 'female' || mGen === 'woman' || mGen === 'women';
+    } else {
+        // Absolutely reject any candidate where column or meta indicates female
+        if (cGen === 'female' || cGen === 'woman' || cGen === 'women' || cGen === 'f') return false;
+        if (mGen === 'female' || mGen === 'woman' || mGen === 'women' || mGen === 'f') return false;
+        // Must match male
+        return cGen === 'male' || cGen === 'man' || cGen === 'men' || cGen === 'm' || mGen === 'male' || mGen === 'man' || mGen === 'men';
+    }
+}
+
 
 // Middleware duplications because I'm lazy to make a shared middleware file right now
 // FIXED: Using imported getUserId
@@ -172,19 +224,20 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
     try {
         const userId = req.user.userId;
 
-        // Get current user's gender to filter opposite gender
+        // Get current user's gender and profile metadata to filter opposite gender strictly
         const me = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true }
+            select: { gender: true, profiles: { select: { metadata: true } } }
         });
 
-        const myGender = (me?.gender || '').trim().toLowerCase();
+        const meMeta = (me?.profiles?.metadata as any) || {};
+        const myGender = resolveViewerGender(me, meMeta);
+        const targetGender = myGender === 'female' ? 'male' : 'female';
 
         // SECURITY FIX: Use parameterized $queryRaw to prevent SQL injection.
-        // The previous $queryRawUnsafe directly interpolated userId and genderClause strings.
         let usersWithCoords: any[];
 
-        if (myGender === 'male') {
+        if (targetGender === 'female') {
             usersWithCoords = await prisma.$queryRaw<any[]>`
                 SELECT 
                     u.id, u.full_name, u.age, u.gender, u.avatar_url,
@@ -205,36 +258,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                     WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
                        OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
                   )
-                  AND LOWER(u.gender) = 'female'
-                  AND (p.metadata->'location'->>'lat') IS NOT NULL
-                  AND (p.metadata->'location'->>'lat') != ''
-                  AND (p.metadata->'location'->>'lng') IS NOT NULL
-                  AND (p.metadata->'location'->>'lng') != ''
-                  AND COALESCE(p.metadata->'location'->>'live_enabled', 'true') != 'false'
-                LIMIT 500
-            `;
-        } else if (myGender === 'female') {
-            usersWithCoords = await prisma.$queryRaw<any[]>`
-                SELECT 
-                    u.id, u.full_name, u.age, u.gender, u.avatar_url,
-                    u.city, u.state, u.location_name,
-                    (p.metadata->'location'->>'lat')::float AS lat,
-                    (p.metadata->'location'->>'lng')::float AS lng,
-                    p.metadata->'career'->>'profession' AS profession,
-                    p.metadata->>'photo_privacy' AS photo_privacy,
-                    p.metadata->>'photoPrivacy' AS photo_privacy_alt
-                FROM users u
-                LEFT JOIN profiles p ON u.id = p.user_id
-                WHERE u.id != ${userId}::uuid
-                  AND u.is_verified = true
-                  AND u.is_banned = false
-                  AND (u.is_deactivated = false OR u.is_deactivated IS NULL OR (u.deactivated_until IS NOT NULL AND u.deactivated_until < NOW()))
-                  AND NOT EXISTS (
-                    SELECT 1 FROM blocks b
-                    WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
-                       OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
-                  )
-                  AND LOWER(u.gender) = 'male'
+                  AND LOWER(TRIM(u.gender)) IN ('female', 'woman', 'women', 'f')
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
@@ -243,7 +267,6 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                 LIMIT 500
             `;
         } else {
-            // Non-binary or unspecified — show all
             usersWithCoords = await prisma.$queryRaw<any[]>`
                 SELECT 
                     u.id, u.full_name, u.age, u.gender, u.avatar_url,
@@ -264,6 +287,7 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
                     WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id)
                        OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid)
                   )
+                  AND LOWER(TRIM(u.gender)) IN ('male', 'man', 'men', 'm')
                   AND (p.metadata->'location'->>'lat') IS NOT NULL
                   AND (p.metadata->'location'->>'lat') != ''
                   AND (p.metadata->'location'->>'lng') IS NOT NULL
@@ -274,8 +298,9 @@ router.get('/map-users', authenticateToken, async (req: any, res) => {
         }
 
         const connectedIds = await getConnectedUserIdSet(prisma, userId);
+        const strictlyFilteredUsers = usersWithCoords.filter(u => isCandidateOfTargetGender(u, targetGender));
 
-        const profiles = usersWithCoords.map(u => {
+        const profiles = strictlyFilteredUsers.map(u => {
             const resolvedPrivacy = u.photo_privacy || u.photo_privacy_alt || 'public';
             const isBlurred = isPhotoPrivacyShieldEnabled({ photo_privacy: u.photo_privacy, photoPrivacy: u.photo_privacy_alt }) && !connectedIds.has(u.id);
             return {
@@ -324,10 +349,13 @@ router.get('/public-preview', async (req: any, res) => {
         const lowerVal = val.toLowerCase();
         const explicitGender = req.query.gender?.toString().toLowerCase();
 
-        if (lowerCat === 'brides' || lowerCat === 'girls' || lowerCat === 'women' || lowerVal === 'brides' || lowerVal === 'girls' || lowerVal === 'women' || explicitGender === 'female') {
-            where.gender = { in: ['Female', 'female'] };
-        } else if (lowerCat === 'grooms' || lowerCat === 'boys' || lowerCat === 'men' || lowerVal === 'grooms' || lowerVal === 'boys' || lowerVal === 'men' || explicitGender === 'male') {
-            where.gender = { in: ['Male', 'male'] };
+        const isSeekingFemale = lowerCat === 'brides' || lowerCat === 'girls' || lowerCat === 'women' || lowerVal === 'brides' || lowerVal === 'girls' || lowerVal === 'women' || explicitGender === 'female';
+        const isSeekingMale = lowerCat === 'grooms' || lowerCat === 'boys' || lowerCat === 'men' || lowerVal === 'grooms' || lowerVal === 'boys' || lowerVal === 'men' || explicitGender === 'male';
+
+        if (isSeekingFemale) {
+            where.gender = { in: ['Female', 'female', 'FEMALE', 'woman', 'women'] };
+        } else if (isSeekingMale) {
+            where.gender = { in: ['Male', 'male', 'MALE', 'man', 'men'] };
         }
 
         if (category === 'location') {
@@ -409,6 +437,7 @@ router.get('/public-preview', async (req: any, res) => {
                 id: true,
                 full_name: true,
                 age: true,
+                gender: true,
                 location_name: true,
                 city: true,
                 district: true,
@@ -421,8 +450,15 @@ router.get('/public-preview', async (req: any, res) => {
             // orderBy: random? Prisma doesn't support random().
         });
 
+        // Strictly exclude opposite gender if a specific category/gender was requested
+        const strictlyFiltered = matchesDB.filter(row => {
+            if (isSeekingFemale) return isCandidateOfTargetGender(row, 'female');
+            if (isSeekingMale) return isCandidateOfTargetGender(row, 'male');
+            return true;
+        });
+
         // Randomize in JS
-        const shuffled = matchesDB.sort(() => 0.5 - Math.random());
+        const shuffled = strictlyFiltered.sort(() => 0.5 - Math.random());
 
         const matches = shuffled.map(row => {
             const meta = (row.profiles?.metadata as any) || {};
@@ -431,6 +467,7 @@ router.get('/public-preview', async (req: any, res) => {
                 id: row.id,
                 name: (row.full_name || "").split(' ')[0] + '...', // Privacy
                 age: row.age,
+                gender: row.gender || meta.gender || (isSeekingFemale ? 'Female' : 'Male'),
                 location: (() => {
                     const loc = meta.location;
                     const isObj = loc && typeof loc === 'object';
@@ -475,10 +512,12 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
         const userId = req.user.userId;
         const me = await prisma.users.findUnique({
             where: { id: userId },
-            select: { gender: true }
+            select: { gender: true, profiles: { select: { metadata: true } } }
         });
-        const myGender = (me?.gender || "").trim().toLowerCase();
-        const targetGender = myGender === 'female' ? ['Male', 'male'] : (myGender === 'male' ? ['Female', 'female'] : undefined);
+        const meMeta = (me?.profiles?.metadata as any) || {};
+        const myGender = resolveViewerGender(me, meMeta);
+        const targetGender = myGender === 'female' ? 'male' : 'female';
+        const targetGenderClause = targetGender === 'male' ? ['Male', 'male', 'MALE', 'man', 'men'] : ['Female', 'female', 'FEMALE', 'woman', 'women'];
 
         const onlineIds = getOnlineUserIds().filter(id => id !== userId).slice(0, 120);
         if (onlineIds.length === 0) {
@@ -509,7 +548,7 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
         const onlineUsersDB = await prisma.users.findMany({
             where: {
                 id: { in: eligibleOnlineIds },
-                ...(targetGender ? { gender: { in: targetGender } } : {}),
+                gender: { in: targetGenderClause },
                 is_verified: true,
                 is_banned: false,
                 full_name: { not: null },
@@ -559,7 +598,8 @@ router.get('/online-now', authenticateToken, async (req: any, res) => {
             }
         }
 
-        const onlineMembers = onlineUsersDB.map(u => {
+        const eligibleOnlineUsers = onlineUsersDB.filter(u => isCandidateOfTargetGender(u, targetGender));
+        const onlineMembers = eligibleOnlineUsers.map(u => {
             const meta = (u.profiles?.metadata as any) || {};
             const photo = sanitizePhotoUrl(u.avatar_url || (u.profiles?.photos as any)?.[0] || meta.photos?.[0], u.full_name || u.id);
             const shieldOn = isPhotoPrivacyShieldEnabled(meta);
@@ -622,8 +662,10 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
 
         if (!me) return res.status(404).json({ error: "User not found" });
 
-        const myGender = (me.gender || "").trim().toLowerCase();
-        const targetGender = myGender === 'male' ? ['Female', 'female'] : (myGender === 'female' ? ['Male', 'male'] : undefined);
+        const meMeta = (me.profiles?.metadata as any) || {};
+        const myGender = resolveViewerGender(me, meMeta);
+        const targetGender = myGender === 'female' ? 'male' : 'female';
+        const targetGenderClause = targetGender === 'male' ? ['Male', 'male', 'MALE', 'man', 'men'] : ['Female', 'female', 'FEMALE', 'woman', 'women'];
         const blockedIds = await getBlockedUserIdSet(prisma, userId);
 
         // Fetch already-interacted / connected / pending request user IDs so we don't spotlight someone already connected
@@ -669,7 +711,7 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
                 age: { gte: 18 },
                 full_name: { not: null },
                 avatar_url: { not: null },
-                ...(targetGender ? { gender: { in: targetGender } } : {}),
+                gender: { in: targetGenderClause },
                 AND: [
                     { OR: [{ is_deactivated: false }, { is_deactivated: null }, { deactivated_until: { lt: new Date() } }] }
                 ]
@@ -689,12 +731,18 @@ router.get('/ai-perfect-match', authenticateToken, async (req: any, res) => {
             return res.json({ perfectMatch: null });
         }
 
+        // Filter strictly for target gender candidates to ensure no opposite gender leakage
+        const genderMatchedCandidates = candidates.filter(c => isCandidateOfTargetGender(c, targetGender));
+        if (genderMatchedCandidates.length === 0) {
+            return res.json({ perfectMatch: null });
+        }
+
         // Filter for real photos (Soulmate pick must have a real uploaded photo, never a placeholder)
-        const validPhotoCandidates = candidates.filter(c => {
+        const validPhotoCandidates = genderMatchedCandidates.filter(c => {
             const url = c.avatar_url || '';
             return url && !url.includes('dicebear') && !url.includes('api.dicebear.com') && url.trim() !== '';
         });
-        const candidatePool = validPhotoCandidates.length >= 3 ? validPhotoCandidates : candidates;
+        const candidatePool = validPhotoCandidates.length >= 3 ? validPhotoCandidates : genderMatchedCandidates;
 
         // Score all candidates using AIMatchEngine
         const scoredCandidates: Array<{ candidate: any; analysis: any; score: number }> = [];
@@ -891,7 +939,8 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         const viewerLng = hasFreshCoordOverride ? queryLng : savedLng;
         const hasViewerCoords = Number.isFinite(viewerLat) && Number.isFinite(viewerLng) && !(viewerLat === 0 && viewerLng === 0);
 
-        const myGender = (me.gender || "").trim().toLowerCase();
+        const myGender = resolveViewerGender(me, meMeta);
+        const expectedCandidateGender: 'male' | 'female' = myGender === 'female' ? 'male' : 'female';
         // Deterministic window chunking ensures outer photo-tier sorting + outer OFFSET
         // never repeats or drops profiles across pages while keeping scans bounded at O(windowChunk).
         const windowChunk = 1200;
@@ -909,12 +958,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
             Prisma.sql`NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id = ${userId}::uuid AND b.blocked_id = u.id) OR (b.blocker_id = u.id AND b.blocked_id = ${userId}::uuid))`
         ];
 
-        if (myGender === 'male') {
-            baseConditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
-        } else if (myGender === 'female') {
-            baseConditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
+        if (myGender === 'female') {
+            baseConditions.push(Prisma.sql`LOWER(TRIM(u.gender)) IN ('male', 'man', 'men', 'm')`);
         } else {
-            baseConditions.push(Prisma.sql`u.gender IS NOT NULL`);
+            baseConditions.push(Prisma.sql`LOWER(TRIM(u.gender)) IN ('female', 'woman', 'women', 'f')`);
         }
 
         // Apply Country / International scope filter
@@ -1045,7 +1092,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
 
         // Prioritize actively online candidates of opposite gender on Page 1 (for default All scope)
         const onlineIds = (scope === 'all' && !effectiveCountryFilter) ? getOnlineUserIds().filter(id => id !== userId).slice(0, 100) : [];
-        const targetGenderClause = myGender === 'female' ? ['Male', 'male'] : (myGender === 'male' ? ['Female', 'female'] : undefined);
+        const targetGenderClause = myGender === 'female' ? ['Male', 'male', 'MALE', 'man', 'men'] : ['Female', 'female', 'FEMALE', 'woman', 'women'];
         const onlineOppositeCandidateIds = (onlineIds.length > 0 && page === 1)
             ? (await prisma.users.findMany({
                 where: {
@@ -1114,7 +1161,10 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
         // 3. Score
 
 
-        const matches = await Promise.all(shuffledCandidates.map(async c => {
+        // Strictly filter candidates to guarantee 0% opposite gender leakage
+        const strictlyFilteredCandidates = shuffledCandidates.filter(c => isCandidateOfTargetGender(c, expectedCandidateGender));
+
+        const matches = await Promise.all(strictlyFilteredCandidates.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
             const aiEngineResult = AIMatchEngine.computeMatch(me, c);
             let score = aiEngineResult.score;
@@ -1311,6 +1361,7 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 referral_code: c.referral_code || null,
                 name: c.full_name || 'Member',
                 age: c.age,
+                gender: c.gender || (meta.gender as string) || (expectedCandidateGender === 'female' ? 'Female' : 'Male'),
                 height: meta.height || "Not Specified",
                 location: locString,
                 country: metaCountry || null,
@@ -1497,15 +1548,16 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         const blockedList = Array.from(blockedSet);
 
         const meMeta: any = me.profiles?.metadata || {};
-        const myGender = (me.gender || "").trim().toLowerCase();
+        const myGender = resolveViewerGender(me, meMeta);
 
         // Target Gender Resolution:
         // By default: Always opposite gender (male -> female, female -> male)
         // If user explicitly asks for "girl/bride" or "boy/groom", respect their explicit query intent
         let targetGender = filters.targetGender;
         if (!targetGender) {
-            targetGender = (myGender === 'male') ? 'Female' : (myGender === 'female' ? 'Male' : null);
+            targetGender = (myGender === 'female') ? 'Male' : 'Female';
         }
+        const targetGenderCanonical: 'male' | 'female' = String(targetGender).toLowerCase().startsWith('m') ? 'male' : 'female';
 
         // --- 1.1 Direct Exact Profile ID / Handle / Name Search ---
         const cleanCode = (filters.exactProfileId || '').replace(/^@|^lp-?/i, '').trim();
@@ -1523,7 +1575,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                     id: blockedList.length > 0 ? { notIn: [userId, ...blockedList] } : { not: userId },
                     is_banned: false,
                     is_verified: true,
-                    ...(targetGender ? { gender: { in: [targetGender, targetGender.toLowerCase()] } } : {}),
+                    gender: { in: targetGenderCanonical === 'female' ? ['Female', 'female', 'FEMALE', 'woman', 'women'] : ['Male', 'male', 'MALE', 'man', 'men'] },
                     AND: [
                         { OR: [{ is_deactivated: false }, { deactivated_until: { lte: new Date() } }] },
                         {
@@ -1585,8 +1637,11 @@ router.post('/search', authenticateToken, async (req: any, res) => {
         ];
 
         // Target Gender SQL Condition
-        if (targetGender === 'Female') conditions.push(Prisma.sql`u.gender IN ('Female', 'female')`);
-        else if (targetGender === 'Male') conditions.push(Prisma.sql`u.gender IN ('Male', 'male')`);
+        if (targetGenderCanonical === 'female') {
+            conditions.push(Prisma.sql`LOWER(TRIM(u.gender)) IN ('female', 'woman', 'women', 'f')`);
+        } else {
+            conditions.push(Prisma.sql`LOWER(TRIM(u.gender)) IN ('male', 'man', 'men', 'm')`);
+        }
 
         // Age
         if (filters.minAge) conditions.push(Prisma.sql`u.age >= ${parseInt(filters.minAge)}`);
@@ -1730,7 +1785,8 @@ router.post('/search', authenticateToken, async (req: any, res) => {
             acceptedInteractions.flatMap(i => [i.from_user_id, i.to_user_id]).filter(id => id !== userId)
         );
 
-        const scoredMatchesArray = await Promise.all(rows.map(async c => {
+        const strictlyFilteredRows = rows.filter(c => isCandidateOfTargetGender(c, targetGenderCanonical));
+        const scoredMatchesArray = await Promise.all(strictlyFilteredRows.map(async c => {
             const meta = (c.profiles?.metadata as any) || {};
             // ... [Logic reused from original, copied below] ...
             // Safe Location Access
@@ -1929,7 +1985,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 referral_code: c.referral_code || null,
                 name: c.full_name || 'Member',
                 age: c.age,
-                gender: c.gender,
+                gender: c.gender || (meta.gender as string) || (targetGenderCanonical === 'female' ? 'Female' : 'Male'),
                 height: meta.height || "Not Specified",
                 location: locString,
                 location_data: metaLoc || null,
@@ -2032,7 +2088,7 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 referral_code: c.referral_code || null,
                 name: c.full_name || 'Member',
                 age: c.age,
-                gender: c.gender,
+                gender: c.gender || (meta.gender as string) || (targetGenderCanonical === 'female' ? 'Female' : 'Male'),
                 height: meta.height || "Not Specified",
                 location: locString,
                 location_data: meta.location || null,

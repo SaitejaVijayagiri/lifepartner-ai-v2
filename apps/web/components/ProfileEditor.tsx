@@ -687,15 +687,15 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
                     <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 uppercase tracking-wide">Basic Information</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input label="Full Name" value={formData.name || ''} onChange={e => handleChange('root', 'name', e.target.value)} />
-                        {/* Gender Selector (Locked) */}
+                        {/* Gender Selector */}
                         <div className="space-y-1">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
-                                Gender <span className="text-[10px] text-gray-400 font-normal">(Contact support to change)</span>
+                                Gender <span className="text-rose-500">*</span>
                             </label>
                             <select
-                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed"
+                                className="w-full h-10 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-indigo-500"
                                 value={formData.gender || ''}
-                                disabled
+                                onChange={e => handleChange('root', 'gender', e.target.value)}
                             >
                                 <option value="">Select Gender</option>
                                 <option value="Male">Male</option>

@@ -690,7 +690,7 @@ const FEMALE_FIRST_NAMES = new Set([
     'shreya', 'deepa', 'meera', 'anjali', 'deepika', 'sunita', 'radhika', 'tanvi', 'sakshi', 'aishwarya', 'anita',
     'geeta', 'seema', 'rekha', 'kavita', 'komal', 'monika', 'payal', 'shruti', 'simran', 'preeti', 'khushi', 'isha',
     'riya', 'rhea', 'sonia', 'tanya', 'vani', 'shweta', 'pallavi', 'rashmi', 'richa', 'nandini', 'sanya', 'alisha',
-    'madhuri', 'bhavna', 'megha', 'vidya', 'jyoti', 'laxmi', 'lakshmi', 'arti', 'aarti', 'neetu', 'sunayana', 'kiran',
+    'madhuri', 'bhavna', 'megha', 'vidya', 'jyoti', 'laxmi', 'lakshmi', 'arti', 'aarti', 'neetu', 'sunayana',
     'harika', 'niharika', 'keerthana', 'amrita', 'amulya', 'chetna', 'archna', 'bhavi', 'suhani', 'ria', 'krithi',
     'monalisha', 'sheriya', 'ankita', 'tanu', 'tanishka', 'lucy', 'sofia', 'sadaf', 'swetha', 'parul', 'ramya',
     'soumya', 'shagun', 'aastha', 'sobika', 'rajnandini', 'saba', 'fatima', 'aisha', 'zoya', 'sarah', 'sara',
@@ -700,7 +700,8 @@ const FEMALE_FIRST_NAMES = new Set([
 function isClearlyFemaleName(name?: string | null): boolean {
     if (!name) return false;
     const tokens = name.trim().toLowerCase().split(/\s+/).map(t => t.replace(/[^a-z]/g, ''));
-    return tokens.some(t => FEMALE_FIRST_NAMES.has(t));
+    const cleanTokens = tokens.filter(Boolean);
+    return cleanTokens.length > 0 && FEMALE_FIRST_NAMES.has(cleanTokens[0]);
 }
 
 router.post('/google', async (req, res) => {
@@ -770,7 +771,9 @@ router.post('/google', async (req, res) => {
 
             // Name-based safety check to prevent female users from staying misclassified as Male
             const nameIsFemale = isClearlyFemaleName(name) || isClearlyFemaleName(user.full_name);
-            const finalGender = nameIsFemale ? 'Female' : (user.gender || cleanGoogleGender || undefined);
+            // NEVER overwrite an existing user gender!
+            const existingGender = user.gender;
+            const finalGender = existingGender || cleanGoogleGender || (nameIsFemale ? 'Female' : undefined);
             const isFemale = finalGender === 'Female';
 
             // Update existing
@@ -823,7 +826,8 @@ router.post('/google', async (req, res) => {
         } else {
             // Create new
             const nameIsFemale = isClearlyFemaleName(name);
-            const resolvedGender = nameIsFemale ? 'Female' : (cleanGoogleGender || null);
+            // Explicit user choice from UI takes precedence over name guessing
+            const resolvedGender = cleanGoogleGender || (nameIsFemale ? 'Female' : null);
             const isFemale = resolvedGender === 'Female';
             const baseName = String(name || 'LP').replace(/[^a-zA-Z]/g, '').substring(0, 4).toUpperCase() || 'LP';
             const myReferralCode = `${baseName}${Math.floor(1000 + Math.random() * 9000)}`;

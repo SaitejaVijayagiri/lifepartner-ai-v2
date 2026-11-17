@@ -858,9 +858,10 @@ router.put('/me', authenticateToken, async (req: any, res) => {
         } = req.body;
 
         // Normalize incoming gender and allow setting/correcting it during onboarding
-        const normalizedGender = gender
-            ? (String(gender).trim().toLowerCase() === 'female' ? 'Female' : (String(gender).trim().toLowerCase() === 'male' ? 'Male' : undefined))
-            : undefined;
+        const gLower = gender ? String(gender).trim().toLowerCase() : '';
+        const normalizedGender = (gLower === 'female' || gLower === 'woman' || gLower === 'women' || gLower === 'f')
+            ? 'Female'
+            : ((gLower === 'male' || gLower === 'man' || gLower === 'men' || gLower === 'm') ? 'Male' : undefined);
         let finalGender = normalizedGender || existingUser?.gender || undefined;
         // Preserve existing Female status if no explicit gender was sent in a partial profile update
         if (!normalizedGender && existingUser?.gender) {

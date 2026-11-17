@@ -512,6 +512,22 @@ export default function MatchesTab({
             ? baseMatches.filter(m => m && (m.stories || []).some((s: any) => s.isHighlight))
             : baseMatches;
 
+        // Strict Client-Side Gender Safety Guard: Never leak same-gender profiles into the feed
+        const userGender = String(currentUser?.gender || currentUser?.metadata?.gender || '').trim().toLowerCase();
+        const expectedOppositeGender = (userGender === 'female' || userGender === 'woman' || userGender === 'women' || userGender === 'f') ? 'male' : 'female';
+        if (userGender) {
+            filtered = filtered.filter(m => {
+                if (!m) return false;
+                const mGender = String(m.gender || m.metadata?.gender || '').trim().toLowerCase();
+                if (expectedOppositeGender === 'female') {
+                    if (mGender === 'male' || mGender === 'man' || mGender === 'men' || mGender === 'm') return false;
+                } else if (expectedOppositeGender === 'male') {
+                    if (mGender === 'female' || mGender === 'woman' || mGender === 'women' || mGender === 'f') return false;
+                }
+                return true;
+            });
+        }
+
         if (showOnlineOnly) {
             filtered = filtered.filter(m => Boolean((m?.id && onlineSet.has(m.id)) || m?.isOnline));
         }

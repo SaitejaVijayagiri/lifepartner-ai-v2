@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { api } from '@/lib/api';
 import GameModal from './GameModal';
 import { useSocket } from '@/context/SocketContext';
@@ -18,6 +18,7 @@ import RewardedAdModal from './RewardedAdModal';
 import { isMediaUnlocked } from '@/lib/adRewards';
 import { useToast } from '@/components/ui/Toast';
 import { filterActive24hStories } from '@/lib/utils';
+import { useVisualViewport } from '@/lib/useVisualViewport';
 
 interface ChatWindowProps {
     connectionId: string;
@@ -841,6 +842,55 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
     const attachmentMenuRef = useRef<HTMLDivElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout>();
     const lastEmitTypingRef = useRef<number>(0);
+
+    const { isMobile, isKeyboardOpen, viewportHeight, viewportTop } = useVisualViewport();
+
+    // Dynamically dock chat window onto the visual viewport so the mobile virtual keyboard NEVER hides input or typed text
+    const mobileViewportStyle = useMemo<React.CSSProperties>(() => {
+        if (isCallMode) return {};
+        if (isMobile && viewportHeight > 0) {
+            return {
+                position: 'fixed',
+                top: `${viewportTop}px`,
+                left: 0,
+                right: 0,
+                height: `${viewportHeight}px`,
+                maxHeight: `${viewportHeight}px`,
+                bottom: 'auto',
+                zIndex: 2000,
+            };
+        }
+        return {};
+    }, [isMobile, viewportHeight, viewportTop, isCallMode]);
+
+    // Prevent background page bouncing/scrolling behind mobile chat modal
+    useEffect(() => {
+        if (typeof window === 'undefined' || !isMobile || isCallMode) return;
+        const originalOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalOverflow;
+        };
+    }, [isMobile, isCallMode]);
+
+    // Keep chat scrolled to the bottom whenever mobile keyboard opens or viewport resizes
+    useEffect(() => {
+        if (!isMobile || !isKeyboardOpen || !scrollRef.current) return;
+        const timer1 = setTimeout(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
+        }, 60);
+        const timer2 = setTimeout(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }
+        }, 280);
+        return () => {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+        };
+    }, [isMobile, isKeyboardOpen]);
     const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<string | null>(null);
     const [stagedFile, setStagedFile] = useState<File | null>(null);
     const [stagedPreviewUrl, setStagedPreviewUrl] = useState<string | null>(null);
@@ -1992,7 +2042,10 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
     };
 
     return (
-        <div className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in fade-in zoom-in-95 duration-200"}>
+        <div 
+            style={mobileViewportStyle}
+            className={className || "fixed inset-0 w-full h-[100dvh] md:inset-auto md:h-[600px] md:w-[400px] md:bottom-4 md:right-4 bg-white dark:bg-gray-900 md:rounded-3xl rounded-none shadow-2xl flex flex-col border border-gray-100 dark:border-gray-800 overflow-hidden z-[2000] animate-in fade-in zoom-in-95 duration-200"}
+        >
             <style>{`
                 @keyframes wiggle {
                     0%, 100% { transform: rotate(0deg); }
@@ -2305,7 +2358,9 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
             )}
 
             {/* Messages - Premium Design */}
-            <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 pb-12 space-y-3 transition-colors duration-300 ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 transition-colors duration-300 ${
+                isKeyboardOpen ? 'pb-3' : 'pb-8 sm:pb-12'
+            } ${isIncognito ? 'bg-slate-950 text-purple-100' : 'bg-gradient-to-b from-slate-50 to-gray-50 dark:from-gray-950 dark:to-gray-900'}`} ref={scrollRef}>
                 {loadingHistory && messages.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 space-y-3">
                         <RotateCw size={22} className="animate-spin text-purple-500/70" />
@@ -3254,7 +3309,9 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                     if (isUploadingMedia || isSendingMediaRef.current) return;
                     handleSend(e);
                 }}
-                className="p-2 sm:p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-1.5 sm:gap-2 items-center pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))] relative"
+                className={`p-2 sm:p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-1.5 sm:gap-2 items-center relative transition-all duration-150 ${
+                    isKeyboardOpen ? 'pb-2 sm:pb-3' : 'pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[max(1rem,env(safe-area-inset-bottom))]'
+                }`}
             >
                 {showStickers && (
                     <StickerPicker
@@ -3413,8 +3470,26 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                     value={inputText}
                     onChange={handleInput}
                     disabled={isUploadingMedia}
+                    enterKeyHint="send"
+                    autoComplete="off"
+                    onFocus={() => {
+                        if (typeof window !== 'undefined') {
+                            window.scrollTo(0, 0);
+                            document.body.scrollTop = 0;
+                        }
+                        setTimeout(() => {
+                            if (scrollRef.current) {
+                                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                            }
+                        }, 80);
+                        setTimeout(() => {
+                            if (scrollRef.current) {
+                                scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                            }
+                        }, 300);
+                    }}
                     placeholder={isIncognito ? "⏳ Type a message (disappears in 24 hours)..." : (replyTo ? `Reply to ${replyTo.senderName}...` : "Type...")}
-                    className={`flex-1 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-sm min-w-0 focus:outline-none transition-all ${
+                    className={`flex-1 rounded-full sm:rounded-2xl px-3 py-2 sm:px-5 sm:py-3 text-base sm:text-sm min-w-0 focus:outline-none transition-all ${
                         isIncognito
                             ? 'bg-slate-900 border border-purple-500/50 text-purple-100 placeholder:text-purple-400/60 focus:ring-2 focus:ring-purple-500/30 font-medium'
                             : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500/20'

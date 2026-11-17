@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Outfit, Playfair_Display, Roboto_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -145,13 +145,14 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#4F46E5",
   userScalable: false,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

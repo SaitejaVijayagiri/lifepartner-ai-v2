@@ -7,6 +7,7 @@ import ReportModal from './ReportModal';
 import { api } from '@/lib/api';
 import VerificationBadge from './VerificationBadge';
 import { isProfilePhotoBlurred } from '@/lib/utils';
+import { useVisualViewport } from '@/lib/useVisualViewport';
 
 export default function CommunityChat({ 
     currentUser, 
@@ -38,6 +39,7 @@ export default function CommunityChat({
     const blockedUserIdsRef = useRef<Set<string>>(new Set());
     const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const { isMobile, isKeyboardOpen, viewportHeight, viewportTop } = useVisualViewport();
 
     useEffect(() => {
         blockedUserIdsRef.current = new Set(blockedUserIds);
@@ -230,7 +232,13 @@ export default function CommunityChat({
     }
 
     return (
-        <div className={`transition-all duration-300 flex flex-col ${
+        <div 
+            style={(isFullscreen || isMobile) && viewportHeight > 0 ? {
+                height: `${viewportHeight}px`,
+                maxHeight: `${viewportHeight}px`,
+                ...(isFullscreen ? { top: `${viewportTop}px` } : {})
+            } : undefined}
+            className={`transition-all duration-300 flex flex-col ${
             isFullscreen
                 ? 'fixed inset-0 z-[2200] w-screen h-[100dvh] max-h-[100dvh] bg-white dark:bg-gray-950 rounded-none border-0 shadow-none'
                 : 'relative w-full h-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800'
@@ -360,13 +368,24 @@ export default function CommunityChat({
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={handleSend} className="p-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:pb-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10">
+                    <form onSubmit={handleSend} className={`p-3 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex gap-2 shrink-0 z-10 ${isKeyboardOpen ? 'pb-2' : 'pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:pb-3'}`}>
                         <input
                             type="text"
                             value={inputText}
                             onChange={(e) => setInputText(e.target.value)}
+                            enterKeyHint="send"
+                            autoComplete="off"
+                            onFocus={() => {
+                                if (typeof window !== 'undefined') {
+                                    window.scrollTo(0, 0);
+                                    document.body.scrollTop = 0;
+                                }
+                                setTimeout(() => {
+                                    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                                }, 80);
+                            }}
                             placeholder="Type a message..."
-                            className="flex-1 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border border-transparent dark:border-gray-700 focus:border-indigo-200 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
+                            className="flex-1 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-white rounded-full px-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 border border-transparent dark:border-gray-700 focus:border-indigo-200 dark:focus:border-indigo-500 transition-all placeholder:text-gray-400 dark:placeholder-gray-500"
                         />
                         <button
                             type="submit"

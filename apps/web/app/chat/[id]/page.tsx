@@ -132,7 +132,7 @@ function ChatContent() {
     if (!connectionId) return <div className="h-[100dvh] flex items-center justify-center dark:bg-gray-950 dark:text-white">Invalid Chat</div>;
 
     return (
-        <div className="h-[100dvh] w-full bg-slate-100 dark:bg-gray-950 flex items-center justify-center p-0 md:p-4">
+        <div className="fixed inset-0 w-full bg-slate-100 dark:bg-gray-950 flex flex-col md:items-center md:justify-center p-0 md:p-4 overflow-hidden">
             <ChatWindow
                 connectionId={connectionId}
                 partner={partner}

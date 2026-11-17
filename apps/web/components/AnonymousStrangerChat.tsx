@@ -6,6 +6,7 @@ import { useSocket } from '@/context/SocketContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import ReportModal from './ReportModal';
+import { useVisualViewport } from '@/lib/useVisualViewport';
 
 interface AnonymousPartner {
     id: string;
@@ -45,10 +46,18 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
     const [showReportModal, setShowReportModal] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { isMobile, isKeyboardOpen, viewportHeight, viewportTop } = useVisualViewport();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    useEffect(() => {
+        if (isKeyboardOpen) {
+            setTimeout(scrollToBottom, 80);
+            setTimeout(scrollToBottom, 250);
+        }
+    }, [isKeyboardOpen]);
 
     useEffect(() => {
         scrollToBottom();
@@ -263,7 +272,19 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
 
     return (
         <div className="fixed inset-0 z-[999999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-4 animate-in fade-in duration-300">
-            <div className="w-full max-w-xl bg-slate-900 border border-indigo-500/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[90vh] sm:h-[85vh] relative">
+            <div 
+                style={isMobile && viewportHeight > 0 ? {
+                    height: `${viewportHeight}px`,
+                    maxHeight: `${viewportHeight}px`,
+                    top: `${viewportTop}px`,
+                    position: 'fixed',
+                    left: 0,
+                    right: 0,
+                    bottom: 'auto',
+                    borderRadius: 0,
+                } : undefined}
+                className="w-full max-w-xl bg-slate-900 border border-indigo-500/30 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[90vh] sm:h-[85vh] relative"
+            >
 
                 {/* HEADER BAR */}
                 <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 border-b border-indigo-500/20 flex items-center justify-between z-10 shrink-0">
@@ -461,8 +482,18 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
                                 type="text"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
+                                enterKeyHint="send"
+                                autoComplete="off"
+                                onFocus={() => {
+                                    if (typeof window !== 'undefined') {
+                                        window.scrollTo(0, 0);
+                                        document.body.scrollTop = 0;
+                                    }
+                                    setTimeout(scrollToBottom, 80);
+                                    setTimeout(scrollToBottom, 300);
+                                }}
                                 placeholder="Type a message to stranger..."
-                                className="flex-1 bg-slate-800 border border-white/15 rounded-2xl px-4 py-2.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition-all"
+                                className="flex-1 bg-slate-800 border border-white/15 rounded-2xl px-4 py-2.5 text-base sm:text-sm text-white placeholder-gray-400 focus:outline-none focus:border-indigo-500 transition-all"
                             />
                             <button
                                 type="submit"

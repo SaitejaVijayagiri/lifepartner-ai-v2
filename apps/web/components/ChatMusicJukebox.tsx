@@ -596,7 +596,7 @@ export default function ChatMusicJukebox({
                             placeholder="Search any song or video to vibe with in chat..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full bg-gray-100/90 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl pl-11 pr-11 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:bg-white dark:focus:bg-slate-900 transition-colors shadow-inner"
+                            className="w-full bg-gray-100/90 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl pl-11 pr-11 py-2.5 text-base sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-pink-500 focus:bg-white dark:focus:bg-slate-900 transition-colors shadow-inner"
                         />
                         {isSearching && <Loader2 className="w-5 h-5 text-pink-500 animate-spin absolute right-3.5 top-2.5" />}
                     </div>

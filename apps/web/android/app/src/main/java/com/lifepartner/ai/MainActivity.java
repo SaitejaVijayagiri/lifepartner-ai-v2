@@ -795,7 +795,7 @@ public class MainActivity extends BridgeActivity {
                 android.webkit.WebSettings settings = webView.getSettings();
                 String ua = settings.getUserAgentString();
                 if (!ua.contains("LifePartnerApp")) {
-                    settings.setUserAgentString(ua + " LifePartnerApp/1.0.8 CapacitorApp NativeAndroidApp");
+                    settings.setUserAgentString(ua + " LifePartnerApp/1.0.9 CapacitorApp NativeAndroidApp");
                 }
 
                 // Smooth Native App rendering optimizations (disables web bounce and scrollbars)

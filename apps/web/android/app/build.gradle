@@ -15,8 +15,8 @@ android {
         applicationId "com.lifepartner.ai"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 9
-        versionName "1.0.8"
+        versionCode 10
+        versionName "1.0.9"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Inject API base URL into BuildConfig so Java code connects to the active production backend

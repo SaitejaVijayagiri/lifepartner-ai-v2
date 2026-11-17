@@ -438,9 +438,13 @@ html, body {
   -webkit-touch-callout: default !important;
 }
 
-/* Hide website download banners and modals when running inside the native app */
+/* Hide website download banners, modals, and web landing page when running inside the native app */
 [data-capacitor="true"] .hide-in-native-app,
-.native-app-mode .hide-in-native-app {
+.native-app-mode .hide-in-native-app,
+[data-capacitor="true"] #landing-page-root,
+.native-app-mode #landing-page-root,
+[data-capacitor="true"] .web-landing-page,
+.native-app-mode .web-landing-page {
   display: none !important;
 }
 

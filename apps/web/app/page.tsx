@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
 import LandingPageClient from '@/components/LandingPageClient';
+import NativeAppGate from '@/components/NativeAppGate';
 
 // 1. GENERATE METADATA FOR GLOBAL BROWSER RANKINGS (Server Side)
 export const metadata: Metadata = {
@@ -86,7 +88,24 @@ export const metadata: Metadata = {
   }
 };
 
-export default function LandingPage() {
+export default function LandingPage({
+  searchParams
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  let isNativeApp = false;
+  try {
+    const headersList = headers();
+    const userAgent = headersList.get('user-agent') || '';
+    isNativeApp =
+      searchParams?.app === 'native' ||
+      searchParams?.mode === 'standalone' ||
+      /LifePartnerApp|Capacitor/i.test(userAgent);
+  } catch (_) {}
+
+  if (isNativeApp) {
+    return <NativeAppGate />;
+  }
   // 3. JSON-LD SCHEMA (Structured Data for Search Crawlers)
   const jsonLdOrg = {
     "@context": "https://schema.org",

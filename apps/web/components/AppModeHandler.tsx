@@ -31,9 +31,6 @@ export default function AppModeHandler() {
       if (token && userId) {
         console.log('[AppModeHandler] Installed App launched - Redirecting logged-in user to /dashboard');
         router.replace('/dashboard');
-      } else if (pathname === '/' || pathname === '') {
-        console.log('[AppModeHandler] Installed App launched - Redirecting unauthenticated user to /register');
-        router.replace('/register');
       }
     }
 

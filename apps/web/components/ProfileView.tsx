@@ -317,7 +317,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                     }
 
                                     return (
-                                        <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2 px-1">
+                                        <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth touch-pan-x overscroll-x-contain">
                                             {highlightedStories.map((hStory: any, idx: number) => (
                                                 <div
                                                     key={hStory.id || idx}
@@ -334,7 +334,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                         });
                                                     }}
                                                 >
-                                                    <div className="relative w-18 h-18 sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 active:scale-95 transition-all">
+                                                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 shadow-md group-hover:scale-105 active:scale-95 transition-all">
                                                         <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-900 overflow-hidden shadow-inner">
                                                             {hStory.type === 'video' ? (
                                                                 <video src={hStory.url} className="w-full h-full object-cover" muted playsInline />
@@ -397,7 +397,7 @@ export default function ProfileView({ profile, onEdit }: ProfileViewProps) {
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[76px] text-center tracking-tight">
+                                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 truncate max-w-[64px] sm:max-w-[76px] text-center tracking-tight text-[10px] sm:text-[11px]">
                                                         {hStory.caption || hStory.title || `Moment ${idx + 1}`}
                                                     </span>
                                                 </div>

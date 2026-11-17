@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Volume2, VolumeX, Trash2, X, ChevronLeft, ChevronRight, Heart, Send, MessageCircle, Eye, Star, MapPin, MessageSquareText, Hourglass, Camera, AtSign, Hash, Clock, Lock } from 'lucide-react';
 import { api } from '@/lib/api';
-import { getProfilePhotoUrl, filterActiveStories, isStoryActive, isProfilePhotoBlurred } from '@/lib/utils';
+import { getProfilePhotoUrl, filterActiveStories, isStoryActive, isStoryHighlight, isProfilePhotoBlurred } from '@/lib/utils';
 import { useSocket } from '@/context/SocketContext';
 import StoryMusicSticker from './StoryMusicSticker';
 import { MUSIC_CATALOG } from './StoryMusicStudio';
@@ -411,7 +411,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
 
     const modalMarkup = (
         <div
-            className="fixed inset-0 z-[99999] bg-black w-screen h-screen w-full h-full min-h-[100vh] flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200"
+            className="fixed inset-0 z-[99999] bg-black w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden select-none animate-in fade-in duration-200"
             onClick={() => {
                 if (audioRef.current && audioRef.current.paused) {
                     audioRef.current.play().catch(() => {});
@@ -474,7 +474,14 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                                     )}
                                 </div>
                                 <div className="text-white text-left">
-                                    <span className="font-bold text-sm drop-shadow-md block group-hover/header:underline">{displayName}</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-sm drop-shadow-md block group-hover/header:underline">{displayName}</span>
+                                        {isStoryHighlight(story) && (
+                                            <span className="inline-flex items-center gap-0.5 bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-sm">
+                                                ⭐ Highlight
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-1 text-xs text-white/70">
                                         <span>{new Date(story.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                         <span>•</span>
@@ -573,7 +580,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                     )}
 
                     {/* Centered Media Container */}
-                    <div className="relative w-full max-w-[500px] h-full flex items-center justify-center">
+                    <div className="relative w-full max-w-[500px] h-full flex items-center justify-center px-1 sm:px-4 pt-[max(4.5rem,calc(env(safe-area-inset-top,0px)+3.8rem))] pb-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.8rem))]">
                         {story.type === 'video' ? (
                             <video
                                 ref={videoRef}
@@ -829,7 +836,7 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
                 {/* Bottom Actions (for other users' stories) */}
                 {!isOwner && (
                     <div 
-                        className="absolute bottom-6 left-4 right-4 z-30"
+                        className="absolute bottom-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] left-4 right-4 z-30"
                         onPointerDown={(e) => e.stopPropagation()}
                         onPointerUp={(e) => e.stopPropagation()}
                         onTouchStart={(e) => e.stopPropagation()}
@@ -897,22 +904,29 @@ const StoryModal = ({ stories = [], initialIndex = 0, user, onClose, currentUser
 
                 {/* Bottom Actions (for own stories) */}
                 {isOwner && (
-                    <div className="absolute bottom-6 left-4 right-4 z-30 flex justify-between items-center gap-3">
-                        {/* Expiry Badge */}
-                        <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md text-white/80 px-4 py-2.5 rounded-full border border-white/10 text-xs font-semibold shadow-lg">
-                            <span>⏳</span>
-                            <span>
-                                {(() => {
-                                    const exp = (story as any).expiresAt;
-                                    if (!exp) return 'Expires in 24h';
-                                    const ms = new Date(exp).getTime() - Date.now();
-                                    if (ms <= 0) return 'Expired';
-                                    const h = Math.floor(ms / 3600000);
-                                    const m = Math.floor((ms % 3600000) / 60000);
-                                    return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
-                                })()}
-                            </span>
-                        </div>
+                    <div className="absolute bottom-[max(1.5rem,calc(env(safe-area-inset-bottom,0px)+0.75rem))] left-4 right-4 z-30 flex justify-between items-center gap-3">
+                        {/* Expiry / Permanent Highlight Badge */}
+                        {isStoryHighlight(story) ? (
+                            <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-600/20 backdrop-blur-md text-amber-300 px-4 py-2 rounded-full border border-amber-400/40 text-xs font-bold shadow-lg">
+                                <span>⭐</span>
+                                <span>Permanent Highlight</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md text-white/80 px-4 py-2.5 rounded-full border border-white/10 text-xs font-semibold shadow-lg">
+                                <span>⏳</span>
+                                <span>
+                                    {(() => {
+                                        const exp = (story as any).expiresAt;
+                                        if (!exp) return 'Expires in 24h';
+                                        const ms = new Date(exp).getTime() - Date.now();
+                                        if (ms <= 0) return 'Expired';
+                                        const h = Math.floor(ms / 3600000);
+                                        const m = Math.floor((ms % 3600000) / 60000);
+                                        return h > 0 ? `${h}h ${m}m left` : `${m}m left`;
+                                    })()}
+                                </span>
+                            </div>
+                        )}
 
                         {/* Views Button */}
                         <button 

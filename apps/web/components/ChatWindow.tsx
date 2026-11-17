@@ -2058,7 +2058,7 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
             `}</style>
             {/* Premium Header */}
             {!isCallMode && (
-                <div className={`pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.875rem))] p-3.5 sm:p-4 text-white flex justify-between items-center relative z-50 flex-shrink-0 transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
+                <div className={`${isKeyboardOpen ? 'pt-2 pb-2 px-3 sm:px-4' : 'pt-[max(0.875rem,calc(env(safe-area-inset-top,0px)+0.875rem))] p-3.5 sm:p-4'} text-white flex justify-between items-center relative z-50 flex-shrink-0 transition-all duration-300 ${isIncognito ? 'bg-gradient-to-r from-purple-950 via-slate-950 to-purple-950 border-b border-purple-500/40 shadow-xl' : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700'}`}>
                     {/* Decorative elements */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -2078,9 +2078,9 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                                     <div className={
                                         hasPartnerStories
                                             ? isPartnerStoriesViewed
-                                                ? 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2.5px] bg-slate-300 dark:bg-slate-700 transition-all'
-                                                : 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2.5px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-md shadow-orange-500/30 animate-pulse transition-all'
-                                            : 'w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500'
+                                                ? `${isKeyboardOpen ? 'w-8 h-8' : 'w-10 h-10 sm:w-12 sm:h-12'} rounded-full p-[2px] bg-slate-300 dark:bg-slate-700 transition-all`
+                                                : `${isKeyboardOpen ? 'w-8 h-8' : 'w-10 h-10 sm:w-12 sm:h-12'} rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 shadow-md shadow-orange-500/30 animate-pulse transition-all`
+                                            : `${isKeyboardOpen ? 'w-8 h-8' : 'w-10 h-10 sm:w-12 sm:h-12'} rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-yellow-500 transition-all`
                                     }>
                                         <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-800">
                                             <img src={partnerInfo.photoUrl} className="w-full h-full rounded-full object-cover shrink-0" onError={(e) => {
@@ -2103,7 +2103,7 @@ export default function ChatWindow({ connectionId, partner, initialMessage, onCl
                             })()}
                         </div>
                         <div className="min-w-0 flex-1">
-                            <h3 className="font-extrabold text-base sm:text-lg leading-tight truncate text-white drop-shadow-sm">{partnerInfo.name}</h3>
+                            <h3 className={`font-extrabold ${isKeyboardOpen ? 'text-sm sm:text-base' : 'text-base sm:text-lg'} leading-tight truncate text-white drop-shadow-sm transition-all`}>{partnerInfo.name}</h3>
                             <div className="text-[11px] sm:text-xs text-white/80 flex items-center gap-1.5 flex-wrap">
                                 {(() => {
                                     const partnerActualId = partnerInfo?.id || partner?.id || (partner as any)?.userId || (partner as any)?.user_id;

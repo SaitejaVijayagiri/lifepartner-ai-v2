@@ -244,7 +244,7 @@ export default function CommunityChat({
                 : 'relative w-full h-full bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-800'
         } animate-in fade-in duration-300`}>
             {/* Header */}
-            <div className="p-3.5 sm:p-4 bg-gradient-to-r from-indigo-900 via-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0">
+            <div className={`${isKeyboardOpen ? 'p-2 px-3.5' : 'p-3.5 sm:p-4'} bg-gradient-to-r from-indigo-900 via-indigo-900 to-purple-900 text-white flex justify-between items-center shrink-0 transition-all`}>
                 <div className="flex items-center gap-3">
                     <div className="bg-white/10 p-2 rounded-xl backdrop-blur-md border border-white/10">
                         <ShieldCheck size={22} className="text-blue-300" />

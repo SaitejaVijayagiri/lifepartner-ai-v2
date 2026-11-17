@@ -287,13 +287,13 @@ export default function AnonymousStrangerChat({ onClose }: AnonymousStrangerChat
             >
 
                 {/* HEADER BAR */}
-                <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 border-b border-indigo-500/20 flex items-center justify-between z-10 shrink-0">
+                <div className={`bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 ${isKeyboardOpen ? 'p-2 px-3.5' : 'p-4'} border-b border-indigo-500/20 flex items-center justify-between z-10 shrink-0 transition-all`}>
                     <div className="flex items-center gap-3">
                         <div className="relative">
                             <img
                                 src={partner?.photoUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=anonymous`}
                                 alt="Partner"
-                                className="w-11 h-11 rounded-full object-cover border-2 border-indigo-500/40 bg-indigo-950"
+                                className={`${isKeyboardOpen ? 'w-8 h-8' : 'w-11 h-11'} rounded-full object-cover border-2 border-indigo-500/40 bg-indigo-950 transition-all`}
                             />
                             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full"></div>
                         </div>

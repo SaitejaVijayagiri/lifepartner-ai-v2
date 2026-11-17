@@ -197,35 +197,34 @@ export class AIMatchEngine {
         }
 
         // Vedic Astrology Guna Milan
-        const nakshatraA = metaA.horoscope?.nakshatra || metaA.astrology?.nakshatra;
-        const nakshatraB = metaB.horoscope?.nakshatra || metaB.astrology?.nakshatra;
-        if (nakshatraA && nakshatraB) {
-            try {
-                const gunaResult = astrologyService.calculateCompatibility(nakshatraA, nakshatraB);
-                if (gunaResult && gunaResult.score) {
-                    const normalizedGuna = Math.round((gunaResult.score / 36) * 100);
-                    cosmicScore = Math.round((cosmicScore * 0.4) + (normalizedGuna * 0.6));
-                    reasons.push(`⭐ Vedic Kundli: ${gunaResult.score}/36 Gunas`);
-                    if (gunaResult.score >= 21) {
-                        strengths.push(`Auspicious Vedic compatibility (${gunaResult.score}/36 Guna Milan)`);
-                    }
+        try {
+            const gunaResult = astrologyService.calculateCompatibility(
+                { id: userA.id, full_name: userA.full_name, dob: metaA.dob, horoscope: metaA.horoscope },
+                { id: userB.id, full_name: userB.full_name, dob: metaB.dob, horoscope: metaB.horoscope }
+            );
+            if (gunaResult && typeof gunaResult.score === 'number') {
+                const normalizedGuna = Math.round((gunaResult.score / 36) * 100);
+                cosmicScore = Math.round((cosmicScore * 0.35) + (normalizedGuna * 0.65));
+                reasons.push(`⭐ Vedic Kundli: ${gunaResult.score}/36 Gunas`);
+                if (gunaResult.score >= 21) {
+                    strengths.push(`Auspicious Vedic compatibility (${gunaResult.score}/36 Guna Milan)`);
                 }
-            } catch (e) {
-                // Soft fallback
             }
-        } else {
-            // Western Zodiac Elemental Synergy
-            const signA = (metaA.horoscope?.zodiacSign || metaA.astrology?.zodiac || '').toLowerCase().trim();
-            const signB = (metaB.horoscope?.zodiacSign || metaB.astrology?.zodiac || '').toLowerCase().trim();
-            const elemA = ZODIAC_ELEMENTS[signA];
-            const elemB = ZODIAC_ELEMENTS[signB];
-            if (elemA && elemB) {
-                const elemScore = ELEMENT_HARMONY[elemA]?.[elemB] || 75;
-                cosmicScore = Math.round((cosmicScore * 0.4) + (elemScore * 0.6));
-                if (elemScore >= 85) {
-                    reasons.push(`✨ Cosmic Elemental Synergy (${elemA} + ${elemB})`);
-                    strengths.push(`Harmonious elemental astrological connection (${elemA} & ${elemB})`);
-                }
+        } catch (e) {
+            // Soft fallback
+        }
+
+        // Western Zodiac Elemental Synergy
+        const signA = (metaA.horoscope?.zodiacSign || metaA.astrology?.zodiac || '').toLowerCase().trim();
+        const signB = (metaB.horoscope?.zodiacSign || metaB.astrology?.zodiac || '').toLowerCase().trim();
+        const elemA = ZODIAC_ELEMENTS[signA];
+        const elemB = ZODIAC_ELEMENTS[signB];
+        if (elemA && elemB) {
+            const elemScore = ELEMENT_HARMONY[elemA]?.[elemB] || 75;
+            cosmicScore = Math.round((cosmicScore * 0.6) + (elemScore * 0.4));
+            if (elemScore >= 85) {
+                reasons.push(`✨ Cosmic Elemental Synergy (${elemA} + ${elemB})`);
+                strengths.push(`Harmonious elemental astrological connection (${elemA} & ${elemB})`);
             }
         }
 

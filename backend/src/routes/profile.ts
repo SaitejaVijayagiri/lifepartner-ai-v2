@@ -21,6 +21,8 @@ import path from 'path';
 
 const router = express.Router();
 const aiService = new AIService();
+import { AstrologyService } from '../services/astrology';
+const astrologyService = new AstrologyService();
 
 import { upload } from '../middleware/upload';
 import { authenticateToken, authenticateOptional } from '../middleware/auth';
@@ -363,7 +365,24 @@ export function formatFullProfile(user: any, profileRecord: any): any {
             hobbies: Array.isArray(meta.lifestyle?.hobbies) ? meta.lifestyle.hobbies.join(', ') : (meta.lifestyle?.hobbies || hobbiesList.join(', '))
         },
         religion: meta.religion || {},
-        horoscope: meta.horoscope || {},
+        horoscope: (() => {
+            const userAstro = astrologyService.resolveUserAstrology({
+                id: user.id,
+                full_name: user.full_name,
+                dob: meta.dob,
+                horoscope: meta.horoscope
+            });
+            return {
+                ...meta.horoscope,
+                zodiacSign: meta.horoscope?.zodiacSign || userAstro.zodiacSign,
+                nakshatra: meta.horoscope?.nakshatra || userAstro.nakshatra,
+                rashi: userAstro.rashi,
+                rashiLord: userAstro.rashiLord,
+                gana: userAstro.gana,
+                yoni: userAstro.yoni,
+                nadi: userAstro.nadi
+            };
+        })(),
         partnerPreferences: meta.partnerPreferences || {},
         motherTongue: meta.motherTongue || "",
         maritalStatus: meta.maritalStatus || "",
@@ -695,10 +714,19 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
         let isRequesterPremium = false;
         let matchStatus: string | null = null;
         let isLiked = false;
+        let requesterUser: any = null;
 
         if (requesterId) {
             const [requester, sentRequest, receivedRequest, matchRecord] = await Promise.all([
-                prisma.users.findUnique({ where: { id: requesterId }, select: { is_premium: true } }),
+                prisma.users.findUnique({
+                    where: { id: requesterId },
+                    select: {
+                        id: true,
+                        full_name: true,
+                        is_premium: true,
+                        profiles: { select: { metadata: true } }
+                    }
+                }),
                 prisma.interactions.findUnique({
                     where: {
                         from_user_id_to_user_id_type: {
@@ -729,6 +757,7 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
                     select: { is_liked: true }
                 })
             ]);
+            requesterUser = requester;
             isRequesterPremium = requester?.is_premium || false;
             matchStatus = resolveMatchStatus(sentRequest?.status, receivedRequest?.status);
             isLiked = matchRecord?.is_liked || false;
@@ -753,6 +782,31 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
         const handle = `@${user.full_name ? user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'member'}${user.referral_code ? '_' + user.referral_code.toLowerCase().slice(-4) : ''}`;
 
         const isBlurred = isPhotoPrivacyShieldEnabled(meta) && matchStatus !== 'accepted' && matchStatus !== 'connected' && user.id !== requesterId;
+
+        const targetAstro = astrologyService.resolveUserAstrology({
+            id: user.id,
+            full_name: user.full_name,
+            dob: meta.dob,
+            horoscope: meta.horoscope
+        });
+
+        const reqMeta = (requesterUser?.profiles?.metadata as any) || {};
+        const kundli = (requesterId && requesterUser && requesterId !== user.id)
+            ? astrologyService.calculateCompatibility(
+                {
+                    id: requesterUser.id,
+                    full_name: requesterUser.full_name,
+                    dob: reqMeta.dob,
+                    horoscope: reqMeta.horoscope
+                },
+                {
+                    id: user.id,
+                    full_name: user.full_name,
+                    dob: meta.dob,
+                    horoscope: meta.horoscope
+                }
+            )
+            : null;
 
         res.json({
             id: user.id,
@@ -791,7 +845,21 @@ router.get('/:id', authenticateOptional, async (req: any, res) => {
             // Explicit meta fields — NO blind ...meta spread (prevents location/country duplication)
             career: meta.career || {},
             religion: meta.religion || {},
-            horoscope: meta.horoscope || {},
+            horoscope: {
+                ...meta.horoscope,
+                zodiacSign: meta.horoscope?.zodiacSign || targetAstro.zodiacSign,
+                nakshatra: meta.horoscope?.nakshatra || targetAstro.nakshatra,
+                rashi: targetAstro.rashi,
+                rashiLord: targetAstro.rashiLord,
+                gana: targetAstro.gana,
+                yoni: targetAstro.yoni,
+                nadi: targetAstro.nadi
+            },
+            kundli: kundli || {
+                score: 0,
+                total: 36,
+                details: []
+            },
             family: meta.family || {},
             lifestyle: meta.lifestyle || {},
             partnerPreferences: meta.partnerPreferences || {},

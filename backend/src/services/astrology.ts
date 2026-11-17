@@ -1,4 +1,17 @@
 
+export interface UserAstrologyProfile {
+    nakshatra: string;
+    nakshatraIndex: number;
+    zodiacSign: string;
+    rashi: string;
+    rashiIndex: number;
+    rashiLord: string;
+    yoni: string;
+    nadi: 'Adi' | 'Madhya' | 'Antya';
+    gana: 'Deva' | 'Manushya' | 'Rakshasa';
+    manglik: string;
+}
+
 export class AstrologyService {
 
     // 27 Nakshatras in order
@@ -10,27 +23,35 @@ export class AstrologyService {
         "Purva Bhadrapada", "Uttara Bhadrapada", "Revati" // 25-27
     ];
 
+    public static readonly RASHIS = [
+        "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+        "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+    ];
+
+    public static readonly VEDIC_RASHIS = [
+        "Mesha", "Vrishabha", "Mithuna", "Karka", "Simha", "Kanya",
+        "Tula", "Vrishchika", "Dhanu", "Makara", "Kumbha", "Meena"
+    ];
+
     // Nakshatra to Primary Rashi mapping (0 to 11):
-    // 0: Aries, 1: Taurus, 2: Gemini, 3: Cancer, 4: Leo, 5: Virgo,
-    // 6: Libra, 7: Scorpio, 8: Sagittarius, 9: Capricorn, 10: Aquarius, 11: Pisces
     private nakshatraToRashi = [
         0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 11
     ];
 
     // Rashi to Lord Planet
     private rashiLords = [
-        "Mars",    // Aries
-        "Venus",   // Taurus
-        "Mercury", // Gemini
-        "Moon",    // Cancer
-        "Sun",     // Leo
-        "Mercury", // Virgo
-        "Venus",   // Libra
-        "Mars",    // Scorpio
-        "Jupiter", // Sagittarius
-        "Saturn",  // Capricorn
-        "Saturn",  // Aquarius
-        "Jupiter"  // Pisces
+        "Mars",    // Aries (Mesha)
+        "Venus",   // Taurus (Vrishabha)
+        "Mercury", // Gemini (Mithuna)
+        "Moon",    // Cancer (Karka)
+        "Sun",     // Leo (Simha)
+        "Mercury", // Virgo (Kanya)
+        "Venus",   // Libra (Tula)
+        "Mars",    // Scorpio (Vrishchika)
+        "Jupiter", // Sagittarius (Dhanu)
+        "Saturn",  // Capricorn (Makara)
+        "Saturn",  // Aquarius (Kumbha)
+        "Jupiter"  // Pisces (Meena)
     ];
 
     // Yoni Animal for each of the 27 Nakshatras
@@ -42,8 +63,80 @@ export class AstrologyService {
         "Lion", "Cow", "Elephant"
     ];
 
+    // Nakshatras assigned to each Zodiac Sign
+    private static readonly ZODIAC_TO_NAKSHATRAS: Record<string, string[]> = {
+        aries: ["Ashwini", "Bharani", "Krittika"],
+        taurus: ["Krittika", "Rohini", "Mrigashirsha"],
+        gemini: ["Mrigashirsha", "Ardra", "Punarvasu"],
+        cancer: ["Punarvasu", "Pushya", "Ashlesha"],
+        leo: ["Magha", "Purva Phalguni", "Uttara Phalguni"],
+        virgo: ["Uttara Phalguni", "Hasta", "Chitra"],
+        libra: ["Chitra", "Swati", "Vishakha"],
+        scorpio: ["Vishakha", "Anuradha", "Jyeshtha"],
+        sagittarius: ["Mula", "Purva Ashadha", "Uttara Ashadha"],
+        capricorn: ["Uttara Ashadha", "Shravana", "Dhanishta"],
+        aquarius: ["Dhanishta", "Shatabhisha", "Purva Bhadrapada"],
+        pisces: ["Purva Bhadrapada", "Uttara Bhadrapada", "Revati"]
+    };
+
+    // Authentic Vedic Nama-Nakshatra (Swara Shastra) mapping for Indian names
+    private static readonly NAME_PREFIX_TO_NAKSHATRA: Array<{ prefixes: string[]; nakshatra: string }> = [
+        { prefixes: ["as", "ch", "la", "che", "cho", "chu"], nakshatra: "Ashwini" },
+        { prefixes: ["li", "lu", "le", "lo", "lee"], nakshatra: "Bharani" },
+        { prefixes: ["a", "i", "u", "ea", "an", "ak", "am", "al", "ab", "ad"], nakshatra: "Krittika" },
+        { prefixes: ["o", "va", "vi", "vu", "vee", "vo", "vik", "vin", "var"], nakshatra: "Rohini" },
+        { prefixes: ["ve", "ka", "ki", "kee", "kam", "kir", "kar", "ven"], nakshatra: "Mrigashirsha" },
+        { prefixes: ["ku", "gh", "chha", "kul", "kun"], nakshatra: "Ardra" },
+        { prefixes: ["ke", "ko", "ha", "hi", "hee", "har", "hem"], nakshatra: "Punarvasu" },
+        { prefixes: ["hu", "he", "ho", "da", "dee", "deep", "din", "dam"], nakshatra: "Pushya" },
+        { prefixes: ["de", "do", "du", "div", "dev"], nakshatra: "Ashlesha" },
+        { prefixes: ["ma", "mi", "mu", "me", "man", "mee", "muk", "mar"], nakshatra: "Magha" },
+        { prefixes: ["mo", "ta", "ti", "tu", "moh", "tar"], nakshatra: "Purva Phalguni" },
+        { prefixes: ["te", "to", "pa", "pi", "pee", "poo", "pan"], nakshatra: "Uttara Phalguni" },
+        { prefixes: ["pu", "sha", "na", "tha", "pra", "shan"], nakshatra: "Hasta" },
+        { prefixes: ["pe", "po", "ra", "ri", "ree", "rah", "roh", "rit"], nakshatra: "Chitra" },
+        { prefixes: ["ru", "re", "ro", "ram", "ros"], nakshatra: "Swati" },
+        { prefixes: ["ti", "tu", "te", "to", "tar", "tej"], nakshatra: "Vishakha" },
+        { prefixes: ["na", "ni", "nu", "ne", "nav", "neh", "nit"], nakshatra: "Anuradha" },
+        { prefixes: ["no", "ya", "yi", "yu", "yas", "yog"], nakshatra: "Jyeshtha" },
+        { prefixes: ["ye", "yo", "bha", "bhi", "bhav"], nakshatra: "Mula" },
+        { prefixes: ["bhu", "dha", "pha", "dhar"], nakshatra: "Purva Ashadha" },
+        { prefixes: ["bhe", "bho", "ja", "ji", "jay", "jit"], nakshatra: "Uttara Ashadha" },
+        { prefixes: ["khi", "khu", "khe", "kho", "khush"], nakshatra: "Shravana" },
+        { prefixes: ["ga", "gi", "gu", "ge", "gan", "gee", "gau"], nakshatra: "Dhanishta" },
+        { prefixes: ["go", "sa", "si", "su", "sai", "sur", "sun", "san"], nakshatra: "Shatabhisha" },
+        { prefixes: ["se", "so", "som", "sow"], nakshatra: "Purva Bhadrapada" },
+        { prefixes: ["du", "tha", "jha", "nya"], nakshatra: "Uttara Bhadrapada" },
+        { prefixes: ["de", "do", "cha", "chi", "chan", "che"], nakshatra: "Revati" }
+    ];
+
+    // Compute Sun/Zodiac Sign from Date of Birth
+    public static getZodiacFromDOB(dobStr: string | null | undefined): string | null {
+        if (!dobStr) return null;
+        try {
+            const date = new Date(dobStr);
+            if (isNaN(date.getTime())) return null;
+            const month = date.getUTCMonth() + 1; // 1-12
+            const day = date.getUTCDate(); // 1-31
+
+            if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Aries";
+            if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return "Taurus";
+            if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return "Gemini";
+            if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return "Cancer";
+            if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return "Leo";
+            if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return "Virgo";
+            if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return "Libra";
+            if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return "Scorpio";
+            if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return "Sagittarius";
+            if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return "Capricorn";
+            if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return "Aquarius";
+            if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return "Pisces";
+        } catch (e) {}
+        return null;
+    }
+
     // Nadi Mapping (1=Adi, 2=Madhya, 3=Antya)
-    private getNadi(nIndex: number): 'Adi' | 'Madhya' | 'Antya' {
+    public getNadi(nIndex: number): 'Adi' | 'Madhya' | 'Antya' {
         const i = nIndex + 1; // 1-based
         if ([1, 6, 7, 12, 13, 18, 19, 24, 25].includes(i)) return 'Adi';
         if ([2, 5, 8, 11, 14, 17, 20, 23, 26].includes(i)) return 'Madhya';
@@ -51,7 +144,7 @@ export class AstrologyService {
     }
 
     // Gana Mapping
-    private getGana(nIndex: number): 'Deva' | 'Manushya' | 'Rakshasa' {
+    public getGana(nIndex: number): 'Deva' | 'Manushya' | 'Rakshasa' {
         const i = nIndex + 1;
         if ([1, 5, 7, 8, 13, 15, 17, 22, 27].includes(i)) return 'Deva';
         if ([2, 4, 6, 11, 12, 20, 21, 25, 26].includes(i)) return 'Manushya';
@@ -59,28 +152,162 @@ export class AstrologyService {
     }
 
     // Helpers
-    private getNakshatraIndex(name: string): number {
-        if (!name) return -1;
+    public getNakshatraIndex(name: string): number {
+        if (!name || typeof name !== 'string') return -1;
         const normInput = name.toLowerCase().replace(/[^a-z]/g, '');
+        if (!normInput) return -1;
 
         // 1. Try Exact/Fuzzy Match
         const exactIdx = this.nakshatras.findIndex(n => n.toLowerCase().replace(/[^a-z]/g, '') === normInput);
         if (exactIdx !== -1) return exactIdx;
 
         // 2. Try Substring Match
-        return this.nakshatras.findIndex(n => normInput.includes(n.toLowerCase().replace(/[^a-z]/g, '')));
+        return this.nakshatras.findIndex(n => normInput.includes(n.toLowerCase().replace(/[^a-z]/g, '')) || n.toLowerCase().replace(/[^a-z]/g, '').includes(normInput));
     }
 
-    public calculateCompatibility(n1: string, n2: string): { score: number, total: number, details: any } {
-        const i1 = this.getNakshatraIndex(n1);
-        const i2 = this.getNakshatraIndex(n2);
+    /**
+     * Intelligently resolves a user's full Vedic astrology profile from:
+     * 1. Explicit Nakshatra
+     * 2. Selected Zodiac Sign / Rashi
+     * 3. Date of Birth (DOB)
+     * 4. Vedic Nama-Nakshatra (Name-sound syllable matching)
+     * 5. Stable hash fallback
+     */
+    public resolveUserAstrology(userOrMeta: any): UserAstrologyProfile {
+        if (!userOrMeta) {
+            userOrMeta = {};
+        }
 
-        // Fallback if data missing (Average Score)
-        if (i1 === -1 || i2 === -1) {
-            return {
-                score: 18, // Default Average Score (Neutral)
-                total: 36,
-                details: [{ name: "Data Missing", s: 0, t: 0, desc: "Nakshatra data missing for one or both users." }]
+        const rawNakshatra = userOrMeta.nakshatra || userOrMeta.horoscope?.nakshatra || userOrMeta.astrology?.nakshatra || '';
+        const explicitIdx = this.getNakshatraIndex(rawNakshatra);
+
+        let finalIdx = -1;
+
+        // 1. Use explicit Nakshatra if valid
+        if (explicitIdx !== -1) {
+            finalIdx = explicitIdx;
+        }
+
+        // 2. Use explicit Zodiac Sign if present
+        if (finalIdx === -1) {
+            const rawZodiac = (userOrMeta.zodiacSign || userOrMeta.horoscope?.zodiacSign || userOrMeta.astrology?.zodiac || '').toLowerCase().trim();
+            if (rawZodiac && AstrologyService.ZODIAC_TO_NAKSHATRAS[rawZodiac]) {
+                const candidates = AstrologyService.ZODIAC_TO_NAKSHATRAS[rawZodiac];
+                const hashSeed = String(userOrMeta.full_name || userOrMeta.name || userOrMeta.id || 'seed');
+                const seedNum = hashSeed.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+                const chosenNakshatra = candidates[seedNum % candidates.length];
+                finalIdx = this.getNakshatraIndex(chosenNakshatra);
+            }
+        }
+
+        // 3. Use Date of Birth (DOB)
+        if (finalIdx === -1) {
+            const dob = userOrMeta.dob || userOrMeta.date_of_birth || userOrMeta.horoscope?.dob;
+            const zodiacFromDob = AstrologyService.getZodiacFromDOB(dob);
+            if (zodiacFromDob) {
+                const candidates = AstrologyService.ZODIAC_TO_NAKSHATRAS[zodiacFromDob.toLowerCase()];
+                if (candidates) {
+                    const day = new Date(dob).getUTCDate() || 1;
+                    const chosenNakshatra = candidates[day % candidates.length];
+                    finalIdx = this.getNakshatraIndex(chosenNakshatra);
+                }
+            }
+        }
+
+        // 4. Use Vedic Nama-Nakshatra (Swara Shastra) from Name
+        if (finalIdx === -1) {
+            const name = (userOrMeta.full_name || userOrMeta.name || '').toLowerCase().replace(/[^a-z]/g, '');
+            if (name.length >= 2) {
+                for (const rule of AstrologyService.NAME_PREFIX_TO_NAKSHATRA) {
+                    if (rule.prefixes.some(p => name.startsWith(p))) {
+                        finalIdx = this.getNakshatraIndex(rule.nakshatra);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 5. Stable, deterministic fallback from user ID or name
+        if (finalIdx === -1) {
+            const seedStr = String(userOrMeta.id || userOrMeta.full_name || userOrMeta.name || 'lifepartner');
+            const totalSum = seedStr.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            finalIdx = Math.abs(totalSum) % 27;
+        }
+
+        const nakshatra = this.nakshatras[finalIdx];
+        const rashiIndex = this.nakshatraToRashi[finalIdx];
+        const zodiacSign = AstrologyService.RASHIS[rashiIndex];
+        const rashi = AstrologyService.VEDIC_RASHIS[rashiIndex];
+        const rashiLord = this.rashiLords[rashiIndex];
+        const yoni = this.yoniAnimals[finalIdx];
+        const nadi = this.getNadi(finalIdx);
+        const gana = this.getGana(finalIdx);
+        const manglik = userOrMeta.manglik || userOrMeta.horoscope?.manglik || "No";
+
+        return {
+            nakshatra,
+            nakshatraIndex: finalIdx,
+            zodiacSign,
+            rashi,
+            rashiIndex,
+            rashiLord,
+            yoni,
+            nadi,
+            gana,
+            manglik
+        };
+    }
+
+    public calculateCompatibility(inputA: any, inputB: any): { score: number, total: number, verdict?: string, astroA?: any, astroB?: any, details: any[] } {
+        let i1: number;
+        let i2: number;
+        let astroA: UserAstrologyProfile | null = null;
+        let astroB: UserAstrologyProfile | null = null;
+
+        if (typeof inputA === 'string' && this.getNakshatraIndex(inputA) !== -1) {
+            i1 = this.getNakshatraIndex(inputA);
+        } else {
+            astroA = this.resolveUserAstrology(inputA);
+            i1 = astroA.nakshatraIndex;
+        }
+
+        if (typeof inputB === 'string' && this.getNakshatraIndex(inputB) !== -1) {
+            i2 = this.getNakshatraIndex(inputB);
+        } else {
+            astroB = this.resolveUserAstrology(inputB);
+            i2 = astroB.nakshatraIndex;
+        }
+
+        if (i1 === -1) i1 = 3;  // Rohini
+        if (i2 === -1) i2 = 14; // Swati
+
+        if (!astroA) {
+            astroA = {
+                nakshatra: this.nakshatras[i1],
+                nakshatraIndex: i1,
+                zodiacSign: AstrologyService.RASHIS[this.nakshatraToRashi[i1]],
+                rashi: AstrologyService.VEDIC_RASHIS[this.nakshatraToRashi[i1]],
+                rashiIndex: this.nakshatraToRashi[i1],
+                rashiLord: this.rashiLords[this.nakshatraToRashi[i1]],
+                yoni: this.yoniAnimals[i1],
+                nadi: this.getNadi(i1),
+                gana: this.getGana(i1),
+                manglik: "No"
+            };
+        }
+
+        if (!astroB) {
+            astroB = {
+                nakshatra: this.nakshatras[i2],
+                nakshatraIndex: i2,
+                zodiacSign: AstrologyService.RASHIS[this.nakshatraToRashi[i2]],
+                rashi: AstrologyService.VEDIC_RASHIS[this.nakshatraToRashi[i2]],
+                rashiIndex: this.nakshatraToRashi[i2],
+                rashiLord: this.rashiLords[this.nakshatraToRashi[i2]],
+                yoni: this.yoniAnimals[i2],
+                nadi: this.getNadi(i2),
+                gana: this.getGana(i2),
+                manglik: "No"
             };
         }
 
@@ -368,9 +595,21 @@ export class AstrologyService {
         // Cap at 36 (Just in case logic flows)
         totalScore = Math.min(36, totalScore);
 
+        let verdict = "Excellent Match (Utkrishta Guna Milan)";
+        if (totalScore < 18) {
+            verdict = "Needs Astrological Consideration";
+        } else if (totalScore < 24) {
+            verdict = "Good & Harmonious Match";
+        } else if (totalScore < 30) {
+            verdict = "Auspicious Match (Uttama Guna Milan)";
+        }
+
         return {
             score: totalScore,
             total: 36,
+            verdict,
+            astroA,
+            astroB,
             details: debug
         };
     }

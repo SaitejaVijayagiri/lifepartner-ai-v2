@@ -1404,7 +1404,6 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},
-                horoscope: meta.horoscope || {},
                 lifestyle: {
                     ...meta.lifestyle,
                     smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
@@ -1438,8 +1437,29 @@ router.get('/recommendations', authenticateToken, async (req: any, res) => {
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
 
-                // Astrology
-                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
+                // Astrology & Horoscope
+                horoscope: (() => {
+                    const candAstro = astrologyService.resolveUserAstrology({
+                        id: c.id,
+                        full_name: c.full_name,
+                        dob: meta.dob,
+                        horoscope: meta.horoscope
+                    });
+                    return {
+                        ...meta.horoscope,
+                        zodiacSign: meta.horoscope?.zodiacSign || candAstro.zodiacSign,
+                        nakshatra: meta.horoscope?.nakshatra || candAstro.nakshatra,
+                        rashi: candAstro.rashi,
+                        rashiLord: candAstro.rashiLord,
+                        gana: candAstro.gana,
+                        yoni: candAstro.yoni,
+                        nadi: candAstro.nadi
+                    };
+                })(),
+                kundli: astrologyService.calculateCompatibility(
+                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
+                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
+                ),
 
             };
         }));
@@ -2015,7 +2035,24 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},
-                horoscope: meta.horoscope || {},
+                horoscope: (() => {
+                    const candAstro = astrologyService.resolveUserAstrology({
+                        id: c.id,
+                        full_name: c.full_name,
+                        dob: meta.dob || c.dob,
+                        horoscope: meta.horoscope
+                    });
+                    return {
+                        ...meta.horoscope,
+                        zodiacSign: meta.horoscope?.zodiacSign || candAstro.zodiacSign,
+                        nakshatra: meta.horoscope?.nakshatra || candAstro.nakshatra,
+                        rashi: candAstro.rashi,
+                        rashiLord: candAstro.rashiLord,
+                        gana: candAstro.gana,
+                        yoni: candAstro.yoni,
+                        nadi: candAstro.nadi
+                    };
+                })(),
                 lifestyle: {
                     ...meta.lifestyle,
                     smoking: meta.lifestyle?.smoking || meta.lifestyle?.smoke || "No",
@@ -2038,7 +2075,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
-                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
+                kundli: astrologyService.calculateCompatibility(
+                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
+                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
+                ),
                 isPremium: c.is_premium || false,
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 isBlurred,
@@ -2111,7 +2151,24 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 career: meta.career || {},
                 family: meta.family || {},
                 religion: meta.religion || {},
-                horoscope: meta.horoscope || {},
+                horoscope: (() => {
+                    const candAstro = astrologyService.resolveUserAstrology({
+                        id: c.id,
+                        full_name: c.full_name,
+                        dob: meta.dob || c.dob,
+                        horoscope: meta.horoscope
+                    });
+                    return {
+                        ...meta.horoscope,
+                        zodiacSign: meta.horoscope?.zodiacSign || candAstro.zodiacSign,
+                        nakshatra: meta.horoscope?.nakshatra || candAstro.nakshatra,
+                        rashi: candAstro.rashi,
+                        rashiLord: candAstro.rashiLord,
+                        gana: candAstro.gana,
+                        yoni: candAstro.yoni,
+                        nadi: candAstro.nadi
+                    };
+                })(),
                 lifestyle: meta.lifestyle || {},
                 partnerPreferences: meta.partnerPreferences || {},
                 aboutMe: (c.profiles?.raw_prompt && c.profiles.raw_prompt.trim()) || meta.aboutMe || meta.bio || "",
@@ -2126,7 +2183,10 @@ router.post('/search', authenticateToken, async (req: any, res) => {
                 phone: me.is_premium ? (c.phone || meta.phone) : null,
                 email: me.is_premium ? (c.email || meta.email) : null,
                 voiceBioUrl: c.voice_bio_url || null,
-                kundli: astrologyService.calculateCompatibility(meMeta.horoscope?.nakshatra, meta.horoscope?.nakshatra),
+                kundli: astrologyService.calculateCompatibility(
+                    { id: me.id, full_name: me.full_name, dob: meMeta.dob, horoscope: meMeta.horoscope },
+                    { id: c.id, full_name: c.full_name, dob: meta.dob, horoscope: meta.horoscope }
+                ),
                 photo_privacy: meta.photo_privacy || meta.photoPrivacy || 'public',
                 isBlurred,
                 managed_by: meta.managed_by || meta.managedBy || 'Self'

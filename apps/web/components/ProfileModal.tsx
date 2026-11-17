@@ -897,6 +897,15 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50 shadow-sm flex items-center gap-2">
                                             <span>✨</span> {profile.score || 0}% Match Score
                                         </div>
+                                        {profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowKundli(true)}
+                                                className="bg-orange-100/80 dark:bg-orange-950/40 hover:bg-orange-200/90 px-4 py-2 rounded-xl text-xs font-bold text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/50 shadow-sm flex items-center gap-2 transition-transform active:scale-95 cursor-pointer"
+                                            >
+                                                <span>🕉️</span> {profile.kundli.score}/36 Guna Match
+                                            </button>
+                                        )}
                                         <div className="bg-pink-100/50 dark:bg-pink-900/20 px-4 py-2 rounded-xl text-xs font-bold text-pink-700 dark:text-pink-300 border border-pink-100 dark:border-pink-900/50 shadow-sm flex items-center gap-2">
                                             <span>🎁</span> {profile.total_gifts || 0} Gifts
                                         </div>
@@ -937,7 +946,19 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                         {activeTab === 'personal' && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
                                 <section className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-900/50">
-                                    <h3 className="font-bold text-purple-900 dark:text-purple-100 mb-4">Horoscope & Faith</h3>
+                                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                        <h3 className="font-bold text-purple-900 dark:text-purple-100">Horoscope & Faith</h3>
+                                        {!isOwnProfile && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowKundli(true)}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm transition-transform active:scale-95 cursor-pointer"
+                                            >
+                                                <span>🕉️</span>
+                                                <span>Kundli Match {profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 ? `(${profile.kundli.score}/36 Guna)` : ''}</span>
+                                            </button>
+                                        )}
+                                    </div>
                                     <div className="grid grid-cols-2 gap-3 md:gap-4">
                                         <InfoCard label="Religion" value={profile.religion?.faith || profile.religion?.religion || "-"} />
                                         <InfoCard label="Caste" value={profile.religion?.caste || "-"} />

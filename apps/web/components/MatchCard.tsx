@@ -224,10 +224,6 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
         return match?.profile_id || match?.profileId || (match?.referral_code ? `LP-${String(match.referral_code).toUpperCase()}` : (match?.id ? `LP-${String(match.id).slice(0, 8).toUpperCase()}` : ''));
     }, [match?.profile_id, match?.profileId, match?.referral_code, match?.id]);
 
-    const hasKundli = Boolean(
-        match?.kundli && typeof match.kundli === 'object' && typeof match.kundli.score === 'number' && match.kundli.score > 0
-    );
-
     const handleRequestPhoto = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -608,23 +604,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                             </div>
                         )}
 
-                        {hasKundli ? (
-                            <div
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onShowKundli) onShowKundli(match.kundli);
-                                    else setShowKundli(true);
-                                }}
-                                className="rounded-xl bg-orange-500/20 border border-orange-400/40 p-2 flex items-center gap-2 cursor-pointer hover:bg-orange-500/30 transition-colors"
-                                title="Click to view Kundli Horoscope match details"
-                            >
-                                <span className="text-sm shrink-0">🕉️</span>
-                                <div className="min-w-0">
-                                    <p className="text-[9px] uppercase font-bold text-orange-200">Kundli Match</p>
-                                    <p className="text-xs font-bold text-white truncate">{match.kundli.score}/36 Guna</p>
-                                </div>
-                            </div>
-                        ) : (dietStr ? (
+                        {dietStr ? (
                             <div className="rounded-xl bg-black/40 border border-white/10 p-2 flex items-center gap-2">
                                 <span className="text-sm shrink-0">🥗</span>
                                 <div className="min-w-0">
@@ -640,7 +620,7 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
                                     <p className="text-xs font-mono font-semibold text-purple-300 truncate">{profileIdStr}</p>
                                 </div>
                             </div>
-                        ))}
+                        )}
                     </div>
 
                     {/* 5. BOTTOM ACTIONS: Always Visible */}
@@ -967,26 +947,6 @@ const MatchCard = React.memo(function MatchCard({ match, priority = false, onCon
             <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 z-30 flex flex-col justify-end pointer-events-none">
                 {/* Info container */}
                 <div className="transform transition-all duration-300 group-hover:-translate-y-28 [@media(hover:none)]:-translate-y-28">
-                    {/* Kundli Badge */}
-                    {match?.kundli && typeof match.kundli === 'object' && typeof match.kundli.score === 'number' && Array.isArray(match.kundli.details) && match.kundli.details.length > 0 && match.kundli.details[0]?.name !== "Data Missing" && (
-                        <div className="pointer-events-auto self-start mb-2.5">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onShowKundli) {
-                                        onShowKundli(match.kundli);
-                                    } else {
-                                        setShowKundli(true);
-                                    }
-                                }}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md border shadow-lg transition-all hover:scale-105 active:scale-95 ${match.kundli.score >= 18 ? 'bg-orange-500/90 border-orange-300/50 text-white' : 'bg-red-500/90 border-red-300/50 text-white'}`}
-                            >
-                                <span className="text-sm">🕉️</span>
-                                <span className="text-xs font-bold">{match.kundli.score}/36 Guna</span>
-                            </button>
-                        </div>
-                    )}
-
                     <div className="flex items-end gap-2 mb-1.5 flex-wrap">
                         <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
                             {typeof match.name === 'string' ? match.name : (match.name?.first ? `${match.name.first} ${match.name.last || ''}`.trim() : 'Member')}

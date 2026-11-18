@@ -520,6 +520,16 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                     {profile.managed_by === 'Parent' ? '👨‍👩‍👧 Managed by Parent' : profile.managed_by === 'Sibling' ? '👫 Managed by Sibling' : `👤 Managed by ${profile.managed_by}`}
                                 </span>
                             )}
+                            {!isOwnProfile && profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowKundli(true)}
+                                    className="inline-flex items-center gap-1 text-orange-200 text-[11px] font-bold bg-orange-950/80 border border-orange-400/40 px-2.5 py-0.5 rounded-full backdrop-blur-md shadow-sm active:scale-95 cursor-pointer"
+                                    title="View Vedic Kundli Milan"
+                                >
+                                    <span>🕉️</span> {profile.kundli.score}/36 Guna
+                                </button>
+                            )}
                         </div>
 
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -633,6 +643,16 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                 <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1 rounded-full text-xs font-bold border border-red-100 dark:border-red-800/50 flex items-center gap-1 w-max">
                                     <span>❤️</span> {profile.total_likes || 0} Likes
                                 </div>
+                                {!isOwnProfile && profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowKundli(true)}
+                                        className="bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 dark:border-orange-800/50 flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                                        title="View Vedic Kundli Milan"
+                                    >
+                                        <span>🕉️</span> {profile.kundli.score}/36 Guna
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={handleShareProfile}
@@ -970,6 +990,33 @@ export default function ProfileModal({ profile, currentUser, onClose, onConnect,
                                         <InfoCard label="Time of Birth" value={profile.horoscope?.birthTime || "-"} />
                                         <InfoCard label="Birth Place" value={profile.horoscope?.birthPlace || "-"} />
                                     </div>
+                                    {!isOwnProfile && profile.kundli && typeof profile.kundli.score === 'number' && profile.kundli.score > 0 && (
+                                        <div className="mt-5 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/20 border border-orange-200 dark:border-orange-800/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-11 h-11 rounded-xl bg-orange-500/10 dark:bg-orange-400/15 border border-orange-300 dark:border-orange-700/50 flex items-center justify-center text-2xl shrink-0">
+                                                    🕉️
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">Vedic Kundli Compatibility</span>
+                                                        <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold ${profile.kundli.score >= 18 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300'}`}>
+                                                            {profile.kundli.score}/36 Guna
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                                                        {profile.kundli.verdict || (profile.kundli.score >= 18 ? 'Auspicious Match (Uttama Guna)' : 'Needs Consideration')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowKundli(true)}
+                                                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-sm transition-transform active:scale-95 cursor-pointer shrink-0 text-center"
+                                            >
+                                                View 8-Koota Breakdown →
+                                            </button>
+                                        </div>
+                                    )}
                                 </section>
 
                                 {/* Premium Contact Section */}

@@ -251,24 +251,25 @@ export default function ProfileEditor({ initialData, onSave, onCancel }: Profile
     };
 
     const handleSave = async () => {
-        // Enforce Location Fields: require City & State; auto-fill District if omitted
+        // Enforce Location Fields: require City; require State for India, auto-fallback for international
         const city = formData.location?.city?.trim();
-        const state = formData.location?.state?.trim();
+        const country = formData.location?.country?.trim() || 'India';
+        const isIndia = country.toLowerCase() === 'india';
+        const state = formData.location?.state?.trim() || (!isIndia ? (country || city) : '');
         const district = formData.location?.district?.trim() || city;
 
-        if (!city || !state) {
-            toast.error("Please ensure City and State are filled.");
+        if (!city || (isIndia && !state)) {
+            toast.error(isIndia ? "Please ensure City and State are filled." : "Please enter your City.");
             return;
         }
 
-        if (!formData.location?.district) {
-            formData.location = {
-                ...(formData.location || {}),
-                city,
-                district,
-                state
-            };
-        }
+        formData.location = {
+            ...(formData.location || {}),
+            city,
+            district,
+            state,
+            country
+        };
 
         setLoading(true);
         try {

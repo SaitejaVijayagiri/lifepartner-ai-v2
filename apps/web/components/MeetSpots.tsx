@@ -145,6 +145,20 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!form.title.trim()) {
+            toast.error('Please enter an event title.');
+            return;
+        }
+        if (!form.event_date) {
+            toast.error('Please select an event date and time.');
+            return;
+        }
+        const parsedDate = new Date(form.event_date);
+        if (isNaN(parsedDate.getTime())) {
+            toast.error('Please select a valid date and time.');
+            return;
+        }
+
         try {
             setIsCreating(true);
             
@@ -166,7 +180,7 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
             const payload = {
                 ...form,
-                event_date: new Date(form.event_date).toISOString(),
+                event_date: parsedDate.toISOString(),
                 lat: finalLat ?? lat,
                 lng: finalLng ?? lng,
                 max_attendees: form.max_attendees ? parseInt(form.max_attendees) : null,
@@ -198,9 +212,12 @@ export default function MeetSpots({ currentUser }: { currentUser: any }) {
 
     const openEdit = (event: any) => {
         // Convert stored UTC ISO date to datetime-local format (browser local time)
-        const localDate = new Date(event.event_date);
+        const localDate = event.event_date ? new Date(event.event_date) : new Date();
+        const isValidDate = !isNaN(localDate.getTime());
         const pad = (n: number) => n.toString().padStart(2, '0');
-        const localStr = `${localDate.getFullYear()}-${pad(localDate.getMonth()+1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+        const localStr = isValidDate 
+            ? `${localDate.getFullYear()}-${pad(localDate.getMonth()+1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`
+            : '';
 
         setForm({
             title: event.title || '',

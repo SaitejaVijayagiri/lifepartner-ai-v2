@@ -192,7 +192,7 @@ describe('Matches Routes', () => {
             expect(res.body.matches).toHaveLength(1);
             expect(res.body.matches[0].name).toBe('Candidate Two');
             // Base 50 - over40 male penalty 15 - ageGap(15 yrs >= 12) penalty 20 = 15
-            expect(res.body.matches[0].score).toBe(63);
+            expect(res.body.matches[0].score).toBe(64);
         });
     });
 

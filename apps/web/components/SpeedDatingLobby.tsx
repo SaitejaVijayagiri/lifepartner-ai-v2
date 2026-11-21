@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Heart, X, Zap, Sparkles, UserCheck, Video, Mic } from 'lucide-react';
 import { useSocket } from '@/context/SocketContext';
 import { useToast } from '@/components/ui/Toast';
@@ -14,10 +14,22 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
     const [waitingCount, setWaitingCount] = useState(0);
     const [maleCount, setMaleCount] = useState(0);
     const [femaleCount, setFemaleCount] = useState(0);
-    const [isSearching, setIsSearching] = useState(false);
+    const [isSearching, setIsSearching] = useState(true);
     const [targetGender, setTargetGender] = useState<'female' | 'male'>('female');
     const [mediaMode, setMediaMode] = useState<'video' | 'audio'>('video');
     const [searchSeconds, setSearchSeconds] = useState(0);
+
+    const isSearchingRef = useRef(true);
+    const mediaModeRef = useRef(mediaMode);
+    const onMatchFoundRef = useRef(onMatchFound);
+
+    useEffect(() => {
+        mediaModeRef.current = mediaMode;
+    }, [mediaMode]);
+
+    useEffect(() => {
+        onMatchFoundRef.current = onMatchFound;
+    }, [onMatchFound]);
 
     // Auto-detect user's gender on mount and default to opposite gender
     useEffect(() => {
@@ -46,39 +58,42 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
 
     useEffect(() => {
         let isSubscribed = true;
+        isSearchingRef.current = true;
+        setIsSearching(true);
 
         // Fallback 4s instant match trigger so user never waits more than 4 seconds
         const fallbackTimer = setTimeout(() => {
-            if (isSubscribed && isSearching) {
+            if (isSubscribed && isSearchingRef.current) {
+                isSearchingRef.current = false;
                 setIsSearching(false);
                 const partnerId = `speed_partner_${Date.now()}`;
                 toast.success("⚡ Speed Match Found!");
-                onMatchFound({
+                onMatchFoundRef.current({
                     id: partnerId,
                     name: "Verified Mystery Date",
                     photoUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${partnerId}`,
                     location: "Verified Single • Live"
-                }, true, mediaMode);
+                }, true, mediaModeRef.current);
             }
         }, 4000);
 
         if (socket) {
             socket.emit('join_speed_dating_lobby', { targetGender });
-            setIsSearching(true);
 
             const handleJoined = (data: any) => {
-                console.log(data.message);
+                console.log(data?.message);
             };
 
             const handleMatchFound = (data: { partner: any, initiator: boolean }) => {
                 if (!isSubscribed) return;
                 clearTimeout(fallbackTimer);
+                isSearchingRef.current = false;
                 setIsSearching(false);
                 const audio = new Audio('/sounds/match.mp3');
                 audio.play().catch(() => {});
                 
                 toast.success("⚡ Speed Match Found!");
-                onMatchFound(data.partner, data.initiator, mediaMode);
+                onMatchFoundRef.current(data.partner, data.initiator, mediaModeRef.current);
             };
 
             const handleStats = (data: { waitingCount: number; maleCount?: number; femaleCount?: number }) => {
@@ -89,6 +104,8 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
 
             const handleError = (data: { message: string }) => {
                 clearTimeout(fallbackTimer);
+                isSearchingRef.current = false;
+                setIsSearching(false);
                 toast.error(data.message);
                 onClose();
             };
@@ -113,7 +130,7 @@ export default function SpeedDatingLobby({ onClose, onMatchFound }: SpeedDatingL
                 clearTimeout(fallbackTimer);
             };
         }
-    }, [socket, targetGender, onClose, onMatchFound, toast, isSearching, mediaMode]);
+    }, [socket, targetGender, onClose, toast]);
 
     return (
         <div className="fixed inset-0 z-[999999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in duration-300">

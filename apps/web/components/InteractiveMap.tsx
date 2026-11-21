@@ -180,7 +180,7 @@ export default function InteractiveMap({
 
     // Only count profiles that have actual coordinates
     const mapProfilesCount = filteredProfiles.filter(
-        (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
+        (p: any) => p?.location_data && !isNaN(Number(p.location_data.lat)) && !isNaN(Number(p.location_data.lng))
     ).length;
 
     const filters = ['Online Now', 'High Match', 'New Here', 'Software', 'Doctor', 'Engineer'];

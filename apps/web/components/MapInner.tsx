@@ -74,13 +74,15 @@ export default function MapInner({
         : myCountryRaw.includes('india') ? [20.5937, 78.9629]
         : [25.0, 15.0]; // Global world overview if user hasn't set country or GPS
 
-    const myLat = currentUser?.location?.lat ? parseFloat(currentUser.location.lat) : countryFallbackCoords[0];
-    const myLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : countryFallbackCoords[1];
-    const defaultZoom = currentUser?.location?.lat ? 10 : (myCountryRaw ? 4 : 2);
+    const rawLat = currentUser?.location?.lat ? parseFloat(currentUser.location.lat) : NaN;
+    const rawLng = currentUser?.location?.lng ? parseFloat(currentUser.location.lng) : NaN;
+    const myLat = !isNaN(rawLat) ? rawLat : countryFallbackCoords[0];
+    const myLng = !isNaN(rawLng) ? rawLng : countryFallbackCoords[1];
+    const defaultZoom = !isNaN(rawLat) ? 10 : (myCountryRaw ? 4 : 2);
 
     // Only show profiles that have real coordinates
     const mapProfiles = (profiles || []).filter(
-        (p: any) => p.location_data && p.location_data.lat && p.location_data.lng
+        (p: any) => p?.location_data && !isNaN(Number(p.location_data.lat)) && !isNaN(Number(p.location_data.lng))
     );
 
     const { onlineUsers } = useSocket() as any;

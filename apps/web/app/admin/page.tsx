@@ -86,7 +86,10 @@ export default function AdminDashboard() {
     const [campaignResult, setCampaignResult] = useState<any>(null);
     const [inviteEmails, setInviteEmails] = useState('');
 
+    const [isMounted, setIsMounted] = useState(false);
+
     useEffect(() => {
+        setIsMounted(true);
         checkAdmin();
     }, []);
 
@@ -94,7 +97,7 @@ export default function AdminDashboard() {
         try {
             const user = await api.profile.getMe();
             // @ts-ignore
-            if (!user.is_admin) {
+            if (!user || !user.is_admin) {
                 router.push('/dashboard');
                 return;
             }
@@ -337,59 +340,62 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Analytics Chart */}
-                {stats?.chartData && (
-                    <Card className="col-span-4 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100">
-                        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2">
-                            <div>
-                                <CardTitle className="text-base font-bold flex items-center gap-2">
-                                    <BarChart3 className="w-5 h-5 text-indigo-500" />
-                                    Daily User Acquisition & Gender Reach (Last 30 Days)
-                                </CardTitle>
-                                <p className="text-xs text-gray-500 mt-0.5">Track daily registration trends and female vs male growth</p>
-                            </div>
-                            <div className="flex items-center gap-3 text-xs font-semibold">
-                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block"></span> Female Users</span>
-                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> Male Users</span>
-                                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span> Total Signups</span>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="h-[300px] w-full">
-                                {/* @ts-ignore */}
-                                <ResponsiveContainer width="100%" height="100%">
+                {isMounted && stats?.chartData && Array.isArray(stats.chartData) && stats.chartData.length > 0 && (
+                    <SafeTabBoundary title="Acquisition Trends Chart">
+                        <Card className="col-span-4 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100">
+                            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2">
+                                <div>
+                                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                                        <BarChart3 className="w-5 h-5 text-indigo-500" />
+                                        Daily User Acquisition & Gender Reach (Last 30 Days)
+                                    </CardTitle>
+                                    <p className="text-xs text-gray-500 mt-0.5">Track daily registration trends and female vs male growth</p>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs font-semibold">
+                                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block"></span> Female Users</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> Male Users</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block"></span> Total Signups</span>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-[300px] w-full">
                                     {/* @ts-ignore */}
-                                    <AreaChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#c084fc" stopOpacity={0.5}/>
-                                                <stop offset="95%" stopColor="#c084fc" stopOpacity={0}/>
-                                            </linearGradient>
-                                            <linearGradient id="colorFemale" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor="#ec4899" stopOpacity={0.1}/>
-                                            </linearGradient>
-                                            <linearGradient id="colorMale" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.1}/>
-                                            </linearGradient>
-                                        </defs>
+                                    <ResponsiveContainer width="100%" height="100%">
                                         {/* @ts-ignore */}
-                                        <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => formatDateSafe(val, 'MMM dd')} />
-                                        {/* @ts-ignore */}
-                                        <YAxis tick={{fontSize: 12}} />
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                                        <Tooltip labelFormatter={(val) => formatDateSafe(val, 'dd MMM yyyy')} />
-                                        {/* @ts-ignore */}
-                                        <Area type="monotone" dataKey="female" name="Female Users" stroke="#ec4899" strokeWidth={2} fillOpacity={1} fill="url(#colorFemale)" />
-                                        {/* @ts-ignore */}
-                                        <Area type="monotone" dataKey="male" name="Male Users" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorMale)" />
-                                        {/* @ts-ignore */}
-                                        <Area type="monotone" dataKey="users" name="Total Users" stroke="#c084fc" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorUsers)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                        <AreaChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                            <defs>
+                                                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#c084fc" stopOpacity={0.5}/>
+                                                    <stop offset="95%" stopColor="#c084fc" stopOpacity={0}/>
+                                                </linearGradient>
+                                                <linearGradient id="colorFemale" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#ec4899" stopOpacity={0.1}/>
+                                                </linearGradient>
+                                                <linearGradient id="colorMale" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.1}/>
+                                                </linearGradient>
+                                            </defs>
+                                            {/* @ts-ignore */}
+                                            <XAxis dataKey="date" tick={{fontSize: 12}} tickFormatter={(val) => formatDateSafe(val, 'MMM dd')} />
+                                            {/* @ts-ignore */}
+                                            <YAxis tick={{fontSize: 12}} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                                            <Tooltip labelFormatter={(val) => formatDateSafe(val, 'dd MMM yyyy')} />
+                                            {/* @ts-ignore */}
+                                            <Area type="monotone" dataKey="female" name="Female Users" stroke="#ec4899" strokeWidth={2} fillOpacity={1} fill="url(#colorFemale)" />
+                                            {/* @ts-ignore */}
+                                            <Area type="monotone" dataKey="male" name="Male Users" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorMale)" />
+                                            {/* @ts-ignore */}
+                                            <Area type="monotone" dataKey="users" name="Total Users" stroke="#c084fc" strokeWidth={2} strokeDasharray="4 4" fillOpacity={1} fill="url(#colorUsers)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </SafeTabBoundary>
+                )}
                 )}
 
                 {/* Main Content Tabs */}
@@ -504,36 +510,36 @@ export default function AdminDashboard() {
                                 <CardContent>
                                     <div className="h-[260px] w-full">
                                         {/* @ts-ignore */}
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            {/* @ts-ignore */}
-                                            <AreaChart data={siteViews.daily_trends} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-                                                <defs>
-                                                    <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
-                                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                                                    </linearGradient>
-                                                    <linearGradient id="colorUnique" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                                    </linearGradient>
-                                                </defs>
+                                        {isMounted && Array.isArray(siteViews?.daily_trends) && siteViews.daily_trends.length > 0 ? (
+                                            <ResponsiveContainer width="100%" height="100%">
                                                 {/* @ts-ignore */}
-                                                <XAxis dataKey="date" tick={{fontSize: 11}} tickFormatter={(val) => {
-                                                    try { return format(new Date(val), 'dd MMM'); } catch { return val; }
-                                                }} />
-                                                {/* @ts-ignore */}
-                                                <YAxis tick={{fontSize: 11}} />
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
-                                                {/* @ts-ignore */}
-                                                <Tooltip labelFormatter={(val) => {
-                                                    try { return format(new Date(val), 'EEEE, dd MMM yyyy'); } catch { return val; }
-                                                }} />
-                                                {/* @ts-ignore */}
-                                                <Area type="monotone" dataKey="views" name="Page Views" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorViews)" />
-                                                {/* @ts-ignore */}
-                                                <Area type="monotone" dataKey="unique_visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorUnique)" />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
+                                                <AreaChart data={siteViews.daily_trends} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8}/>
+                                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                        <linearGradient id="colorUnique" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    {/* @ts-ignore */}
+                                                    <XAxis dataKey="date" tick={{fontSize: 11}} tickFormatter={(val) => formatDateSafe(val, 'dd MMM')} />
+                                                    {/* @ts-ignore */}
+                                                    <YAxis tick={{fontSize: 11}} />
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                                                    {/* @ts-ignore */}
+                                                    <Tooltip labelFormatter={(val) => formatDateSafe(val, 'EEEE, dd MMM yyyy')} />
+                                                    {/* @ts-ignore */}
+                                                    <Area type="monotone" dataKey="views" name="Page Views" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorViews)" />
+                                                    {/* @ts-ignore */}
+                                                    <Area type="monotone" dataKey="unique_visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorUnique)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center text-xs text-gray-400">Loading daily traffic trends...</div>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

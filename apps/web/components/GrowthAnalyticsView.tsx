@@ -53,9 +53,14 @@ const TRAFFIC_COLORS: Record<string, string> = {
 };
 
 export default function GrowthAnalyticsView({ initialMetrics }: GrowthAnalyticsViewProps) {
+    const [isMounted, setIsMounted] = useState(false);
     const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
     const [metrics, setMetrics] = useState<any>(initialMetrics || null);
     const [loading, setLoading] = useState(!initialMetrics);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         loadMetrics(range);
@@ -252,29 +257,33 @@ export default function GrowthAnalyticsView({ initialMetrics }: GrowthAnalyticsV
                     </CardHeader>
                     <CardContent>
                         <div className="h-[280px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={timeSeries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="growthFemale" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#ec4899" stopOpacity={0.05} />
-                                        </linearGradient>
-                                        <linearGradient id="growthMale" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
-                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
-                                    />
-                                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                                    <Area type="monotone" dataKey="femaleRegistrations" name="Female Signups" stroke="#ec4899" strokeWidth={2.5} fillOpacity={1} fill="url(#growthFemale)" />
-                                    <Area type="monotone" dataKey="maleRegistrations" name="Male Signups" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#growthMale)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                            {isMounted ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={timeSeries} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="growthFemale" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#ec4899" stopOpacity={0.05} />
+                                            </linearGradient>
+                                            <linearGradient id="growthMale" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                                        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                                        />
+                                        <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                                        <Area type="monotone" dataKey="femaleRegistrations" name="Female Signups" stroke="#ec4899" strokeWidth={2.5} fillOpacity={1} fill="url(#growthFemale)" />
+                                        <Area type="monotone" dataKey="maleRegistrations" name="Male Signups" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#growthMale)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs text-gray-400">Loading chart...</div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -292,25 +301,29 @@ export default function GrowthAnalyticsView({ initialMetrics }: GrowthAnalyticsV
                     </CardHeader>
                     <CardContent>
                         <div className="h-[200px] w-full flex items-center justify-center">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={trafficPieData}
-                                        innerRadius={50}
-                                        outerRadius={80}
-                                        paddingAngle={4}
-                                        dataKey="value"
-                                    >
-                                        {trafficPieData.map((entry: any, index: number) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(val: any, name: any, item: any) => [`${val} visits (${item?.payload?.percentage ?? 0}%)`, name]}
-                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '10px', color: '#fff', fontSize: '11px' }}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
+                            {isMounted ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={trafficPieData}
+                                            innerRadius={50}
+                                            outerRadius={80}
+                                            paddingAngle={4}
+                                            dataKey="value"
+                                        >
+                                            {trafficPieData.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            formatter={(val: any, name: any, item: any) => [`${val} visits (${item?.payload?.percentage ?? 0}%)`, name]}
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '10px', color: '#fff', fontSize: '11px' }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs text-gray-400">Loading sources...</div>
+                            )}
                         </div>
 
                         <div className="space-y-2 mt-4">
@@ -343,21 +356,25 @@ export default function GrowthAnalyticsView({ initialMetrics }: GrowthAnalyticsV
                     </CardHeader>
                     <CardContent>
                         <div className="h-[260px] w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={funnelChartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                    <XAxis dataKey="stage" tick={{ fontSize: 9 }} interval={0} angle={-15} textAnchor="end" />
-                                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
-                                    />
-                                    <Bar dataKey="count" name="Users" radius={[6, 6, 0, 0]}>
-                                        {funnelChartData.map((entry, index) => (
-                                            <Cell key={`bar-${index}`} fill={entry.fill} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                            {isMounted ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={funnelChartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                        <XAxis dataKey="stage" tick={{ fontSize: 9 }} interval={0} angle={-15} textAnchor="end" />
+                                        <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px' }}
+                                        />
+                                        <Bar dataKey="count" name="Users" radius={[6, 6, 0, 0]}>
+                                            {funnelChartData.map((entry, index) => (
+                                                <Cell key={`bar-${index}`} fill={entry.fill} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-xs text-gray-400">Loading funnel...</div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

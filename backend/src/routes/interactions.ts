@@ -1344,6 +1344,65 @@ router.post('/contact', async (req, res) => {
     }
 });
 
+// POST /beta-tester - Register for Google Play closed testing
+router.post('/beta-tester', async (req, res) => {
+    try {
+        const { email, name } = req.body;
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+            return res.status(400).json({ error: "Please provide a valid Google Play email (Gmail)" });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // 1. Save to Prisma if accessible
+        try {
+            await prisma.contact_inquiries.create({
+                data: {
+                    name: name ? String(name).trim() : 'Play Store Tester',
+                    email: normalizedEmail,
+                    message: '[Google Play Closed Beta Tester] - Opted in from landing page',
+                    status: 'beta_tester'
+                }
+            });
+        } catch (dbErr) {
+            console.warn('[Beta Tester] Prisma save warning (falling back to JSON store):', dbErr);
+        }
+
+        // 2. Also persist to local JSON file
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const dataFile = path.join(__dirname, '..', '..', 'data', 'beta_testers.json');
+            let list = [];
+            if (fs.existsSync(dataFile)) {
+                list = JSON.parse(fs.readFileSync(dataFile, 'utf-8') || '[]');
+            }
+            if (!list.some((item: any) => item.email === normalizedEmail)) {
+                list.unshift({
+                    id: 'tester_' + Date.now(),
+                    email: normalizedEmail,
+                    name: name || 'Play Store Tester',
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                });
+                fs.writeFileSync(dataFile, JSON.stringify(list, null, 2), 'utf-8');
+            }
+        } catch (fileErr) {
+            console.error('[Beta Tester] File write error:', fileErr);
+        }
+
+        res.json({
+            success: true,
+            message: "Successfully registered as a closed beta tester! We will add your email to Google Play Console.",
+            webTestingUrl: "https://play.google.com/apps/testing/com.lifepartner.ai",
+            playStoreUrl: "https://play.google.com/store/apps/details?id=com.lifepartner.ai"
+        });
+    } catch (e) {
+        console.error("Beta Tester Registration Error", e);
+        res.status(500).json({ error: "Failed to register tester" });
+    }
+});
+
 // DELETE /interest/:toUserId
 router.delete('/interest/:toUserId', authenticateToken, async (req: any, res) => {
     try {

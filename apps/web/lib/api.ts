@@ -375,7 +375,37 @@ export const api = {
             method: 'POST',
             body: JSON.stringify({ userId, action })
         }),
-        getCampaignStats: () => fetchAPI('/notifications/campaign-stats')
+        getCampaignStats: () => fetchAPI('/notifications/campaign-stats'),
+        getTesters: () => fetch('/api/testers').then(r => r.json()).catch(() => fetchAPI('/admin/testers')),
+        updateTesterStatus: (id: string, status: string) => fetch('/api/testers', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, status })
+        }).then(r => r.json()),
+        addTester: (email: string, name?: string) => fetch('/api/testers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name })
+        }).then(r => r.json()),
+        deleteTester: (id: string) => fetch(`/api/testers?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE'
+        }).then(r => r.json())
+    },
+    betaTesters: {
+        submit: (data: { email: string; name?: string }) => fetch('/api/testers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(r => r.json()),
+        list: () => fetch('/api/testers').then(r => r.json()),
+        updateStatus: (id: string, status: string) => fetch('/api/testers', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, status })
+        }).then(r => r.json()),
+        delete: (id: string) => fetch(`/api/testers?id=${encodeURIComponent(id)}`, {
+            method: 'DELETE'
+        }).then(r => r.json())
     },
     events: {
         getAll: (lat?: number, lng?: number, filter?: string) => {

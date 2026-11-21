@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import DownloadAppModal from '@/components/DownloadAppModal';
+import GooglePlayTesterCard from '@/components/GooglePlayTesterCard';
 import { isNativePlatform } from '@/lib/notifications';
 import { Smartphone, Download, ShieldCheck, Zap, Sparkles, RefreshCw, CheckCircle, BellRing, Heart, Lock, Star, ArrowRight } from 'lucide-react';
 
@@ -200,6 +201,11 @@ export default function DownloadPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Google Play Closed Testing & Early Access Section */}
+        <div className="mb-16">
+          <GooglePlayTesterCard />
         </div>
 
         {/* Feature Highlights Grid */}

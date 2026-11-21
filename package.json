@@ -16,6 +16,7 @@
     "dev:backend": "npm run dev --workspace=backend",
     "dev:web": "npm run dev --workspace=apps/web",
     "dev:admin": "npm run dev --workspace=apps/admin",
-    "dev:mobile": "npm run start --workspace=apps/mobile"
+    "dev:mobile": "npm run start --workspace=apps/mobile",
+    "list:testers": "node scripts/list-testers.js"
   }
 }

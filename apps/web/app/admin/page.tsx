@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle, BarChart3, Star, HeartHandshake, Globe, Heart } from 'lucide-react';
+import { Users, DollarSign, ShieldAlert, Activity, Search, Mail, Send, UserPlus, Image as ImageIcon, CheckCircle, XCircle, BarChart3, Star, HeartHandshake, Globe, Heart, Copy, Check, ExternalLink, Download, Trash2, Smartphone, Play, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -26,6 +26,15 @@ export default function AdminDashboard() {
     const [campaignStats, setCampaignStats] = useState<any>(null);
     const [analyticsInsights, setAnalyticsInsights] = useState<any>(null);
     const [siteViews, setSiteViews] = useState<any>(null);
+
+    // Google Play Testers state
+    const [testers, setTesters] = useState<any[]>([]);
+    const [testersLoading, setTestersLoading] = useState(false);
+    const [manualTesterEmails, setManualTesterEmails] = useState('');
+    const [copyAllSuccess, setCopyAllSuccess] = useState(false);
+    const [copyPendingSuccess, setCopyPendingSuccess] = useState(false);
+    const [copiedEmailId, setCopiedEmailId] = useState<string | null>(null);
+    const [testerFilter, setTesterFilter] = useState<'all' | 'pending' | 'added_to_console'>('all');
 
     // Campaign state
     const [campaignLoading, setCampaignLoading] = useState<string | null>(null);
@@ -69,11 +78,96 @@ export default function AdminDashboard() {
             setCampaignStats(campaignStatsRes);
             setAnalyticsInsights(analyticsRes);
             setSiteViews(viewsRes);
+            fetchTesters();
         } catch (e) {
             console.error("Admin Load Error", e);
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchTesters = async () => {
+        setTestersLoading(true);
+        try {
+            const res = await fetch('/api/testers');
+            const data = await res.json();
+            if (data?.testers) {
+                setTesters(data.testers);
+            }
+        } catch (e) {
+            console.error("Failed to fetch testers", e);
+        } finally {
+            setTestersLoading(false);
+        }
+    };
+
+    const handleCopyAllTesters = () => {
+        const emails = testers.map(t => t.email.trim().toLowerCase()).join(', ');
+        navigator.clipboard.writeText(emails);
+        setCopyAllSuccess(true);
+        setTimeout(() => setCopyAllSuccess(false), 2500);
+    };
+
+    const handleCopyPendingTesters = () => {
+        const emails = testers
+            .filter(t => t.status !== 'added_to_console')
+            .map(t => t.email.trim().toLowerCase())
+            .join(', ');
+        navigator.clipboard.writeText(emails);
+        setCopyPendingSuccess(true);
+        setTimeout(() => setCopyPendingSuccess(false), 2500);
+    };
+
+    const handleCopySingleEmail = (id: string, email: string) => {
+        navigator.clipboard.writeText(email);
+        setCopiedEmailId(id);
+        setTimeout(() => setCopiedEmailId(null), 2000);
+    };
+
+    const handleToggleTesterStatus = async (id: string, currentStatus: string) => {
+        const nextStatus = currentStatus === 'added_to_console' ? 'pending' : 'added_to_console';
+        try {
+            await fetch('/api/testers', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, status: nextStatus })
+            });
+            setTesters(prev => prev.map(t => t.id === id ? { ...t, status: nextStatus } : t));
+        } catch (e) {
+            console.error("Failed to update tester status", e);
+        }
+    };
+
+    const handleDeleteTester = async (id: string) => {
+        if (!confirm('Are you sure you want to remove this tester?')) return;
+        try {
+            await fetch(`/api/testers?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+            setTesters(prev => prev.filter(t => t.id !== id));
+        } catch (e) {
+            console.error("Failed to delete tester", e);
+        }
+    };
+
+    const handleAddManualTesters = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!manualTesterEmails.trim()) return;
+        const emailList = manualTesterEmails
+            .split(/[\n,;]/)
+            .map(s => s.trim())
+            .filter(s => s.includes('@'));
+
+        if (emailList.length === 0) return;
+
+        setTestersLoading(true);
+        for (const email of emailList) {
+            await fetch('/api/testers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, name: 'Admin Manual Entry' })
+            }).catch(() => null);
+        }
+        setManualTesterEmails('');
+        await fetchTesters();
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -245,6 +339,7 @@ export default function AdminDashboard() {
                 <Tabs defaultValue="growth" className="space-y-4">
                     <TabsList>
                         <TabsTrigger value="growth">🚀 Growth & Funnel Analytics</TabsTrigger>
+                        <TabsTrigger value="testers">🎯 Google Play Testers ({testers.length})</TabsTrigger>
                         <TabsTrigger value="users">User Management</TabsTrigger>
                         <TabsTrigger value="analytics">📊 Image & Drop-Off Analytics</TabsTrigger>
                         <TabsTrigger value="moderation">Photo Moderation</TabsTrigger>
@@ -930,6 +1025,306 @@ export default function AdminDashboard() {
                                 )}
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    {/* GOOGLE PLAY CLOSED BETA TESTERS TAB */}
+                    <TabsContent value="testers" className="space-y-6">
+                        {/* 1. Header Overview & Google Play Requirement Bar */}
+                        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+                            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+                                <div>
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider mb-2 border border-white/30 text-emerald-100">
+                                        <Sparkles size={13} />
+                                        <span>Google Play Production Requirement</span>
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-2">
+                                        Google Play Closed Beta Testers
+                                    </h2>
+                                    <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
+                                        Google requires at least <strong>20 testers</strong> opted-in for at least 14 days before applying for Production.
+                                        Copy the email list below and paste directly into Google Play Console closed testing track!
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <button
+                                        onClick={handleCopyAllTesters}
+                                        disabled={testers.length === 0}
+                                        className="px-4 py-3 rounded-2xl bg-white text-emerald-900 hover:bg-emerald-50 active:scale-95 font-black text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {copyAllSuccess ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+                                        <span>{copyAllSuccess ? 'Copied All to Clipboard!' : `Copy All (${testers.length}) Emails`}</span>
+                                    </button>
+
+                                    <button
+                                        onClick={handleCopyPendingTesters}
+                                        disabled={testers.filter(t => t.status !== 'added_to_console').length === 0}
+                                        className="px-4 py-3 rounded-2xl bg-emerald-950/60 border border-white/30 text-white hover:bg-emerald-950/80 active:scale-95 font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {copyPendingSuccess ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                                        <span>{copyPendingSuccess ? 'Copied Pending!' : `Copy Pending (${testers.filter(t => t.status !== 'added_to_console').length})`}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Progress bar towards 20 testers */}
+                            <div className="mt-6 pt-6 border-t border-white/20">
+                                <div className="flex items-center justify-between text-xs font-bold mb-2">
+                                    <span>Production Application Readiness:</span>
+                                    <span>{testers.length} / 20 Testers ({Math.min(100, Math.round((testers.length / 20) * 100))}%)</span>
+                                </div>
+                                <div className="w-full h-3 rounded-full bg-white/20 overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-emerald-300 to-yellow-300 transition-all duration-500 rounded-full"
+                                        style={{ width: `${Math.min(100, Math.round((testers.length / 20) * 100))}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. Quick Links Card */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <a
+                                href="https://play.google.com/console"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                        <Play size={20} className="fill-current" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-900 dark:text-white">Google Play Console</div>
+                                        <div className="text-[11px] text-gray-500">Manage Track & Testers</div>
+                                    </div>
+                                </div>
+                                <ExternalLink size={16} className="text-gray-400" />
+                            </a>
+
+                            <a
+                                href="https://play.google.com/apps/testing/com.lifepartner.ai"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center">
+                                        <Globe size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-900 dark:text-white">Web Testing Opt-In Link</div>
+                                        <div className="text-[11px] text-gray-500">Testers tap "Become a Tester"</div>
+                                    </div>
+                                </div>
+                                <ExternalLink size={16} className="text-gray-400" />
+                            </a>
+
+                            <a
+                                href="https://play.google.com/store/apps/details?id=com.lifepartner.ai"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm hover:border-emerald-500 transition-all flex items-center justify-between"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                        <Smartphone size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-900 dark:text-white">Play Store Download Link</div>
+                                        <div className="text-[11px] text-gray-500">Direct app listing</div>
+                                    </div>
+                                </div>
+                                <ExternalLink size={16} className="text-gray-400" />
+                            </a>
+                        </div>
+
+                        {/* 3. Manual Add Tester & Bulk Add Box */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                    <UserPlus className="w-4 h-4 text-emerald-600" />
+                                    <span>Add Tester Emails Manually</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <form onSubmit={handleAddManualTesters} className="space-y-3">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Paste one or more email addresses (separated by commas or newlines) to record them as testers:
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="tester1@gmail.com, tester2@gmail.com, ..."
+                                            value={manualTesterEmails}
+                                            onChange={(e) => setManualTesterEmails(e.target.value)}
+                                            className="text-xs"
+                                        />
+                                        <Button type="submit" disabled={testersLoading} className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs">
+                                            {testersLoading ? 'Adding...' : 'Add to List'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+
+                        {/* 4. Testers Table */}
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between pb-3">
+                                <div className="flex items-center gap-2">
+                                    <CardTitle className="text-base font-bold">
+                                        Registered Testers List ({testers.length})
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-xs">
+                                        {testers.filter(t => t.status === 'added_to_console').length} Added to Console
+                                    </Badge>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="flex rounded-lg border border-gray-200 dark:border-gray-800 p-0.5 text-xs">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTesterFilter('all')}
+                                            className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'all' ? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-white font-bold' : 'text-gray-500'}`}
+                                        >
+                                            All ({testers.length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTesterFilter('pending')}
+                                            className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'pending' ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold' : 'text-gray-500'}`}
+                                        >
+                                            Pending ({testers.filter(t => t.status !== 'added_to_console').length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTesterFilter('added_to_console')}
+                                            className={`px-2.5 py-1 rounded-md font-medium ${testerFilter === 'added_to_console' ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold' : 'text-gray-500'}`}
+                                        >
+                                            Added ({testers.filter(t => t.status === 'added_to_console').length})
+                                        </button>
+                                    </div>
+
+                                    <a
+                                        href="/api/testers?format=csv"
+                                        download="google_play_testers.csv"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs font-medium text-gray-700 dark:text-gray-300 transition-all"
+                                    >
+                                        <Download size={13} />
+                                        <span>Export CSV</span>
+                                    </a>
+                                </div>
+                            </CardHeader>
+
+                            <CardContent>
+                                {testers.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500 dark:text-gray-400 text-xs space-y-2">
+                                        <Mail className="w-8 h-8 mx-auto text-gray-400 opacity-60" />
+                                        <p>No testers registered yet.</p>
+                                        <p className="text-[11px] text-gray-400">
+                                            As soon as users submit their emails on the landing page or download page, they will appear here!
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                                                <tr>
+                                                    <th className="p-3 font-semibold">Email Address</th>
+                                                    <th className="p-3 font-semibold">Registered Date</th>
+                                                    <th className="p-3 font-semibold">Play Console Status</th>
+                                                    <th className="p-3 font-semibold text-right">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {testers
+                                                    .filter(t => {
+                                                        if (testerFilter === 'pending') return t.status !== 'added_to_console';
+                                                        if (testerFilter === 'added_to_console') return t.status === 'added_to_console';
+                                                        return true;
+                                                    })
+                                                    .map((t) => (
+                                                        <tr key={t.id || t.email} className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
+                                                            <td className="p-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-mono font-medium text-gray-900 dark:text-gray-100">{t.email}</span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleCopySingleEmail(t.id, t.email)}
+                                                                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-all"
+                                                                        title="Copy email"
+                                                                    >
+                                                                        {copiedEmailId === t.id ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                                                    </button>
+                                                                </div>
+                                                                {t.name && t.name !== 'Play Store Tester' && (
+                                                                    <div className="text-[10px] text-gray-400">{t.name}</div>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-gray-500 dark:text-gray-400">
+                                                                {t.createdAt ? format(new Date(t.createdAt), 'dd MMM yyyy, HH:mm') : '-'}
+                                                            </td>
+                                                            <td className="p-3">
+                                                                {t.status === 'added_to_console' ? (
+                                                                    <Badge className="bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
+                                                                        Added to Play Console ✅
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="outline" className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300 font-bold text-[10px]">
+                                                                        Pending Console Addition ⏳
+                                                                    </Badge>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                                <div className="flex items-center justify-end gap-1.5">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant={t.status === 'added_to_console' ? 'outline' : 'default'}
+                                                                        className={`text-[11px] h-7 px-2.5 ${t.status !== 'added_to_console' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
+                                                                        onClick={() => handleToggleTesterStatus(t.id, t.status)}
+                                                                    >
+                                                                        {t.status === 'added_to_console' ? 'Mark Pending' : 'Mark as Added'}
+                                                                    </Button>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteTester(t.id)}
+                                                                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all"
+                                                                        title="Delete tester"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* 5. Google Play Console Closed Testing Instructions */}
+                        <div className="p-5 rounded-3xl bg-slate-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 space-y-3">
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                                <ShieldCheck size={15} className="text-emerald-600" />
+                                <span>Instructions: How to add these emails in Google Play Console</span>
+                            </h4>
+                            <div className="grid md:grid-cols-3 gap-3 text-xs text-gray-600 dark:text-gray-400">
+                                <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+                                    <div className="font-bold text-gray-900 dark:text-white mb-1">Step 1: Copy Emails</div>
+                                    <p className="text-[11px]">Click <strong>"Copy All Emails"</strong> or <strong>"Copy Pending"</strong> above. It copies a single comma-separated list of all email addresses.</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+                                    <div className="font-bold text-gray-900 dark:text-white mb-1">Step 2: Paste in Play Console</div>
+                                    <p className="text-[11px]">In Play Console &gt; Closed Testing &gt; Testers &gt; Email lists, paste the emails and click <strong>Save changes</strong>.</p>
+                                </div>
+                                <div className="p-3 rounded-xl bg-white dark:bg-gray-950 border border-gray-100 dark:border-gray-800">
+                                    <div className="font-bold text-gray-900 dark:text-white mb-1">Step 3: User Opt-In & Download</div>
+                                    <p className="text-[11px]">The user opens the Web Opt-in link, accepts the test invite, and downloads from Google Play Store!</p>
+                                </div>
+                            </div>
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>

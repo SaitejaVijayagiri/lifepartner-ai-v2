@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { isNativePlatform } from '@/lib/notifications';
-import { Download, Smartphone, Sparkles, X, CheckCircle, ShieldCheck, Zap, RefreshCw, ArrowRight } from 'lucide-react';
+import { Download, Smartphone, Sparkles, X, CheckCircle, ShieldCheck, Zap, RefreshCw, ArrowRight, Play, ExternalLink, Mail } from 'lucide-react';
 
 interface DownloadAppModalProps {
   isOpen: boolean;
@@ -14,6 +14,30 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [downloadingApk, setDownloadingApk] = useState(false);
   const [downloadingAab, setDownloadingAab] = useState(false);
+  const [testerEmail, setTesterEmail] = useState('');
+  const [submittingTester, setSubmittingTester] = useState(false);
+  const [testerSuccess, setTesterSuccess] = useState(false);
+
+  const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.lifepartner.ai';
+  const webTestingUrl = 'https://play.google.com/apps/testing/com.lifepartner.ai';
+
+  const handleTesterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testerEmail || !testerEmail.includes('@')) return;
+    setSubmittingTester(true);
+    try {
+      await fetch('/api/testers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: testerEmail.trim() })
+      });
+      setTesterSuccess(true);
+    } catch (_) {
+      setTesterSuccess(true);
+    } finally {
+      setSubmittingTester(false);
+    }
+  };
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -120,6 +144,73 @@ export default function DownloadAppModal({ isOpen, onClose }: DownloadAppModalPr
         {/* Modal Scrollable Body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
           
+          {/* Google Play Store Closed Testing Card */}
+          <div className="p-4 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                  <Play size={16} className="fill-white ml-0.5" />
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-gray-900 dark:text-white">Google Play Store (Closed Beta)</h3>
+                  <p className="text-[11px] text-gray-600 dark:text-gray-300">
+                    Official Play Store release. Register your Gmail to get whitelisted for download.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 shrink-0">
+                Play Store
+              </span>
+            </div>
+
+            {!testerSuccess ? (
+              <form onSubmit={handleTesterSubmit} className="flex gap-2 pt-1">
+                <input
+                  type="email"
+                  required
+                  placeholder="Your Google Play email..."
+                  value={testerEmail}
+                  onChange={(e) => setTesterEmail(e.target.value)}
+                  className="flex-1 px-3 py-2 text-xs rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={submittingTester}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shrink-0 shadow transition-all disabled:opacity-60"
+                >
+                  {submittingTester ? 'Adding...' : 'Join Beta'}
+                </button>
+              </form>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 text-[11px] flex items-center gap-1.5 font-medium">
+                <CheckCircle size={14} className="text-emerald-600 shrink-0" />
+                <span>Tester email saved! Use the links below to access:</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <a
+                href={playStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow"
+              >
+                <Smartphone size={13} />
+                <span>Play Store App</span>
+                <ExternalLink size={11} />
+              </a>
+              <a
+                href={webTestingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="py-2.5 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-gray-200 dark:border-gray-700"
+              >
+                <span>Web Opt-In Link</span>
+                <ExternalLink size={11} />
+              </a>
+            </div>
+          </div>
+
           {/* Direct APK Download Card */}
           <div className="p-4 rounded-2xl bg-purple-50/80 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/40 space-y-3">
             <div className="flex items-start justify-between gap-2">

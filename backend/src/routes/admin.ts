@@ -509,5 +509,94 @@ router.post('/send-campaign', async (req: any, res) => {
     })();
 });
 
+// GET /testers - List closed beta testers
+router.get('/testers', async (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const dataFile = path.join(__dirname, '..', '..', 'data', 'beta_testers.json');
+
+        let fileTesters: any[] = [];
+        if (fs.existsSync(dataFile)) {
+            fileTesters = JSON.parse(fs.readFileSync(dataFile, 'utf-8') || '[]');
+        }
+
+        let dbTesters: any[] = [];
+        try {
+            dbTesters = await prisma.contact_inquiries.findMany({
+                where: {
+                    OR: [
+                        { status: 'beta_tester' },
+                        { status: 'added_to_console' },
+                        { message: { contains: 'Closed Beta', mode: 'insensitive' } },
+                        { message: { contains: 'Google Play', mode: 'insensitive' } },
+                        { message: { contains: 'Tester', mode: 'insensitive' } }
+                    ]
+                },
+                orderBy: { created_at: 'desc' }
+            });
+        } catch (dbErr) {
+            console.warn('[Admin Testers] Prisma read warning:', dbErr);
+        }
+
+        // Merge & deduplicate
+        const map = new Map();
+        fileTesters.forEach((t: any) => map.set(t.email.toLowerCase(), t));
+        dbTesters.forEach((t: any) => {
+            const email = t.email.toLowerCase();
+            if (!map.has(email)) {
+                map.set(email, {
+                    id: t.id,
+                    email: t.email,
+                    name: t.name,
+                    status: t.status === 'added_to_console' ? 'added_to_console' : 'pending',
+                    createdAt: t.created_at
+                });
+            }
+        });
+
+        const testers = Array.from(map.values());
+        res.json({ success: true, count: testers.length, testers });
+    } catch (e: any) {
+        console.error("Admin Testers Error", e);
+        res.status(500).json({ error: "Failed to fetch testers" });
+    }
+});
+
+// POST /testers/status - Update tester status
+router.post('/testers/status', async (req, res) => {
+    try {
+        const { id, email, status } = req.body;
+        if (!status) return res.status(400).json({ error: "Missing status" });
+
+        const fs = require('fs');
+        const path = require('path');
+        const dataFile = path.join(__dirname, '..', '..', 'data', 'beta_testers.json');
+
+        if (fs.existsSync(dataFile)) {
+            const list = JSON.parse(fs.readFileSync(dataFile, 'utf-8') || '[]');
+            const idx = list.findIndex((t: any) => (id && t.id === id) || (email && t.email.toLowerCase() === email.toLowerCase()));
+            if (idx >= 0) {
+                list[idx].status = status;
+                fs.writeFileSync(dataFile, JSON.stringify(list, null, 2), 'utf-8');
+            }
+        }
+
+        try {
+            if (id && id.length > 20) {
+                await prisma.contact_inquiries.update({
+                    where: { id },
+                    data: { status }
+                });
+            }
+        } catch (_) {}
+
+        res.json({ success: true });
+    } catch (e: any) {
+        console.error("Admin Tester Status Error", e);
+        res.status(500).json({ error: "Failed to update status" });
+    }
+});
+
 export default router;
 

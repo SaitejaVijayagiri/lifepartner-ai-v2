@@ -251,8 +251,8 @@ export default function ProfileWizard({ onComplete }: { onComplete: (data: any) 
                 return false;
             }
             const parsedAge = parseInt(String(data.age), 10);
-            if (!data.age || isNaN(parsedAge) || parsedAge < 18 || parsedAge > 95) {
-                toast.error("Please enter a valid Age between 18 and 95 (*)");
+            if (!data.age || isNaN(parsedAge) || parsedAge < 18 || parsedAge > 99) {
+                toast.error("Please enter a valid Age between 18 and 99 (*)");
                 return false;
             }
             if (!data.city || !String(data.city).trim()) {
